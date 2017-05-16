@@ -244,8 +244,9 @@ config_schema = Schema({
     "implicit_styles":                              OptionalStrList,
     "alias_styles":                                 OptionalStrList,
     "memcached_uri":                                OptionalStrList,
-    "local_packages_path":                          Str,
-    "release_packages_path":                        Str,
+    "local_packages_paths":                         StrList,
+    "release_packages_paths":                       StrList,
+    "packages_index":                               Int,
     "dot_image_format":                             Str,
     "build_directory":                              Str,
     "documentation_url":                            Str,
@@ -475,11 +476,22 @@ class Config(object):
         return d
 
     @property
+    def local_packages_path(self):
+        """Returns the local_package_path based on the index"""
+        return self.local_packages_paths[self.packages_index]
+
+    @property
+    def release_packages_path(self):
+        """Returns the release_package_path based on the index"""
+        return self.release_packages_paths[self.packages_index]
+
+    @property
     def nonlocal_packages_path(self):
         """Returns package search paths with local path removed."""
         paths = self.packages_path[:]
-        if self.local_packages_path in paths:
-            paths.remove(self.local_packages_path)
+        for local_packages_path in self.local_packages_paths:
+            if local_packages_path in paths:
+                paths.remove(self.local_packages_path)
         return paths
 
     def get_completions(self, prefix):
