@@ -10,7 +10,7 @@ import itertools
 import os.path
 
 
-class TestSolver(TestBase):
+class TestSolverBase(TestBase):
     @classmethod
     def setUpClass(cls):
         path = os.path.dirname(__file__)
@@ -100,6 +100,8 @@ class TestSolver(TestBase):
 
         return s1
 
+
+class TestSolver(TestSolverBase):
     def test_01(self):
         """Extremely basic solves involving a single package."""
         self._solve([],
@@ -219,7 +221,19 @@ class TestSolver(TestBase):
         self._solve(["pyvariants", "python", "nada"],
                     ["python-2.6.8[]", "nada[]", "pyvariants-2[1]"])
 
-    # test bug regression
+
+class TestSolver(TestSolverBase):
+
+    @classmethod
+    def setUpClass(cls):
+        path = os.path.dirname(__file__)
+        packages_path = os.path.join(path, "data", "solver", "packages_unsolvable")
+        print packages_path
+        cls.packages_path = [packages_path]
+        cls.callback = None
+        cls.settings = dict(
+            packages_path=cls.packages_path,
+            package_filter=None)
 
     def test_11_split_variants(self):
         # This test maps to github issue #422:
