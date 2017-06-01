@@ -112,7 +112,7 @@ class CustomBuildSystem(BuildSystem):
 
         def expand(txt):
             root = self.package.root
-            install_ = "install" if install else ''
+            install_ = install_path if install else ''
             return txt.format(root=root, install=install_).strip()
 
         if isinstance(command, basestring):
