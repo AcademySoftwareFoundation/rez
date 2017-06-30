@@ -237,7 +237,13 @@ class Wrapper(object):
                         name = "  %s" % pkg.qualified_name
                         col = local if pkg.is_local else None
 
-                    label = "(local)" if pkg.is_local else ""
+                    label = ""
+                    if pkg.is_local:
+                        if pkg.path_index:
+                            label = "(local: %s)" % pkg.path_index
+                        else:
+                            label = "(local)"
+
                     rows.append((name, pkg.path, label))
                     colors.append(col)
 
