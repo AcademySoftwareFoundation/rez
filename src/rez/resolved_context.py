@@ -742,6 +742,8 @@ class ResolvedContext(object):
                 else:
                     t.append('local')
                 col = local
+            elif pkg.path_index:
+                t.append(pkg.path_index)
 
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, location, t))
