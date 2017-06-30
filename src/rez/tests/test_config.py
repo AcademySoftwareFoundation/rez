@@ -74,7 +74,7 @@ class TestConfig(TestBase):
 
         # check user path expansion
         self.assertEqual(c.local_packages_path,
-                         os.path.expanduser(os.path.join("~", "packages")))
+                         os.path.expanduser(os.path.join("~", "packages", "ext")))
 
         # check access to plugins settings common to a plugin type
         self.assertEqual(c.plugins.release_vcs.tag_name, '{qualified_name}')

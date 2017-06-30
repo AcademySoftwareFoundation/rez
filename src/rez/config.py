@@ -178,6 +178,11 @@ class OptionalDictOrDictList(Setting):
     _env_var_name = None
 
 
+class StrOrDict(Setting):
+    schema = Or(basestring,
+                dict)
+
+
 class SuiteVisibility_(Str):
     @cached_class_property
     def schema(cls):
@@ -244,9 +249,9 @@ config_schema = Schema({
     "implicit_styles":                              OptionalStrList,
     "alias_styles":                                 OptionalStrList,
     "memcached_uri":                                OptionalStrList,
-    "local_packages_paths":                         StrList,
-    "release_packages_paths":                       StrList,
-    "packages_index":                               Int,
+    "local_packages_path":                          StrOrDict,
+    "release_packages_path":                        StrOrDict,
+    "packages_path_index":                          StrOrDict,
     "dot_image_format":                             Str,
     "build_directory":                              Str,
     "documentation_url":                            Str,
@@ -475,21 +480,32 @@ class Config(object):
                     pass  # unknown key, just leave it unchanged
         return d
 
+
     @property
     def local_packages_path(self):
-        """Returns the local_package_path based on the index"""
-        return self.local_packages_paths[self.packages_index]
+        """Returns local_packages_path based on the package_paths_index"""
+        return self._packages_path('local')
 
     @property
     def release_packages_path(self):
-        """Returns the release_package_path based on the index"""
-        return self.release_packages_paths[self.packages_index]
+        """Returns release_packages_path based on the package_paths_index"""
+        return self._packages_path('release')
+
+    @property
+    def local_packages_path_index(self):
+        """Returns packages_path_index for local"""
+        return self._packages_path_index('local')
+
+    @property
+    def release_packages_path_index(self):
+        """Returns packages_path_index for release"""
+        return self._packages_path_index('release')
 
     @property
     def nonlocal_packages_path(self):
         """Returns package search paths with local path removed."""
         paths = self.packages_path[:]
-        for local_packages_path in self.local_packages_paths:
+        for local_packages_path in self.local_packages_path:
             if local_packages_path in paths:
                 paths.remove(self.local_packages_path)
         return paths
@@ -516,6 +532,28 @@ class Config(object):
             if keys == ["plugins"]:
                 keys += _get_plugin_completions('')
             return keys
+
+    def _packages_path(self, local_mode):
+        if isinstance(self._data[local_mode + '_packages_path'], basestring):
+            result = self._data[local_mode + '_packages_path']
+        else:
+            try:
+                result = self._data[local_mode + '_packages_path'][self._packages_path_index(local_mode)]
+            except KeyError as e:
+                raise ConfigurationError('Invalid packages_path_index "%s" for %s' % (e.message, local_mode))
+
+        return expand_system_vars(result)
+
+    def _packages_path_index(self, local_mode):
+        """Returns the package_path_index for the local_mode (local or release)"""
+        if isinstance(self.packages_path_index, basestring):
+            return self.packages_path_index
+
+        try:
+            result = self.packages_path_index[local_mode]
+        except KeyError as e:
+            raise ConfigurationError('packages_path_index missing %s' % e.message)
+        return result
 
     def _uncache(self, key):
         # deleting the attribute falls up back to the class attribute, which is
