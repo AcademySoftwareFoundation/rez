@@ -549,6 +549,11 @@ class Config(object):
         if isinstance(self.packages_path_index, basestring):
             return self.packages_path_index
 
+        # Ignore _packages_path_index if non dict package path.
+        # Else an unnecessary exception might be raised.
+        if isinstance(self._data[local_mode + '_packages_path'], basestring):
+            return None
+
         try:
             result = self.packages_path_index[local_mode]
         except KeyError as e:

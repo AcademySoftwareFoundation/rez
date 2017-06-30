@@ -90,6 +90,13 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         return self.resource.config or config
 
     @cached_property
+    def path_index(self):
+        if self.is_local:
+            return self.config.local_packages_path_index
+        else:
+            return self.config.release_packages_path_index
+
+    @cached_property
     def is_local(self):
         """Returns True if the package is in the local package repository"""
 

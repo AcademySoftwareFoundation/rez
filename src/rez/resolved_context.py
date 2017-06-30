@@ -737,7 +737,10 @@ class ResolvedContext(object):
                     col = critical
 
             if pkg.is_local:
-                t.append('local')
+                if pkg.path_index:
+                    t.append('local: %s' % pkg.path_index)
+                else:
+                    t.append('local')
                 col = local
 
             t = '(%s)' % ', '.join(t) if t else ''
