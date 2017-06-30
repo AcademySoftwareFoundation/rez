@@ -546,13 +546,13 @@ class Config(object):
 
     def _packages_path_index(self, local_mode):
         """Returns the package_path_index for the local_mode (local or release)"""
-        if isinstance(self.packages_path_index, basestring):
-            return self.packages_path_index
-
         # Ignore _packages_path_index if non dict package path.
         # Else an unnecessary exception might be raised.
         if isinstance(self._data[local_mode + '_packages_path'], basestring):
             return None
+
+        if isinstance(self.packages_path_index, basestring):
+            return self.packages_path_index
 
         try:
             result = self.packages_path_index[local_mode]
