@@ -5,6 +5,7 @@ from rez.tests.util import TestBase, TempdirMixin
 from rez.resolved_context import ResolvedContext
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
+from rez.config import config
 import rez.vendor.unittest2 as unittest
 import subprocess
 import os.path
@@ -86,6 +87,29 @@ class TestContext(TestBase, TempdirMixin):
         # load
         r2 = ResolvedContext.load(file)
         self.assertEqual(r.resolved_packages, r2.resolved_packages)
+
+    def test_orderer(self):
+        """Test a resolve with an orderer"""
+        from rez.package_order import VersionSplitPackageOrder, OrdererDict
+        from rez.vendor.version.version import Version
+        path = os.path.dirname(__file__)
+        packages_path = os.path.join(path, "data", "solver", "packages")
+        config.override("packages_path",
+                        [packages_path])
+        orderers = OrdererDict([
+            VersionSplitPackageOrder(packages=["python"],
+                                     first_version=Version("2.6"))])
+        r = ResolvedContext(["python", "!python-2.6"],
+                            package_orderers=orderers)
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ["python-2.5.2"])
+
+        # make sure serializing the orderer works
+        file = os.path.join(self.root, "test_orderers.rxt")
+        r.save(file)
+        r2 = ResolvedContext.load(file)
+        self.assertEqual(r, r2)
+        self.assertEqual(r.package_orderers, r2.package_orderers)
 
 
 if __name__ == '__main__':

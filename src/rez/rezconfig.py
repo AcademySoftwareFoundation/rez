@@ -285,6 +285,35 @@ variant_select_mode = "version_priority"
 # foo-5+              | Same as range(foo-5+)
 package_filter = None
 
+# Package orderers. One or more objects which can re-order the package's
+# priority when resolving - ie, if we know that a group of package versions
+# can all satisfy a request, this can affect which of those package versions is
+# returned in the resolved context.
+# You can specify multiple orderers; each orderer in turn is tested against
+# a given package to see if it applies to it (usually this is controlled through
+# the "packages" config item in the orderer's config). The first orderer that
+# applies is then used to reorder that package's versions.
+#
+# Here's an example:
+#
+#     package_orderers:
+#     - type: custom
+#       packages:
+#         gcc: ['3.7', '2.8']
+#         foo: ['2.6', '2.8']
+#     - type: soft_timestamp
+#       packages: ["gcc", "foo"]
+#       timestamp: 1429830188
+#     - type: sorted
+#       packages: ["baz"]
+#       descending: False
+#     - type: version_split
+#       packages: ['bar', 'bah']
+#       first_version: '4.0.5'
+
+
+package_orderers = None
+
 # If True, unversioned packages are allowed. Solve times are slightly better if
 # this value is False.
 allow_unversioned_packages = True

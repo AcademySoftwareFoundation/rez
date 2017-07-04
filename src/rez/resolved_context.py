@@ -198,7 +198,7 @@ class ResolvedContext(object):
         self.package_filter = (PackageFilterList.singleton if package_filter is None
                                else package_filter)
 
-        self.package_orderers = package_orderers
+        self.package_orderers = package_orderers or config.package_orderers
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
@@ -1261,8 +1261,10 @@ class ResolvedContext(object):
         serialize_version = '.'.join(str(x) for x in ResolvedContext.serialize_version)
         patch_locks = dict((k, v.name) for k, v in self.patch_locks)
 
-        package_orderers_list = [package_order.to_pod(x)
-                                 for x in (self.package_orderers or [])]
+        if self.package_orderers:
+            package_orderers_list = self.package_orderers.to_pod()
+        else:
+            package_orderers_list = None
 
         if self.graph_string and self.graph_string.startswith('{'):
             graph_str = self.graph_string  # already in compact format
@@ -1409,7 +1411,7 @@ class ResolvedContext(object):
 
         data = d.get("package_orderers")
         if data:
-            r.package_orderers = [package_order.from_pod(x) for x in data]
+            r.package_orderers = package_order.OrdererDict(data)
         else:
             r.package_orderers = None
 

@@ -21,7 +21,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    from rez.utils.yaml import dump_yaml
+    from rez.utils.yaml import dump_yaml, YamlDumpable
 
     if opts.search_list:
         for filepath in config.filepaths:
@@ -44,7 +44,7 @@ def command(opts, parser, extra_arg_groups=None):
             except KeyError:
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
-    if isinstance(data, (dict, list)):
+    if isinstance(data, (dict, list, YamlDumpable)):
         txt = dump_yaml(data).strip()
         print txt
     else:

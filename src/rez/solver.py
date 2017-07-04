@@ -487,6 +487,8 @@ class _PackageEntry(object):
             here as a safety measure so that sorting is guaranteed repeatable
             regardless.
         """
+        from rez.package_order import get_orderer
+
         if self.sorted:
             return
 
@@ -498,13 +500,19 @@ class _PackageEntry(object):
                 if not request.conflict:
                     req = variant.requires_list.get(request.name)
                     if req is not None:
-                        requested_key.append((-i, req.range))
+                        orderer = get_orderer(req.name,
+                                              self.solver.package_orderers or {})
+                        range_key = orderer.sort_key(req.name, req.range)
+                        requested_key.append((-i, range_key))
                         names.add(req.name)
 
             additional_key = []
             for request in variant.requires_list:
                 if not request.conflict and request.name not in names:
-                    additional_key.append((request.range, request.name))
+                    orderer = get_orderer(request.name,
+                                          self.solver.package_orderers or {})
+                    range_key = orderer.sort_key(request.name, request.range)
+                    additional_key.append((range_key, request.name))
 
             if (VariantSelectMode[config.variant_select_mode] ==
                     VariantSelectMode.version_priority):
@@ -862,7 +870,9 @@ class _PackageVariantSlice(_Common):
 
         if not fams:
             # trivial case, split on first variant
+            self.entries[0].sort()
             return _split(0, 1)
+
 
         # find split point - first variant with no dependency shared with previous
         prev = None
@@ -891,25 +901,20 @@ class _PackageVariantSlice(_Common):
         The order is typically descending, but package order functions can
         change this.
         """
+        from rez.package_order import get_orderer
+
         if self.sorted:
             return
 
-        for orderer in (self.solver.package_orderers or []):
-            entries = orderer.reorder(self.entries, key=lambda x: x.package)
-            if entries is not None:
-                self.entries = entries
-                self.sorted = True
-
-                if self.pr:
-                    self.pr("sorted: %s packages: %s", self.package_name, repr(orderer))
-                return
-
-        # default ordering is version descending
-        self.entries = sorted(self.entries, key=lambda x: x.version, reverse=True)
+        orderer = get_orderer(self.package_name,
+                              self.solver.package_orderers or {})
+        def sort_key(entry):
+            return orderer.sort_key(entry.package.name, entry.version)
+        self.entries = sorted(self.entries, key=sort_key, reverse=True)
         self.sorted = True
 
         if self.pr:
-            self.pr("sorted: %s packages: version descending", self.package_name)
+            self.pr("sorted: %s packages: %s", self.package_name, repr(orderer))
 
     def dump(self):
         print self.package_name
@@ -1789,7 +1794,7 @@ class Solver(_Common):
         """
         self.package_paths = package_paths
         self.package_filter = package_filter
-        self.package_orderers = package_orderers
+        self.package_orderers = package_orderers or config.package_orderers
         self.pr = _Printer(verbosity, buf=buf)
         self.optimised = optimised
         self.callback = callback
