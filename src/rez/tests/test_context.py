@@ -39,6 +39,12 @@ class TestContext(TestBase, TempdirMixin):
         r = ResolvedContext(["hello_world"])
         r.print_info()
 
+    def test_apply(self):
+        """Test apply() function."""
+        r = ResolvedContext(["hello_world"])
+        r.apply()
+        self.assertEqual(os.environ.get("OH_HAI_WORLD"), "hello")
+
     def test_execute_command(self):
         """Test command execution in context."""
         if platform_.name == "windows":

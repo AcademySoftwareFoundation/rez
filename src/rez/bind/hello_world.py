@@ -16,6 +16,7 @@ import os.path
 
 def commands():
     env.PATH.append('{this.root}/bin')
+    env.OH_HAI_WORLD = "hello"
 
 
 def hello_world_source():

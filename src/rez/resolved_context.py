@@ -1035,15 +1035,17 @@ class ResolvedContext(object):
     def apply(self, parent_environ=None):
         """Apply the context to the current python session.
 
-        Note that this updates os.environ and possibly sys.path.
+        Note that this updates os.environ and possibly sys.path, if
+        `parent_environ` is not provided.
 
-        @param environ Environment to interpret the context within, defaults to
-            os.environ if None.
+        Args:
+            parent_environ: Environment to interpret the context within,
+                defaults to os.environ if None.
         """
         interpreter = Python(target_environ=os.environ)
         executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
-        executor.get_output()
+        interpreter.apply_environ()
 
     @_on_success
     def which(self, cmd, parent_environ=None, fallback=False):
