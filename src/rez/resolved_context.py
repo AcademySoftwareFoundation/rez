@@ -1043,6 +1043,7 @@ class ResolvedContext(object):
         interpreter = Python(target_environ=os.environ)
         executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
+        executor.get_output()
 
     @_on_success
     def which(self, cmd, parent_environ=None, fallback=False):
