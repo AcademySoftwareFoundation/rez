@@ -1093,7 +1093,13 @@ class ResolvedContext(object):
         Note:
             This does not alter the current python session.
         """
-        interpreter = Python(target_environ={})
+        if parent_environ in (None, os.environ):
+            target_environ = {}
+        else:
+            target_environ = parent_environ.copy()
+
+        interpreter = Python(target_environ=target_environ)
+
         executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
         return interpreter.subprocess(args, **subprocess_kwargs)
