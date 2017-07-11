@@ -129,7 +129,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
         # config is a special case. We only really want to show any config settings
         # that were in the package.py, not the entire Config contents that get
-        # grafted onto the Package/Variant instance. However Variant has an empy
+        # grafted onto the Package/Variant instance. However Variant has an empty
         # 'data' dict property, since it forwards data from its parent package.
         data.pop("config", None)
         if self.config:
