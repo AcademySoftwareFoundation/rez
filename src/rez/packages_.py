@@ -95,10 +95,10 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
         # Check both the local and release packages_paths
         all_packages_paths = []
-        if "local_packages_path" in self.config._data:
-            all_packages_paths.append(self.config._data['local_packages_path'])
-        if "release_packages_path" in self.config._data:
-            all_packages_paths.append(self.config._data['release_packages_path'])
+        if "local_packages_path" in config._data:
+            all_packages_paths.append(config._data['local_packages_path'])
+        if "release_packages_path" in config._data:
+            all_packages_paths.append(config._data['release_packages_path'])
 
         for current_packages_path in all_packages_paths:
             if isinstance(current_packages_path, basestring):
@@ -120,7 +120,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         """Returns True if the package is in the local package repository"""
 
         # Use the original config data, not the property
-        original_local_packages_path = self.config._data['local_packages_path']
+        original_local_packages_path = config._data['local_packages_path']
 
         if isinstance(original_local_packages_path, basestring):
             local_packages_paths = [original_local_packages_path]
