@@ -91,10 +91,29 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
     @cached_property
     def target_packages_path(self):
-        if self.is_local:
-            return self.config.local_target_packages_path
-        else:
-            return self.config.release_target_packages_path
+        """Returns the target_packages_path if available, else None"""
+
+        # Check both the local and release packages_paths
+        all_packages_paths = []
+        if "local_packages_path" in self.config._data:
+            all_packages_paths.append(self.config._data['local_packages_path'])
+        if "release_packages_path" in self.config._data:
+            all_packages_paths.append(self.config._data['release_packages_path'])
+
+        for current_packages_path in all_packages_paths:
+            if isinstance(current_packages_path, basestring):
+                packages_paths = { None: current_packages_path }
+            else:
+                # Assuming dict version of local_packages_path
+                packages_paths = current_packages_path
+
+            for target, local_packages_path in packages_paths.items():
+                local_packages_path = expandvars(local_packages_path)
+                local_repo = package_repository_manager.get_repository(
+                    local_packages_path)
+                if self.resource._repository.uid == local_repo.uid:
+                    return target
+        return None
 
     @cached_property
     def is_local(self):
