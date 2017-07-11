@@ -7,7 +7,7 @@ from rez.utils import reraise
 from rez.utils.logging_ import print_info, print_error
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property, _missing
-from rez.utils.formatting import StringFormatMixin, StringFormatType
+from rez.utils.formatting import StringFormatMixin, StringFormatType, expandvars
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
@@ -100,13 +100,17 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     def is_local(self):
         """Returns True if the package is in the local package repository"""
 
-        if isinstance(self.config.local_packages_path, basestring):
-            local_packages_paths = [self.config.local_packages_path]
+        # Use the original config data, not the property
+        original_local_packages_path = self.config._data['local_packages_path']
+
+        if isinstance(original_local_packages_path, basestring):
+            local_packages_paths = [original_local_packages_path]
         else:
             # Assuming dict version of local_packages_path
-            local_packages_paths = self.config.local_packages_path.values()
+            local_packages_paths = original_local_packages_path.values()
 
         for local_packages_path in local_packages_paths:
+            local_packages_path = expandvars(local_packages_path)
             local_repo = package_repository_manager.get_repository(
                 local_packages_path)
             if self.resource._repository.uid == local_repo.uid:
