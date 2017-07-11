@@ -90,11 +90,11 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         return self.resource.config or config
 
     @cached_property
-    def path_index(self):
+    def target_packages_path(self):
         if self.is_local:
-            return self.config.local_packages_path_index
+            return self.config.local_target_packages_path
         else:
-            return self.config.release_packages_path_index
+            return self.config.release_target_packages_path
 
     @cached_property
     def is_local(self):

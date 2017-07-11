@@ -251,7 +251,7 @@ config_schema = Schema({
     "memcached_uri":                                OptionalStrList,
     "local_packages_path":                          StrOrDict,
     "release_packages_path":                        StrOrDict,
-    "packages_path_index":                          StrOrDict,
+    "target_packages_path":                         StrOrDict,
     "dot_image_format":                             Str,
     "build_directory":                              Str,
     "documentation_url":                            Str,
@@ -492,14 +492,14 @@ class Config(object):
         return self._packages_path('release')
 
     @property
-    def local_packages_path_index(self):
-        """Returns packages_path_index for local"""
-        return self._packages_path_index('local')
+    def local_target_packages_path(self):
+        """Returns target_packages_path for local"""
+        return self._target_packages_path('local')
 
     @property
-    def release_packages_path_index(self):
-        """Returns packages_path_index for release"""
-        return self._packages_path_index('release')
+    def release_target_packages_path(self):
+        """Returns target_packages_path for release"""
+        return self._target_packages_path('release')
 
     @property
     def nonlocal_packages_path(self):
@@ -538,26 +538,26 @@ class Config(object):
             result = self._data[local_mode + '_packages_path']
         else:
             try:
-                result = self._data[local_mode + '_packages_path'][self._packages_path_index(local_mode)]
+                result = self._data[local_mode + '_packages_path'][self._target_packages_path(local_mode)]
             except KeyError as e:
-                raise ConfigurationError('Invalid packages_path_index "%s" for %s' % (e.message, local_mode))
+                raise ConfigurationError('Invalid target_packages_path "%s" for %s' % (e.message, local_mode))
 
         return expand_system_vars(result)
 
-    def _packages_path_index(self, local_mode):
-        """Returns the package_path_index for the local_mode (local or release)"""
-        # Ignore _packages_path_index if non dict package path.
+    def _target_packages_path(self, local_mode):
+        """Returns the target_packages_path for the local_mode (local or release)"""
+        # Ignore _target_packages_path if non dict package path.
         # Else an unnecessary exception might be raised.
         if isinstance(self._data[local_mode + '_packages_path'], basestring):
             return None
 
-        if isinstance(self.packages_path_index, basestring):
-            return self.packages_path_index
+        if isinstance(self.target_packages_path, basestring):
+            return self.target_packages_path
 
         try:
-            result = self.packages_path_index[local_mode]
+            result = self.target_packages_path[local_mode]
         except KeyError as e:
-            raise ConfigurationError('packages_path_index missing %s' % e.message)
+            raise ConfigurationError('target_packages_path missing %s' % e.message)
         return result
 
     def _uncache(self, key):

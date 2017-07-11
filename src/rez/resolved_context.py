@@ -737,13 +737,13 @@ class ResolvedContext(object):
                     col = critical
 
             if pkg.is_local:
-                if pkg.path_index:
-                    t.append('local: %s' % pkg.path_index)
+                if pkg.target_packages_path:
+                    t.append('local: %s' % pkg.target_packages_path)
                 else:
                     t.append('local')
                 col = local
-            elif pkg.path_index:
-                t.append(pkg.path_index)
+            elif pkg.target_packages_path:
+                t.append(pkg.target_packages_path)
 
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, location, t))

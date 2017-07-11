@@ -52,7 +52,7 @@ packages_path = [
 ]
 
 # The path that Rez will locally install packages to when rez-build is used
-# The packages_path_index controls which path to use.
+# The target_packages_path controls which path to use.
 # Note: Can be a string for backwards compatibility.
 local_packages_path = {
     "internal": "~/packages/int",
@@ -61,7 +61,7 @@ local_packages_path = {
 
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
-# The packages_path_index controls which path to use.
+# The target_packages_path controls which path to use.
 # Note: Can be a string for backwards compatibility.
 release_packages_path = {
     "internal": "~/.rez/packages/int",
@@ -71,9 +71,9 @@ release_packages_path = {
 # Defines which local/release_packages_paths are enabled
 # Feel free to override this within a package to build/release to different locations.
 # Is ignored for *_packages_path that are strings for backwards compatibility.
-packages_path_index = "external"
+target_packages_path = "external"
 # May also be dict for specific control over local or release
-# packages_path_index = {
+# target_packages_path = {
 #     "local":   "internal",
 #     "release": "external",
 # }
