@@ -16,6 +16,10 @@ def setup_parser(parser, completions=False):
         default=None, metavar="PATH",
         help="install path, defaults to local package path")
     parser.add_argument(
+        "-t", "--target-packages-path", dest="target_packages_path", type=str,
+        default=None, metavar="TARGET",
+        help="Sets the target_packages_path for the install")
+    parser.add_argument(
         "--no-deps", dest="no_deps", action="store_true",
         help="Do not bind dependencies")
     parser.add_argument(
@@ -38,6 +42,9 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.package_bind import bind_package, find_bind_module, \
         get_bind_modules, _print_package_list
     from rez.utils.formatting import PackageRequest, columnise
+
+    if opts.target_packages_path:
+        config.target_packages_path = opts.target_packages_path
 
     if opts.release:
         install_path = config.release_packages_path
