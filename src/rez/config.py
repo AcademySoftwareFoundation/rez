@@ -505,7 +505,12 @@ class Config(object):
     def nonlocal_packages_path(self):
         """Returns package search paths with local path removed."""
         paths = self.packages_path[:]
-        for local_packages_path in self.local_packages_path:
+        local_packages_paths = self.local_packages_path
+
+        if isinstance(local_packages_paths, basestring):
+            local_packages_paths = [local_packages_paths]
+
+        for local_packages_path in local_packages_paths:
             if local_packages_path in paths:
                 paths.remove(self.local_packages_path)
         return paths
