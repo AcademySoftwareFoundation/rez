@@ -505,14 +505,17 @@ class Config(object):
     def nonlocal_packages_path(self):
         """Returns package search paths with local path removed."""
         paths = self.packages_path[:]
-        local_packages_paths = self.local_packages_path
+        local_packages_paths = config._data['local_packages_path']
 
         if isinstance(local_packages_paths, basestring):
             local_packages_paths = [local_packages_paths]
+        else:
+            local_packages_paths = local_packages_paths.values()
 
         for local_packages_path in local_packages_paths:
+            local_packages_path = expand_system_vars(local_packages_path)
             if local_packages_path in paths:
-                paths.remove(self.local_packages_path)
+                paths.remove(local_packages_path)
         return paths
 
     def get_completions(self, prefix):
