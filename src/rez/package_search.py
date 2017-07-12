@@ -15,7 +15,9 @@ from collections import defaultdict
 from rez.utils.formatting import PackageRequest
 
 
-def get_reverse_dependency_tree(package_name, depth=None, paths=None):
+def get_reverse_dependency_tree(package_name, depth=None, paths=None,
+                                build_requires=False,
+                                private_build_requires=False):
     """Find packages that depend on the given package.
 
     This is a reverse dependency lookup. A tree is constructed, showing what
@@ -60,7 +62,15 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
             continue
 
         pkg = max(packages, key=lambda x: x.version)
-        requires = set(pkg.requires or [])
+        requires = []
+        if not build_requires and not private_build_requires:
+            requires = pkg.requires or []
+        else:
+            for variant in pkg.iter_variants():
+                requires += variant.get_requires(build_requires, private_build_requires)
+
+        requires = set(requires)
+
         for req_list in (pkg.variants or []):
             requires.update(req_list)
 
