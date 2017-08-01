@@ -30,6 +30,11 @@ ALL_PACKAGES = set([
     'pysplit-5', 'pysplit-6', 'pysplit-7',
     'python-2.5.2', 'python-2.6.0', 'python-2.6.8', 'python-2.7.0',
     'pyvariants-2',
+    'test_variant_split_start-1.0', 'test_variant_split_start-2.0',
+    'test_variant_split_mid1-1.0', 'test_variant_split_mid1-2.0',
+    'test_variant_split_mid2-1.0', 'test_variant_split_mid2-2.0',
+    'test_variant_split_end-1.0', 'test_variant_split_end-2.0',
+    'test_variant_split_end-3.0', 'test_variant_split_end-4.0',
     # packages from data/packages/py_packages and .../yaml_packages
     'unversioned',
     'unversioned_py',
