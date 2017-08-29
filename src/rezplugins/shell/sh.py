@@ -33,7 +33,9 @@ class SH(UnixShell):
 
     @classmethod
     def get_syspaths(cls):
-        if not cls.syspaths:
+        if cls.syspaths is None and config.standard_system_paths:
+            cls.syspaths = config.standard_system_paths
+        elif cls.syspaths is None:
             cmd = "cmd=`which %s`; unset PATH; $cmd %s %s 'echo __PATHS_ $PATH'" \
                   % (cls.name(), cls.norc_arg, cls.command_arg)
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE,

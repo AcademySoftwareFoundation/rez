@@ -362,6 +362,16 @@ rez_tools_visibility = "append"
 # scripts (such as .bashrc). If False, package commands are sourced after.
 package_commands_sourced_first = True
 
+# Defines the basic system paths to use for the $PATH env variable. If the
+# empty list is provided (default) the existing environment setup is inspected.
+# On POSIX shells that involves inspecting __PATHS_, on Windows it involves a
+# more complicated scan of the Windows Registry. If a non-empty list of path
+# strings is provided these paths will be loaded instead; the primary use of
+# this is in curated shells where some other process or script has already
+# determined some subset or superset of the standard system defaults and wishes
+# to "hand off" those curated values to Rez.
+standard_system_paths = []
+
 # If you define this function, it will be called as the *preprocess function*
 # on every package that does not provide its own, as part of the build process.
 # The given function must be made available by setting the value of
