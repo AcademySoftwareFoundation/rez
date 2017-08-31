@@ -87,7 +87,8 @@ class CMD(Shell):
                 if match:
                     paths.extend(match.group(2).split(os.pathsep))
 
-            cls.syspaths = set([x for x in paths if x])
+            seen = set()
+            cls.syspaths = [x for x in paths if x and x not in seen and not seen.add(x)]
         return cls.syspaths
 
     def _bind_interactive_rez(self):
@@ -146,7 +147,15 @@ class CMD(Shell):
             _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
 
         if shell_command:
+            # launch the provided command in the configured shell and wait until it exits
             executor.command(shell_command)
+        # test for None specificaly because resolved_context.execute_rex_code passes ''
+        # and we do NOT want to keep a shell open during a rex code exec operation
+        elif shell_command is None: 
+            # launch the configured shell itself and wait for user interaction to exit
+            executor.command('cmd /Q /K')
+            
+        # then exit the configured shell
         executor.command('exit %errorlevel%')
 
         code = executor.get_output()
