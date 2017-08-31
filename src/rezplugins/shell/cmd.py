@@ -2,7 +2,7 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal
+from rez.rex import RexExecutor, literal, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
@@ -10,7 +10,7 @@ from rez.util import shlex_join
 import os
 import re
 import subprocess
-
+from functools import partial
 
 class CMD(Shell):
     # For reference, the ss64 web page provides useful documentation on builtin
@@ -18,6 +18,10 @@ class CMD(Shell):
     # http://ss64.com/nt/cmd.html
     syspaths = None
     _executable = None
+    # regex to aid with escapiing of Windows-specific special chars
+    # http://ss64.com/nt/syntax-esc.html
+    _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])')
+    _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
     @property
     def executable(cls):
@@ -172,7 +176,12 @@ class CMD(Shell):
         return p
 
     def escape_string(self, value):
-        return value
+        """
+        Escapes the <, >, and & special characters reserved by Windows.
+        """
+        if isinstance(value, EscapedString):
+            return value.formatted(self._escaper)
+        return self._escaper(value)
 
     def _saferefenv(self, key):
         pass
