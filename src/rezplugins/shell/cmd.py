@@ -22,6 +22,7 @@ class CMD(Shell):
     # http://ss64.com/nt/syntax-esc.html
     _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])')
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
+    _doskey = None
 
     @property
     def executable(cls):
@@ -200,7 +201,19 @@ class CMD(Shell):
         self._addline(self.setenv(key, value))
 
     def alias(self, key, value):
-        self._addline("doskey %s=%s" % (key, value))
+        # the PATH may have been cleared prior to this command being run, but
+        # the doskey command should always be on the system paths recorded in
+        # the registry; lazy load those and then find the doskey.exe path,
+        # falling back on letting the shell search for it if that fails
+        if self._doskey is None:
+            doskey = 'doskey'
+            for p in self.get_syspaths():
+                f = os.path.normpath(os.path.join(p, doskey + '.exe'))
+                if os.path.isfile(f):
+                    doskey = f
+                    break
+            self._doskey = doskey
+        self._addline("%s %s=%s" % (self._doskey, key, value))
 
     def comment(self, value):
         for line in value.split('\n'):
