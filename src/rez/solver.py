@@ -45,6 +45,13 @@ The solve loop performs 5 different types of operations:
   ScopeA instead of the original, and PhaseB has ScopeB instead of the original.
   Now, we attempt to solve PhaseA, and if that fails, we attempt to solve PhaseB.
 
+Following the process above, we maintain a 'phase stack'. We run a loop, and in
+each loop, we attempt to solve the phase at the top of the stack. If the phase
+becomes exhaused, then it is split, and replaced with 2 phases (so the stack
+grows by 1). If the phase is solved, then we have the solution, and the other
+phases are discarded. If the phase fails to solve, then it is removed from the
+stack - if the stack is then empty, then there is no solution.
+
 The pseudocode for a solve looks like this::
 
     def solve(requests):
@@ -115,6 +122,12 @@ There are 2 notable points missing from the pseudocode, related to optimisations
   scopes are shared between phases in the stack, if objects were not immutable
   then creating a new phase would involve a deep copy of the entire state of the
   solver.
+
+Notes on how to interpret verbose debugging output:
+
+This output indicates that a phase is starting. The number indicates the number
+of phases that have been solved so far, regardle
+
 """
 from rez.config import config
 from rez.packages_ import iter_packages
