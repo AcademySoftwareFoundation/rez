@@ -125,11 +125,51 @@ There are 2 notable points missing from the pseudocode, related to optimisations
 Solver debugging is enabled using the *rez-env* *-v* flag. Repeat for more
 vebosity, to a max of *-vvv*.
 
-This output indicates that a phase is starting. The number indicates the number
-of phases that have been solved so far, regardless of how many have failed or
-succeeded:
+### Scope Syntax
+
+Before describing all the sections of output during a solve, we need to explain
+the scope syntax. This describes the state of a scope, and you'll see it a lot
+in solver output.
+
+* `[foo==1.2.0]` This is a scope containing exactly one variant. In this case it
+  is a *null* variant (a package that has no variants).
+
+* `[foo-1.2.0[1]]` This is a scope containing exactly one variant. This example
+  shows the 1-index variant of the package foo-1.2.0
+
+    [foo-1.2.0[0,1]]
+
+This is a scope containing two variants from one package version.
+
+    [foo-1.2.0..1.3.5(6)]
+
+This is a scope containing 6 variants from 6 different package versions, where
+the packages are all >= 1.2.0 and <= 1.3.5.
+
+
+
+
+
+    request: foo-1.2 bah-3 ~foo-1
+
+You will see this once, at the start of the solve. It simply prints the initial
+request list.
+
+    merged_request: foo-1.2 bah-3
+
+You will see this once and immediately after the `request:` output. It shows a
+simplified (merged) version of the initial request. Notice here how `~foo-1` is
+gone - this is because the intersection of `foo-1.2` and `~foo-1` is simply
+`foo-1.2`.
+
+    pushed {0,0}: [foo==1.2.0[0,1]]* bah[3.0.5..3.4.0(6)]*
+
+
 
     --------------------------------------------------------------------------------
     SOLVE #1...
     --------------------------------------------------------------------------------
 
+This output indicates that a phase is starting. The number indicates the number
+of phases that have been solved so far (1-indexed), regardless of how many have
+failed or succeeded:
