@@ -1,6 +1,6 @@
 # Description Of Solver Algorithm
 
-## Glossary
+## Overview
 
 * A **phase** is a current state of the solve. It contains a list of **scopes**.
 * A **scope** is a package request. If the request isn't a conflict, then a scope
@@ -8,26 +8,26 @@
 
 The solve loop performs 5 different types of operations:
 
-* EXTRACTION. This happens when a common dependency is found in all the variants
+* **EXTRACT**. This happens when a common dependency is found in all the variants
   in a scope. For example if every version of pkg 'foo' depends on some version
   of python, the 'extracted' dependency might be "python-2.6|2.7". An extraction
   then results in either an INTERSECT or an ADD.
 
-* INTERSECT: This happens when an extracted dependency overlaps with an existing
+* **INTERSECT**: This happens when an extracted dependency overlaps with an existing
   scope. For example "python-2" might be a current scope. Pkg foo's common dependency
   python-2.6|2.7 would be 'intersected' with this scope. This might result in a
   conflict, which would cause the whole phase to fail (and possibly the whole solve).
   Or, as in this case, it narrows an existing scope to 'python-2.6|2.7'.
 
-* ADD: This happens when an extraction is a new pkg request. A new scope is
+* **ADD**: This happens when an extraction is a new pkg request. A new scope is
   created and added to the current list of scopes.
 
-* REDUCE: This is when a scope iterates over all of its variants and removes those
+* **REDUCE**: This is when a scope iterates over all of its variants and removes those
   that conflict with another scope. If this removes all the variants in the scope,
   the phase has failed - this is called a "total reduction". This type of failure
   is not common - usually it's a conflicting INTERSECT that causes a failure.
 
-* SPLIT: Once a phase has been extracted/intersected/added/reduced as much as
+* **SPLIT**: Once a phase has been extracted/intersected/added/reduced as much as
   possible (this is called 'exhausted'), we are left with either a solution (each
   scope contains only a single variant), or an unsolved phase. This is when the
   algorithm needs to recurse (although it doesn't actually recurse, it uses a stack
@@ -47,7 +47,9 @@ grows by 1). If the phase is solved, then we have the solution, and the other
 phases are discarded. If the phase fails to solve, then it is removed from the
 stack - if the stack is then empty, then there is no solution.
 
-The pseudocode for a solve looks like this::
+## Pseudocode
+
+The pseudocode for a solve looks like this:
 
     def solve(requests):
         phase = create_initial_phase(requests)
@@ -118,7 +120,16 @@ There are 2 notable points missing from the pseudocode, related to optimisations
   then creating a new phase would involve a deep copy of the entire state of the
   solver.
 
-Notes on how to interpret verbose debugging output:
+## Interpreting Debugging Output
+
+Solver debugging is enabled using the *rez-env* *-v* flag. Repeat for more
+vebosity, to a max of *-vvv*.
 
 This output indicates that a phase is starting. The number indicates the number
-of phases that have been solved so far, regardle
+of phases that have been solved so far, regardless of how many have failed or
+succeeded:
+
+    --------------------------------------------------------------------------------
+    SOLVE #1...
+    --------------------------------------------------------------------------------
+
