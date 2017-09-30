@@ -3,9 +3,8 @@
 ## Glossary
 
 * A **phase** is a current state of the solve. It contains a list of **scopes**.
-
-A 'scope' is a package request. If the request isn't a conflict, then a scope
-also contains the actual list of variants that match the request.
+* A **scope** is a package request. If the request isn't a conflict, then a scope
+  also contains the actual list of variants that match the request.
 
 The solve loop performs 5 different types of operations:
 
