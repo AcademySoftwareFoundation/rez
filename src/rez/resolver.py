@@ -33,7 +33,8 @@ class Resolver(object):
     """
     def __init__(self, context, package_requests, package_paths, package_filter=None,
                  package_orderers=None, timestamp=0, callback=None, building=False,
-                 verbosity=False, buf=None, package_load_callback=None, caching=True):
+                 verbosity=False, buf=None, package_load_callback=None, caching=True,
+                 suppress_passive=False):
         """Create a Resolver.
 
         Args:
@@ -61,6 +62,7 @@ class Resolver(object):
         self.verbosity = verbosity
         self.caching = caching
         self.buf = buf
+        self.suppress_passive = suppress_passive
 
         # store hash of package orderers. This is used in the memcached key
         if package_orderers:
@@ -383,7 +385,8 @@ class Resolver(object):
                         building=self.building,
                         verbosity=self.verbosity,
                         prune_unfailed=config.prune_failed_graph,
-                        buf=self.buf)
+                        buf=self.buf,
+                        suppress_passive=self.suppress_passive)
         solver.solve()
 
         return solver

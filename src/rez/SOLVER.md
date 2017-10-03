@@ -10,8 +10,12 @@ The solve loop performs 5 different types of operations:
 
 * **EXTRACT**. This happens when a common dependency is found in all the variants
   in a scope. For example if every version of pkg 'foo' depends on some version
-  of python, the 'extracted' dependency might be "python-2.6|2.7". An extraction
-  then results in either an INTERSECT or an ADD.
+  of python, the 'extracted' dependency might be "python-2.6|2.7".
+
+* **MERGE-EXTRACTIONS**. When one or more scopes are successfully *extracted*,
+  this results in a list of package requests. This list is then merged into a new
+  list, which may be unchanged, or simpler, or may cause a conflict. If a conflict
+  occurs then the phase is in conflict, and fails.
 
 * **INTERSECT**: This happens when an extracted dependency overlaps with an existing
   scope. For example "python-2" might be a current scope. Pkg foo's common dependency
@@ -49,7 +53,8 @@ stack - if the stack is then empty, then there is no solution.
 
 ## Pseudocode
 
-The pseudocode for a solve looks like this:
+The pseudocode for a solve looks like this (and yes, you will have to read the
+solver code for full appreciation of what's going on here):
 
     def solve(requests):
         phase = create_initial_phase(requests)
@@ -58,6 +63,7 @@ The pseudocode for a solve looks like this:
 
         while not solved():
             phase = phase_stack.pop()
+
             if phase.failed:
                 phase = phase_stack.pop()  # discard previous failed phase
 
@@ -66,6 +72,7 @@ The pseudocode for a solve looks like this:
                 phase_stack.push(next_phase)
 
             new_phase = solve_phase(phase)
+
             if new_phase.failed:
                 phase_stack.push(new_phase)  # we keep last fail on the stack
             elif new_phase.solved:
@@ -77,34 +84,65 @@ The pseudocode for a solve looks like this:
 
     def solve_phase(phase):
         while True:
+            changed_scopes = []
+            added_scopes = []
+            widened_scopes = []
+
             while True:
-                foreach phase.scope as x:
-                    extractions |= collect_extractions(x)
+                extractions = []
 
-                if extractions_present:
-                    foreach phase.scope as x:
-                        intersect(x, extractions)
-                        if failed(x):
-                            set_fail()
-                            return
-                        elif intersected(x):
-                            reductions |= add_reductions_involving(x)
+                foreach phase.scope as scope:
+                    extractions |= collect_extractions(scope)
 
-                    foreach new_request in extractions:
-                        scope = new_scope(new_request)
-                        reductions |= add_reductions_involving(scope)
-                        phase.add(scope)
-                else:
+                if not extractions:
                     break
 
-            if no intersections and no adds:
-                break
-
-            foreach scope_a, scope_b in reductions:
-                scope_b.reduce_by(scope_a)
-                if totally_reduced(scope_b):
+                merge(extractions)
+                if in_conflict(extractions):
                     set_fail()
                     return
+
+                foreach phase.scope as scope:
+                    intersect(scope, extractions)
+
+                    if failed(scope):
+                        set_fail()
+                        return
+
+                    if was_intersected(scope):
+                        changed_scopes.add(scope)
+
+                        if was_widened(scope):
+                            widened_scopes.add(scope)
+
+                # get those extractions involving new packages
+                new_extractions = get_new_extractions(extractions)
+
+                # add them as new scopes
+                foreach request in new_extractions:
+                    scope = new_scope(request)
+                    added_scopes.add(scope)
+                    phase.add(scope)
+
+            if no (changed_scopes or added_scopes or widened_scopes):
+                break
+
+            pending_reductions = convert_to_reduction_set(
+                changed_scopes, added_scopes, widened_scopes)
+
+            while pending_reductions:
+                scope_a, scope_b = pending_reductions.pop()
+                scope_a.reduce_by(scope_b)
+
+                if totally_reduced(scope_a):
+                    set_fail()
+                    return
+
+                # scope_a changed so other scopes need to reduce against it again
+                if was_reduced(scope_a):
+                    foreach phase.scope as scope:
+                        if scope is not scope_a:
+                            pending_reductions.add(scope, scope_a)
 
 There are 2 notable points missing from the pseudocode, related to optimisations:
 
@@ -137,18 +175,18 @@ in solver output.
 * `[foo-1.2.0[1]]` This is a scope containing exactly one variant. This example
   shows the 1-index variant of the package foo-1.2.0
 
-    [foo-1.2.0[0,1]]
+* `[foo-1.2.0[0,1]]` This is a scope containing two variants from one package version.
 
-This is a scope containing two variants from one package version.
+* `foo[1.2.0..1.3.5(6)]` This is a scope containing 6 variants from 6 different
+  package versions, where the packages are all >= 1.2.0 and <= 1.3.5.
 
-    [foo-1.2.0..1.3.5(6)]
+* `foo[1.2.0..1.3.5(6:8)]` This is a scope containing 8 variants from 6 different
+  package versions.
 
-This is a scope containing 6 variants from 6 different package versions, where
-the packages are all >= 1.2.0 and <= 1.3.5.
+In all of the above cases, you may see a trailing `*`, eg `[foo-1.2.0[0,1]]*`.
+This indicates that there are still outstanding *extractions* for this scope.
 
-
-
-
+### Output Steps
 
     request: foo-1.2 bah-3 ~foo-1
 
@@ -164,7 +202,12 @@ gone - this is because the intersection of `foo-1.2` and `~foo-1` is simply
 
     pushed {0,0}: [foo==1.2.0[0,1]]* bah[3.0.5..3.4.0(6)]*
 
+This is pushing the initial *phase* onto the *phase stack*. The `{0,0}` means
+that:
 
+* There is 1 phase in the stack (this is the zeroeth phase - phases are pushed
+  and  popped from the bottom of the stack);
+* Zero other phases have already been solved (or failed) at this depth so far.
 
     --------------------------------------------------------------------------------
     SOLVE #1...
@@ -172,4 +215,38 @@ gone - this is because the intersection of `foo-1.2` and `~foo-1` is simply
 
 This output indicates that a phase is starting. The number indicates the number
 of phases that have been solved so far (1-indexed), regardless of how many have
-failed or succeeded:
+failed or succeeded.
+
+    popped {0,0}: [foo==1.2.0[0,1]]* bah[3.0.5..3.4.0(6)]*
+
+This is always the first thing you see after the `SOLVE #1...` output. The
+topmost phase is being retrieved from the phase stack.
+
+    EXTRACTING:
+    extracted python-2 from [foo==1.2.0[0,1]]*
+    extracted utils-1.2+ from bah[3.0.5..3.4.0(6)]*
+
+This lists extractions that have occurred from current scopes.
+
+    MERGE-EXTRACTIONS:
+    merged extractions are: python-2 utils-1.2+
+
+This shows the result of merging a set of extracted package requests into a
+potentially simpler (or conflicting) set of requests.
+
+    INTERSECTING:
+    python[2.7.3..3.3.0(3)] was intersected to [python==2.7.3] by range '2'
+
+This shows scopes that were intersected by previous extractions.
+
+    ADDING:
+    added utils[1.2.0..5.2.0(12:14)]*
+
+This shows scopes that were added for new extractions (ie, extractions that
+introduce a new package into the solve).
+
+  REDUCING:
+  removed blah-35.0.2[1] (dep(python-3.6) <--!--> python==2.7.3)
+  [blah==35.0.2[0,1]] was reduced to [blah==35.0.2[0]]* by python==2.7.3
+
+This shows any reductions and the scopes that have changed as a result.
