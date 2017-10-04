@@ -315,7 +315,7 @@ class RequirementList(_Common):
         Args:
             requirements: List of Requirement objects.
         """
-        self.requirements_ = None
+        self.requirements_ = []
         self.conflict_ = None
         self.requirements_dict = {}
         self.names_ = set()
@@ -323,23 +323,28 @@ class RequirementList(_Common):
 
         for req in requirements:
             existing_req = self.requirements_dict.get(req.name)
-            if existing_req:
+
+            if existing_req is None:
+                self.requirements_dict[req.name] = req
+            else:
                 merged_req = existing_req.merged(req)
                 if merged_req is None:
                     self.conflict_ = (existing_req, req)
                     return
                 else:
                     self.requirements_dict[req.name] = merged_req
-            else:
-                self.requirements_dict[req.name] = req
 
-        names = set()
-        self.requirements_ = []
+        seen = set()
+
+        # build optimised list, this intends to match original request order
+        # as closely as possible
         for req in requirements:
-            if req.name not in names:
-                names.add(req.name)
-                self.requirements_.append(self.requirements_dict[req.name])
-                if req.conflict:
+            if req.name not in seen:
+                seen.add(req.name)
+                req_ = self.requirements_dict[req.name]
+                self.requirements_.append(req_)
+
+                if req_.conflict:
                     self.conflict_names_.add(req.name)
                 else:
                     self.names_.add(req.name)

@@ -763,7 +763,7 @@ class VersionRange(_Comparable):
                 impossible range is given, such as '3+<2'.
         """
         self._str = None
-        self.bounds = []
+        self.bounds = []  # note: kept in ascending order
         if range_str is None:
             return
 
@@ -998,8 +998,11 @@ class VersionRange(_Comparable):
         if len(self.bounds) < 5:
             # not worth overhead of binary search
             for bound in self.bounds:
-                if bound.contains_version(version):
+                i = bound.version_containment(version)
+                if i == 0:
                     return True
+                if i == -1:
+                    return False
         else:
             _, contains = self._contains_version(version)
             return contains
@@ -1217,7 +1220,9 @@ class VersionRange(_Comparable):
 
     @classmethod
     def _intersects(cls, bounds1, bounds2):
+        # sort so bounds1 is the shorter list
         bounds1, bounds2 = sorted((bounds1, bounds2), key=lambda x: len(x))
+
         if len(bounds2) < 5:
             # not worth overhead of binary search
             for bound1 in bounds1:
