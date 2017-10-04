@@ -34,7 +34,7 @@ class Resolver(object):
     def __init__(self, context, package_requests, package_paths, package_filter=None,
                  package_orderers=None, timestamp=0, callback=None, building=False,
                  verbosity=False, buf=None, package_load_callback=None, caching=True,
-                 suppress_passive=False):
+                 suppress_passive=False, print_stats=False):
         """Create a Resolver.
 
         Args:
@@ -50,6 +50,7 @@ class Resolver(object):
             building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used.
+            print_stats (bool): If true, print advanced solver stats at the end.
         """
         self.context = context
         self.package_requests = package_requests
@@ -63,6 +64,7 @@ class Resolver(object):
         self.caching = caching
         self.buf = buf
         self.suppress_passive = suppress_passive
+        self.print_stats = print_stats
 
         # store hash of package orderers. This is used in the memcached key
         if package_orderers:
@@ -386,7 +388,8 @@ class Resolver(object):
                         verbosity=self.verbosity,
                         prune_unfailed=config.prune_failed_graph,
                         buf=self.buf,
-                        suppress_passive=self.suppress_passive)
+                        suppress_passive=self.suppress_passive,
+                        print_stats=self.print_stats)
         solver.solve()
 
         return solver

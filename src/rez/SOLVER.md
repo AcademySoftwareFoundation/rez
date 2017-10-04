@@ -193,7 +193,7 @@ This indicates that there are still outstanding *extractions* for this scope.
 You will see this once, at the start of the solve. It simply prints the initial
 request list.
 
-    merged_request: foo-1.2 bah-3
+    merged request: foo-1.2 bah-3
 
 You will see this once and immediately after the `request:` output. It shows a
 simplified (merged) version of the initial request. Notice here how `~foo-1` is
@@ -206,7 +206,7 @@ This is pushing the initial *phase* onto the *phase stack*. The `{0,0}` means
 that:
 
 * There is 1 phase in the stack (this is the zeroeth phase - phases are pushed
-  and  popped from the bottom of the stack);
+  and popped from the bottom of the stack);
 * Zero other phases have already been solved (or failed) at this depth so far.
 
     --------------------------------------------------------------------------------

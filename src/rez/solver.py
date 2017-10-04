@@ -22,6 +22,7 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
 from rez.vendor.sortedcontainers.sortedset import SortedSet
+from contextlib import contextmanager
 import copy
 import time
 import sys
@@ -591,18 +592,24 @@ class _PackageVariantSlice(_Common):
                 yield variant
 
     def intersect(self, range_):
-        """Remove variants whos version fall outside of the given range."""
+        self.solver.intersection_broad_tests_count += 1
+
+        """Remove variants whose version fall outside of the given range."""
         if range_.is_any():
             return self
 
-        if range_ in self.been_intersected_with:
-            return self
+        if self.solver.optimised:
+            if range_ in self.been_intersected_with:
+                return self
 
         if self.pr:
             self.pr.passive("intersecting %s wrt range '%s'...", self, range_)
 
-        # this is faster than iter_intersecting :(
-        entries = [x for x in self.entries if x.version in range_]
+        self.solver.intersection_tests_count += 1
+
+        with self.solver.timed(self.solver.intersection_time):
+            # this is faster than iter_intersecting :(
+            entries = [x for x in self.entries if x.version in range_]
 
         if not entries:
             return None
@@ -622,16 +629,23 @@ class _PackageVariantSlice(_Common):
             (VariantSlice, [Reduction]) tuple, where slice may be None if all
             variants were reduced.
         """
-        if package_request in self.been_reduced_by:
-            return (self, [])
+        if self.pr:
+            reqstr = _short_req_str(package_request)
+            self.pr.passive("reducing %s wrt %s...", self, reqstr)
+
+        if self.solver.optimised:
+            if package_request in self.been_reduced_by:
+                return (self, [])
 
         if (package_request.range is None) or \
                 (package_request.name not in self.fam_requires):
             return (self, [])
 
-        if self.pr:
-            reqstr = _short_req_str(package_request)
-            self.pr.passive("reducing %s wrt %s...", self, reqstr)
+        with self.solver.timed(self.solver.reduction_time):
+            return self._reduce_by(package_request)
+
+    def _reduce_by(self, package_request):
+        self.solver.reduction_tests_count += 1
 
         entries = []
         reductions = []
@@ -984,12 +998,12 @@ class _PackageScope(_Common):
             scope copy with reductions applied, or self if there were no
             reductions, or None if the scope was completely reduced.
         """
+        self.solver.reduction_broad_tests_count += 1
+
         if self.package_request.conflict:
             # conflict scopes don't reduce. Instead, other scopes will be
             # reduced against a conflict scope.
             return (self, [])
-
-        self.solver.reduction_tests_count += 1
 
         # perform the reduction
         new_slice, reductions = self.variant_slice.reduce_by(package_request)
@@ -1085,7 +1099,7 @@ class _PackageScope(_Common):
 
     def __str__(self):
         if self.variant_slice is None:
-            return "req(%s)" % str(self.package_request)
+            return str(self.package_request)
         else:
             return str(self.variant_slice)
 
@@ -1183,18 +1197,19 @@ class _ResolvePhase(_Common):
                 extracted_requests = []
 
                 # perform all possible extractions
-                for i in range(len(scopes)):
-                    while True:
-                        scope_, extracted_request = scopes[i].extract()
+                with self.solver.timed(self.solver.extraction_time):
+                    for i in range(len(scopes)):
+                        while True:
+                            scope_, extracted_request = scopes[i].extract()
 
-                        if extracted_request:
-                            extracted_requests.append(extracted_request)
-                            k = (scopes[i].package_name, extracted_request.name)
-                            extractions[k] = extracted_request
-                            self.solver.extractions_count += 1
-                            scopes[i] = scope_
-                        else:
-                            break
+                            if extracted_request:
+                                extracted_requests.append(extracted_request)
+                                k = (scopes[i].package_name, extracted_request.name)
+                                extractions[k] = extracted_request
+                                self.solver.extractions_count += 1
+                                scopes[i] = scope_
+                            else:
+                                break
 
                 if not extracted_requests:
                     break
@@ -1215,10 +1230,13 @@ class _ResolvePhase(_Common):
                 self.pr.subheader("INTERSECTING:")
                 req_fams = []
 
-                for i, scope in enumerate(scopes):
-                    extracted_req = extracted_requests.get(scope.package_name)
+                with self.solver.timed(self.solver.intersection_test_time):
+                    for i, scope in enumerate(scopes):
+                        extracted_req = extracted_requests.get(scope.package_name)
 
-                    if extracted_req is not None:
+                        if extracted_req is None:
+                            continue
+
                         # perform the intersection
                         scope_ = scope.intersect(extracted_req.range)
 
@@ -1231,7 +1249,7 @@ class _ResolvePhase(_Common):
                             failure_reason = DependencyConflicts([conflict])
                             return _create_phase(SolverStatus.failed)
 
-                        elif scope_ is not scope:
+                        if scope_ is not scope:
                             # the scope was narrowed because it intersected
                             # with an extraction
                             scopes[i] = scope_
@@ -1321,23 +1339,24 @@ class _ResolvePhase(_Common):
             # iteratively reduce until there are no more pending reductions.
             # Note that if a scope is reduced, then other scopes need to reduce
             # against it once again.
-            while pending_reducts:
-                x, y = pending_reducts.pop()
+            with self.solver.timed(self.solver.reduction_test_time):
+                while pending_reducts:
+                    x, y = pending_reducts.pop()
 
-                new_scope, reductions = scopes[x].reduce_by(
-                    scopes[y].package_request)
+                    new_scope, reductions = scopes[x].reduce_by(
+                        scopes[y].package_request)
 
-                if new_scope is None:
-                    failure_reason = TotalReduction(reductions)
-                    return _create_phase(SolverStatus.failed)
+                    if new_scope is None:
+                        failure_reason = TotalReduction(reductions)
+                        return _create_phase(SolverStatus.failed)
 
-                elif new_scope is not scopes[x]:
-                    scopes[x] = new_scope
+                    elif new_scope is not scopes[x]:
+                        scopes[x] = new_scope
 
-                    # other scopes need to reduce against x again
-                    for j in all_scopes_i:
-                        if j != x:
-                            pending_reducts.add((j, x))
+                        # other scopes need to reduce against x again
+                        for j in all_scopes_i:
+                            if j != x:
+                                pending_reducts.add((j, x))
 
             changed_scopes_i = set()
 
@@ -1739,7 +1758,7 @@ class Solver(_Common):
                  package_filter=None, package_orderers=None, callback=None,
                  building=False, optimised=True, verbosity=0, buf=None,
                  package_load_callback=None, prune_unfailed=True,
-                 suppress_passive=False):
+                 suppress_passive=False, print_stats=False):
         """Create a Solver.
 
         Args:
@@ -1771,17 +1790,21 @@ class Solver(_Common):
             suppress_passive (bool): If True, don't print debugging info that
                 has had no effect on the solve. This argument only has an
                 effect if `verbosity` > 2.
+            print_stats (bool): If true, print advanced solver stats at the end.
         """
         self.package_paths = package_paths
         self.package_filter = package_filter
         self.package_orderers = package_orderers
-        self.pr = _Printer(verbosity, buf=buf, suppress_passive=suppress_passive)
         self.callback = callback
         self.prune_unfailed = prune_unfailed
         self.package_load_callback = package_load_callback
         self.building = building
         self.request_list = None
         self.context = context
+
+        self.pr = _Printer(verbosity, buf=buf, suppress_passive=suppress_passive)
+        self.print_stats = print_stats
+        self.buf = buf
 
         if _force_unoptimised_solver:
             self.optimised = False
@@ -1796,16 +1819,25 @@ class Solver(_Common):
         self.abort_reason = None
         self.callback_return = None
         self.depth_counts = None
+        self.solve_begun = None
         self.solve_time = None
         self.load_time = None
-        self.solve_begun = None
 
         # advanced solve metrics
         self.solve_count = 0
         self.extractions_count = 0
         self.intersections_count = 0
+        self.intersection_tests_count = 0
+        self.intersection_broad_tests_count = 0
         self.reductions_count = 0
         self.reduction_tests_count = 0
+        self.reduction_broad_tests_count = 0
+
+        self.extraction_time = [0.0]
+        self.intersection_time = [0.0]
+        self.intersection_test_time = [0.0]
+        self.reduction_time = [0.0]
+        self.reduction_test_time = [0.0]
 
         self._init()
 
@@ -1834,6 +1866,13 @@ class Solver(_Common):
         # create the initial phase
         phase = _ResolvePhase(solver=self)
         self._push_phase(phase)
+
+    @contextmanager
+    def timed(self, target):
+        t = time.time()
+        yield
+        secs = time.time() - t
+        target[0] += secs
 
     @property
     def status(self):
@@ -1921,19 +1960,50 @@ class Solver(_Common):
         self.solve_time = time.time() - t1
 
         # print stats
-        if self.pr:
-            d = {
-                "num_solves": self.solve_count,
-                "num_fails": self.num_fails,
-                "num_extractions": self.extractions_count,
-                "num_intersections": self.intersections_count,
-                "num_reductions": self.reductions_count,
-                "num_reduction_tests": self.reduction_tests_count
-            }
-
+        if self.pr.verbosity > 2:
             from pprint import pformat
             self.pr.subheader("SOLVE STATS:")
-            self.pr(pformat(d))
+            self.pr(pformat(self.solve_stats))
+
+        elif self.print_stats:
+            from pprint import pformat
+            data = {"solve_stats": self.solve_stats}
+            print >> (self.buf or sys.stdout), pformat(data)
+
+    @property
+    def solve_stats(self):
+        extraction_stats = {
+            "extraction_time": self.extraction_time[0],
+            "num_extractions": self.extractions_count
+        }
+
+        intersection_stats = {
+            "num_intersections": self.intersections_count,
+            "num_intersection_tests": self.intersection_tests_count,
+            "num_intersection_broad_tests": self.intersection_broad_tests_count,
+            "intersection_time": self.intersection_time[0],
+            "intersection_test_time": self.intersection_test_time[0]
+        }
+
+        reduction_stats = {
+            "num_reductions": self.reductions_count,
+            "num_reduction_tests": self.reduction_tests_count,
+            "num_reduction_broad_tests": self.reduction_broad_tests_count,
+            "reduction_time": self.reduction_time[0],
+            "reduction_test_time": self.reduction_test_time[0]
+        }
+
+        global_stats = {
+            "solve_time": self.solve_time,
+            "load_time": self.load_time
+        }
+
+        return {
+            "global": global_stats,
+            "extractions": extraction_stats,
+            "intersections": intersection_stats,
+            "reductions": reduction_stats
+        }
 
     def solve_step(self):
         """Perform a single solve step.
@@ -1980,8 +2050,6 @@ class Solver(_Common):
                     self.pr.header("FAIL: a cycle was detected")
                 else:
                     self.pr.header("SUCCESS")
-                    self.pr("solve time: %.2f seconds", self.solve_time)
-                    self.pr("load time: %.2f seconds", self.load_time)
 
         else:
             self.pr.subheader("EXHAUSTED:")
@@ -2089,14 +2157,23 @@ class Solver(_Common):
         self.depth_counts = {}
         self.solve_time = 0.0
         self.load_time = 0.0
+        self.solve_begun = False
 
+        # advanced solve stats
         self.solve_count = 0
         self.extractions_count = 0
         self.intersections_count = 0
+        self.intersection_tests_count = 0
+        self.intersection_broad_tests_count = 0
         self.reductions_count = 0
         self.reduction_tests_count = 0
+        self.reduction_broad_tests_count = 0
 
-        self.solve_begun = False
+        self.extraction_time = [0.0]
+        self.intersection_time = [0.0]
+        self.intersection_test_time = [0.0]
+        self.reduction_time = [0.0]
+        self.reduction_test_time = [0.0]
 
     def _latest_nonfailed_phase(self):
         if self.status == SolverStatus.failed:

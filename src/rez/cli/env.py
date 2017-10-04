@@ -102,6 +102,9 @@ def setup_parser(parser, completions=False):
         help="only print actions that affect the solve (has an effect only "
         "when verbosity is enabled)")
     parser.add_argument(
+        "--stats", action="store_true",
+        help="print advanced solver stats")
+    parser.add_argument(
         "--pre-command", type=str, help=SUPPRESS)
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
@@ -197,7 +200,8 @@ def command(opts, parser, extra_arg_groups=None):
                                   max_fails=opts.max_fails,
                                   time_limit=opts.time_limit,
                                   caching=(not opts.no_cache),
-                                  suppress_passive=opts.no_passive)
+                                  suppress_passive=opts.no_passive,
+                                  print_stats=opts.stats)
 
     success = (context.status == ResolverStatus.solved)
     if not success:

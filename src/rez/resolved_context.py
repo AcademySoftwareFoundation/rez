@@ -139,7 +139,8 @@ class ResolvedContext(object):
                  building=False, caching=None, package_paths=None,
                  package_filter=None, package_orderers=None, max_fails=-1,
                  add_implicit_packages=True, time_limit=-1, callback=None,
-                 package_load_callback=None, buf=None, suppress_passive=False):
+                 package_load_callback=None, buf=None, suppress_passive=False,
+                 print_stats=False):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -173,6 +174,7 @@ class ResolvedContext(object):
             suppress_passive (bool): If True, don't print debugging info that
                 has had no effect on the solve. This argument only has an
                 effect if `verbosity` > 2.
+            print_stats (bool): If true, print advanced solver stats at the end.
         """
         self.load_path = None
 
@@ -263,7 +265,9 @@ class ResolvedContext(object):
                             package_load_callback=_package_load_callback,
                             verbosity=verbosity,
                             buf=buf,
-                            suppress_passive=suppress_passive)
+                            suppress_passive=suppress_passive,
+                            print_stats=print_stats)
+
         resolver.solve()
 
         # convert the results
