@@ -706,7 +706,10 @@ class _PackageVariantSlice(_Common):
             return self, None
 
         extractable = self.common_fams - self.extracted_fams
-        fam = iter(extractable).next()
+
+        # the sort is necessary to ensure solves are deterministic
+        fam = sorted(extractable)[0]
+
         last_range = None
         ranges = set()
 
@@ -1994,6 +1997,8 @@ class Solver(_Common):
         }
 
         global_stats = {
+            "num_solves": self.num_solves,
+            "num_fails": self.num_fails,
             "solve_time": self.solve_time,
             "load_time": self.load_time
         }

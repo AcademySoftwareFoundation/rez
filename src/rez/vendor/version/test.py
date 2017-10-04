@@ -438,6 +438,12 @@ class TestVersionSchema(unittest.TestCase):
             exp_reqs_ = [Requirement(x) for x in expected_reqs]
             self.assertTrue(reqlist.requirements == exp_reqs_)
 
+            exp_names = set(x.name for x in exp_reqs_ if not x.conflict)
+            self.assertTrue(reqlist.names == exp_names)
+
+            exp_confl_names = set(x.name for x in exp_reqs_ if x.conflict)
+            self.assertTrue(reqlist.conflict_names == exp_confl_names)
+
         def _confl(reqs, a, b):
             _print("requirements(%s) == %s <--!--> %s" % (' '.join(reqs), a, b))
             reqs_ = [Requirement(x) for x in reqs]
