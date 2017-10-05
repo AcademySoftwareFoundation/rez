@@ -3,6 +3,7 @@ Git version control
 """
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_error, print_warning, print_debug
+from rez.utils.filesystem import retain_cwd
 from rez.exceptions import ReleaseVCSError
 from shutil import rmtree
 import functools
