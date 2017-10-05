@@ -1,5 +1,5 @@
 from rez.vendor.version.version import Version, AlphanumericVersionToken, \
-    VersionRange
+    VersionRange, reverse_sort_key, _ReversedComparable
 from rez.vendor.version.requirement import Requirement, RequirementList
 from rez.vendor.version.util import VersionError
 import random
@@ -53,6 +53,10 @@ class TestVersionSchema(unittest.TestCase):
             self.assertTrue(lte != gte)
             self.assertTrue(lt == lte)
             self.assertTrue(gt == gte)
+
+        if not isinstance(a, _ReversedComparable):
+            self._test_strict_weak_ordering(reverse_sort_key(a),
+                                            reverse_sort_key(b))
 
     def _test_ordered(self, items):
         def _test(fn, items_, op_str):
@@ -433,6 +437,12 @@ class TestVersionSchema(unittest.TestCase):
 
             exp_reqs_ = [Requirement(x) for x in expected_reqs]
             self.assertTrue(reqlist.requirements == exp_reqs_)
+
+            exp_names = set(x.name for x in exp_reqs_ if not x.conflict)
+            self.assertTrue(reqlist.names == exp_names)
+
+            exp_confl_names = set(x.name for x in exp_reqs_ if x.conflict)
+            self.assertTrue(reqlist.conflict_names == exp_confl_names)
 
         def _confl(reqs, a, b):
             _print("requirements(%s) == %s <--!--> %s" % (' '.join(reqs), a, b))

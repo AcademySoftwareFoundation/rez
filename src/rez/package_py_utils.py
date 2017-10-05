@@ -158,3 +158,108 @@ def expand_requires(*requests):
         List of str: Expanded requirements.
     """
     return [expand_requirement(x) for x in requests]
+
+
+def exec_command(attr, cmd):
+    """Runs a subproc to calculate a package attribute.
+    """
+    import subprocess
+
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+
+    if p.returncode:
+        from rez.exceptions import InvalidPackageError
+        raise InvalidPackageError(
+            "Error determining package attribute '%s':\n%s" % (attr, err))
+
+    return out.strip(), err.strip()
+
+
+def exec_python(attr, src, executable="python"):
+    """Runs a python subproc to calculate a package attribute.
+
+    Args:
+        attr (str): Name of package attribute being created.
+        src (list of str): Python code to execute, will be converted into
+            semicolon-delimited single line of code.
+
+    Returns:
+        str: Output of python process.
+    """
+    import subprocess
+
+    if isinstance(src, basestring):
+        src = [src]
+
+    p = subprocess.Popen(
+        [executable, "-c", "; ".join(src)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+
+    if p.returncode:
+        from rez.exceptions import InvalidPackageError
+        raise InvalidPackageError(
+            "Error determining package attribute '%s':\n%s" % (attr, err))
+
+    return out.strip()
+
+
+def find_site_python(module_name, paths=None):
+    """Find the rez native python package that contains the given module.
+
+    This function is used by python 'native' rez installers to find the native
+    rez python package that represents the python installation that this module
+    is installed into.
+
+    Note:
+        This function is dependent on the behavior found in the python '_native'
+        package found in the 'rez-recipes' repository. Specifically, it expects
+        to find a python package with a '_site_paths' list attribute listing
+        the site directories associated with the python installation.
+
+    Args:
+        module_name (str): Target python module.
+        paths (list of str, optional): paths to search for packages,
+            defaults to `config.packages_path`.
+
+    Returns:
+        `Package`: Native python package containing the named module.
+    """
+    from rez.packages_ import iter_packages
+    import subprocess
+    import ast
+    import os
+
+    py_cmd = 'import {x}; print {x}.__path__'.format(x=module_name)
+
+    p = subprocess.Popen(["python", "-c", py_cmd], stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    out, err = p.communicate()
+
+    if p.returncode:
+        raise InvalidPackageError(
+            "Failed to find installed python module '%s':\n%s"
+            % (module_name, err))
+
+    module_paths = ast.literal_eval(out.strip())
+
+    def issubdir(path, parent_path):
+        return path.startswith(parent_path + os.sep)
+
+    for package in iter_packages("python", paths=paths):
+        if not hasattr(package, "_site_paths"):
+            continue
+
+        contained = True
+
+        for module_path in module_paths:
+            if not any(issubdir(module_path, x) for x in package._site_paths):
+                contained = False
+
+        if contained:
+            return package
+
+    raise InvalidPackageError(
+        "Failed to find python installation containing the module '%s'. Has "
+        "python been installed as a rez package?" % module_name)

@@ -34,6 +34,21 @@ class _Comparable(_Common):
         raise NotImplementedError
 
 
+@total_ordering
+class _ReversedComparable(_Common):
+    def __init__(self, value):
+        self.value = value
+
+    def __lt__(self, other):
+        return not (self.value < other.value)
+
+    def __str__(self):
+        return "reverse(%s)" % str(self.value)
+
+    def __repr__(self):
+        return "reverse(%r)" % self.value
+
+
 class VersionToken(_Comparable):
     """Token within a version number.
 
@@ -102,6 +117,9 @@ class NumericToken(VersionToken):
 
     def __str__(self):
         return str(self.n)
+
+    def __eq__(self, other):
+        return (self.n == other.n)
 
     def less_than(self, other):
         return (self.n < other.n)
@@ -175,6 +193,9 @@ class AlphanumericVersionToken(VersionToken):
     def __str__(self):
         return ''.join(map(str, self.subtokens))
 
+    def __eq__(self, other):
+        return (self.subtokens == other.subtokens)
+
     def less_than(self, other):
         return (self.subtokens < other.subtokens)
 
@@ -208,6 +229,25 @@ class AlphanumericVersionToken(VersionToken):
             b = not b
 
         return subtokens
+
+
+def reverse_sort_key(comparable):
+    """Key that gives reverse sort order on versions and version ranges.
+
+    Example:
+
+        >>> Version("1.0") < Version("2.0")
+        True
+        >>> reverse_sort_key(Version("1.0")) < reverse_sort_key(Version("2.0"))
+        False
+
+    Args:
+        comparable (`Version` or `VesionRange`): Object to wrap.
+
+    Returns:
+        `_ReversedComparable`: Wrapper object that reverses comparisons.
+    """
+    return _ReversedComparable(comparable)
 
 
 class Version(_Comparable):
@@ -723,7 +763,7 @@ class VersionRange(_Comparable):
                 impossible range is given, such as '3+<2'.
         """
         self._str = None
-        self.bounds = []
+        self.bounds = []  # note: kept in ascending order
         if range_str is None:
             return
 
@@ -958,8 +998,11 @@ class VersionRange(_Comparable):
         if len(self.bounds) < 5:
             # not worth overhead of binary search
             for bound in self.bounds:
-                if bound.contains_version(version):
+                i = bound.version_containment(version)
+                if i == 0:
                     return True
+                if i == -1:
+                    return False
         else:
             _, contains = self._contains_version(version)
             return contains
@@ -1017,6 +1060,8 @@ class VersionRange(_Comparable):
         other.bounds = [bound]
         return other
 
+    # TODO have this return a new VersionRange instead - this currently breaks
+    # VersionRange immutability, and could invalidate __str__.
     def visit_versions(self, func):
         """Visit each version in the range, and apply a function to each.
 
@@ -1175,7 +1220,9 @@ class VersionRange(_Comparable):
 
     @classmethod
     def _intersects(cls, bounds1, bounds2):
+        # sort so bounds1 is the shorter list
         bounds1, bounds2 = sorted((bounds1, bounds2), key=lambda x: len(x))
+
         if len(bounds2) < 5:
             # not worth overhead of binary search
             for bound1 in bounds1:

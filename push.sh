@@ -23,7 +23,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # tag version
-version=$(cat src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
+version=$(cat src/rez/utils/_version.py | grep -w _rez_version | head -n1 | tr '"' ' ' | awk '{print $NF}')
 echo "tagging ${version}..."
 git tag $version
 if [ $? -ne 0 ]; then
