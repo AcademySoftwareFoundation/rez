@@ -67,9 +67,13 @@ class CMD(Shell):
             cmd = ["REG", "QUERY", "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "/v", "PATH"]
             expected = "\r\nHKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment\r\n    PATH    REG_(EXPAND_)?SZ    (.*)\r\n\r\n"
 
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, shell=True)
-            out_, _ = p.communicate()
+            # pass null handle to stdin in order to fix Maya handle error on windows
+            with open(os.devnull, 'w') as stdin_handle:
+                p = subprocess.Popen(cmd,
+                                     stdin=stdin_handle,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, shell=True)
+                out_, _ = p.communicate()
 
             if p.returncode == 0:
                 match = re.match(expected, out_)
@@ -78,9 +82,12 @@ class CMD(Shell):
 
             cmd = ["REG", "QUERY", "HKCU\\Environment", "/v", "PATH"]
             expected = "\r\nHKEY_CURRENT_USER\\\\Environment\r\n    PATH    REG_(EXPAND_)?SZ    (.*)\r\n\r\n"
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, shell=True)
-            out_, _ = p.communicate()
+            with open(os.devnull, 'w') as stdin_handle:
+                p = subprocess.Popen(cmd,
+                                     stdin=stdin_handle,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, shell=True)
+                out_, _ = p.communicate()
 
             if p.returncode == 0:
                 match = re.match(expected, out_)
