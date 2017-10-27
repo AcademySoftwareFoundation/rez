@@ -59,7 +59,6 @@ def _get_dependencies(requirement, distributions):
             try:
                 name, version = parse_name_and_version(package)
                 version = version.replace("==", "")
-                name = get_distrubution_name(name)
             except DistlibException:
                 n, vs = package.split(' (')
                 vs = vs[:-1]
@@ -72,6 +71,12 @@ def _get_dependencies(requirement, distributions):
                 version = "".join(versions)
 
             name = get_distrubution_name(name)
+            if name is None:
+                # Occurs when pip skips installing the requirement
+                print_warning("Skipping installation: 
+                              "Requirement wasn't installed: %s" % package)
+                continue
+
             result.append("-".join([name, version]))
         else:
             name = get_distrubution_name(package)
