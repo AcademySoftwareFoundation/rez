@@ -80,6 +80,11 @@ def _get_dependencies(requirement, distributions):
             result.append("-".join([name, version]))
         else:
             name = get_distrubution_name(package)
+            if name is None:
+                # Occurs when pip skips installing the requirement
+                print_warning("Skipping installation: 
+                              "Requirement wasn't installed: %s" % package)
+                continue
             result.append(name)
 
     return result
