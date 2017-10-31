@@ -8,6 +8,7 @@ from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
 subcommands = [
     "bind",
     "build",
+    "bundle",
     "config",
     "context",
     "complete",
