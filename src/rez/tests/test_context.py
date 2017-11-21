@@ -39,6 +39,12 @@ class TestContext(TestBase, TempdirMixin):
         r = ResolvedContext(["hello_world"])
         r.print_info()
 
+    def test_apply(self):
+        """Test apply() function."""
+        r = ResolvedContext(["hello_world"])
+        r.apply()
+        self.assertEqual(os.environ.get("OH_HAI_WORLD"), "hello")
+
     def test_execute_command(self):
         """Test command execution in context."""
         if platform_.name == "windows":
@@ -51,6 +57,25 @@ class TestContext(TestBase, TempdirMixin):
         stdout, _ = p.communicate()
         stdout = stdout.strip()
         self.assertEqual(stdout, "Hello Rez World!")
+
+    def test_execute_command_environ(self):
+        """Test that execute_command properly sets environ dict."""
+        parent_environ = {"BIGLY": "covfefe"}
+        r = ResolvedContext(["hello_world"])
+
+        pycode = ("import os; "
+                  "print os.getenv(\"BIGLY\"); "
+                  "print os.getenv(\"OH_HAI_WORLD\")")
+
+        args = ["python", "-c", pycode]
+
+        p = r.execute_command(args, parent_environ=parent_environ,
+                              stdout=subprocess.PIPE)
+        stdout, _ = p.communicate()
+        stdout = stdout.strip()
+        parts = [x.strip() for x in stdout.split('\n')]
+
+        self.assertEqual(parts, ["covfefe", "hello"])
 
     def test_serialize(self):
         """Test save/load of context."""

@@ -339,16 +339,22 @@ class TestPackages(TestBase, TempdirMixin):
 
         null_orderer = NullPackageOrder()
         split_orderer = VersionSplitPackageOrder(Version("2.6.0"))
+        # after v1.1.0 and before v1.1.1
         timestamp_orderer = TimestampPackageOrder(timestamp=3001, rank=3)
+        # after v2.1.0 and before v2.1.5
+        timestamp2_orderer = TimestampPackageOrder(timestamp=7001, rank=3)
 
         expected_null_result = ["7", "6", "5"]
         expected_split_result = ["2.6.0", "2.5.2", "2.7.0", "2.6.8"]
         expected_timestamp_result = ["1.1.1", "1.1.0", "1.0.6", "1.0.5",
                                      "1.2.0", "2.0.0", "2.1.5", "2.1.0"]
+        expected_timestamp2_result = ["2.1.5", "2.1.0", "2.0.0", "1.2.0",
+                                      "1.1.1", "1.1.0", "1.0.6", "1.0.5"]
 
         _test(null_orderer, "pysplit", expected_null_result)
         _test(split_orderer, "python", expected_split_result)
         _test(timestamp_orderer, "timestamped", expected_timestamp_result)
+        _test(timestamp2_orderer, "timestamped", expected_timestamp2_result)
 
         fam_orderer = PerFamilyOrder(
             order_dict=dict(pysplit=null_orderer,

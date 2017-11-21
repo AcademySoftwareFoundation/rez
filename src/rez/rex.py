@@ -541,7 +541,8 @@ class Python(ActionInterpreter):
         target_environ: dict
             If target_environ is None or os.environ, interpreted actions are
             applied to the current python interpreter. Otherwise, changes are
-            only applied to target_environ.
+            only applied to target_environ. In either case you must call
+            `apply_environ` to flush all changes to the target environ dict.
 
         passive: bool
             If True, commands that do not update the environment (such as info)
@@ -559,12 +560,17 @@ class Python(ActionInterpreter):
     def set_manager(self, manager):
         self.manager = manager
 
-    def get_output(self, style=OutputStyle.file):
+    def apply_environ(self):
+        """Apply changes to target environ.
+        """
         if self.manager is None:
             raise RezSystemError("You must call 'set_manager' on a Python rex "
                                  "interpreter before using it.")
 
         self.target_environ.update(self.manager.environ)
+
+    def get_output(self, style=OutputStyle.file):
+        self.apply_environ()
         return self.manager.environ
 
     def setenv(self, key, value):
