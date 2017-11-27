@@ -4,11 +4,6 @@ Git version control
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
-import platform
-if "windows" in platform.system().lower():
-    from rez.vendor.pbs import git
-else:
-    from rez.vendor.sh.sh import git
 from shutil import rmtree
 import functools
 import os.path
