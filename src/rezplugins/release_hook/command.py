@@ -1,6 +1,12 @@
 """
 Executes pre- and post-release shell commands
 """
+
+import getpass
+import sys
+import os
+from subprocess import Popen, PIPE, STDOUT
+
 from rez.release_hook import ReleaseHook
 from rez.exceptions import ReleaseHookCancellingError
 from rez.config import config
@@ -9,15 +15,7 @@ from rez.utils.logging_ import print_debug
 from rez.utils.scope import scoped_formatter
 from rez.utils.formatting import expandvars
 from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
-import platform
-if "windows" in platform.system().lower():
-    from rez.vendor.pbs import Command, ErrorReturnCode, which
-    sudo = None
-else:
-    from rez.vendor.sh.sh import Command, ErrorReturnCode, sudo, which
-import getpass
-import sys
-import os
+from rez.util import which
 
 
 class CommandReleaseHook(ReleaseHook):
@@ -56,18 +54,18 @@ class CommandReleaseHook(ReleaseHook):
 
         kwargs = {}
         if env:
-            kwargs["_env"] = env
+            kwargs["env"] = env
 
-        def _execute(cmd, arguments):
-            try:
-                result = cmd(*(arguments or []), **kwargs)
-                if self.settings.print_output:
-                    print result.stdout.strip()
-            except ErrorReturnCode as e:
-                # `e` shows the command that was run
-                msg = "command failed:\n%s" % str(e)
+        def _execute(commands):
+            process = Popen(commands, stdout=PIPE, stderr=STDOUT, **kwargs)
+            stdout, _ = process.communicate()
+
+            if process.returncode != 0:
+                msg = "command failed:\n%s" % stdout
                 _err(msg)
                 return False
+            if self.settings.print_output:
+                print stdout.strip()
             return True
 
         if not os.path.isfile(cmd_name):
@@ -79,14 +77,14 @@ class CommandReleaseHook(ReleaseHook):
             _err(msg)
             return False
 
-        run_cmd = Command(cmd_full_path)
-        if user == 'root' and sudo is not None:
-            with sudo:
-                return _execute(run_cmd, cmd_arguments)
+        cmds = [cmd_full_path] + (cmd_arguments or [])
+        if user == 'root':
+            cmds = ['sudo'] + cmds
+            return _execute(cmds)
         elif user and user != getpass.getuser():
             raise NotImplementedError  # TODO
         else:
-            return _execute(run_cmd, cmd_arguments)
+            return _execute(cmds)
 
     def pre_build(self, user, install_path, variants=None, **kwargs):
         errors = []
