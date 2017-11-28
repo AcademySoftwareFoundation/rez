@@ -152,6 +152,10 @@ class HgReleaseVCS(ReleaseVCS):
             tags[tag_name] = {'rev': rev, 'shortnode': shortnode}
         return tags
 
+    def tag_exists(self, tag_name):
+        tags = self.get_tags()
+        return (tag_name in tags.keys())
+
     def is_ancestor(self, commit1, commit2, patch=False):
         """Returns True if commit1 is a direct ancestor of commit2, or False
         otherwise.

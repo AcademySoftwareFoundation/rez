@@ -95,7 +95,7 @@ class SH(UnixShell):
             if config.prefix_prompt:
                 cmd = 'export PS1="%s $REZ_STORED_PROMPT"'
             else:
-                cmd = 'export PS1="$REZ_STORED_PROMPT" %s'
+                cmd = 'export PS1="$REZ_STORED_PROMPT%s "'
             self._addline(cmd % "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
