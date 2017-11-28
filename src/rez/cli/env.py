@@ -92,6 +92,10 @@ def setup_parser(parser, completions=False):
         "-q", "--quiet", action="store_true",
         help="run in quiet mode (hides welcome message)")
     parser.add_argument(
+        "--fail-graph", action="store_true",
+        help="if the build environment fails to resolve due to a conflict, "
+        "display the resolve graph as an image.")
+    parser.add_argument(
         "--new-session", action="store_true",
         help="start the shell in a new process group")
     parser.add_argument(
@@ -206,6 +210,14 @@ def command(opts, parser, extra_arg_groups=None):
     success = (context.status == ResolverStatus.solved)
     if not success:
         context.print_info(buf=sys.stderr)
+        if opts.fail_graph:
+            if context.graph:
+                from rez.utils.graph_utils import view_graph
+                g = context.graph(as_dot=True)
+                view_graph(g)
+            else:
+                print >> sys.stderr, \
+                    "the failed resolve context did not generate a graph."
 
     if opts.output:
         if opts.output == '-':  # print to stdout
