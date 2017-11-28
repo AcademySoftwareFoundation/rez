@@ -4,8 +4,9 @@ matrix:
   include:
     - python: 2.7
       os: linux
-      sudo: required
-      dist: trusty
+      env: _REZ_SHELL=bash
+    - python: 2.7
+      os: osx
       env: _REZ_SHELL=bash
 
 install:
