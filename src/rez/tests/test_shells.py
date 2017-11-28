@@ -146,23 +146,16 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent(exclude=["cmd"])
     @install_dependent
     def test_rez_env_output(self):
-        # TODO: this test does not run on Windows using the CMD shell as it
-        # does not accept commands from stdin.  Rather than explicitly skipping
-        # the test (via the decorator) perhaps we should check for startup
-        # capabilities as the other tests do.
-        from rez.vendor.sh import sh
-
         # here we are making sure that running a command via rez-env prints
-        # exactly what we expect. We use 'sh' because subprocess strips special
-        # characters such as color codes - we want to ensure that the output
-        # EXACTLY matches the output of the command being run.
+        # exactly what we expect.
         echo_cmd = which("echo")
         if not echo_cmd:
             print "\nskipping test, 'echo' command not found."
             return
 
-        cmd = sh.Command(os.path.join(system.rez_bin_path, "rez-env"))
-        sh_out = cmd(["--", "echo", "hey"])
+        cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
+        process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        sh_out, _ = process.communicate()
         out = str(sh_out).strip()
         self.assertEqual(out, "hey")
 
