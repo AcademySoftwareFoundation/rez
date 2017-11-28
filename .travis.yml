@@ -11,4 +11,4 @@ install:
 
 script:
   # Running rez tests
-  - "../rez_install/bin/rez/rez-selftest"
+  - "../rez_install/bin/rez/rez-selftest -s bash"
