@@ -541,9 +541,9 @@ def get_package_from_string(txt, paths=None):
     return get_package(o.name, o.version, paths=paths)
 
 
-def get_developer_package(path):
+def get_developer_package(path, format=None):
     from rez.developer_package import DeveloperPackage
-    return DeveloperPackage.from_path(path)
+    return DeveloperPackage.from_path(path, format=format)
 
 
 def create_package(name, data, package_cls=None):

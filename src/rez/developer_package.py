@@ -8,6 +8,7 @@ from rez.utils.sourcecode import SourceCode
 from rez.utils.logging_ import print_info, print_error
 from inspect import isfunction
 import os.path
+import stat
 
 
 class DeveloperPackage(Package):
@@ -31,14 +32,16 @@ class DeveloperPackage(Package):
             return None
 
     @classmethod
-    def from_path(cls, path):
+    def from_path(cls, path, format=None):
         """Load a developer package.
 
         A developer package may for example be a package.yaml or package.py in a
         user's source directory.
 
         Args:
-            path: Directory containing the package definition file.
+            path: Directory containing the package definition file, or file
+                path for the package file itself
+            format: which FileFormat to use, or None to check both .py and .yaml
 
         Returns:
             `Package` object.
@@ -46,11 +49,34 @@ class DeveloperPackage(Package):
         name = None
         data = None
 
-        for name_ in config.plugins.package_repository.filesystem.package_filenames:
-            for format_ in (FileFormat.py, FileFormat.yaml):
-                filepath = os.path.join(path, "%s.%s" % (name_, format_.extension))
+        if format is None:
+            formats = (FileFormat.py, FileFormat.yaml)
+        else:
+            formats = (format,)
 
-                if os.path.isfile(filepath):
+        try:
+            mode = os.stat(path).st_mode
+        except (IOError, OSError):
+            raise PackageMetadataError(
+                "Path %r did not exist, or was not accessible" % path)
+        is_dir = stat.S_ISDIR(mode)
+
+        for name_ in config.plugins.package_repository.filesystem.package_filenames:
+            for format_ in formats:
+                if is_dir:
+                    filepath = os.path.join(path, "%s.%s" % (name_,
+                                                             format_.extension))
+                    exists = os.path.isfile(filepath)
+                else:
+                    # if format was not specified, verify that it has the
+                    # right extension before trying to load
+                    if format is None:
+                        if os.path.splitext(path)[1] != format_.extension:
+                            continue
+                    filepath = path
+                    exists = True
+
+                if exists:
                     data = load_from_file(filepath, format_)
                     break
             if data:
