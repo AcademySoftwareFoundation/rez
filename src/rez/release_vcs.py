@@ -4,6 +4,7 @@ from rez.util import which
 from rez.utils.system import popen
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import walk_up_dirs
+from pipes import quote
 import subprocess
 
 
@@ -201,7 +202,8 @@ class ReleaseVCS(object):
 
     def _cmd(self, *nargs):
         """Convenience function for executing a program such as 'git' etc."""
-        cmd_str = ' '.join(nargs)
+        cmd_str = ' '.join(map(quote, nargs))
+
         if self.package.config.debug("package_release"):
             print_debug("Running command: %s" % cmd_str)
 
