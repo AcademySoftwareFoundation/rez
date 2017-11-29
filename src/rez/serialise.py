@@ -8,7 +8,7 @@ from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
-from rez.utils.syspath import add_sys_paths
+from rez.utils.system import add_sys_paths
 from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml

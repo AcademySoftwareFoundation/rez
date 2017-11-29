@@ -1,7 +1,7 @@
 
 
 # Update this value to version up Rez. Do not place anything else in this file.
-_rez_version = "2.15.0"
+_rez_version = "2.16.0"
 
 try:
     from rez.vendor.version.version import Version

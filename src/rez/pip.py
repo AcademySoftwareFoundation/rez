@@ -6,6 +6,7 @@ from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
+from rez.system import popen
 from rez.utils.logging_ import print_debug, print_info, print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, convert_errors
@@ -97,7 +98,7 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
     command = [pip_exe] + list(command_args)
 
     if context is None:
-        return subprocess.Popen(command)
+        return popen(command)
     else:
         return context.execute_shell(command=command, block=False)
 
@@ -349,7 +350,7 @@ def _cmd(context, command):
     _log("running: %s" % cmd_str)
 
     if context is None:
-        p = subprocess.Popen(command)
+        p = popen(command)
     else:
         p = context.execute_shell(command=command, block=False)
 

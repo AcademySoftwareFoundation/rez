@@ -7,7 +7,7 @@ from rez.utils.logging_ import print_warning
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
-from rez.system import system
+from rez.system import system, popen
 import subprocess
 import os.path
 import pipes
@@ -345,7 +345,7 @@ class UnixShell(Shell):
         cmd.extend([self.executable, target_file])
 
         try:
-            p = subprocess.Popen(cmd, env=env, **Popen_args)
+            p = popen(cmd, env=env, **Popen_args)
         except Exception as e:
             cmd_str = ' '.join(map(pipes.quote, cmd))
             raise RezSystemError("Error running command:\n%s\n%s"
