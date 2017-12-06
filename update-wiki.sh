@@ -18,7 +18,8 @@ git clone git@github.com:nerdvegas/rez.git
 git clone git@github.com:nerdvegas/rez-wiki.git
 git clone git@github.com:nerdvegas/rez.wiki.git
 
-cp ./rez-wiki/pages/* ./rez.wiki/pages/
+cp -f ./rez-wiki/pages/* ./rez.wiki/pages/
+cp -rf ./rez-wiki/media/* ./rez.wiki/media/
 export REZ_SOURCE_DIR=$(pwd)/rez
 
 cd ./rez.wiki
