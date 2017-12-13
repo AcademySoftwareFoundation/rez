@@ -11,6 +11,12 @@ def setup_parser(parser, completions=False):
         "--paths", type=str, default=None,
         help="set package search path")
     parser.add_argument(
+        "-b", "--build-requires", action="store_true", default=False,
+        help="Include build_requires")
+    parser.add_argument(
+        "-p", "--private-build-requires", action="store_true", default=False,
+        help="Include private_build_requires")
+    parser.add_argument(
         "-g", "--graph", action="store_true",
         help="display the dependency tree as an image")
     parser.add_argument(
@@ -51,7 +57,9 @@ def command(opts, parser, extra_arg_groups=None):
     pkgs_list, g = get_reverse_dependency_tree(
         package_name=opts.PKG,
         depth=opts.depth,
-        paths=pkg_paths)
+        paths=pkg_paths,
+        build_requires=opts.build_requires,
+        private_build_requires=opts.private_build_requires)
 
     if opts.graph or opts.print_graph or opts.write_graph:
         gstr = write_dot(g)
