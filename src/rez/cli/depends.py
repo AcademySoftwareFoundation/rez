@@ -8,14 +8,14 @@ def setup_parser(parser, completions=False):
         "-d", "--depth", type=int,
         help="dependency tree depth limit")
     parser.add_argument(
-        "--paths", type=str, default=None,
+        "--paths", type=str,
         help="set package search path")
     parser.add_argument(
-        "-b", "--build-requires", action="store_true", default=False,
-        help="Include build_requires")
+        "-b", "--build-requires", action="store_true",
+        help="Include build requirements")
     parser.add_argument(
-        "-p", "--private-build-requires", action="store_true", default=False,
-        help="Include private_build_requires")
+        "-p", "--private-build-requires", action="store_true",
+        help="Include private build requirements")
     parser.add_argument(
         "-g", "--graph", action="store_true",
         help="display the dependency tree as an image")
@@ -23,13 +23,13 @@ def setup_parser(parser, completions=False):
         "--pg", "--print-graph", dest="print_graph", action="store_true",
         help="print the dependency tree as a string")
     parser.add_argument(
-        "--wg", "--write-graph", dest="write_graph", type=str, metavar='FILE',
+        "--wg", "--write-graph", dest="write_graph", metavar='FILE',
         help="write the dependency tree to FILE")
     parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="don't print progress bar or depth indicators")
     PKG_action = parser.add_argument(
-        "PKG", type=str,
+        "PKG",
         help="package that other packages depend on")
 
     if completions:
