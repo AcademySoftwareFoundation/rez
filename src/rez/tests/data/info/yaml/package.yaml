@@ -1,0 +1,29 @@
+config_version : 0
+
+uuid: 97937642-3646-4966-ab9c-8f337bbbce6a
+
+name: rez
+
+version: 2.8.0.11
+
+authors: [ rez ]
+
+description: Rez is a suite of tools for resolving a list of packages
+
+help:
+- [ "Reference Guide", "$BROWSER http://nerdvegas.github.io/rez/" ]
+
+private_build_requires:
+- cmake-2.8
+
+requires:
+- setuptools
+- python
+
+variants:
+- [ CentOS-6.2+<7, python-2.6 ]
+- [ CentOS-6.2+<7, python-2.7 ]
+
+commands: |
+  prependenv('PATH', '{root}/bin/rez/')
+  setenv('REZ_PATH', '{root}')

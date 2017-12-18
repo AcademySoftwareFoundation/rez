@@ -15,6 +15,7 @@ subcommands = [
     "env",
     "forward",
     "help",
+    "info",
     "interpret",
     "python",
     "plugins",

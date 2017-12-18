@@ -63,7 +63,8 @@ scripts = [
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete",
-    "rez-gui"
+    "rez-gui",
+    "rez-info"
 ]
 
 
