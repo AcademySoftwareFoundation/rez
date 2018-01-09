@@ -56,7 +56,7 @@ class _ScriptMaker(ScriptMaker):
 def patch_rez_binaries(dest_dir):
     bin_names = os.listdir(bin_path)
     _, _, _, venv_bin_path = path_locations(dest_dir)
-    venv_py_executable = which("python", env={"PATH":venv_bin_path, 
+    venv_py_executable = which("python", env={"PATH":venv_bin_path,
                                               "PATHEXT":os.environ.get("PATHEXT", "")})
 
     # delete rez bin files written by setuptools
@@ -169,3 +169,4 @@ if __name__ == "__main__":
         print "You may also want to source the relevant completion script from:"
         print completion_path
     print
+
