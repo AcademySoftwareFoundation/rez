@@ -12,6 +12,3 @@ install:
 
 script:
   - '../rez_install/bin/rez/rez-selftest -s $_REZ_SHELL'
-
-# TEMP
-#group: deprecated-2017Q4
