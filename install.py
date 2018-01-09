@@ -169,4 +169,3 @@ if __name__ == "__main__":
         print "You may also want to source the relevant completion script from:"
         print completion_path
     print
-
