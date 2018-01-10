@@ -59,7 +59,7 @@ class TestBase(unittest.TestCase):
             new_settings will be the only configuration settings applied
         """
         # restore the "normal" config...
-        from rez.util import deep_update
+        from rez.utils.data_utils import deep_update
 
         self.teardown_config()
 

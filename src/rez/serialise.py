@@ -6,6 +6,7 @@ from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
+from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
 from rez.utils.system import add_sys_paths
@@ -140,6 +141,7 @@ def load_py(stream, filepath=None):
              early=early,
              late=late,
              include=include,
+             ModifyList=ModifyList,
              InvalidPackageError=InvalidPackageError)
 
     try:
@@ -158,7 +160,7 @@ def load_py(stream, filepath=None):
 
     result = {}
     excludes = set(('scope', 'InvalidPackageError', '__builtins__',
-                    'early', 'late', 'include'))
+                    'early', 'late', 'include', 'ModifyList'))
 
     for k, v in g.iteritems():
         if k not in excludes and \
