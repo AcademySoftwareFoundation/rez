@@ -4,14 +4,17 @@ Filesystem-based package repository
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
-    package_release_keys, package_build_only_keys
+    package_release_keys, package_build_only_keys, late_bound
 from rez.serialise import clear_file_caches, open_file_for_write
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
     ConfigurationError, PackageRepositoryError
+from rez.utils.data_utils import cached_property
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning
+from rez.utils.sourcecode import SourceCode
+from rez.utils.schema import get_cls_sub_schema
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.utils.memcached import memcached, pool_memcached_connections
@@ -255,10 +258,10 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
     repository_type = "filesystem"
 
     schema = Schema({
-        Optional("versions"):               [And(basestring,
-                                                 Use(Version))],
-        Optional("version_overrides"):      {And(basestring,
-                                                 Use(VersionRange)): dict}
+        Optional("versions"):
+            late_bound([Or(Version, And(basestring, Use(Version)))]),
+        Optional("version_overrides"):
+            late_bound({Or(VersionRange, And(Or(basestring, Version), Use(VersionRange))): dict}),
     })
 
     @property
@@ -278,6 +281,25 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
             return os.path.getmtime(self.filepath)
         except OSError:
             return 0
+
+    def _get_late_bound(self, attr):
+        # if the class has a property for, ie, "versions" already, then
+        # LazyAttributeMeta will create a property called _versions
+        result = getattr(self, '_' + attr)
+        if isinstance(result, SourceCode):
+            result = result.exec_late(self)
+            schema = get_cls_sub_schema(self, attr)
+            if schema is not None:
+                result = schema.validate(result)
+        return result
+
+    @cached_property
+    def versions(self):
+        return self._get_late_bound('versions')
+
+    @cached_property
+    def version_overrides(self):
+        return self._get_late_bound('version_overrides')
 
     def iter_packages(self):
         # unversioned package
