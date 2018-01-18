@@ -25,6 +25,7 @@ class ContextModel(QtCore.QObject):
     CONTEXT_CHANGED = 8
     LOADPATH_CHANGED = 16
     PACKAGE_FILTER_CHANGED = 32
+    CACHING_CHANGED = 64
 
     def __init__(self, context=None, parent=None):
         super(ContextModel, self).__init__(parent)
@@ -39,6 +40,7 @@ class ContextModel(QtCore.QObject):
         self.packages_path = config.packages_path
         self.implicit_packages = config.implicit_packages
         self.package_filter = config.package_filter
+        self.caching = config.resolve_caching
         self.default_patch_lock = PatchLock.no_lock
         self.patch_locks = {}
 
@@ -55,6 +57,7 @@ class ContextModel(QtCore.QObject):
         other.packages_path = self.packages_path
         other.implicit_packages = self.implicit_packages
         other.package_filter = self.package_filter
+        other.caching = self.caching
         other.default_patch_lock = self.default_patch_lock
         other.patch_locks = copy.deepcopy(self.patch_locks)
         return other
@@ -139,6 +142,9 @@ class ContextModel(QtCore.QObject):
     def set_package_filter(self, package_filter):
         self._attr_changed("package_filter", package_filter, self.PACKAGE_FILTER_CHANGED)
 
+    def set_caching(self, caching):
+        self._attr_changed("caching", caching, self.CACHING_CHANGED)
+
     def save(self, filepath):
         assert self._context
         assert not self._stale
@@ -186,7 +192,8 @@ class ContextModel(QtCore.QObject):
             timestamp=timestamp,
             buf=buf,
             callback=callback,
-            package_load_callback=package_load_callback)
+            package_load_callback=package_load_callback,
+            caching=self.caching)
 
         if context.success:
             if self._context and self._context.load_path:
@@ -224,6 +231,7 @@ class ContextModel(QtCore.QObject):
         self.packages_path = context.package_paths
         self.implicit_packages = context.implicit_packages[:]
         self.package_filter = context.package_filter.to_pod()
+        self.caching = context.caching
         self.default_patch_lock = context.default_patch_lock
         self.patch_locks = copy.deepcopy(context.patch_locks)
         if emit:
