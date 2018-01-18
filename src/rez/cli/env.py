@@ -156,12 +156,14 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
     if opts.input:
-        if opts.PKG:
-            parser.error("Cannot use --input and provide PKG(s) at the same time")
         context = ResolvedContext.load(opts.input)
         if context.status != ResolverStatus.solved:
             print >> sys.stderr, "cannot rez-env into a failed context"
             sys.exit(1)
+
+        if opts.PKG:
+            request = context.get_patched_request(opts.PKG, strict=True)
+            context = None
 
     if opts.patch:
         # TODO: patching is lagging behind in options, and needs to be updated
