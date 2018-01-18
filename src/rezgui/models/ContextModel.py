@@ -220,7 +220,8 @@ class ContextModel(QtCore.QObject):
                               self.PACKAGES_PATH_CHANGED |
                               self.LOCKS_CHANGED |
                               self.LOADPATH_CHANGED |
-                              self.PACKAGE_FILTER_CHANGED)
+                              self.PACKAGE_FILTER_CHANGED |
+                              self.CACHING_CHANGED)
 
     def _set_context(self, context, emit=True):
         self._context = context
