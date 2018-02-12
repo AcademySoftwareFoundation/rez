@@ -254,7 +254,8 @@ class ActionManager(object):
     def undefined(self, key):
         _, expanded_key = self._key(key)
         return (expanded_key not in self.environ
-                and expanded_key not in self.parent_environ)
+            and (expanded_key not in self.parent_environ 
+                or expanded_key not in self.parent_variables))
 
     def defined(self, key):
         return not self.undefined(key)
