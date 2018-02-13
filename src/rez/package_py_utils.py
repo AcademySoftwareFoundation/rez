@@ -7,7 +7,7 @@ including:
 """
 
 # these imports just forward the symbols into this module's namespace
-from rez.utils.sourcecode import late
+from rez.utils.system import popen
 from rez.exceptions import InvalidPackageError
 
 
@@ -165,7 +165,7 @@ def exec_command(attr, cmd):
     """
     import subprocess
 
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
 
     if p.returncode:
@@ -192,9 +192,8 @@ def exec_python(attr, src, executable="python"):
     if isinstance(src, basestring):
         src = [src]
 
-    p = subprocess.Popen(
-        [executable, "-c", "; ".join(src)],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = popen([executable, "-c", "; ".join(src)],
+              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
 
     if p.returncode:
@@ -233,8 +232,8 @@ def find_site_python(module_name, paths=None):
 
     py_cmd = 'import {x}; print {x}.__path__'.format(x=module_name)
 
-    p = subprocess.Popen(["python", "-c", py_cmd], stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+    p = popen(["python", "-c", py_cmd], stdout=subprocess.PIPE,
+               stderr=subprocess.PIPE)
     out, err = p.communicate()
 
     if p.returncode:

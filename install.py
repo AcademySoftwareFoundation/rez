@@ -56,7 +56,7 @@ class _ScriptMaker(ScriptMaker):
 def patch_rez_binaries(dest_dir):
     bin_names = os.listdir(bin_path)
     _, _, _, venv_bin_path = path_locations(dest_dir)
-    venv_py_executable = which("python", env={"PATH":venv_bin_path, 
+    venv_py_executable = which("python", env={"PATH":venv_bin_path,
                                               "PATHEXT":os.environ.get("PATHEXT", "")})
 
     # delete rez bin files written by setuptools
@@ -113,6 +113,11 @@ if __name__ == "__main__":
         help="Don't run realpath on the passed DEST_DIR to resolve symlinks; "
              "ie, the baked script locations may still contain symlinks")
     opts, args = parser.parse_args()
+
+    if " " in os.path.realpath(__file__):
+        err_str = "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n" \
+                  "Please move installation files to another location or rename offending folder(s).\n"
+        parser.error(err_str)
 
     # determine install path
     if len(args) != 1:

@@ -5,6 +5,7 @@ import pipes
 import os.path
 import subprocess
 from rez.config import config
+from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.shells import Shell, UnixShell
 from rez.rex import EscapedString
@@ -38,8 +39,8 @@ class CSH(UnixShell):
         elif cls.syspaths is None:
             cmd = "cmd=`which %s`; unset PATH; $cmd %s 'echo __PATHS_ $PATH'" \
                   % (cls.name(), cls.command_arg)
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, shell=True)
+            p = popen(cmd, stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE, shell=True)
             out_, err_ = p.communicate()
             if p.returncode:
                 paths = []

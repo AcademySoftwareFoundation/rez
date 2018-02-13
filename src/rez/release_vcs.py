@@ -1,8 +1,10 @@
 from rez.exceptions import ReleaseVCSError
 from rez.packages_ import get_developer_package
 from rez.util import which
+from rez.utils.system import popen
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import walk_up_dirs
+from pipes import quote
 import subprocess
 
 
@@ -200,13 +202,15 @@ class ReleaseVCS(object):
 
     def _cmd(self, *nargs):
         """Convenience function for executing a program such as 'git' etc."""
-        cmd_str = ' '.join(nargs)
+        cmd_str = ' '.join(map(quote, nargs))
+
         if self.package.config.debug("package_release"):
             print_debug("Running command: %s" % cmd_str)
 
-        p = subprocess.Popen(nargs, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, cwd=self.pkg_root)
+        p = popen(nargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                  cwd=self.pkg_root)
         out, err = p.communicate()
+
         if p.returncode:
             print_debug("command stdout:")
             print_debug(out)

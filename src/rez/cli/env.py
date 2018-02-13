@@ -13,7 +13,7 @@ def setup_parser(parser, completions=False):
 
     parser.add_argument(
         "--shell", dest="shell", type=str, choices=shells,
-        default=system.shell,
+        default=config.default_shell or system.shell,
         help="target shell type (default: %(default)s)")
     parser.add_argument(
         "--rcfile", type=str,
@@ -92,11 +92,22 @@ def setup_parser(parser, completions=False):
         "-q", "--quiet", action="store_true",
         help="run in quiet mode (hides welcome message)")
     parser.add_argument(
+        "--fail-graph", action="store_true",
+        help="if the build environment fails to resolve due to a conflict, "
+        "display the resolve graph as an image.")
+    parser.add_argument(
         "--new-session", action="store_true",
         help="start the shell in a new process group")
     parser.add_argument(
         "--detached", action="store_true",
         help="open a separate terminal")
+    parser.add_argument(
+        "--no-passive", action="store_true",
+        help="only print actions that affect the solve (has an effect only "
+        "when verbosity is enabled)")
+    parser.add_argument(
+        "--stats", action="store_true",
+        help="print advanced solver stats")
     parser.add_argument(
         "--pre-command", type=str, help=SUPPRESS)
     PKG_action = parser.add_argument(
@@ -192,11 +203,21 @@ def command(opts, parser, extra_arg_groups=None):
                                   verbosity=opts.verbose,
                                   max_fails=opts.max_fails,
                                   time_limit=opts.time_limit,
-                                  caching=(not opts.no_cache))
+                                  caching=(not opts.no_cache),
+                                  suppress_passive=opts.no_passive,
+                                  print_stats=opts.stats)
 
     success = (context.status == ResolverStatus.solved)
     if not success:
         context.print_info(buf=sys.stderr)
+        if opts.fail_graph:
+            if context.graph:
+                from rez.utils.graph_utils import view_graph
+                g = context.graph(as_dot=True)
+                view_graph(g)
+            else:
+                print >> sys.stderr, \
+                    "the failed resolve context did not generate a graph."
 
     if opts.output:
         if opts.output == '-':  # print to stdout

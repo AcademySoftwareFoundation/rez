@@ -4,7 +4,7 @@ test configuration settings
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 from rez.exceptions import ConfigurationError
-from rez.config import Config, get_module_root_config
+from rez.config import Config, get_module_root_config, _replace_config
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages_ import get_developer_package
@@ -133,25 +133,36 @@ class TestConfig(TestBase):
 
     def test_4(self):
         """Test package config overrides."""
-        pkg = get_developer_package(self.config_path)
-        c = pkg.config
-        self._test_basic(c)
+        conf = os.path.join(self.config_path, "test2.py")
+        config2 = Config([self.root_config_file, conf])
 
-        # check overrides from package.yaml are working
-        os.environ["REZ_BUILD_DIRECTORY"] = "foo"  # should have no effect
-        self.assertEqual(c.build_directory, "weeble")
-        self.assertEqual(c.plugins.release_vcs.tag_name, "tag")
+        with _replace_config(config2):
+            pkg = get_developer_package(self.config_path)
+            c = pkg.config
+            self._test_basic(c)
 
-        # check system expansion in package overridden setting works
-        expected_value = "%s@somewhere.com" % system.user
-        self.assertEqual(c.plugins.release_hook.emailer.sender, expected_value)
+            # check overrides from package.py are working
+            os.environ["REZ_BUILD_DIRECTORY"] = "foo"  # should have no effect
+            self.assertEqual(c.build_directory, "weeble")
+            self.assertEqual(c.plugins.release_vcs.tag_name, "tag")
 
-        # check env-var expansion in package overridden setting works
-        os.environ["FUNK"] = "dude"
-        expected_value = ["FOO", "BAH_dude", "EEK"]
-        self.assertEqual(c.parent_variables, expected_value)
+            # check list modification is working
+            self.assertEqual(c.release_hooks, ["foo", "bah"])
 
-        self._test_overrides(c)
+            # check list modification within plugin settings is working
+            self.assertEqual(c.plugins.release_hook.emailer.recipients,
+                             ["joe@here.com", "jay@there.com"])
+
+            # check system expansion in package overridden setting works
+            expected_value = "%s@somewhere.com" % system.user
+            self.assertEqual(c.plugins.release_hook.emailer.sender, expected_value)
+
+            # check env-var expansion in package overridden setting works
+            os.environ["FUNK"] = "dude"
+            expected_value = ["FOO", "BAH_dude", "EEK"]
+            self.assertEqual(c.parent_variables, expected_value)
+
+            self._test_overrides(c)
 
     def test_5(self):
         """Test misconfigurations."""

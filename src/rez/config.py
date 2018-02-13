@@ -1,7 +1,7 @@
 from rez import __version__
-from rez.util import deep_update
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
-    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta
+    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \
+    deep_update, ModifyList
 from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
@@ -13,6 +13,7 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
+from contextlib import contextmanager
 from inspect import ismodule
 import os
 import os.path
@@ -53,9 +54,10 @@ class Setting(object):
         return data
 
     def _validate(self, data):
-        # overriden settings take precedence.
+        # overridden settings take precedence. Note that `data` has already
+        # taken override into account at this point
         if self.key in self.config.overrides:
-            return self.config.overrides[self.key]
+            return data
 
         # next, env-var
         if self._env_var_name and not self.config.locked:
@@ -393,6 +395,18 @@ class Config(object):
         """Get the value of a setting."""
         return getattr(self, key, default)
 
+    def copy(self, overrides=None, locked=False):
+        """Create a separate copy of this config."""
+        other = copy.copy(self)
+
+        if overrides is not None:
+            other.overrides = overrides
+
+        other.locked = locked
+
+        other._uncache()
+        return other
+
     def override(self, key, value):
         """Set a setting to the given value.
 
@@ -506,11 +520,19 @@ class Config(object):
                 keys += _get_plugin_completions('')
             return keys
 
-    def _uncache(self, key):
+    def _uncache(self, key=None):
         # deleting the attribute falls up back to the class attribute, which is
         # the cached_property descriptor
-        if hasattr(self, key):
+        if key and hasattr(self, key):
             delattr(self, key)
+
+        # have to uncache entire data/plugins dict also, since overrides may
+        # have been changed
+        if hasattr(self, "_data"):
+            delattr(self, "_data")
+
+        if hasattr(self, "plugins"):
+            delattr(self, "plugins")
 
     def _swap(self, other):
         """Swap this config with another.
@@ -529,9 +551,18 @@ class Config(object):
         return key_schema.validate(value)
 
     @cached_property
-    def _data(self):
+    def _data_without_overrides(self):
         data, self._sourced_filepaths = _load_config_from_filepaths(self.filepaths)
+        return data
+
+    @cached_property
+    def _data(self):
+        data = copy.deepcopy(self._data_without_overrides)
+
+        # need to do this regardless of overrides, in order to flatten
+        # ModifyList instances
         deep_update(data, self.overrides)
+
         return data
 
     @classmethod
@@ -542,7 +573,7 @@ class Config(object):
         filepaths.append(get_module_root_config())
         filepath = os.getenv("REZ_CONFIG_FILE")
         if filepath:
-            filepaths.append(filepath)
+            filepaths.extend(filepath.split(os.pathsep))
 
         filepath = os.path.expanduser("~/.rezconfig")
         filepaths.append(filepath)
@@ -690,12 +721,12 @@ def expand_system_vars(data):
 
 
 def create_config(overrides=None):
-    """Create a configuration that reads config files from standard locations.
+    """Create a configuration based on the global config.
     """
     if not overrides:
         return config
     else:
-        return Config._create_main_config(overrides=overrides)
+        return config.copy(overrides=overrides)
 
 
 def _create_locked_config(overrides=None):
@@ -712,11 +743,28 @@ def _create_locked_config(overrides=None):
     return Config([get_module_root_config()], overrides=overrides, locked=True)
 
 
+@contextmanager
+def _replace_config(other):
+    """Temporarily replace the global config.
+    """
+    config._swap(other)
+
+    try:
+        yield
+    finally:
+        config._swap(other)  # revert config
+
+
 @lru_cache()
 def _load_config_py(filepath):
     from rez.vendor.six.six import exec_
 
-    globs = dict(rez_version=__version__)
+    reserved = dict(
+        rez_version=__version__,
+        ModifyList=ModifyList
+    )
+
+    globs = reserved.copy()
     result = {}
 
     with open(filepath) as f:
@@ -728,8 +776,11 @@ def _load_config_py(filepath):
                                      % (filepath, str(e)))
 
     for k, v in globs.iteritems():
-        if k != '__builtins__' and not ismodule(v):
+        if k != '__builtins__' \
+                and not ismodule(v) \
+                and k not in reserved:
             result[k] = v
+
     return result
 
 

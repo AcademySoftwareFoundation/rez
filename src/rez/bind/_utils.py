@@ -6,6 +6,7 @@ from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
 from rez.util import which
+from rez.utils.system import popen
 from rez.utils.logging_ import print_debug
 from pipes import quote
 import subprocess
@@ -117,8 +118,7 @@ def _run_command(args):
     cmd_str = ' '.join(quote(x) for x in args)
     log("running: %s" % cmd_str)
 
-    p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+    p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     return stdout, stderr, p.returncode
 

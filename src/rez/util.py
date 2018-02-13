@@ -14,12 +14,6 @@ from rez.vendor.progress.bar import Bar
 
 DEV_NULL = open(os.devnull, 'w')
 
-"""
-class _Missing:
-    pass
-_missing = _Missing()
-"""
-
 
 class ProgressBar(Bar):
     def __init__(self, label, max):
@@ -170,18 +164,6 @@ def find_last_sublist(list_, sublist):
         if list_[i] == sublist[0] and list_[i:i + len(sublist)] == sublist:
             return i
     return None
-
-
-def deep_update(dict1, dict2):
-    """Perform a deep merge of `dict2` into `dict1`.
-
-    Note that `dict2` and any nested dicts are unchanged.
-    """
-    for k, v in dict2.iteritems():
-        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
-            deep_update(dict1[k], v)
-        else:
-            dict1[k] = copy.deepcopy(v)
 
 
 @atexit.register
