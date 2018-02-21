@@ -28,7 +28,7 @@ class LocalBuildProcess(BuildProcessHelper):
         self._print_header("Building %s..." % self.package.qualified_name)
 
         # build variants
-        num_visited, build_env_scripts = self.visit_variants(
+        num_visited, num_error, build_env_scripts = self.visit_variants(
             self._build_variant,
             variants=variants,
             install_path=install_path,
@@ -44,7 +44,7 @@ class LocalBuildProcess(BuildProcessHelper):
             self._print('\n'.join(build_env_scripts))
             self._print('')
         else:
-            self._print("\nAll %d build(s) were successful.\n", num_visited)
+            self._print("\n%d of %d build(s) were successful.\n", num_visited, num_visited + num_error)
         return num_visited
 
     def release(self, release_message=None, variants=None):
@@ -70,7 +70,7 @@ class LocalBuildProcess(BuildProcessHelper):
                        previous_revision=previous_revision)
 
         # release variants
-        num_visited, released_variants = self.visit_variants(
+        num_visited, num_error, released_variants = self.visit_variants(
             self._release_variant,
             variants=variants,
             release_message=release_message)
@@ -92,7 +92,7 @@ class LocalBuildProcess(BuildProcessHelper):
             self.post_release(release_message=release_message)
 
         if self.verbose:
-            msg = "\n%d of %d releases were successful" % (num_released, num_visited)
+            msg = "\n%d of %d releases were successful" % (num_released, num_visited + num_error)
             if num_released < num_visited:
                 Printer()(msg, warning)
             else:

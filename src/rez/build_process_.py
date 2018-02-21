@@ -175,17 +175,21 @@ class BuildProcessHelper(BuildProcess):
         # iterate over variants
         results = []
         num_visited = 0
+        num_error = 0
 
         for variant in self.package.iter_variants():
-            if variants and variant.index not in variants:
-                self._print_header("Skipping %s..." % self._n_of_m(variant))
-                continue
+            try:
+                if variants and variant.index not in variants:
+                    self._print_header("Skipping %s..." % self._n_of_m(variant))
+                    continue
 
-            result = func(variant, **kwargs)
-            results.append(result)
-            num_visited += 1
+                result = func(variant, **kwargs)
+                results.append(result)
+                num_visited += 1
+            except BuildContextResolveError:
+                num_error += 1
 
-        return num_visited, results
+        return num_visited, num_error, results
 
     def get_package_install_path(self, path):
         """Return the installation path for a package (where its payload goes).
