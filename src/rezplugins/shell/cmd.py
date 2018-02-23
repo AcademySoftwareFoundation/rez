@@ -2,9 +2,10 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal
+from rez.rex import RexExecutor, literal, OutputStyle
 from rez.shells import Shell
 from rez.system import system
+from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.util import shlex_join
 import os
@@ -61,33 +62,66 @@ class CMD(Shell):
 
     @classmethod
     def get_syspaths(cls):
-        if not cls.syspaths:
-            paths = []
+        if cls.syspaths is not None:
+            return cls.syspaths
 
-            cmd = ["REG", "QUERY", "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", "/v", "PATH"]
-            expected = "\r\nHKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment\r\n    PATH    REG_(EXPAND_)?SZ    (.*)\r\n\r\n"
+        def gen_expected_regex(parts):
+            whitespace = "[\s]+"
+            return whitespace.join(parts)
 
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, shell=True)
-            out_, _ = p.communicate()
+        paths = []
 
-            if p.returncode == 0:
-                match = re.match(expected, out_)
-                if match:
-                    paths.extend(match.group(2).split(os.pathsep))
+        cmd = [
+            "REG",
+            "QUERY",
+            "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
+            "/v",
+            "PATH"
+        ]
 
-            cmd = ["REG", "QUERY", "HKCU\\Environment", "/v", "PATH"]
-            expected = "\r\nHKEY_CURRENT_USER\\\\Environment\r\n    PATH    REG_(EXPAND_)?SZ    (.*)\r\n\r\n"
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, shell=True)
-            out_, _ = p.communicate()
+        expected = gen_expected_regex([
+            "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment",
+            "PATH",
+            "REG_(EXPAND_)?SZ",
+            "(.*)"
+        ])
 
-            if p.returncode == 0:
-                match = re.match(expected, out_)
-                if match:
-                    paths.extend(match.group(2).split(os.pathsep))
+        p = popen(cmd, stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE, shell=True)
+        out_, _ = p.communicate()
+        out_ = out_.strip()
 
-            cls.syspaths = set([x for x in paths if x])
+        if p.returncode == 0:
+            match = re.match(expected, out_)
+            if match:
+                paths.extend(match.group(2).split(os.pathsep))
+
+        cmd = [
+            "REG",
+            "QUERY",
+            "HKCU\\Environment",
+            "/v",
+            "PATH"
+        ]
+
+        expected = gen_expected_regex([
+            "HKEY_CURRENT_USER\\\\Environment",
+            "PATH",
+            "REG_(EXPAND_)?SZ",
+            "(.*)"
+        ])
+
+        p = popen(cmd, stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE, shell=True)
+        out_, _ = p.communicate()
+        out_ = out_.strip()
+
+        if p.returncode == 0:
+            match = re.match(expected, out_)
+            if match:
+                paths.extend(match.group(2).split(os.pathsep))
+
+        cls.syspaths = set([x for x in paths if x])
         return cls.syspaths
 
     def _bind_interactive_rez(self):
@@ -117,9 +151,6 @@ class CMD(Shell):
             if bind_rez:
                 ex.interpreter._bind_interactive_rez()
             if print_msg and not quiet:
-#                ex.info('')
-#                ex.info('You are now in a rez-configured environment.')
-#                ex.info('')
                 if system.is_production_rez_install:
                     # previously this was called with the /K flag, however
                     # that would leave spawn_shell hung on a blocked call
@@ -147,7 +178,7 @@ class CMD(Shell):
 
         if shell_command:
             executor.command(shell_command)
-        executor.command('exit %errorlevel%')
+            executor.command('exit %errorlevel%')
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir, "rez-shell.%s"
@@ -165,9 +196,29 @@ class CMD(Shell):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command
-        cmd = cmd + [self.executable, "/Q", "/K", target_file]
-        p = subprocess.Popen(cmd, env=env, **Popen_args)
+
+        if shell_command:
+            cmd_flags = ['/Q', '/C']
+        else:
+            cmd_flags = ['/Q', '/K']
+
+        cmd = cmd + [self.executable] + cmd_flags + ['call {}'.format(target_file)]
+        is_detached = (cmd[0] == 'START')
+
+        p = popen(cmd, env=env, shell=is_detached, **Popen_args)
         return p
+
+    def get_output(self, style=OutputStyle.file):
+        if style == OutputStyle.file:
+            script = '\n'.join(self._lines) + '\n'
+        else:  # eval style
+            lines = []
+            for line in self._lines:
+                if not line.startswith('REM'):  # strip comments
+                    line = line.rstrip()
+                    lines.append(line)
+            script = '&& '.join(lines)
+        return script
 
     def escape_string(self, value):
         return value
@@ -193,7 +244,7 @@ class CMD(Shell):
 
     def comment(self, value):
         for line in value.split('\n'):
-            self._addline(': %s' % line)
+            self._addline('REM %s' % line)
 
     def info(self, value):
         for line in value.split('\n'):

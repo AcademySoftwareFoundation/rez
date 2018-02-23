@@ -332,12 +332,19 @@ class TimestampPackageOrder(PackageOrder):
         if before and after:
             package = key(before[0])
             first_prerank = package.version.trim(self.rank - 1)
+            found = False
 
             for i, o in enumerate(after):
                 package = key(o)
                 prerank = package.version.trim(self.rank - 1)
                 if prerank != first_prerank:
+                    found = True
                     break
+
+            if not found:
+                # highest version is also within rank, so result is just
+                # simple descending list
+                return descending
 
             if i:
                 before = list(reversed(after[:i])) + before

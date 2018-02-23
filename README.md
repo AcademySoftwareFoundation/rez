@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/nerdvegas/rez.svg?branch=master)](https://travis-ci.org/nerdvegas/rez)
+
 ![logo](media/rez_banner_256.png)
 
 - [What Is Rez?](#what-is-rez)

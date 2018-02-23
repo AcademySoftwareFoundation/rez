@@ -6,7 +6,7 @@ from rez.package_serialise import dump_package_data
 from rez.utils import reraise
 from rez.utils.logging_ import print_info, print_error
 from rez.utils.sourcecode import SourceCode
-from rez.utils.data_utils import cached_property, _missing
+from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType, expandvars
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
@@ -171,9 +171,9 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
     def _wrap_forwarded(self, key, value):
         if isinstance(value, SourceCode) and value.late_binding:
-            value_ = self._late_bindings.get(key, _missing)
+            value_ = self._late_bindings.get(key, KeyError)
 
-            if value_ is _missing:
+            if value_ is KeyError:
                 value_ = self._eval_late_binding(value)
 
                 schema = self.late_bind_schemas.get(key)
@@ -582,9 +582,9 @@ def get_package_from_string(txt, paths=None):
     return get_package(o.name, o.version, paths=paths)
 
 
-def get_developer_package(path):
+def get_developer_package(path, format=None):
     from rez.developer_package import DeveloperPackage
-    return DeveloperPackage.from_path(path)
+    return DeveloperPackage.from_path(path, format=format)
 
 
 def create_package(name, data, package_cls=None):

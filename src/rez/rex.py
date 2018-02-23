@@ -12,6 +12,7 @@ from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, RezSystemError
 from rez.util import shlex_join
 from rez.utils import reraise
+from rez.utils.system import popen
 from rez.utils.sourcecode import SourceCode, SourceCodeError
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
@@ -612,10 +613,10 @@ class Python(ActionInterpreter):
             self.target_environ.update(self.manager.environ)
 
         shell_mode = not hasattr(args, '__iter__')
-        return subprocess.Popen(args,
-                                shell=shell_mode,
-                                env=self.target_environ,
-                                **subproc_kwargs)
+        return popen(args,
+                     shell=shell_mode,
+                     env=self.target_environ,
+                     **subproc_kwargs)
 
     def command(self, value):
         if self.passive:

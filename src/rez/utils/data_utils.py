@@ -7,8 +7,77 @@ from collections import MutableMapping
 from threading import Lock
 
 
-class _Missing: pass
-_missing = _Missing()
+class ModifyList(object):
+    """List modifier, used in `deep_update`.
+
+    This can be used in configs to add to list-based settings, rather than
+    overwriting them.
+    """
+    def __init__(self, append=None, prepend=None):
+        for v in (prepend, append):
+            if v is not None and not isinstance(v, list):
+                raise ValueError("Expected list in ModifyList, not %r" % v)
+
+        self.prepend = prepend
+        self.append = append
+
+    def apply(self, v):
+        if v is None:
+            v = []
+        elif not isinstance(v, list):
+            raise ValueError("Attempted to apply ModifyList to non-list: %r" % v)
+
+        return (self.prepend or []) + v + (self.append or [])
+
+
+def deep_update(dict1, dict2):
+    """Perform a deep merge of `dict2` into `dict1`.
+
+    Note that `dict2` and any nested dicts are unchanged.
+
+    Supports `ModifyList` instances.
+    """
+    def flatten(v):
+        if isinstance(v, ModifyList):
+            return v.apply([])
+        elif isinstance(v, dict):
+            return dict((k, flatten(v_)) for k, v_ in v.iteritems())
+        else:
+            return v
+
+    def merge(v1, v2):
+        if isinstance(v1, dict) and isinstance(v2, dict):
+            deep_update(v1, v2)
+            return v1
+        elif isinstance(v2, ModifyList):
+            v1 = flatten(v1)
+            return v2.apply(v1)
+        else:
+            return flatten(v2)
+
+    """
+    import copy
+    for k, v in dict2.iteritems():
+        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
+            deep_update(dict1[k], v)
+        else:
+            dict1[k] = copy.deepcopy(v)
+
+    return
+    """
+
+    ### NEW
+    for k1, v1 in dict1.iteritems():
+        if k1 not in dict2:
+            dict1[k1] = flatten(v1)
+
+    for k2, v2 in dict2.iteritems():
+        v1 = dict1.get(k2)
+
+        if v1 is KeyError:
+            dict1[k2] = flatten(v2)
+        else:
+            dict1[k2] = merge(v1, v2)
 
 
 def get_dict_diff(d1, d2):
@@ -115,8 +184,9 @@ class cached_class_property(object):
     def __get__(self, instance, owner=None):
         assert owner
         name = "_class_property_" + self.func.__name__
-        result = getattr(owner, name, _missing)
-        if result is _missing:
+        result = getattr(owner, name, KeyError)
+
+        if result is KeyError:
             result = self.func(owner)
             setattr(owner, name, result)
         return result

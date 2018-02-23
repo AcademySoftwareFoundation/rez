@@ -4,6 +4,7 @@ import os
 import os.path
 import re
 from rez.util import which
+from rez.utils.system import popen
 from rez.utils.data_utils import cached_property
 from rez.utils.platform_mapped import platform_mapped
 from rez.exceptions import RezSystemError
@@ -219,9 +220,11 @@ class LinuxPlatform(_UnixPlatform):
 
         # next, try getting the output of the lsb_release program
         import subprocess
-        p = subprocess.Popen(['/usr/bin/env', 'lsb_release', '-a'],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        p = popen(['/usr/bin/env', 'lsb_release', '-a'],
+                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         txt = p.communicate()[0]
+
         if not p.returncode:
             distributor_, release_ = _parse(txt,
                                             "Distributor ID:",
@@ -230,6 +233,7 @@ class LinuxPlatform(_UnixPlatform):
                 distributor = distributor_
             if release_ and not release:
                 release = release_
+
         result = _os()
         if result:
             return result
@@ -240,6 +244,7 @@ class LinuxPlatform(_UnixPlatform):
             distributor_, release_, _ = platform.linux_distribution()
         except:
             distributor_, release_, _ = platform.dist()
+
         if distributor_ and not distributor:
             distributor = distributor_
         if release_ and not release:
@@ -339,8 +344,7 @@ class LinuxPlatform(_UnixPlatform):
     def _physical_cores_from_lscpu(self):
         import subprocess
         try:
-            p = subprocess.Popen(['lscpu'], stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+            p = popen(['lscpu'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except (OSError, IOError):
             return None
 
@@ -407,9 +411,8 @@ class OSXPlatform(_UnixPlatform):
     def _physical_cores_from_osx_sysctl(self):
         import subprocess
         try:
-            p = subprocess.Popen(['sysctl', '-n', 'hw.physicalcpu'],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+            p = popen(['sysctl', '-n', 'hw.physicalcpu'],
+                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except (OSError, IOError):
             return None
 
@@ -482,15 +485,14 @@ class WindowsPlatform(Platform):
                 raise ctypes.WinError()
 
     def _terminal_emulator_command(self):
-        return "CMD.exe /Q /K"
+        return "START"
 
     def _physical_cores_from_wmic(self):
         # windows
         import subprocess
         try:
-            p = subprocess.Popen('wmic cpu get NumberOfCores /value'.split(),
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+            p = popen('wmic cpu get NumberOfCores /value'.split(),
+                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except (OSError, IOError):
             return None
 

@@ -9,6 +9,7 @@ import tempfile
 from ast import literal_eval
 from rez.config import config
 from rez.vendor.pydot import pydot
+from rez.utils.system import popen
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
@@ -242,7 +243,7 @@ def view_graph(graph_str, dest_file=None):
     print "loading image viewer (%s)..." % prog
 
     if config.image_viewer:
-        proc = subprocess.Popen((config.image_viewer, dest_file))
+        proc = popen([config.image_viewer, dest_file])
         proc.wait()
         viewed = not bool(proc.returncode)
 

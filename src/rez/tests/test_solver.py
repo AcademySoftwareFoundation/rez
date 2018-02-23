@@ -212,6 +212,13 @@ class TestSolver(TestBase):
         self._solve(["pyvariants", "python", "nada"],
                     ["python-2.6.8[]", "nada[]", "pyvariants-2[1]"])
 
+    def test_11_variant_splitting(self):
+        self._solve(["test_variant_split_start"],
+                    ["test_variant_split_end-1.0[1]",
+                     "test_variant_split_mid2-2.0[0]",
+                     "test_variant_split_start-1.0[1]"])
+
+
 if __name__ == '__main__':
     unittest.main()
 
