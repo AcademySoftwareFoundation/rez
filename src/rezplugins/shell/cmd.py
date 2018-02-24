@@ -2,12 +2,13 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal, OutputStyle
+from rez.rex import RexExecutor, literal, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.util import shlex_join
+from functools import partial
 import os
 import re
 import subprocess
@@ -19,6 +20,11 @@ class CMD(Shell):
     # http://ss64.com/nt/cmd.html
     syspaths = None
     _executable = None
+
+    # Regex to aid with escaping of Windows-specific special chars:
+    # http://ss64.com/nt/syntax-esc.html
+    _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])')
+    _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
     @property
     def executable(cls):
@@ -221,7 +227,18 @@ class CMD(Shell):
         return script
 
     def escape_string(self, value):
-        return value
+        """Escape the <, >, ^, and & special characters reserved by Windows.
+
+        Args:
+            value (str/EscapedString): String or already escaped string.
+
+        Returns:
+            str: The value escaped for Windows.
+
+        """
+        if isinstance(value, EscapedString):
+            return value.formatted(self._escaper)
+        return self._escaper(value)
 
     def _saferefenv(self, key):
         pass
