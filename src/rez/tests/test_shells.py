@@ -263,7 +263,7 @@ class TestShells(TestBase, TempdirMixin):
             "hey & world",
             "hey > world",
             "hey < world",
-            "hey ^ world",
+            "hey ^ world"
         ]
 
         # We are wrapping all variable outputs in quotes in order to make sure
