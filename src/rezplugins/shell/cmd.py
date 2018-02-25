@@ -8,10 +8,11 @@ from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.util import shlex_join
+from functools import partial
 import os
 import re
 import subprocess
-from functools import partial
+
 
 class CMD(Shell):
     # For reference, the ss64 web page provides useful documentation on builtin
@@ -19,11 +20,12 @@ class CMD(Shell):
     # http://ss64.com/nt/cmd.html
     syspaths = None
     _executable = None
-    # regex to aid with escapiing of Windows-specific special chars
+    _doskey = None
+
+    # Regex to aid with escaping of Windows-specific special chars:
     # http://ss64.com/nt/syntax-esc.html
     _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])')
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
-    _doskey = None
 
     @property
     def executable(cls):
@@ -239,8 +241,14 @@ class CMD(Shell):
         return script
 
     def escape_string(self, value):
-        """
-        Escapes the <, >, and & special characters reserved by Windows.
+        """Escape the <, >, ^, and & special characters reserved by Windows.
+
+        Args:
+            value (str/EscapedString): String or already escaped string.
+
+        Returns:
+            str: The value escaped for Windows.
+
         """
         if isinstance(value, EscapedString):
             return value.formatted(self._escaper)
@@ -263,19 +271,7 @@ class CMD(Shell):
         self._addline(self.setenv(key, value))
 
     def alias(self, key, value):
-        # the PATH may have been cleared prior to this command being run, but
-        # the doskey command should always be on the system paths recorded in
-        # the registry; lazy load those and then find the doskey.exe path,
-        # falling back on letting the shell search for it if that fails
-        if self._doskey is None:
-            doskey = 'doskey'
-            for p in self.get_syspaths():
-                f = os.path.normpath(os.path.join(p, doskey + '.exe'))
-                if os.path.isfile(f):
-                    doskey = f
-                    break
-            self._doskey = doskey
-        self._addline("%s %s=%s" % (self._doskey, key, value))
+        self._addline("doskey %s=%s" % (key, value))
 
     def comment(self, value):
         for line in value.split('\n'):
