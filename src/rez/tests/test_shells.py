@@ -278,9 +278,9 @@ class TestShells(TestBase, TempdirMixin):
         """Ensure PATH changes do not influence the alias command.
 
         This is important for Windows because the doskey.exe might not be on
-        the PATH anymore at the time it's executed. That's why we use the full
-        path to doskey.exe and figure out the path to it before we modify the
-        PATH.
+        the PATH anymore at the time it's executed. That's why we figure out
+        the absolute path to doskey.exe before we modify PATH and continue to
+        use the absolute path after the modifications.
 
         """
         def _execute_code(func):
