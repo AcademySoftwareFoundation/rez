@@ -82,19 +82,6 @@ class PythonBuildSystem(BuildSystem):
         variables.
         """
         ret = {}
-
-        from pprint import pprint
-        pprint({
-            'working_dir': self.working_dir,
-            'opts': self.opts,
-            'context': context,
-            'variant': variant,
-            'build_path': build_path,
-            'install_path': install_path,
-            'install': install,
-            'build_type': build_type,
-        })
-
         if self.write_build_scripts:
             # write out the script that places the user in a build env, where
             # they can run bez directly themselves.
