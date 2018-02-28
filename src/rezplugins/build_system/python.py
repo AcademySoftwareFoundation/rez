@@ -17,6 +17,7 @@ from rez.packages_ import get_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.config import config
 from rez.utils.colorize import heading, Printer
+from rez.utils.logging_ import print_warning
 from rez.utils.yaml import dump_yaml
 
 
@@ -145,7 +146,7 @@ class PythonBuildSystem(BuildSystem):
         build_args = self.build_args or []
         install_mode = install
         develop_mode = 'develop' in build_args
-        pip_mode = 'pip' not in build_args
+        pip_mode = 'pip' in  build_args
 
         source_path = self.working_dir
         py_install_root = os.path.join(source_path, 'build', '_py_install')
