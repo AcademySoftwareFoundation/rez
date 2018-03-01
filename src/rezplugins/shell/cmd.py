@@ -281,6 +281,7 @@ class CMD(Shell):
         if self._doskey is None:
             doskey = 'doskey'
             for p in self.get_syspaths():
+                p = os.path.expandvars(p)
                 f = os.path.normpath(os.path.join(p, doskey + '.exe'))
                 if os.path.isfile(f):
                     doskey = f
