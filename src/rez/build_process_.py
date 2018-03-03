@@ -178,7 +178,9 @@ class BuildProcessHelper(BuildProcess):
 
         for variant in self.package.iter_variants():
             if variants and variant.index not in variants:
-                self._print_header("Skipping %s..." % self._n_of_m(variant))
+                self._print_header(
+                    "Skipping variant %s (%s)..."
+                    % (variant.index, self._n_of_m(variant)))
                 continue
 
             result = func(variant, **kwargs)
