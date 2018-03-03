@@ -161,6 +161,58 @@ class TestShells(TestBase, TempdirMixin):
 
     @shell_dependent()
     @install_dependent
+    def test_rez_python(self):
+        """Ensure rez python will recognize keyword arguments."""
+
+        def _run_and_assert(command, expected_output):
+            """Run the given command and assert the output.
+
+            Args:
+                command (list): The command to run.
+                expected_output (str): The expected output.
+
+            """
+            output = subprocess.check_output(command)
+            out = str(output).strip()
+            self.assertEqual(out, expected_output)
+
+        # Ensure the resulting Python command finds a flag given after the
+        # double dash correctly.
+        cmd = [
+            os.path.join(system.rez_bin_path, "rez-python"),
+            "-c", "import sys; print(sys.argv[1])", "--", "--hey"
+        ]
+        _run_and_assert(cmd, "--hey")
+
+        # Ensure the resulting Python command finds the standard FILE and ARG
+        # arguments correctly even if double dash is provided.
+        cmd = [
+            os.path.join(system.rez_bin_path, "rez-python"),
+            "-c", "import sys; print(sys.argv[1] + sys.argv[2])",
+            "FILE", "ARG", "--", "--hey"
+        ]
+        _run_and_assert(cmd, "FILEARG")
+
+        # Ensure the resulting Python command finds the standard FILE and ARG
+        # arguments correctly when no double dash is provided.
+        cmd = [
+            os.path.join(system.rez_bin_path, "rez-python"),
+            "-c", "import sys; print(sys.argv[1] + sys.argv[2] + sys.argv[3])",
+            "FILE", "ARG", "ARG2"
+        ]
+        _run_and_assert(cmd, "FILEARGARG2")
+
+        # Ensure not providing the double dash results in the expected error.
+        cmd = [
+            os.path.join(system.rez_bin_path, "rez-python"),
+            "-c", "import sys; print(sys.argv[1])",
+            "FILE", "ARG", "--hey"
+        ]
+        self.assertRaises(
+            subprocess.CalledProcessError, _run_and_assert, cmd, "FILE")
+
+    @shell_dependent()
+    @install_dependent
     def test_rez_command(self):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
