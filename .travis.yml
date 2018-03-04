@@ -21,24 +21,21 @@ matrix:
     # Travis CI does not support Python on Mac OS out of the box, this is a
     # simple workaround until they can. More info:
     # https://github.com/travis-ci/travis-ci/issues/2312
-    - language: generic
-      os: osx
+    - os: osx
       env: _REZ_SHELL=bash
       before_install:
         - brew update
         - brew install python2
         - virtualenv env -p python2
         - source env/bin/activate
-    - language: generic
-      os: osx
+    - os: osx
       env: _REZ_SHELL=sh
       before_install:
         - brew update
         - brew install python2
         - virtualenv env -p python2
         - source env/bin/activate
-    - language: generic
-      os: osx
+    - os: osx
       env: _REZ_SHELL=tcsh
       before_install:
         - brew update
@@ -46,8 +43,7 @@ matrix:
         - brew install python2
         - virtualenv env -p python2
         - source env/bin/activate
-    - language: generic
-      os: osx
+    - os: osx
       env: _REZ_SHELL=csh
       before_install:
         - brew update
