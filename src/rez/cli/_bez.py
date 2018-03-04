@@ -38,6 +38,8 @@ def run():
     # because we're in a python env configured for rez, not the build
     code = \
     """
+    from __future__ import print_function
+
     stream=open("%(buildfile)s")
     env={}
     exec stream in env
