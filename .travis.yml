@@ -13,6 +13,11 @@ matrix:
       env: _REZ_SHELL=tcsh
       before_install:
         - sudo apt-get install tcsh -y
+    - python: 2.7
+      os: linux
+      env: _REZ_SHELL=csh
+      before_install:
+        - sudo apt-get install csh -y
     # Travis CI does not support Python on Mac OS out of the box, this is a
     # simple workaround until they can. More info:
     # https://github.com/travis-ci/travis-ci/issues/2312
