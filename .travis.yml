@@ -51,4 +51,4 @@ install:
   - 'python ./install.py ../rez_install'
 
 script:
-  - '../rez_install/bin/rez/rez-selftest -s $_REZ_SHELL'
+  - '/bin/$_REZ_SHELL ../rez_install/bin/rez/rez-selftest -s $_REZ_SHELL'
