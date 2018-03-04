@@ -37,6 +37,15 @@ matrix:
         - brew install python2
         - virtualenv env -p python2
         - source env/bin/activate
+    - language: generic
+      os: osx
+      env: _REZ_SHELL=tcsh
+      before_install:
+        - brew update
+        - brew install tcsh
+        - brew install python2
+        - virtualenv env -p python2
+        - source env/bin/activate
 
 install:
   - 'python ./install.py ../rez_install'
