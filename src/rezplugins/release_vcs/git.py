@@ -1,6 +1,8 @@
 """
 Git version control
 """
+from __future__ import print_function
+
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
@@ -203,7 +205,7 @@ class GitReleaseVCS(ReleaseVCS):
             return
 
         # create tag
-        print "Creating tag '%s'..." % tag_name
+        print("Creating tag '%s'..." % tag_name)
         args = ["tag", "-a", tag_name]
         args += ["-m", message or '']
         self.git(*args)
@@ -214,7 +216,7 @@ class GitReleaseVCS(ReleaseVCS):
             return
 
         remote_uri = '/'.join((remote, remote_branch))
-        print "Pushing tag '%s' to %s..." % (tag_name, remote_uri)
+        print("Pushing tag '%s' to %s..." % (tag_name, remote_uri))
         self.git("push", remote, tag_name)
 
     @classmethod

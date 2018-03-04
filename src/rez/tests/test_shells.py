@@ -1,6 +1,8 @@
 """
 test shell invocation
 """
+from __future__ import print_function
+
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
@@ -150,7 +152,7 @@ class TestShells(TestBase, TempdirMixin):
         # exactly what we expect.
         echo_cmd = which("echo")
         if not echo_cmd:
-            print "\nskipping test, 'echo' command not found."
+            print("\nskipping test, 'echo' command not found.")
             return
 
         cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]

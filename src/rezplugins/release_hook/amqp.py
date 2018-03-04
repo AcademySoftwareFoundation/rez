@@ -1,6 +1,8 @@
 """
 Publishes a message to the broker.
 """
+from __future__ import print_function
+
 from rez.release_hook import ReleaseHook
 from rez.utils.logging_ import print_error, print_debug
 from rez.vendor.amqp import Connection, basic_message
@@ -115,7 +117,7 @@ class AmqpReleaseHook(ReleaseHook):
             content_encoding="utf-8")
 
         routing_key = self.settings.exchange_routing_key
-        print "Publishing AMQP message on %s..." % routing_key
+        print("Publishing AMQP message on %s..." % routing_key)
 
         # publish the message
         try:

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.util import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
@@ -424,7 +426,7 @@ class Suite(object):
         if os.path.exists(path):
             if self.load_path and self.load_path == path:
                 if verbose:
-                    print "saving over previous suite..."
+                    print("saving over previous suite...")
                 for context_name in self.context_names:
                     self.context(context_name)  # load before dir deleted
                 shutil.rmtree(path)
@@ -446,14 +448,14 @@ class Suite(object):
             context._set_parent_suite(path, context_name)
             filepath = self._context_path(context_name, path)
             if verbose:
-                print "writing %r..." % filepath
+                print("writing %r..." % filepath)
             context.save(filepath)
 
         # create alias wrappers
         tools_path = os.path.join(path, "bin")
         os.makedirs(tools_path)
         if verbose:
-            print "creating alias wrappers in %r..." % tools_path
+            print("creating alias wrappers in %r..." % tools_path)
 
         tools = self.get_tools()
         for tool_alias, d in tools.iteritems():
@@ -464,8 +466,8 @@ class Suite(object):
             prefix_char = data.get("prefix_char")
 
             if verbose:
-                print ("creating %r -> %r (%s context)..."
-                       % (tool_alias, tool_name, context_name))
+                print("creating %r -> %r (%s context)..."
+                      % (tool_alias, tool_name, context_name))
             filepath = os.path.join(tools_path, tool_alias)
 
             create_forwarding_script(filepath,

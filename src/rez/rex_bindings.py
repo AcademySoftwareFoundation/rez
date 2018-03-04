@@ -40,7 +40,7 @@ class VersionBinding(Binding):
         (1, 2, '3alpha')
         >>> str(v)
         '1.2.3alpha'
-        >>> print v[5]
+        >>> print(v[5])
         None
         >>> v.as_tuple():
         (1, 2, '3alpha')

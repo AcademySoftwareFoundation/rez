@@ -1,6 +1,7 @@
 '''
 Open a rez-configured shell, possibly interactive.
 '''
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -160,7 +161,7 @@ def command(opts, parser, extra_arg_groups=None):
             parser.error("Cannot use --input and provide PKG(s) at the same time")
         context = ResolvedContext.load(opts.input)
         if context.status != ResolverStatus.solved:
-            print >> sys.stderr, "cannot rez-env into a failed context"
+            print("cannot rez-env into a failed context", file=sys.stderr)
             sys.exit(1)
 
     if opts.patch:
@@ -170,7 +171,7 @@ def command(opts, parser, extra_arg_groups=None):
             from rez.status import status
             context = status.context
             if context is None:
-                print >> sys.stderr, "cannot patch: not in a context"
+                print("cannot patch: not in a context", file=sys.stderr)
                 sys.exit(1)
 
         request = context.get_patched_request(request,
@@ -216,8 +217,8 @@ def command(opts, parser, extra_arg_groups=None):
                 g = context.graph(as_dot=True)
                 view_graph(g)
             else:
-                print >> sys.stderr, \
-                    "the failed resolve context did not generate a graph."
+                print("the failed resolve context did not generate a graph.",
+                      file=sys.stderr)
 
     if opts.output:
         if opts.output == '-':  # print to stdout

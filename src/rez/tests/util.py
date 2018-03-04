@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import rez.vendor.unittest2 as unittest
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types
@@ -154,7 +156,7 @@ def shell_dependent(exclude=None):
             for shell in shells:
                 if exclude and shell in exclude:
                     self.skipTest("This test does not run on %s shell." % shell)
-                print "\ntesting in shell: %s..." % shell
+                print("\ntesting in shell: %s..." % shell)
                 config.override("default_shell", shell)
                 func(self, *args, **kwargs)
         return wrapper
@@ -169,8 +171,8 @@ def install_dependent(fn):
         if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
             fn(self, *args, **kwargs)
         else:
-            print ("\nskipping test, must be run via 'rez-selftest' tool, from "
-                   "a PRODUCTION rez installation.")
+            print("\nskipping test, must be run via 'rez-selftest' tool, from "
+                  "a PRODUCTION rez installation.")
     return _fn
 
 

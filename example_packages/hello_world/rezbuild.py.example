@@ -36,8 +36,8 @@ def build(source_path, build_path, install_path, targets):
             if os.path.exists(dest):
                 shutil.rmtree(dest)
 
-            print src
-            print dest
+            print(src)
+            print(dest)
             shutil.copytree(src, dest)
 
     _build()

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.utils._version import _rez_version
 import logging.config
 import atexit
@@ -26,8 +28,8 @@ if action:
     if action == "print_stack":
         def callback(sig, frame):
             txt = ''.join(traceback.format_stack(frame))
-            print
-            print txt
+            print()
+            print(txt)
     else:
         callback = None
 

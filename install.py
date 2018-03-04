@@ -2,6 +2,8 @@
 This script uses an embedded copy of virtualenv to create a standalone,
 production-ready Rez installation in the specified directory.
 """
+from __future__ import print_function
+
 import os
 import sys
 import shutil
@@ -128,7 +130,7 @@ if __name__ == "__main__":
     if not opts.keep_symlinks:
         dest_dir = os.path.realpath(dest_dir)
 
-    print "installing rez to %s..." % dest_dir
+    print("installing rez to %s..." % dest_dir)
 
     # make virtualenv verbose
     log_level = Logger.level_for_integer(2 - opts.verbose)
@@ -144,7 +146,7 @@ if __name__ == "__main__":
                                                                   "")})
     args = [py_executable, "setup.py", "install"]
     if opts.verbose:
-        print "running in %s: %s" % (source_path, " ".join(args))
+        print("running in %s: %s" % (source_path, " ".join(args)))
     p = subprocess.Popen(args, cwd=source_path)
     p.wait()
 
@@ -161,11 +163,11 @@ if __name__ == "__main__":
         f.write(_rez_version)
 
     # done
-    print
-    print "SUCCESS! To activate Rez, add the following path to $PATH:"
-    print dest_bin_dir
+    print()
+    print("SUCCESS! To activate Rez, add the following path to $PATH:")
+    print(dest_bin_dir)
 
     if completion_path:
-        print "You may also want to source the relevant completion script from:"
-        print completion_path
-    print
+        print("You may also want to source the relevant completion script from:")
+        print(completion_path)
+    print()

@@ -90,7 +90,7 @@ Resolved environments can also be created programmatically:
     >>> p = r.execute_shell(command='which hescape', stdout=subprocess.PIPE)
     >>> stdout,stderr = p.communicate()
     >>>
-    >>> print stdout
+    >>> print(stdout)
     '/software/ext/houdini/12.5.562/bin/hescape'
 
 Features

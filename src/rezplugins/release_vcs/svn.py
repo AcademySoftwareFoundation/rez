@@ -1,6 +1,8 @@
 """
 Svn version control
 """
+from __future__ import print_function
+
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSError
 import os.path
@@ -45,7 +47,7 @@ def get_svn_login(realm, username, may_save):
     """
     import getpass
 
-    print "svn requires a password for the user %s:" % username
+    print("svn requires a password for the user %s:" % username)
     pwd = ''
     while not pwd.strip():
         pwd = getpass.getpass("--> ")
@@ -91,7 +93,7 @@ class SvnReleaseVCS(ReleaseVCS):
 
     def _create_tag_impl(self, tag_name, message=None):
         tag_url = self.get_tag_url(tag_name)
-        print "rez-release: creating project tag in: %s..." % tag_url
+        print("rez-release: creating project tag in: %s..." % tag_url)
         self.svnc.callback_get_log_message = lambda x: (True, x)
         self.svnc.copy2([(self.this_url,)], tag_url, make_parents=True)
 

@@ -4,7 +4,7 @@
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import re
@@ -1028,7 +1028,7 @@ except ImportError: # pragma: no cover
             else:
                 rest = rest[m.end():]
                 d = self.config[m.groups()[0]]
-                #print d, rest
+                # print(d, rest)
                 while rest:
                     m = self.DOT_PATTERN.match(rest)
                     if m:

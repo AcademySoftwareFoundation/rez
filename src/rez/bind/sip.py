@@ -12,7 +12,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     version = get_version_in_python(
         name,
         ["import sip",
-         "print sip.SIP_VERSION_STR"])
+         "print(sip.SIP_VERSION_STR)"])
 
     variants = _pymodule.bind(name,
                               path=path,

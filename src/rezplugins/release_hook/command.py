@@ -1,6 +1,7 @@
 """
 Executes pre- and post-release shell commands
 """
+from __future__ import print_function
 
 import getpass
 import sys
@@ -50,7 +51,7 @@ class CommandReleaseHook(ReleaseHook):
         def _err(msg):
             errors.append(msg)
             if self.settings.print_error:
-                print >> sys.stderr, msg
+                print(msg, file=sys.stderr)
 
         kwargs = {}
         if env:
@@ -65,7 +66,7 @@ class CommandReleaseHook(ReleaseHook):
                 _err(msg)
                 return False
             if self.settings.print_output:
-                print stdout.strip()
+                print(stdout.strip())
             return True
 
         if not os.path.isfile(cmd_name):
@@ -181,7 +182,7 @@ class CommandReleaseHook(ReleaseHook):
                         msgs.append("    with: %s=%s" % (key, value))
 
                 if self.settings.print_commands:
-                    print '\n'.join(msgs)
+                    print('\n'.join(msgs))
                 else:
                     for msg in msgs:
                         print_debug(msg)

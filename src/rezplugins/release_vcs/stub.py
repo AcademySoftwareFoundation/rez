@@ -1,6 +1,8 @@
 """
 Stub version control system, for testing purposes
 """
+from __future__ import print_function
+
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_warning
 from rez.utils.yaml import dump_yaml
@@ -59,7 +61,7 @@ class StubReleaseVCS(ReleaseVCS):
             print_warning("Skipped tag creation, tag '%s' already exists" % tag_name)
             return
 
-        print "Creating tag '%s'..." % tag_name
+        print("Creating tag '%s'..." % tag_name)
         data["tags"][tag_name] = message
         self._write_stub(data)
 

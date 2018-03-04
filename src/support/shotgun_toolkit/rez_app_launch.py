@@ -22,6 +22,7 @@ Please note that this requires Rez to be installed as a package,
 which exposes the Rez Python API. With a proper Rez installation, you can do this
 by running "rez-bind rez".
 """
+from __future__ import print_function
 
 import os
 import sys
@@ -142,14 +143,15 @@ class AppLaunch(tank.Hook):
                 raise ImportError("Failed to find Rez as a package in the current "
                                   "environment! Try 'rez-bind rez'!")
             else:
-                print >> sys.stderr, ("WARNING: Failed to find a Rez package in the current "
-                                      "environment. Unable to request Rez packages.")
+                print("WARNING: Failed to find a Rez package in the current "
+                      "environment. Unable to request Rez packages.",
+                      file=sys.stderr)
 
             rez_path = ""
         else:
             rez_path = rez_path.strip()
-            print "Found Rez:", rez_path
-            print "Adding Rez to system path..."
+            print("Found Rez:", rez_path)
+            print("Adding Rez to system path...")
             sys.path.append(rez_path)
 
         return rez_path

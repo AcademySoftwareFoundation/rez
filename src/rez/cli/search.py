@@ -1,6 +1,7 @@
 """
 Search for packages.
 """
+from __future__ import print_function
 
 
 # these are package fields that can be printed using the --format option.
@@ -132,7 +133,7 @@ def command(opts, parser, extra_arg_groups=None):
             if type_ == "auto":
                 type_ = "package" if family.name == name_pattern else "family"
             if type_ == "family":
-                print family.name
+                print(family.name)
                 found = True
 
     def _handle(e):
@@ -158,9 +159,9 @@ def command(opts, parser, extra_arg_groups=None):
                 if opts.no_newlines:
                     line_ = line_.replace('\n', "\\n")
 
-                print line_
+                print(line_)
         else:
-            print r.qualified_name
+            print(r.qualified_name)
 
     # packages/variants
     if type_ in ("package", "variant"):
@@ -204,9 +205,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     if not found:
         if opts.errors:
-            print "no erroneous packages found"
+            print("no erroneous packages found")
         else:
-            print "no matches found"
+            print("no matches found")
             sys.exit(1)
 
 

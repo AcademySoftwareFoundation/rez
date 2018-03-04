@@ -1,6 +1,7 @@
 """
 Get a list of a package's plugins.
 """
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -33,9 +34,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     pkgs_list = get_plugins(package_name=opts.PKG, paths=pkg_paths)
     if pkgs_list:
-        print '\n'.join(pkgs_list)
+        print('\n'.join(pkgs_list))
     else:
-        print >> sys.stderr, "package '%s' has no plugins." % opts.PKG
+        print("package '%s' has no plugins." % opts.PKG, file=sys.stderr)
 
 
 # Copyright 2013-2016 Allan Johns.

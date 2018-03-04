@@ -3,7 +3,8 @@ Generates the RestructuredText 'README' file from the markdown 'README.md' file.
 Be careful: it isn't foolproof, use of fancier markdown features will probably
 break it. The README file is used by Pypi to create the Rez frontpage.
 """
-from __future__ import with_statement
+from __future__ import print_function, with_statement
+
 import os.path
 
 
@@ -82,4 +83,4 @@ if __name__ == "__main__":
     with open(readme, 'w') as f:
         f.write('\n'.join(dest))
 
-    print "README was written"
+    print("README was written")

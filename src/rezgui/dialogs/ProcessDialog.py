@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
@@ -76,7 +78,7 @@ class ProcessDialog(QtGui.QDialog, StoreSizeMixin):
                 self.lock.release()
 
             txt = ''.join(buf)
-            print >> self.edit, txt
+            print(txt, file=self.edit)
 
         if not self.ended and self.proc.poll() is not None:
             self.bar.setMaximum(10)

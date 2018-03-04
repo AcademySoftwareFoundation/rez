@@ -1,6 +1,7 @@
 """
 Utility for displaying help for the given package.
 """
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -37,17 +38,17 @@ def command(opts, parser=None, extra_arg_groups=None):
     help_ = PackageHelp(request.name, request.range, verbose=opts.verbose)
     if not help_.success:
         msg = "Could not find a package with help for %r." % request
-        print >> sys.stderr, msg
+        print(msg, file=sys.stderr)
         sys.exit(1)
 
     package = help_.package
-    print "Help found for:"
-    print package.uri
+    print("Help found for:")
+    print(package.uri)
     if package.description:
-        print
-        print "Description:"
-        print package.description.strip()
-        print
+        print()
+        print("Description:")
+        print(package.description.strip())
+        print()
 
     if opts.entries:
         help_.print_info()
@@ -55,7 +56,7 @@ def command(opts, parser=None, extra_arg_groups=None):
         try:
             help_.open(opts.SECTION - 1)
         except IndexError:
-            print >> sys.stderr, "No such help section."
+            print("No such help section.", file=sys.stderr)
             sys.exit(2)
 
 
