@@ -5,6 +5,9 @@ matrix:
     - python: 2.7
       os: linux
       env: _REZ_SHELL=bash
+    - python: 2.7
+      os: linux
+      env: _REZ_SHELL=sh
     # Travis CI does not support Python on Mac OS out of the box, this is a
     # simple workaround until they can. More info:
     # https://github.com/travis-ci/travis-ci/issues/2312
