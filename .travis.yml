@@ -4,59 +4,22 @@ matrix:
   include:
     - python: 2.7
       os: linux
-      env: _REZ_SHELL=bash
-    - python: 2.7
-      os: linux
-      env: _REZ_SHELL=sh
-    - python: 2.7
-      os: linux
-      env: _REZ_SHELL=tcsh
       before_install:
         - sudo apt-get install tcsh -y
-    - python: 2.7
-      os: linux
-      env: _REZ_SHELL=csh
-      before_install:
         - sudo apt-get install csh -y
     # Travis CI does not support Python on Mac OS out of the box, this is a
     # simple workaround until they can. More info:
     # https://github.com/travis-ci/travis-ci/issues/2312
     - language: generic
       os: osx
-      env: _REZ_SHELL=bash
-      before_install:
-        - brew update
-        - brew install python2
-        - virtualenv env -p python2
-        - source env/bin/activate
-    - language: generic
-      os: osx
-      env: _REZ_SHELL=sh
-      before_install:
-        - brew update
-        - brew install python2
-        - virtualenv env -p python2
-        - source env/bin/activate
-    - language: generic
-      os: osx
-      env: _REZ_SHELL=tcsh
       before_install:
         - brew update
         - brew install tcsh
         - brew install python2
         - virtualenv env -p python2
         - source env/bin/activate
-    - language: generic
-      os: osx
-      env: _REZ_SHELL=csh
-      before_install:
-        - brew update
-        - brew install python2
-        - virtualenv env -p python2
-        - source env/bin/activate
-
 install:
   - 'python ./install.py ../rez_install'
 
 script:
-  - '/bin/$_REZ_SHELL -c "../rez_install/bin/rez/rez-selftest -s $_REZ_SHELL"'
+  - '"../rez_install/bin/rez/rez-selftest"'
