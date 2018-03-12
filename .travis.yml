@@ -15,7 +15,16 @@ matrix:
       before_install:
         - brew update
         - brew install tcsh
-        - brew install python2
+        # The Python version might already be installed and has some symlinks
+        # lying around. We remove the symlinks only when the version is not yet
+        # installed of course.
+        - if ! [ brew list python@2 ] && [ -L /usr/local/bin/python2 ]; then
+          brew unlink python;
+          fi
+        # brew install errors out if the formulae is already installed, lets
+        # check and make sure we actually need to install Python.
+        - if ! [ brew list python@2 ]; then brew install python@2; fi
+        - export PATH="/usr/local/opt/python@2/libexec/bin:$PATH"
         - virtualenv env -p python2
         - source env/bin/activate
 install:
