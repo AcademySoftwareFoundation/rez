@@ -30,7 +30,6 @@ cmake = {
 
 if os.name != "posix":
     cmake["build_system"] = "nmake"
-    cmake["make_binary"] = "nmake"
 
 
 # Copyright 2013-2016 Allan Johns.
