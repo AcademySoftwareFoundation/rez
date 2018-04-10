@@ -62,6 +62,14 @@ release_packages_path = "~/.rez/packages/int"
 # is highly recommended that this be set to local storage, such as /tmp.
 tmpdir = None
 
+# Where to output a log of ALL of rez's output, and any subprocess
+logfile = None
+
+# Each command can also optionally register it's own logfile, while will
+# override the global "logfile" setting above; this provides a handy way to,
+# ie, always log rez-build and rez-release, but not other commands
+logfile_by_command = {}
+
 # Where temporary files for contexts go. Defaults to appropriate path depending
 # on your system - for example, *nix distributions will probably set this to "/tmp".
 # This is separate to 'tmpdir' because you sometimes might want to set this to an

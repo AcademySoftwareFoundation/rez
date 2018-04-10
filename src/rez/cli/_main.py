@@ -1,11 +1,15 @@
 """
 The main command-line entry point.
 """
+import os
 import sys
-from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
+import subprocess
+from rez.vendor.argparse import _StoreTrueAction, SUPPRESS, ArgumentParser
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.utils.logging_ import print_error
 from rez.exceptions import RezError, RezSystemError
+from rez.utils.logging_ import teed_call
+from rez.config import config
 from rez import __version__
 
 
@@ -54,6 +58,17 @@ def _add_common_args(parser):
                         help=SUPPRESS)
     parser.add_argument("--profile", dest="profile", type=str,
                         help=SUPPRESS)
+    parser.add_argument("--logfile", type=str,
+                        help="direct all stdout and stderr ouput to the "
+                             "given logfile, as well as the screen; will "
+                             "override any logfile or logfile_by_command "
+                             "settings in rezconfig, but will be ignored if "
+                             "the --no-logfile flag is also present")
+    parser.add_argument("--no-logfile", action='store_true',
+                        help="disable the logfile, even if it is enabled due "
+                             "to logfile or logfile_by_command settings in "
+                             "rezconfig; will also override the --logfile "
+                             "command line switch if both are present")
 
 
 class InfoAction(_StoreTrueAction):
@@ -100,6 +115,34 @@ def run(command=None):
             continue
         arg_groups[-1].append(arg)
     opts = parser.parse_args(arg_groups[0])
+
+    # opts.no_logfile always wins, because this gives us an easy way to make
+    # sure we're not recursively calling ourselves when logging is on...
+    if not opts.no_logfile:
+        logfile = opts.logfile
+        if not logfile:
+            # trying checking the rezconfig for this command...
+            logfile = config.logfile_by_command.get(opts.cmd)
+
+            # ...then try checking the global rezconfig logfile setting
+            if not logfile:
+                logfile = config.logfile
+
+        # if we do logging, we relaunch as a subprocess, in which we 'tee' the
+        # output to a file, but which is otherwise identical...
+        if logfile:
+            # first, make sure we add the '--no-logfile' arg, so we don't
+            # recurse...
+            new_args = list(sys.argv)
+            new_args.insert(1, "--no-logfile")
+
+            # turn off python buffering to get more accurate output ordering...
+            environ = dict(os.environ)
+            environ['PYTHONUNBUFFERED'] = '1'
+
+            with open(logfile, 'w', buffering=4096) as logfile_handle:
+                sys.exit(teed_call(new_args, stdout=logfile_handle,
+                                   stderr=subprocess.STDOUT, env=environ))
 
     if opts.debug or _env_var_true("REZ_DEBUG"):
         exc_type = None
