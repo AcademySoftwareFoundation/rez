@@ -373,6 +373,7 @@ config_schema = Schema({
     "warn_none":                                    Bool,
     "debug_file_loads":                             Bool,
     "debug_plugins":                                Bool,
+    "debug_hooks":                                  Bool,
     "debug_package_release":                        Bool,
     "debug_bind_modules":                           Bool,
     "debug_resources":                              Bool,

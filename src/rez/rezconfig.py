@@ -516,6 +516,9 @@ debug_file_loads = False
 # Print debugging info when loading plugins
 debug_plugins = False
 
+# Print debugging info inside hooks
+debug_hooks = False
+
 # Print debugging info such as VCS commands during package release. Note that
 # rez-pip installations are controlled with this setting also.
 debug_package_release = False
@@ -582,7 +585,7 @@ build_thread_count = "physical_cores"
 # release hook plugin being loaded does not mean it will run - it needs to be
 # listed here as well. Several built-in release hooks are available, see
 # rezplugins/release_hook.
-release_hooks = []
+release_hooks = ["rez_test"]
 
 # Prompt for release message using an editor. If set to False, there will be
 # no editor prompt.
