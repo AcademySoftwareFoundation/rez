@@ -28,28 +28,28 @@ class RezTestReleaseHook(ReleaseHook):
         if tests:
             for testName, testDetails in tests.iteritems():
 
-                args = ['rez', 'test', self.package.name, testName]
+                args = ['rez', 'test', "%s==%s"%(self.package.name, self.package.version), testName]
 
-                stdout, stderr, retcode = self._run_command(args, testPath)
+                retcode = self._run_command(args, testPath)
 
                 if retcode:
                     raise ReleaseHookCancellingError(
                         "Running %s test (command: %s) returned code %s\n" % (testName, testDetails['command'], retcode))
-                else:
-                    print stdout
         else:
             print_debug("Package does not have rez test. Continuing with release ...", module="hooks")
 
     def _run_command(self, args, packages_path):
         cmd_str = ' '.join(args)
-        os.environ['REZ_PACKAGES_PATH'] = os.path.pathsep.join(packages_path)
+        packages_path_str = os.path.pathsep.join(packages_path)
 
-        print_debug("Running: %s   with packages path %s " % (cmd_str, os.environ['REZ_PACKAGES_PATH']), module="hooks")
+        test_env = os.environ.copy()
+        test_env['REZ_PACKAGES_PATH'] = packages_path_str
 
-        p = subprocess.Popen(args, env=os.environ, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        return stdout, stderr, p.returncode
+        print_debug("Running: REZ_PACKAGES_PATH=%s %s" % (packages_path_str, cmd_str), module="hooks")
+
+        p = subprocess.Popen(args, env=test_env)
+        p.wait()
+        return p.returncode
 
 
 def register_plugin():
