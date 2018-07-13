@@ -26,7 +26,7 @@ def create_build_process(process_type, working_dir, build_system, package=None,
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
     process_types = get_build_process_types()
-    if process_type not in process_type:
+    if process_type not in process_types:
         raise BuildProcessError("Unknown build process: %r" % process_type)
     cls = plugin_manager.get_plugin_class('build_process', process_type)
 
