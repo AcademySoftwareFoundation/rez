@@ -19,6 +19,9 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--interval", type=float, metavar="SECS", default=1.0,
         help="interval (in seconds) used when polling (default: %(default)s)")
+    parser.add_argument(
+        "--warm", action="store_true",
+        help="warm the cache server with data")
 
 
 def poll(client, interval):
@@ -69,6 +72,7 @@ def poll(client, interval):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
+    from rez.packages_ import iter_package_families, iter_packages
     from rez.utils.yaml import dump_yaml
     from rez.utils.memcached import Client
     from rez.utils.formatting import columnise, readable_time_duration, \
@@ -89,6 +93,14 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.flush:
         memcache_client.flush(hard=True)
         print "memcached servers are flushed."
+        return
+
+    if opts.warm:
+        for family in iter_package_families(paths=config.nonlocal_packages_path):
+            for package in iter_packages(family.name, paths=config.nonlocal_packages_path):
+                for _ in package.iter_variants():
+                    pass
+        print "memcached servers are warmed."
         return
 
     if opts.reset_stats:
