@@ -238,6 +238,22 @@ class LinuxPlatform(_UnixPlatform):
         if result:
             return result
 
+        # try to read the /etc/os-release file
+        # this file contains OS specific data on linux
+        # distributions
+        # see https://www.freedesktop.org/software/systemd/man/os-release.html
+        os_release = '/etc/os-release'
+        if os.path.isfile(os_release):
+            with open(os_release, 'r') as f:
+                txt = f.read()
+            distributor_, release_ = _parse(txt,
+                                            "ID=",
+                                            "VERSION_ID=")
+            if distributor_ and not distributor:
+                distributor = distributor_
+            if release_ and not release:
+                release = release_
+
         # last, use python's dist detection. It is known to return incorrect
         # info on some systems though
         try:
