@@ -21,7 +21,7 @@ def setup_parser(parser, completions=False):
         help="interval (in seconds) used when polling (default: %(default)s)")
     parser.add_argument(
         "--warm", action="store_true",
-        help="warm the cache server with data")
+        help="warm the cache server with visible packages")
 
 
 def poll(client, interval):
@@ -96,10 +96,22 @@ def command(opts, parser, extra_arg_groups=None):
         return
 
     if opts.warm:
-        for family in iter_package_families(paths=config.nonlocal_packages_path):
-            for package in iter_packages(family.name, paths=config.nonlocal_packages_path):
-                for _ in package.iter_variants():
-                    pass
+        seen = set()
+        paths = config.nonlocal_packages_path
+
+        for family in iter_package_families(paths=paths):
+            if family.name in seen:
+                continue
+
+            for package in iter_packages(family.name, paths=paths):
+                if opts.verbose:
+                    print("warming: %s" % package.qualified_name)
+
+                # forces package definition load, which puts in memcache
+                _ = package.data  # noqa
+
+            seen.add(family.name)
+
         print "memcached servers are warmed."
         return
 
