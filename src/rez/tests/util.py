@@ -113,6 +113,8 @@ program_tests = {
 
 
 def program_dependent(program_name, *program_names):
+    """Function decorator that skips the function if not all given programs are
+    visible."""
 
     # test if program exists
     import subprocess
@@ -248,7 +250,7 @@ def get_cli_output(args):
 
 
 @contextmanager
-def sys_path():
+def restore_sys_path():
     """Encapsulate changes to sys.path and return to the original state.
 
     This context manager lets you wrap modifications of sys.path and not worry
@@ -266,7 +268,6 @@ def sys_path():
 
     Yields:
         list: The original sys.path.
-
     """
     original = sys.path[:]
     yield sys.path
@@ -274,7 +275,7 @@ def sys_path():
 
 
 @contextmanager
-def os_environ():
+def restore_os_environ():
     """Encapsulate changes to os.environ and return to the original state.
 
     This context manager lets you wrap modifications of os.environ and not
@@ -293,7 +294,6 @@ def os_environ():
 
     Yields:
         dict: The original os.environ.
-
     """
     original = os.environ.copy()
     yield os.environ

@@ -1,7 +1,8 @@
 """
 test resolved contexts
 """
-from rez.tests.util import os_environ, sys_path, TempdirMixin, TestBase
+from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
+    TestBase
 from rez.resolved_context import ResolvedContext
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
@@ -43,7 +44,7 @@ class TestContext(TestBase, TempdirMixin):
         """Test apply() function."""
         # Isolate our changes to os.environ and sys.path and return to the
         # original state to not mess with our test environment.
-        with os_environ(), sys_path():
+        with restore_os_environ(), restore_sys_path():
             r = ResolvedContext(["hello_world"])
             r.apply()
             self.assertEqual(os.environ.get("OH_HAI_WORLD"), "hello")
