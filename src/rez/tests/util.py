@@ -7,6 +7,8 @@ import shutil
 import os.path
 import os
 import functools
+import sys
+from contextlib import contextmanager
 
 
 class TestBase(unittest.TestCase):
@@ -243,6 +245,59 @@ def get_cli_output(args):
         sys.argv = old_argv
 
     return output, exitcode
+
+
+@contextmanager
+def sys_path():
+    """Encapsulate changes to sys.path and return to the original state.
+
+    This context manager lets you wrap modifications of sys.path and not worry
+    about reverting back to the original.
+
+    Examples:
+        >>> path = '/arbitrary/path'
+        >>> with sys_path():
+        >>>     sys.path.insert(0, '/arbitrary/path')
+        >>>     assert path in sys.path
+        True
+
+        >>> assert path in sys.path
+        False
+
+    Yields:
+        list: The original sys.path.
+
+    """
+    original = sys.path[:]
+    yield sys.path
+    sys.path = original
+
+
+@contextmanager
+def os_environ():
+    """Encapsulate changes to os.environ and return to the original state.
+
+    This context manager lets you wrap modifications of os.environ and not
+    worry about reverting back to the original.
+
+    Examples:
+        >>> key = 'ARBITRARY_KEY'
+        >>> value = 'arbitrary_value'
+        >>> with os_environ():
+        >>>     os.environ[key] = value
+        >>>     assert key in os.environ
+        True
+
+        >>> assert key in os.environ
+        False
+
+    Yields:
+        dict: The original os.environ.
+
+    """
+    original = os.environ.copy()
+    yield os.environ
+    os.environ = original
 
 
 # Copyright 2013-2016 Allan Johns.
