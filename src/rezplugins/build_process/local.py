@@ -181,7 +181,9 @@ class LocalBuildProcess(BuildProcessHelper):
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):
         if variant.index is not None:
-            self._print_header("Building variant %s..." % self._n_of_m(variant))
+            self._print_header(
+                "Building variant %s (%s)..."
+                % (variant.index, self._n_of_m(variant)))
 
         # build and possibly install variant
         install_path = install_path or self.package.config.local_packages_path
