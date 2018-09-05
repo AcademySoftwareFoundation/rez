@@ -15,7 +15,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         "packages_path":        "Search path for Rez packages",
         "implicit_packages":    "Packages that are implicitly added to the request",
         "package_filter":       "Package exclusion/inclusion rules",
-        "caching":              "Packages caching rule"
+        "caching":              "Enables resolve caching"
     }
 
     schema_dict = {
