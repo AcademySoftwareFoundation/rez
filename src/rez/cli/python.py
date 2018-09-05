@@ -1,41 +1,69 @@
-"""
-Start a python interpreter or execute a python script within Rez's own execution context.
+"""Start a Python interpreter or execute a Python script.
+
+This will happen within Rez's own execution context. You can pass keyword
+arguments or flags by using a double dash: rez python FILE ARG -- --flag
+
 """
 
 
 def setup_parser(parser, completions=False):
+    """Set up command specific arguments.
+
+    Args:
+        parser (ArgumentParser): A preconfigured base parser we can add
+            arguments to which are specific to this sub command.
+        completions (bool): Generate command completions, if enabled.
+
+    """
     parser.add_argument(
-        "-i", "--interactive", action="store_true",
-        help="inspect interactively after FILE has run")
-    FILE_action = parser.add_argument(
-        "FILE", type=str, nargs='?',
+        '-i', '--interactive', action='store_true',
+        help='inspect interactively after FILE has run')
+    file_action = parser.add_argument(
+        'file', metavar='FILE', type=str, nargs='?',
         help='python script to execute')
     parser.add_argument(
-        "ARG", type=str, nargs='*',
+        'arg', metavar='ARG', type=str, nargs='*',
         help='arguments to python script')
-    parser.add_argument('-c', help="python code to execute", dest='command')
+    parser.add_argument('-c', help='python code to execute', dest='command')
 
     if completions:
         from rez.cli._complete_util import FilesCompleter
-        FILE_action.completer = FilesCompleter(dirs=False,
-                                               file_patterns=["*.py"])
+        file_action.completer = FilesCompleter(dirs=False,
+                                               file_patterns=['*.py'])
 
 
 def command(opts, parser, extra_arg_groups=None):
+    """Run the main logic this command exposes.
+
+    Args:
+        opts (Namespace): The object with attributes, created when parsing the
+            given arguments on the command line.
+        parser (ArgumentParser): This commands parser which was set up via
+            `setup_parser`.
+        extra_arg_groups (list): All extra argument groups that were separated
+            by `--` from the main command. For example
+            `rez python -- --flag` will result in
+            `extra_arg_groups = [['--flag']]`.
+
+    """
     import subprocess
     import sys
 
-    cmd = [sys.executable, "-E"]
+    cmd = [sys.executable, '-E']
 
     if opts.interactive:
-        cmd.append("-i")
+        cmd.append('-i')
 
     if opts.command:
         cmd.extend(['-c', opts.command])
 
-    if opts.FILE:
-        cmd.append(opts.FILE)
-        cmd.extend(opts.ARG or [])
+    if opts.file:
+        cmd.append(opts.file)
+        cmd.extend(opts.arg or [])
+
+    if extra_arg_groups:
+        for group in extra_arg_groups:
+            cmd.extend(group)
 
     p = subprocess.Popen(cmd)
     sys.exit(p.wait())
