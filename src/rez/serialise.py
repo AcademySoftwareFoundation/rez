@@ -63,7 +63,8 @@ def open_file_for_write(filepath):
     file_cache[filepath] = cache_filepath
 
 
-def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
+def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
+                   disable_memcache=False):
     """Load data from a file.
 
     Note:
@@ -74,6 +75,7 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
         format_ (`FileFormat`): Format of file contents.
         update_data_callback (callable): Used to change data before it is
             returned or cached.
+        disable_memcache (bool): If True, don't r/w to memcache.
 
     Returns:
         dict.
@@ -85,6 +87,10 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
         # file has been written by this process, read it from /tmp to avoid
         # potential write-then-read issues over NFS
         return _load_file(filepath=cache_filepath,
+                          format_=format_,
+                          update_data_callback=update_data_callback)
+    elif disable_memcache:
+        return _load_file(filepath=filepath,
                           format_=format_,
                           update_data_callback=update_data_callback)
     else:
