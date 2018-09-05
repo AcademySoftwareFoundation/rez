@@ -77,7 +77,7 @@ class DeveloperPackage(Package):
                     exists = True
 
                 if exists:
-                    data = load_from_file(filepath, format_)
+                    data = load_from_file(filepath, format_, disable_memcache=True)
                     break
             if data:
                 name = data.get("name")
