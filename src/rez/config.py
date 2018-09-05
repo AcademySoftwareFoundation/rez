@@ -229,6 +229,7 @@ config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
     "bind_module_path":                             PathList,
+    "standard_system_paths":                        PathList,
     "package_definition_build_python_paths":        PathList,
     "implicit_packages":                            StrList,
     "platform_map":                                 OptionalDict,
