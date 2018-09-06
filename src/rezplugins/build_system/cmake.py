@@ -37,12 +37,14 @@ class CMakeBuildSystem(BuildSystem):
       if 0, just a build is occurring.
     """
 
-    build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
-                     'codeblocks':  "CodeBlocks - Unix Makefiles",
-                     'make':        "Unix Makefiles",
-                     'nmake':       "NMake Makefiles",
-                     'mingw':       "MinGW Makefiles",
-                     'xcode':       "Xcode"}
+    build_systems = {
+        'eclipse':     "Eclipse CDT4 - Unix Makefiles",
+        'codeblocks':  "CodeBlocks - Unix Makefiles",
+        'make':        "Unix Makefiles",
+        'nmake':       "NMake Makefiles",
+        'mingw':       "MinGW Makefiles",
+        'xcode':       "Xcode"
+    }
 
     build_targets = ["Debug", "Release", "RelWithDebInfo"]
 
@@ -51,7 +53,8 @@ class CMakeBuildSystem(BuildSystem):
         "build_system":     Or(*build_systems.keys()),
         "cmake_args":       [basestring],
         "cmake_binary":     Or(None, basestring),
-        "make_binary":     Or(None, basestring)}
+        "make_binary":     Or(None, basestring)
+    }
 
     @classmethod
     def name(cls):
@@ -177,19 +180,19 @@ class CMakeBuildSystem(BuildSystem):
 
         # assemble make command
         make_binary = self.settings.make_binary
-        if self.settings.make_binary:
-            cmd = [self.settings.make_binary]
-        elif self.cmake_build_system == 'mingw':
-            cmd = ["mingw32-make"]
-        elif self.cmake_build_system == 'nmake':
-            make_binary = 'nmake'
-            cmd = ["nmake"]
-        else:
-            cmd = ["make"]
-        cmd += (self.child_build_args or [])
+
+        if not make_binary:
+            if self.cmake_build_system == "mingw":
+                make_binary = "mingw32-make"
+            elif self.cmake_build_system == "nmake":
+                make_binary = "nmake"
+            else:
+                make_binary = "make"
+
+        cmd = [make_binary] + (self.child_build_args or [])
 
         # nmake has no -j
-        if make_binary != 'nmake':
+        if make_binary != "nmake":
             if not any(x.startswith("-j") for x in (self.child_build_args or [])):
                 n = variant.config.build_thread_count
                 cmd.append("-j%d" % n)
