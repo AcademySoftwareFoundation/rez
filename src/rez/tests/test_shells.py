@@ -197,7 +197,11 @@ class TestShells(TestBase, TempdirMixin):
 
             def _print(value):
                 env.FOO = value
-                info("%FOO%" if windows else "${FOO}")
+                # Wrap the output in quotes to prevent the shell from
+                # interpreting parts of our output as commands. This can happen
+                # when we include special characters (&, <, >, ^) in a
+                # variable.
+                info('"%FOO%"' if windows else '"${FOO}"')
 
             env.GREET = "hi"
             env.WHO = "Gary"
@@ -226,6 +230,12 @@ class TestShells(TestBase, TempdirMixin):
             _print(literal("${WHO}"))
             _print(literal("${WHO}").e(" %WHO%" if windows else " $WHO"))
 
+            # Make sure we are escaping &, <, >, ^ properly.
+            _print('hey & world')
+            _print('hey > world')
+            _print('hey < world')
+            _print('hey ^ world')
+
         expected_output = [
             "ello",
             "ello",
@@ -249,8 +259,17 @@ class TestShells(TestBase, TempdirMixin):
             "hi Gary",
             "hi $WHO",
             "${WHO}",
-            "${WHO} Gary"
+            "${WHO} Gary",
+            "hey & world",
+            "hey > world",
+            "hey < world",
+            "hey ^ world"
         ]
+
+        # We are wrapping all variable outputs in quotes in order to make sure
+        # our shell isn't interpreting our output as instructions when echoing
+        # it but this means we need to wrap our expected output as well.
+        expected_output = ['"{}"'.format(o) for o in expected_output]
 
         _execute_code(_rex_assigning, expected_output)
 
