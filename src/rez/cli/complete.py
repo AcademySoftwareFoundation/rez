@@ -12,7 +12,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.cli._util import subcommands, hidden_subcommands
+    from rez.cli._util import subcommands
     import os
     import re
 
@@ -53,7 +53,8 @@ def command(opts, parser, extra_arg_groups=None):
         subcommand = cmd.split("-", 1)[-1]
 
     if subcommand is None:
-        cmds = set(subcommands) - set(hidden_subcommands)
+        cmds = [k for k, v in subcommands.iteritems() if not v.get("hidden")]
+
         if prefix:
             cmds = (x for x in cmds if x.startswith(prefix))
         print " ".join(cmds)
