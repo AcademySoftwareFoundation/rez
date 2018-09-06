@@ -2,7 +2,8 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
-from rez.util import which, shlex_join
+from rez.util import shlex_join
+from rez.backport.shutilwhich import which
 from rez.utils.logging_ import print_warning
 from rez.utils.system import popen
 from rez.system import system
@@ -10,6 +11,7 @@ from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
 import subprocess
+import os
 import os.path
 import pipes
 
@@ -58,14 +60,6 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
-    #@cached_class_property
-    #def executable(cls):
-    #    name = cls.name()
-    #    exe = which(name)
-    #    if not exe:
-    #        raise RuntimeError("Couldn't find executable '%s'." % name)
-    #    return exe
-
     @classmethod
     def get_syspaths(cls):
         raise NotImplementedError
@@ -107,8 +101,25 @@ class Shell(ActionInterpreter):
                           % (option, cls.name(), overruling_option))
 
     @classmethod
-    def find_executable(cls, name):
+    def find_executable(cls, name, check_syspaths=False):
+        """Find an executable.
+
+        Args:
+            name (str): Program name.
+            check_syspaths (bool): If True, check the standard system paths as
+                well, if program was not found on current $PATH.
+
+        Returns:
+            str: Full filepath of executable.
+        """
         exe = which(name)
+
+        if not exe and check_syspaths:
+            paths = cls.get_syspaths()
+            env = os.environ.copy()
+            env["PATH"] = os.pathsep.join(paths)
+            exe = which(name, env=env)
+
         if not exe:
             raise RuntimeError("Couldn't find executable '%s'." % name)
         return exe

@@ -2,12 +2,13 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal, OutputStyle
+from rez.rex import RexExecutor, literal, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.util import shlex_join
+from functools import partial
 import os
 import re
 import subprocess
@@ -19,6 +20,12 @@ class CMD(Shell):
     # http://ss64.com/nt/cmd.html
     syspaths = None
     _executable = None
+    _doskey = None
+
+    # Regex to aid with escaping of Windows-specific special chars:
+    # http://ss64.com/nt/syntax-esc.html
+    _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])')
+    _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
     @property
     def executable(cls):
@@ -182,8 +189,20 @@ class CMD(Shell):
             _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
 
         if shell_command:
+            # Launch the provided command in the configured shell and wait
+            # until it exits.
             executor.command(shell_command)
-            executor.command('exit %errorlevel%')
+
+        # Test for None specifically because resolved_context.execute_rex_code
+        # passes '' and we do NOT want to keep a shell open during a rex code
+        # exec operation.
+        elif shell_command is None: 
+            # Launch the configured shell itself and wait for user interaction
+            # to exit.
+            executor.command('cmd /Q /K')
+            
+        # Exit the configured shell.
+        executor.command('exit %errorlevel%')
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir, "rez-shell.%s"
@@ -226,7 +245,18 @@ class CMD(Shell):
         return script
 
     def escape_string(self, value):
-        return value
+        """Escape the <, >, ^, and & special characters reserved by Windows.
+
+        Args:
+            value (str/EscapedString): String or already escaped string.
+
+        Returns:
+            str: The value escaped for Windows.
+
+        """
+        if isinstance(value, EscapedString):
+            return value.formatted(self._escaper)
+        return self._escaper(value)
 
     def _saferefenv(self, key):
         pass
@@ -245,7 +275,16 @@ class CMD(Shell):
         self._addline(self.setenv(key, value))
 
     def alias(self, key, value):
-        self._addline("doskey %s=%s" % (key, value))
+        # find doskey, falling back to system paths if not in $PATH. Fall back
+        # to unqualified 'doskey' if all else fails
+        if self._doskey is None:
+            try:
+                self.__class__._doskey = \
+                    self.find_executable("doskey", check_syspaths=True)
+            except:
+                self._doskey = "doskey"
+
+        self._addline("%s %s=%s" % (self._doskey, key, value))
 
     def comment(self, value):
         for line in value.split('\n'):
