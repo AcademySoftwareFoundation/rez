@@ -41,6 +41,7 @@ class CMakeBuildSystem(BuildSystem):
                      'codeblocks':  "CodeBlocks - Unix Makefiles",
                      'make':        "Unix Makefiles",
                      'nmake':       "NMake Makefiles",
+                     'mingw':       "MinGW Makefiles",
                      'xcode':       "Xcode"}
 
     build_targets = ["Debug", "Release", "RelWithDebInfo"]
@@ -175,14 +176,20 @@ class CMakeBuildSystem(BuildSystem):
             return ret
 
         # assemble make command
+        make_binary = self.settings.make_binary
         if self.settings.make_binary:
             cmd = [self.settings.make_binary]
+        elif self.cmake_build_system == 'mingw':
+            cmd = ["mingw32-make"]
+        elif self.cmake_build_system == 'nmake':
+            make_binary = 'nmake'
+            cmd = ["nmake"]
         else:
             cmd = ["make"]
         cmd += (self.child_build_args or [])
 
         # nmake has no -j
-        if self.settings.make_binary != 'nmake':
+        if make_binary != 'nmake':
             if not any(x.startswith("-j") for x in (self.child_build_args or [])):
                 n = variant.config.build_thread_count
                 cmd.append("-j%d" % n)
