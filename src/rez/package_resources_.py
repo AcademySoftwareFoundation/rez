@@ -363,7 +363,8 @@ class PackageResourceHelper(PackageResource):
         return self._convert_to_rex(self._post_commands)
 
     def iter_variants(self):
-        num_variants = len(self._data.get("variants", []))
+        num_variants = len(self.variants or [])
+
         if num_variants == 0:
             indexes = [None]
         else:

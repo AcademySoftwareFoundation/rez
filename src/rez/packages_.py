@@ -188,7 +188,6 @@ class Package(PackageBaseResourceWrapper):
         if name in self.data:
             value = self.data[name]
             return self._wrap_forwarded(name, value)
-            #return self.data[name]
         else:
             raise AttributeError("Package instance has no attribute '%s'" % name)
 

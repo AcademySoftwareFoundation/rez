@@ -580,25 +580,6 @@ max_package_changelog_revisions = 0
 # rxt file load.
 rxt_as_yaml = False
 
-# Warn or disallow when a package contains a package name that does not match
-# the name specified in the directory structure. When this occurs, the
-# directory package name is used in preference.
-warn_package_name_mismatch = True
-error_package_name_mismatch = False
-
-# Warn or disallow when a package contains a version number that does not match
-# the version specified in the directory structure. When this occurs, the
-# directory version number is used in preference.
-warn_version_mismatch = True
-error_version_mismatch = False
-
-# Warn or disallow when a package is found to contain a non-string version. This
-# was possible in Rez-1 but was an oversight - versions could be integer or
-# float, as well as string. When this occurs, the directory version number is
-# used in preference.
-warn_nonstring_version = True
-error_nonstring_version = False
-
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 warn_old_commands = True
 error_old_commands = False
