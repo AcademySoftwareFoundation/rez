@@ -229,8 +229,11 @@ def command(opts, parser, extra_arg_groups=None):
 
     # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.
-    if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
-        opts.stdin = False
+    try:
+        if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
+            opts.stdin = False
+    except select.error:
+        pass  # because windows
 
     quiet = opts.quiet or bool(command)
     returncode, _, _ = context.execute_shell(
