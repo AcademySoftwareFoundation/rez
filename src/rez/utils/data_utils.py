@@ -55,18 +55,6 @@ def deep_update(dict1, dict2):
         else:
             return flatten(v2)
 
-    """
-    import copy
-    for k, v in dict2.iteritems():
-        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
-            deep_update(dict1[k], v)
-        else:
-            dict1[k] = copy.deepcopy(v)
-
-    return
-    """
-
-    ### NEW
     for k1, v1 in dict1.iteritems():
         if k1 not in dict2:
             dict1[k1] = flatten(v1)
@@ -78,6 +66,26 @@ def deep_update(dict1, dict2):
             dict1[k2] = flatten(v2)
         else:
             dict1[k2] = merge(v1, v2)
+
+
+def deep_del(data, fn):
+    """Create dict copy with removed items.
+
+    Recursively remove items where fn(value) is True.
+
+    Returns:
+        dict: New dict with matching items removed.
+    """
+    result = {}
+
+    for k, v in data.iteritems():
+        if not fn(v):
+            if isinstance(v, dict):
+                result[k] = deep_del(v, fn)
+            else:
+                result[k] = v
+
+    return result
 
 
 def get_dict_diff(d1, d2):

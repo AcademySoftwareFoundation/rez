@@ -1,7 +1,8 @@
 """
 Rez configuration settings. Do not change this file.
 
-Settings are determined in the following way:
+Settings are determined in the following way (higher number means higher
+precedence):
 
 1) The setting is first read from this file;
 2) The setting is then overridden if it is present in another settings file
@@ -10,13 +11,16 @@ Settings are determined in the following way:
 4) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
-   separated either with "," or blank space.
-5) This is a special case applied only during a package build or release. In
+   separated either with "," or blank space. Dict values are in the form
+   "k1:v1,k2:v2,kn:vn";
+5) The setting can also be overriden by the environment variable $REZ_XXX_JSON,
+   and in this case the string is expected to be a JSON-encoded value;
+6) This is a special case applied only during a package build or release. In
    this case, if the package definition file contains a "config" section,
    settings in this section will override all others.
 
 Note that in the case of plugin settings (anything under the "plugins" section
-of the config), (4) does not apply.
+of the config), (4) and (5) do not apply.
 
 Variable expansion can be used in configuration settings. The following
 expansions are supported:
@@ -31,7 +35,7 @@ Paths should use the path separator appropriate for the operating system
 Windows \ (unescaped) should be used.
 
 Note: The comments in this file are extracted and turned into Wiki content. Pay
-attention to the comment formatting and follow the existing syle closely.
+attention to the comment formatting and follow the existing style closely.
 """
 import os
 
@@ -401,6 +405,72 @@ standard_system_paths = []
 #             raise InvalidPackageError("Invalid package name.")
 #
 package_preprocess_function = None
+
+
+###############################################################################
+# Tracking
+###############################################################################
+
+# Send data to AMQP whenever a context is created or sourced.
+# The payload is like so:
+#
+#     {
+#         "action": "created",
+#         "host": "some_fqdn",
+#         "user": "${USER}",
+#         "resolved_packages": ["python-2.7.3", ..., "foo-1.2.3"],
+#         "resolved_package_names": ["python", ..., "foo"],
+#         "context": {
+#             ...
+#         }
+#     }
+#
+# Action is one of ("created", "sourced"). Routing key is set to
+# '{exchange_routing_key}.{action|upper}', eg 'REZ.CONTEXT.SOURCED'. "Created"
+# is when a new context is constructed, which will either cause a resolve to
+# occur, or fetches a resolve from the cache. "Sourced" is when an existing
+# context is recreated (eg loading an rxt file).
+#
+# The "context" field contains the context itself (the same as what is present
+# in an rxt file), filtered by the fields listed in 'context_tracking_context_fields'.
+# The fields "resolved_packages" and "resolved_package_names" are provided, even
+# though they are redundant data, because they are not present in the context in
+# a form that is easily searchable (in elasticsearch, for eg).
+#
+# Tracking is enabled if 'context_tracking_host' is non-empty. Set to "stdout"
+# to just print the message to standard out instead, for testing purposes.
+#
+# If any fields are present in 'context_tracking_extra_fields', they are added
+# to the payload. If any extra field contains references to unknown env-vars, or
+# is set to an empty string (possibly due to var expansion), it is removed from
+# the message payload.
+#
+context_tracking_host = ''
+
+context_tracking_amqp = {
+    "port": 5672,
+    "userid": '',
+    "password": '',
+    "connect_timeout": 10,
+    "exchange_name": '',
+    "exchange_type": '',
+    "exchange_durable": False,
+    "exchange_auto_delete": False,
+    "exchange_routing_key": 'REZ.CONTEXT',
+    "message_delivery_mode": 1
+}
+
+context_tracking_context_fields = [
+    "status",
+    "solve_time",
+    "load_time",
+    "from_cache",
+    "package_requests",
+    "implicit_packages",
+    "resolved_packages"
+]
+
+context_tracking_extra_fields = {}
 
 
 ###############################################################################
