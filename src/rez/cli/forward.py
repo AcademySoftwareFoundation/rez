@@ -27,7 +27,6 @@ def command(opts, parser, extra_arg_groups=None):
 
     cli_args = opts.ARG
     for arg_group in (extra_arg_groups or []):
-        cli_args.append("--")
         cli_args.extend(arg_group)
 
     with open(yaml_file) as f:
