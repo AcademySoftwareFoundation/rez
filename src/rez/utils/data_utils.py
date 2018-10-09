@@ -30,6 +30,12 @@ class ModifyList(object):
         return (self.prepend or []) + v + (self.append or [])
 
 
+def remove_nones(**kwargs):
+    """Return diict copy with nones removed.
+    """
+    return dict((k, v) for k, v in kwargs.iteritems() if v is not None)
+
+
 def deep_update(dict1, dict2):
     """Perform a deep merge of `dict2` into `dict1`.
 

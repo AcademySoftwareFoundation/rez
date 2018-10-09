@@ -1,8 +1,11 @@
+import atexit
 import socket
+import time
 import threading
 from Queue import Queue
 
 from rez.utils import json
+from rez.utils.data_utils import remove_nones
 from rez.utils.logging_ import print_error
 from rez.vendor.amqp import Connection, basic_message
 
@@ -10,6 +13,7 @@ from rez.vendor.amqp import Connection, basic_message
 _lock = threading.Lock()
 _queue = Queue()
 _thread = None
+_num_pending = 0
 
 
 def publish_message(host, amqp_settings, routing_key, data, async=False):
@@ -19,6 +23,7 @@ def publish_message(host, amqp_settings, routing_key, data, async=False):
         bool: True if message was sent successfully.
     """
     global _thread
+    global _num_pending
 
     kwargs = {
         "host": host,
@@ -37,6 +42,9 @@ def publish_message(host, amqp_settings, routing_key, data, async=False):
                 _thread.daemon = True
                 _thread.start()
 
+    with _lock:
+        _num_pending += 1
+
     _queue.put(kwargs)
     return True
 
@@ -52,38 +60,25 @@ def _publish_message(host, amqp_settings, routing_key, data):
         return True
 
     try:
-        conn = Connection(
+        conn = Connection(**remove_nones(
             host=host,
-            port=amqp_settings["port"],
-            userid=amqp_settings["userid"],
-            password=amqp_settings["password"],
-            connect_timeout=amqp_settings["connect_timeout"]
-        )
+            userid=amqp_settings.get("userid"),
+            password=amqp_settings.get("password"),
+            connect_timeout=amqp_settings.get("connect_timeout")
+        ))
     except socket.error as e:
         print_error("Cannot connect to the message broker: %s" % (e))
         return False
 
     channel = conn.channel()
 
-    # Declare the exchange
-    try:
-        channel.exchange_declare(
-            amqp_settings["exchange_name"],
-            amqp_settings["exchange_type"],
-            durable=amqp_settings["exchange_durable"],
-            auto_delete=amqp_settings["exchange_auto_delete"]
-        )
-    except Exception as e:
-        print_error("Failed to declare an exchange: %s" % (e))
-        return False
-
     # build the message
-    msg = basic_message.Message(
+    msg = basic_message.Message(**remove_nones(
         body=json.dumps(data),
-        delivery_mode=amqp_settings["message_delivery_mode"],
+        delivery_mode=amqp_settings.get("message_delivery_mode"),
         content_type="application/json",
         content_encoding="utf-8"
-    )
+    ))
 
     # publish the message
     try:
@@ -100,6 +95,26 @@ def _publish_message(host, amqp_settings, routing_key, data):
 
 
 def _publish_messages_async():
+    global _num_pending
+
     while True:
         kwargs = _queue.get()
-        _publish_message(**kwargs)
+
+        try:
+            _publish_message(**kwargs)
+        finally:
+            with _lock:
+                _num_pending -= 1
+
+
+@atexit.register
+def on_exit():
+    # Give pending messages a chance to publish, otherwise a command like
+    # 'rez-env --output ...' could exit before the publish.
+    #
+    t = time.time()
+    maxtime = 5
+    timeinc = 0.1
+
+    while _num_pending and (time.time() - t) < maxtime:
+        time.sleep(timeinc)

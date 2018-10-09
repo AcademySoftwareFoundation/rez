@@ -418,8 +418,6 @@ package_preprocess_function = None
 #         "action": "created",
 #         "host": "some_fqdn",
 #         "user": "${USER}",
-#         "resolved_packages": ["python-2.7.3", ..., "foo-1.2.3"],
-#         "resolved_package_names": ["python", ..., "foo"],
 #         "context": {
 #             ...
 #         }
@@ -433,35 +431,31 @@ package_preprocess_function = None
 #
 # The "context" field contains the context itself (the same as what is present
 # in an rxt file), filtered by the fields listed in 'context_tracking_context_fields'.
-# The fields "resolved_packages" and "resolved_package_names" are provided, even
-# though they are redundant data, because they are not present in the context in
-# a form that is easily searchable (in elasticsearch, for eg).
 #
 # Tracking is enabled if 'context_tracking_host' is non-empty. Set to "stdout"
 # to just print the message to standard out instead, for testing purposes.
+# Otherwise, '{host}[:{port}]' is expected.
 #
-# If any fields are present in 'context_tracking_extra_fields', they are added
+# If any items are present in 'context_tracking_extra_fields', they are added
 # to the payload. If any extra field contains references to unknown env-vars, or
 # is set to an empty string (possibly due to var expansion), it is removed from
 # the message payload.
 #
+
 context_tracking_host = ''
 
 context_tracking_amqp = {
-    "port": 5672,
     "userid": '',
     "password": '',
     "connect_timeout": 10,
     "exchange_name": '',
-    "exchange_type": '',
-    "exchange_durable": False,
-    "exchange_auto_delete": False,
     "exchange_routing_key": 'REZ.CONTEXT',
     "message_delivery_mode": 1
 }
 
 context_tracking_context_fields = [
     "status",
+    "timestamp",
     "solve_time",
     "load_time",
     "from_cache",

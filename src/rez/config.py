@@ -70,7 +70,8 @@ class Setting(object):
             varname = self._env_var_name + "_JSON"
             value = os.getenv(varname)
             if value is not None:
-                import json
+                from rez.utils import json
+
                 try:
                     return json.loads(value)
                 except ValueError:

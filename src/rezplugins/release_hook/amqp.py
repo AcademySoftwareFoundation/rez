@@ -29,14 +29,10 @@ class AmqpReleaseHook(ReleaseHook):
     """
     schema_dict = {
         "host":                     basestring,
-        "port":                     int,
         "userid":                   basestring,
         "password":                 basestring,
         "connect_timeout":          int,
         "exchange_name":            basestring,
-        "exchange_type":            basestring,
-        "exchange_durable":         bool,
-        "exchange_auto_delete":     bool,
         "exchange_routing_key":     basestring,
         "message_delivery_mode":    int,
         "message_attributes":       dict}

@@ -1477,35 +1477,32 @@ class ResolvedContext(object):
         if cls.context_tracking_payload is not None:
             return
 
+        data = {
+            "host": socket.getfqdn(),
+            "user": getpass.getuser()
+        }
+
+        data.update(config.context_tracking_extra_fields or {})
+
+        # remove fields with unexpanded env-vars, or empty string
+        def _del(value):
+            return (
+                isinstance(value, basestring) and
+                (not value or ENV_VAR_REGEX.search(value))
+            )
+
+        data = deep_del(data, _del)
+
         with cls.context_tracking_lock:
             if cls.context_tracking_payload is None:
-                data = {
-                    "host": socket.getfqdn(),
-                    "user": getpass.getuser()
-                }
-
-                data.update(config.context_tracking_extra_fields or {})
-
-                # remove fields with unexpanded env-vars, or empty string
-                def _del(value):
-                    return (
-                        isinstance(value, basestring) and
-                        (not value or ENV_VAR_REGEX.search(value))
-                    )
-
-                cls.context_tracking_payload = deep_del(data, _del)
+                cls.context_tracking_payload = data
 
     def _track_context(self, context_data, action):
         from rez.utils.amqp import publish_message
 
         # create message payload
-        resolved_packages = [x.parent.qualified_name for x in self._resolved_packages]
-        resolved_package_names = [x.name for x in self._resolved_packages]
-
         data = {
             "action": action,
-            "resolved_packages": resolved_packages,
-            "resolved_package_names": resolved_package_names,
             "context": context_data
         }
 
