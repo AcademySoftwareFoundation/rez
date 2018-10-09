@@ -100,11 +100,8 @@ command:
     post_release_commands: []
 
 amqp:
-    # host server.
+    # host server, or '{host}:{port}'
     host: ''
-
-    # port.
-    port: 5672
 
     # userid
     userid: ''
@@ -117,15 +114,6 @@ amqp:
 
     # exchange name
     exchange_name: ''
-
-    # exchange type
-    exchange_type: ''
-
-    # exchange remains active when server restarts.
-    exchange_durable: False
-
-    # auto delete when all queues have finished using the exchange.
-    exchange_auto_delete: False
 
     # exchange routing key
     exchange_routing_key: 'REZ.PACKAGE.RELEASED'
