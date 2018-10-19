@@ -4,7 +4,7 @@ test configuration settings
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 from rez.exceptions import ConfigurationError
-from rez.config import Config, get_module_root_config, _replace_config
+from rez.config import Config, _replace_config
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages_ import get_developer_package
@@ -16,7 +16,6 @@ class TestConfig(TestBase):
     @classmethod
     def setUpClass(cls):
         cls.settings = {}
-        cls.root_config_file = get_module_root_config()
         path = os.path.dirname(__file__)
         cls.config_path = os.path.join(path, "data", "config")
 
@@ -63,11 +62,11 @@ class TestConfig(TestBase):
         """Test just the root config file."""
 
         # do a full validation of a config
-        c = Config([self.root_config_file], locked=True)
+        c = Config(locked=True)
         c.validate_data()
 
         # check a few expected settings
-        c = Config([self.root_config_file], locked=True)
+        c = Config(locked=True)
         self._test_basic(c)
         self.assertEqual(c.warn_all, False)
         self.assertEqual(c.build_directory, "build")
@@ -95,7 +94,7 @@ class TestConfig(TestBase):
     def test_2(self):
         """Test a config with an overriding file."""
         conf = os.path.join(self.config_path, "test1.yaml")
-        c = Config([self.root_config_file, conf], locked=True)
+        c = Config([conf], locked=True)
         self._test_basic(c)
 
         # check overrides in test1.yaml are being used
@@ -108,7 +107,7 @@ class TestConfig(TestBase):
 
     def test_3(self):
         """Test environment variable config overrides."""
-        c = Config([self.root_config_file], locked=False)
+        c = Config(locked=False)
 
         # test basic env-var override
         os.environ["REZ_WARN_ALL"] = "1"
@@ -134,7 +133,7 @@ class TestConfig(TestBase):
     def test_4(self):
         """Test package config overrides."""
         conf = os.path.join(self.config_path, "test2.py")
-        config2 = Config([self.root_config_file, conf])
+        config2 = Config([conf])
 
         with _replace_config(config2):
             pkg = get_developer_package(self.config_path)
@@ -178,19 +177,11 @@ class TestConfig(TestBase):
                 }
             }
         }
-        c = Config([self.root_config_file], overrides=overrides, locked=False)
+        c = Config(overrides=overrides, locked=False)
         with self.assertRaises(ConfigurationError):
             _ = c.build_directory
         with self.assertRaises(ConfigurationError):
             _ = c.plugins.release_hook.emailer.recipients
-
-        # missing keys
-        conf = os.path.join(self.config_path, "test1.yaml")
-        c = Config([conf], locked=True)
-
-        with self.assertRaises(ConfigurationError):
-            _ = c.debug_all
-
 
     def test_6(self):
         """Test setting of dict values from environ"""
@@ -209,7 +200,6 @@ class TestConfig(TestBase):
             @property
             def _data(self):
                 return {'dumb_dict': self.DEFAULT_DUMB_DICT}
-
 
         # need to NOT use locked, because we want to test setting from env
         # vars, but don't want values from "real" os.environ to pollute our

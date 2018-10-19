@@ -6,10 +6,8 @@ from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
-from rez import module_root_path
 from rez.system import system
-from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
-from rez.vendor.enum import Enum
+from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
@@ -403,8 +401,9 @@ class Config(object):
     __metaclass__ = LazyAttributeMeta
     schema = config_schema
     schema_error = ConfigurationError
+    root_config_data = None
 
-    def __init__(self, filepaths, overrides=None, locked=False):
+    def __init__(self, filepaths=None, overrides=None, locked=False):
         """Create a config.
 
         Args:
@@ -414,7 +413,7 @@ class Config(object):
             locked: If True, settings overrides in environment variables are
                 ignored.
         """
-        self.filepaths = filepaths
+        self.filepaths = filepaths or []
         self._sourced_filepaths = None
         self.overrides = overrides or {}
         self.locked = locked
@@ -490,7 +489,7 @@ class Config(object):
         Returns:
             List of str: The sourced files.
         """
-        _ = self._data  # force a config load
+        _ = self._data  # noqa; force a config load
         return self._sourced_filepaths
 
     @cached_property
@@ -594,11 +593,26 @@ class Config(object):
         return data
 
     @classmethod
+    def get_root_config_data(cls):
+        """Get the config data from rezconfig.py
+        """
+        if cls.root_config_data is not None:
+            return cls.root_config_data
+
+        from rez import rezconfig
+
+        cls.root_config_data = dict(
+            (k, v) for k, v in rezconfig.__dict__.iteritems()
+            if not k.startswith("__") and not ismodule(v)
+        )
+
+        return cls.root_config_data
+
+    @classmethod
     def _create_main_config(cls, overrides=None):
         """See comment block at top of 'rezconfig' describing how the main
         config is assembled."""
         filepaths = []
-        filepaths.append(get_module_root_config())
         filepath = os.getenv("REZ_CONFIG_FILE")
         if filepath:
             filepaths.extend(filepath.split(os.pathsep))
@@ -768,7 +782,7 @@ def _create_locked_config(overrides=None):
     Returns:
         `Config` object.
     """
-    return Config([get_module_root_config()], overrides=overrides, locked=True)
+    return Config(overrides=overrides, locked=True)
 
 
 @contextmanager
@@ -804,7 +818,7 @@ def _load_config_py(filepath):
                                      % (filepath, str(e)))
 
     for k, v in globs.iteritems():
-        if k != '__builtins__' \
+        if not k.startswith("__") \
                 and not ismodule(v) \
                 and k not in reserved:
             result[k] = v
@@ -828,11 +842,17 @@ def _load_config_yaml(filepath):
     return doc
 
 
-def _load_config_from_filepaths(filepaths):
+def _load_config_from_filepaths(filepaths, include_root_config=True):
     data = {}
     sourced_filepaths = []
     loaders = ((".py", _load_config_py),
                ("", _load_config_yaml))
+
+    # include builtin config in rezconfig.py
+    if include_root_config:
+        root_data = Config.get_root_config_data()
+        data = copy.deepcopy(root_data)
+        sourced_filepaths.append("<rezconfig.py>")
 
     for filepath in filepaths:
         for extension, loader in loaders:
@@ -851,10 +871,6 @@ def _load_config_from_filepaths(filepaths):
             break
 
     return data, sourced_filepaths
-
-
-def get_module_root_config():
-    return os.path.join(module_root_path, "rezconfig.py")
 
 
 # singleton
