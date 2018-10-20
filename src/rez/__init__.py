@@ -1,7 +1,9 @@
 from rez.utils._version import _rez_version
+from inspect import getsourcefile
 import logging.config
-import atexit
 import os
+import os.path
+import sys
 
 
 __version__ = _rez_version
@@ -9,19 +11,28 @@ __author__ = "Allan Johns"
 __license__ = "LGPL"
 
 
-module_root_path = __path__[0]
+# detect if rez has been compiled into a lib
+rez_is_compiled = not bool(getsourcefile(sys.modules[__name__]))
 
 
-logging_conf_file = os.environ.get(
-    'REZ_LOGGING_CONF',
-    os.path.join(module_root_path, 'utils', 'logging.conf'))
-logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)
+module_root_path = __path__[0]  # noqa
+
+
+# configure logging
+logging_conf_file = os.getenv('REZ_LOGGING_CONF')
+
+if logging_conf_file and os.path.exists(logging_conf_file):
+    logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)
+else:
+    from rez.utils.logging_ import DEFAULT_LOGGING_CONF
+    logging.config.dictConfig(DEFAULT_LOGGING_CONF)
 
 
 # actions registered on SIGUSR1
 action = os.getenv("REZ_SIGUSR1_ACTION")
 if action:
-    import signal, traceback
+    import signal
+    import traceback
 
     if action == "print_stack":
         def callback(sig, frame):

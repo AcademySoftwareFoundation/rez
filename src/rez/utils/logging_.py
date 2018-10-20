@@ -3,6 +3,29 @@ import logging
 import time
 
 
+DEFAULT_LOGGING_CONF = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'custom': {
+            'format': '%(asctime)s %(levelname)-8s %(message)s'
+        }
+    },
+    'handlers': {
+        'console': {
+            'formatter': 'custom',
+            'class': 'rez.utils.colorize.ColorizedStreamHandler',
+        }
+    },
+    'loggers': {
+        'rez': {
+            'handlers': ['console'],
+            'level': 'DEBUG'
+        }
+    }
+}
+
+
 logger = logging.getLogger(__name__)
 
 

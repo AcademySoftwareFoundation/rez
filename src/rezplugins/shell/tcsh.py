@@ -4,9 +4,8 @@ TCSH shell
 from rez.shells import Shell
 from rez.utils.platform_ import platform_
 from rezplugins.shell.csh import CSH
-from rez import module_root_path
+from rez.utils import get_resource_file
 from rez.rex import EscapedString
-import os.path
 import pipes
 
 
@@ -43,8 +42,9 @@ class TCSH(CSH):
 
     def _bind_interactive_rez(self):
         super(TCSH, self)._bind_interactive_rez()
-        completion = os.path.join(module_root_path, "completion", "complete.csh")
-        self.source(completion)
+        completion_file = get_resource_file("completion", "complete.csh")
+        if completion_file:
+            self.source(completion_file)
 
 
 def register_plugin():

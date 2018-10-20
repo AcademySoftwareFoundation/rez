@@ -6,7 +6,7 @@ import os.path
 from rez.shells import Shell
 from rez.utils.platform_ import platform_
 from rezplugins.shell.sh import SH
-from rez import module_root_path
+from rez.utils import get_resource_file
 
 
 class Bash(SH):
@@ -84,8 +84,9 @@ class Bash(SH):
 
     def _bind_interactive_rez(self):
         super(Bash, self)._bind_interactive_rez()
-        completion = os.path.join(module_root_path, "completion", "complete.sh")
-        self.source(completion)
+        completion_file = get_resource_file("completion", "complete.sh")
+        if completion_file:
+            self.source(completion_file)
 
 
 def register_plugin():
