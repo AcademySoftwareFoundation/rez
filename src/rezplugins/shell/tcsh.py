@@ -48,8 +48,10 @@ class TCSH(CSH):
 
 
 def register_plugin():
-    if platform_.name != "windows":
-        return TCSH
+    if platform_.name == "windows":
+        return "Non-Windows only"
+
+    return TCSH
 
 
 # Copyright 2013-2016 Allan Johns.

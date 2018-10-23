@@ -151,8 +151,10 @@ class CSH(UnixShell):
 
 
 def register_plugin():
-    if platform_.name != "windows":
-        return CSH
+    if platform_.name == "windows":
+        return "Non-Windows only"
+
+    return CSH
 
 
 # Copyright 2013-2016 Allan Johns.

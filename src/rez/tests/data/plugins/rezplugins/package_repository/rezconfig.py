@@ -1,0 +1,4 @@
+
+stub = {
+    "floob": True
+}

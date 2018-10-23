@@ -144,8 +144,10 @@ class SH(UnixShell):
 
 
 def register_plugin():
-    if platform_.name != "windows":
-        return SH
+    if platform_.name == "windows":
+        return "Non-Windows only"
+
+    return SH
 
 
 # Copyright 2013-2016 Allan Johns.

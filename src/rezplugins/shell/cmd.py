@@ -196,11 +196,11 @@ class CMD(Shell):
         # Test for None specifically because resolved_context.execute_rex_code
         # passes '' and we do NOT want to keep a shell open during a rex code
         # exec operation.
-        elif shell_command is None: 
+        elif shell_command is None:
             # Launch the configured shell itself and wait for user interaction
             # to exit.
             executor.command('cmd /Q /K')
-            
+
         # Exit the configured shell.
         executor.command('exit %errorlevel%')
 
@@ -312,8 +312,10 @@ class CMD(Shell):
 
 
 def register_plugin():
-    if platform_.name == "windows":
-        return CMD
+    if platform_.name != "windows":
+        return "Windows only"
+
+    return CMD
 
 
 # Copyright 2013-2016 Allan Johns.

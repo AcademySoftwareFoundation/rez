@@ -1,18 +1,12 @@
 from rez.utils._version import _rez_version
-from inspect import getsourcefile
 import logging.config
 import os
 import os.path
-import sys
 
 
 __version__ = _rez_version
 __author__ = "Allan Johns"
 __license__ = "LGPL"
-
-
-# detect if rez has been compiled into a lib
-rez_is_compiled = not bool(getsourcefile(sys.modules[__name__]))
 
 
 module_root_path = __path__[0]  # noqa

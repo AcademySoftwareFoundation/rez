@@ -90,8 +90,10 @@ class Bash(SH):
 
 
 def register_plugin():
-    if platform_.name != "windows":
-        return Bash
+    if platform_.name == "windows":
+        return "Non-Windows only"
+
+    return Bash
 
 
 # Copyright 2013-2016 Allan Johns.

@@ -13,15 +13,14 @@ def reraise(exc, new_exc_cls=None, format_str=None):
 
 
 def get_resource_file(path, *paths):
-    """Get filepath to a resource file.
+    """Get filepath to a data file.
     """
-    from rez import rez_is_compiled, module_root_path
+    from rez import module_root_path
 
     # check in source
-    if not rez_is_compiled:
-        filepath = os.path.join(module_root_path, path, *paths)
-        if os.path.exists(filepath):
-            return filepath
+    filepath = os.path.join(module_root_path, path, *paths)
+    if os.path.exists(filepath):
+        return filepath
 
     # check in os-specific locations (eg /opt/rez, etc)
     # TODO

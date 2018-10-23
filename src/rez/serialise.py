@@ -150,8 +150,13 @@ def load_py(stream, filepath=None):
              ModifyList=ModifyList,
              InvalidPackageError=InvalidPackageError)
 
+    # execute the sourcefile
+    content = stream.read()
+
     try:
-        exec stream in g
+        code = compile(content, filepath, "exec")
+        exec code in g
+
     except Exception as e:
         import traceback
         frames = traceback.extract_tb(sys.exc_info()[2])

@@ -31,9 +31,19 @@ class TestBase(unittest.TestCase):
     # them without having to call setUp / tearDown, and without worrying
     # about future or subclass modifications to those methods...
     def setup_config(self):
+        # Note: We have to override plugin_path here, regardless of the tests
+        # being run. This is the only way to ensure that the test plugin is
+        # visible if and when test_plugins test is run. Ie, you cannot add new
+        # plugins after they are loaded the first time.
+        #
+        path = os.path.realpath(os.path.dirname(__file__))
+        test_plugin_path = os.path.join(path, "data", "plugins")
+        settings = self.settings.copy()
+        settings["plugin_path"] = [test_plugin_path]
+
         # to make sure config changes from one test don't affect another, copy
         # the overrides dict...
-        self._config = _create_locked_config(dict(self.settings))
+        self._config = _create_locked_config(dict(settings))
         config._swap(self._config)
 
     def teardown_config(self):

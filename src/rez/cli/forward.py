@@ -43,7 +43,8 @@ def command(opts, parser, extra_arg_groups=None):
 
     if isinstance(doc["module"], basestring):
         # refers to a rez module
-        from rez.backport.importlib import import_module
+        from importlib import import_module
+
         namespace = "rez.%s" % doc["module"]
         module = import_module(namespace)
     else:
