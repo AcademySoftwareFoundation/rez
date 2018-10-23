@@ -1,9 +1,9 @@
-filesystem:
+filesystem = {
     # The timeout to use when creating file locks. This is done when a variant is
     # installed into an existing package, to prevent multiple file writes at
     # once (which could result in a variant install getting lost). The timeout
     # value is in seconds. A value of zero indicates no timeout.
-    file_lock_timeout: 10
+    "file_lock_timeout": 10,
 
     # The relative directory, under the repository location, where file locks
     # are created. You might need to use this option when file permissions are
@@ -15,13 +15,13 @@ filesystem:
     #
     # Note: The directory can have any name, but we suggest '.lock' as the
     # standard convention.
-    file_lock_dir:
+    "file_lock_dir": None,
 
     # If True, verify that a potential package directory contains a package.py /
     # package.yaml file before treating it as a package. There *shouldn't* be
     # non-packages in these directories, and the solver is faster if this value
     # is False, because a lot of file stats are avoided.
-    check_package_definition_files: false
+    "check_package_definition_files": False,
 
     # A list of filenames that are expected to contain Rez definitions.
     # The list will be checked in top to bottom order, and the first filename
@@ -33,5 +33,7 @@ filesystem:
     # released package filename, regardless of the definition filename present
     # in the source.
     #
-    package_filenames:
-    - 'package'
+    "package_filenames": [
+        "package"
+    ]
+}
