@@ -579,7 +579,10 @@ class Config(object):
 
     @cached_property
     def _data_without_overrides(self):
-        data, self._sourced_filepaths = _load_config_from_filepaths(self.filepaths)
+        from rez import rezconfig
+
+        sources = [rezconfig] + self.filepaths
+        data, self._sourced_filepaths = load_config_from_sources(sources)
         return data
 
     @cached_property
@@ -591,22 +594,6 @@ class Config(object):
         deep_update(data, self.overrides)
 
         return data
-
-    @classmethod
-    def get_root_config_data(cls):
-        """Get the config data from rezconfig.py
-        """
-        if cls.root_config_data is not None:
-            return cls.root_config_data
-
-        from rez import rezconfig
-
-        cls.root_config_data = dict(
-            (k, v) for k, v in rezconfig.__dict__.iteritems()
-            if not k.startswith("__") and not ismodule(v)
-        )
-
-        return cls.root_config_data
 
     @classmethod
     def _create_main_config(cls, overrides=None):
@@ -842,35 +829,58 @@ def _load_config_yaml(filepath):
     return doc
 
 
-def _load_config_from_filepaths(filepaths, include_root_config=True):
+def load_config_from_sources(sources):
+    """Load config from one or more sources.
+
+    A source can either be a filepath (to a 'rezconfig' or 'rezconfig.py' file),
+    or a module.
+
+    Returns:
+        2-tuple:
+        - dict: Merged config data
+        - List of str: Sources that were loaded from.
+    """
     data = {}
-    sourced_filepaths = []
-    loaders = ((".py", _load_config_py),
-               ("", _load_config_yaml))
+    sourced = []
 
-    # include builtin config in rezconfig.py
-    if include_root_config:
-        root_data = Config.get_root_config_data()
-        data = copy.deepcopy(root_data)
-        sourced_filepaths.append("<rezconfig.py>")
+    file_loaders = (
+        (".py", _load_config_py),
+        ("", _load_config_yaml)
+    )
 
-    for filepath in filepaths:
-        for extension, loader in loaders:
-            if extension:
-                no_ext = os.path.splitext(filepath)[0]
-                filepath_with_ext = no_ext + extension
-            else:
-                filepath_with_ext = filepath
+    for source in sources:
+        # module
+        if ismodule(source):
+            module = source
 
-            if not os.path.isfile(filepath_with_ext):
-                continue
+            data_ = dict(
+                (k, v) for k, v in module.__dict__.iteritems()
+                if not k.startswith("__") and not ismodule(v)
+            )
 
-            data_ = loader(filepath_with_ext)
             deep_update(data, data_)
-            sourced_filepaths.append(filepath_with_ext)
-            break
+            sourced.append(str(module))
 
-    return data, sourced_filepaths
+        # file
+        else:
+            filepath = source
+
+            for extension, loader in file_loaders:
+                if extension:
+                    no_ext = os.path.splitext(filepath)[0]
+                    filepath_with_ext = no_ext + extension
+                else:
+                    filepath_with_ext = filepath
+
+                if not os.path.isfile(filepath_with_ext):
+                    continue
+
+                data_ = loader(filepath_with_ext)
+                deep_update(data, data_)
+                sourced.append(filepath_with_ext)
+                break
+
+    return data, sourced
 
 
 # singleton

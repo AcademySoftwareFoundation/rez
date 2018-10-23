@@ -1,14 +1,15 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez.config import config, expand_system_vars, _load_config_from_filepaths
+from rez.config import config, expand_system_vars, load_config_from_sources
 from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
 from rez.utils.data_utils import LazySingleton, cached_property, deep_update
-from rez.utils.logging_ import print_debug
+from rez.utils.logging_ import print_debug, print_error
 from rez.exceptions import RezPluginError
 
 from inspect import isclass
+import pkgutil
 import os.path
 import sys
 
@@ -74,36 +75,34 @@ class RezPluginType(object):
         self.plugins = {}
         self.failed_plugins = {}
         self.skipped_plugins = {}
-        self.config_data = {}
         self.load_plugins()
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self.type_name)
 
-    def load_plugins(self):
-        import pkgutil
+    # Note: 'package' as in python module, not rez package
+    @cached_property
+    def package(self):
         from importlib import import_module
 
         type_module_name = 'rezplugins.' + self.type_name
-        package = import_module(type_module_name)
+        return import_module(type_module_name)
 
+    def load_plugins(self):
         # on import, the `__path__` variable of the imported package is extended
         # to include existing directories on the plugin search path (via
         # extend_path, above). this means that `walk_packages` will walk over all
         # modules on the search path at the same level (.e.g in a
         # 'rezplugins/type_name' sub-directory).
         #
-        if isinstance(package.__path__, basestring):
-            paths = [package.__path__]
+        if isinstance(self.package.__path__, basestring):
+            paths = [self.package.__path__]
         else:
-            paths = package.__path__
-
-        if config.debug("plugins"):
-            print_debug("loading %s plugins from %r..." % (self.type_name, paths))
+            paths = self.package.__path__
 
         for path in paths:
             for loader, modname, _ in pkgutil.walk_packages(
-                    [path], package.__name__ + '.'):
+                    [path], self.package.__name__ + '.'):
 
                 if loader is None:
                     continue
@@ -114,7 +113,7 @@ class RezPluginType(object):
                 if plugin_name.startswith('_'):
                     continue
 
-                # don't load rezconfig.py as a plugin
+                # rezconfig.py is not a plugin
                 if plugin_name == "rezconfig":
                     continue
 
@@ -128,7 +127,6 @@ class RezPluginType(object):
                     module = sys.modules.get(modname)
                     if module is None:
                         module = loader.find_module(modname).load_module(modname)
-                        assert module
 
                     self.load_plugin_from_module(plugin_name, module)
 
@@ -139,10 +137,6 @@ class RezPluginType(object):
                         import traceback
                         txt = traceback.format_exc()
                         print_debug(txt)
-
-            # load config
-            data, _ = _load_config_from_filepaths([os.path.join(path, "rezconfig")])
-            deep_update(self.config_data, data)
 
     def load_plugin_from_module(self, plugin_name, module):
         # ensure there's a callable registration function
@@ -195,9 +189,50 @@ class RezPluginType(object):
             raise RezPluginError("Unrecognised %s plugin: '%s'"
                                  % (self.pretty_type_name, plugin_name))
 
-    def get_config_data(self):
-        """Get config settings dict for this plugin type."""
-        return self.config_data
+    @cached_property
+    def config_data(self):
+        """Returns the merged config data for this plugin type.
+        """
+        if isinstance(self.package.__path__, basestring):
+            paths = [self.package.__path__]
+        else:
+            paths = self.package.__path__
+
+        sources = []
+
+        for path in paths:
+            found = False
+
+            for loader, modname, _ in pkgutil.walk_packages(
+                    [path], self.package.__name__ + '.'):
+
+                if loader is None:
+                    continue
+
+                # load rezconfig.py as config source
+                if modname.rsplit('.', 1)[-1] == "rezconfig":
+                    try:
+                        module = sys.modules.get(modname)
+                        if module is None:
+                            module = loader.find_module(modname).load_module(modname)
+
+                    except Exception as e:
+                        print_error(
+                            "Error in config at %s(%s): %s. This config has been skipped."
+                            % (path, modname, e)
+                        )
+                        continue
+
+                    sources.append(module)
+
+            # rezconfig.py not found, look for older format (rezconfig yaml file)
+            if not found:
+                filepath = os.path.join(path, "rezconfig")
+                sources.append(filepath)
+
+        # get merge config data
+        data, _ = load_config_from_sources(sources)
+        return data
 
     @cached_property
     def config_schema(self):
@@ -327,7 +362,7 @@ class RezPluginManager(object):
     def get_plugin_config_data(self, plugin_type):
         """Return the merged configuration data for the plugin type."""
         plugin_t = self._get_plugin_type(plugin_type)
-        return plugin_t.get_config_data()
+        return plugin_t.config_data
 
     def get_plugin_config_schema(self, plugin_type):
         plugin_t = self._get_plugin_type(plugin_type)
