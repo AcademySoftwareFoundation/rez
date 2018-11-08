@@ -91,36 +91,52 @@ package_serialise_schema = Schema({
 })
 
 
-def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
+def dump_package_data(data, buf, format_=FileFormat.py, include_attributes=None, skip_attributes=None,
+                      separator=None, pretty=False):
     """Write package data to `buf`.
 
     Args:
         data (dict): Data source - must conform to `package_serialise_schema`.
         buf (file-like object): Destination stream.
         format_ (`FileFormat`): Format to dump data in.
+        include_attributes (list of str): List of attributes to print.
         skip_attributes (list of str): List of attributes to not print.
+        separator (str): Separator to use to prin the fields (used only with pretty).
+        pretty (bool): Show every field in a pretty manner (format_ is ignored).
     """
-    if format_ == FileFormat.txt:
-        raise ValueError("'txt' format not supported for packages.")
+    if format_ != FileFormat.txt and any([separator, pretty]):
+        raise ValueError("Separator and pretty argument can only be used with 'txt' file format.")
 
     data_ = dict((k, v) for k, v in data.iteritems() if v is not None)
     data_ = package_serialise_schema.validate(data_)
     skip = set(skip_attributes or [])
+    include = set(include_attributes or [])
+
+    data_to_use = {}
+    for key, value in package_serialise_schema.validate(data_).items():
+        if key in skip and key not in include:
+            continue
+        if include:
+            if key in include:
+                data_to_use[key] = value
+        else:
+            data_to_use[key] = value
 
     items = []
     for key in package_key_order:
-        if key not in skip:
-            value = data_.pop(key, None)
-            if value is not None:
-                items.append((key, value))
-
-    # remaining are arbitrary keys
-    for key, value in data_.iteritems():
-        if key not in skip:
+        value = data_to_use.pop(key, None)
+        if value is not None:
             items.append((key, value))
 
+    # remaining are arbitrary keys
+    for key, value in data_to_use.iteritems():
+        items.append((key, value))
+
     dump_func = dump_functions[format_]
-    dump_func(items, buf)
+    if format_ == FileFormat.txt:
+        dump_func(items, buf, separator, pretty)
+    else:
+        dump_func(items, buf)
 
 
 # Keeping annotations as rex 'comment' actions is only useful when a package's
@@ -199,8 +215,43 @@ def _dump_package_data_py(items, buf):
             print >> buf, ''
 
 
+def _dump_package_data_txt(items, buf, separator, pretty):
+
+    def _pretty(field_content, separator):
+        if isinstance(field_content, (basestring, SourceCode)):
+            return field_content
+
+        if isinstance(field_content, list):
+            listToString = ""
+            for item in field_content:
+                if isinstance(item, list):
+                    listToString = "%s%s\n" % (listToString, _pretty(item, separator))
+                else:
+                    listToString += "%s%s" % (item, separator)
+
+            if listToString:
+                if listToString.endswith(separator):
+                    return listToString[:-len(separator)]
+                return listToString
+
+    separator = separator if separator else " "
+
+    output = ""
+    for i, (_, value) in enumerate(items):
+        if pretty:
+            output += _pretty(value, separator)
+        else:
+            output += str(value)
+
+        if i < len(items) - 1:
+            output += "\n"
+
+    print >> buf, output.rstrip("\n")
+
+
 dump_functions = {FileFormat.py: _dump_package_data_py,
-                  FileFormat.yaml: _dump_package_data_yaml}
+                  FileFormat.yaml: _dump_package_data_yaml,
+                  FileFormat.txt: _dump_package_data_txt}
 
 
 # Copyright 2013-2016 Allan Johns.
