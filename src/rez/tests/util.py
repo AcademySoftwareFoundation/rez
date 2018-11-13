@@ -108,7 +108,10 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
 program_tests = {
     "cmake": ['cmake', '-h'],
     "make": ['make', '-h'],
-    "g++": ["g++", "--help"]
+    "g++": ["g++", "--help"],
+    "git": ["git", "--help"],
+    "hg": ["hg", "--help"],
+    "svn": ["svn", "--help"],
 }
 
 

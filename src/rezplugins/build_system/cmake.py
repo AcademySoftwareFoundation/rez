@@ -100,6 +100,9 @@ class CMakeBuildSystem(BuildSystem):
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
+    def required_files(self):
+        return [os.path.join(self.working_dir, "CMakeLists.txt")]
+
     def build(self, context, variant, build_path, install_path, install=False,
               build_type=BuildType.local):
         def _pr(s):

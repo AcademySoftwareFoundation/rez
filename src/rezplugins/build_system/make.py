@@ -19,6 +19,9 @@ class MakeBuildSystem(BuildSystem):
         super(MakeBuildSystem, self).__init__(working_dir)
         raise NotImplementedError
 
+    def required_files(self):
+        return [os.path.join(self.working_dir, "Makefile")]
+
 
 def register_plugin():
     return MakeBuildSystem

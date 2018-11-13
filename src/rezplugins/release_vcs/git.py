@@ -85,7 +85,7 @@ class GitReleaseVCS(ReleaseVCS):
                 raise e
         return (None, None)
 
-    def validate_repostate(self):
+    def validate_repostate(self, build_process):
         b = self.git("rev-parse", "--is-bare-repository")
         if b == "true":
             raise ReleaseVCSError("Could not release: bare git repository")
@@ -135,6 +135,16 @@ class GitReleaseVCS(ReleaseVCS):
                 raise ReleaseVCSError(
                     "Could not release: %d commits %s %s."
                     % (abs(n), s, remote_uri))
+
+        # ensure that package.yaml is in the repo...
+        self.assert_required_files(build_process)
+
+    def contains_files(self, paths):
+        try:
+            self.git('ls-files', '--error-unmatch', *paths)
+        except ReleaseVCSError:
+            return False
+        return True
 
     def get_changelog(self, previous_revision=None, max_revisions=None):
         prev_commit = None

@@ -828,7 +828,14 @@ plugins = {
         # at A, but that's ok because the package hasn't changed and we just want
         # to release it at B also. For this reason, you can set tag checking to
         # False both in the API and via an option on the rez-release tool.
-        "check_tag": False
+        "check_tag": False,
+
+        # if True, will verify that certain essential files (ie,
+        # package.yaml/py, or files registered by your build system) are
+        # committed / tracked in the repo before allowing a release. Can be
+        # helpful when first releasing a brand new version / package,
+        # to ensure you didn't forgot to add your package.py to the repo!
+        "assert_required_files": True,
     }
 }
 

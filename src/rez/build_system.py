@@ -130,6 +130,11 @@ class BuildSystem(object):
         """
         pass
 
+    def required_files(self):
+        """Returns files that are required by this build system to exist, and
+        should be included in the release vcs before a release is allowed"""
+        return []
+
     def build(self, context, variant, build_path, install_path, install=False,
               build_type=BuildType.local):
         """Implement this method to perform the actual build.

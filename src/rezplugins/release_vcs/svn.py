@@ -76,7 +76,7 @@ class SvnReleaseVCS(ReleaseVCS):
     def search_parents_for_root(cls):
         return True
 
-    def validate_repostate(self):
+    def validate_repostate(self, build_process):
         status_list = self.svnc.status(self.pkg_root, get_all=False, update=True)
         status_list_known = []
 
@@ -88,6 +88,16 @@ class SvnReleaseVCS(ReleaseVCS):
             raise ReleaseVCSError(
                 "'%s' is not in a state to release - you may need to svn-checkin "
                 "and/or svn-update: %s" % (self.pkg_root, str(status_list_known)))
+
+        # ensure that package.yaml is in the repo...
+        self.assert_required_files(build_process)
+
+    def contains_files(self, paths):
+        for path in paths:
+            info = self.svnc.info(os.path.join(self.pkg_root, path))
+            if not info:
+                return False
+        return True
 
     def _create_tag_impl(self, tag_name, message=None):
         tag_url = self.get_tag_url(tag_name)

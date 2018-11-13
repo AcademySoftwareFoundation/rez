@@ -380,7 +380,8 @@ _plugin_config_dict = {
     "release_vcs": {
         "tag_name":                     basestring,
         "releasable_branches":          Or(None, [basestring]),
-        "check_tag":                    bool
+        "check_tag":                    bool,
+        "assert_required_files":        bool,
     }
 }
 
