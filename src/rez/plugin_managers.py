@@ -9,7 +9,7 @@ from rez.utils.logging_ import print_debug, print_error
 from rez.exceptions import RezPluginError
 
 from inspect import isclass
-import pkgutil
+from pkgutil import iter_modules
 import os.path
 import sys
 
@@ -101,7 +101,7 @@ class RezPluginType(object):
             paths = self.package.__path__
 
         for path in paths:
-            for loader, modname, _ in pkgutil.walk_packages(
+            for loader, modname, _ in iter_modules(
                     [path], self.package.__name__ + '.'):
 
                 if loader is None:
@@ -203,7 +203,7 @@ class RezPluginType(object):
         for path in paths:
             found = False
 
-            for loader, modname, _ in pkgutil.walk_packages(
+            for loader, modname, _ in iter_modules(
                     [path], self.package.__name__ + '.'):
 
                 if loader is None:
