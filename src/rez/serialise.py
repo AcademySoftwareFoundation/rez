@@ -4,7 +4,6 @@ Read and write data from file. File caching via a memcached server is supported.
 from rez.package_resources_ import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
-from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
 from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
@@ -22,8 +21,7 @@ import os.path
 
 
 tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
-
-
+debug_print = config.debug_printer("file_loads")
 file_cache = {}
 
 
@@ -54,6 +52,8 @@ def open_file_for_write(filepath):
     tmpdir = tmpdir_manager.mkdtemp()
     cache_filepath = os.path.join(tmpdir, os.path.basename(filepath))
 
+    debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
+
     with open(filepath, 'w') as f:
         f.write(content)
 
@@ -81,14 +81,15 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
         dict.
     """
     filepath = os.path.realpath(filepath)
-
     cache_filepath = file_cache.get(filepath)
+
     if cache_filepath:
         # file has been written by this process, read it from /tmp to avoid
         # potential write-then-read issues over NFS
         return _load_file(filepath=cache_filepath,
                           format_=format_,
-                          update_data_callback=update_data_callback)
+                          update_data_callback=update_data_callback,
+                          original_filepath=filepath)
     elif disable_memcache:
         return _load_file(filepath=filepath,
                           format_=format_,
@@ -118,11 +119,15 @@ def _load_from_file(filepath, format_, update_data_callback):
     return _load_file(filepath, format_, update_data_callback)
 
 
-def _load_file(filepath, format_, update_data_callback):
+def _load_file(filepath, format_, update_data_callback, original_filepath=None):
     load_func = load_functions[format_]
 
-    if config.debug("file_loads"):
-        print_debug("Loading file: %s" % filepath)
+    if debug_print:
+        if original_filepath:
+            debug_print("Loading file: %s (local cache of %s)",
+                        filepath, original_filepath)
+        else:
+            debug_print("Loading file: %s", filepath)
 
     with open(filepath) as f:
         result = load_func(f, filepath=filepath)

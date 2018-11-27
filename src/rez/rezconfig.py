@@ -486,7 +486,7 @@ warn_all = False
 # Turn off all warnings. This overrides warn_all.
 warn_none = False
 
-# Print info whenever a file is loaded from disk.
+# Print info whenever a file is loaded from disk, or saved to disk.
 debug_file_loads = False
 
 # Print debugging info when loading plugins
@@ -500,7 +500,7 @@ debug_package_release = False
 # the bind_utils.log() function - it is controlled with this setting
 debug_bind_modules = False
 
-# Print debugging info when searching and loading resources.
+# Print debugging info when searching, loading and copying resources.
 debug_resources = False
 
 # Print packages that are excluded from the resolve, and the filter rule responsible.
