@@ -14,6 +14,9 @@ import getpass
 import os.path
 
 
+debug_print = config.debug_printer("package_release")
+
+
 def get_build_process_types():
     """Returns the available build process implementations."""
     from rez.plugin_managers import plugin_manager
@@ -22,22 +25,24 @@ def get_build_process_types():
 
 def create_build_process(process_type, working_dir, build_system, package=None,
                          vcs=None, ensure_latest=True, skip_repo_errors=False,
-                         ignore_existing_tag=False, verbose=False):
+                         ignore_existing_tag=False, verbose=False, quiet=False):
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
     process_types = get_build_process_types()
     if process_type not in process_types:
         raise BuildProcessError("Unknown build process: %r" % process_type)
+
     cls = plugin_manager.get_plugin_class('build_process', process_type)
 
-    return cls(working_dir,
-               package=package,
-               build_system=build_system,
+    return cls(working_dir,  # ignored (deprecated)
+               build_system,
+               package=package,  # ignored (deprecated)
                vcs=vcs,
                ensure_latest=ensure_latest,
                skip_repo_errors=skip_repo_errors,
                ignore_existing_tag=ignore_existing_tag,
-               verbose=verbose)
+               verbose=verbose,
+               quiet=quiet)
 
 
 class BuildType(Enum):
@@ -62,13 +67,13 @@ class BuildProcess(object):
 
     def __init__(self, working_dir, build_system, package=None, vcs=None,
                  ensure_latest=True, skip_repo_errors=False,
-                 ignore_existing_tag=False, verbose=False):
+                 ignore_existing_tag=False, verbose=False, quiet=False):
         """Create a BuildProcess.
 
         Args:
-            working_dir (deprecated): Ignored.
+            working_dir (DEPRECATED): Ignored.
             build_system (`BuildSystem`): Build system used to build the package.
-            package (deprecated): Ignored.
+            package (DEPRECATED): Ignored.
             vcs (`ReleaseVCS`): Version control system to use for the release
                 process.
             ensure_latest: If True, do not allow the release process to occur
@@ -80,8 +85,11 @@ class BuildProcess(object):
             ignore_existing_tag: Perform the release even if the repository is
                 already tagged at the current version. If the config setting
                 plugins.release_vcs.check_tag is False, this has no effect.
+            verbose (bool): Verbose mode.
+            quiet (bool): Quiet mode (overrides `verbose`).
         """
-        self.verbose = verbose
+        self.verbose = verbose and not quiet
+        self.quiet = quiet
         self.build_system = build_system
         self.vcs = vcs
         self.ensure_latest = ensure_latest
@@ -92,10 +100,6 @@ class BuildProcess(object):
             raise BuildProcessError(
                 "Build process was instantiated with a mismatched VCS instance")
 
-        self.debug_print = config.debug_printer("package_release")
-
-        hook_names = self.package.config.release_hooks or []
-        self.hooks = create_release_hooks(hook_names, self.working_dir)
         self.build_path = os.path.join(self.working_dir,
                                        self.package.config.build_directory)
 
@@ -309,9 +313,12 @@ class BuildProcessHelper(BuildProcess):
         return tag_name
 
     def run_hooks(self, hook_event, **kwargs):
-        for hook in self.hooks:
-            self.debug_print("Running %s hook '%s'...",
-                             hook_event.label, hook.name())
+        hook_names = self.package.config.release_hooks or []
+        hooks = create_release_hooks(hook_names, self.working_dir)
+
+        for hook in hooks:
+            debug_print("Running %s hook '%s'...",
+                        hook_event.label, hook.name())
             try:
                 func = getattr(hook, hook_event.func_name)
                 func(user=getpass.getuser(), **kwargs)
@@ -321,10 +328,9 @@ class BuildProcessHelper(BuildProcess):
                     % (hook_event.noun, hook_event.label, hook.name(),
                        e.__class__.__name__, str(e)))
             except RezError:
-                self.debug_print(
-                    "Error in %s hook '%s': %s:\n%s"
-                    % (hook_event.label, hook.name(),
-                       e.__class__.__name__, str(e)))
+                debug_print("Error in %s hook '%s': %s:\n%s"
+                            % (hook_event.label, hook.name(),
+                               e.__class__.__name__, str(e)))
 
     def get_previous_release(self):
         release_path = self.package.config.release_packages_path
@@ -394,6 +400,9 @@ class BuildProcessHelper(BuildProcess):
             print txt
 
     def _print_header(self, txt, n=1):
+        if self.quiet:
+            return
+
         self._print('')
         if n <= 1:
             self._print('-' * 80)
