@@ -1,5 +1,3 @@
-from multiprocessing import cpu_count
-
 from rez.build_process_ import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages_ import get_developer_package
@@ -81,6 +79,8 @@ class BuildSystem(object):
             working_dir: Directory to build source from.
             opts: argparse.Namespace object which may contain constructor
                 params, as set by our bind_cli() classmethod.
+            package (`Package`): Package to build. If None, defaults to the
+                unbuilt ('developer') package in the working directory.
             write_build_scripts: If True, create build scripts rather than
                 perform the full build. The user can then run these scripts to
                 place themselves into a build environment and invoke the build

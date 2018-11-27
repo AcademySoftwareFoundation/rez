@@ -1,4 +1,4 @@
-from rez.packages_ import get_developer_package, iter_packages
+from rez.packages_ import iter_packages
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
     ReleaseVCSError
@@ -68,6 +68,8 @@ class BuildProcess(object):
         Args:
             working_dir (str): Directory containing the package to build.
             build_system (`BuildSystem`): Build system used to build the package.
+            package (`Package`): Defaults to same package as build system
+                target (you should leave this as None).
             vcs (`ReleaseVCS`): Version control system to use for the release
                 process.
             ensure_latest: If True, do not allow the release process to occur
@@ -94,7 +96,7 @@ class BuildProcess(object):
 
         self.debug_print = config.debug_printer("package_release")
 
-        self.package = package or get_developer_package(working_dir)
+        self.package = package or self.build_system.package
 
         hook_names = self.package.config.release_hooks or []
         self.hooks = create_release_hooks(hook_names, working_dir)
@@ -367,7 +369,7 @@ class BuildProcessHelper(BuildProcess):
         with self.repo_operation():
             revision = self.vcs.get_current_revision()
 
-        changelog=self.get_changelog()
+        changelog = self.get_changelog()
 
         # truncate changelog - very large changelogs can cause package load
         # times to be very high, we don't want that
