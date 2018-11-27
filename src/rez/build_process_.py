@@ -66,10 +66,9 @@ class BuildProcess(object):
         """Create a BuildProcess.
 
         Args:
-            working_dir (str): Directory containing the package to build.
+            working_dir (deprecated): Ignored.
             build_system (`BuildSystem`): Build system used to build the package.
-            package (`Package`): Defaults to same package as build system
-                target (you should leave this as None).
+            package (deprecated): Ignored.
             vcs (`ReleaseVCS`): Version control system to use for the release
                 process.
             ensure_latest: If True, do not allow the release process to occur
@@ -83,25 +82,30 @@ class BuildProcess(object):
                 plugins.release_vcs.check_tag is False, this has no effect.
         """
         self.verbose = verbose
-        self.working_dir = working_dir
         self.build_system = build_system
         self.vcs = vcs
         self.ensure_latest = ensure_latest
         self.skip_repo_errors = skip_repo_errors
         self.ignore_existing_tag = ignore_existing_tag
 
-        if vcs and vcs.pkg_root != working_dir:
+        if vcs and vcs.pkg_root != self.working_dir:
             raise BuildProcessError(
                 "Build process was instantiated with a mismatched VCS instance")
 
         self.debug_print = config.debug_printer("package_release")
 
-        self.package = package or self.build_system.package
-
         hook_names = self.package.config.release_hooks or []
-        self.hooks = create_release_hooks(hook_names, working_dir)
+        self.hooks = create_release_hooks(hook_names, self.working_dir)
         self.build_path = os.path.join(self.working_dir,
                                        self.package.config.build_directory)
+
+    @property
+    def package(self):
+        return self.build_system.package
+
+    @property
+    def working_dir(self):
+        return self.build_system.working_dir
 
     def build(self, install_path=None, clean=False, install=False, variants=None):
         """Perform the build process.
