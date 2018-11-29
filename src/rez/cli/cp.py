@@ -117,12 +117,12 @@ def command(opts, parser, extra_arg_groups=None):
     # varianted package
     else:
         if copied:
-            print("%d variants copied:" % len(copied))
+            print("%d variants were copied:" % len(copied))
             for src_variant, dest_variant in copied:
                 print("  %s -> %s" % (src_variant.uri, dest_variant.uri))
 
         if skipped:
-            print("%d variants skipped (target exists):" % len(skipped))
+            print("%d variants were skipped (target exists):" % len(skipped))
             for src_variant, dest_variant in skipped:
                 print("  %s !-> %s" % (src_variant.uri, dest_variant.uri))
 

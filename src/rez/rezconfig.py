@@ -532,13 +532,16 @@ shell_error_truncate_cap = 750
 
 
 ###############################################################################
-# Build
+# Build/Release/Copy
 ###############################################################################
+
+# Whether a package is relocatable or not, if it does not explicitly state with
+# the 'relocatable' attribute in its package definition file.
+default_relocatable = True
 
 # The default working directory for a package build, relative to the package
 # source directory (this is typically where temporary build files are written).
 build_directory = "build"
-
 
 # The number of threads a build system should use, eg the make '-j' option.
 # If the string values "logical_cores" or "physical_cores", it is set to the
@@ -549,11 +552,6 @@ build_directory = "build"
 # This setting is exposed as the environment variable $REZ_BUILD_THREAD_COUNT
 # during builds.
 build_thread_count = "physical_cores"
-
-
-###############################################################################
-# Release
-###############################################################################
 
 # The release hooks to run when a release occurs. Release hooks are plugins - if
 # a plugin listed here is not present, a warning message is printed. Note that a

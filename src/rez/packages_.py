@@ -229,6 +229,15 @@ class Package(PackageBaseResourceWrapper):
     def num_variants(self):
         return len(self.data.get("variants", []))
 
+    @property
+    def is_relocatable(self):
+        """True if the package and its payload is safe to copy.
+        """
+        if self.relocatable is None:
+            return config.default_relocatable
+        else:
+            return self.relocatable
+
     def iter_variants(self):
         """Iterate over the variants within this package, in index order.
 

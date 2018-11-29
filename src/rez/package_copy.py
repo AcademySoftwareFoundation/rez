@@ -10,7 +10,7 @@ from rez.utils.filesystem import replacing_symlink, replacing_copy, safe_makedir
 def copy_package(package, dest_repository_path, variants=None, shallow=False,
                  overwrite=False, force=False, keep_timestamp=False,
                  verbose=False):
-    """Copy a package to another package repository.
+    """Copy a package from one package repository to another.
 
     This copies the package definition and payload.
 
@@ -42,7 +42,9 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
         When copying individual variants that are zero-index-based, the target
         variant that is created may have a different index. This is expected and
         is not a problem. For example, if you copy a 2nd (1-indexed) variant
-        into a new target package, this will become the zeroeth variant.
+        into a new target package, this will become the zeroeth variant. The
+        same happens when you use rez-build's --variants flag to install variants
+        in a different order.
 
         If a package is copied into a repo where it doesn't already exist, you
         are guaranteed that the variant order will remain the same.
@@ -75,6 +77,12 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
             "copied": copied,
             "skipped": skipped
         }
+
+    # check that package is relocatable
+    if not force and not package.is_relocatable:
+        raise PackageCopyError(
+            "Cannot copy non-relocatable package: %s" % package.uri
+        )
 
     dest_pkg_repo = package_repository_manager.get_repository(dest_repository_path)
 
@@ -127,7 +135,7 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
 
     # Install each variant and associated payload.
     #
-    for src_variant in src_variants:
+    for i, src_variant in enumerate(src_variants):
         if verbose:
             print_info("Copying source variant %s into repository %s...",
                        src_variant.uri, dest_repository_path)
@@ -137,6 +145,10 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
         # variants copied into it yet) is not picked up as a valid package.
         #
         dest_pkg_repo.pre_variant_install(src_variant.resource)
+
+        # copy include modules before the first variant install
+        if i == 0:
+            _copy_package_include_modules(src_variant.parent, dest_pkg_repo)
 
         # copy the variant's payload
         _copy_variant_payload(src_variant, dest_pkg_repo, shallow=shallow)
@@ -209,3 +221,23 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False):
                     maybe_symlink(src_path, dest_path)
                 else:
                     replacing_copy(src_path, dest_path)
+
+
+def _copy_package_include_modules(src_package, dest_pkg_repo):
+    pass  # TODO
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
