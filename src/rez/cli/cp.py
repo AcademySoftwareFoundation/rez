@@ -24,6 +24,9 @@ def setup_parser(parser, completions=False):
         "-f", "--force", action="store_true",
         help="copy package even if it isn't relocatable (use at your own risk)")
     parser.add_argument(
+        "--dry-run", action="store_true",
+        help="dry run mode")
+    parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",
         help="select variants to copy (zero-indexed).")
     pkg_action = parser.add_argument(
@@ -92,7 +95,8 @@ def command(opts, parser, extra_arg_groups=None):
         shallow=opts.shallow,
         keep_timestamp=opts.keep_timestamp,
         force=opts.force,
-        verbose=opts.verbose
+        verbose=opts.verbose,
+        dry_run=opts.dry_run
     )
 
     # Print info about the result.
@@ -100,6 +104,18 @@ def command(opts, parser, extra_arg_groups=None):
 
     copied = result["copied"]
     skipped = result["skipped"]
+
+    if opts.dry_run:
+        # show a good indication of target variant when it doesn't get created
+        from rez.package_repository import package_repository_manager
+
+        dest_pkg_repo = package_repository_manager.get_repository(opts.DST_REPO)
+        path = dest_pkg_repo.get_package_payload_path(src_pkg.name, src_pkg.version)
+        dry_run_uri = path + "/?"
+
+        verb = "would be"
+    else:
+        verb = "were"
 
     # specific output for non-varianted packages
     if src_pkg.num_variants == 0:
@@ -117,12 +133,19 @@ def command(opts, parser, extra_arg_groups=None):
     # varianted package
     else:
         if copied:
-            print("%d variants were copied:" % len(copied))
+            print("%d variants %s copied:" % (len(copied), verb))
+
             for src_variant, dest_variant in copied:
-                print("  %s -> %s" % (src_variant.uri, dest_variant.uri))
+                # None possible if dry_run
+                if dest_variant is None:
+                    dest_uri = dry_run_uri
+                else:
+                    dest_uri = dest_variant.uri
+
+                print("  %s -> %s" % (src_variant.uri, dest_uri))
 
         if skipped:
-            print("%d variants were skipped (target exists):" % len(skipped))
+            print("%d variants %s skipped (target exists):" % (len(skipped), verb))
             for src_variant, dest_variant in skipped:
                 print("  %s !-> %s" % (src_variant.uri, dest_variant.uri))
 

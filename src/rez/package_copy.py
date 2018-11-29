@@ -9,7 +9,7 @@ from rez.utils.filesystem import replacing_symlink, replacing_copy, safe_makedir
 
 def copy_package(package, dest_repository_path, variants=None, shallow=False,
                  overwrite=False, force=False, keep_timestamp=False,
-                 verbose=False):
+                 verbose=False, dry_run=False):
     """Copy a package from one package repository to another.
 
     This copies the package definition and payload.
@@ -65,6 +65,8 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
             By setting this option to True, the original package's timestamp
             is kept intact.
         verbose (bool): Verbose mode.
+        dry_run (bool): Dry run mode. Dest variants in the result will be None
+            in this case.
 
     Returns:
         Dict: See comments above.
@@ -140,28 +142,31 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
             print_info("Copying source variant %s into repository %s...",
                        src_variant.uri, dest_repository_path)
 
-        # Perform pre-install steps. For eg, a "building" marker file is created
-        # in the filesystem pkg repo, so that the package dir (which doesn't have
-        # variants copied into it yet) is not picked up as a valid package.
-        #
-        dest_pkg_repo.pre_variant_install(src_variant.resource)
+        if dry_run:
+            dest_variant = None
+        else:
+            # Perform pre-install steps. For eg, a "building" marker file is created
+            # in the filesystem pkg repo, so that the package dir (which doesn't have
+            # variants copied into it yet) is not picked up as a valid package.
+            #
+            dest_pkg_repo.pre_variant_install(src_variant.resource)
 
-        # copy include modules before the first variant install
-        if i == 0:
-            _copy_package_include_modules(src_variant.parent, dest_pkg_repo)
+            # copy include modules before the first variant install
+            if i == 0:
+                _copy_package_include_modules(src_variant.parent, dest_pkg_repo)
 
-        # copy the variant's payload
-        _copy_variant_payload(src_variant, dest_pkg_repo, shallow=shallow)
+            # copy the variant's payload
+            _copy_variant_payload(src_variant, dest_pkg_repo, shallow=shallow)
 
-        overrides = {}
-        if not keep_timestamp:
-            overrides["timestamp"] = int(time.time())
+            overrides = {}
+            if not keep_timestamp:
+                overrides["timestamp"] = int(time.time())
 
-        # install the variant into the package definition
-        dest_variant = dest_pkg_repo.install_variant(
-            variant_resource=src_variant.resource,
-            overrides=overrides
-        )
+            # install the variant into the package definition
+            dest_variant = dest_pkg_repo.install_variant(
+                variant_resource=src_variant.resource,
+                overrides=overrides
+            )
 
         if verbose:
             print_info("Copied source variant %s to target variant %s",
