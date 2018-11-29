@@ -34,14 +34,6 @@ class LocalBuildProcess(BuildProcessHelper):
             clean=clean,
             install=install)
 
-        # install include modules, if any
-        #
-        # FIXME this needs to be done before the first variant is installed;
-        # otherwise there is a window of time where the variant exists, but is
-        # missing its include modules.
-        if install:
-            self._install_include_modules(install_path)
-
         if None not in build_env_scripts:
             self._print("\nThe following executable script(s) have been created:")
             self._print('\n'.join(build_env_scripts))
@@ -157,6 +149,11 @@ class LocalBuildProcess(BuildProcessHelper):
             for file_ in extra_files:
                 copy_or_replace(file_, variant_install_path)
 
+            # Install include modules. Note that this doesn't need to be done
+            # multiple times, but for subsequent variants it has no effect.
+            #
+            self._install_include_modules(install_path)
+
         return build_result
 
     def _install_include_modules(self, install_path):
@@ -181,7 +178,8 @@ class LocalBuildProcess(BuildProcessHelper):
             uuid = sha1(txt).hexdigest()
             dest_filepath = os.path.join(path, "%s-%s.py" % (name, uuid))
 
-            shutil.copy(filepath, dest_filepath)
+            if not os.path.exists(dest_filepath):
+                shutil.copy(filepath, dest_filepath)
 
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):
