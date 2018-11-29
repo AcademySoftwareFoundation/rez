@@ -201,11 +201,18 @@ class BuildProcessHelper(BuildProcess):
 
     def get_package_install_path(self, path):
         """Return the installation path for a package (where its payload goes).
+
+        Args:
+            path (str): Package repository path.
         """
-        path_ = os.path.join(path, self.package.name)
-        if self.package.version:
-            path_ = os.path.join(path_, str(self.package.version))
-        return path_
+        from rez.package_repository import package_repository_manager
+
+        pkg_repo = package_repository_manager.get_repository(path)
+
+        return pkg_repo.get_package_payload_path(
+            package_name=self.package.name,
+            package_version=self.package.version
+        )
 
     def create_build_context(self, variant, build_type, build_path):
         """Create a context to build the variant within."""

@@ -4,26 +4,22 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
 from rez.utils import reraise
-from rez.utils.logging_ import print_info, print_error
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
-from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
-from rez.serialise import load_from_file, FileFormat
+from rez.serialise import FileFormat
 from rez.config import config
-from rez.system import system
-import os.path
 import sys
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # package-related classes
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
     format_expand = StringFormatType.unchanged
@@ -32,6 +28,15 @@ class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
         data = ResourceWrapper.validated_data(self)
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
+
+    @property
+    def repository(self):
+        """The package repository this resource comes from.
+
+        Returns:
+            `PackageRepository`.
+        """
+        return self.resource._repository
 
 
 class PackageFamily(PackageRepositoryResourceWrapper):
@@ -53,8 +58,7 @@ class PackageFamily(PackageRepositoryResourceWrapper):
         Returns:
             `Package` iterator.
         """
-        repo = self.resource._repository
-        for package in repo.iter_packages(self.resource):
+        for package in self.repository.iter_packages(self.resource):
             yield Package(package)
 
 
@@ -218,8 +222,7 @@ class Package(PackageBaseResourceWrapper):
         Returns:
             `PackageFamily`.
         """
-        repo = self.resource._repository
-        family = repo.get_parent_package_family(self.resource)
+        family = self.repository.get_parent_package_family(self.resource)
         return PackageFamily(family) if family else None
 
     @cached_property
@@ -232,8 +235,7 @@ class Package(PackageBaseResourceWrapper):
         Returns:
             `Variant` iterator.
         """
-        repo = self.resource._repository
-        for variant in repo.iter_variants(self.resource):
+        for variant in self.repository.iter_variants(self.resource):
             yield Variant(variant, context=self.context, parent=self)
 
     def get_variant(self, index=None):
@@ -298,8 +300,7 @@ class Variant(PackageBaseResourceWrapper):
             return self._parent
 
         try:
-            repo = self.resource._repository
-            package = repo.get_parent_package(self.resource)
+            package = self.repository.get_parent_package(self.resource)
             self._parent = Package(package, context=self.context)
         except AttributeError as e:
             reraise(e, ValueError)

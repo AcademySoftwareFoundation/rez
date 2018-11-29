@@ -24,6 +24,7 @@ subcommands = {
     "complete": {
         "hidden": True
     },
+    "cp": {},
     "depends": {},
     "diff": {},
     "env": {

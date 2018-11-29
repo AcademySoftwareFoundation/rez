@@ -84,9 +84,8 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
     def get_last_release_time(self):
         # this repository makes sure to update path mtime every time a
         # variant is added to the repository
-        path = os.path.join(self.location, self.name)
         try:
-            return os.path.getmtime(path)
+            return os.path.getmtime(self.path)
         except OSError:
             return 0
 
@@ -551,6 +550,10 @@ class FileSystemPackageRepository(PackageRepository):
             filename += "-%s" % str(variant_resource.version)
 
         path = self.location
+        if not os.path.exists(path):
+            raise PackageRepositoryError(
+                "Package repository does not exist at %s" % path)
+
         if self.file_lock_dir:
             path = os.path.join(path, self.file_lock_dir)
 
@@ -583,6 +586,14 @@ class FileSystemPackageRepository(PackageRepository):
         self._get_version_dirs.forget()
         # unfortunately we need to clear file cache across the board
         clear_file_caches()
+
+    def get_package_payload_path(self, package_name, package_version=None):
+        path = os.path.join(self.location, package_name)
+
+        if package_version:
+            path = os.path.join(path, str(package_version))
+
+        return path
 
     # -- internal
 
@@ -930,18 +941,28 @@ class FileSystemPackageRepository(PackageRepository):
         if not os.path.exists(pkg_base_path):
             os.makedirs(pkg_base_path)
 
-        # add the timestamp
-        overrides = overrides or {}
-        overrides["timestamp"] = int(time.time())
+        # Apply overrides.
+        #
+        # If we're installing into an existing package, then existing attributes
+        # in that package take precedence over `overrides`. If we're installing
+        # to a new package, then `overrides` takes precedence always.
+        #
+        # This is done so that variants added to an existing package don't change
+        # attributes such as 'timestamp' or release-related fields like 'revision'.
+        #
+        if overrides:
+            for key, value in overrides.iteritems():
+                if (not existing_package) or (package_data.get(key) is None):
+                    package_data[key] = value
 
-        # add the format version
+        # timestamp defaults to now if not specified
+        if "timestamp" not in package_data:
+            package_data["timestamp"] = int(time.time())
+
+        # format version is always set
         package_data["format_version"] = format_version
 
-        # apply attribute overrides
-        for key, value in overrides.iteritems():
-            if package_data.get(key) is None:
-                package_data[key] = value
-
+        # write out new package definition file
         package_file = ".".join([package_filename, package_extension])
         filepath = os.path.join(pkg_base_path, package_file)
 

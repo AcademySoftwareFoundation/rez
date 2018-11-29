@@ -56,6 +56,10 @@ package_repo_stats = PackageRepositoryGlobalStats()
 class PackageRepository(object):
     """Base class for package repositories implemented in the package_repository
     plugin type.
+
+    Note that, even though a package repository does determine where package
+    payloads should go, it is not responsible for creating or copying these
+    payloads.
     """
     @classmethod
     def name(cls):
@@ -97,6 +101,13 @@ class PackageRepository(object):
             hashable value: Value that uniquely identifies this repository.
         """
         return self._uid()
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, PackageRepository) and
+            other.name() == self.name() and
+            other.uid == self.uid
+        )
 
     def get_package_family(self, name):
         """Get a package family.
@@ -291,6 +302,18 @@ class PackageRepository(object):
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
+
+    def get_package_payload_path(self, package_name, package_version=None):
+        """Defines where a package's payload should be installed to.
+
+        Args:
+            package_name (str): Nmae of package.
+            package_version (str or `Version`): Package version.
+
+        Returns:
+            str: Path where package's payload should be installed to.
+        """
+        raise NotImplementedError
 
     def _uid(self):
         """Unique identifier implementation.

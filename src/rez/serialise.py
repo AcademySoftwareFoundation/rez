@@ -10,6 +10,7 @@ from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
 from rez.utils.system import add_sys_paths
 from rez.config import config
+from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from contextlib import contextmanager
@@ -54,7 +55,7 @@ def open_file_for_write(filepath):
 
     debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
 
-    with open(filepath, 'w') as f:
+    with atomic_write(filepath, overwrite=True) as f:
         f.write(content)
 
     with open(cache_filepath, 'w') as f:

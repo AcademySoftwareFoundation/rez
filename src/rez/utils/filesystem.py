@@ -4,6 +4,7 @@ Filesystem-related utilities.
 from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
+from uuid import uuid4
 import weakref
 import atexit
 import posixpath
@@ -83,14 +84,104 @@ def retain_cwd():
 
 
 def safe_makedirs(path):
-    # makedirs that takes into account that multiple threads may try to make
-    # the same dir at the same time
+    """Safe makedirs.
+
+    Works in a multithreaded scenario.
+    """
     if not os.path.exists(path):
         try:
             os.makedirs(path)
         except OSError:
             if not os.path.exists(path):
                 raise
+
+
+def safe_remove(path):
+    """Safely remove the given file or directory.
+
+    Works in a multithreaded scenario.
+    """
+    if not os.path.exists(path):
+        return
+
+    try:
+        if os.path.isdir(path) and not os.path.islink(path):
+            shutil.rmtree(path)
+        else:
+            os.remove(path)
+    except OSError:
+        if os.path.exists(path):
+            raise
+
+
+def replacing_symlink(source, link_name):
+    """Create symlink that overwrites any existing target.
+    """
+    with make_tmp_name(link_name) as tmp_link_name:
+        os.symlink(source, tmp_link_name)
+        replace_file_or_dir(link_name, tmp_link_name)
+
+
+def replacing_copy(src, dest):
+    """Perform copy that overwrites any existing target.
+
+    Will copy/copytree `src` to `dest`, and will remove `dest` if it exists,
+    regardless of what it is.
+
+    Note that this behavior is different to `shutil.copy`, which copies src
+    into dest if dest is an existing dir.
+    """
+    with make_tmp_name(dest) as tmp_dest:
+        if os.path.isdir(src) and not os.path.islink(src):
+            shutil.copytree(src, tmp_dest)
+        else:
+            shutil.copy2(src, tmp_dest)
+
+        replace_file_or_dir(dest, tmp_dest)
+
+
+def replace_file_or_dir(dest, source):
+    """Replace `dest` with `source`.
+
+    Acts like an `os.rename` if `dest` does not exist. Otherwise, `dest` is
+    deleted and `src` is renamed to `dest`.
+    """
+    from rez.vendor.atomicwrites import replace_atomic
+
+    if not os.path.exists(dest):
+        try:
+            os.rename(source, dest)
+            return
+        except:
+            if not os.path.exists(dest):
+                raise
+
+    try:
+        replace_atomic(source, dest)
+        return
+    except:
+        pass
+
+    with make_tmp_name(dest) as tmp_dest:
+        os.rename(dest, tmp_dest)
+        os.rename(source, dest)
+
+
+@contextmanager
+def make_tmp_name(name):
+    """Generates a tmp name for a file or dir.
+
+    This is a tempname that sits in the same dir as `name`. If it exists on
+    disk at context exit time, it is deleted.
+    """
+    path, base = os.path.split(name)
+    tmp_base = ".tmp-%s-%s" % (base, uuid4().hex)
+    tmp_name = os.path.join(path, tmp_base)
+
+    try:
+        yield tmp_name
+    finally:
+        safe_remove(tmp_name)
 
 
 def is_subdirectory(path_a, path_b):
@@ -357,6 +448,7 @@ def test_encode_decode():
 
     # u'\u20ac' == Euro symbol
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
+
 
 def walk_up_dirs(path):
     """Yields absolute directories starting with the given path, and iterating
