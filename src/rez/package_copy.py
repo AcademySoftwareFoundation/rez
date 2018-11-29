@@ -3,8 +3,10 @@ import time
 
 from rez.exceptions import PackageCopyError
 from rez.package_repository import package_repository_manager
+from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.logging_ import print_info
-from rez.utils.filesystem import replacing_symlink, replacing_copy, safe_makedirs
+from rez.utils.filesystem import replacing_symlink, replacing_copy, \
+    safe_makedirs, additive_copytree
 
 
 def copy_package(package, dest_repository_path, variants=None, shallow=False,
@@ -38,17 +40,6 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
         An attempt to copy a non-relocatable package will fail. You can override
         this behaviour with the `force` argument.
 
-    Note:
-        When copying individual variants that are zero-index-based, the target
-        variant that is created may have a different index. This is expected and
-        is not a problem. For example, if you copy a 2nd (1-indexed) variant
-        into a new target package, this will become the zeroeth variant. The
-        same happens when you use rez-build's --variants flag to install variants
-        in a different order.
-
-        If a package is copied into a repo where it doesn't already exist, you
-        are guaranteed that the variant order will remain the same.
-
     Args:
         package (`Package`): Package to copy.
         dest_repository_path (str): The package repository path to copy the
@@ -60,10 +51,13 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
             destination package. In this case, the existing payload is removed
             before the new payload is copied.
         force (bool): Copy the package regardless of its relocatable attribute.
+            Use at your own risk (there is no guarantee the resulting package
+            will be functional).
         keep_timestamp (bool): By default, a newly copied package will get a
             new timestamp (because that's when it was added to the target repo).
             By setting this option to True, the original package's timestamp
-            is kept intact.
+            is kept intact. Note that this will have no effect if variant(s)
+            are copied into an existing package.
         verbose (bool): Verbose mode.
         dry_run (bool): Dry run mode. Dest variants in the result will be None
             in this case.
@@ -229,7 +223,22 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False):
 
 
 def _copy_package_include_modules(src_package, dest_pkg_repo):
-    pass  # TODO
+    src_include_modules_path = \
+        os.path.join(src_package.base, IncludeModuleManager.include_modules_subpath)
+
+    if not os.path.exists(src_include_modules_path):
+        return
+
+    pkg_install_path = dest_pkg_repo.get_package_payload_path(
+        package_name=src_package.name,
+        package_version=src_package.version
+    )
+
+    dest_include_modules_path = \
+        os.path.join(pkg_install_path, IncludeModuleManager.include_modules_subpath)
+
+    safe_makedirs(dest_include_modules_path)
+    additive_copytree(src_include_modules_path, dest_include_modules_path)
 
 
 # Copyright 2013-2016 Allan Johns.

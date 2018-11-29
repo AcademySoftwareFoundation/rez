@@ -24,6 +24,9 @@ def setup_parser(parser, completions=False):
         "-f", "--force", action="store_true",
         help="copy package even if it isn't relocatable (use at your own risk)")
     parser.add_argument(
+        "--allow-empty", action="store_true",
+        help="allow package copy into empty target repository")
+    parser.add_argument(
         "--dry-run", action="store_true",
         help="dry run mode")
     parser.add_argument(
@@ -46,9 +49,29 @@ def command(opts, parser, extra_arg_groups=None):
     import sys
 
     from rez.config import config
+    from rez.package_repository import package_repository_manager
     from rez.package_copy import copy_package
     from rez.utils.formatting import PackageRequest
     from rez.packages_ import iter_packages
+
+    # Check the dest repo.
+    #
+    # A common mistake may be to specify a dest package path, rather than the
+    # _repo_ path. This would cause a mess, since a package would be installed
+    # into a nested location within an existing package.
+    #
+    dest_pkg_repo = package_repository_manager.get_repository(opts.DST_REPO)
+
+    if (not opts.allow_empty) and dest_pkg_repo.is_empty():
+        print >> sys.stderr, (
+            "Attempting to copy a package into an EMPTY repository. Are you sure "
+            "that DST_REPO is the correct path? This should not include package "
+            "name and/or version."
+            "\n\n"
+            "If this is a valid new package repository, use the --allow-empty "
+            "flag to continue."
+        )
+        sys.exit(1)
 
     # Load the source package.
     #
@@ -107,9 +130,6 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.dry_run:
         # show a good indication of target variant when it doesn't get created
-        from rez.package_repository import package_repository_manager
-
-        dest_pkg_repo = package_repository_manager.get_repository(opts.DST_REPO)
         path = dest_pkg_repo.get_package_payload_path(src_pkg.name, src_pkg.version)
         dry_run_uri = path + "/?"
 

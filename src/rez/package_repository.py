@@ -109,6 +109,18 @@ class PackageRepository(object):
             other.uid == self.uid
         )
 
+    def is_empty(self):
+        """Determine if the repository contains any packages.
+
+        Returns:
+            True if there are no packages, False if there are at least one.
+        """
+        for family in self.iter_package_families():
+            for pkg in self.iter_packages(family):
+                return False
+
+        return True
+
     def get_package_family(self, name):
         """Get a package family.
 

@@ -167,6 +167,22 @@ def replace_file_or_dir(dest, source):
         os.rename(source, dest)
 
 
+def additive_copytree(src, dst, symlinks=False, ignore=None):
+    """Version of `copytree` that can overwrite an existing directory.
+    """
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+
+        if os.path.isdir(s):
+            additive_copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)
+
+
 @contextmanager
 def make_tmp_name(name):
     """Generates a tmp name for a file or dir.
