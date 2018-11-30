@@ -12,10 +12,8 @@ from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
 import shutil
 import os.path
 
-# TODO: variant-based test
 
 class TestBuild(TestBase, TempdirMixin):
-
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
@@ -26,9 +24,13 @@ class TestBuild(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
         shutil.copytree(packages_path, cls.src_root)
 
+        # include modules
+        pypath = os.path.join(path, "data", "python", "late_bind")
+
         cls.settings = dict(
             packages_path=[cls.install_root],
             package_filter=None,
+            package_definition_python_path=pypath,
             resolve_caching=False,
             warn_untimestamped=False,
             warn_old_commands=False,
@@ -80,7 +82,14 @@ class TestBuild(TestBase, TempdirMixin):
         self._create_context("foo==1.0.0")
 
         self._test_build("foo", "1.1.0")
-        self._create_context("foo==1.1.0")
+        rxt = self._create_context("foo==1.1.0")
+
+        # test that expected env-var is set by foo's commands
+        environ = rxt.get_environ(parent_environ={})
+        self.assertEqual(environ.get("FOO_IN_DA_HOUSE"), "1")
+
+        # test that include modules are working
+        self.assertEqual(environ.get("EEK"), "2")
 
     def _test_build_loco(self):
         """Test that a package with conflicting requirements fails correctly.
@@ -99,7 +108,6 @@ class TestBuild(TestBase, TempdirMixin):
         """Build, install, test the anti package."""
         self._test_build("anti", "1.0.0")
         self._create_context("anti==1.0.0")
-
 
     def _test_build_translate_lib(self):
         """Build, install, test the translate_lib package."""

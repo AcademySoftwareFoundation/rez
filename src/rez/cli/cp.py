@@ -107,19 +107,19 @@ def command(opts, parser, extra_arg_groups=None):
     #
     if opts.dest_path:
         dest_pkg_repo = package_repository_manager.get_repository(opts.dest_path)
+
+        if (not opts.allow_empty) and dest_pkg_repo.is_empty():
+            print >> sys.stderr, (
+                "Attempting to copy a package into an EMPTY repository. Are you "
+                "sure that --dest-path is the correct path? This should not "
+                "include package name and/or version."
+                "\n\n"
+                "If this is a valid new package repository, use the "
+                "--allow-empty flag to continue."
+            )
+            sys.exit(1)
     else:
         dest_pkg_repo = src_pkg.repository
-
-    if (not opts.allow_empty) and dest_pkg_repo.is_empty():
-        print >> sys.stderr, (
-            "Attempting to copy a package into an EMPTY repository. Are you sure "
-            "that --dest-path is the correct path? This should not include package "
-            "name and/or version."
-            "\n\n"
-            "If this is a valid new package repository, use the --allow-empty "
-            "flag to continue."
-        )
-        sys.exit(1)
 
     # Perform the copy.
     #
