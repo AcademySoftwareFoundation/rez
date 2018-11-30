@@ -9,12 +9,13 @@ from rez.utils.filesystem import replacing_symlink, replacing_copy, \
     safe_makedirs, additive_copytree
 
 
-def copy_package(package, dest_repository_path, variants=None, shallow=False,
-                 overwrite=False, force=False, keep_timestamp=False,
-                 verbose=False, dry_run=False):
+def copy_package(package, dest_repository, variants=None, shallow=False,
+                 dest_name=None, dest_version=None, overwrite=False, force=False,
+                 dry_run=False, keep_timestamp=False, verbose=False):
     """Copy a package from one package repository to another.
 
-    This copies the package definition and payload.
+    This copies the package definition and payload. The package can also be
+    re-named and/or re-versioned using the `dest_name` and `dest_version` args.
 
     The result is a dict describing which package variants were and were not
     copied. For example:
@@ -42,11 +43,14 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
 
     Args:
         package (`Package`): Package to copy.
-        dest_repository_path (str): The package repository path to copy the
-            package to.
+        dest_repository (`PackageRepository` or str): The package repository, or
+            a package repository path, to copy the package into.
         variants (list of int): Indexes of variants to build, or all if None.
         shallow (bool): If True, symlinks of each variant's root directory are
             created, rather than the payload being copied.
+        dest_name (str): If provided, copy the package to a new package name.
+        dest_version (str or `Version`): If provided, copy the package to a new
+            version.
         overwrite (bool): Overwrite variants if they already exist in the
             destination package. In this case, the existing payload is removed
             before the new payload is copied.
@@ -80,13 +84,18 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
             "Cannot copy non-relocatable package: %s" % package.uri
         )
 
-    dest_pkg_repo = package_repository_manager.get_repository(dest_repository_path)
+    if isinstance(dest_repository, basestring):
+        repo_path = dest_repository
+        dest_pkg_repo = package_repository_manager.get_repository(repo_path)
+    else:
+        dest_pkg_repo = dest_repository
 
-    # cannot copy over the top of yourself
-    if package.repository == dest_pkg_repo:
+    # cannot copy package over the top of itself
+    if package.repository == dest_pkg_repo and \
+            (dest_name is None or dest_name == package.name) and \
+            (dest_version is None or str(dest_version) == str(package.version)):
         raise PackageCopyError(
-            "Cannot copy a package into its own repository: %s."
-            % package.uri
+            "Cannot copy package over itself: %s." % package.uri
         )
 
     # determine variants to potentially install
@@ -98,6 +107,14 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
     if not src_variants:
         return finalize()
 
+    # Construct overrides.
+    #
+    overrides = {}
+    if dest_name:
+        overrides["name"] = dest_name
+    if dest_version:
+        overrides["version"] = dest_version
+
     # Find variants that already exist in the dest package, and remove them
     # from the copy candidates if overwriting is disabled.
     #
@@ -106,6 +123,7 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
     for src_variant in src_variants:
         existing_variant = dest_pkg_repo.install_variant(
             src_variant.resource,
+            overrides=overrides,
             dry_run=True
         )
 
@@ -134,7 +152,7 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
     for i, src_variant in enumerate(src_variants):
         if verbose:
             print_info("Copying source variant %s into repository %s...",
-                       src_variant.uri, dest_repository_path)
+                       src_variant.uri, str(dest_pkg_repo))
 
         if dry_run:
             dest_variant = None
@@ -150,16 +168,23 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
                 _copy_package_include_modules(src_variant.parent, dest_pkg_repo)
 
             # copy the variant's payload
-            _copy_variant_payload(src_variant, dest_pkg_repo, shallow=shallow)
+            _copy_variant_payload(
+                src_variant=src_variant,
+                dest_pkg_repo=dest_pkg_repo,
+                shallow=shallow,
+                overrides=overrides
+            )
 
-            overrides = {}
+            # construct overrides
+            overrides_ = overrides.copy()
+
             if not keep_timestamp:
-                overrides["timestamp"] = int(time.time())
+                overrides_["timestamp"] = int(time.time())
 
             # install the variant into the package definition
             dest_variant = dest_pkg_repo.install_variant(
                 variant_resource=src_variant.resource,
-                overrides=overrides
+                overrides=overrides_
             )
 
         if verbose:
@@ -171,7 +196,8 @@ def copy_package(package, dest_repository_path, variants=None, shallow=False,
     return finalize()
 
 
-def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False):
+def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
+                          overrides=None):
         # Get payload path of source variant. For some types (eg from a "memory"
         # type repo) there may not be a root.
         #
@@ -188,10 +214,13 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False):
                 "be present on disk (%s).", src_variant.uri, variant_root
             )
 
+        dest_variant_name = overrides.get("name") or src_variant.name
+        dest_variant_version = overrides.get("version") or src_variant.version
+
         # determine variant installation path
         variant_install_path = dest_pkg_repo.get_package_payload_path(
-            package_name=src_variant.name,
-            package_version=src_variant.version
+            package_name=dest_variant_name,
+            package_version=dest_variant_version
         )
 
         if src_variant.subpath:
@@ -222,16 +251,19 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False):
                     replacing_copy(src_path, dest_path)
 
 
-def _copy_package_include_modules(src_package, dest_pkg_repo):
+def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
     src_include_modules_path = \
         os.path.join(src_package.base, IncludeModuleManager.include_modules_subpath)
 
     if not os.path.exists(src_include_modules_path):
         return
 
+    dest_package_name = overrides.get("name") or src_package.name
+    dest_package_version = overrides.get("version") or src_package.version
+
     pkg_install_path = dest_pkg_repo.get_package_payload_path(
-        package_name=src_package.name,
-        package_version=src_package.version
+        package_name=dest_package_name,
+        package_version=dest_package_version
     )
 
     dest_include_modules_path = \

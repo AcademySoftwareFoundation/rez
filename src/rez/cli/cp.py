@@ -5,11 +5,23 @@ Copy a package from one repository to another.
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
-        "--paths", type=str,
+        "--dest-path", metavar="PATH",
+        help="package repository destination path. Defaults to the same "
+        "repository as the given package (this is only supported for renaming "
+        "and reversioning).")
+    parser.add_argument(
+        "--paths", metavar="PATHS",
         help="set package search path (ignores --no-local if set)")
     parser.add_argument(
         "--nl", "--no-local", dest="no_local", action="store_true",
         help="don't search local packages")
+
+    parser.add_argument(
+        "--reversion", metavar="VERSION",
+        help="copy to a different package version")
+    parser.add_argument(
+        "--rename", metavar="NAME",
+        help="copy to a different package name")
     parser.add_argument(
         "-o", "--overwrite", action="store_true",
         help="overwrite existing package/variants")
@@ -35,9 +47,6 @@ def setup_parser(parser, completions=False):
     pkg_action = parser.add_argument(
         "PKG",
         help="package to copy")
-    parser.add_argument(
-        "DST_REPO",
-        help="path of repository to copy package to")
 
     if completions:
         from rez.cli._complete_util import PackageCompleter
@@ -54,24 +63,9 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.utils.formatting import PackageRequest
     from rez.packages_ import iter_packages
 
-    # Check the dest repo.
-    #
-    # A common mistake may be to specify a dest package path, rather than the
-    # _repo_ path. This would cause a mess, since a package would be installed
-    # into a nested location within an existing package.
-    #
-    dest_pkg_repo = package_repository_manager.get_repository(opts.DST_REPO)
-
-    if (not opts.allow_empty) and dest_pkg_repo.is_empty():
-        print >> sys.stderr, (
-            "Attempting to copy a package into an EMPTY repository. Are you sure "
-            "that DST_REPO is the correct path? This should not include package "
-            "name and/or version."
-            "\n\n"
-            "If this is a valid new package repository, use the --allow-empty "
-            "flag to continue."
-        )
-        sys.exit(1)
+    if (not opts.dest_path) and not (opts.rename or opts.reversion):
+        parser.error("--dest-path must be specified unless --rename or "
+                     "--reversion are used.")
 
     # Load the source package.
     #
@@ -105,6 +99,28 @@ def command(opts, parser, extra_arg_groups=None):
 
     src_pkg = src_pkgs[0]
 
+    # Determine repo and perform checks.
+    #
+    # A common mistake may be to specify a dest package path, rather than the
+    # _repo_ path. This would cause a mess, since a package would be installed
+    # into a nested location within an existing package.
+    #
+    if opts.dest_path:
+        dest_pkg_repo = package_repository_manager.get_repository(opts.dest_path)
+    else:
+        dest_pkg_repo = src_pkg.repository
+
+    if (not opts.allow_empty) and dest_pkg_repo.is_empty():
+        print >> sys.stderr, (
+            "Attempting to copy a package into an EMPTY repository. Are you sure "
+            "that --dest-path is the correct path? This should not include package "
+            "name and/or version."
+            "\n\n"
+            "If this is a valid new package repository, use the --allow-empty "
+            "flag to continue."
+        )
+        sys.exit(1)
+
     # Perform the copy.
     #
 
@@ -112,7 +128,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     result = copy_package(
         package=src_pkg,
-        dest_repository_path=opts.DST_REPO,
+        dest_repository=dest_pkg_repo,
+        dest_name=opts.rename,
+        dest_version=opts.reversion,
         variants=variants,
         overwrite=opts.overwrite,
         shallow=opts.shallow,
@@ -130,9 +148,12 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.dry_run:
         # show a good indication of target variant when it doesn't get created
-        path = dest_pkg_repo.get_package_payload_path(src_pkg.name, src_pkg.version)
-        dry_run_uri = path + "/?"
+        path = dest_pkg_repo.get_package_payload_path(
+            package_name=opts.rename or src_pkg.name,
+            package_version=opts.reversion or src_pkg.version
+        )
 
+        dry_run_uri = path + "/?"
         verb = "would be"
     else:
         verb = "were"

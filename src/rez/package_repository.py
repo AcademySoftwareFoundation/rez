@@ -78,6 +78,9 @@ class PackageRepository(object):
         self.location = location
         self.pool = resource_pool
 
+    def __str__(self):
+        return "%s@%s" % (self.name(), self.location)
+
     def register_resource(self, resource_class):
         """Register a resource with the repository.
 

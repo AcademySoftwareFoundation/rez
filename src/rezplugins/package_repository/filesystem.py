@@ -541,19 +541,41 @@ class FileSystemPackageRepository(PackageRepository):
             pass
 
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
-        if variant_resource._repository is self:
+        from rez.vendor.lockfile import LockFile
+
+        overrides = overrides or {}
+
+        # Name and version overrides are a special case - they change the
+        # destination variant to be created/replaced.
+        #
+        variant_name = variant_resource.name
+        variant_version = variant_resource.version
+
+        if "name" in overrides:
+            variant_name = overrides["name"]
+
+        if "version" in overrides:
+            ver = overrides["version"]
+            if isinstance(ver, basestring):
+                ver = Version(ver)
+                overrides = overrides.copy()
+                overrides["version"] = ver
+
+            variant_version = ver
+
+        # cannot install over one's self, just return existing variant
+        if variant_resource._repository is self and \
+                variant_name == variant_resource.name and \
+                variant_version == variant_resource.version:
             return variant_resource
 
-        from rez.vendor.lockfile import LockFile
-        filename = ".lock.%s" % variant_resource.name
-        if variant_resource.version:
-            filename += "-%s" % str(variant_resource.version)
-
+        # check repo exists on disk
         path = self.location
         if not os.path.exists(path):
             raise PackageRepositoryError(
                 "Package repository does not exist at %s" % path)
 
+        # create lockfile so multiple procs don't write variant at same time
         if self.file_lock_dir:
             path = os.path.join(path, self.file_lock_dir)
 
@@ -562,13 +584,22 @@ class FileSystemPackageRepository(PackageRepository):
                 "Lockfile directory %s does not exist - please create and try "
                 "again" % path)
 
+        filename = ".lock.%s" % variant_name
+        if variant_version:
+            filename += "-%s" % str(variant_version)
+
         lock_file = os.path.join(path, filename)
         lock = LockFile(lock_file)
 
+        # perform the variant install
         try:
             lock.acquire(timeout=_settings.file_lock_timeout)
-            variant = self._create_variant(variant_resource, dry_run=dry_run,
-                                           overrides=overrides)
+
+            variant = self._create_variant(
+                variant_resource,
+                dry_run=dry_run,
+                overrides=overrides
+            )
         finally:
             if lock.is_locked():
                 lock.release()
@@ -753,10 +784,18 @@ class FileSystemPackageRepository(PackageRepository):
         return self.get_package_family(name)
 
     def _create_variant(self, variant, dry_run=False, overrides=None):
+        # special case overrides
+        variant_name = overrides.get("name") or variant.name
+        variant_version = overrides.get("version") or variant.version
+
+        overrides = (overrides or {}).copy()
+        overrides.pop("name", None)
+        overrides.pop("version", None)
+
         # find or create the package family
-        family = self.get_package_family(variant.name)
+        family = self.get_package_family(variant_name)
         if not family:
-            family = self._create_family(variant.name)
+            family = self._create_family(variant_name)
 
         if isinstance(family, FileSystemCombinedPackageFamilyResource):
             raise NotImplementedError(
@@ -767,7 +806,7 @@ class FileSystemPackageRepository(PackageRepository):
         existing_package = None
 
         for package in self.iter_packages(family):
-            if package.version == variant.version:
+            if package.version == variant_version:
                 # during a build, the family/version dirs get created ahead of
                 # time, which causes a 'missing package definition file' error.
                 # This is fine, we can just ignore it and write the new file.
@@ -824,6 +863,9 @@ class FileSystemPackageRepository(PackageRepository):
 
         new_package_data = _get_package_data(variant.parent)
         new_package_data.pop("variants", None)
+        new_package_data["name"] = variant_name
+        if variant_version:
+            new_package_data["version"] = variant_version
         package_changed = False
 
         _remove_build_keys(new_package_data)
@@ -933,9 +975,9 @@ class FileSystemPackageRepository(PackageRepository):
         package_data.pop("base", None)
 
         # create version dir if it doesn't already exist
-        family_path = os.path.join(self.location, variant.name)
-        if variant.version:
-            pkg_base_path = os.path.join(family_path, str(variant.version))
+        family_path = os.path.join(self.location, variant_name)
+        if variant_version:
+            pkg_base_path = os.path.join(family_path, str(variant_version))
         else:
             pkg_base_path = family_path
         if not os.path.exists(pkg_base_path):
@@ -970,8 +1012,8 @@ class FileSystemPackageRepository(PackageRepository):
             dump_package_data(package_data, buf=f, format_=package_format)
 
         # delete the tmp 'building' file.
-        if variant.version:
-            filename = self.building_prefix + str(variant.version)
+        if variant_version:
+            filename = self.building_prefix + str(variant_version)
             filepath = os.path.join(family_path, filename)
             if os.path.exists(filepath):
                 try:
@@ -992,11 +1034,11 @@ class FileSystemPackageRepository(PackageRepository):
         # load new variant
         new_variant = None
         self.clear_caches()
-        family = self.get_package_family(variant.name)
+        family = self.get_package_family(variant_name)
 
         if family:
             for package in self.iter_packages(family):
-                if package.version == variant.version:
+                if package.version == variant_version:
                     for variant_ in self.iter_variants(package):
                         if variant_.index == installed_variant_index:
                             new_variant = variant_
