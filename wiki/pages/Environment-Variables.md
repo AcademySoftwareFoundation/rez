@@ -47,16 +47,20 @@ addition to those listed [here](#resolved-environment-variables).
   a *package.py* file).
 * **REZ_BUILD_PROJECT_NAME** - Name of the package being built.
 * **REZ_BUILD_PROJECT_VERSION** - Version of the package being built.
-* **REZ_BUILD_REQUIRES** - The list of requirements for the build - comes from
-  the current package's *requires*, *build_requires* and *private_build_requires*
-  attributes, including the current variant's requirements.
+* **REZ_BUILD_REQUIRES** - Space-separated list of requirements for the build -
+  comes from the current package's *requires*, *build_requires* and
+  *private_build_requires* attributes, including the current variant's requirements.
 * **REZ_BUILD_REQUIRES_UNVERSIONED** - Equivalent but unversioned list to
   *REZ_BUILD_REQUIRES*.
 * **REZ_BUILD_SOURCE_PATH** - Path containing the package.py file.
 * **REZ_BUILD_THREAD_COUNT** - Number of threads being used for the build.
 * **REZ_BUILD_TYPE** - One of *local* or *central*. Value is *central* if a
   release is occurring.
-* **REZ_BUILD_VARIANT_INDEX** - Zero-based index of the variant currently being built.
+* **REZ_BUILD_VARIANT_INDEX** - Zero-based index of the variant currently being
+  built. For non-varianted packages, this is "0".
+* **REZ_BUILD_VARIANT_REQUIRES** - Space-separated list of runtime requirements
+  of the current variant. This does not include the common requirements as found
+  in *REZ_BUILD_REQUIRES*. For non-varianted builds, this is an empty string.
 
 ## System Environment Variables
 
