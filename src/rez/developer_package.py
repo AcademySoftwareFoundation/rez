@@ -146,7 +146,7 @@ class DeveloperPackage(Package):
             changed the package; otherwise None.
         """
         from rez.serialise import process_python_objects
-        from rez.utils.data_utils import get_dict_diff
+        from rez.utils.data_utils import get_dict_diff_str
         from copy import deepcopy
 
         with add_sys_paths(config.package_definition_build_python_paths):
@@ -210,20 +210,11 @@ class DeveloperPackage(Package):
                                  package_cls=self.__class__)
 
         # print summary of changed package attributes
-        added, removed, changed = get_dict_diff(data, preprocessed_data)
-        lines = ["Package attributes were changed in preprocessing:"]
-
-        if added:
-            lines.append("Added attributes: %s"
-                         % ['.'.join(x) for x in added])
-        if removed:
-            lines.append("Removed attributes: %s"
-                         % ['.'.join(x) for x in removed])
-        if changed:
-            lines.append("Changed attributes: %s"
-                         % ['.'.join(x) for x in changed])
-
-        txt = '\n'.join(lines)
+        txt = get_dict_diff_str(
+            data,
+            preprocessed_data,
+            title="Package attributes were changed in preprocessing:"
+        )
         print_info(txt)
 
         return package, preprocessed_data

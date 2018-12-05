@@ -135,6 +135,25 @@ def get_dict_diff(d1, d2):
     return _diff(d1, d2, [])
 
 
+def get_dict_diff_str(d1, d2, title):
+    """Returns same as `get_dict_diff`, but as a readable string.
+    """
+    added, removed, changed = get_dict_diff(d1, d2)
+    lines = [title]
+
+    if added:
+        lines.append("Added attributes: %s"
+                     % ['.'.join(x) for x in added])
+    if removed:
+        lines.append("Removed attributes: %s"
+                     % ['.'.join(x) for x in removed])
+    if changed:
+        lines.append("Changed attributes: %s"
+                     % ['.'.join(x) for x in changed])
+
+    return '\n'.join(lines)
+
+
 class cached_property(object):
     """Simple property caching descriptor.
 

@@ -117,7 +117,6 @@ def command(opts, parser, extra_arg_groups=None):
     # create and execute build process
     builder = create_build_process(opts.process,
                                    working_dir,
-                                   package=package,
                                    build_system=buildsys,
                                    verbose=True)
 

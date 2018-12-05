@@ -1,11 +1,10 @@
 """
 Builds packages on local host
 """
-from rez.config import config
 from rez.package_repository import package_repository_manager
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
-from rez.exceptions import BuildError, ReleaseError
+from rez.exceptions import BuildError
 from rez.utils.colorize import Printer, warning
 from rez.utils.filesystem import safe_makedirs, copy_or_replace
 from rez.utils.sourcecode import IncludeModuleManager
@@ -35,10 +34,6 @@ class LocalBuildProcess(BuildProcessHelper):
             clean=clean,
             install=install)
 
-        # install include modules, if any
-        if install:
-            self._install_include_modules(install_path)
-
         if None not in build_env_scripts:
             self._print("\nThe following executable script(s) have been created:")
             self._print('\n'.join(build_env_scripts))
@@ -56,7 +51,6 @@ class LocalBuildProcess(BuildProcessHelper):
         release_path = self.package.config.release_packages_path
         release_data = self.get_release_data()
         changelog = release_data.get("changelog")
-        revision = release_data.get("revision")
         previous_version = release_data.get("previous_version")
         previous_revision = release_data.get("previous_revision")
 
@@ -148,9 +142,17 @@ class LocalBuildProcess(BuildProcessHelper):
 
         if install:
             # install some files for debugging purposes
-            extra_files = build_result.get("extra_files", []) + [rxt_filepath]
+            extra_files = build_result.get("extra_files", [])
+            if rxt_filepath:
+                extra_files = extra_files + [rxt_filepath]
+
             for file_ in extra_files:
                 copy_or_replace(file_, variant_install_path)
+
+            # Install include modules. Note that this doesn't need to be done
+            # multiple times, but for subsequent variants it has no effect.
+            #
+            self._install_include_modules(install_path)
 
         return build_result
 
@@ -176,7 +178,8 @@ class LocalBuildProcess(BuildProcessHelper):
             uuid = sha1(txt).hexdigest()
             dest_filepath = os.path.join(path, "%s-%s.py" % (name, uuid))
 
-            shutil.copy(filepath, dest_filepath)
+            if not os.path.exists(dest_filepath):
+                shutil.copy(filepath, dest_filepath)
 
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):
@@ -214,7 +217,7 @@ class LocalBuildProcess(BuildProcessHelper):
             self._print_header("Releasing variant %s..." % self._n_of_m(variant))
 
         # build and install variant
-        build_result = self._build_variant_base(
+        self._build_variant_base(
             build_type=BuildType.central,
             variant=variant,
             install_path=release_path,

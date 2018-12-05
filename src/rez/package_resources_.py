@@ -13,7 +13,6 @@ from textwrap import dedent
 import os.path
 
 
-
 # package attributes created at release time
 package_release_keys = (
     "timestamp",
@@ -28,7 +27,6 @@ package_release_keys = (
 package_build_only_keys = (
     "requires_rez_version",
     "build_command",
-    "private_build_requires",
     "preprocess",
 )
 
@@ -40,9 +38,9 @@ package_rex_keys = (
 )
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # utility schemas
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 help_schema = Or(basestring,  # single help entry
                  [[basestring]])  # multiple help entries
@@ -58,9 +56,9 @@ late_requires_schema = Schema([
 ])
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # schema dicts
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 # requirements of all package-related resources
 #
@@ -113,6 +111,7 @@ package_base_schema_dict.update({
     Optional('config'):                 Config,
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+    Optional('relocatable'):            late_bound(Or(None, bool)),
 
     # testing
     Optional('tests'):                  late_bound(tests_schema),
@@ -148,9 +147,9 @@ package_schema_dict.update({
 variant_schema_dict = package_base_schema_dict.copy()
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # resource schemas
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 package_family_schema = Schema(package_family_schema_dict)
 
@@ -161,9 +160,9 @@ package_schema = Schema(package_schema_dict)
 variant_schema = Schema(variant_schema_dict)
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # schemas for converting from POD datatypes
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 _commands_schema = Or(SourceCode,       # commands as converted function
                       callable,         # commands as function
@@ -200,6 +199,7 @@ package_pod_schema_dict.update({
                                             Use(lambda x: create_config(overrides=x))),
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+    Optional('relocatable'):            late_bound(Or(None, bool)),
 
     Optional('tests'):                  late_bound(tests_schema),
 
@@ -223,9 +223,9 @@ package_pod_schema_dict.update({
 package_pod_schema = Schema(package_pod_schema_dict)
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # resource classes
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class PackageRepositoryResource(Resource):
     """Base class for all package-related resources.
@@ -338,12 +338,12 @@ class VariantResource(PackageResource):
         raise NotImplementedError
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # resource helper classes
 #
 # Package repository plugins are not required to use the following classes, but
 # they may help minimise the amount of code you need to write.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class PackageResourceHelper(PackageResource):
     """PackageResource with some common functionality included.
@@ -407,7 +407,9 @@ class VariantResourceHelper(VariantResource):
     exceptions - eg 'variants', 'requires'). This is a common enough pattern
     that it's supplied here for other repository plugins to use.
     """
-    class _Metas(AttributeForwardMeta, LazyAttributeMeta): pass
+    class _Metas(AttributeForwardMeta, LazyAttributeMeta):
+        pass
+
     __metaclass__ = _Metas
 
     # Note: lazy key validation doesn't happen in this class, it just fowards on

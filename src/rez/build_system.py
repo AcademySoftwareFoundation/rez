@@ -1,5 +1,3 @@
-from multiprocessing import cpu_count
-
 from rez.build_process_ import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages_ import get_developer_package
@@ -81,6 +79,8 @@ class BuildSystem(object):
             working_dir: Directory to build source from.
             opts: argparse.Namespace object which may contain constructor
                 params, as set by our bind_cli() classmethod.
+            package (`Package`): Package to build. If None, defaults to the
+                unbuilt ('developer') package in the working directory.
             write_build_scripts: If True, create build scripts rather than
                 perform the full build. The user can then run these scripts to
                 place themselves into a build environment and invoke the build
@@ -140,7 +140,9 @@ class BuildSystem(object):
             variant (`Variant`): The variant being built.
             build_path: Where to write temporary build files. May be relative
                 to working_dir.
-            install_path: Where to install the build, if the build is installed.
+            install_path (str): The package repository path to install the
+                package to, if installing. If None, defaults to
+                `config.local_packages_path`.
             install: If True, install the build.
             build_type: A BuildType (i.e local or central).
 
@@ -175,14 +177,15 @@ class BuildSystem(object):
             'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
             'REZ_BUILD_PROJECT_VERSION': str(package.version),
             'REZ_BUILD_PROJECT_NAME': package.name,
-            'REZ_BUILD_PROJECT_DESCRIPTION': \
-                (package.description or '').strip(),
+            'REZ_BUILD_PROJECT_DESCRIPTION': (package.description or '').strip(),
             'REZ_BUILD_PROJECT_FILE': package.filepath,
             'REZ_BUILD_SOURCE_PATH': os.path.dirname(package.filepath),
-            'REZ_BUILD_REQUIRES': \
-                ' '.join(str(x) for x in context.requested_packages(True)),
-            'REZ_BUILD_REQUIRES_UNVERSIONED': \
-                ' '.join(x.name for x in context.requested_packages(True)),
+            'REZ_BUILD_REQUIRES': ' '.join(
+                str(x) for x in context.requested_packages(True)
+            ),
+            'REZ_BUILD_REQUIRES_UNVERSIONED': ' '.join(
+                x.name for x in context.requested_packages(True)
+            ),
             'REZ_BUILD_TYPE': build_type.name,
             'REZ_BUILD_INSTALL': 1 if install else 0,
         }

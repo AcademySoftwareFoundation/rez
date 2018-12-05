@@ -13,6 +13,10 @@ from contextlib import contextmanager
 
 class TestBase(unittest.TestCase):
     """Unit test base class."""
+    def __init__(self, *nargs, **kwargs):
+        super(TestBase, self).__init__(*nargs, **kwargs)
+        self.setup_once_called = False
+
     @classmethod
     def setUpClass(cls):
         cls.settings = {}
@@ -23,6 +27,15 @@ class TestBase(unittest.TestCase):
 
         # shield unit tests from any user config overrides
         self.setup_config()
+
+        # hook to run code once before all tests, but after the config has
+        # been overridden.
+        if not self.setup_once_called:
+            self.setup_once()
+            self.setup_once_called = True
+
+    def setup_once(self):
+        pass
 
     def tearDown(self):
         self.teardown_config()
