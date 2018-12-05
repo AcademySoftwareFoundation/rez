@@ -61,6 +61,10 @@ class PackageRepository(object):
     payloads should go, it is not responsible for creating or copying these
     payloads.
     """
+
+    # see `install_variant`.
+    remove = object()
+
     @classmethod
     def name(cls):
         """Return the name of the package repository type."""
@@ -188,7 +192,8 @@ class PackageRepository(object):
                 variant already exists in this repository; otherwise, None is
                 returned.
             overrides (dict): Use this to change or add attributes to the
-                installed variant.
+                installed variant. To remove attributes, set values to
+                `PackageRepository.remove`.
 
         Returns:
             `VariantResource` object, which is the newly created variant in this

@@ -11,7 +11,8 @@ from rez.utils.filesystem import replacing_symlink, replacing_copy, \
 
 def copy_package(package, dest_repository, variants=None, shallow=False,
                  dest_name=None, dest_version=None, overwrite=False, force=False,
-                 dry_run=False, keep_timestamp=False, verbose=False):
+                 dry_run=False, keep_timestamp=False, skip_payload=False,
+                 overrides=None, verbose=False):
     """Copy a package from one package repository to another.
 
     This copies the package definition and payload. The package can also be
@@ -62,6 +63,8 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
             By setting this option to True, the original package's timestamp
             is kept intact. Note that this will have no effect if variant(s)
             are copied into an existing package.
+        skip_payload (bool): If True, do not copy the package payload.
+        overrides (dict): See `PackageRepository.install_variant`.
         verbose (bool): Verbose mode.
         dry_run (bool): Dry run mode. Dest variants in the result will be None
             in this case.
@@ -79,7 +82,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
         }
 
     # check that package is relocatable
-    if not force and not package.is_relocatable:
+    if not force and not skip_payload and not package.is_relocatable:
         raise PackageCopyError(
             "Cannot copy non-relocatable package: %s" % package.uri
         )
@@ -109,7 +112,8 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
 
     # Construct overrides.
     #
-    overrides = {}
+    overrides = (overrides or {}).copy()
+
     if dest_name:
         overrides["name"] = dest_name
     if dest_version:
@@ -157,23 +161,29 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
         if dry_run:
             dest_variant = None
         else:
-            # Perform pre-install steps. For eg, a "building" marker file is created
-            # in the filesystem pkg repo, so that the package dir (which doesn't have
-            # variants copied into it yet) is not picked up as a valid package.
-            #
-            dest_pkg_repo.pre_variant_install(src_variant.resource)
+            if not skip_payload:
+                # Perform pre-install steps. For eg, a "building" marker file is
+                # created in the filesystem pkg repo, so that the package dir
+                # (which doesn't have variants copied into it yet) is not picked
+                # up as a valid package.
+                #
+                dest_pkg_repo.pre_variant_install(src_variant.resource)
 
-            # copy include modules before the first variant install
-            if i == 0:
-                _copy_package_include_modules(src_variant.parent, dest_pkg_repo)
+                # copy include modules before the first variant install
+                if i == 0:
+                    _copy_package_include_modules(
+                        src_variant.parent,
+                        dest_pkg_repo,
+                        overrides=overrides
+                    )
 
-            # copy the variant's payload
-            _copy_variant_payload(
-                src_variant=src_variant,
-                dest_pkg_repo=dest_pkg_repo,
-                shallow=shallow,
-                overrides=overrides
-            )
+                # copy the variant's payload
+                _copy_variant_payload(
+                    src_variant=src_variant,
+                    dest_pkg_repo=dest_pkg_repo,
+                    shallow=shallow,
+                    overrides=overrides
+                )
 
             # construct overrides
             overrides_ = overrides.copy()

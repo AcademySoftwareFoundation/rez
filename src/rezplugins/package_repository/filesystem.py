@@ -1,6 +1,11 @@
 """
 Filesystem-based package repository
 """
+from contextlib import contextmanager
+import os.path
+import os
+import time
+
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper, \
     PackageResourceHelper, package_pod_schema, \
@@ -18,9 +23,6 @@ from rez.config import config
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
 from rez.vendor.version.version import Version, VersionRange
-import time
-import os.path
-import os
 
 
 debug_print = config.debug_printer("resources")
@@ -541,8 +543,6 @@ class FileSystemPackageRepository(PackageRepository):
             pass
 
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
-        from rez.vendor.lockfile import LockFile
-
         overrides = overrides or {}
 
         # Name and version overrides are a special case - they change the
@@ -553,9 +553,16 @@ class FileSystemPackageRepository(PackageRepository):
 
         if "name" in overrides:
             variant_name = overrides["name"]
+            if variant_name is self.remove:
+                raise PackageRepositoryError(
+                    "Cannot remove package attribute 'name'")
 
         if "version" in overrides:
             ver = overrides["version"]
+            if ver is self.remove:
+                raise PackageRepositoryError(
+                    "Cannot remove package attribute 'version'")
+
             if isinstance(ver, basestring):
                 ver = Version(ver)
                 overrides = overrides.copy()
@@ -573,9 +580,30 @@ class FileSystemPackageRepository(PackageRepository):
         path = self.location
         if not os.path.exists(path):
             raise PackageRepositoryError(
-                "Package repository does not exist at %s" % path)
+                "Package repository path does not exist: %s" % path)
 
-        # create lockfile so multiple procs don't write variant at same time
+        # install the variant
+        def _create_variant():
+            return self._create_variant(
+                variant_resource,
+                dry_run=dry_run,
+                overrides=overrides
+            )
+
+        if dry_run:
+            variant = _create_variant()
+        else:
+            with self._lock_package(variant_name, variant_version):
+                variant = _create_variant()
+
+        return variant
+
+    @contextmanager
+    def _lock_package(self, package_name, package_version=None):
+        from rez.vendor.lockfile import LockFile
+
+        path = self.location
+
         if self.file_lock_dir:
             path = os.path.join(path, self.file_lock_dir)
 
@@ -584,27 +612,20 @@ class FileSystemPackageRepository(PackageRepository):
                 "Lockfile directory %s does not exist - please create and try "
                 "again" % path)
 
-        filename = ".lock.%s" % variant_name
-        if variant_version:
-            filename += "-%s" % str(variant_version)
+        filename = ".lock.%s" % package_name
+        if package_version:
+            filename += "-%s" % str(package_version)
 
         lock_file = os.path.join(path, filename)
         lock = LockFile(lock_file)
 
-        # perform the variant install
         try:
             lock.acquire(timeout=_settings.file_lock_timeout)
+            yield
 
-            variant = self._create_variant(
-                variant_resource,
-                dry_run=dry_run,
-                overrides=overrides
-            )
         finally:
             if lock.is_locked():
                 lock.release()
-
-        return variant
 
     def clear_caches(self):
         super(FileSystemPackageRepository, self).clear_caches()
@@ -992,9 +1013,14 @@ class FileSystemPackageRepository(PackageRepository):
         # This is done so that variants added to an existing package don't change
         # attributes such as 'timestamp' or release-related fields like 'revision'.
         #
-        if overrides:
-            for key, value in overrides.iteritems():
-                if (not existing_package) or (package_data.get(key) is None):
+        for key, value in overrides.iteritems():
+            if existing_package:
+                if key not in package_data:
+                    package_data[key] = value
+            else:
+                if value is self.remove:
+                    package_data.pop(key, None)
+                else:
                     package_data[key] = value
 
         # timestamp defaults to now if not specified
