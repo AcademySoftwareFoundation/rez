@@ -546,6 +546,14 @@ pass; then, all *commands* are run in a second; and lastly, *post_commands* are 
 phase. It is sometimes useful to ensure that some of a package's commands are run before, or after
 all others, and using pre/post_commands is a way of doing that.
 
+### relocatable
+*Boolean*
+
+    relocatable = True
+
+Determines whether a package can be copied to another package repository (using the `rez-cp` tool for
+example). If not provided, this is determined from the global config setting [default_relocatable](Configuring-Rez#default_relocatable).
+
 ### requires
 *List of string*
 
