@@ -92,10 +92,8 @@ class CMakeBuildSystem(BuildSystem):
             child_build_args=child_build_args)
 
         self.settings = self.package.config.plugins.build_system.cmake
-        self.build_target = (opts and opts.build_target) or \
-                            self.settings.build_target
-        self.cmake_build_system = (opts and opts.build_system) or \
-                                  self.settings.build_system
+        self.build_target = (opts and opts.build_target) or self.settings.build_target
+        self.cmake_build_system = (opts and opts.build_system) or self.settings.build_system
         if self.cmake_build_system == 'xcode' and platform_.name != 'osx':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")

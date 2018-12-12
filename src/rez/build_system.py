@@ -1,7 +1,9 @@
+import os.path
+
 from rez.build_process_ import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages_ import get_developer_package
-import os.path
+from rez.backport.lru_cache import lru_cache
 
 
 def get_buildsys_types():
@@ -10,8 +12,16 @@ def get_buildsys_types():
     return plugin_manager.get_plugins('build_system')
 
 
+@lru_cache()
 def get_valid_build_systems(working_dir):
-    """Returns the build system classes that could build the source in given dir."""
+    """Returns the build system classes that could build the source in given dir.
+
+    Note: This function is cached because the 'custom' build system type causes
+    a package load (in order to get the 'build_command' package attribute). This
+    in turn causes early-bound attribs to be evaluated, and those could be
+    expensive (eg, a smart installer pkg that hits a website to get its valid
+    versions).
+    """
     from rez.plugin_managers import plugin_manager
 
     clss = []
@@ -79,8 +89,8 @@ class BuildSystem(object):
             working_dir: Directory to build source from.
             opts: argparse.Namespace object which may contain constructor
                 params, as set by our bind_cli() classmethod.
-            package (`Package`): Package to build. If None, defaults to the
-                unbuilt ('developer') package in the working directory.
+            package (`DeveloperPackage`): Package to build. If None, defaults to
+                the package in the working directory.
             write_build_scripts: If True, create build scripts rather than
                 perform the full build. The user can then run these scripts to
                 place themselves into a build environment and invoke the build
@@ -169,8 +179,7 @@ class BuildSystem(object):
         from rez.config import config
 
         package = variant.parent
-
-        variant_requires = (variant.subpath or '').split(os.path.sep)
+        variant_requires = map(str, variant.variant_requires)
 
         vars_ = {
             'REZ_BUILD_ENV': 1,

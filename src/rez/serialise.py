@@ -1,6 +1,14 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from contextlib import contextmanager
+from inspect import isfunction, ismodule, getargspec
+from StringIO import StringIO
+import sys
+import os
+import os.path
+import threading
+
 from rez.package_resources_ import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
@@ -13,12 +21,6 @@ from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
-from contextlib import contextmanager
-from inspect import isfunction, ismodule, getargspec
-from StringIO import StringIO
-import sys
-import os
-import os.path
 
 
 tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
@@ -138,6 +140,27 @@ def _load_file(filepath, format_, update_data_callback, original_filepath=None):
     return result
 
 
+_set_objects = threading.local()
+
+
+@contextmanager
+def set_objects(objects):
+    """Set the objects made visible to early-bound attributes.
+
+    For example, `objects` might be used to set a 'build_variant_index' var, so
+    that an early-bound 'private_build_requires' can change depending on the
+    currently-building variant.
+
+    Args:
+        objects (dict): Variables to set.
+    """
+    _set_objects.variables = objects
+    try:
+        yield
+    finally:
+        _set_objects.variables = {}
+
+
 def load_py(stream, filepath=None):
     """Load python-formatted data from a stream.
 
@@ -185,7 +208,10 @@ def load_py(stream, filepath=None):
 
 
 class EarlyThis(object):
-    """The 'this' object for @early bound functions."""
+    """The 'this' object for @early bound functions.
+
+    Just exposes raw package data as object attributes.
+    """
     def __init__(self, data):
         self._data = data
 
@@ -237,9 +263,21 @@ def process_python_objects(data, filepath=None):
                                         argdefs=func.func_defaults,
                                         closure=func.func_closure)
 
+                # apply globals
                 this = EarlyThis(data)
-                fn.func_globals.update({"this": this})
 
+                fn.func_globals.update({
+                    "this": this,
+                    "building": False,
+                    # just some defaults to avoid not-defined errors in early-
+                    # bound package attributes
+                    "build_variant_index": 0,
+                    "build_variant_requires": []
+                })
+
+                fn.func_globals.update(getattr(_set_objects, "variables", {}))
+
+                # execute the function
                 with add_sys_paths(config.package_definition_build_python_paths):
                     # this 'data' arg support isn't needed anymore, but I'm
                     # supporting it til I know nobody is using it...

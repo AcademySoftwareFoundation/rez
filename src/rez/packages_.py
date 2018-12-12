@@ -317,22 +317,30 @@ class Variant(PackageBaseResourceWrapper):
         return self._parent
 
     @property
+    def variant_requires(self):
+        """Get the subset of requirements specific to this variant.
+
+        Returns:
+            List of `Requirement` objects.
+        """
+        if self.index is None:
+            return []
+        else:
+            return self.parent.variants[self.index] or []
+
+    @property
     def requires(self):
         """Get variant requirements.
 
         This is a concatenation of the package requirements and those of this
         specific variant.
-        """
-        try:
-            package_requires = self.parent.requires or []
 
-            if self.index is None:
-                return package_requires
-            else:
-                variant_requires = self.parent.variants[self.index] or []
-                return package_requires + variant_requires
-        except AttributeError as e:
-            reraise(e, ValueError)
+        Returns:
+            List of `Requirement` objects.
+        """
+        return (
+            (self.parent.requires or []) + self.variant_requires
+        )
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
@@ -433,9 +441,9 @@ class PackageSearchPath(object):
         return uids
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # resource acquisition functions
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def iter_package_families(paths=None):
     """Iterate over package families, in no particular order.
@@ -551,6 +559,15 @@ def get_package_from_string(txt, paths=None):
 
 
 def get_developer_package(path, format=None):
+    """Create a developer package.
+
+    Args:
+        path (str): Path to dir containing package definition file.
+        format (str): Package definition file format, detected if None.
+
+    Returns:
+        `DeveloperPackage`.
+    """
     from rez.developer_package import DeveloperPackage
     return DeveloperPackage.from_path(path, format=format)
 
