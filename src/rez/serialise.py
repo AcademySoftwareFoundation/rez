@@ -143,6 +143,25 @@ def _load_file(filepath, format_, update_data_callback, original_filepath=None):
 _set_objects = threading.local()
 
 
+# Default variables to avoid not-defined errors in early/late- bound attribs
+default_objects = {
+    "building": False,
+    "build_variant_index": 0,
+    "build_variant_requires": []
+}
+
+
+def get_objects():
+    """Get currently bound variables for evaluation of early-bound attribs.
+
+    Returns:
+        dict.
+    """
+    result = default_objects.copy()
+    result.update(getattr(_set_objects, "variables", {}))
+    return result
+
+
 @contextmanager
 def set_objects(objects):
     """Set the objects made visible to early-bound attributes.
@@ -264,18 +283,8 @@ def process_python_objects(data, filepath=None):
                                         closure=func.func_closure)
 
                 # apply globals
-                this = EarlyThis(data)
-
-                fn.func_globals.update({
-                    "this": this,
-                    "building": False,
-                    # just some defaults to avoid not-defined errors in early-
-                    # bound package attributes
-                    "build_variant_index": 0,
-                    "build_variant_requires": []
-                })
-
-                fn.func_globals.update(getattr(_set_objects, "variables", {}))
+                fn.func_globals["this"] = EarlyThis(data)
+                fn.func_globals.update(get_objects())
 
                 # execute the function
                 with add_sys_paths(config.package_definition_build_python_paths):

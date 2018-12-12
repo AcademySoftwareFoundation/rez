@@ -133,7 +133,13 @@ class DeveloperPackage(Package):
             `DeveloperPackage`: New package.
         """
         with set_objects(objects):
-            return self.from_path(self.root)
+            package = self.from_path(self.root)
+
+            # set same vars ('building' etc) for late-bound funcs (the previous
+            # set_objects context only sets them for early-bound funcs).
+            package.set_objects(objects)
+
+            return package
 
     def _validate_includes(self):
         if not self.includes:
