@@ -1,6 +1,6 @@
 
 
-## 2.25.0: Various Build-related issues
+## 2.25.0 [[#548](https://github.com/nerdvegas/rez/pull/548)] Various Build-related issues
 
 PR: [#548](https://github.com/nerdvegas/rez/pull/548)
 
