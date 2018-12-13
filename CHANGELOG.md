@@ -2,15 +2,14 @@
 
 ## 2.25.0: Various Build-related issues
 
-PR: #548
+PR: [#548](https://github.com/nerdvegas/rez/pull/548)
 
 Addresses:
-
-* [#433](https://github.com/nerdvegas/rez/issues/433): "package_definition_build_python_paths" defined paths are not available from top level in
-        "package.py"
-* #442: "rez-depends" and "private_build_requires"
-* #416: Need currently-building-variant build variables
-* #547: rez-cp follows symlinks within package payload
+* [#433](https://github.com/nerdvegas/rez/issues/433): "package_definition_build_python_paths" defined
+  paths are not available from top level in package.py
+* [#442](https://github.com/nerdvegas/rez/issues/442): "rez-depends" and "private_build_requires"
+* [#416](https://github.com/nerdvegas/rez/issues/416): Need currently-building-variant build variables
+* [#547](https://github.com/nerdvegas/rez/issues/547): rez-cp follows symlinks within package payload
 
 More details:
 
