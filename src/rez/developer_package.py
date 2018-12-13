@@ -121,7 +121,7 @@ class DeveloperPackage(Package):
     def get_reevaluated(self, objects):
         """Get a newly loaded and re-evaluated package.
 
-        Values in `objects` are made available to early/late bound package
+        Values in `objects` are made available to early-bound package
         attributes. For example, a re-evaluated package might return a different
         value for an early-bound 'private_build_requires', depending on the
         variant currently being built.
