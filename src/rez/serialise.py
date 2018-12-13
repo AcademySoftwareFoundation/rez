@@ -189,6 +189,11 @@ def load_py(stream, filepath=None):
     Returns:
         dict.
     """
+    with add_sys_paths(config.package_definition_build_python_paths):
+        return _load_py(stream, filepath=filepath)
+
+
+def _load_py(stream, filepath=None):
     scopes = ScopeContext()
 
     g = dict(scope=scopes,
@@ -287,19 +292,18 @@ def process_python_objects(data, filepath=None):
                 fn.func_globals.update(get_objects())
 
                 # execute the function
-                with add_sys_paths(config.package_definition_build_python_paths):
+                spec = getargspec(func)
+                args = spec.args or []
+                if len(args) not in (0, 1):
+                    raise ResourceError("@early decorated function must "
+                                        "take zero or one args only")
+                if args:
                     # this 'data' arg support isn't needed anymore, but I'm
                     # supporting it til I know nobody is using it...
                     #
-                    spec = getargspec(func)
-                    args = spec.args or []
-                    if len(args) not in (0, 1):
-                        raise ResourceError("@early decorated function must "
-                                            "take zero or one args only")
-                    if args:
-                        value_ = fn(data)
-                    else:
-                        value_ = fn()
+                    value_ = fn(data)
+                else:
+                    value_ = fn()
 
                 # process again in case this is a function returning a function
                 return _process(value_)
