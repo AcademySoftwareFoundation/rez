@@ -121,10 +121,10 @@ class DeveloperPackage(Package):
     def get_reevaluated(self, objects):
         """Get a newly loaded and re-evaluated package.
 
-        Values in `objects` are made available to early-bound package attributes.
-        For example, a re-evaluated package might return a different value for
-        an early-bound 'private_build_requires', depending on the variant
-        currently being built.
+        Values in `objects` are made available to early/late bound package
+        attributes. For example, a re-evaluated package might return a different
+        value for an early-bound 'private_build_requires', depending on the
+        variant currently being built.
 
         Args:
             objects (`dict`): Variables to expose to early-bound package attribs.
@@ -133,13 +133,7 @@ class DeveloperPackage(Package):
             `DeveloperPackage`: New package.
         """
         with set_objects(objects):
-            package = self.from_path(self.root)
-
-            # set same vars ('building' etc) for late-bound funcs (the previous
-            # set_objects context only sets them for early-bound funcs).
-            package.set_objects(objects)
-
-            return package
+            return self.from_path(self.root)
 
     def _validate_includes(self):
         if not self.includes:

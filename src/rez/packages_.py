@@ -12,7 +12,7 @@ from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
-from rez.serialise import FileFormat, default_objects
+from rez.serialise import FileFormat
 from rez.config import config
 import sys
 
@@ -155,8 +155,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
             return value
 
     def _eval_late_binding(self, sourcecode):
-        g = default_objects.copy()
-        g.update(self._get_objects())
+        g = {}
 
         if self.context is None:
             g["in_context"] = lambda: False
@@ -168,21 +167,14 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
             bindings = self.context._get_pre_resolve_bindings()
             g.update(bindings)
 
-        # Note that what 'this' actually points to depends on whether the context
-        # is available or not. If not, then 'this' is a DeveloperPackage instance;
-        # if the context is available, it is a Variant instance. So for example,
-        # if in_context() is True, 'this' will have a 'root' attribute, but will
-        # not if in_context() is False.
+        # Note that 'this' could be a `Package` or `Variant` instance. This is
+        # intentional; it just depends on how the package is accessed.
         #
         g["this"] = self
 
         # evaluate the late-bound function
         sourcecode.set_package(self)
         return sourcecode.exec_(globals_=g)
-
-    def _get_objects(self):
-        """Get variables to bind to late-bound funcs."""
-        raise NotImplementedError
 
 
 class Package(PackageBaseResourceWrapper):
@@ -194,13 +186,15 @@ class Package(PackageBaseResourceWrapper):
     """
     keys = schema_keys(package_schema)
 
+    # This is to allow for a simple check like 'this.is_package' in late-bound
+    # funcs, where 'this' may be a package or variant.
+    #
+    is_package = True
+    is_variant = False
+
     def __init__(self, resource, context=None):
         _check_class(resource, PackageResource)
         super(Package, self).__init__(resource, context)
-
-        # variables that are exposed to late-bound funcs on evaluation. Note
-        # that child variants are bound to these same variables.
-        self._late_binding_objects = {}
 
     # arbitrary keys
     def __getattr__(self, name):
@@ -272,17 +266,6 @@ class Package(PackageBaseResourceWrapper):
             if variant.index == index:
                 return variant
 
-    def set_objects(self, objects):
-        """Set bound variables for evaluation of late-bound attribs.
-
-        Args:
-            objects (dict): Variables to bind.
-        """
-        self._late_binding_objects = objects.copy()
-
-    def _get_objects(self):
-        return self._late_binding_objects
-
 
 class Variant(PackageBaseResourceWrapper):
     """A package variant.
@@ -293,6 +276,10 @@ class Variant(PackageBaseResourceWrapper):
     """
     keys = schema_keys(variant_schema)
     keys.update(["index", "root", "subpath"])
+
+    # See comment in `Package`
+    is_package = False
+    is_variant = True
 
     def __init__(self, resource, context=None, parent=None):
         _check_class(resource, VariantResource)
@@ -418,9 +405,6 @@ class Variant(PackageBaseResourceWrapper):
             return self
         else:
             return Variant(resource)
-
-    def _get_objects(self):
-        return self.parent._get_objects()
 
 
 class PackageSearchPath(object):

@@ -193,24 +193,8 @@ class BuildProcessHelper(BuildProcess):
                     % (variant.index, self._n_of_m(variant)))
                 continue
 
-            # Re-evaluate the variant, so that variables such as 'building' and
-            # 'build_variant_index' are set, and any early-bound package attribs
-            # are re-evaluated wrt these vars.
-            #
-            # Note: If you do something weird - like implement an early-bound
-            # 'variants' attrib that changes during a build - then behaviour is
-            # undefined. Don't do this.
-            #
-            re_evaluated_package = variant.parent.get_reevaluated({
-                "building": True,
-                "build_variant_index": variant.index or 0,
-                "build_variant_requires": variant.variant_requires
-            })
-
-            re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
-
             # visit the variant
-            result = func(re_evaluated_variant, **kwargs)
+            result = func(variant, **kwargs)
             results.append(result)
             num_visited += 1
 

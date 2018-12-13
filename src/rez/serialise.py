@@ -143,7 +143,7 @@ def _load_file(filepath, format_, update_data_callback, original_filepath=None):
 _set_objects = threading.local()
 
 
-# Default variables to avoid not-defined errors in early/late- bound attribs
+# Default variables to avoid not-defined errors in early-bound attribs
 default_objects = {
     "building": False,
     "build_variant_index": 0,
