@@ -1,6 +1,6 @@
 
 
-### 2.25.0 [[#548](https://github.com/nerdvegas/rez/pull/548)] Various Build-related issues
+## 2.25.0 [[#548](https://github.com/nerdvegas/rez/pull/548)] Various Build-related issues
 
 #### Addressed Issues
 
@@ -41,13 +41,13 @@ intact - but hte previous behavior can still be accessed with the rez-cp --follo
 This release adds a new tool, rez-cp, for copying packages/variants from one package repository to
 another, with optional renaming/reversioning. The associated API can be found in src/package_copy.py.
 
-Addresses:
+#### Addressed Issues
 
 * #541
 * #510
 * #477
 
-Fixes included in this release:
+#### Notes
 
 * Package definition file writes are now atomic;
 * private_build_requires is kept in installed/released packages;
@@ -57,14 +57,22 @@ Fixes included in this release:
 
 ## 2.23.1: Fixed Regression in 2.20.0
 
-Addresses: #532
+#### Addressed Issues
 
-Bug introduced in: https://github.com/nerdvegas/rez/releases/tag/2.20.0
+* #532
+
+#### Notes
+
+Bug was introduced in: https://github.com/nerdvegas/rez/releases/tag/2.20.0
 
 
 ## 2.23.0: Package Usage Tracking, Better Config Overrides
 
-Addresses: #528
+#### Addressed Issues
+
+* #528
+
+#### Notes
 
 Two new features are added in this release:
 
@@ -78,14 +86,12 @@ Track context creation and sourcing via AMQP. Messages are published (on a separ
 nominated broker/exchange/routing_key. You have control over what parts of the context are published.
 For more details: https://github.com/nerdvegas/rez/blob/master/src/rez/rezconfig.py#L414
 
-Other notes:
-
 The embedded simplejson lib was removed. The native json lib is used instead, and for cases where loads-without-unicoding-everything is needed, utils/json.py now addresses that instead.
 
 
 ## 2.22.1: Stdin-related fixes
 
-Addresses issues:
+#### Addressed Issues
 
 * #512
 * #526
@@ -94,6 +100,8 @@ Addresses issues:
 ## 2.22.0: Search API
 
 PR: #213
+
+#### Notes
 
 Package/variant/family search API is now available in package_search.py. This gives the same
 functionality as provided by the rez-search CLI tool.
@@ -106,13 +114,13 @@ PR: #501
 
 ## 2.20.1: Windows Fixes
 
-PRs:
+#### Merged PRs
 
 * #490: Fix alias command in Windows when PATH is modified
 * #489: Fix cmd.exe not escaping special characters
 * #482: Fix selftest getting stuck on Windows
 
-Addresses Issues:
+#### Addressed Issues
 
 * #389
 * #343
@@ -124,7 +132,11 @@ Addresses Issues:
 
 PR: #523
 
-Addresses: #492
+#### Addressed Issues
+
+* #492
+
+#### Notes
 
 The rez-python command now supports all native python args and passes those through to its python
 subprocess - so you can now shebang with rez-python if that is useful.
@@ -136,9 +148,15 @@ extraneous args after -- tokens.
 
 ## 2.19.1: Fixed bug with rez-build and package preprocess
 
-Merged PR: #522
+#### Merged PRs
 
-Addresses: #514
+* #522
+
+#### Addressed Issues
+
+* #514
+
+#### Notes
 
 The problem occurred because the preprocess function was attempting to be serialized when the package
 definition is cached to memcache. However, this function is stripped in installed packages;
