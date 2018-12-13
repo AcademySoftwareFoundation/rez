@@ -37,6 +37,9 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
         depth (int): Tree depth limit, unlimited if None.
         paths (list of str): paths to search for packages, defaults to
             `config.packages_path`.
+        build_requires (bool): If True, includes packages' build_requires.
+        private_build_requires (bool): If True, include `package_name`'s
+            private_build_requires.
 
     Returns:
         A 2-tuple:
@@ -71,7 +74,12 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
         requires = []
 
         for variant in pkg.iter_variants():
-            requires += variant.get_requires(build_requires, private_build_requires)
+            pbr = (private_build_requires and pkg.name == package_name)
+
+            requires += variant.get_requires(
+                build_requires=build_requires,
+                private_build_requires=pbr
+            )
 
         for req in requires:
             if not req.conflict:

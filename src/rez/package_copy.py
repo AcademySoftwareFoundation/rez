@@ -1,3 +1,4 @@
+from functools import partial
 import os.path
 import time
 
@@ -11,8 +12,8 @@ from rez.utils.filesystem import replacing_symlink, replacing_copy, \
 
 def copy_package(package, dest_repository, variants=None, shallow=False,
                  dest_name=None, dest_version=None, overwrite=False, force=False,
-                 dry_run=False, keep_timestamp=False, skip_payload=False,
-                 overrides=None, verbose=False):
+                 follow_symlinks=False, dry_run=False, keep_timestamp=False,
+                 skip_payload=False, overrides=None, verbose=False):
     """Copy a package from one package repository to another.
 
     This copies the package definition and payload. The package can also be
@@ -58,6 +59,8 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
         force (bool): Copy the package regardless of its relocatable attribute.
             Use at your own risk (there is no guarantee the resulting package
             will be functional).
+        follow_symlinks (bool): Follow symlinks when copying package payload,
+            rather than copying the symlinks themselves.
         keep_timestamp (bool): By default, a newly copied package will get a
             new timestamp (because that's when it was added to the target repo).
             By setting this option to True, the original package's timestamp
@@ -182,6 +185,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
                     src_variant=src_variant,
                     dest_pkg_repo=dest_pkg_repo,
                     shallow=shallow,
+                    follow_symlinks=follow_symlinks,
                     overrides=overrides
                 )
 
@@ -207,7 +211,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
 
 
 def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
-                          overrides=None):
+                          follow_symlinks=False, overrides=None):
         # Get payload path of source variant. For some types (eg from a "memory"
         # type repo) there may not be a root.
         #
@@ -241,7 +245,12 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         if shallow:
             maybe_symlink = replacing_symlink
         else:
-            maybe_symlink = replacing_copy
+            maybe_symlink = partial(
+                replacing_copy,
+                copytree_kwargs={
+                    "symlinks": (not follow_symlinks)
+                }
+            )
 
         if src_variant.subpath:
             # symlink/copy the last install dir to the variant root

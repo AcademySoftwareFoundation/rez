@@ -27,7 +27,11 @@ def setup_parser(parser, completions=False):
         help="overwrite existing package/variants")
     parser.add_argument(
         "-s", "--shallow", action="store_true",
-        help="perform a shallow copy (symlink directories)")
+        help="perform a shallow copy (symlinks topmost directories)")
+    parser.add_argument(
+        "--follow-symlinks", action="store_true",
+        help="follow symlinks when copying package payload, rather than copying "
+        "the symlinks themselves.")
     parser.add_argument(
         "-k", "--keep-timestamp", action="store_true",
         help="keep timestamp of source package. Note that this is ignored if "
@@ -134,6 +138,7 @@ def command(opts, parser, extra_arg_groups=None):
         variants=variants,
         overwrite=opts.overwrite,
         shallow=opts.shallow,
+        follow_symlinks=opts.follow_symlinks,
         keep_timestamp=opts.keep_timestamp,
         force=opts.force,
         verbose=opts.verbose,

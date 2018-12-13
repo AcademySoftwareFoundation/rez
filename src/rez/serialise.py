@@ -1,6 +1,14 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from contextlib import contextmanager
+from inspect import isfunction, ismodule, getargspec
+from StringIO import StringIO
+import sys
+import os
+import os.path
+import threading
+
 from rez.package_resources_ import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
@@ -13,12 +21,6 @@ from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
-from contextlib import contextmanager
-from inspect import isfunction, ismodule, getargspec
-from StringIO import StringIO
-import sys
-import os
-import os.path
 
 
 tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
@@ -138,6 +140,46 @@ def _load_file(filepath, format_, update_data_callback, original_filepath=None):
     return result
 
 
+_set_objects = threading.local()
+
+
+# Default variables to avoid not-defined errors in early-bound attribs
+default_objects = {
+    "building": False,
+    "build_variant_index": 0,
+    "build_variant_requires": []
+}
+
+
+def get_objects():
+    """Get currently bound variables for evaluation of early-bound attribs.
+
+    Returns:
+        dict.
+    """
+    result = default_objects.copy()
+    result.update(getattr(_set_objects, "variables", {}))
+    return result
+
+
+@contextmanager
+def set_objects(objects):
+    """Set the objects made visible to early-bound attributes.
+
+    For example, `objects` might be used to set a 'build_variant_index' var, so
+    that an early-bound 'private_build_requires' can change depending on the
+    currently-building variant.
+
+    Args:
+        objects (dict): Variables to set.
+    """
+    _set_objects.variables = objects
+    try:
+        yield
+    finally:
+        _set_objects.variables = {}
+
+
 def load_py(stream, filepath=None):
     """Load python-formatted data from a stream.
 
@@ -147,6 +189,11 @@ def load_py(stream, filepath=None):
     Returns:
         dict.
     """
+    with add_sys_paths(config.package_definition_build_python_paths):
+        return _load_py(stream, filepath=filepath)
+
+
+def _load_py(stream, filepath=None):
     scopes = ScopeContext()
 
     g = dict(scope=scopes,
@@ -185,7 +232,10 @@ def load_py(stream, filepath=None):
 
 
 class EarlyThis(object):
-    """The 'this' object for @early bound functions."""
+    """The 'this' object for @early bound functions.
+
+    Just exposes raw package data as object attributes.
+    """
     def __init__(self, data):
         self._data = data
 
@@ -237,22 +287,23 @@ def process_python_objects(data, filepath=None):
                                         argdefs=func.func_defaults,
                                         closure=func.func_closure)
 
-                this = EarlyThis(data)
-                fn.func_globals.update({"this": this})
+                # apply globals
+                fn.func_globals["this"] = EarlyThis(data)
+                fn.func_globals.update(get_objects())
 
-                with add_sys_paths(config.package_definition_build_python_paths):
+                # execute the function
+                spec = getargspec(func)
+                args = spec.args or []
+                if len(args) not in (0, 1):
+                    raise ResourceError("@early decorated function must "
+                                        "take zero or one args only")
+                if args:
                     # this 'data' arg support isn't needed anymore, but I'm
                     # supporting it til I know nobody is using it...
                     #
-                    spec = getargspec(func)
-                    args = spec.args or []
-                    if len(args) not in (0, 1):
-                        raise ResourceError("@early decorated function must "
-                                            "take zero or one args only")
-                    if args:
-                        value_ = fn(data)
-                    else:
-                        value_ = fn()
+                    value_ = fn(data)
+                else:
+                    value_ = fn()
 
                 # process again in case this is a function returning a function
                 return _process(value_)

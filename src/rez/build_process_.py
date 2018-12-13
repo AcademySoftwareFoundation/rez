@@ -193,6 +193,7 @@ class BuildProcessHelper(BuildProcess):
                     % (variant.index, self._n_of_m(variant)))
                 continue
 
+            # visit the variant
             result = func(variant, **kwargs)
             results.append(result)
             num_visited += 1

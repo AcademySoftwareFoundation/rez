@@ -119,9 +119,25 @@ class LocalBuildProcess(BuildProcessHelper):
             if not os.path.exists(variant_install_path):
                 safe_makedirs(variant_install_path)
 
+        # Re-evaluate the variant, so that variables such as 'building' and
+        # 'build_variant_index' are set, and any early-bound package attribs
+        # are re-evaluated wrt these vars. This is done so that attribs such as
+        # 'requires' can change depending on whether a build is occurring or not.
+        #
+        # Note that this re-evaluated variant is ONLY used here, for the purposes
+        # of creating the build context. The variant that is actually installed
+        # is the one evaluated where 'building' is False.
+        #
+        re_evaluated_package = variant.parent.get_reevaluated({
+            "building": True,
+            "build_variant_index": variant.index or 0,
+            "build_variant_requires": variant.variant_requires
+        })
+        re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
+
         # create build environment
         context, rxt_filepath = self.create_build_context(
-            variant=variant,
+            variant=re_evaluated_variant,
             build_type=build_type,
             build_path=variant_build_path)
 

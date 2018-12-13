@@ -2,9 +2,9 @@ This chapter lists the environment variables that rez generates in certain
 circumstances, as well as environment variables that you can set which affect
 the operation of rez.
 
-## Resolved Environment Variables
+## Context Environment Variables
 
-These are variables that rez generates within a resolved environment.
+These are variables that rez generates within a resolved environment (a "context").
 
 * **REZ_RXT_FILE** - Filepath of the current context (an rxt file).
 * **REZ_USED** - Path to rez installation that was used to resolve this environment.
@@ -31,10 +31,10 @@ package name, *"(PKG)"* in the variables below is the uppercased package name.
 * **REZ_(PKG)_MINOR_VERSION** - The minor version of the package, or ''.
 * **REZ_(PKG)_PATCH_VERSION** - The patch version of the package, or ''.
 
-## Resolved Build Environment Variables
+## Build Environment Variables
 
-These are variables that rez generates within a build environment; this is in
-addition to those listed [here](#resolved-environment-variables).
+These are variables that rez generates within a build environment, in addition
+to those listed [here](#context-environment-variables).
 
 * **REZ_BUILD_ENV** - Always present in a build, has value 1.
 * **REZ_BUILD_INSTALL** - Has a value of 1 if an installation is taking place
@@ -47,18 +47,22 @@ addition to those listed [here](#resolved-environment-variables).
   a *package.py* file).
 * **REZ_BUILD_PROJECT_NAME** - Name of the package being built.
 * **REZ_BUILD_PROJECT_VERSION** - Version of the package being built.
-* **REZ_BUILD_REQUIRES** - The list of requirements for the build - comes from
-  the current package's *requires*, *build_requires* and *private_build_requires*
-  attributes, including the current variant's requirements.
+* **REZ_BUILD_REQUIRES** - Space-separated list of requirements for the build -
+  comes from the current package's *requires*, *build_requires* and
+  *private_build_requires* attributes, including the current variant's requirements.
 * **REZ_BUILD_REQUIRES_UNVERSIONED** - Equivalent but unversioned list to
   *REZ_BUILD_REQUIRES*.
 * **REZ_BUILD_SOURCE_PATH** - Path containing the package.py file.
 * **REZ_BUILD_THREAD_COUNT** - Number of threads being used for the build.
 * **REZ_BUILD_TYPE** - One of *local* or *central*. Value is *central* if a
   release is occurring.
-* **REZ_BUILD_VARIANT_INDEX** - Zero-based index of the variant currently being built.
+* **REZ_BUILD_VARIANT_INDEX** - Zero-based index of the variant currently being
+  built. For non-varianted packages, this is "0".
+* **REZ_BUILD_VARIANT_REQUIRES** - Space-separated list of runtime requirements
+  of the current variant. This does not include the common requirements as found
+  in *REZ_BUILD_REQUIRES*. For non-varianted builds, this is an empty string.
 
-## System Environment Variables
+## Runtime Environment Variables
 
 These are environment variables that the user can set, which affect the
 operation of rez.
