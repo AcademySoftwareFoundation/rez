@@ -6,7 +6,7 @@ PR: #548
 
 Addresses:
 
-* #433: "package_definition_build_python_paths" defined paths are not available from top level in
+* [#433](https://github.com/nerdvegas/rez/issues/433): "package_definition_build_python_paths" defined paths are not available from top level in
         "package.py"
 * #442: "rez-depends" and "private_build_requires"
 * #416: Need currently-building-variant build variables
@@ -125,6 +125,7 @@ Addresses Issues:
 ## 2.20.0: Better CLI Arg Parsing
 
 PR: #523
+
 Addresses: #492
 
 The rez-python command now supports all native python args and passes those through to its python
