@@ -6,11 +6,11 @@ PR: #548
 
 Addresses:
 
-#433: "package_definition_build_python_paths" defined paths are not available from top level in
-      "package.py"
-#442: "rez-depends" and "private_build_requires"
-#416: Need currently-building-variant build variables
-#547: rez-cp follows symlinks within package payload
+* #433: "package_definition_build_python_paths" defined paths are not available from top level in
+        "package.py"
+* #442: "rez-depends" and "private_build_requires"
+* #416: Need currently-building-variant build variables
+* #547: rez-cp follows symlinks within package payload
 
 More details:
 
@@ -45,16 +45,16 @@ another, with optional renaming/reversioning. The associated API can be found in
 
 Addresses:
 
-#541
-#510
-#477
+* #541
+* #510
+* #477
 
 Fixes included in this release:
 
-    Package definition file writes are now atomic;
-    private_build_requires is kept in installed/released packages;
-    Fixes include modules not being copied into released packages;
-    File lock is no longer created when variant installation happens in dry mode.
+* Package definition file writes are now atomic;
+* private_build_requires is kept in installed/released packages;
+* Fixes include modules not being copied into released packages;
+* File lock is no longer created when variant installation happens in dry mode.
 
 
 # RELEASE 2.23.1: Fixed Regression in 2.20.0
@@ -89,8 +89,8 @@ The embedded simplejson lib was removed. The native json lib is used instead, an
 
 Addresses issues:
 
-#512
-#526
+* #512
+* #526
 
 
 # RELEASE 2.22.0: Search API
@@ -110,16 +110,16 @@ PR: #501
 
 PRs:
 
-#490: Fix alias command in Windows when PATH is modified
-#489: Fix cmd.exe not escaping special characters
-#482: Fix selftest getting stuck on Windows
+* #490: Fix alias command in Windows when PATH is modified
+* #489: Fix cmd.exe not escaping special characters
+* #482: Fix selftest getting stuck on Windows
 
 Addresses Issues:
 
-#389
-#343
-#432
-#481
+* #389
+* #343
+* #432
+* #481
 
 
 # RELEASE 2.20.0: Better CLI Arg Parsing
@@ -138,6 +138,7 @@ extraneous args after -- tokens.
 # RELEASE 2.19.1: Fixed bug with rez-build and package preprocess
 
 Merged PR: #522
+
 Addresses: #514
 
 The problem occurred because the preprocess function was attempting to be serialized when the package
