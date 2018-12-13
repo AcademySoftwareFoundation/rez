@@ -1,6 +1,6 @@
 
 
-# RELEASE 2.25.0: Various Build-related issues
+## 2.25.0: Various Build-related issues
 
 PR: #548
 
@@ -38,7 +38,7 @@ payload were expanded out to their source files at copy time. The default now is
 intact - but hte previous behavior can still be accessed with the rez-cp --follow-symlinks option.
 
 
-# RELEASE 2.24.0: Package Copying
+## 2.24.0: Package Copying
 
 This release adds a new tool, rez-cp, for copying packages/variants from one package repository to
 another, with optional renaming/reversioning. The associated API can be found in src/package_copy.py.
@@ -57,14 +57,14 @@ Fixes included in this release:
 * File lock is no longer created when variant installation happens in dry mode.
 
 
-# RELEASE 2.23.1: Fixed Regression in 2.20.0
+## 2.23.1: Fixed Regression in 2.20.0
 
 Addresses: #532
 
 Bug introduced in: https://github.com/nerdvegas/rez/releases/tag/2.20.0
 
 
-# RELEASE 2.23.0: Package Usage Tracking, Better Config Overrides
+## 2.23.0: Package Usage Tracking, Better Config Overrides
 
 Addresses: #528
 
@@ -85,7 +85,7 @@ Other notes:
 The embedded simplejson lib was removed. The native json lib is used instead, and for cases where loads-without-unicoding-everything is needed, utils/json.py now addresses that instead.
 
 
-# RELEASE 2.22.1: Stdin-related fixes
+## 2.22.1: Stdin-related fixes
 
 Addresses issues:
 
@@ -93,7 +93,7 @@ Addresses issues:
 * #526
 
 
-# RELEASE 2.22.0: Search API
+## 2.22.0: Search API
 
 PR: #213
 
@@ -101,12 +101,12 @@ Package/variant/family search API is now available in package_search.py. This gi
 functionality as provided by the rez-search CLI tool.
 
 
-# RELEASE 2.21.0: Added mingw as a rez build_system for cmake
+## 2.21.0: Added mingw as a rez build_system for cmake
 
 PR: #501
 
 
-# RELEASE 2.20.1: Windows Fixes
+## 2.20.1: Windows Fixes
 
 PRs:
 
@@ -122,7 +122,7 @@ Addresses Issues:
 * #481
 
 
-# RELEASE 2.20.0: Better CLI Arg Parsing
+## 2.20.0: Better CLI Arg Parsing
 
 PR: #523
 Addresses: #492
@@ -135,7 +135,7 @@ accepted rez-env-style commands (eg rez-env pkgA -- somecommand -- i am ignored)
 extraneous args after -- tokens.
 
 
-# RELEASE 2.19.1: Fixed bug with rez-build and package preprocess
+## 2.19.1: Fixed bug with rez-build and package preprocess
 
 Merged PR: #522
 
