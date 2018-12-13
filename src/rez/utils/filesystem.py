@@ -122,7 +122,7 @@ def replacing_symlink(source, link_name):
         replace_file_or_dir(link_name, tmp_link_name)
 
 
-def replacing_copy(src, dest):
+def replacing_copy(src, dest, copytree_kwargs=None):
     """Perform copy that overwrites any existing target.
 
     Will copy/copytree `src` to `dest`, and will remove `dest` if it exists,
@@ -133,7 +133,7 @@ def replacing_copy(src, dest):
     """
     with make_tmp_name(dest) as tmp_dest:
         if os.path.isdir(src) and not os.path.islink(src):
-            shutil.copytree(src, tmp_dest)
+            shutil.copytree(src, tmp_dest, **(copytree_kwargs or {}))
         else:
             shutil.copy2(src, tmp_dest)
 
