@@ -1,8 +1,8 @@
 
 
-## 2.25.0 [[#548](https://github.com/nerdvegas/rez/pull/548)] Various Build-related issues
+### 2.25.0 [[#548](https://github.com/nerdvegas/rez/pull/548)] Various Build-related issues
 
-### Addressed Issues
+#### Addressed Issues
 
 * [#433](https://github.com/nerdvegas/rez/issues/433): "package_definition_build_python_paths" defined
   paths are not available from top level in package.py
@@ -10,7 +10,7 @@
 * [#416](https://github.com/nerdvegas/rez/issues/416): Need currently-building-variant build variables
 * [#547](https://github.com/nerdvegas/rez/issues/547): rez-cp follows symlinks within package payload
 
-### Notes
+#### Notes
 
 The biggest update in this release is the introduction of new variables accessible at early-bind time:
 building, build_variant_index and build_variant_requires. This allows you to do things like define
