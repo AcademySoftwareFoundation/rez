@@ -72,6 +72,9 @@ operation of rez.
   *(CONFIG_ENTRY)* is the uppercased equivalent of the setting name. For example,
   a setting commonly overriden this way is *packages_path*, whos equivalent
   variable is *REZ_PACKAGES_PATH*.
+* **REZ_(CONFIG_ENTRY)_JSON** - Same as the previous env-var, except that the format
+  is a JSON string. This means that some more complex settings can be overridden,
+  that aren't supported in the non-JSON case (*package_filter* is an example).
 * **EDITOR** - On Linux and OSX systems, this will set the default editor to use
   if and when rez requires one (an example is on release if the *prompt_release_message*
   config setting is true).
