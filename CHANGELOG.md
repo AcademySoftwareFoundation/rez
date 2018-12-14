@@ -1,5 +1,5 @@
 
-## 2.26.0 [[#???](https://github.com/nerdvegas/rez/pull/???)] Build System Detection Fixes
+## 2.26.0 [[#550](https://github.com/nerdvegas/rez/pull/550)] Build System Detection Fixes
 
 #### Addressed Issues
 
