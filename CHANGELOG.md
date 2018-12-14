@@ -1,4 +1,25 @@
 
+## 2.26.0 [[#???](https://github.com/nerdvegas/rez/pull/???)] Build System Detection Fixes
+
+#### Addressed Issues
+
+* [#549](https://github.com/nerdvegas/rez/issues/549) '--build-system' rez-build option not always
+  available
+
+#### Notes
+
+To fix this issue:
+* The '--build-system' rez-build option is now always present.
+* To provide further control over the build system type, the package itself can not specify its build
+  system - see https://github.com/nerdvegas/rez/wiki/Package-Definition-Guide#build_system
+
+#### COMPATIBILITY ISSUE!
+
+Unfortunately, the 'cmake' build system had its own '--build-system' commandline option also. This
+was possible because previous rez versions suppressed the standard '--build-system' option if only
+one valid build system was present for a given package working directory. **This option has been
+changed to --cmake-build-system**.
+
 
 ## 2.25.0 [[#548](https://github.com/nerdvegas/rez/pull/548)] Various Build-related issues
 
