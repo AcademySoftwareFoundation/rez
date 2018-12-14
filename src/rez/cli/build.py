@@ -13,11 +13,16 @@ _package = None
 
 def get_current_developer_package():
     from rez.packages_ import get_developer_package
+    from rez.exceptions import PackageMetadataError
 
     global _package
 
     if _package is None:
-        _package = get_developer_package(os.getcwd())
+        try:
+            _package = get_developer_package(os.getcwd())
+        except PackageMetadataError:
+            # no package, or bad package
+            pass
 
     return _package
 

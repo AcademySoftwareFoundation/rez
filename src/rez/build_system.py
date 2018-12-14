@@ -26,18 +26,24 @@ def get_valid_build_systems(working_dir, package=None):
         List of class: Valid build system class types.
     """
     from rez.plugin_managers import plugin_manager
+    from rez.exceptions import PackageMetadataError
 
-    package = package or get_developer_package(working_dir)
+    try:
+        package = package or get_developer_package(working_dir)
+    except PackageMetadataError:
+        # no package, or bad package
+        pass
 
-    if getattr(package, "build_command", None) is not None:
-        buildsys_name = "custom"
-    else:
-        buildsys_name = getattr(package, "build_system", None)
+    if package:
+        if getattr(package, "build_command", None) is not None:
+            buildsys_name = "custom"
+        else:
+            buildsys_name = getattr(package, "build_system", None)
 
-    # package explicitly specifies build system
-    if buildsys_name:
-        cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
-        return [cls]
+        # package explicitly specifies build system
+        if buildsys_name:
+            cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
+            return [cls]
 
     # detect valid build systems
     clss = []
