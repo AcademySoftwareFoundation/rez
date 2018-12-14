@@ -744,6 +744,14 @@ otherwise. This is useful for passing the install target directly to the command
 using *make*) rather than relying on a build script checking the *REZ_BUILD_INSTALL* environment
 variable.
 
+### build_system
+*String*
+
+    build_system = "cmake"
+
+Specify the build system used to build this package. If not set, it is detected automatically when
+a build occurs (or the user specifies it using the `--build-system` option).
+
 ### preprocess
 *Function*
 
