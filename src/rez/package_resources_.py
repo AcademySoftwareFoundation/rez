@@ -26,6 +26,7 @@ package_release_keys = (
 # package attributes that we don't install
 package_build_only_keys = (
     "requires_rez_version",
+    "build_system",
     "build_command",
     "preprocess",
 )

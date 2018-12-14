@@ -22,23 +22,29 @@ class CustomBuildSystem(BuildSystem):
 
     For example, consider the package.py snippet:
 
-        build_commands = "bash {root}/build.sh"
+        build_commands = "bash {root}/build.sh {install}"
 
     This will run the given bash command in the build path - this is typically
     located somewhere under the 'build' dir under the root dir containing the
-    package.py. The '{root}' string will expand to the source directory (the
-    one containing the package.py).
+    package.py.
+
+    The '{root}' string will expand to the source directory (the one containing
+    the package.py).
+
+    The '{install}' string will expand to 'install' if an install is occuring,
+    and the empty string ('') otherwise.
     """
     @classmethod
     def name(cls):
         return "custom"
 
     @classmethod
-    def is_valid_root(cls, path):
-        try:
-            package = get_developer_package(path)
-        except PackageMetadataError:
-            return False
+    def is_valid_root(cls, path, package=None):
+        if package is None:
+            try:
+                package = get_developer_package(path)
+            except PackageMetadataError:
+                return False
 
         return (getattr(package, "build_command", None) is not None)
 
