@@ -1,4 +1,15 @@
 
+## 2.26.1 [[#552](https://github.com/nerdvegas/rez/pull/552)] Bugfix in Package Copy
+
+#### Addressed Issues
+
+* [#551](https://github.com/nerdvegas/rez/issues/551) package copy fails if symlinks in root dir
+
+#### Notes
+
+This was failing when symlinks were present within a non-varianted package being copied. Now, these
+symlinks are retained in the target package, unless `--follow-symlinks` is specified.
+
 ## 2.26.0 [[#550](https://github.com/nerdvegas/rez/pull/550)] Build System Detection Fixes
 
 #### Addressed Issues

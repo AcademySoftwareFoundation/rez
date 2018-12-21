@@ -242,15 +242,13 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
                                                 src_variant.subpath)
 
         # perform the copy/symlinking
+        copy_func = partial(replacing_copy,
+                            follow_symlinks=follow_symlinks)
+
         if shallow:
             maybe_symlink = replacing_symlink
         else:
-            maybe_symlink = partial(
-                replacing_copy,
-                copytree_kwargs={
-                    "symlinks": (not follow_symlinks)
-                }
-            )
+            maybe_symlink = copy_func
 
         if src_variant.subpath:
             # symlink/copy the last install dir to the variant root
@@ -259,7 +257,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         else:
             safe_makedirs(variant_install_path)
 
-            # copy all files, and symlink/copy all dirs within the variant
+            # copy all files, and symlink/copy all dirs within the null variant
             for name in os.listdir(variant_root):
                 src_path = os.path.join(variant_root, name)
                 dest_path = os.path.join(variant_install_path, name)
@@ -267,7 +265,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
                 if os.path.isdir(src_path) and not os.path.islink(src_path):
                     maybe_symlink(src_path, dest_path)
                 else:
-                    replacing_copy(src_path, dest_path)
+                    copy_func(src_path, dest_path)
 
 
 def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):

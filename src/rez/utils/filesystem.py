@@ -122,20 +122,29 @@ def replacing_symlink(source, link_name):
         replace_file_or_dir(link_name, tmp_link_name)
 
 
-def replacing_copy(src, dest, copytree_kwargs=None):
+def replacing_copy(src, dest, follow_symlinks=False):
     """Perform copy that overwrites any existing target.
 
     Will copy/copytree `src` to `dest`, and will remove `dest` if it exists,
     regardless of what it is.
 
+    If `follow_symlinks` is False, symlinks are preserved, otherwise their
+    contents are copied.
+
     Note that this behavior is different to `shutil.copy`, which copies src
     into dest if dest is an existing dir.
     """
     with make_tmp_name(dest) as tmp_dest:
-        if os.path.isdir(src) and not os.path.islink(src):
-            shutil.copytree(src, tmp_dest, **(copytree_kwargs or {}))
+        if os.path.islink(src) and not follow_symlinks:
+            # special case - copy just a symlink
+            src_ = os.readlink(src)
+            os.symlink(src_, tmp_dest)
+        elif os.path.isdir(src):
+            # copy a dir
+            shutil.copytree(src, tmp_dest, symlinks=(not follow_symlinks))
         else:
-            shutil.copy2(src, tmp_dest)
+            # copy a file
+            shutil.copy(src, tmp_dest)
 
         replace_file_or_dir(dest, tmp_dest)
 
