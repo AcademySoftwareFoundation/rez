@@ -144,7 +144,7 @@ def replacing_copy(src, dest, follow_symlinks=False):
             shutil.copytree(src, tmp_dest, symlinks=(not follow_symlinks))
         else:
             # copy a file
-            shutil.copy(src, tmp_dest)
+            shutil.copy2(src, tmp_dest)
 
         replace_file_or_dir(dest, tmp_dest)
 
@@ -177,7 +177,7 @@ def replace_file_or_dir(dest, source):
 
 
 def additive_copytree(src, dst, symlinks=False, ignore=None):
-    """Version of `copytree` that can overwrite an existing directory.
+    """Version of `copytree` that merges into an existing directory.
     """
     if not os.path.exists(dst):
         os.makedirs(dst)

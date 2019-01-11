@@ -2,8 +2,10 @@ from functools import partial
 import os.path
 import time
 
+from rez.config import config
 from rez.exceptions import PackageCopyError
 from rez.package_repository import package_repository_manager
+from rez.serialise import FileFormat
 from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.logging_ import print_info
 from rez.utils.filesystem import replacing_symlink, replacing_copy, \
@@ -257,15 +259,31 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         else:
             safe_makedirs(variant_install_path)
 
-            # copy all files, and symlink/copy all dirs within the null variant
+            # Symlink/copy all files and dirs within the null variant, except
+            # for the package definition itself.
+            #
             for name in os.listdir(variant_root):
+                is_pkg_defn = False
+
+                # skip package definition file
+                name_ = os.path.splitext(name)[0]
+                if name_ in config.plugins.package_repository.filesystem.package_filenames:
+                    for fmt in (FileFormat.py, FileFormat.yaml):
+                        filename = name_ + '.' + fmt.extension
+                        if name == filename:
+                            is_pkg_defn = True
+                            break
+
+                if is_pkg_defn:
+                    continue
+
                 src_path = os.path.join(variant_root, name)
                 dest_path = os.path.join(variant_install_path, name)
 
-                if os.path.isdir(src_path) and not os.path.islink(src_path):
-                    maybe_symlink(src_path, dest_path)
-                else:
+                if os.path.islink(src_path):
                     copy_func(src_path, dest_path)
+                else:
+                    maybe_symlink(src_path, dest_path)
 
 
 def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
