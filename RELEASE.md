@@ -15,7 +15,7 @@ follow to release a new version:
 3. Once approved, merge to master.
 4. In master, go back to `CHANGELOG.md` and update the PR number appropriately.
    Push this change, and set the commit message to `changelog patch`.
-5. Run tag.sh. This tags the git repo with the version in `utils/_version.py`.
+5. Run `tag.sh`. This tags the git repo with the version in `utils/_version.py`.
    Then run `git push --tags` to push this new tag.
 6. Goto https://github.com/nerdvegas/rez/releases and create a new release. Use
    the changelog markdown as the starting point, and format appropriately (look
