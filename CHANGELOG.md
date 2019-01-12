@@ -1,4 +1,16 @@
 
+## 2.26.2 [[#XXX](https://github.com/nerdvegas/rez/pull/XXX)] Package Copy Fixes For Non-Varianted Packages
+
+#### Addressed Issues
+
+* [#556](https://github.com/nerdvegas/rez/issues/556) rez-cp briefly copies original package definition in non-varianted packages
+* [#555](https://github.com/nerdvegas/rez/issues/555) rez-cp inconsistent symlinking when --shallow=true
+* [#554](https://github.com/nerdvegas/rez/issues/554) rez-cp doesn't keep file metadata in some cases
+
+#### Notes
+
+There were various minor issues related to copying non-varianted packages.
+
 ## 2.26.1 [[#552](https://github.com/nerdvegas/rez/pull/552)] Bugfix in Package Copy
 
 #### Addressed Issues
