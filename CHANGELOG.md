@@ -1,5 +1,5 @@
 
-## 2.26.2 [[#XXX](https://github.com/nerdvegas/rez/pull/XXX)] Package Copy Fixes For Non-Varianted Packages
+## 2.26.2 [[#557](https://github.com/nerdvegas/rez/pull/557)] Package Copy Fixes For Non-Varianted Packages
 
 #### Addressed Issues
 
