@@ -10,14 +10,14 @@ follow to release a new version:
    title (eg `[#552]`); since this PR doesn't exist yet, just leave `[#XXX]` as a
    placeholder.
 2. Push your changes, and create a PR to master. In that PR's description, copy
-   the markdown you added to the changelog for this release. Change only the title
-   - just put the version number there.
+   the markdown you added to the changelog for this release. Delete the title,
+   and use it as the title of the PR instead (with PR link removed).
 3. Once approved, merge to master.
 4. In master, go back to `CHANGELOG.md` and update the PR number appropriately.
+   Push this change, and set the commit message to `changelog patch`.
 5. Run tag.sh. This tags the git repo with the version in `utils/_version.py`.
-6. Do a `git push` to push changelog update, and a `git push --tags` to push the
-   new tag.
-7. Goto [https://github.com/nerdvegas/rez/releases] and create a new release. Use
+   Then run `git push --tags` to push this new tag.
+6. Goto [https://github.com/nerdvegas/rez/releases] and create a new release. Use
    the changelog markdown as the starting point, and format appropriately (look
    at existing release notes to see what to do).
 
