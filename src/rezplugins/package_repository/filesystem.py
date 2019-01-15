@@ -1026,7 +1026,7 @@ class FileSystemPackageRepository(PackageRepository):
                     package_data[key] = value
 
         # timestamp defaults to now if not specified
-        if "timestamp" not in package_data:
+        if not package_data.get("timestamp"):
             package_data["timestamp"] = int(time.time())
 
         # format version is always set
