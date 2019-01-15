@@ -4,6 +4,7 @@ Filesystem-based package repository
 from contextlib import contextmanager
 import os.path
 import os
+import stat
 import time
 
 from rez.package_repository import PackageRepository
@@ -438,6 +439,7 @@ class FileSystemPackageRepository(PackageRepository):
                    "package_filenames": [basestring]}
 
     building_prefix = ".building"
+    package_file_mode = (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
     @classmethod
     def name(cls):
@@ -1034,7 +1036,7 @@ class FileSystemPackageRepository(PackageRepository):
         package_file = ".".join([package_filename, package_extension])
         filepath = os.path.join(pkg_base_path, package_file)
 
-        with open_file_for_write(filepath) as f:
+        with open_file_for_write(filepath, mode=self.package_file_mode) as f:
             dump_package_data(package_data, buf=f, format_=package_format)
 
         # delete the tmp 'building' file.

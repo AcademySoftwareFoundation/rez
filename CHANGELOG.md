@@ -1,3 +1,12 @@
+## 2.26.3 [[#XXX](https://github.com/nerdvegas/rez/pull/XXX)] Package Copy Fixes For Non-Varianted Packages
+
+#### Addressed Issues
+
+* [#559](https://github.com/nerdvegas/rez/issues/559) package.py permissions issue
+
+#### Notes
+
+Fixes issue where installed `package.py` can be set to r/w for only the current user.
 
 ## 2.26.2 [[#557](https://github.com/nerdvegas/rez/pull/557)] Package Copy Fixes For Non-Varianted Packages
 
