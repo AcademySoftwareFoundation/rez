@@ -24,7 +24,7 @@ follow to release a new version:
 ## Example Changelog Entry
 
 ```
-## 1.2.3 [[#000](https://github.com/nerdvegas/rez/pull/456)] Release Title Here
+## 1.2.3 [[#004](https://github.com/nerdvegas/rez/pull/004)] Release Title Here
 
 #### Addressed Issues
 
