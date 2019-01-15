@@ -1,4 +1,4 @@
-## 2.26.3 [[#560](https://github.com/nerdvegas/rez/pull/560)] Package Copy Fixes For Non-Varianted Packages
+## 2.26.3 [[#560](https://github.com/nerdvegas/rez/pull/560)] Package.py permissions issue
 
 #### Addressed Issues
 
