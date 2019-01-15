@@ -40,12 +40,19 @@ class FileFormat(Enum):
 
 
 @contextmanager
-def open_file_for_write(filepath):
+def open_file_for_write(filepath, mode=None):
     """Writes both to given filepath, and tmpdir location.
 
     This is to get around the problem with some NFS's where immediately reading
     a file that has just been written is problematic. Instead, any files that we
     write, we also write to /tmp, and reads of these files are redirected there.
+
+    Args:
+        filepath (str): File to write.
+        mode (int): Same mode arg as you would pass to `os.chmod`.
+
+    Yields:
+        File-like object.
     """
     stream = StringIO()
     yield stream
@@ -59,6 +66,9 @@ def open_file_for_write(filepath):
 
     with atomic_write(filepath, overwrite=True) as f:
         f.write(content)
+
+    if mode is not None:
+        os.chmod(filepath, mode)
 
     with open(cache_filepath, 'w') as f:
         f.write(content)
