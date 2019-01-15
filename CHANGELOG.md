@@ -1,3 +1,9 @@
+## 2.26.4 [[#562](https://github.com/nerdvegas/rez/pull/562)] Fixed Regression in 2.24.0
+
+#### Addressed Issues
+
+* [#561](https://github.com/nerdvegas/rez/issues/561) timestamp not written to installed package
+
 ## 2.26.3 [[#560](https://github.com/nerdvegas/rez/pull/560)] Package.py permissions issue
 
 #### Addressed Issues
