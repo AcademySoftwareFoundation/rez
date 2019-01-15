@@ -19,7 +19,8 @@ follow to release a new version:
    Then run `git push --tags` to push this new tag.
 6. Goto https://github.com/nerdvegas/rez/releases and create a new release. Use
    the changelog markdown as the starting point, and format appropriately (look
-   at existing release notes to see what to do).
+   at existing release notes to see what to do). Alternatively, use the utility
+   script 'create_latest_release.py'.
 
 ## Example Changelog Entry
 
