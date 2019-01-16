@@ -3,7 +3,7 @@ import os.path
 import time
 
 from rez.config import config
-from rez.exceptions import PackageCopyError
+from rez.exceptions import PackageCopyError, ShallowPackageCopyForbiddenError
 from rez.package_repository import package_repository_manager
 from rez.serialise import FileFormat
 from rez.utils.sourcecode import IncludeModuleManager
@@ -104,6 +104,26 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
             (dest_version is None or str(dest_version) == str(package.version)):
         raise PackageCopyError(
             "Cannot copy package over itself: %s." % package.uri
+        )
+
+    # Avoid edge case which can corrupt the source package.
+    #
+    # Consider a package with 2 variants, with subpaths 'A' and 'A/B'. A shallow
+    # copy can corrupt the source package because of the following:
+    #
+    # * Variant `<newpkg>/A` is created as symlink to `<oldpkg>/A`;
+    # * Variant `<newpkg>/A/B` is created as symlink to `<oldpkg>/A/B`;
+    # * Whoops, this actually has created a self-referencing symlink at `<oldpkg>/A/B`.
+    #
+    # To avoid this, we simply check for overlapping variants, and disallow
+    # shallow copy. This is done regardless of the variants being copied, because
+    # there are too many cases where a subsequent variant install would also run
+    # into problems.
+    #
+    if shallow and not skip_payload and _package_has_overlapped_variants(package):
+        raise ShallowPackageCopyForbiddenError(
+            "Cannot shallow copy %s; there are overlapping variants"
+            % package.uri
         )
 
     # determine variants to potentially install
@@ -306,6 +326,15 @@ def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
 
     safe_makedirs(dest_include_modules_path)
     additive_copytree(src_include_modules_path, dest_include_modules_path)
+
+
+def _package_has_overlapped_variants(package):
+    for variant in package.iter_variants():
+        for variant2 in package.iter_variants():
+            if variant2.index != variant.index and \
+                    variant2.subpath.startswith(variant.subpath + os.path.sep):
+                return True
+    return False
 
 
 # Copyright 2013-2016 Allan Johns.
