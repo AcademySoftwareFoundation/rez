@@ -1141,8 +1141,8 @@ class RexExecutor(object):
             code (str or SourceCode): The python code to compile.
             filename (str): File to associate with the code, will default to
                 '<string>'.
-            namespace (dict): Namespace to execute the code in. If None, the
-                code is not executed.
+            exec_namespace (dict): Namespace to execute the code in. If None,
+                the code is not executed.
 
         Returns:
             Compiled code object.

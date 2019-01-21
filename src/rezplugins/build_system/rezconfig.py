@@ -11,7 +11,7 @@ cmake = {
     "build_target": "Release",
 
     # A list of default arguments to be passed to the cmake binary.
-    "cmake_args" : [
+    "cmake_args": [
         '-Wno-dev',
         '-DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE',
         '-D_ECLIPSE_VERSION=4.3',
@@ -21,7 +21,8 @@ cmake = {
     # Optionally specify an explicit cmake executable to use for building.
     "cmake_binary": None,
 
-    # Optionally specify an explicit make executable to use for building.
+    # Optionally specify an explicit make executable to use for building. If
+    # not specified, this is determined automatically based on `build_system`.
     "make_binary": None,
 
     # If True, install pyc files when the 'rez_install_python' macro is used.
@@ -30,7 +31,6 @@ cmake = {
 
 if os.name != "posix":
     cmake["build_system"] = "nmake"
-    cmake["make_binary"] = "nmake"
 
 
 # Copyright 2013-2016 Allan Johns.

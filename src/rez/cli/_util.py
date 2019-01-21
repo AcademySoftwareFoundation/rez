@@ -5,36 +5,55 @@ from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
     ArgumentError
 
 
-subcommands = [
-    "bind",
-    "build",
-    "config",
-    "context",
-    "complete",
-    "depends",
-    "env",
-    "forward",
-    "help",
-    "interpret",
-    "python",
-    "plugins",
-    "pip",
-    "release",
-    "search",
-    "test",
-    "view",
-    "status",
-    "suite",
-    "memcache",
-    "selftest",
-    "yaml2py",
-    "diff",
-    "gui"]
-
-
-hidden_subcommands = [
-    "complete",
-    "forward"]
+# Subcommands and their behaviors.
+#
+# 'arg_mode' determines how cli args are parsed. Values are:
+# * 'grouped': Args can be separated by '--'. This causes args to be grouped into
+#   lists which are then passed as 'extra_arg_groups' to each command.
+# * 'passthrough': Unknown args are passed as first list in 'extra_arg_groups'.
+#   The '--' arg is not treated as a special case.
+# * missing: Native python argparse behavior.
+#
+subcommands = {
+    "bind": {},
+    "build": {
+        "arg_mode": "grouped"
+    },
+    "config": {},
+    "context": {},
+    "complete": {
+        "hidden": True
+    },
+    "cp": {},
+    "depends": {},
+    "diff": {},
+    "env": {
+        "arg_mode": "grouped"
+    },
+    "forward": {
+        "hidden": True,
+        "arg_mode": "passthrough"
+    },
+    "gui": {},
+    "help": {},
+    "interpret": {},
+    "memcache": {},
+    "pip": {},
+    "plugins": {},
+    "python": {
+        "arg_mode": "passthrough"
+    },
+    "release": {
+        "arg_mode": "grouped"
+    },
+    "search": {},
+    "selftest": {},
+    "status": {},
+    "suite": {},
+    "test": {},
+    "view": {},
+    "yaml2py": {},
+}
 
 
 class LazySubParsersAction(_SubParsersAction):

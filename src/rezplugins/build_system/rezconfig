@@ -1,3 +1,6 @@
+# TODO remove this file in PR for https://github.com/nerdvegas/rez/issues/525,
+# it is unused
+
 cmake:
     # The name of the CMake build system to use, valid options are
     # eclipse, make, xcode and codeblocks.

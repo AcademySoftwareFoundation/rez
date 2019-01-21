@@ -88,6 +88,11 @@ class PackageRequestError(RezError):
     pass
 
 
+class PackageCopyError(RezError):
+    """There was a problem copying a package."""
+    pass
+
+
 class PackageTestError(RezError):
     """There was a problem running a package test."""
     pass

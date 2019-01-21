@@ -1,11 +1,10 @@
 """
 Builds packages on local host
 """
-from rez.config import config
 from rez.package_repository import package_repository_manager
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
-from rez.exceptions import BuildError, ReleaseError
+from rez.exceptions import BuildError
 from rez.utils.colorize import Printer, warning
 from rez.utils.filesystem import safe_makedirs, copy_or_replace
 from rez.utils.sourcecode import IncludeModuleManager
@@ -35,10 +34,6 @@ class LocalBuildProcess(BuildProcessHelper):
             clean=clean,
             install=install)
 
-        # install include modules, if any
-        if install:
-            self._install_include_modules(install_path)
-
         if None not in build_env_scripts:
             self._print("\nThe following executable script(s) have been created:")
             self._print('\n'.join(build_env_scripts))
@@ -56,7 +51,6 @@ class LocalBuildProcess(BuildProcessHelper):
         release_path = self.package.config.release_packages_path
         release_data = self.get_release_data()
         changelog = release_data.get("changelog")
-        revision = release_data.get("revision")
         previous_version = release_data.get("previous_version")
         previous_revision = release_data.get("previous_revision")
 
@@ -125,9 +119,25 @@ class LocalBuildProcess(BuildProcessHelper):
             if not os.path.exists(variant_install_path):
                 safe_makedirs(variant_install_path)
 
+        # Re-evaluate the variant, so that variables such as 'building' and
+        # 'build_variant_index' are set, and any early-bound package attribs
+        # are re-evaluated wrt these vars. This is done so that attribs such as
+        # 'requires' can change depending on whether a build is occurring or not.
+        #
+        # Note that this re-evaluated variant is ONLY used here, for the purposes
+        # of creating the build context. The variant that is actually installed
+        # is the one evaluated where 'building' is False.
+        #
+        re_evaluated_package = variant.parent.get_reevaluated({
+            "building": True,
+            "build_variant_index": variant.index or 0,
+            "build_variant_requires": variant.variant_requires
+        })
+        re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
+
         # create build environment
         context, rxt_filepath = self.create_build_context(
-            variant=variant,
+            variant=re_evaluated_variant,
             build_type=build_type,
             build_path=variant_build_path)
 
@@ -148,9 +158,17 @@ class LocalBuildProcess(BuildProcessHelper):
 
         if install:
             # install some files for debugging purposes
-            extra_files = build_result.get("extra_files", []) + [rxt_filepath]
+            extra_files = build_result.get("extra_files", [])
+            if rxt_filepath:
+                extra_files = extra_files + [rxt_filepath]
+
             for file_ in extra_files:
                 copy_or_replace(file_, variant_install_path)
+
+            # Install include modules. Note that this doesn't need to be done
+            # multiple times, but for subsequent variants it has no effect.
+            #
+            self._install_include_modules(install_path)
 
         return build_result
 
@@ -176,12 +194,15 @@ class LocalBuildProcess(BuildProcessHelper):
             uuid = sha1(txt).hexdigest()
             dest_filepath = os.path.join(path, "%s-%s.py" % (name, uuid))
 
-            shutil.copy(filepath, dest_filepath)
+            if not os.path.exists(dest_filepath):
+                shutil.copy(filepath, dest_filepath)
 
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):
         if variant.index is not None:
-            self._print_header("Building variant %s..." % self._n_of_m(variant))
+            self._print_header(
+                "Building variant %s (%s)..."
+                % (variant.index, self._n_of_m(variant)))
 
         # build and possibly install variant
         install_path = install_path or self.package.config.local_packages_path
@@ -212,7 +233,7 @@ class LocalBuildProcess(BuildProcessHelper):
             self._print_header("Releasing variant %s..." % self._n_of_m(variant))
 
         # build and install variant
-        build_result = self._build_variant_base(
+        self._build_variant_base(
             build_type=BuildType.central,
             variant=variant,
             install_path=release_path,

@@ -7,10 +7,16 @@ import shutil
 import os.path
 import os
 import functools
+import sys
+from contextlib import contextmanager
 
 
 class TestBase(unittest.TestCase):
     """Unit test base class."""
+    def __init__(self, *nargs, **kwargs):
+        super(TestBase, self).__init__(*nargs, **kwargs)
+        self.setup_once_called = False
+
     @classmethod
     def setUpClass(cls):
         cls.settings = {}
@@ -21,6 +27,15 @@ class TestBase(unittest.TestCase):
 
         # shield unit tests from any user config overrides
         self.setup_config()
+
+        # hook to run code once before all tests, but after the config has
+        # been overridden.
+        if not self.setup_once_called:
+            self.setup_once()
+            self.setup_once_called = True
+
+    def setup_once(self):
+        pass
 
     def tearDown(self):
         self.teardown_config()
@@ -111,6 +126,8 @@ program_tests = {
 
 
 def program_dependent(program_name, *program_names):
+    """Function decorator that skips the function if not all given programs are
+    visible."""
 
     # test if program exists
     import subprocess
@@ -243,6 +260,57 @@ def get_cli_output(args):
         sys.argv = old_argv
 
     return output, exitcode
+
+
+@contextmanager
+def restore_sys_path():
+    """Encapsulate changes to sys.path and return to the original state.
+
+    This context manager lets you wrap modifications of sys.path and not worry
+    about reverting back to the original.
+
+    Examples:
+        >>> path = '/arbitrary/path'
+        >>> with sys_path():
+        >>>     sys.path.insert(0, '/arbitrary/path')
+        >>>     assert path in sys.path
+        True
+
+        >>> assert path in sys.path
+        False
+
+    Yields:
+        list: The original sys.path.
+    """
+    original = sys.path[:]
+    yield sys.path
+    sys.path = original
+
+
+@contextmanager
+def restore_os_environ():
+    """Encapsulate changes to os.environ and return to the original state.
+
+    This context manager lets you wrap modifications of os.environ and not
+    worry about reverting back to the original.
+
+    Examples:
+        >>> key = 'ARBITRARY_KEY'
+        >>> value = 'arbitrary_value'
+        >>> with os_environ():
+        >>>     os.environ[key] = value
+        >>>     assert key in os.environ
+        True
+
+        >>> assert key in os.environ
+        False
+
+    Yields:
+        dict: The original os.environ.
+    """
+    original = os.environ.copy()
+    yield os.environ
+    os.environ = original
 
 
 # Copyright 2013-2016 Allan Johns.
