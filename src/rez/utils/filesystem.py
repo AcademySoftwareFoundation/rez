@@ -73,6 +73,46 @@ atexit.register(TempDirs.clear_all)
 
 
 @contextmanager
+def make_path_writable(path):
+    """Temporarily make `path` writable, if possible.
+
+    Does nothing if:
+        - config setting 'make_package_temporarily_writable' is False;
+        - this can't be done (eg we don't own `path`).
+
+    Args:
+        path (str): Path to make temporarily writable
+    """
+    from rez.config import config
+
+    try:
+        orig_mode = os.stat(path).st_mode
+        new_mode = orig_mode
+
+        if config.make_package_temporarily_writable and \
+                not os.access(path, os.W_OK):
+            new_mode = orig_mode | stat.S_IWUSR
+
+        # make writable
+        if new_mode != orig_mode:
+            os.chmod(path, new_mode)
+
+    except IOError:
+        # ignore access errors here, and just do nothing. It will be more
+        # intuitive for the calling code to fail on access instead.
+        #
+        orig_mode = None
+        new_mode = None
+
+    # yield, then reset mode back to original
+    try:
+        yield
+    finally:
+        if new_mode != orig_mode:
+            os.chmod(path, orig_mode)
+
+
+@contextmanager
 def retain_cwd():
     """Context manager that keeps cwd unchanged afterwards.
     """

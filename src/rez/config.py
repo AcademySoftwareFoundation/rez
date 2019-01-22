@@ -8,8 +8,7 @@ from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
-from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
-from rez.vendor.enum import Enum
+from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
@@ -362,6 +361,7 @@ config_schema = Schema({
     "rez_1_environment_variables":                  Bool,
     "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
+    "make_package_temporarily_writable":            Bool,
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
@@ -491,7 +491,7 @@ class Config(object):
         Returns:
             List of str: The sourced files.
         """
-        _ = self._data  # force a config load
+        _ = self._data  # noqa; force a config load
         return self._sourced_filepaths
 
     @cached_property
