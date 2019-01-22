@@ -93,11 +93,6 @@ class PackageCopyError(RezError):
     pass
 
 
-class ShallowPackageCopyForbiddenError(PackageCopyError):
-    """See use in package_copy.py"""
-    pass
-
-
 class PackageTestError(RezError):
     """There was a problem running a package test."""
     pass

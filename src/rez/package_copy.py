@@ -3,7 +3,7 @@ import os.path
 import time
 
 from rez.config import config
-from rez.exceptions import PackageCopyError, ShallowPackageCopyForbiddenError
+from rez.exceptions import PackageCopyError
 from rez.package_repository import package_repository_manager
 from rez.serialise import FileFormat
 from rez.utils.sourcecode import IncludeModuleManager
@@ -106,26 +106,6 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
             "Cannot copy package over itself: %s." % package.uri
         )
 
-    # Avoid edge case which can corrupt the source package.
-    #
-    # Consider a package with 2 variants, with subpaths 'A' and 'A/B'. A shallow
-    # copy can corrupt the source package because of the following:
-    #
-    # * Variant `<newpkg>/A` is created as symlink to `<oldpkg>/A`;
-    # * Variant `<newpkg>/A/B` is created as symlink to `<oldpkg>/A/B`;
-    # * Whoops, this actually has created a self-referencing symlink at `<oldpkg>/A/B`.
-    #
-    # To avoid this, we simply check for overlapping variants, and disallow
-    # shallow copy. This is done regardless of the variants being copied, because
-    # there are too many cases where a subsequent variant install would also run
-    # into problems.
-    #
-    if shallow and not skip_payload and _package_has_overlapped_variants(package):
-        raise ShallowPackageCopyForbiddenError(
-            "Cannot shallow copy %s; there are overlapping variants"
-            % package.uri
-        )
-
     # determine variants to potentially install
     src_variants = []
     for variant in package.iter_variants():
@@ -208,7 +188,8 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
                     dest_pkg_repo=dest_pkg_repo,
                     shallow=shallow,
                     follow_symlinks=follow_symlinks,
-                    overrides=overrides
+                    overrides=overrides,
+                    verbose=verbose
                 )
 
             # construct overrides
@@ -233,7 +214,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
 
 
 def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
-                          follow_symlinks=False, overrides=None):
+                          follow_symlinks=False, overrides=None, verbose=False):
         # Get payload path of source variant. For some types (eg from a "memory"
         # type repo) there may not be a root.
         #
@@ -263,7 +244,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
             variant_install_path = os.path.join(variant_install_path,
                                                 src_variant.subpath)
 
-        # perform the copy/symlinking
+        # get ready for copy/symlinking; create variant install path
         copy_func = partial(replacing_copy,
                             follow_symlinks=follow_symlinks)
 
@@ -272,38 +253,69 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         else:
             maybe_symlink = copy_func
 
+        safe_makedirs(variant_install_path)
+
+        # determine files not to copy
+        skip_files = []
+
         if src_variant.subpath:
-            # symlink/copy the last install dir to the variant root
-            safe_makedirs(os.path.dirname(variant_install_path))
-            maybe_symlink(variant_root, variant_install_path)
-        else:
-            safe_makedirs(variant_install_path)
-
-            # Symlink/copy all files and dirs within the null variant, except
-            # for the package definition itself.
+            # Detect overlapped variants. This is the case where one variant subpath
+            # might be A, and another is A/B. We must ensure that A/B is not created
+            # as a symlink during shallow install of variant A - that would then
+            # cause A/B payload to be installed back into original package, possibly
+            # corrupting it.
             #
-            for name in os.listdir(variant_root):
-                is_pkg_defn = False
+            # Here we detect this case, and create a list of dirs not to copy/link,
+            # because they are in fact a subpath dir for another variant.
+            #
+            skip_files.extend(_get_other_variant_dirs(src_variant))
+        else:
+            # just skip package definition file
+            for name in config.plugins.package_repository.filesystem.package_filenames:
+                for fmt in (FileFormat.py, FileFormat.yaml):
+                    filename = name + '.' + fmt.extension
+                    skip_files.append(filename)
 
-                # skip package definition file
-                name_ = os.path.splitext(name)[0]
-                if name_ in config.plugins.package_repository.filesystem.package_filenames:
-                    for fmt in (FileFormat.py, FileFormat.yaml):
-                        filename = name_ + '.' + fmt.extension
-                        if name == filename:
-                            is_pkg_defn = True
-                            break
+        # copy/link all topmost files within the variant root
+        for name in os.listdir(variant_root):
+            if name in skip_files:
+                filepath = os.path.join(variant_root, name)
 
-                if is_pkg_defn:
-                    continue
+                if verbose:
+                    if src_variant.subpath:
+                        msg = ("Did not copy %s - this is part of an "
+                               "overlapping variant's root path.")
+                    else:
+                        msg = "Did not copy package definition file %s"
 
-                src_path = os.path.join(variant_root, name)
-                dest_path = os.path.join(variant_install_path, name)
+                    print_info(msg, filepath)
 
-                if os.path.islink(src_path):
-                    copy_func(src_path, dest_path)
-                else:
-                    maybe_symlink(src_path, dest_path)
+                continue
+
+            src_path = os.path.join(variant_root, name)
+            dest_path = os.path.join(variant_install_path, name)
+
+            if os.path.islink(src_path):
+                copy_func(src_path, dest_path)
+            else:
+                maybe_symlink(src_path, dest_path)
+
+
+def _get_other_variant_dirs(src_variant):
+    package = src_variant.parent
+    dirs = set()
+
+    # find other variants that overlap src_variant and have deeper subpath
+    for variant in package.iter_variants():
+        if variant.index == src_variant.index:
+            continue
+
+        if variant.root.startswith(src_variant.root + os.path.sep):
+            relpath = os.path.relpath(variant.root, src_variant.root)
+            topmost_dir = relpath.split(os.path.sep)[0]
+            dirs.add(topmost_dir)
+
+    return list(dirs)
 
 
 def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
@@ -326,15 +338,6 @@ def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
 
     safe_makedirs(dest_include_modules_path)
     additive_copytree(src_include_modules_path, dest_include_modules_path)
-
-
-def _package_has_overlapped_variants(package):
-    for variant in package.iter_variants():
-        for variant2 in package.iter_variants():
-            if variant2.index != variant.index and \
-                    variant2.subpath.startswith(variant.subpath + os.path.sep):
-                return True
-    return False
 
 
 # Copyright 2013-2016 Allan Johns.
