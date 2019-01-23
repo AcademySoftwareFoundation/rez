@@ -5,8 +5,10 @@ from rez.package_repository import package_repository_manager
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError
+from rez.utils import with_noop
 from rez.utils.colorize import Printer, warning
-from rez.utils.filesystem import safe_makedirs, copy_or_replace, make_path_writable
+from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
+    make_path_writable, get_existing_path
 from rez.utils.sourcecode import IncludeModuleManager
 from hashlib import sha1
 import shutil
@@ -111,7 +113,17 @@ class LocalBuildProcess(BuildProcessHelper):
 
         safe_makedirs(variant_build_path)
 
-        def doit():
+        # find last dir of installation path that exists, and possibly make it
+        # writable during variant installation
+        #
+        last_dir = get_existing_path(variant_install_path,
+                                     topmost_path=install_path)
+        if last_dir:
+            ctxt = make_path_writable(last_dir)
+        else:
+            ctxt = with_noop()
+
+        with ctxt:
             if install:
                 # inform package repo that a variant is about to be built/installed
                 pkg_repo = package_repository_manager.get_repository(install_path)
@@ -172,26 +184,6 @@ class LocalBuildProcess(BuildProcessHelper):
                 self._install_include_modules(install_path)
 
             return build_result
-
-        # find last dir of installation path that exists
-        path = variant_install_path
-        last_dir = None
-
-        while not os.path.exists(path):
-            path = os.path.dirname(path)
-            if os.path.normpath(path) == os.path.normpath(install_path):
-                break
-
-            if os.path.exists(path):
-                last_dir = path
-                break
-
-        # perform the variant install, possibly making its path writable
-        if last_dir:
-            with make_path_writable(last_dir):
-                return doit()
-        else:
-            return doit()
 
     def _install_include_modules(self, install_path):
         # install 'include' sourcefiles, used by funcs decorated with @include

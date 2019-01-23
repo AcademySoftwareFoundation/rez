@@ -123,6 +123,37 @@ def retain_cwd():
         os.chdir(cwd)
 
 
+def get_existing_path(path, topmost_path=None):
+    """Get the longest parent path in `path` that exists.
+
+    If `path` exists, it is returned.
+
+    Args:
+        path (str): Path to test
+        topmost_path (str): Do not test this path or above
+
+    Returns:
+        str: Existing path, or None if no path was found.
+    """
+    prev_path = None
+
+    if topmost_path:
+        topmost_path = os.path.normpath(topmost_path)
+
+    while True:
+        if os.path.exists(path):
+            return path
+
+        path = os.path.dirname(path)
+        if path == prev_path:
+            return None
+
+        if topmost_path and os.path.normpath(path) == topmost_path:
+            return None
+
+        prev_path = path
+
+
 def safe_makedirs(path):
     """Safe makedirs.
 
