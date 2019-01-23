@@ -73,6 +73,46 @@ atexit.register(TempDirs.clear_all)
 
 
 @contextmanager
+def make_path_writable(path):
+    """Temporarily make `path` writable, if possible.
+
+    Does nothing if:
+        - config setting 'make_package_temporarily_writable' is False;
+        - this can't be done (eg we don't own `path`).
+
+    Args:
+        path (str): Path to make temporarily writable
+    """
+    from rez.config import config
+
+    try:
+        orig_mode = os.stat(path).st_mode
+        new_mode = orig_mode
+
+        if config.make_package_temporarily_writable and \
+                not os.access(path, os.W_OK):
+            new_mode = orig_mode | stat.S_IWUSR
+
+        # make writable
+        if new_mode != orig_mode:
+            os.chmod(path, new_mode)
+
+    except IOError:
+        # ignore access errors here, and just do nothing. It will be more
+        # intuitive for the calling code to fail on access instead.
+        #
+        orig_mode = None
+        new_mode = None
+
+    # yield, then reset mode back to original
+    try:
+        yield
+    finally:
+        if new_mode != orig_mode:
+            os.chmod(path, orig_mode)
+
+
+@contextmanager
 def retain_cwd():
     """Context manager that keeps cwd unchanged afterwards.
     """
@@ -81,6 +121,37 @@ def retain_cwd():
         yield
     finally:
         os.chdir(cwd)
+
+
+def get_existing_path(path, topmost_path=None):
+    """Get the longest parent path in `path` that exists.
+
+    If `path` exists, it is returned.
+
+    Args:
+        path (str): Path to test
+        topmost_path (str): Do not test this path or above
+
+    Returns:
+        str: Existing path, or None if no path was found.
+    """
+    prev_path = None
+
+    if topmost_path:
+        topmost_path = os.path.normpath(topmost_path)
+
+    while True:
+        if os.path.exists(path):
+            return path
+
+        path = os.path.dirname(path)
+        if path == prev_path:
+            return None
+
+        if topmost_path and os.path.normpath(path) == topmost_path:
+            return None
+
+        prev_path = path
 
 
 def safe_makedirs(path):
