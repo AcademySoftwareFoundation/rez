@@ -97,7 +97,7 @@ def make_path_writable(path):
         if new_mode != orig_mode:
             os.chmod(path, new_mode)
 
-    except IOError:
+    except OSError:
         # ignore access errors here, and just do nothing. It will be more
         # intuitive for the calling code to fail on access instead.
         #

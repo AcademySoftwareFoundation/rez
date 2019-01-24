@@ -1,12 +1,7 @@
-"""
-Takes the latest entry in CHANGELOG.md and creates the matching release notes
-on GitHub (https://github.com/nerdvegas/rez/releases).
-"""
-
+import argparse
 from getpass import getpass
 import pipes
 import pprint
-import re
 import subprocess
 import sys
 
@@ -52,27 +47,42 @@ def run_proc(*nargs):
 def parse_topmost_changelog():
     result = {}
     body_lines = []
-    pr_regex = re.compile("[0-9]+")
 
     with open("CHANGELOG.md") as f:
         for line in f.readlines():
             parts = line.split()
 
+            # eg: ## [2.27.0](https://github.com/nerdvegas/rez/tree/2.27.0) (2019-01-24)
             if parts and parts[0] == "##":
                 if result.get("version"):
                     result["body"] = ''.join(body_lines).strip()
                     return result
 
-                # eg: ## 2.26.4 [[#562](https://github.com/nerdvegas/rez/pull/562)] Fixed Regression in 2.24.0
-                result["version"] = parts[1]
-                result["pr_num"] = int(pr_regex.findall(parts[2])[0])
-                result["name"] = ' '.join(parts[3:])
+                result["version"] = parts[1].split(']')[0].split('[')[-1]
+                result["name"] = result["version"] + ' ' + parts[-1]
 
             elif result.get("version"):
                 body_lines.append(line)
 
 
-if __name__ == "__main__":
+def create_changelog_entry():
+    """
+    Requires github_changelog_generator util:
+    https://github.com/github-changelog-generator/github-changelog-generator
+    """
+
+    # get most recent tag - we only want to generate the new changelog up til there
+    changelog = parse_topmost_changelog()
+    tag_name = changelog["version"]
+
+    run_proc(
+        "github_changelog_generator",
+        "--since-tag=" + tag_name,
+        "--output=LATEST_CHANGELOG.md"
+    )
+
+
+def create_release_notes():
     # check that we're on master
     branch = run_proc("git", "branch", "--contains").split()[-1]
     if branch != "master":
@@ -80,7 +90,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # get current tag
-    latest_tag = run_proc("git", "describe", "--tags")
+    latest_tag = run_proc("git", "describe", "--tags", "--abbrev=0")
 
     # see if latest release already matches tag
     response = requests.get(get_url("releases/latest"))
@@ -94,18 +104,20 @@ if __name__ == "__main__":
     # parse latest release out of changelog
     changelog = parse_topmost_changelog()
 
-    # perform some modifications to the release info
     tag_name = changelog["version"]
-    name = "{version}: {name}".format(**changelog)
-
-    pr_url = "https://github.com/nerdvegas/rez/pull/" + str(changelog["pr_num"])
-    body = "#### Release PR:\n\n" + pr_url + "\n\n" + changelog["body"]
+    if tag_name != latest_tag:
+        print >> sys.stderr, (
+            "Latest entry in changelog (%s) doesn't match latest tag (%s)"
+            % (tag_name, latest_tag)
+        )
+        sys.exit(1)
 
     data = dict(
         tag_name=tag_name,
-        name=name,
-        body=body
+        name=changelog["name"],
+        body=changelog["body"]
     )
+
     print(pprint.pformat(data))
 
     # create the release on github
@@ -116,3 +128,17 @@ if __name__ == "__main__":
     )
 
     response.raise_for_status()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    subparser = subparsers.add_parser("create-release-notes")
+    subparser.set_defaults(func=create_release_notes)
+
+    subparser = subparsers.add_parser("create-changelog-entry")
+    subparser.set_defaults(func=create_changelog_entry)
+
+    opts = parser.parse_args()
+    opts.func(opts)
