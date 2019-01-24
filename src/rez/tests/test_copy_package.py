@@ -1,6 +1,11 @@
 """
 test package copying
 """
+import shutil
+import time
+import os.path
+import os
+
 from rez.system import system
 from rez.build_process_ import create_build_process
 from rez.build_system import create_build_system
@@ -9,9 +14,6 @@ from rez.packages_ import get_latest_package
 from rez.package_copy import copy_package
 from rez.vendor.version.version import VersionRange
 from rez.tests.util import TestBase, TempdirMixin
-import shutil
-import os.path
-import os
 
 
 class TestCopyPackage(TestBase, TempdirMixin):
@@ -239,6 +241,67 @@ class TestCopyPackage(TestBase, TempdirMixin):
         self.assertEqual(dest_variant.handle, result_variant.handle)
 
     def test_5(self):
+        """Package copy with standard, new timestamp."""
+        self._reset_dest_repository()
+
+        # wait 1 second to guarantee newer timestamp in copied pkg
+        time.sleep(1)
+
+        # copy package and overwrite timestamp
+        src_pkg = self._get_src_pkg("floob", "1.2.0")
+        copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root
+        )
+
+        # check copied variant contains expected timestamp
+        dest_pkg = self._get_dest_pkg("floob", "1.2.0")
+        self.assertTrue(dest_pkg.timestamp > src_pkg.timestamp)
+
+    def test_6(self):
+        """Package copy with keep_timestamp."""
+        self._reset_dest_repository()
+
+        # wait 1 second to ensure we don't just accidentally get same timestamp
+        time.sleep(1)
+
+        # copy package and overwrite timestamp
+        src_pkg = self._get_src_pkg("floob", "1.2.0")
+        copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            keep_timestamp=True
+        )
+
+        # check copied variant contains expected timestamp
+        dest_pkg = self._get_dest_pkg("floob", "1.2.0")
+        self.assertEqual(dest_pkg.timestamp, src_pkg.timestamp)
+
+    def test_7(self):
+        """Package copy with overrides."""
+        self._reset_dest_repository()
+
+        overrides = {
+            "timestamp": 10000,
+            "description": "this is a copy",
+            "some_extra_key": True
+        }
+
+        # copy package and overwrite timestamp
+        src_pkg = self._get_src_pkg("floob", "1.2.0")
+        copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            overrides=overrides
+        )
+
+        # check copied variant contains expected timestamp
+        dest_pkg = self._get_dest_pkg("floob", "1.2.0")
+
+        for k, v in overrides.iteritems():
+            self.assertEqual(getattr(dest_pkg, k), v)
+
+    def test_8(self):
         """Ensure that include modules are copied."""
         self._reset_dest_repository()
 
