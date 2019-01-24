@@ -197,7 +197,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
             # construct overrides
             overrides_ = overrides.copy()
 
-            if not keep_timestamp:
+            if not keep_timestamp and "timestamp" not in overrides:
                 overrides_["timestamp"] = int(time.time())
 
             # install the variant into the package definition
