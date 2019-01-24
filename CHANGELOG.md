@@ -1,3 +1,24 @@
+# Change Log
+
+## [2.27.0](https://github.com/nerdvegas/rez/tree/2.27.0) (2019-01-24)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.26.4...2.27.0)
+
+**Implemented enhancements:**
+
+- facilitate variant install when target package is read-only [\#565](https://github.com/nerdvegas/rez/issues/565)
+
+**Fixed bugs:**
+
+- timestamp override no working in package copy [\#568](https://github.com/nerdvegas/rez/issues/568)
+- shallow rez-cp can corrupt package if there are overlapping variants [\#563](https://github.com/nerdvegas/rez/issues/563)
+
+**Merged pull requests:**
+
+- Develop [\#570](https://github.com/nerdvegas/rez/pull/570) ([nerdvegas](https://github.com/nerdvegas))
+- - fixed https://github.com/nerdvegas/rez/issues/568 [\#569](https://github.com/nerdvegas/rez/pull/569) ([nerdvegas](https://github.com/nerdvegas))
+- Issue 565 [\#567](https://github.com/nerdvegas/rez/pull/567) ([nerdvegas](https://github.com/nerdvegas))
+- Issue 563 [\#566](https://github.com/nerdvegas/rez/pull/566) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.26.4 [[#562](https://github.com/nerdvegas/rez/pull/562)] Fixed Regression in 2.24.0
 
 #### Addressed Issues
