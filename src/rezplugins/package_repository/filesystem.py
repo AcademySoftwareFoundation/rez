@@ -19,6 +19,7 @@ from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning
 from rez.utils.memcached import memcached, pool_memcached_connections
+from rez.utils.filesystem import make_path_writable
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
@@ -1036,8 +1037,9 @@ class FileSystemPackageRepository(PackageRepository):
         package_file = ".".join([package_filename, package_extension])
         filepath = os.path.join(pkg_base_path, package_file)
 
-        with open_file_for_write(filepath, mode=self.package_file_mode) as f:
-            dump_package_data(package_data, buf=f, format_=package_format)
+        with make_path_writable(pkg_base_path):
+            with open_file_for_write(filepath, mode=self.package_file_mode) as f:
+                dump_package_data(package_data, buf=f, format_=package_format)
 
         # delete the tmp 'building' file.
         if variant_version:
