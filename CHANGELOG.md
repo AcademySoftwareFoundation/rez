@@ -15,7 +15,7 @@
 **Merged pull requests:**
 
 - Develop [\#570](https://github.com/nerdvegas/rez/pull/570) ([nerdvegas](https://github.com/nerdvegas))
-- - fixed https://github.com/nerdvegas/rez/issues/568 [\#569](https://github.com/nerdvegas/rez/pull/569) ([nerdvegas](https://github.com/nerdvegas))
+- Issue 568 [\#569](https://github.com/nerdvegas/rez/pull/569) ([nerdvegas](https://github.com/nerdvegas))
 - Issue 565 [\#567](https://github.com/nerdvegas/rez/pull/567) ([nerdvegas](https://github.com/nerdvegas))
 - Issue 563 [\#566](https://github.com/nerdvegas/rez/pull/566) ([nerdvegas](https://github.com/nerdvegas))
 
