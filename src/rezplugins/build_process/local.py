@@ -5,8 +5,10 @@ from rez.package_repository import package_repository_manager
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError
+from rez.utils import with_noop
 from rez.utils.colorize import Printer, warning
-from rez.utils.filesystem import safe_makedirs, copy_or_replace
+from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
+    make_path_writable, get_existing_path
 from rez.utils.sourcecode import IncludeModuleManager
 from hashlib import sha1
 import shutil
@@ -111,66 +113,77 @@ class LocalBuildProcess(BuildProcessHelper):
 
         safe_makedirs(variant_build_path)
 
-        if install:
-            # inform package repo that a variant is about to be built/installed
-            pkg_repo = package_repository_manager.get_repository(install_path)
-            pkg_repo.pre_variant_install(variant.resource)
-
-            if not os.path.exists(variant_install_path):
-                safe_makedirs(variant_install_path)
-
-        # Re-evaluate the variant, so that variables such as 'building' and
-        # 'build_variant_index' are set, and any early-bound package attribs
-        # are re-evaluated wrt these vars. This is done so that attribs such as
-        # 'requires' can change depending on whether a build is occurring or not.
+        # find last dir of installation path that exists, and possibly make it
+        # writable during variant installation
         #
-        # Note that this re-evaluated variant is ONLY used here, for the purposes
-        # of creating the build context. The variant that is actually installed
-        # is the one evaluated where 'building' is False.
-        #
-        re_evaluated_package = variant.parent.get_reevaluated({
-            "building": True,
-            "build_variant_index": variant.index or 0,
-            "build_variant_requires": variant.variant_requires
-        })
-        re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
+        last_dir = get_existing_path(variant_install_path,
+                                     topmost_path=install_path)
+        if last_dir:
+            ctxt = make_path_writable(last_dir)
+        else:
+            ctxt = with_noop()
 
-        # create build environment
-        context, rxt_filepath = self.create_build_context(
-            variant=re_evaluated_variant,
-            build_type=build_type,
-            build_path=variant_build_path)
+        with ctxt:
+            if install:
+                # inform package repo that a variant is about to be built/installed
+                pkg_repo = package_repository_manager.get_repository(install_path)
+                pkg_repo.pre_variant_install(variant.resource)
 
-        # run build system
-        build_system_name = self.build_system.name()
-        self._print("\nInvoking %s build system...", build_system_name)
+                if not os.path.exists(variant_install_path):
+                    safe_makedirs(variant_install_path)
 
-        build_result = self.build_system.build(
-            context=context,
-            variant=variant,
-            build_path=variant_build_path,
-            install_path=variant_install_path,
-            install=install,
-            build_type=build_type)
-
-        if not build_result.get("success"):
-            raise BuildError("The %s build system failed." % build_system_name)
-
-        if install:
-            # install some files for debugging purposes
-            extra_files = build_result.get("extra_files", [])
-            if rxt_filepath:
-                extra_files = extra_files + [rxt_filepath]
-
-            for file_ in extra_files:
-                copy_or_replace(file_, variant_install_path)
-
-            # Install include modules. Note that this doesn't need to be done
-            # multiple times, but for subsequent variants it has no effect.
+            # Re-evaluate the variant, so that variables such as 'building' and
+            # 'build_variant_index' are set, and any early-bound package attribs
+            # are re-evaluated wrt these vars. This is done so that attribs such as
+            # 'requires' can change depending on whether a build is occurring or not.
             #
-            self._install_include_modules(install_path)
+            # Note that this re-evaluated variant is ONLY used here, for the purposes
+            # of creating the build context. The variant that is actually installed
+            # is the one evaluated where 'building' is False.
+            #
+            re_evaluated_package = variant.parent.get_reevaluated({
+                "building": True,
+                "build_variant_index": variant.index or 0,
+                "build_variant_requires": variant.variant_requires
+            })
+            re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
 
-        return build_result
+            # create build environment
+            context, rxt_filepath = self.create_build_context(
+                variant=re_evaluated_variant,
+                build_type=build_type,
+                build_path=variant_build_path)
+
+            # run build system
+            build_system_name = self.build_system.name()
+            self._print("\nInvoking %s build system...", build_system_name)
+
+            build_result = self.build_system.build(
+                context=context,
+                variant=variant,
+                build_path=variant_build_path,
+                install_path=variant_install_path,
+                install=install,
+                build_type=build_type)
+
+            if not build_result.get("success"):
+                raise BuildError("The %s build system failed." % build_system_name)
+
+            if install:
+                # install some files for debugging purposes
+                extra_files = build_result.get("extra_files", [])
+                if rxt_filepath:
+                    extra_files = extra_files + [rxt_filepath]
+
+                for file_ in extra_files:
+                    copy_or_replace(file_, variant_install_path)
+
+                # Install include modules. Note that this doesn't need to be done
+                # multiple times, but for subsequent variants it has no effect.
+                #
+                self._install_include_modules(install_path)
+
+            return build_result
 
     def _install_include_modules(self, install_path):
         # install 'include' sourcefiles, used by funcs decorated with @include

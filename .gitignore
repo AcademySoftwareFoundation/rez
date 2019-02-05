@@ -12,3 +12,4 @@ docs/_build
 .rez-gen-wiki-tmp
 .idea/
 .vscode/
+LATEST_CHANGELOG.md

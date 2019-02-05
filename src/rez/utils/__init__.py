@@ -1,4 +1,10 @@
+from contextlib import contextmanager
 import sys
+
+
+@contextmanager
+def with_noop():
+    yield
 
 
 def reraise(exc, new_exc_cls=None, format_str=None):

@@ -8,6 +8,8 @@ sending a pull request. Please follow these guidelines:
 * Follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
   for docstrings;
 * Use *spaces*, not *tabs*;
+* Use [this format](https://help.github.com/articles/closing-issues-using-keywords/) to mention the
+  issue(s) your PR closes;
 * Add relevant tests to demonstrate that your changes work;
 * Add relevant documentation (see *wiki* source directory) to document your changes, if applicable.
 

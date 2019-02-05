@@ -564,6 +564,14 @@ release_hooks = []
 # no editor prompt.
 prompt_release_message = False
 
+# Sometimes a studio will run a post-release process to set a package and its
+# payload to read-only. If you set this option to True, processes that mutate an
+# existing package (such as releasing a variant into an existing package, or
+# copying a package) will, if possible, temporarily make a package writable
+# during these processes. The mode will be set back to original afterwards.
+#
+make_package_temporarily_writable = True
+
 
 ###############################################################################
 # Suites
