@@ -8,7 +8,7 @@ import shutil
 import os.path
 import textwrap
 import subprocess
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 source_path = os.path.dirname(os.path.realpath(__file__))
 bin_path = os.path.join(source_path, "bin")
@@ -17,8 +17,8 @@ sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
 from rez.backport.shutilwhich import which
-from build_utils.virtualenv.virtualenv import Logger, create_environment, \
-    path_locations
+from build_utils.virtualenv.virtualenv import (Logger, 
+    create_environment, path_locations)
 from build_utils.distlib.scripts import ScriptMaker
 
 
@@ -104,15 +104,23 @@ def copy_completion_scripts(dest_dir):
 if __name__ == "__main__":
     usage = ("usage: %prog [options] DEST_DIR ('{version}' in DEST_DIR will "
              "expand to Rez version)")
-    parser = OptionParser(usage=usage)
-    parser.add_option(
-        '-v', '--verbose', action='count', dest='verbose', default=0,
-        help="Increase verbosity.")
-    parser.add_option(
-        '-s', '--keep-symlinks', action="store_true", default=False,
+    parser = ArgumentParser(usage=usage)
+    parser.add_argument('dest_dir')
+    parser.add_argument(
+        '-v', '--verbose', 
+        action='count', 
+        dest='verbose', 
+        default=0,
+        help="Increase verbosity.",
+    )
+    parser.add_argument(
+        '-s', '--keep-symlinks', 
+        action="store_true", 
+        default=False,
         help="Don't run realpath on the passed DEST_DIR to resolve symlinks; "
-             "ie, the baked script locations may still contain symlinks")
-    opts, args = parser.parse_args()
+             "ie, the baked script locations may still contain symlinks",
+    )
+    args = parser.parse_args()
 
     if " " in os.path.realpath(__file__):
         err_str = "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n" \
@@ -120,18 +128,15 @@ if __name__ == "__main__":
         parser.error(err_str)
 
     # determine install path
-    if len(args) != 1:
-        parser.error("expected DEST_DIR")
-
-    dest_dir = args[0].format(version=_rez_version)
+    dest_dir = args.dest_dir.format(version=_rez_version)
     dest_dir = os.path.expanduser(dest_dir)
-    if not opts.keep_symlinks:
+    if not args.keep_symlinks:
         dest_dir = os.path.realpath(dest_dir)
 
-    print "installing rez to %s..." % dest_dir
+    print("installing rez to {}...".format(dest_dir))
 
     # make virtualenv verbose
-    log_level = Logger.level_for_integer(2 - opts.verbose)
+    log_level = Logger.level_for_integer(2 - args.verbose)
     logger = Logger([(log_level, sys.stdout)])
 
     # create the virtualenv
@@ -139,9 +144,10 @@ if __name__ == "__main__":
 
     # install rez from source
     _, _, _, venv_bin_dir = path_locations(dest_dir)
-    py_executable = which("python", env={"PATH":venv_bin_dir,
-                                         "PATHEXT":os.environ.get("PATHEXT",
-                                                                  "")})
+    py_executable = which(
+        "python", 
+        env={"PATH":venv_bin_dir, "PATHEXT":os.environ.get("PATHEXT", "")},
+    )
     args = [py_executable, "setup.py", "install"]
     if opts.verbose:
         print "running in %s: %s" % (source_path, " ".join(args))
