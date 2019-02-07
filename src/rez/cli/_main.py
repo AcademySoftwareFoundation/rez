@@ -1,6 +1,6 @@
 """The main command-line entry point."""
 import sys
-from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
+from argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.utils.logging_ import print_error
 from rez.exceptions import RezError, RezSystemError
@@ -155,17 +155,3 @@ if __name__ == '__main__':
     run()
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

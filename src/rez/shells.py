@@ -3,14 +3,13 @@ Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join
-from rez.backport.shutilwhich import which
+from rez._vendor.shutilwhich import which
 from rez.utils.logging_ import print_warning
 from rez.utils.system import popen
 from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
-import subprocess
 import os
 import os.path
 import pipes
@@ -403,17 +402,3 @@ class UnixShell(Shell):
         return shlex_join(command)
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

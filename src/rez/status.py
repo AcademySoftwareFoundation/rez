@@ -8,9 +8,9 @@ from rez.resolved_context import ResolvedContext
 from rez.packages_ import iter_packages, Package
 from rez.suite import Suite
 from rez.wrapper import Wrapper
-from rez.utils.colorize import local, warning, critical, Printer
+from rez.utils.colorize import warning, critical, Printer
 from rez.utils.formatting import print_colored_columns, PackageRequest
-from rez.backport.shutilwhich import which
+from rez._vendor.shutilwhich import which
 
 
 class Status(object):
@@ -372,17 +372,3 @@ class Status(object):
 status = Status()
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

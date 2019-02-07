@@ -33,7 +33,7 @@ from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
     LazyAttributeMeta
 from rez.config import config
 from rez.exceptions import ResourceError
-from rez.backport.lru_cache import lru_cache
+from rez._vendor.lru_cache import lru_cache
 from rez.utils.logging_ import print_debug
 
 
@@ -279,17 +279,3 @@ class ResourceWrapper(object):
         return hash((self.__class__, self.resource))
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

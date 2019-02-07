@@ -16,7 +16,7 @@ src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
-from rez.backport.shutilwhich import which
+from rez._vendor.shutilwhich import which
 from build_utils.virtualenv.virtualenv import (Logger, 
     create_environment, path_locations)
 from build_utils.distlib.scripts import ScriptMaker

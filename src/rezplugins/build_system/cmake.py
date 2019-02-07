@@ -9,7 +9,7 @@ from rez.util import create_forwarding_script
 from rez.packages_ import get_developer_package
 from rez.utils.platform_ import platform_
 from rez.config import config
-from rez.backport.shutilwhich import which
+from rez._vendor.shutilwhich import which
 from rez.vendor.schema.schema import Or
 from rez.shells import create_shell
 import functools
@@ -263,17 +263,3 @@ def register_plugin():
     return CMakeBuildSystem
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

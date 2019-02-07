@@ -4,7 +4,7 @@ Open a rez-configured shell, possibly interactive.
 
 
 def setup_parser(parser, completions=False):
-    from rez.vendor.argparse import SUPPRESS
+    from argparse import SUPPRESS
     from rez.config import config
     from rez.system import system
     from rez.shells import get_shell_types
@@ -251,17 +251,3 @@ def command(opts, parser, extra_arg_groups=None):
     sys.exit(returncode)
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

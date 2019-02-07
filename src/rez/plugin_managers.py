@@ -95,7 +95,7 @@ class RezPluginType(object):
 
     def load_plugins(self):
         import pkgutil
-        from rez.backport.importlib import import_module
+        from rez._vendor.importlib import import_module
         type_module_name = 'rezplugins.' + self.type_name
         package = import_module(type_module_name)
 
@@ -377,17 +377,3 @@ plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

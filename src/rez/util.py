@@ -2,11 +2,9 @@
 Misc useful stuff.
 """
 import stat
-import sys
 import atexit
 import os
 import os.path
-import copy
 from rez.exceptions import RezError
 from rez.utils.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
@@ -103,7 +101,7 @@ def shlex_join(value):
 
 # returns path to first program in the list to be successfully found
 def which(*programs, **shutilwhich_kwargs):
-    from rez.backport.shutilwhich import which as which_
+    from rez._vendor.shutilwhich import which as which_
     for prog in programs:
         path = which_(prog, **shutilwhich_kwargs)
         if path:
@@ -175,17 +173,3 @@ def _atexit():
         pass
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

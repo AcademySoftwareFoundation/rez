@@ -1,3 +1,7 @@
+import os
+import sys
+import argparse
+
 from rez.resolved_context import ResolvedContext
 from rez.utils.colorize import heading, local, critical, Printer
 from rez.utils.data_utils import cached_property
@@ -6,8 +10,6 @@ from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.exceptions import RezSystemError, SuiteError
 from rez.config import config
-import os.path
-import sys
 
 
 class Wrapper(object):
@@ -86,8 +88,6 @@ class Wrapper(object):
         return retcode
 
     def _run(self, prefix_char, args):
-        from rez.vendor import argparse
-
         parser = argparse.ArgumentParser(prog=self.tool_name,
                                          prefix_chars=prefix_char)
 
@@ -269,17 +269,3 @@ class Wrapper(object):
         Printer()(msg, critical)
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

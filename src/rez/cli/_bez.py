@@ -3,7 +3,8 @@ import sys
 import os.path
 import textwrap
 import subprocess
-from rez.vendor import yaml, argparse
+import argparse
+from rez.vendor import yaml
 from rez.utils.filesystem import TempDirs
 from rez.config import config
 
@@ -80,17 +81,3 @@ def run():
     sys.exit(p.returncode)
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

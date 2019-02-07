@@ -4,14 +4,14 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.util import shlex_join, dedup
+from rez.util import dedup
 from rez.utils.sourcecode import SourceCodeError
 from rez.utils.colorize import critical, heading, local, implicit, Printer
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX
 from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs
 from rez.utils.memcached import pool_memcached_connections
-from rez.backport.shutilwhich import which
+from rez._vendor.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
@@ -27,13 +27,10 @@ from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
 
-from tempfile import mkdtemp
 from functools import wraps
 import getpass
 import socket
 import threading
-import traceback
-import inspect
 import time
 import sys
 import os
@@ -1729,17 +1726,3 @@ class ResolvedContext(object):
             executor.env.PATH.append(tools_path)
 
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
