@@ -180,15 +180,7 @@ class PackageTestRunner(object):
             context = self.contexts.get(key)
 
             if context is None:
-                if self.verbose:
-                    print_header("Resolving test environment: %s\n",
-                                 ' '.join(map(quote, requires)))
-
-                context = ResolvedContext(package_requests=requires,
-                                          package_paths=self.package_paths,
-                                          buf=self.stdout,
-                                          timestamp=self.timestamp,
-                                          **self.context_kwargs)
+                context = self._get_test_context(requires)
 
                 if not context.success:
                     context.print_info(buf=self.stderr)
@@ -207,7 +199,7 @@ class PackageTestRunner(object):
                 else:
                     cmd_str = ' '.join(map(quote, command))
 
-                print_header("\nRunning test command: %s\n", cmd_str)
+                self._print_header("\nRunning test command: %s\n" % cmd_str)
 
             retcode, _, _ = context.execute_shell(
                 command=command,
@@ -223,6 +215,53 @@ class PackageTestRunner(object):
             break
 
         return 0  # success
+
+    def run_test_env(self, variant_index, test_name):
+        """
+        Runs test env which contains all packages required for any test
+        Args:
+            variant_index (int): chosen variant index
+            test_name (string): name of test 
+        """
+        package = self.get_package()
+        variant = package.get_variant(variant_index)
+
+        if not variant:
+            raise ValueError('Variant {variant_index} does not exist'.format(variant_index=str(variant_index)))
+
+        test_info = self._get_test_info(test_name, variant)
+
+        requires = test_info['requires']
+        context_name = tuple(requires)
+        context = self.contexts.get(context_name, self._get_test_context(requires))
+
+        return_code, _, _ = context.execute_shell()
+
+        sys.exit(return_code)
+
+    def _get_test_context(self, requires):
+        """
+        Resolves context of test environment basing on required packages
+        Args:
+            requires (list): list of required packages
+
+        Returns:
+            Resolved context (ResolvedContext object)
+        """
+        if self.verbose:
+            self._print_header("Resolving test environment: %s\n", ' '.join(map(quote, requires)))
+
+        context = ResolvedContext(package_requests=requires,
+                                  package_paths=self.package_paths,
+                                  buf=self.stdout,
+                                  timestamp=self.timestamp,
+                                  **self.context_kwargs)
+
+        return context
+
+    def _print_header(self, txt, *nargs):
+        pr = Printer(sys.stdout)
+        pr(txt % nargs, heading)
 
     def _get_test_info(self, test_name, variant):
         tests_dict = variant.tests or {}
