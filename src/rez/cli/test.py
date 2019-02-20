@@ -49,11 +49,11 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.package_test import PackageTestRunner
     from rez.config import config
 
+    pkg = None
+
     if is_dev_run(opts.PKG):
         pkg = get_package(os.getcwd())
         prepare_dev_env_package(pkg)
-    else:
-        pkg = get_package(opts.PKG)
 
     if opts.paths is None:
         pkg_paths = (config.nonlocal_packages_path
@@ -62,7 +62,7 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
-    runner = PackageTestRunner(package_request=pkg.name,
+    runner = PackageTestRunner(package_request=pkg.name if pkg else opts.PKG,
                                package_paths=pkg_paths,
                                extra_package_requests=opts.extra_packages,
                                verbose=True)
