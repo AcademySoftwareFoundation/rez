@@ -7,23 +7,23 @@ logger = logging.getLogger(__name__)
 
 
 def print_debug(msg, *nargs):
-    logger.debug(msg % nargs)
+    logger.debug(msg, nargs)
 
 
 def print_info(msg, *nargs):
-    logger.info(msg % nargs)
+    logger.info(msg, nargs)
 
 
 def print_warning(msg, *nargs):
-    logger.warning(msg % nargs)
+    logger.warning(msg, nargs)
 
 
 def print_error(msg, *nargs):
-    logger.error(msg % nargs)
+    logger.error(msg, nargs)
 
 
 def print_critical(msg, *nargs):
-    logger.critical(msg % nargs)
+    logger.critical(msg, nargs)
 
 
 def get_debug_printer(enabled=True):
