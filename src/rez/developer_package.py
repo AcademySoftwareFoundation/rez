@@ -1,6 +1,6 @@
 from rez.config import config
 from rez.packages_ import Package
-from rez.serialise import load_from_file, FileFormat
+from rez.serialise import load_from_file, FileFormat, set_objects
 from rez.packages_ import create_package
 from rez.exceptions import PackageMetadataError, InvalidPackageError
 from rez.utils.system import add_sys_paths
@@ -77,7 +77,7 @@ class DeveloperPackage(Package):
                     exists = True
 
                 if exists:
-                    data = load_from_file(filepath, format_)
+                    data = load_from_file(filepath, format_, disable_memcache=True)
                     break
             if data:
                 name = data.get("name")
@@ -118,6 +118,23 @@ class DeveloperPackage(Package):
 
         return package
 
+    def get_reevaluated(self, objects):
+        """Get a newly loaded and re-evaluated package.
+
+        Values in `objects` are made available to early-bound package
+        attributes. For example, a re-evaluated package might return a different
+        value for an early-bound 'private_build_requires', depending on the
+        variant currently being built.
+
+        Args:
+            objects (`dict`): Variables to expose to early-bound package attribs.
+
+        Returns:
+            `DeveloperPackage`: New package.
+        """
+        with set_objects(objects):
+            return self.from_path(self.root)
+
     def _validate_includes(self):
         if not self.includes:
             return
@@ -146,7 +163,7 @@ class DeveloperPackage(Package):
             changed the package; otherwise None.
         """
         from rez.serialise import process_python_objects
-        from rez.utils.data_utils import get_dict_diff
+        from rez.utils.data_utils import get_dict_diff_str
         from copy import deepcopy
 
         with add_sys_paths(config.package_definition_build_python_paths):
@@ -210,20 +227,11 @@ class DeveloperPackage(Package):
                                  package_cls=self.__class__)
 
         # print summary of changed package attributes
-        added, removed, changed = get_dict_diff(data, preprocessed_data)
-        lines = ["Package attributes were changed in preprocessing:"]
-
-        if added:
-            lines.append("Added attributes: %s"
-                         % ['.'.join(x) for x in added])
-        if removed:
-            lines.append("Removed attributes: %s"
-                         % ['.'.join(x) for x in removed])
-        if changed:
-            lines.append("Changed attributes: %s"
-                         % ['.'.join(x) for x in changed])
-
-        txt = '\n'.join(lines)
+        txt = get_dict_diff_str(
+            data,
+            preprocessed_data,
+            title="Package attributes were changed in preprocessing:"
+        )
         print_info(txt)
 
         return package, preprocessed_data

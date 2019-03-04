@@ -108,6 +108,38 @@ define an arbitrary function earlier in the python source. You can always use a 
 two as well - an early binding function can call an arbitrary function defined at the bottom of
 your definition file.
 
+#### Available Objects
+
+Following is the list of objects that are available during early evaluation.
+
+* *building* - see [building](Package-Commands#building);
+* *build_variant_index* - the index of the variant currently being built. This is only relevant if
+  `building` is True.
+* *build_variant_requires* - the subset of package requirements specific to the variant
+  currently being built. This is a list of `PackageRequest` objects. This is only relevant if
+  `building` is True.
+* *this* - the current package, as described previously.
+
+Be aware that early-bound functions are actually evaluated multiple times during a build - once
+pre-build, and once per variant, during its build. This is necessary in order for early-bound
+functions to change their return value based on variables like `build_variant_index`. Note that the
+*pre-build* evaluated value is the one set into the installed package, and in this case, `building`
+is False.
+
+An example of where you'd need to be aware of this is if you wanted the `requires` field to include
+a certain package at runtime only (ie, not present during the package build). In this case, `requires`
+might look like so:
+
+    @early()
+    def requires():
+        if building:
+            return ["python-2"]
+        else:
+            return ["runtimeonly-1.2", "python-2"]
+
+> [[media/icons/warning.png]] You **must** ensure that your early-bound function returns the value
+> you want to see in the installed package, when `building` is False.
+
 ### Late Binding Functions
 
 Late binding functions stay as functions in the installed package definition, and are only evaluated
@@ -194,23 +226,64 @@ late binding *tool* attribute below:
 Here the *request* object is being checked to see if the *maya* package was requested in the
 current env; if it was, a maya-specific tool *maya-edit* is added to the tool list.
 
-Following is the list of objects that are available during late evaluation, if *in_context*
-is true:
+> [[media/icons/warning.png]] Always ensure your late binding function returns a sensible
+> value regardless of whether *in_context* is True or False. Otherwise, simply trying to
+> query the package attributes (using *rez-search* for example) may cause errors.
 
-* **context** - the *ResolvedContext* instance this package belongs to;
-* **system** - see [system](Package-Commands#system);
-* **building** - see [building](Package-Commands#building);
-* **request** - see [request](Package-Commands#request);
-* **implicits** - see [implicits](Package-Commands#implicits).
+#### Available Objects
+
+Following is the list of objects that are available during late evaluation, if *in_context*
+is *True*:
+
+* *context* - the *ResolvedContext* instance this package belongs to;
+* *system* - see [system](Package-Commands#system);
+* *building* - see [building](Package-Commands#building);
+* *request* - see [request](Package-Commands#request);
+* *implicits* - see [implicits](Package-Commands#implicits).
 
 The following objects are available in *all* cases:
 
-* **this** - the current package;
-* **in_context** - the *in_context* function itself.
+* *this* - the current package/variant (see note below);
+* *in_context* - the *in_context* function itself.
 
-> [[media/icons/warning.png]] Always ensure your late binding function returns a sensible
-> value regardless of whether *in_context* is true or false. Otherwise, simply trying to
-> query the package attributes (using *rez-search* for example) may cause errors.
+> [[media/icons/warning.png]] The *this* object may be either a package or a variant,
+> depending on the situation. For example, if *in_context* is True, then *this* is a
+> variant, because variants are the objects present in a resolved context. On the other
+> hand, if a package is accessed via API (for example, by using the *rez-search* tool),
+> then *this* may be a package. The difference matters, because variants have some
+> attributes that packages don't - notably, *root* and *index*. Use the properties
+> `this.is_package` and `this.is_variant` to distinguish the case if needed.
+
+#### Example - Late Bound build_requires
+
+Here is an example of a package.py with a late-bound `build_requires` field:
+
+    name = "maya_thing"
+
+    version = "1.0.0"
+
+    variants = [
+        ["maya-2017"],
+        ["maya-2018"]
+    ]
+
+    @late()
+    def build_requires():
+        if this.is_package:
+            return []
+        elif this.index == 0:
+            return ["maya_2017_build_utils"]
+        else:
+            return ["maya_2018_build_utils"]
+
+Note the check for `this.is_package`. This is necessary, otherwise the evaluation would
+fail in some circumstances. Specifically, if someone ran the following command, the `this`
+field would actually be a `Package` instance, which doesn't have an `index`:
+
+    ]$ rez-search maya_thing --type package --format '{build_requires}'
+
+In this case, `build_requires` is somewhat nonsensical (there is no common build requirement
+for both variants here), but something needs to be returned nonetheless.
 
 ## Sharing Code Across Package Definition Files
 
@@ -546,6 +619,14 @@ pass; then, all *commands* are run in a second; and lastly, *post_commands* are 
 phase. It is sometimes useful to ensure that some of a package's commands are run before, or after
 all others, and using pre/post_commands is a way of doing that.
 
+### relocatable
+*Boolean*
+
+    relocatable = True
+
+Determines whether a package can be copied to another package repository (using the `rez-cp` tool for
+example). If not provided, this is determined from the global config setting [default_relocatable](Configuring-Rez#default_relocatable).
+
 ### requires
 *List of string*
 
@@ -662,6 +743,14 @@ The *{install}* string expands to "*install*" if an installation is occurring, o
 otherwise. This is useful for passing the install target directly to the command (for example, when
 using *make*) rather than relying on a build script checking the *REZ_BUILD_INSTALL* environment
 variable.
+
+### build_system
+*String*
+
+    build_system = "cmake"
+
+Specify the build system used to build this package. If not set, it is detected automatically when
+a build occurs (or the user specifies it using the `--build-system` option).
 
 ### preprocess
 *Function*

@@ -4,7 +4,6 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
 from rez.utils import reraise
-from rez.utils.logging_ import print_info, print_error
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType, expandvars
@@ -14,16 +13,14 @@ from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
-from rez.serialise import load_from_file, FileFormat
+from rez.serialise import FileFormat
 from rez.config import config
-from rez.system import system
-import os.path
 import sys
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # package-related classes
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
     format_expand = StringFormatType.unchanged
@@ -32,6 +29,15 @@ class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
         data = ResourceWrapper.validated_data(self)
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
+
+    @property
+    def repository(self):
+        """The package repository this resource comes from.
+
+        Returns:
+            `PackageRepository`.
+        """
+        return self.resource._repository
 
 
 class PackageFamily(PackageRepositoryResourceWrapper):
@@ -53,8 +59,7 @@ class PackageFamily(PackageRepositoryResourceWrapper):
         Returns:
             `Package` iterator.
         """
-        repo = self.resource._repository
-        for package in repo.iter_packages(self.resource):
+        for package in self.repository.iter_packages(self.resource):
             yield Package(package)
 
 
@@ -68,7 +73,9 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     def __init__(self, resource, context=None):
         super(PackageBaseResourceWrapper, self).__init__(resource)
         self.context = context
-        self._late_bindings = {}
+
+        # cached results of late-bound funcs
+        self._late_binding_returnvalues = {}
 
     def set_context(self, context):
         self.context = context
@@ -171,16 +178,19 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
     def _wrap_forwarded(self, key, value):
         if isinstance(value, SourceCode) and value.late_binding:
-            value_ = self._late_bindings.get(key, KeyError)
+            # get cached return value if present
+            value_ = self._late_binding_returnvalues.get(key, KeyError)
 
             if value_ is KeyError:
+                # evaluate the late-bound function
                 value_ = self._eval_late_binding(value)
 
                 schema = self.late_bind_schemas.get(key)
                 if schema is not None:
                     value_ = schema.validate(value_)
 
-                self._late_bindings[key] = value_
+                # cache result of late bound func
+                self._late_binding_returnvalues[key] = value_
 
             return value_
         else:
@@ -199,14 +209,12 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
             bindings = self.context._get_pre_resolve_bindings()
             g.update(bindings)
 
-        # note that what 'this' actually points to depends on whether the context
-        # is available or not. If not, then 'this' is a Package instance; if the
-        # context is available, it is a Variant instance. So for example, if
-        # in_context() is True, 'this' will have a 'root' attribute, but will
-        # not if in_context() is False.
+        # Note that 'this' could be a `Package` or `Variant` instance. This is
+        # intentional; it just depends on how the package is accessed.
         #
         g["this"] = self
 
+        # evaluate the late-bound function
         sourcecode.set_package(self)
         return sourcecode.exec_(globals_=g)
 
@@ -220,6 +228,12 @@ class Package(PackageBaseResourceWrapper):
     """
     keys = schema_keys(package_schema)
 
+    # This is to allow for a simple check like 'this.is_package' in late-bound
+    # funcs, where 'this' may be a package or variant.
+    #
+    is_package = True
+    is_variant = False
+
     def __init__(self, resource, context=None):
         _check_class(resource, PackageResource)
         super(Package, self).__init__(resource, context)
@@ -229,7 +243,6 @@ class Package(PackageBaseResourceWrapper):
         if name in self.data:
             value = self.data[name]
             return self._wrap_forwarded(name, value)
-            #return self.data[name]
         else:
             raise AttributeError("Package instance has no attribute '%s'" % name)
 
@@ -260,13 +273,21 @@ class Package(PackageBaseResourceWrapper):
         Returns:
             `PackageFamily`.
         """
-        repo = self.resource._repository
-        family = repo.get_parent_package_family(self.resource)
+        family = self.repository.get_parent_package_family(self.resource)
         return PackageFamily(family) if family else None
 
     @cached_property
     def num_variants(self):
         return len(self.data.get("variants", []))
+
+    @property
+    def is_relocatable(self):
+        """True if the package and its payload is safe to copy.
+        """
+        if self.relocatable is None:
+            return config.default_relocatable
+        else:
+            return self.relocatable
 
     def iter_variants(self):
         """Iterate over the variants within this package, in index order.
@@ -274,8 +295,7 @@ class Package(PackageBaseResourceWrapper):
         Returns:
             `Variant` iterator.
         """
-        repo = self.resource._repository
-        for variant in repo.iter_variants(self.resource):
+        for variant in self.repository.iter_variants(self.resource):
             yield Variant(variant, context=self.context, parent=self)
 
     def get_variant(self, index=None):
@@ -298,6 +318,10 @@ class Variant(PackageBaseResourceWrapper):
     """
     keys = schema_keys(variant_schema)
     keys.update(["index", "root", "subpath"])
+
+    # See comment in `Package`
+    is_package = False
+    is_variant = True
 
     def __init__(self, resource, context=None, parent=None):
         _check_class(resource, VariantResource)
@@ -340,8 +364,7 @@ class Variant(PackageBaseResourceWrapper):
             return self._parent
 
         try:
-            repo = self.resource._repository
-            package = repo.get_parent_package(self.resource)
+            package = self.repository.get_parent_package(self.resource)
             self._parent = Package(package, context=self.context)
         except AttributeError as e:
             reraise(e, ValueError)
@@ -349,22 +372,30 @@ class Variant(PackageBaseResourceWrapper):
         return self._parent
 
     @property
+    def variant_requires(self):
+        """Get the subset of requirements specific to this variant.
+
+        Returns:
+            List of `Requirement` objects.
+        """
+        if self.index is None:
+            return []
+        else:
+            return self.parent.variants[self.index] or []
+
+    @property
     def requires(self):
         """Get variant requirements.
 
         This is a concatenation of the package requirements and those of this
         specific variant.
-        """
-        try:
-            package_requires = self.parent.requires or []
 
-            if self.index is None:
-                return package_requires
-            else:
-                variant_requires = self.parent.variants[self.index] or []
-                return package_requires + variant_requires
-        except AttributeError as e:
-            reraise(e, ValueError)
+        Returns:
+            List of `Requirement` objects.
+        """
+        return (
+            (self.parent.requires or []) + self.variant_requires
+        )
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
@@ -465,9 +496,9 @@ class PackageSearchPath(object):
         return uids
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # resource acquisition functions
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 def iter_package_families(paths=None):
     """Iterate over package families, in no particular order.
@@ -583,6 +614,15 @@ def get_package_from_string(txt, paths=None):
 
 
 def get_developer_package(path, format=None):
+    """Create a developer package.
+
+    Args:
+        path (str): Path to dir containing package definition file.
+        format (str): Package definition file format, detected if None.
+
+    Returns:
+        `DeveloperPackage`.
+    """
     from rez.developer_package import DeveloperPackage
     return DeveloperPackage.from_path(path, format=format)
 

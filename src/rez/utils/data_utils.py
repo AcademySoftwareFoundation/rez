@@ -30,6 +30,12 @@ class ModifyList(object):
         return (self.prepend or []) + v + (self.append or [])
 
 
+def remove_nones(**kwargs):
+    """Return diict copy with nones removed.
+    """
+    return dict((k, v) for k, v in kwargs.iteritems() if v is not None)
+
+
 def deep_update(dict1, dict2):
     """Perform a deep merge of `dict2` into `dict1`.
 
@@ -55,18 +61,6 @@ def deep_update(dict1, dict2):
         else:
             return flatten(v2)
 
-    """
-    import copy
-    for k, v in dict2.iteritems():
-        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
-            deep_update(dict1[k], v)
-        else:
-            dict1[k] = copy.deepcopy(v)
-
-    return
-    """
-
-    ### NEW
     for k1, v1 in dict1.iteritems():
         if k1 not in dict2:
             dict1[k1] = flatten(v1)
@@ -78,6 +72,26 @@ def deep_update(dict1, dict2):
             dict1[k2] = flatten(v2)
         else:
             dict1[k2] = merge(v1, v2)
+
+
+def deep_del(data, fn):
+    """Create dict copy with removed items.
+
+    Recursively remove items where fn(value) is True.
+
+    Returns:
+        dict: New dict with matching items removed.
+    """
+    result = {}
+
+    for k, v in data.iteritems():
+        if not fn(v):
+            if isinstance(v, dict):
+                result[k] = deep_del(v, fn)
+            else:
+                result[k] = v
+
+    return result
 
 
 def get_dict_diff(d1, d2):
@@ -119,6 +133,25 @@ def get_dict_diff(d1, d2):
         return added, removed, changed
 
     return _diff(d1, d2, [])
+
+
+def get_dict_diff_str(d1, d2, title):
+    """Returns same as `get_dict_diff`, but as a readable string.
+    """
+    added, removed, changed = get_dict_diff(d1, d2)
+    lines = [title]
+
+    if added:
+        lines.append("Added attributes: %s"
+                     % ['.'.join(x) for x in added])
+    if removed:
+        lines.append("Removed attributes: %s"
+                     % ['.'.join(x) for x in removed])
+    if changed:
+        lines.append("Changed attributes: %s"
+                     % ['.'.join(x) for x in changed])
+
+    return '\n'.join(lines)
 
 
 class cached_property(object):

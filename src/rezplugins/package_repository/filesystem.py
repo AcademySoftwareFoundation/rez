@@ -1,36 +1,43 @@
 """
 Filesystem-based package repository
 """
+from contextlib import contextmanager
+import os.path
+import os
+import stat
+import time
+
 from rez.package_repository import PackageRepository
-from rez.package_resources_ import PackageFamilyResource, PackageResource, \
-    VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
+from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper, \
+    PackageResourceHelper, package_pod_schema, \
     package_release_keys, package_build_only_keys
 from rez.serialise import clear_file_caches, open_file_for_write
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
     ConfigurationError, PackageRepositoryError
-from rez.utils.formatting import is_valid_package_name, PackageRequest
+from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning
+from rez.utils.memcached import memcached, pool_memcached_connections
+from rez.utils.filesystem import make_path_writable
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
-from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
 from rez.vendor.version.version import Version, VersionRange
-import time
-import os.path
-import os
 
 
-#------------------------------------------------------------------------------
+debug_print = config.debug_printer("resources")
+
+
+# ------------------------------------------------------------------------------
 # format version
 #
 # 1:
 # Initial format.
 # 2:
 # Late binding functions added.
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 format_version = 2
 
 
@@ -49,9 +56,9 @@ def check_format_version(filename, data):
                 "format version (%d)" % (filename, format_version_, format_version))
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # utilities
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 
 # this is set when the package repository is instantiated, otherwise an infinite
@@ -63,9 +70,9 @@ class PackageDefinitionFileMissing(PackageMetadataError):
     pass
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # resources
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class FileSystemPackageFamilyResource(PackageFamilyResource):
     key = "filesystem.family"
@@ -81,9 +88,8 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
     def get_last_release_time(self):
         # this repository makes sure to update path mtime every time a
         # variant is added to the repository
-        path = os.path.join(self.location, self.name)
         try:
-            return os.path.getmtime(path)
+            return os.path.getmtime(self.path)
         except OSError:
             return 0
 
@@ -255,10 +261,12 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
     repository_type = "filesystem"
 
     schema = Schema({
-        Optional("versions"):               [And(basestring,
-                                                 Use(Version))],
-        Optional("version_overrides"):      {And(basestring,
-                                                 Use(VersionRange)): dict}
+        Optional("versions"): [
+            And(basestring, Use(Version))
+        ],
+        Optional("version_overrides"): {
+            And(basestring, Use(VersionRange)): dict
+        }
     })
 
     @property
@@ -388,9 +396,9 @@ class FileSystemCombinedVariantResource(VariantResourceHelper):
         return None  # combined resource types do not have 'root'
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # repository
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 class FileSystemPackageRepository(PackageRepository):
     """A filesystem-based package repository.
@@ -432,6 +440,7 @@ class FileSystemPackageRepository(PackageRepository):
                    "package_filenames": [basestring]}
 
     building_prefix = ".building"
+    package_file_mode = (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
     @classmethod
     def name(cls):
@@ -537,15 +546,67 @@ class FileSystemPackageRepository(PackageRepository):
             pass
 
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
-        if variant_resource._repository is self:
+        overrides = overrides or {}
+
+        # Name and version overrides are a special case - they change the
+        # destination variant to be created/replaced.
+        #
+        variant_name = variant_resource.name
+        variant_version = variant_resource.version
+
+        if "name" in overrides:
+            variant_name = overrides["name"]
+            if variant_name is self.remove:
+                raise PackageRepositoryError(
+                    "Cannot remove package attribute 'name'")
+
+        if "version" in overrides:
+            ver = overrides["version"]
+            if ver is self.remove:
+                raise PackageRepositoryError(
+                    "Cannot remove package attribute 'version'")
+
+            if isinstance(ver, basestring):
+                ver = Version(ver)
+                overrides = overrides.copy()
+                overrides["version"] = ver
+
+            variant_version = ver
+
+        # cannot install over one's self, just return existing variant
+        if variant_resource._repository is self and \
+                variant_name == variant_resource.name and \
+                variant_version == variant_resource.version:
             return variant_resource
 
+        # check repo exists on disk
+        path = self.location
+        if not os.path.exists(path):
+            raise PackageRepositoryError(
+                "Package repository path does not exist: %s" % path)
+
+        # install the variant
+        def _create_variant():
+            return self._create_variant(
+                variant_resource,
+                dry_run=dry_run,
+                overrides=overrides
+            )
+
+        if dry_run:
+            variant = _create_variant()
+        else:
+            with self._lock_package(variant_name, variant_version):
+                variant = _create_variant()
+
+        return variant
+
+    @contextmanager
+    def _lock_package(self, package_name, package_version=None):
         from rez.vendor.lockfile import LockFile
-        filename = ".lock.%s" % variant_resource.name
-        if variant_resource.version:
-            filename += "-%s" % str(variant_resource.version)
 
         path = self.location
+
         if self.file_lock_dir:
             path = os.path.join(path, self.file_lock_dir)
 
@@ -554,18 +615,20 @@ class FileSystemPackageRepository(PackageRepository):
                 "Lockfile directory %s does not exist - please create and try "
                 "again" % path)
 
+        filename = ".lock.%s" % package_name
+        if package_version:
+            filename += "-%s" % str(package_version)
+
         lock_file = os.path.join(path, filename)
         lock = LockFile(lock_file)
 
         try:
             lock.acquire(timeout=_settings.file_lock_timeout)
-            variant = self._create_variant(variant_resource, dry_run=dry_run,
-                                           overrides=overrides)
+            yield
+
         finally:
             if lock.is_locked():
                 lock.release()
-
-        return variant
 
     def clear_caches(self):
         super(FileSystemPackageRepository, self).clear_caches()
@@ -578,6 +641,14 @@ class FileSystemPackageRepository(PackageRepository):
         self._get_version_dirs.forget()
         # unfortunately we need to clear file cache across the board
         clear_file_caches()
+
+    def get_package_payload_path(self, package_name, package_version=None):
+        path = os.path.join(self.location, package_name)
+
+        if package_version:
+            path = os.path.join(path, str(package_version))
+
+        return path
 
     # -- internal
 
@@ -737,10 +808,18 @@ class FileSystemPackageRepository(PackageRepository):
         return self.get_package_family(name)
 
     def _create_variant(self, variant, dry_run=False, overrides=None):
+        # special case overrides
+        variant_name = overrides.get("name") or variant.name
+        variant_version = overrides.get("version") or variant.version
+
+        overrides = (overrides or {}).copy()
+        overrides.pop("name", None)
+        overrides.pop("version", None)
+
         # find or create the package family
-        family = self.get_package_family(variant.name)
+        family = self.get_package_family(variant_name)
         if not family:
-            family = self._create_family(variant.name)
+            family = self._create_family(variant_name)
 
         if isinstance(family, FileSystemCombinedPackageFamilyResource):
             raise NotImplementedError(
@@ -751,7 +830,7 @@ class FileSystemPackageRepository(PackageRepository):
         existing_package = None
 
         for package in self.iter_packages(family):
-            if package.version == variant.version:
+            if package.version == variant_version:
                 # during a build, the family/version dirs get created ahead of
                 # time, which causes a 'missing package definition file' error.
                 # This is fine, we can just ignore it and write the new file.
@@ -780,24 +859,49 @@ class FileSystemPackageRepository(PackageRepository):
                         "Attempting to install a variant (%r) into an existing "
                         "package without variants (%r)" % (variant, package))
 
-        installed_variant_index = None
         existing_package_data = None
-        existing_variants_data = None
         release_data = {}
 
-        new_package_data = variant.parent.validated_data()
-        new_package_data.pop("variants", None)
-        package_changed = False
+        # Need to treat 'config' as special case. In validated data, this is
+        # converted to a Config object. We need it as the raw dict that you'd
+        # see in a package.py.
+        #
+        def _get_package_data(pkg):
+            data = pkg.validated_data()
+            if hasattr(pkg, "_data"):
+                raw_data = pkg._data
+            else:
+                raw_data = pkg.resource._data
 
-        def remove_build_keys(obj):
+            raw_config_data = raw_data.get('config')
+            data.pop("config", None)
+
+            if raw_config_data:
+                data["config"] = raw_config_data
+
+            return data
+
+        def _remove_build_keys(obj):
             for key in package_build_only_keys:
                 obj.pop(key, None)
 
-        remove_build_keys(new_package_data)
+        new_package_data = _get_package_data(variant.parent)
+        new_package_data.pop("variants", None)
+        new_package_data["name"] = variant_name
+        if variant_version:
+            new_package_data["version"] = variant_version
+        package_changed = False
+
+        _remove_build_keys(new_package_data)
 
         if existing_package:
-            existing_package_data = existing_package.validated_data()
-            remove_build_keys(existing_package_data)
+            debug_print(
+                "Found existing package for installation of variant %s: %s",
+                variant.uri, existing_package.uri
+            )
+
+            existing_package_data = _get_package_data(existing_package)
+            _remove_build_keys(existing_package_data)
 
             # detect case where new variant introduces package changes outside of variant
             data_1 = existing_package_data.copy()
@@ -815,30 +919,51 @@ class FileSystemPackageRepository(PackageRepository):
 
             package_changed = (data_1 != data_2)
 
-        # special case - installing a no-variant pkg into a no-variant pkg
-        if existing_package and variant.index is None:
-            if dry_run and not package_changed:
-                variant_ = self.iter_variants(existing_package).next()
-                return variant_
-            else:
-                # just replace the package
-                existing_package = None
+            if debug_print:
+                if package_changed:
+                    from rez.utils.data_utils import get_dict_diff_str
+
+                    debug_print("Variant %s package data differs from package %s",
+                                variant.uri, existing_package.uri)
+
+                    txt = get_dict_diff_str(data_1, data_2, "Changes:")
+                    debug_print(txt)
+                else:
+                    debug_print("Variant %s package data matches package %s",
+                                variant.uri, existing_package.uri)
+
+        # check for existing installed variant
+        existing_installed_variant = None
+        installed_variant_index = None
 
         if existing_package:
-            # see if variant already exists in package
-            variant_requires = variant.variant_requires
+            if variant.index is None:
+                existing_installed_variant = \
+                    self.iter_variants(existing_package).next()
+            else:
+                variant_requires = variant.variant_requires
 
-            for variant_ in self.iter_variants(existing_package):
-                variant_requires_ = existing_package.variants[variant_.index]
-                if variant_requires_ == variant_requires:
-                    installed_variant_index = variant_.index
-                    if dry_run and not package_changed:
-                        return variant_
-                    break
+                for variant_ in self.iter_variants(existing_package):
+                    variant_requires_ = existing_package.variants[variant_.index]
+                    if variant_requires_ == variant_requires:
+                        installed_variant_index = variant_.index
+                        existing_installed_variant = variant_
 
-            parent_package = existing_package
+        if existing_installed_variant:
+            debug_print(
+                "Variant %s already has installed equivalent: %s",
+                variant.uri, existing_installed_variant.uri
+            )
 
-            _, file_  = os.path.split(existing_package.filepath)
+        if dry_run:
+            if not package_changed:
+                return existing_installed_variant
+            else:
+                return None
+
+        # construct package data for new installed package definition
+        if existing_package:
+            _, file_ = os.path.split(existing_package.filepath)
             package_filename, package_extension = os.path.splitext(file_)
             package_extension = package_extension[1:]
             package_format = FileFormat[package_extension]
@@ -847,18 +972,16 @@ class FileSystemPackageRepository(PackageRepository):
                 # graft together new package data, with existing package variants,
                 # and other data that needs to stay unchanged (eg timestamp)
                 package_data = new_package_data
-                package_data["variants"] = existing_package_data.get("variants", [])
+
+                if variant.index is not None:
+                    package_data["variants"] = existing_package_data.get("variants", [])
             else:
                 package_data = existing_package_data
         else:
-            parent_package = variant.parent
             package_data = new_package_data
             package_filename = _settings.package_filenames[0]
             package_extension = "py"
             package_format = FileFormat.py
-
-        if dry_run:
-            return None
 
         # merge existing release data (if any) into the package. Note that when
         # this data becomes variant-specific, this step will no longer be needed
@@ -873,39 +996,54 @@ class FileSystemPackageRepository(PackageRepository):
             installed_variant_index = len(package_data["variants"]) - 1
 
         # a little data massaging is needed
-        package_data["config"] = parent_package._data.get("config")
         package_data.pop("base", None)
 
         # create version dir if it doesn't already exist
-        family_path = os.path.join(self.location, variant.name)
-        if variant.version:
-            path = os.path.join(family_path, str(variant.version))
+        family_path = os.path.join(self.location, variant_name)
+        if variant_version:
+            pkg_base_path = os.path.join(family_path, str(variant_version))
         else:
-            path = family_path
-        if not os.path.exists(path):
-            os.makedirs(path)
+            pkg_base_path = family_path
+        if not os.path.exists(pkg_base_path):
+            os.makedirs(pkg_base_path)
 
-        # add the timestamp
-        overrides = overrides or {}
-        overrides["timestamp"] = int(time.time())
+        # Apply overrides.
+        #
+        # If we're installing into an existing package, then existing attributes
+        # in that package take precedence over `overrides`. If we're installing
+        # to a new package, then `overrides` takes precedence always.
+        #
+        # This is done so that variants added to an existing package don't change
+        # attributes such as 'timestamp' or release-related fields like 'revision'.
+        #
+        for key, value in overrides.iteritems():
+            if existing_package:
+                if key not in package_data:
+                    package_data[key] = value
+            else:
+                if value is self.remove:
+                    package_data.pop(key, None)
+                else:
+                    package_data[key] = value
 
-        # add the format version
+        # timestamp defaults to now if not specified
+        if not package_data.get("timestamp"):
+            package_data["timestamp"] = int(time.time())
+
+        # format version is always set
         package_data["format_version"] = format_version
 
-        # apply attribute overrides
-        for key, value in overrides.iteritems():
-            if package_data.get(key) is None:
-                package_data[key] = value
-
+        # write out new package definition file
         package_file = ".".join([package_filename, package_extension])
-        filepath = os.path.join(path, package_file)
+        filepath = os.path.join(pkg_base_path, package_file)
 
-        with open_file_for_write(filepath) as f:
-            dump_package_data(package_data, buf=f, format_=package_format)
+        with make_path_writable(pkg_base_path):
+            with open_file_for_write(filepath, mode=self.package_file_mode) as f:
+                dump_package_data(package_data, buf=f, format_=package_format)
 
         # delete the tmp 'building' file.
-        if variant.version:
-            filename = self.building_prefix + str(variant.version)
+        if variant_version:
+            filename = self.building_prefix + str(variant_version)
             filepath = os.path.join(family_path, filename)
             if os.path.exists(filepath):
                 try:
@@ -926,10 +1064,11 @@ class FileSystemPackageRepository(PackageRepository):
         # load new variant
         new_variant = None
         self.clear_caches()
-        family = self.get_package_family(variant.name)
+        family = self.get_package_family(variant_name)
+
         if family:
             for package in self.iter_packages(family):
-                if package.version == variant.version:
+                if package.version == variant_version:
                     for variant_ in self.iter_variants(package):
                         if variant_.index == installed_variant_index:
                             new_variant = variant_

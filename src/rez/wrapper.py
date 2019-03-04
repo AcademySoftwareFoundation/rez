@@ -173,8 +173,12 @@ class Wrapper(object):
             # generally shells will behave as though the '-s' flag was not present
             # when no stdin is available. So here we replicate this behaviour.
             import select
-            if not select.select([sys.stdin], [], [], 0.0)[0]:
-                opts.stdin = False
+
+            try:
+                if not select.select([sys.stdin], [], [], 0.0)[0]:
+                    opts.stdin = False
+            except select.error:
+                pass  # because windows
 
         # construct command
         cmd = None

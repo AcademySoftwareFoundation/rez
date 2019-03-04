@@ -3,10 +3,8 @@ Publishes a message to the broker.
 """
 from rez.release_hook import ReleaseHook
 from rez.utils.logging_ import print_error, print_debug
-from rez.vendor.amqp import Connection, basic_message
+from rez.utils.amqp import publish_message
 from rez.config import config
-import json
-import socket
 
 
 class AmqpReleaseHook(ReleaseHook):
@@ -31,14 +29,10 @@ class AmqpReleaseHook(ReleaseHook):
     """
     schema_dict = {
         "host":                     basestring,
-        "port":                     int,
         "userid":                   basestring,
         "password":                 basestring,
         "connect_timeout":          int,
         "exchange_name":            basestring,
-        "exchange_type":            basestring,
-        "exchange_durable":         bool,
-        "exchange_auto_delete":     bool,
         "exchange_routing_key":     basestring,
         "message_delivery_mode":    int,
         "message_attributes":       dict}
@@ -84,45 +78,15 @@ class AmqpReleaseHook(ReleaseHook):
             print_error("Did not publish message, host is not specified")
             return
 
-        try:
-            conn = Connection(host=self.settings.host,
-                              port=self.settings.port,
-                              userid=self.settings.userid,
-                              password=self.settings.password,
-                              connect_timeout=self.settings.connect_timeout)
-        except socket.error as e:
-            print_error("Cannot connect to the message broker: %s" % (e))
-            return
-
-        channel = conn.channel()
-
-        # Declare the exchange
-        try:
-            channel.exchange_declare(
-                self.settings.exchange_name,
-                self.settings.exchange_type,
-                durable=self.settings.exchange_durable,
-                auto_delete=self.settings.exchange_auto_delete)
-        except Exception as e:
-            print_error("Failed to declare an exchange: %s" % (e))
-            return
-
-        # build the message
-        msg = basic_message.Message(
-            body=json.dumps(data),
-            delivery_mode=self.settings.message_delivery_mode,
-            content_type="application/json",
-            content_encoding="utf-8")
-
         routing_key = self.settings.exchange_routing_key
         print "Publishing AMQP message on %s..." % routing_key
 
-        # publish the message
-        try:
-            channel.basic_publish(msg, self.settings.exchange_name, routing_key)
-        except Exception as e:
-            print_error("Failed to publish message: %s" % (e))
-            return
+        publish_message(
+            host=self.settings.host,
+            amqp_settings=self.settings,
+            routing_key=routing_key,
+            data=data
+        )
 
         if config.debug("package_release"):
             print_debug("Published message: %s" % (data))
