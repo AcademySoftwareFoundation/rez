@@ -692,6 +692,11 @@ class FileSystemPackageRepository(PackageRepository):
                debug=config.debug_memcache)
     def _get_version_dirs(self, root):
 
+        # Ignore a version if there is a .ignore<version> file next to it
+        def ignore_dir(name):
+            path = os.path.join(root, self.ignore_prefix + name)
+            return os.path.isfile(ignore_path)
+
         # simpler case if this test is on
         #
         if _settings.check_package_definition_files:
@@ -702,13 +707,11 @@ class FileSystemPackageRepository(PackageRepository):
                     continue
 
                 path = os.path.join(root, name)
-                # Ignore a version if there is a .ignore<version> file next to it
-                ignore_path = os.path.join(root, self.ignore_prefix + name)
-                if os.path.isdir(path) and not os.path.isfile(ignore_path):
-                    if not self._is_valid_package_directory(path):
-                        continue
 
-                dirs.append(name)
+                if os.path.isdir(path) and not ignore_dir(name) \
+                        and self._is_valid_package_directory(path):
+                    dirs.append(name)
+
             return dirs
 
         # with test off, we have to check for 'building' dirs, these have to be
@@ -728,9 +731,8 @@ class FileSystemPackageRepository(PackageRepository):
                 building_dirs.add(ver_str)
 
             path = os.path.join(root, name)
-            # Ignore a version if there is a .ignore<version> file next to it
-            ignore_path = os.path.join(root, self.ignore_prefix + name)
-            if os.path.isdir(path) and not os.path.isfile(ignore_path):
+
+            if os.path.isdir(path) and not ignore_dir(name):
                 dirs.add(name)
 
         # check 'building' dirs for validity
