@@ -1,7 +1,5 @@
 """
-test importing logging modules.
-
-Mostly for
+Test importing logging modules.
 """
 from rez.tests.util import TestBase
 import rez.vendor.unittest2 as unittest
