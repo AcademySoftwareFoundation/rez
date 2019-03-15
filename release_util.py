@@ -82,7 +82,7 @@ def create_changelog_entry(opts):
     )
 
 
-def create_release_notes():
+def create_release_notes(opts):
     # check that we're on master
     branch = run_proc("git", "branch", "--contains").split()[-1]
     if branch != "master":
@@ -118,8 +118,6 @@ def create_release_notes():
         body=changelog["body"]
     )
 
-    print(pprint.pformat(data))
-
     # create the release on github
     response = requests.post(
         get_url("releases"),
@@ -128,6 +126,8 @@ def create_release_notes():
     )
 
     response.raise_for_status()
+    url = "https://github.com/nerdvegas/rez/releases/tag/" + tag_name
+    print "Created release notes: " + url
 
 
 if __name__ == "__main__":
