@@ -65,7 +65,7 @@ def parse_topmost_changelog():
                 body_lines.append(line)
 
 
-def create_changelog_entry():
+def create_changelog_entry(opts):
     """
     Requires github_changelog_generator util:
     https://github.com/github-changelog-generator/github-changelog-generator
