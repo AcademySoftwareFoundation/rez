@@ -81,17 +81,20 @@ class HgReleaseVCS(ReleaseVCS):
                 results.append({'type': 'tag', 'patch': False})
         return results
 
-    def _create_tag_lowlevel(self, tag_name, message=None, force=True,
-                             patch=False):
+    def _create_tag_lowlevel(self, tag_name, message=None, patch=False):
         """Create a tag on the toplevel or patch repo
 
-        If the tag exists, and force is False, no tag is made. If force is True,
-        and a tag exists, but it is a direct ancestor of the current commit,
-        and there is no difference in filestate between the current commit
-        and the tagged commit, no tag is made. Otherwise, the old tag is
-        overwritten to point at the current commit.
+        Behavior if the tag exists depends on the update_release_tags setting.
+        If the tag exists, and update_release_tags is False, no tag is made.
+        If update_release_tags is True, and a tag exists, then it will be
+        overwritten to point at the current commit... UNLESS the tag is a direct
+        ancestor of the current commit, and there is no difference in filestate
+        between the current commit and the tagged commit - in which case the tag
+        is not moved. This is to prevent a series of unneccessary tag commits,
+        since each tag creation is itself a commit.
 
         Returns True or False indicating whether the tag was actually committed
+        or updated
         """
         # check if tag already exists, and if it does, if it is a direct
         # ancestor, and there is NO difference in the files between the tagged
@@ -110,6 +113,8 @@ class HgReleaseVCS(ReleaseVCS):
         tags = self.get_tags(patch=patch)
 
         old_commit = tags.get(tag_name)
+        force = self.type_settings.update_release_tags
+
         if old_commit is not None:
             if not force:
                 return False
