@@ -695,7 +695,7 @@ class FileSystemPackageRepository(PackageRepository):
         # Ignore a version if there is a .ignore<version> file next to it
         def ignore_dir(name):
             path = os.path.join(root, self.ignore_prefix + name)
-            return os.path.isfile(ignore_path)
+            return os.path.isfile(path)
 
         # simpler case if this test is on
         #
