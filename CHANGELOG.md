@@ -1,5 +1,19 @@
 # Change Log
 
+## [2.28.0](https://github.com/nerdvegas/rez/tree/2.28.0) (2019-03-15)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.27.1...2.28.0)
+
+**Fixed bugs:**
+
+- nargs errors for logging_.print_* functions [\#580](https://github.com/nerdvegas/rez/issues/580)
+
+**Merged pull requests:**
+
+- Ignore versions if .ignore file exists [\#453](https://github.com/nerdvegas/rez/pull/453) ([Pixomondo](https://github.com/Pixomondo))
+- Fix/logging print nargs [\#581](https://github.com/nerdvegas/rez/pull/581) ([wwfxuk](https://github.com/wwfxuk))
+- package_test.py: fix rez-test header command with % [\#572](https://github.com/nerdvegas/rez/pull/572) ([rodeofx](https://github.com/rodeofx))
+- Call the flush method every time a Printer instance is called [\#540](https://github.com/nerdvegas/rez/pull/540) ([rodeofx](https://github.com/rodeofx))
+
 ## [2.27.1](https://github.com/nerdvegas/rez/tree/2.27.1) (2019-03-15)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.27.0...2.27.1)
 
@@ -21,7 +35,6 @@
 
 **Merged pull requests:**
 
-- Develop [\#570](https://github.com/nerdvegas/rez/pull/570) ([nerdvegas](https://github.com/nerdvegas))
 - Issue 568 [\#569](https://github.com/nerdvegas/rez/pull/569) ([nerdvegas](https://github.com/nerdvegas))
 - Issue 565 [\#567](https://github.com/nerdvegas/rez/pull/567) ([nerdvegas](https://github.com/nerdvegas))
 - Issue 563 [\#566](https://github.com/nerdvegas/rez/pull/566) ([nerdvegas](https://github.com/nerdvegas))
