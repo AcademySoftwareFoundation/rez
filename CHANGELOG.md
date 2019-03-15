@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.27.1](https://github.com/nerdvegas/rez/tree/2.27.1) (2019-03-15)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.27.0...2.27.1)
+
+**Merged pull requests:**
+
+- Delete old repository directory [\#576](https://github.com/nerdvegas/rez/pull/576) ([bpabel](https://github.com/bpabel))
+
 ## [2.27.0](https://github.com/nerdvegas/rez/tree/2.27.0) (2019-01-24)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.26.4...2.27.0)
 
