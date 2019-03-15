@@ -440,6 +440,8 @@ class FileSystemPackageRepository(PackageRepository):
                    "package_filenames": [basestring]}
 
     building_prefix = ".building"
+    ignore_prefix = ".ignore"
+
     package_file_mode = (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
     @classmethod
@@ -700,7 +702,9 @@ class FileSystemPackageRepository(PackageRepository):
                     continue
 
                 path = os.path.join(root, name)
-                if os.path.isdir(path):
+                # Ignore a version if there is a .ignore<version> file next to it
+                ignore_path = os.path.join(root, self.ignore_prefix + name)
+                if os.path.isdir(path) and not os.path.isfile(ignore_path):
                     if not self._is_valid_package_directory(path):
                         continue
 
@@ -724,7 +728,9 @@ class FileSystemPackageRepository(PackageRepository):
                 building_dirs.add(ver_str)
 
             path = os.path.join(root, name)
-            if os.path.isdir(path):
+            # Ignore a version if there is a .ignore<version> file next to it
+            ignore_path = os.path.join(root, self.ignore_prefix + name)
+            if os.path.isdir(path) and not os.path.isfile(ignore_path):
                 dirs.add(name)
 
         # check 'building' dirs for validity
