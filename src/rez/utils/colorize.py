@@ -298,6 +298,7 @@ class Printer(object):
 
     def __call__(self, msg='', style=None):
         print >> self.buf, self.get(msg, style)
+        self.buf.flush()
 
     def get(self, msg, style=None):
         if style and self.colorize:
