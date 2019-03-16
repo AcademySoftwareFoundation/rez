@@ -112,7 +112,10 @@ package_base_schema_dict.update({
     Optional('config'):                 Config,
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+
+    # build related
     Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('hashed_variants'):        bool,
 
     # testing
     Optional('tests'):                  late_bound(tests_schema),
@@ -200,7 +203,9 @@ package_pod_schema_dict.update({
                                             Use(lambda x: create_config(overrides=x))),
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+
     Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('hashed_variants'):        bool,
 
     Optional('tests'):                  late_bound(tests_schema),
 
@@ -429,9 +434,14 @@ class VariantResourceHelper(VariantResource):
     def _subpath(self):
         if self.index is None:
             return None
+
+        if self.parent.hashed_variants:
+            from hashlib import sha256
+
+            h = sha256(str(map(str, self.variant_requires)))
+            return h.hexdigest()
         else:
-            reqs = self.variant_requires
-            dirs = [x.safe_str() for x in reqs]
+            dirs = [x.safe_str() for x in self.variant_requires]
             subpath = os.path.join(*dirs)
             return subpath
 

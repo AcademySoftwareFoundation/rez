@@ -576,6 +576,16 @@ version of the package, just about the package in general.
 Indicates that the package is an application that may have plugins. These plugins are often made
 available as rez packages also.
 
+### hashed_variants
+*Boolean*
+
+    hashed_variants = True
+
+Instructs the package to install variants into a subdirectory based on a hash of the variant's
+contents (its requirements in other words). This is useful for variants with a high number of
+requirements, or with requirements that do not translate well to directories on the filesystem
+(such as conflict requirements).
+
 ### help
 *String*
 
