@@ -10,6 +10,8 @@ variants = [
     ["foo-1.0"],
     ["foo-1.1"]]
 
+hashed_variants = True
+
 
 # Copyright 2013-2016 Allan Johns.
 #
