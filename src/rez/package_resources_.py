@@ -4,13 +4,16 @@ from rez.utils.logging_ import print_warning
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
     LazyAttributeMeta
+from rez.utils.filesystem import find_matching_symlink
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
 from rez.vendor.version.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
+
 from textwrap import dedent
 import os.path
+from hashlib import sha1
 
 
 # package attributes created at release time
@@ -436,10 +439,22 @@ class VariantResourceHelper(VariantResource):
             return None
 
         if self.parent.hashed_variants:
-            from hashlib import sha256
+            h = sha1(str(map(str, self.variant_requires)))
+            hashdir = h.hexdigest()
 
-            h = sha256(str(map(str, self.variant_requires)))
-            return h.hexdigest()
+            if config.use_variant_shortlinks and self.base is not None:
+                # search for matching shortlink and use that
+                path = os.path.join(self.base, config.variant_shortlinks_dirname)
+
+                if os.path.exists(path):
+                    actual_root = os.path.join(self.base, hashdir)
+                    linkname = find_matching_symlink(path, actual_root)
+
+                    if linkname:
+                        return os.path.join(
+                            config.variant_shortlinks_dirname, linkname)
+
+            return hashdir
         else:
             dirs = [x.safe_str() for x in self.variant_requires]
             subpath = os.path.join(*dirs)
