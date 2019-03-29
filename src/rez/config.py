@@ -126,6 +126,10 @@ class OptionalStrList(StrList):
 class PathList(StrList):
     sep = os.pathsep
 
+    def _parse_env_var(self, value):
+        value = value.split(self.sep)
+        return [x for x in value if x]
+
 
 class Int(Setting):
     schema = Schema(int)
