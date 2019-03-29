@@ -234,6 +234,9 @@ class TestConfig(TestBase):
         packages_path = [
             "c:/foo bar/baz",
             "c:/foo 2 bar/baz",
+            r"c:\foo bar\baz",
+            "/home/foo bar/baz",
+            r"/home/foo\ bar/baz"
         ]
         os.environ["REZ_PACKAGES_PATH"] = os.pathsep.join(packages_path)
 
