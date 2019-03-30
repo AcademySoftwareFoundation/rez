@@ -15,10 +15,12 @@ tools = [
     "hello"
 ]
 
-requires = [
-    "python"
+build_requires = [
+    "python3",
 ]
-
+variants = [
+    ['python3-3'],
+]
 uuid = "examples.hello_world_py"
 
 def commands():

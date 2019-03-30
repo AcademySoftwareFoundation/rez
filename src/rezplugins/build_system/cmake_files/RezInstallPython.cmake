@@ -31,10 +31,14 @@ macro (rez_install_python)
 	#
 
 	list_contains(pyfound python ${REZ_BUILD_ALL_PKGS})
-	if(NOT pyfound)
+	list_contains(py3found python3 ${REZ_BUILD_ALL_PKGS})
+	if (py3found)
+		install_python(${ARGV} BIN python3)
+	elseif (pyfound)
+		install_python(${ARGV} BIN python)
+	else()
 		message(FATAL_ERROR "a version of python must be listed as a requirement when using the 'rez_install_python' macro. Packages for this build are: ${REZ_BUILD_ALL_PKGS}")
-	endif(NOT pyfound)
+	endif()
 
-	install_python(${ARGV} BIN python)
 
 endmacro (rez_install_python)
