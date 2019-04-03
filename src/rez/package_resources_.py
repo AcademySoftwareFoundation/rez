@@ -340,10 +340,10 @@ class VariantResource(PackageResource):
         """
         return self._subpath()
 
-    def _root(self):
+    def _root(self, ignore_shortlinks=False):
         raise NotImplementedError
 
-    def _subpath(self):
+    def _subpath(self, ignore_shortlinks=False):
         raise NotImplementedError
 
 
@@ -434,7 +434,7 @@ class VariantResourceHelper(VariantResource):
         idxstr = '' if index is None else str(index)
         return "%s[%s]" % (self.parent.uri, idxstr)
 
-    def _subpath(self):
+    def _subpath(self, ignore_shortlinks=False):
         if self.index is None:
             return None
 
@@ -442,7 +442,10 @@ class VariantResourceHelper(VariantResource):
             h = sha1(str(map(str, self.variant_requires)))
             hashdir = h.hexdigest()
 
-            if config.use_variant_shortlinks and self.base is not None:
+            if (not ignore_shortlinks) and \
+                    config.use_variant_shortlinks and \
+                    self.base is not None:
+
                 # search for matching shortlink and use that
                 path = os.path.join(self.base, config.variant_shortlinks_dirname)
 
@@ -460,13 +463,14 @@ class VariantResourceHelper(VariantResource):
             subpath = os.path.join(*dirs)
             return subpath
 
-    def _root(self):
+    def _root(self, ignore_shortlinks=False):
         if self.base is None:
             return None
         elif self.index is None:
             return self.base
         else:
-            root = os.path.join(self.base, self.subpath)
+            subpath = self._subpath(ignore_shortlinks=ignore_shortlinks)
+            root = os.path.join(self.base, subpath)
             return root
 
     @cached_property

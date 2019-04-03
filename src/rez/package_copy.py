@@ -8,8 +8,9 @@ from rez.exceptions import PackageCopyError
 from rez.package_repository import package_repository_manager
 from rez.serialise import FileFormat
 from rez.utils import with_noop
+from rez.utils.base26 import create_unique_base26_symlink
 from rez.utils.sourcecode import IncludeModuleManager
-from rez.utils.logging_ import print_info
+from rez.utils.logging_ import print_info, print_warning
 from rez.utils.filesystem import replacing_symlink, replacing_copy, \
     safe_makedirs, additive_copytree, make_path_writable, get_existing_path
 
@@ -221,6 +222,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         # type repo) there may not be a root.
         #
         variant_root = getattr(src_variant, "root", None)
+
         if not variant_root:
             raise PackageCopyError(
                 "Cannot copy source variant %s - it is a type of variant that "
@@ -242,9 +244,14 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
             package_version=dest_variant_version
         )
 
-        if src_variant.subpath:
-            variant_install_path = os.path.join(dest_pkg_payload_path,
-                                                src_variant.subpath)
+        is_varianted = (src_variant.index is not None)
+        src_variant_subpath = None
+
+        if is_varianted:
+            src_variant_subpath = src_variant._non_shortlinked_subpath
+
+            variant_install_path = os.path.join(
+                dest_pkg_payload_path, src_variant_subpath)
         else:
             variant_install_path = dest_pkg_payload_path
 
@@ -274,7 +281,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
             # determine files not to copy
             skip_files = []
 
-            if src_variant.subpath:
+            if is_varianted and not src_variant.parent.hashed_variants:
                 # Detect overlapped variants. This is the case where one variant subpath
                 # might be A, and another is A/B. We must ensure that A/B is not created
                 # as a symlink during shallow install of variant A - that would then
@@ -283,6 +290,9 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
                 #
                 # Here we detect this case, and create a list of dirs not to copy/link,
                 # because they are in fact a subpath dir for another variant.
+                #
+                # Note that for hashed variants, we don't do this check because overlapped
+                # variants are not possible.
                 #
                 skip_files.extend(_get_overlapped_variant_dirs(src_variant))
             else:
@@ -298,7 +308,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
                     filepath = os.path.join(variant_root, name)
 
                     if verbose:
-                        if src_variant.subpath:
+                        if is_varianted:
                             msg = ("Did not copy %s - this is part of an "
                                    "overlapping variant's root path.")
                         else:
@@ -327,12 +337,40 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
 
         shutil.copystat(src_pkg_payload_path, dest_pkg_payload_path)
 
-        subpath = src_variant.subpath
+        subpath = src_variant_subpath
+
         while subpath:
             src_path = os.path.join(src_pkg_payload_path, subpath)
             dest_path = os.path.join(dest_pkg_payload_path, subpath)
             shutil.copystat(src_path, dest_path)
             subpath = os.path.dirname(subpath)
+
+        # create the variant shortlink
+        if src_variant.parent.hashed_variants:
+            try:
+                # base _v dir
+                base_shortlinks_path = os.path.join(
+                    dest_pkg_payload_path,
+                    src_package.config.variant_shortlinks_dirname
+                )
+
+                safe_makedirs(base_shortlinks_path)
+
+                # shortlink
+                rel_variant_path = os.path.relpath(
+                    variant_install_path, base_shortlinks_path)
+                create_unique_base26_symlink(
+                    base_shortlinks_path, rel_variant_path)
+
+            except Exception as e:
+                # Treat any error as warning - lack of shortlink is not
+                # a breaking issue, it just means the variant root path
+                # will be long.
+                #
+                print_warning(
+                    "Error creating variant shortlink for %s: %s: %s",
+                    variant_install_path, e.__class__.__name__, e
+                )
 
 
 def _get_overlapped_variant_dirs(src_variant):

@@ -107,11 +107,12 @@ class LocalBuildProcess(BuildProcessHelper):
         package_install_path = self.get_package_install_path(install_path)
         variant_build_path = self.build_path
 
-        if variant.subpath:
-            variant_build_path = os.path.join(variant_build_path, variant.subpath)
-            variant_install_path = os.path.join(package_install_path, variant.subpath)
-        else:
+        if variant.index is None:
             variant_install_path = package_install_path
+        else:
+            subpath = variant._non_shortlinked_subpath
+            variant_build_path = os.path.join(variant_build_path, subpath)
+            variant_install_path = os.path.join(package_install_path, subpath)
 
         # create directories (build, install)
         if clean and os.path.exists(variant_build_path):
