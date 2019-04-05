@@ -244,22 +244,11 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     # Collect resulting python packages using distlib
     distribution_path = DistributionPath([destpath])
     distributions = [d for d in distribution_path.get_distributions()]
+    metadata = next(iter([dist.metadata for dist in distributions if dist.key == source_name]), None)
 
-    for distribution in distribution_path.get_distributions():
-        requirements = []
-        if distribution.metadata.run_requires:
-            # Handle requirements. Currently handles conditional environment based
-            # requirements and normal requirements
-            # TODO: Handle optional requirements?
-            for requirement in distribution.metadata.run_requires:
-                if "environment" in requirement:
-                    if interpret(requirement["environment"]):
-                        requirements.extend(_get_dependencies(requirement, distributions))
-                elif "extra" in requirement:
-                    # Currently ignoring optional requirements
-                    pass
-                else:
-                    requirements.extend(_get_dependencies(requirement, distributions))
+    # TODO deal with the scenario when a wheel fails to build, ie no metadata
+    if not metadata:
+        raise ValueError('Wheel metadata for {} was not found.'.format(source_name))
 
         tools = []
         src_dst_lut = {}
