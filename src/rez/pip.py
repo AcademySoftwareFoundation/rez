@@ -303,13 +303,12 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         variant_reqs.append("python-%s" % py_ver)
 
-        name, _ = parse_name_and_version(distribution.name_and_version)
-        name = distribution.name[0:len(name)].replace("-", "_")
+    name = metadata.name
 
         with make_package(name, packages_path, make_root=make_root) as pkg:
-            pkg.version = distribution.version
-            if distribution.metadata.summary:
-                pkg.description = distribution.metadata.summary
+        pkg.version = metadata.version
+        if metadata.summary:
+            pkg.description = metadata.summary
 
             pkg.variants = [variant_reqs]
             if requirements:
