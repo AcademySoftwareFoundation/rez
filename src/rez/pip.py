@@ -231,10 +231,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     # Build pip commandline
     cmd = [pip_exe, "install",
-           "--install-option=--install-lib=%s" % destpath,
-           "--install-option=--install-scripts=%s" % binpath,
-           "--install-option=--install-headers=%s" % incpath,
-           "--install-option=--install-data=%s" % datapath]
+           "--use-pep517",
+           "--target=%s" % destpath]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
