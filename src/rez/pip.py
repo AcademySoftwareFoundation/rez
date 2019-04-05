@@ -220,9 +220,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     destpath = os.path.join(stagingdir, "python")
+    # TODO use binpath once https://github.com/pypa/pip/pull/5983 is approved
     binpath = os.path.join(stagingdir, "bin")
-    incpath = os.path.join(stagingdir, "include")
-    datapath = stagingdir
 
     if context and config.debug("package_release"):
         buf = StringIO()
