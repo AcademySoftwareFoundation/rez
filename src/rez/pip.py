@@ -242,7 +242,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     _system = System()
 
     # Collect resulting python packages using distlib
-    distribution_path = DistributionPath([destpath], include_egg=True)
+    distribution_path = DistributionPath([destpath])
     distributions = [d for d in distribution_path.get_distributions()]
 
     for distribution in distribution_path.get_distributions():
