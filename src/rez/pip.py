@@ -250,81 +250,85 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     if not metadata:
         raise ValueError('Wheel metadata for {} was not found.'.format(source_name))
 
-        tools = []
-        src_dst_lut = {}
+    tools = []
+    src_dst_lut = {}
 
-        for installed_file in distribution.list_installed_files(allow_fail=True):
-            source_file = os.path.normpath(os.path.join(destpath, installed_file[0]))
+    for distribution in distributions:
+        for installed_file in distribution.list_installed_files():
+            if 'bin' in installed_file[0]:
+                installed = os.path.relpath(installed_file[0], os.path.join('..','..'))
+            else:
+                installed = installed_file[0]
 
+            source_file = os.path.normpath(os.path.join(destpath, installed))
             if os.path.exists(source_file):
-                destination_file = installed_file[0].split(stagingsep)[1]
+                destination_file = source_file.split(stagingsep)[1]
                 exe = False
 
-                if is_exe(source_file) and \
-                        destination_file.startswith("%s%s" % ("bin", os.path.sep)):
-                    _, _file = os.path.split(destination_file)
-                    tools.append(_file)
-                    exe = True
+                if is_exe(source_file):
+                    if destination_file.startswith("%s%s" % (os.path.join("python", "bin"), os.path.sep)):
+                        destination_file = os.path.join("bin", os.path.basename(source_file))
+                        _, _file = os.path.split(destination_file)
+                        tools.append(_file)
+                        exe = True
 
                 data = [destination_file, exe]
                 src_dst_lut[source_file] = data
             else:
                 _log("Source file does not exist: " + source_file + "!")
 
-        def make_root(variant, path):
-            """Using distlib to iterate over all installed files of the current
-            distribution to copy files to the target directory of the rez package
-            variant
-            """
-            for source_file, data in src_dst_lut.items():
-                destination_file, exe = data
-                destination_file = os.path.normpath(os.path.join(path, destination_file))
+    def make_root(variant, path):
+        """Using distlib to iterate over all installed files of the current
+        distribution to copy files to the target directory of the rez package
+        variant
+        """
+        for source_file, data in src_dst_lut.items():
+            destination_file, exe = data
+            destination_file = os.path.normpath(os.path.join(path, destination_file))
 
-                if not os.path.exists(os.path.dirname(destination_file)):
-                    os.makedirs(os.path.dirname(destination_file))
+            if not os.path.exists(os.path.dirname(destination_file)):
+                os.makedirs(os.path.dirname(destination_file))
 
-                shutil.copyfile(source_file, destination_file)
-                if exe:
-                    shutil.copystat(source_file, destination_file)
+            shutil.copyfile(source_file, destination_file)
+            if exe:
+                shutil.copystat(source_file, destination_file)
 
-        # determine variant requirements
-        # TODO detect if platform/arch/os necessary, no if pure python
-        variant_reqs = []
-        variant_reqs.append("platform-%s" % _system.platform)
-        variant_reqs.append("arch-%s" % _system.arch)
-        variant_reqs.append("os-%s" % _system.os)
+    # determine variant requirements
+    # TODO detect if platform/arch/os necessary, no if pure python
+    variant_reqs = []
+    variant_reqs.append("platform-%s" % _system.platform)
+    variant_reqs.append("arch-%s" % _system.arch)
+    variant_reqs.append("os-%s" % _system.os)
 
-        if context is None:
-            # since we had to use system pip, we have to assume system python version
-            py_ver = '.'.join(map(str, sys.version_info[:2]))
-        else:
-            python_variant = context.get_resolved_package("python")
-            py_ver = python_variant.version.trim(2)
+    if context is None:
+        # since we had to use system pip, we have to assume system python version
+        py_ver = '.'.join(map(str, sys.version_info[:2]))
+    else:
+        python_variant = context.get_resolved_package("python")
+        py_ver = python_variant.version.trim(2)
 
-        variant_reqs.append("python-%s" % py_ver)
+    variant_reqs.append("python-%s" % py_ver)
 
     name = metadata.name
 
-        with make_package(name, packages_path, make_root=make_root) as pkg:
+    with make_package(name, packages_path, make_root=make_root) as pkg:
         pkg.version = metadata.version
         if metadata.summary:
             pkg.description = metadata.summary
 
-            pkg.variants = [variant_reqs]
-            if requirements:
-                pkg.requires = requirements
+        pkg.variants = [variant_reqs]
 
-            commands = []
-            commands.append("env.PYTHONPATH.append('{root}/python')")
+        commands = []
+        commands.append("env.PYTHONPATH.append('{root}/python')")
 
-            if tools:
-                pkg.tools = tools
-                commands.append("env.PATH.append('{root}/bin')")
+        if tools:
+            pkg.tools = tools
+            commands.append("env.PATH.append('{root}/bin')")
 
-            pkg.commands = '\n'.join(commands)
+        pkg.commands = '\n'.join(commands)
 
-        installed_variants.extend(pkg.installed_variants or [])
-        skipped_variants.extend(pkg.skipped_variants or [])
+    installed_variants.extend(pkg.installed_variants or [])
+    skipped_variants.extend(pkg.skipped_variants or [])
 
     # cleanup
     shutil.rmtree(tmpdir)
