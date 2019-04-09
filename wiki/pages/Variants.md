@@ -70,14 +70,15 @@ You can avoid these issues by using _hashed variants_. This sets the variant
 subpath to a hash of its requirements, rather than the requirements themselves.
 The resulting subdirectly is somewhat unwieldy (example:
 `83e0c415db1b602f9d59cee028da6ac785e9bacc`). However, another feature -
-_variant shortlinks - deals with this. A shortlink is a symlink to each variant,
+_variant shortlinks_ - deals with this. A shortlink is a symlink to each variant,
 created in a separate subdirectory (default `_v`).
 
 Here is an example hashed variant path:
 
     /rez/packages/my_maya_plugin/1.0.0/83e0c415db1b602f9d59cee028da6ac785e9bacc
 
-Here is the matching _shortlink_, which will be used instead:
+Here is the matching _shortlink_, which is what will be used in a resolved
+environment:
 
     /rez/packages/my_maya_plugin/1.0.0/_v/a
 
