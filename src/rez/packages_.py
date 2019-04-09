@@ -408,11 +408,6 @@ class Variant(PackageBaseResourceWrapper):
 
     @property
     def _non_shortlinked_subpath(self):
-        """
-        Args:
-            ignore_shortlinks (str): If True, do not follow variant shortlinks,
-                and return the full (non-symlinked) path instead.
-        """
         return self.resource._subpath(ignore_shortlinks=True)
 
 

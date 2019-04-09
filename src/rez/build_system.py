@@ -205,12 +205,18 @@ class BuildSystem(object):
         package = variant.parent
         variant_requires = map(str, variant.variant_requires)
 
+        if variant.index is None:
+            variant_subpath = ''
+        else:
+            variant_subpath = variant._non_shortlinked_subpath
+
         vars_ = {
             'REZ_BUILD_ENV': 1,
             'REZ_BUILD_PATH': build_path,
             'REZ_BUILD_THREAD_COUNT': package.config.build_thread_count,
             'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
             'REZ_BUILD_VARIANT_REQUIRES': ' '.join(variant_requires),
+            'REZ_BUILD_VARIANT_SUBPATH': variant_subpath,
             'REZ_BUILD_PROJECT_VERSION': str(package.version),
             'REZ_BUILD_PROJECT_NAME': package.name,
             'REZ_BUILD_PROJECT_DESCRIPTION': (package.description or '').strip(),
