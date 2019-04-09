@@ -326,7 +326,7 @@ defined by the [implicit_packages](Configuring-Rez#implicit_packages) configurat
 ### info
 *Function*
 
-    info("floob version is %s", resolve.floob.version)
+    info("floob version is %s" % resolve.floob.version)
 
 Prints to standard out.
 
