@@ -406,6 +406,10 @@ class Variant(PackageBaseResourceWrapper):
         else:
             return Variant(resource)
 
+    @property
+    def _non_shortlinked_subpath(self):
+        return self.resource._subpath(ignore_shortlinks=True)
+
 
 class PackageSearchPath(object):
     """A list of package repositories.

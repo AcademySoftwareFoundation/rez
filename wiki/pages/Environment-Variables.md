@@ -61,6 +61,8 @@ to those listed [here](#context-environment-variables).
 * **REZ_BUILD_VARIANT_REQUIRES** - Space-separated list of runtime requirements
   of the current variant. This does not include the common requirements as found
   in *REZ_BUILD_REQUIRES*. For non-varianted builds, this is an empty string.
+* **REZ_BUILD_VARIANT_SUBPATH** - Subdirectory containing the current variant.
+  For non-varianted builds, this is an empty string.
 
 ## Runtime Environment Variables
 

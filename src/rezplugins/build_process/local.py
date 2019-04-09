@@ -6,11 +6,15 @@ from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError
 from rez.utils import with_noop
+from rez.utils.logging_ import print_warning
+from rez.utils.base26 import create_unique_base26_symlink
 from rez.utils.colorize import Printer, warning
 from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
     make_path_writable, get_existing_path
 from rez.utils.sourcecode import IncludeModuleManager
+
 from hashlib import sha1
+import json
 import shutil
 import os
 import os.path
@@ -100,12 +104,15 @@ class LocalBuildProcess(BuildProcessHelper):
                             clean=False, install=False, **kwargs):
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
-        variant_install_path = self.get_package_install_path(install_path)
+        package_install_path = self.get_package_install_path(install_path)
         variant_build_path = self.build_path
 
-        if variant.subpath:
-            variant_build_path = os.path.join(variant_build_path, variant.subpath)
-            variant_install_path = os.path.join(variant_install_path, variant.subpath)
+        if variant.index is None:
+            variant_install_path = package_install_path
+        else:
+            subpath = variant._non_shortlinked_subpath
+            variant_build_path = os.path.join(variant_build_path, subpath)
+            variant_install_path = os.path.join(package_install_path, subpath)
 
         # create directories (build, install)
         if clean and os.path.exists(variant_build_path):
@@ -131,6 +138,33 @@ class LocalBuildProcess(BuildProcessHelper):
 
                 if not os.path.exists(variant_install_path):
                     safe_makedirs(variant_install_path)
+
+                # if hashed variants are enabled, create the variant shortlink
+                if variant.parent.hashed_variants:
+                    try:
+                        # create the dir containing all shortlinks
+                        base_shortlinks_path = os.path.join(
+                            package_install_path,
+                            variant.parent.config.variant_shortlinks_dirname
+                        )
+
+                        safe_makedirs(base_shortlinks_path)
+
+                        # create the shortlink
+                        rel_variant_path = os.path.relpath(
+                            variant_install_path, base_shortlinks_path)
+                        create_unique_base26_symlink(
+                            base_shortlinks_path, rel_variant_path)
+
+                    except Exception as e:
+                        # Treat any error as warning - lack of shortlink is not
+                        # a breaking issue, it just means the variant root path
+                        # will be long.
+                        #
+                        print_warning(
+                            "Error creating variant shortlink for %s: %s: %s",
+                            variant_install_path, e.__class__.__name__, e
+                        )
 
             # Re-evaluate the variant, so that variables such as 'building' and
             # 'build_variant_index' are set, and any early-bound package attribs
@@ -170,7 +204,22 @@ class LocalBuildProcess(BuildProcessHelper):
                 raise BuildError("The %s build system failed." % build_system_name)
 
             if install:
-                # install some files for debugging purposes
+                # Install the 'variant.json' file, which identifies which variant
+                # this is. This is important for hashed variants, where it is not
+                # obvious which variant is in which root path. The file is there
+                # for debugging purposes only.
+                #
+                if variant.index is not None:
+                    data = {
+                        "index": variant.index,
+                        "data": variant.parent.data["variants"][variant.index]
+                    }
+
+                    filepath = os.path.join(variant_install_path, "variant.json")
+                    with open(filepath, 'w') as f:
+                        json.dump(data, f, indent=2)
+
+                # install some files for debugging purposes (incl build.rxt)
                 extra_files = build_result.get("extra_files", [])
                 if rxt_filepath:
                     extra_files = extra_files + [rxt_filepath]

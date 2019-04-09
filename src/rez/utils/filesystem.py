@@ -288,6 +288,32 @@ def is_subdirectory(path_a, path_b):
     return (not relative.startswith(os.pardir + os.sep))
 
 
+def find_matching_symlink(path, source):
+    """Find a symlink under `path` that points at `source`.
+
+    If source is relative, it is considered relative to `path`.
+
+    Returns:
+        str: Name of symlink found, or None.
+    """
+    def to_abs(target):
+        if os.path.isabs(target):
+            return target
+        else:
+            return os.path.normpath(os.path.join(path, target))
+
+    abs_source = to_abs(source)
+
+    for name in os.listdir(path):
+        linkpath = os.path.join(path, name)
+        if os.path.islink:
+            source_ = os.readlink(linkpath)
+            if to_abs(source_) == abs_source:
+                return name
+
+    return None
+
+
 def copy_or_replace(src, dst):
     '''try to copy with mode, and if it fails, try replacing
     '''

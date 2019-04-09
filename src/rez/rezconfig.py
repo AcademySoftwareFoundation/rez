@@ -572,6 +572,18 @@ prompt_release_message = False
 #
 make_package_temporarily_writable = True
 
+# The subdirectory where hashed variant symlinks (known as variant shortlinks)
+# are created. This is only relevant for packages whose 'hashed_variants' is
+# set to True. To disable variant shortlinks, set this to None.
+#
+variant_shortlinks_dirname = "_v"
+
+# Whether or not to use variant shortlinks when resolving variant root paths.
+# You might want to disable this for testing purposes, but typically you would
+# leave this True.
+#
+use_variant_shortlinks = True
+
 
 ###############################################################################
 # Suites

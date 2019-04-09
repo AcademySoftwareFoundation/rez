@@ -4,13 +4,16 @@ from rez.utils.logging_ import print_warning
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
     LazyAttributeMeta
+from rez.utils.filesystem import find_matching_symlink
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
 from rez.vendor.version.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
+
 from textwrap import dedent
 import os.path
+from hashlib import sha1
 
 
 # package attributes created at release time
@@ -112,7 +115,10 @@ package_base_schema_dict.update({
     Optional('config'):                 Config,
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+
+    # build related
     Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('hashed_variants'):        bool,
 
     # testing
     Optional('tests'):                  late_bound(tests_schema),
@@ -200,7 +206,9 @@ package_pod_schema_dict.update({
                                             Use(lambda x: create_config(overrides=x))),
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+
     Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('hashed_variants'):        bool,
 
     Optional('tests'):                  late_bound(tests_schema),
 
@@ -332,10 +340,10 @@ class VariantResource(PackageResource):
         """
         return self._subpath()
 
-    def _root(self):
+    def _root(self, ignore_shortlinks=False):
         raise NotImplementedError
 
-    def _subpath(self):
+    def _subpath(self, ignore_shortlinks=False):
         raise NotImplementedError
 
 
@@ -426,22 +434,44 @@ class VariantResourceHelper(VariantResource):
         idxstr = '' if index is None else str(index)
         return "%s[%s]" % (self.parent.uri, idxstr)
 
-    def _subpath(self):
+    def _subpath(self, ignore_shortlinks=False):
         if self.index is None:
             return None
+
+        if self.parent.hashed_variants:
+            vars_str = str(list(map(str, self.variant_requires)))
+            h = sha1(vars_str.encode("utf8"))
+            hashdir = h.hexdigest()
+
+            if (not ignore_shortlinks) and \
+                    config.use_variant_shortlinks and \
+                    self.base is not None:
+
+                # search for matching shortlink and use that
+                path = os.path.join(self.base, config.variant_shortlinks_dirname)
+
+                if os.path.exists(path):
+                    actual_root = os.path.join(self.base, hashdir)
+                    linkname = find_matching_symlink(path, actual_root)
+
+                    if linkname:
+                        return os.path.join(
+                            config.variant_shortlinks_dirname, linkname)
+
+            return hashdir
         else:
-            reqs = self.variant_requires
-            dirs = [x.safe_str() for x in reqs]
+            dirs = [x.safe_str() for x in self.variant_requires]
             subpath = os.path.join(*dirs)
             return subpath
 
-    def _root(self):
+    def _root(self, ignore_shortlinks=False):
         if self.base is None:
             return None
         elif self.index is None:
             return self.base
         else:
-            root = os.path.join(self.base, self.subpath)
+            subpath = self._subpath(ignore_shortlinks=ignore_shortlinks)
+            root = os.path.join(self.base, subpath)
             return root
 
     @cached_property
