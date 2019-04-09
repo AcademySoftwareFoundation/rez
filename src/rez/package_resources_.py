@@ -439,7 +439,8 @@ class VariantResourceHelper(VariantResource):
             return None
 
         if self.parent.hashed_variants:
-            h = sha1(str(map(str, self.variant_requires)))
+            vars_str = str(list(map(str, self.variant_requires)))
+            h = sha1(vars_str.encode("utf8"))
             hashdir = h.hexdigest()
 
             if (not ignore_shortlinks) and \
