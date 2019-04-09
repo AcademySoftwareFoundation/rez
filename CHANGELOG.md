@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.29.0](https://github.com/nerdvegas/rez/tree/2.29.0) (2019-04-09)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.28.0...2.29.0)
+
+**Implemented enhancements:**
+
+- hash-based variant subpaths [\#583](https://github.com/nerdvegas/rez/issues/583)
+
+**Closed issues:**
+
+- rez variant environment var during build [\#304](https://github.com/nerdvegas/rez/issues/304)
+
 ## [2.28.0](https://github.com/nerdvegas/rez/tree/2.28.0) (2019-03-15)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.27.1...2.28.0)
 
