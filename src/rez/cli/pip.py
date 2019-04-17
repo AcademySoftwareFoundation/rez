@@ -5,9 +5,6 @@ Install a pip-compatible python package, and its dependencies, as rez packages.
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
-        "--pip-version", dest="pip_ver", metavar="VERSION",
-        help="pip version (rez package) to use, default is latest")
-    parser.add_argument(
         "--python-version", dest="py_ver", metavar="VERSION",
         help="python version (rez package) to use, default is latest. Note "
         "that the pip package(s) will be installed with a dependency on "
@@ -29,7 +26,6 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.pip import pip_install_package, run_pip_command
-    import sys
 
     if not (opts.search or opts.install):
         parser.error("Expected one of: --install, --search")
@@ -41,7 +37,6 @@ def command(opts, parser, extra_arg_groups=None):
 
     installed_variants, skipped_variants = pip_install_package(
         opts.PACKAGE,
-        pip_version=opts.pip_ver,
         python_version=opts.py_ver,
         release=opts.release)
 
