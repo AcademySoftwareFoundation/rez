@@ -181,7 +181,8 @@ def create_context(python_version=None):
 
 
 def pip_install_package(source_name, python_version=None,
-                        mode=InstallMode.min_deps, release=False):
+                        mode=InstallMode.min_deps, release=False,
+                        prefix=None):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -193,6 +194,7 @@ def pip_install_package(source_name, python_version=None,
             dependencies are managed.
         release (bool): If True, install as a released package; otherwise, it
             will be installed as a local package.
+        prefix (str, optional): Override release path with this absolute path
 
     Returns:
         2-tuple:
@@ -203,6 +205,9 @@ def pip_install_package(source_name, python_version=None,
     skipped_variants = []
 
     python_exe, context = find_python(python_version)
+
+    if prefix is not None:
+        config.release_packages_path = prefix
 
     # TODO: should check if packages_path is writable
     # before continuing with pip
