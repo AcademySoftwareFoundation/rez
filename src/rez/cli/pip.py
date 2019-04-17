@@ -23,6 +23,10 @@ def setup_parser(parser, completions=False):
         "-p", "--prefix", type=str, metavar='PATH',
         help="install to a custom package repository path.")
     parser.add_argument(
+        "-w", "--use-wheel", action="store_true",
+        help="Prefer use of wheels, at the expense of no --install-options"
+        "locally only")
+    parser.add_argument(
         "PACKAGE", nargs="+",
         help="package to install or archive/url to install from")
 
@@ -38,16 +42,17 @@ def command(opts, parser, extra_arg_groups=None):
         p.wait()
         return
 
-    installed_variants, skipped_variants = [], []
+    installed_variants, skipped_variants = set(), set()
     for package in opts.PACKAGE:
         installed, skipped = pip_install_package(
             package,
             python_version=opts.py_ver,
             release=opts.release,
-            prefix=opts.prefix)
+            prefix=opts.prefix,
+            use_wheel=opts.use_wheel)
 
-        installed_variants += installed
-        skipped_variants += skipped
+        installed_variants.update(installed)
+        skipped_variants.update(skipped)
 
     # print summary
     #

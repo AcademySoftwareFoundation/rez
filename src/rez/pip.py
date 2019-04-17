@@ -182,7 +182,7 @@ def create_context(python_version=None):
 
 def pip_install_package(source_name, python_version=None,
                         mode=InstallMode.min_deps, release=False,
-                        prefix=None):
+                        prefix=None, use_wheel=False):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -220,6 +220,9 @@ def pip_install_package(source_name, python_version=None,
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     destpath = os.path.join(stagingdir, "python")
+    binpath = os.path.join(stagingdir, "bin")
+    incpath = os.path.join(stagingdir, "include")
+    datapath = stagingdir
 
     if context and config.debug("package_release"):
         buf = StringIO()
@@ -228,10 +231,20 @@ def pip_install_package(source_name, python_version=None,
         _log(buf.getvalue())
 
     # Build pip commandline
-    cmd = [
-        python_exe, "-m", "pip", "install",
-        "--target", destpath
-    ]
+    if use_wheel:
+        cmd = [
+            python_exe, "-m", "pip", "install",
+            "--target", destpath
+        ]
+
+    else:
+        cmd = [
+            python_exe, "-m", "pip", "install",
+            "--install-option=--install-lib=%s" % destpath,
+            "--install-option=--install-scripts=%s" % binpath,
+            "--install-option=--install-headers=%s" % incpath,
+            "--install-option=--install-data=%s" % datapath
+        ]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
