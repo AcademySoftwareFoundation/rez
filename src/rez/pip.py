@@ -133,6 +133,36 @@ def find_pip(pip_version=None, python_version=None):
     return pip_exe, context
 
 
+def find_python(pip_version=None, python_version=None):
+    """Find a pip exe using the given python version.
+
+    Returns:
+        2-tuple:
+            str: pip executable;
+            `ResolvedContext`: Context containing pip, or None if we fell back
+                to system pip.
+    """
+    python_exe = "python"
+
+    try:
+        context = create_context(None, python_version)
+    except BuildError as e:
+        # fall back on system pip. Not ideal but at least it's something
+        from rez.backport.shutilwhich import which
+
+        python_exe = which("python")
+
+        if python_exe:
+            print_warning(
+                "python rez package could not be found; system 'python' "
+                "command (%s) will be used instead." % python_exe)
+            context = None
+        else:
+            raise e
+
+    return python_exe, context
+
+
 def create_context(pip_version=None, python_version=None):
     """Create a context containing the specific pip and python.
 
@@ -206,9 +236,11 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     installed_variants = []
     skipped_variants = []
 
-    pip_exe, context = find_pip(pip_version, python_version)
+    # pip_exe, context = find_pip(pip_version, python_version)
+    python_exe, context = find_python(python_version)
 
-    # TODO: should check if packages_path is writable before continuing with pip
+    # TODO: should check if packages_path is writable
+    # before continuing with pip
     #
     packages_path = (config.release_packages_path if release
                      else config.local_packages_path)
@@ -218,9 +250,6 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     destpath = os.path.join(stagingdir, "python")
-    binpath = os.path.join(stagingdir, "bin")
-    incpath = os.path.join(stagingdir, "include")
-    datapath = stagingdir
 
     if context and config.debug("package_release"):
         buf = StringIO()
@@ -229,11 +258,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         _log(buf.getvalue())
 
     # Build pip commandline
-    cmd = [pip_exe, "install",
-           "--install-option=--install-lib=%s" % destpath,
-           "--install-option=--install-scripts=%s" % binpath,
-           "--install-option=--install-headers=%s" % incpath,
-           "--install-option=--install-data=%s" % datapath]
+    cmd = [
+        python_exe, "-m", "pip", "install",
+        "--target", destpath
+    ]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
@@ -260,16 +288,19 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                     # Currently ignoring optional requirements
                     pass
                 else:
-                    requirements.extend(_get_dependencies(requirement, distributions))
+                    requirements.extend(_get_dependencies(
+                        requirement, distributions))
 
         tools = []
         src_dst_lut = {}
+        files = distribution.list_installed_files()
 
-        for installed_file in distribution.list_installed_files(allow_fail=True):
-            source_file = os.path.normpath(os.path.join(destpath, installed_file[0]))
+        for installed_file in files:
+            source_file = os.path.join(destpath, installed_file[0])
+            source_file = os.path.normpath(source_file)
 
             if os.path.exists(source_file):
-                destination_file = installed_file[0].split(stagingsep)[1]
+                destination_file = source_file.split(stagingsep)[1]
                 exe = False
 
                 if is_exe(source_file) and \
