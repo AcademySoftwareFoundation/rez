@@ -85,7 +85,7 @@ def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
-def run_pip_command(command_args, pip_version=None, python_version=None):
+def run_pip_command(command_args, python_version=None):
     """Run a pip command.
 
     Args:
@@ -94,8 +94,8 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
     Returns:
         `subprocess.Popen`: Pip process.
     """
-    pip_exe, context = find_pip(pip_version, python_version)
-    command = [pip_exe] + list(command_args)
+    python_exe, context = find_python(python_version)
+    command = [python_exe, "-m", "pip"] + list(command_args)
 
     if context is None:
         return popen(command)
@@ -103,37 +103,7 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
         return context.execute_shell(command=command, block=False)
 
 
-def find_pip(pip_version=None, python_version=None):
-    """Find a pip exe using the given python version.
-
-    Returns:
-        2-tuple:
-            str: pip executable;
-            `ResolvedContext`: Context containing pip, or None if we fell back
-                to system pip.
-    """
-    pip_exe = "pip"
-
-    try:
-        context = create_context(pip_version, python_version)
-    except BuildError as e:
-        # fall back on system pip. Not ideal but at least it's something
-        from rez.backport.shutilwhich import which
-
-        pip_exe = which("pip")
-
-        if pip_exe:
-            print_warning(
-                "pip rez package could not be found; system 'pip' "
-                "command (%s) will be used instead." % pip_exe)
-            context = None
-        else:
-            raise e
-
-    return pip_exe, context
-
-
-def find_python(pip_version=None, python_version=None):
+def find_python(python_version=None):
     """Find a pip exe using the given python version.
 
     Returns:
@@ -145,7 +115,7 @@ def find_python(pip_version=None, python_version=None):
     python_exe = "python"
 
     try:
-        context = create_context(None, python_version)
+        context = create_context(python_version)
     except BuildError as e:
         # fall back on system pip. Not ideal but at least it's something
         from rez.backport.shutilwhich import which
@@ -163,12 +133,10 @@ def find_python(pip_version=None, python_version=None):
     return python_exe, context
 
 
-def create_context(pip_version=None, python_version=None):
+def create_context(python_version=None):
     """Create a context containing the specific pip and python.
 
     Args:
-        pip_version (str or `Version`): Version of pip to use,
-            or latest if None.
         python_version (str or `Version`): Python version to use,
             or latest if None.
 
@@ -178,11 +146,6 @@ def create_context(pip_version=None, python_version=None):
     """
 
     # determine pip pkg to use for install, and python variants to install on
-    if pip_version:
-        pip_req = "pip-%s" % str(pip_version)
-    else:
-        pip_req = "pip"
-
     if python_version:
         ver = Version(str(python_version))
         major_minor_ver = ver.trim(2)
@@ -199,8 +162,8 @@ def create_context(pip_version=None, python_version=None):
 
         py_req = "python-%s" % str(major_minor_ver)
 
-    # use pip + latest python to perform pip download operations
-    request = [pip_req, py_req]
+    # use specified version of python to perform pip download operations
+    request = [py_req]
 
     with convert_errors(from_=(PackageFamilyNotFoundError,
                                PackageNotFoundError),
@@ -209,22 +172,21 @@ def create_context(pip_version=None, python_version=None):
         context = ResolvedContext(request)
 
     # print pip package used to perform the install
-    pip_variant = context.get_resolved_package("pip")
-    pip_package = pip_variant.parent
-    print_info("Using %s (%s)" % (pip_package.qualified_name, pip_variant.uri))
+    python_variant = context.get_resolved_package("python")
+    python_package = python_variant.parent
+    print_info("Using %s (%s)" % (python_package.qualified_name,
+                                  python_variant.uri))
 
     return context
 
 
-def pip_install_package(source_name, pip_version=None, python_version=None,
+def pip_install_package(source_name, python_version=None,
                         mode=InstallMode.min_deps, release=False):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
             package source. This is the same as the arg you would pass to
             the 'pip install' command.
-        pip_version (str or `Version`): Version of pip to use to perform the
-            install, uses latest if None.
         python_version (str or `Version`): Python version to use to perform the
             install, and subsequently have the resulting rez package depend on.
         mode (`InstallMode`): Installation mode, determines how
@@ -240,7 +202,6 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     installed_variants = []
     skipped_variants = []
 
-    # pip_exe, context = find_pip(pip_version, python_version)
     python_exe, context = find_python(python_version)
 
     # TODO: should check if packages_path is writable
