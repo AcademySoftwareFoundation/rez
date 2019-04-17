@@ -21,10 +21,10 @@ import zlib
 from . import DistlibException
 from .compat import (urljoin, urlparse, urlunparse, url2pathname, pathname2url,
                      queue, quote, unescape, string_types, build_opener,
-                     HTTPRedirectHandler as BaseRedirectHandler,
+                     HTTPRedirectHandler as BaseRedirectHandler, text_type,
                      Request, HTTPError, URLError)
 from .database import Distribution, DistributionPath, make_dist
-from .metadata import Metadata
+from .metadata import Metadata, MetadataInvalidError
 from .util import (cached_property, parse_credentials, ensure_slash,
                    split_filename, get_project_data, parse_requirement,
                    parse_name_and_version, ServerProxy, normalize_name)
@@ -33,7 +33,7 @@ from .wheel import Wheel, is_compatible
 
 logger = logging.getLogger(__name__)
 
-HASHER_HASH = re.compile('^(\w+)=([a-f0-9]+)')
+HASHER_HASH = re.compile(r'^(\w+)=([a-f0-9]+)')
 CHARSET = re.compile(r';\s*charset\s*=\s*(.*)\s*$', re.I)
 HTML_CONTENT_TYPE = re.compile('text/html|application/x(ht)?ml')
 DEFAULT_INDEX = 'https://pypi.python.org/pypi'
@@ -47,7 +47,10 @@ def get_all_distribution_names(url=None):
     if url is None:
         url = DEFAULT_INDEX
     client = ServerProxy(url, timeout=3.0)
-    return client.list_packages()
+    try:
+        return client.list_packages()
+    finally:
+        client('close')()
 
 class RedirectHandler(BaseRedirectHandler):
     """
@@ -66,7 +69,7 @@ class RedirectHandler(BaseRedirectHandler):
             if key in headers:
                 newurl = headers[key]
                 break
-        if newurl is None:
+        if newurl is None:  # pragma: no cover
             return
         urlparts = urlparse(newurl)
         if urlparts.scheme == '':
@@ -113,6 +116,28 @@ class Locator(object):
         # is set from the requirement passed to locate(). See issue #18 for
         # why this can be useful to know.
         self.matcher = None
+        self.errors = queue.Queue()
+
+    def get_errors(self):
+        """
+        Return any errors which have occurred.
+        """
+        result = []
+        while not self.errors.empty():  # pragma: no cover
+            try:
+                e = self.errors.get(False)
+                result.append(e)
+            except self.errors.Empty:
+                continue
+            self.errors.task_done()
+        return result
+
+    def clear_errors(self):
+        """
+        Clear any errors which may have been logged.
+        """
+        # Just get the errors and throw them away
+        self.get_errors()
 
     def clear_cache(self):
         self._cache.clear()
@@ -150,11 +175,12 @@ class Locator(object):
 
         This calls _get_project to do all the work, and just implements a caching layer on top.
         """
-        if self._cache is None:
+        if self._cache is None:  # pragma: no cover
             result = self._get_project(name)
         elif name in self._cache:
             result = self._cache[name]
         else:
+            self.clear_errors()
             result = self._get_project(name)
             self._cache[name] = result
         return result
@@ -168,10 +194,11 @@ class Locator(object):
         basename = posixpath.basename(t.path)
         compatible = True
         is_wheel = basename.endswith('.whl')
+        is_downloadable = basename.endswith(self.downloadable_extensions)
         if is_wheel:
             compatible = is_compatible(Wheel(basename), self.wheel_tags)
-        return (t.scheme != 'https', 'pypi.python.org' in t.netloc,
-                is_wheel, compatible, basename)
+        return (t.scheme == 'https', 'pypi.python.org' in t.netloc,
+                is_downloadable, is_wheel, compatible, basename)
 
     def prefer_url(self, url1, url2):
         """
@@ -214,7 +241,7 @@ class Locator(object):
 
         result = None
         scheme, netloc, path, params, query, frag = urlparse(url)
-        if frag.lower().startswith('egg='):
+        if frag.lower().startswith('egg='):  # pragma: no cover
             logger.debug('%s: version hint in fragment: %r',
                          project_name, frag)
         m = HASHER_HASH.match(frag)
@@ -223,12 +250,14 @@ class Locator(object):
         else:
             algo, digest = None, None
         origpath = path
-        if path and path[-1] == '/':
+        if path and path[-1] == '/':  # pragma: no cover
             path = path[:-1]
         if path.endswith('.whl'):
             try:
                 wheel = Wheel(path)
-                if is_compatible(wheel, self.wheel_tags):
+                if not is_compatible(wheel, self.wheel_tags):
+                    logger.debug('Wheel not compatible: %s', path)
+                else:
                     if project_name is None:
                         include = True
                     else:
@@ -243,15 +272,17 @@ class Locator(object):
                             'python-version': ', '.join(
                                 ['.'.join(list(v[2:])) for v in wheel.pyver]),
                         }
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 logger.warning('invalid path for wheel: %s', path)
-        elif path.endswith(self.downloadable_extensions):
+        elif not path.endswith(self.downloadable_extensions):  # pragma: no cover
+            logger.debug('Not downloadable: %s', path)
+        else:  # downloadable extension
             path = filename = posixpath.basename(path)
             for ext in self.downloadable_extensions:
                 if path.endswith(ext):
                     path = path[:-len(ext)]
                     t = self.split_filename(path, project_name)
-                    if not t:
+                    if not t:  # pragma: no cover
                         logger.debug('No match for project/version: %s', path)
                     else:
                         name, version, pyver = t
@@ -264,7 +295,7 @@ class Locator(object):
                                                    params, query, '')),
                                 #'packagetype': 'sdist',
                             }
-                            if pyver:
+                            if pyver:  # pragma: no cover
                                 result['python-version'] = pyver
                     break
         if result and algo:
@@ -325,7 +356,7 @@ class Locator(object):
         """
         result = None
         r = parse_requirement(requirement)
-        if r is None:
+        if r is None:  # pragma: no cover
             raise DistlibException('Not a valid requirement: %r' % requirement)
         scheme = get_scheme(self.scheme)
         self.matcher = matcher = scheme.matcher(r.requirement)
@@ -363,7 +394,7 @@ class Locator(object):
             d = {}
             sd = versions.get('digests', {})
             for url in result.download_urls:
-                if url in sd:
+                if url in sd:  # pragma: no cover
                     d[url] = sd[url]
             result.digests = d
         self.matcher = None
@@ -482,6 +513,7 @@ class PyPIJSONLocator(Locator):
 #                    result['urls'].setdefault(md.version, set()).add(url)
 #                    result['digests'][url] = self._get_digest(info)
         except Exception as e:
+            self.errors.put(text_type(e))
             logger.exception('JSON fetch failed: %s', e)
         return result
 
@@ -496,9 +528,9 @@ class Page(object):
     # declared with double quotes, single quotes or no quotes - which leads to
     # the length of the expression.
     _href = re.compile("""
-(rel\s*=\s*(?:"(?P<rel1>[^"]*)"|'(?P<rel2>[^']*)'|(?P<rel3>[^>\s\n]*))\s+)?
-href\s*=\s*(?:"(?P<url1>[^"]*)"|'(?P<url2>[^']*)'|(?P<url3>[^>\s\n]*))
-(\s+rel\s*=\s*(?:"(?P<rel4>[^"]*)"|'(?P<rel5>[^']*)'|(?P<rel6>[^>\s\n]*)))?
+(rel\\s*=\\s*(?:"(?P<rel1>[^"]*)"|'(?P<rel2>[^']*)'|(?P<rel3>[^>\\s\n]*))\\s+)?
+href\\s*=\\s*(?:"(?P<url1>[^"]*)"|'(?P<url2>[^']*)'|(?P<url3>[^>\\s\n]*))
+(\\s+rel\\s*=\\s*(?:"(?P<rel4>[^"]*)"|'(?P<rel5>[^']*)'|(?P<rel6>[^>\\s\n]*)))?
 """, re.I | re.S | re.X)
     _base = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I | re.S)
 
@@ -583,6 +615,7 @@ class SimpleScrapingLocator(Locator):
         # as it is for coordinating our internal threads - the ones created
         # in _prepare_threads.
         self._gplock = threading.RLock()
+        self.platform_check = False  # See issue #112
 
     def _prepare_threads(self):
         """
@@ -628,8 +661,8 @@ class SimpleScrapingLocator(Locator):
             del self.result
         return result
 
-    platform_dependent = re.compile(r'\b(linux-(i\d86|x86_64|arm\w+)|'
-                                    r'win(32|-amd64)|macosx-?\d+)\b', re.I)
+    platform_dependent = re.compile(r'\b(linux_(i\d86|x86_64|arm\w+)|'
+                                    r'win(32|_amd64)|macosx_?\d+)\b', re.I)
 
     def _is_platform_dependent(self, url):
         """
@@ -647,7 +680,7 @@ class SimpleScrapingLocator(Locator):
         Note that the return value isn't actually used other than as a boolean
         value.
         """
-        if self._is_platform_dependent(url):
+        if self.platform_check and self._is_platform_dependent(url):
             info = None
         else:
             info = self.convert_url_to_download_info(url, self.project_name)
@@ -702,11 +735,16 @@ class SimpleScrapingLocator(Locator):
                         continue
                     for link, rel in page.links:
                         if link not in self._seen:
-                            self._seen.add(link)
-                            if (not self._process_download(link) and
-                                self._should_queue(link, url, rel)):
-                                logger.debug('Queueing %s from %s', link, url)
-                                self._to_fetch.put(link)
+                            try:
+                                self._seen.add(link)
+                                if (not self._process_download(link) and
+                                    self._should_queue(link, url, rel)):
+                                    logger.debug('Queueing %s from %s', link, url)
+                                    self._to_fetch.put(link)
+                            except MetadataInvalidError:  # e.g. invalid versions
+                                pass
+            except Exception as e:  # pragma: no cover
+                self.errors.put(text_type(e))
             finally:
                 # always do this, to avoid hangs :-)
                 self._to_fetch.task_done()
@@ -1210,7 +1248,7 @@ class DependencyFinder(object):
             ireqts = dist.run_requires | dist.meta_requires
             sreqts = dist.build_requires
             ereqts = set()
-            if dist in install_dists:
+            if meta_extras and dist in install_dists:
                 for key in ('test', 'build', 'dev'):
                     e = ':%s:' % key
                     if e in meta_extras:

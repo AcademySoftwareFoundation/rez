@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2013-2016 Vinay Sajip.
+# Copyright (C) 2013-2017 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -12,7 +12,7 @@ import sys
 
 try:
     import ssl
-except ImportError:
+except ImportError:  # pragma: no cover
     ssl = None
 
 if sys.version_info[0] < 3:  # pragma: no cover
@@ -110,7 +110,7 @@ except ImportError: # pragma: no cover
         wildcards = leftmost.count('*')
         if wildcards > max_wildcards:
             # Issue #17980: avoid denials of service by refusing more
-            # than one wildcard per fragment.  A survery of established
+            # than one wildcard per fragment.  A survey of established
             # policy among SSL implementations showed it to be a
             # reasonable choice.
             raise CertificateError(
@@ -272,7 +272,7 @@ from zipfile import ZipFile as BaseZipFile
 
 if hasattr(BaseZipFile, '__enter__'):  # pragma: no cover
     ZipFile = BaseZipFile
-else:
+else:  # pragma: no cover
     from zipfile import ZipExtFile as BaseZipExtFile
 
     class ZipExtFile(BaseZipExtFile):
@@ -329,7 +329,13 @@ try:
     fsencode = os.fsencode
     fsdecode = os.fsdecode
 except AttributeError:  # pragma: no cover
-    _fsencoding = sys.getfilesystemencoding()
+    # Issue #99: on some systems (e.g. containerised),
+    # sys.getfilesystemencoding() returns None, and we need a real value,
+    # so fall back to utf-8. From the CPython 2.7 docs relating to Unix and
+    # sys.getfilesystemencoding(): the return value is "the user’s preference
+    # according to the result of nl_langinfo(CODESET), or None if the
+    # nl_langinfo(CODESET) failed."
+    _fsencoding = sys.getfilesystemencoding() or 'utf-8'
     if _fsencoding == 'mbcs':
         _fserrors = 'strict'
     else:
@@ -359,7 +365,7 @@ except ImportError: # pragma: no cover
     from codecs import BOM_UTF8, lookup
     import re
 
-    cookie_re = re.compile("coding[:=]\s*([-\w.]+)")
+    cookie_re = re.compile(r"coding[:=]\s*([-\w.]+)")
 
     def _get_normal_name(orig_enc):
         """Imitates get_normal_name in tokenizer.c."""
@@ -375,7 +381,7 @@ except ImportError: # pragma: no cover
     def detect_encoding(readline):
         """
         The detect_encoding() function is used to detect the encoding that should
-        be used to decode a Python source file.  It requires one argment, readline,
+        be used to decode a Python source file.  It requires one argument, readline,
         in the same way as the tokenize() generator.
 
         It will call readline a maximum of twice, and return the encoding used
@@ -608,17 +614,20 @@ except ImportError: # pragma: no cover
             self.maps[0].clear()
 
 try:
-    from imp import cache_from_source
-except ImportError: # pragma: no cover
-    def cache_from_source(path, debug_override=None):
-        assert path.endswith('.py')
-        if debug_override is None:
-            debug_override = __debug__
-        if debug_override:
-            suffix = 'c'
-        else:
-            suffix = 'o'
-        return path + suffix
+    from importlib.util import cache_from_source  # Python >= 3.4
+except ImportError:  # pragma: no cover
+    try:
+        from imp import cache_from_source
+    except ImportError:  # pragma: no cover
+        def cache_from_source(path, debug_override=None):
+            assert path.endswith('.py')
+            if debug_override is None:
+                debug_override = __debug__
+            if debug_override:
+                suffix = 'c'
+            else:
+                suffix = 'o'
+            return path + suffix
 
 try:
     from collections import OrderedDict
