@@ -23,7 +23,7 @@ def setup_parser(parser, completions=False):
         "-p", "--prefix", type=str, metavar='PATH',
         help="install to a custom package repository path.")
     parser.add_argument(
-        "PACKAGE",
+        "PACKAGE", nargs="+",
         help="package to install or archive/url to install from")
 
 
@@ -38,37 +38,41 @@ def command(opts, parser, extra_arg_groups=None):
         p.wait()
         return
 
-    installed_variants, skipped_variants = pip_install_package(
-        opts.PACKAGE,
-        python_version=opts.py_ver,
-        release=opts.release,
-        prefix=opts.prefix)
+    installed_variants, skipped_variants = [], []
+    for package in opts.PACKAGE:
+        installed, skipped = pip_install_package(
+            package,
+            python_version=opts.py_ver,
+            release=opts.release,
+            prefix=opts.prefix)
+
+        installed_variants += installed
+        skipped_variants += skipped
 
     # print summary
     #
-
     def print_variant(v):
         pkg = v.parent
         txt = "%s: %s" % (pkg.qualified_name, pkg.uri)
         if v.subpath:
             txt += " (%s)" % v.subpath
-        print "  " + txt
+        print("  " + txt)
 
-    print
+    print("")
+
     if installed_variants:
-        print "%d packages were installed:" % len(installed_variants)
+        print("%d packages were installed:" % len(installed_variants))
         for variant in installed_variants:
             print_variant(variant)
     else:
-        print "NO packages were installed."
+        print("NO packages were installed.")
 
     if skipped_variants:
-        print
-        print "%d packages were already installed:" % len(skipped_variants)
+        print("\n%d packages were already installed:" % len(skipped_variants))
         for variant in skipped_variants:
             print_variant(variant)
 
-    print
+    print("")
 
 
 # Copyright 2013-2016 Allan Johns.
