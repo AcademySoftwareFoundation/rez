@@ -16,7 +16,6 @@ from rez.system import System
 from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
-import subprocess
 import os.path
 import shutil
 import sys
@@ -34,12 +33,13 @@ class InstallMode(Enum):
     # dependency, if the dependency is newer.
     new_deps = 2
     # install dependencies even if a rez package of the same version is already
-    # available, if possible. For example, if you are performing a local install,
-    # a released (central) package may match a dependency; but with this mode
-    # enabled, a new local package of the same version will be installed as well.
+    # available, if possible. For example, if you are performing a local
+    # install, a released (central) package may match a dependency; but
+    # with this mode enabled, a new local package of the same version
+    # will be installed as well.
     #
-    # Typically, if performing a central install with the rez-pip --release flag,
-    # max_deps is equivalent to new_deps.
+    # Typically, if performing a central install with the
+    # rez-pip --release flag, max_deps is equivalent to new_deps.
     max_deps = 3
 
 
@@ -124,8 +124,8 @@ def find_pip(pip_version=None, python_version=None):
 
         if pip_exe:
             print_warning(
-                "pip rez package could not be found; system 'pip' command (%s) "
-                "will be used instead." % pip_exe)
+                "pip rez package could not be found; system 'pip' "
+                "command (%s) will be used instead." % pip_exe)
             context = None
         else:
             raise e
@@ -167,13 +167,16 @@ def create_context(pip_version=None, python_version=None):
     """Create a context containing the specific pip and python.
 
     Args:
-        pip_version (str or `Version`): Version of pip to use, or latest if None.
-        python_version (str or `Version`): Python version to use, or latest if
-            None.
+        pip_version (str or `Version`): Version of pip to use,
+            or latest if None.
+        python_version (str or `Version`): Python version to use,
+            or latest if None.
 
     Returns:
         `ResolvedContext`: Context containing pip and python.
+
     """
+
     # determine pip pkg to use for install, and python variants to install on
     if pip_version:
         pip_req = "pip-%s" % str(pip_version)
@@ -199,7 +202,8 @@ def create_context(pip_version=None, python_version=None):
     # use pip + latest python to perform pip download operations
     request = [pip_req, py_req]
 
-    with convert_errors(from_=(PackageFamilyNotFoundError, PackageNotFoundError),
+    with convert_errors(from_=(PackageFamilyNotFoundError,
+                               PackageNotFoundError),
                         to=BuildError, msg="Cannot run - pip or python rez "
                         "package is not present"):
         context = ResolvedContext(request)
@@ -223,8 +227,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             install, uses latest if None.
         python_version (str or `Version`): Python version to use to perform the
             install, and subsequently have the resulting rez package depend on.
-        mode (`InstallMode`): Installation mode, determines how dependencies are
-            managed.
+        mode (`InstallMode`): Installation mode, determines how
+            dependencies are managed.
         release (bool): If True, install as a released package; otherwise, it
             will be installed as a local package.
 
@@ -277,13 +281,15 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     for distribution in distribution_path.get_distributions():
         requirements = []
         if distribution.metadata.run_requires:
-            # Handle requirements. Currently handles conditional environment based
+            # Handle requirements. Currently handles
+            # conditional environment based
             # requirements and normal requirements
             # TODO: Handle optional requirements?
             for requirement in distribution.metadata.run_requires:
                 if "environment" in requirement:
                     if interpret(requirement["environment"]):
-                        requirements.extend(_get_dependencies(requirement, distributions))
+                        requirements.extend(_get_dependencies(
+                            requirement, distributions))
                 elif "extra" in requirement:
                     # Currently ignoring optional requirements
                     pass
@@ -303,8 +309,11 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 destination_file = source_file.split(stagingsep)[1]
                 exe = False
 
-                if is_exe(source_file) and \
-                        destination_file.startswith("%s%s" % ("bin", os.path.sep)):
+                starts_with_bin = destination_file.startswith(
+                    "%s%s" % ("bin", os.path.sep)
+                )
+
+                if is_exe(source_file) and starts_with_bin:
                     _, _file = os.path.split(destination_file)
                     tools.append(_file)
                     exe = True
@@ -316,12 +325,15 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         def make_root(variant, path):
             """Using distlib to iterate over all installed files of the current
-            distribution to copy files to the target directory of the rez package
-            variant
+            distribution to copy files to the target directory of the rez
+            package variant
+
             """
+
             for source_file, data in src_dst_lut.items():
                 destination_file, exe = data
-                destination_file = os.path.normpath(os.path.join(path, destination_file))
+                destination_file = os.path.join(path, destination_file)
+                destination_file = os.path.normpath(destination_file)
 
                 if not os.path.exists(os.path.dirname(destination_file)):
                     os.makedirs(os.path.dirname(destination_file))
@@ -338,7 +350,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         variant_reqs.append("os-%s" % _system.os)
 
         if context is None:
-            # since we had to use system pip, we have to assume system python version
+            # since we had to use system pip, we have
+            # to assume system python version
             py_ver = '.'.join(map(str, sys.version_info[:2]))
         else:
             python_variant = context.get_resolved_package("python")
