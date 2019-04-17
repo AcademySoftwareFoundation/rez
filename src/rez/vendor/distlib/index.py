@@ -49,9 +49,10 @@ class PackageIndex(object):
         self.ssl_verifier = None
         self.gpg = None
         self.gpg_home = None
-        self.rpc_proxy = None
         with open(os.devnull, 'w') as sink:
-            for s in ('gpg2', 'gpg'):
+            # Use gpg by default rather than gpg2, as gpg2 insists on
+            # prompting for passwords
+            for s in ('gpg', 'gpg2'):
                 try:
                     rc = subprocess.check_call([s, '--version'], stdout=sink,
                                                stderr=sink)
@@ -74,7 +75,7 @@ class PackageIndex(object):
     def read_configuration(self):
         """
         Read the PyPI access configuration as supported by distutils, getting
-        PyPI to do the acutal work. This populates ``username``, ``password``,
+        PyPI to do the actual work. This populates ``username``, ``password``,
         ``realm`` and ``url`` attributes from the configuration.
         """
         # get distutils to do the work
@@ -276,7 +277,7 @@ class PackageIndex(object):
         sha256_digest = hashlib.sha256(file_data).hexdigest()
         d.update({
             ':action': 'file_upload',
-            'protcol_version': '1',
+            'protocol_version': '1',
             'filetype': filetype,
             'pyversion': pyversion,
             'md5_digest': md5_digest,
@@ -508,6 +509,8 @@ class PackageIndex(object):
     def search(self, terms, operator=None):
         if isinstance(terms, string_types):
             terms = {'name': terms}
-        if self.rpc_proxy is None:
-            self.rpc_proxy = ServerProxy(self.url, timeout=3.0)
-        return self.rpc_proxy.search(terms, operator or 'and')
+        rpc_proxy = ServerProxy(self.url, timeout=3.0)
+        try:
+            return rpc_proxy.search(terms, operator or 'and')
+        finally:
+            rpc_proxy('close')()
