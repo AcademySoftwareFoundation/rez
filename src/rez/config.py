@@ -109,6 +109,10 @@ class OptionalStr(Str):
     schema = Or(None, basestring)
 
 
+class OptionalObject(Str):
+    schema = Or(None, object)
+
+
 class StrList(Setting):
     schema = Schema([basestring])
     sep = ','
@@ -316,7 +320,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
-    "package_preprocess_function":                  OptionalStr,
+    "package_preprocess_function":                  OptionalObject,
     "context_tracking_host":                        OptionalStr,
     "variant_shortlinks_dirname":                   OptionalStr,
     "build_thread_count":                           BuildThreadCount_,
