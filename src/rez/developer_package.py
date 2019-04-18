@@ -180,6 +180,7 @@ class DeveloperPackage(Package):
                     return None
 
                 elif isfunction(dotted):
+                    funcname = dotted.__name__
                     preprocess_func = dotted
 
                 elif isinstance(dotted, basestring):
@@ -208,15 +209,15 @@ class DeveloperPackage(Package):
 
                 else:
                     print_error(
-                        "Invalid package_preprocess_function: %s" % dotted
+                        "Invalid package_preprocess_function: %s" % funcname
                     )
                     return None
 
             if not preprocess_func or not isfunction(preprocess_func):
-                print_error("Function '%s' not found" % dotted)
+                print_error("Function '%s' not found" % funcname)
                 return None
 
-            print_info("Applying preprocess function %s" % dotted)
+            print_info("Applying preprocess function %s" % funcname)
 
             preprocessed_data = deepcopy(data)
 
