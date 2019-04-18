@@ -443,8 +443,11 @@ class FileSystemPackageRepository(PackageRepository):
     ignore_prefix = ".ignore"
 
     package_file_mode = (
+        None if os.name == "nt" else
+
+        # These aren't supported on Windows
+        # https://docs.python.org/2/library/os.html#os.chmod
         (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
-        if os.name == "posix" else None
     )
 
     @classmethod
