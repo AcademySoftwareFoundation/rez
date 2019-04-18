@@ -442,7 +442,10 @@ class FileSystemPackageRepository(PackageRepository):
     building_prefix = ".building"
     ignore_prefix = ".ignore"
 
-    package_file_mode = (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+    package_file_mode = (
+        (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+        if os.name == "posix" else None
+    )
 
     @classmethod
     def name(cls):
