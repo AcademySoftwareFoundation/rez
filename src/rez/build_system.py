@@ -35,14 +35,15 @@ def get_valid_build_systems(working_dir, package=None):
         pass
 
     if package:
-        if getattr(package, "build_command", None) is not None:
+        if hasattr(package, "build_command"):
             buildsys_name = "custom"
         else:
             buildsys_name = getattr(package, "build_system", None)
 
         # package explicitly specifies build system
         if buildsys_name:
-            cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
+            cls = plugin_manager.get_plugin_class('build_system',
+                                                  buildsys_name)
             return [cls]
 
     # detect valid build systems
@@ -58,6 +59,12 @@ def get_valid_build_systems(working_dir, package=None):
     #
     child_clss = set(x.child_build_system() for x in clss)
     clss = list(set(clss) - child_clss)
+
+    if not clss:
+        package.build_command = False
+        cls = plugin_manager.get_plugin_class('build_system', 'custom')
+        cls.is_valid_root = lambda *args: True
+        return [cls]
 
     return clss
 
