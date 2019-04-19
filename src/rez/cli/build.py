@@ -80,6 +80,9 @@ def setup_parser(parser, completions=False):
         help="install the build to the local packages path. Use --prefix to "
         "choose a custom install path.")
     parser.add_argument(
+        "-r", "--release", action="store_true",
+        help="install onto release path")
+    parser.add_argument(
         "-p", "--prefix", type=str, metavar='PATH',
         help="install to a custom package repository path.")
     parser.add_argument(
@@ -148,8 +151,17 @@ def command(opts, parser, extra_arg_groups=None):
                                    build_system=buildsys,
                                    verbose=True)
 
+    install_path = opts.prefix
+
+    if opts.release:
+        opts.install = True
+        package = builder.package
+        config = package.config
+        install_path = config.release_packages_path
+
     try:
-        builder.build(install_path=opts.prefix,
+        print("Building into: '%s'" % install_path)
+        builder.build(install_path=install_path,
                       clean=opts.clean,
                       install=opts.install,
                       variants=opts.variants)
