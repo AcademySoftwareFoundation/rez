@@ -46,7 +46,7 @@ class CustomBuildSystem(BuildSystem):
             except PackageMetadataError:
                 return False
 
-        return hasattr(package, "build_command")
+        return (getattr(package, "build_command", None) is not None)
 
     def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
