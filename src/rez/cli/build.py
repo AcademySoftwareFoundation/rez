@@ -151,16 +151,18 @@ def command(opts, parser, extra_arg_groups=None):
                                    build_system=buildsys,
                                    verbose=True)
 
+    package = builder.package
+    config = package.config
+    release_path = config.release_packages_path
+    local_path = config.local_packages_path
     install_path = opts.prefix
 
     if opts.release:
         opts.install = True
-        package = builder.package
-        config = package.config
-        install_path = config.release_packages_path
+        install_path = release_path
 
     try:
-        print("Building into: '%s'" % install_path)
+        print("Building into: '%s'" % (install_path or local_path))
         builder.build(install_path=install_path,
                       clean=opts.clean,
                       install=opts.install,
