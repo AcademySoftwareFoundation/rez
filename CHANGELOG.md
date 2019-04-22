@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.29.1](https://github.com/nerdvegas/rez/tree/2.29.0) (2019-04-22)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.29.0...2.29.1)
+
+**Merged pull requests:**
+
+- Bugfix/custom build arguments [\#601](https://github.com/nerdvegas/rez/pull/601) ([lambdaclan](https://github.com/lambdaclan))
+
+**Closed issues:**
+
+- bug in rez-build --bs option [\#604](https://github.com/nerdvegas/rez/issues/604)
+
 ## [2.29.0](https://github.com/nerdvegas/rez/tree/2.29.0) (2019-04-09)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.28.0...2.29.0)
 
