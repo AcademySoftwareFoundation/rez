@@ -64,8 +64,14 @@ def open_file_for_write(filepath, mode=None):
 
     debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
 
-    with atomic_write(filepath, overwrite=True) as f:
-        f.write(content)
+    try:
+        with atomic_write(filepath, overwrite=True) as f:
+            f.write(content)
+
+    except WindowsError as e:
+        # Under Windows, atomic_write doesn't tell you about
+        # which file actually failed.
+        raise WindowsError("%s: '%s'" % (e, filepath))
 
     if mode is not None:
         os.chmod(filepath, mode)
