@@ -162,7 +162,13 @@ class RequirementsBinding(Binding):
             self._attr_error(name)
 
     def __contains__(self, name):
+        """Support for `if req in request`"""
         return (name in self.__requirements)
+
+    def __iter__(self):
+        """Support for `for req in request`"""
+        for req in self.__requirements:
+            yield req
 
 
 # Copyright 2013-2016 Allan Johns.
