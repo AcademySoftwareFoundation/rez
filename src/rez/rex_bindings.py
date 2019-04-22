@@ -140,6 +140,11 @@ class VariantsBinding(Binding):
     def __contains__(self, name):
         return (name in self.__variants)
 
+    def __iter__(self):
+        """Support for `for res in resolve`"""
+        for req in self.__variants:
+            yield req
+
 
 class RequirementsBinding(Binding):
     """Binds a list of version.Requirement objects."""
