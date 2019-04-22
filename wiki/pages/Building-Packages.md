@@ -178,8 +178,8 @@ Now if you run *rez-build -h* on this package, you will see the option listed:
       --foo                 do some foo
 
 The added arguments are stored into environment variables so that your build script
-can access them. They are prefixed with *__PARSE_ARG_*; in our example above, the
-variable *__PARSE_ARG_FOO* will be set. Booleans will be set to 0/1, and lists are
+can access them. They are prefixed with `__PARSE_ARG_`; in our example above, the
+variable `__PARSE_ARG_FOO` will be set. Booleans will be set to 0/1, and lists are
 space separated, with quotes where necessary.
 
 #### Make Example
