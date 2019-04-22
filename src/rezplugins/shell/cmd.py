@@ -284,7 +284,7 @@ class CMD(Shell):
             except:
                 self._doskey = "doskey"
 
-        self._addline("%s %s=%s" % (self._doskey, key, value))
+        self._addline("%s %s=%s $*" % (self._doskey, key, value))
 
     def comment(self, value):
         for line in value.split('\n'):
