@@ -469,16 +469,10 @@ class WindowsPlatform(Platform):
 
     def _os(self):
         release, version, csd, ptype = platform.win32_ver()
-
         toks = []
         for item in (version, csd):
             if item:  # initial release would not have a service pack (csd)
-                toks.extend(item.split("."))
-
-        # Windows is great at backwards compatibility
-        # From 10.0.17763 -> 10.0
-        toks = toks[:2]
-
+                toks.append(item)
         final_version = str('.').join(toks)
         return "windows-%s" % final_version
 
