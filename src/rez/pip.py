@@ -182,7 +182,8 @@ def create_context(python_version=None):
 
 def pip_install_package(source_name, python_version=None,
                         mode=InstallMode.min_deps, release=False,
-                        prefix=None, use_wheel=False):
+                        prefix=None, use_wheel=False,
+                        variants=None):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -201,6 +202,7 @@ def pip_install_package(source_name, python_version=None,
             List of `Variant`: Installed variants;
             List of `Variant`: Skipped variants (already installed).
     """
+
     installed_variants = []
     skipped_variants = []
 
@@ -251,7 +253,6 @@ def pip_install_package(source_name, python_version=None,
     cmd.append(source_name)
 
     _cmd(context=context, command=cmd)
-    _system = System()
 
     # Collect resulting python packages using distlib
     distribution_path = DistributionPath([destpath], include_egg=True)
@@ -322,21 +323,7 @@ def pip_install_package(source_name, python_version=None,
                     shutil.copystat(source_file, destination_file)
 
         # determine variant requirements
-        # TODO detect if platform/arch/os necessary, no if pure python
-        variant_reqs = []
-        variant_reqs.append("platform-%s" % _system.platform)
-        variant_reqs.append("arch-%s" % _system.arch)
-        variant_reqs.append("os-%s" % _system.os)
-
-        if context is None:
-            # since we had to use system pip, we have
-            # to assume system python version
-            py_ver = '.'.join(map(str, sys.version_info[:2]))
-        else:
-            python_variant = context.get_resolved_package("python")
-            py_ver = python_variant.version.trim(2)
-
-        variant_reqs.append("python-%s" % py_ver)
+        variants = variants or []
 
         name, _ = parse_name_and_version(distribution.name_and_version)
         name = distribution.name[0:len(name)].replace("-", "_")
@@ -346,7 +333,7 @@ def pip_install_package(source_name, python_version=None,
             if distribution.metadata.summary:
                 pkg.description = distribution.metadata.summary
 
-            pkg.variants = [variant_reqs]
+            pkg.variants = [variants]
             if requirements:
                 pkg.requires = requirements
 

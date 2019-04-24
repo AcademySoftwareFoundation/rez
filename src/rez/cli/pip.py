@@ -20,6 +20,9 @@ def setup_parser(parser, completions=False):
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
+        "-va", "--variant", action="append",
+        help="Install package as variant, may be called multiple times.")
+    parser.add_argument(
         "-p", "--prefix", type=str, metavar='PATH',
         help="install to a custom package repository path.")
     parser.add_argument(
@@ -48,7 +51,9 @@ def command(opts, parser, extra_arg_groups=None):
             python_version=opts.py_ver,
             release=opts.release,
             prefix=opts.prefix,
-            use_wheel=opts.use_wheel)
+            use_wheel=opts.use_wheel,
+            variants=opts.variant
+        )
 
         installed_variants.update(installed)
         skipped_variants.update(skipped)
