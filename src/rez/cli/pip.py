@@ -25,6 +25,9 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "PACKAGE",
         help="package to install or archive/url to install from")
+    parser.add_argument(
+        "-va", "--variant", action="append",
+        help="Install package as variant, may be called multiple times.")
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -43,7 +46,8 @@ def command(opts, parser, extra_arg_groups=None):
         opts.PACKAGE,
         pip_version=opts.pip_ver,
         python_version=opts.py_ver,
-        release=opts.release)
+        release=opts.release,
+        variants=opts.variant)
 
     # print summary
     #
