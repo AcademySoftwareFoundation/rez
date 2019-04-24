@@ -461,6 +461,7 @@ class VariantResourceHelper(VariantResource):
             return hashdir
         else:
             dirs = [x.safe_str() for x in self.variant_requires]
+            dirs = dirs or [""]
             subpath = os.path.join(*dirs)
             return subpath
 
