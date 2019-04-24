@@ -24,8 +24,7 @@ def setup_parser(parser, completions=False):
         help="install to a custom package repository path.")
     parser.add_argument(
         "-w", "--use-wheel", action="store_true",
-        help="Prefer use of wheels, at the expense of no --install-options"
-        "locally only")
+        help="Prefer use of wheels, at the expense of no --install-options")
     parser.add_argument(
         "PACKAGE", nargs="+",
         help="package to install or archive/url to install from")
