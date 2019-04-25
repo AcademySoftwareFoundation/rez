@@ -1,0 +1,40 @@
+This folder contains all the libraries on which rez depends to run.
+
+Libraries that are required to install Rez can be found in [src/build_utils](../../build_utils).
+
+The dependencies list found here is used to track which version we use so that when we
+revisit the install procedure, it will be much simpler to do any change in the vendored
+libraries (updating them, un-vendoring some, etc).
+
+Note that the latest versions column is just to give us an idea of how far back we are.
+
+
+# Common
+
+| Package                     | Version                    | Latest                                  | Note                                                                                                                                                                                                                                  |
+|-----------------------------|----------------------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| amqp                        | 1.4.9 (Jan 8, 2016)        | 2.4.2 (Mar 3, 2019)                     |                                                                                                                                                                                                                                       |
+| argcomplete                 | ?                          | 1.9.5 (Apr 2, 2019)                     | Our version seems patched.                                                                                                                                                                                                            |
+| argparse                    | 1.2.1                      | Python standard library since 2.7,>=3.2 | We should simply drop support for python <2.6. Note: Can be done now, 2.6 already officially dropped.                                                                                                                                                                                         |
+| atomicwrites                | 1.2.1 (Aug 30, 2018)       | 1.3.0 (Feb 1, 2019)                     |                                                                                                                                                                                                                                       |
+| colorama                    | 0.3.1 (Apr 19, 2014)       | 0.4.1 (Nov 25, 2018)                    | The newest version probably support Windows :)                                                                                                                                                                                        |
+| distlib                     | 0.2.4.dev0 (~Sep 30, 2016) | 0.2.8 (Oct 1, 2018)                     | Why are we living on a development version?                                                                                                                                                                                           |
+| enum                        | ?                          | ?                                       | By looking at the code, it's probably enum34. If so, the latest version is 1.1.6 (May 15, 2016)                                                                                                                                       |
+| lockfile                    | 0.9.1 (Sep 19, 2010)       | 0.12.2 (Nov 25, 2015)                   |                                                                                                                                                                                                                                       |
+| memcache (python-memcached) | 1.53 (Jun 7, 2013)         | 1.59 (Dec 15, 2017)                     | We could try to move to a more maintained package like pymemcache from pinterest. NOTE: A port to redis may be a better option, people are more familiar with it and it already has a good python client that supports conn pooling.                                                                                                                                                     |
+| progress                    | 1.2 (Nov 28, 2013)         | 1.5 (Mar 6, 2019)                       |                                                                                                                                                                                                                                       |
+| pydot                       | 1.0.28 (Jan 1, 2012)       | 1.4.1 (Dec 12, 2018)                    |                                                                                                                                                                                                                                       |
+| pygraph (python-graph-core) | 1.8.2 (Jul 14, 2012)       | 1.8.2                                   | Wow, it took me some archeology to find this one. Not entirely sure we need it... We might be able to achieve the same with pydot or graphviz (the pip package)?                                                                      |
+| pyparsing                   | 2.0.1 (Jul 17, 2013)       | 2.4.0 (Apr 8, 2019)                     | Transitive dependency. Required by pydot and version pydot 1.0.28 specifically require ==2.0.1. Newer versions require >=2.1.4)                                                                                                       |
+| schema                      | 0.3.1 (Apr 28, 2014)       | 0.7.0 (Feb 27, 2019)                    | Our version is patched. Updating would probably require quite a lot of work and wouldn't bring that much to rez.                                                                                                                      |
+| six                         | 1.8.0 (Sep 11, 2014)       | 1.12.0 (Dec 9, 2018)                    | Used only for its exec_ function for now. I guess if we want to support python 2 and 3 we will use it more and more.                                                                                                                  |
+| sortedcontainers            | 1.5.7 (Dec 22, 2016)       | 2.1.0 (Mar 5, 2019)                     | Used in the resolver. Updating would possibly give us some speed improvements.                                                                                                                                                        |
+| version                     | ?                          |                                         | This is actually part of rez. It's here because I've been intending on releasing it separately for ages.                                                                                                                                                                                                                  |
+| yaml (PyYAML)               | 3.10 (May 30, 2011)        | 5.1 (Mar 13, 2019)                      | Not much changes, mostly broken releases that never made it. Between 3.10 and 5.1 there is only 3 versions that made it to the public (3.11 and 3.12, 3.13), the rest were all removed or marked as pre-release. It's safe to update. |
+
+
+# Development
+
+| Package   | Version              | Latest               | Note                                                                                 |
+|-----------|----------------------|----------------------|--------------------------------------------------------------------------------------|
+| unittest2 | 0.5.1 (Jul 12, 2010) | 1.1.0 (Jun 30, 2015) | If we drop support for python 2.6, we will be able to use unittest from the std lib. Note: Can be done now, 2.6 already officially dropped. |

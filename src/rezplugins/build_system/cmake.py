@@ -76,6 +76,7 @@ class CMakeBuildSystem(BuildSystem):
                             default=settings.build_target,
                             help="set the build target (default: %(default)s).")
         parser.add_argument("--bs", "--cmake-build-system",
+                            dest="cmake_build_system",
                             choices=cls.build_systems.keys(),
                             default=settings.build_system,
                             help="set the cmake build system (default: %(default)s).")
