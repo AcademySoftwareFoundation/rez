@@ -1,0 +1,13 @@
+image:
+- Visual Studio 2015  # for Python 2.7
+- Ubuntu
+
+install:
+  # Try setup.py
+  - pip install file://.
+
+  # Then try install.py
+  - python install.py -v ./install
+
+build_script:
+  - echo "All ok"
