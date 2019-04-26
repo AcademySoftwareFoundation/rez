@@ -11,3 +11,5 @@ install:
 
 build_script:
   - echo "All ok"
+
+build: off
