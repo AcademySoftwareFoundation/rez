@@ -333,7 +333,9 @@ def pip_install_package(source_name, python_version=None,
             if distribution.metadata.summary:
                 pkg.description = distribution.metadata.summary
 
-            pkg.variants = [variants]
+            if variants:
+                pkg.variants = [variants]
+
             if requirements:
                 pkg.requires = requirements
 
