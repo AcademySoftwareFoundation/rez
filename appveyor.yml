@@ -3,27 +3,20 @@ image:
 - Ubuntu
 
 install:
-  - echo I run on both..
-  - cmd: echo ..Windows..
-  - sh: echo ..and Linux!
-
   # Try setup.py
-  - pip install --user .
+  - sh: sudo pip install .
+  - cmd: pip install .
 
   # Then try install.py
   - python install.py -v ./install
 
 test_script:
-  - sh: echo $(pwd)
-  - cmd: echo %cd%
-  - sh: export PATH=$(pwd)/install/bin:$PATH
-  - cmd: set PATH=C:\projects\bleeding-rez\install\Scripts;%PATH%
   - rez --version
   - rez env -- exit
 
   # Quickstart requires some setup
   - cmd: mkdir %USERPROFILE%\packages
-  - sh: mkdir ~\packages
+  - sh: mkdir /home/appveyor/packages
   - rez bind --quickstart
 
 build: off
