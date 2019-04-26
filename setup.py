@@ -79,14 +79,22 @@ setup(
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
     license="LGPL",
-    scripts=[os.path.join('bin', x) for x in scripts],
+    entry_points={
+        "console_scripts": [
+            "{cmd} = rez.cli._main:{func}".format(
+                cmd=script,
+                func=script.replace("-", "_")
+            )
+            for script in scripts
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
-    package_dir = {'': 'src'},
+    package_dir={'': 'src'},
     packages=find_packages('src', exclude=["build_utils",
                                            "build_utils.*",
                                            "tests"]),
-    package_data = {
+    package_data={
         'rez':
             ['rezconfig', 'utils/logging.conf'] +
             ['README*'] +
@@ -100,7 +108,7 @@ setup(
             find_files('rezguiconfig', root='rezgui') +
             find_files('*', 'icons', root='rezgui')
     },
-    classifiers = [
+    classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",
@@ -113,4 +121,3 @@ setup(
         "Topic :: System :: Software Distribution"
     ]
 )
-
