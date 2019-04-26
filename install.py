@@ -6,7 +6,6 @@ import os
 import sys
 import shutil
 import os.path
-import textwrap
 import subprocess
 from optparse import OptionParser
 
@@ -17,69 +16,11 @@ sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
 from rez.backport.shutilwhich import which
-from build_utils.virtualenv.virtualenv import Logger, create_environment, \
+from build_utils.virtualenv.virtualenv import (
+    Logger,
+    create_environment,
     path_locations
-from build_utils.distlib.scripts import ScriptMaker
-
-
-class fake_entry(object):
-    code_template = textwrap.dedent(
-        """
-        from rez.cli.{module} import run
-        run({target})
-        """).strip() + '\n'
-
-    def __init__(self, name):
-        self.name = name
-
-    def get_script_text(self):
-        module = "_main"
-        target = ""
-        if self.name == "bez":
-            module = "_bez"
-        elif self.name == "_rez_fwd":  # TODO rename this binary
-            target = "'forward'"
-        elif self.name not in ("rez", "rezolve"):
-            target = "'%s'" % self.name.split('-', 1)[-1]
-        return self.code_template.format(module=module, target=target)
-
-
-class _ScriptMaker(ScriptMaker):
-    def __init__(self, *nargs, **kwargs):
-        super(_ScriptMaker, self).__init__(*nargs, **kwargs)
-        self.variants = set(('',))
-
-    def _get_script_text(self, entry):
-        return entry.get_script_text()
-
-
-def patch_rez_binaries(dest_dir):
-    bin_names = os.listdir(bin_path)
-    _, _, _, venv_bin_path = path_locations(dest_dir)
-    venv_py_executable = which("python", env={"PATH":venv_bin_path,
-                                              "PATHEXT":os.environ.get("PATHEXT", "")})
-
-    # delete rez bin files written by setuptools
-    for name in bin_names:
-        filepath = os.path.join(venv_bin_path, name)
-        if os.path.isfile(filepath):
-            os.remove(filepath)
-
-    # write patched bins instead. These go into 'bin/rez' subdirectory, which
-    # gives us a bin dir containing only rez binaries. This is what we want -
-    # we don't want resolved envs accidentally getting the venv's 'python'.
-    dest_bin_path = os.path.join(venv_bin_path, "rez")
-    if os.path.exists(dest_bin_path):
-        shutil.rmtree(dest_bin_path)
-    os.makedirs(dest_bin_path)
-
-    maker = _ScriptMaker(bin_path, dest_bin_path)
-    maker.executable = venv_py_executable
-    options = dict(interpreter_args=["-E"])
-
-    for name in bin_names:
-        entry = fake_entry(name)
-        maker._make_script(entry, [], options=options)
+)
 
 
 def copy_completion_scripts(dest_dir):
@@ -115,9 +56,12 @@ if __name__ == "__main__":
     opts, args = parser.parse_args()
 
     if " " in os.path.realpath(__file__):
-        err_str = "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n" \
-                  "Please move installation files to another location or rename offending folder(s).\n"
-        parser.error(err_str)
+        parser.error(
+            "\nThe absolute path of install.py cannot contain "
+            "spaces due to setuptools limitation.\n"
+            "Please move installation files to another "
+            "location or rename offending folder(s).\n"
+        )
 
     # determine install path
     if len(args) != 1:
@@ -139,17 +83,15 @@ if __name__ == "__main__":
 
     # install rez from source
     _, _, _, venv_bin_dir = path_locations(dest_dir)
-    py_executable = which("python", env={"PATH":venv_bin_dir,
-                                         "PATHEXT":os.environ.get("PATHEXT",
-                                                                  "")})
+    py_executable = which("python", env={
+        "PATH": venv_bin_dir,
+        "PATHEXT": os.environ.get("PATHEXT", "")
+    })
     args = [py_executable, "setup.py", "install"]
     if opts.verbose:
         print "running in %s: %s" % (source_path, " ".join(args))
     p = subprocess.Popen(args, cwd=source_path)
     p.wait()
-
-    # patch the rez binaries
-    patch_rez_binaries(dest_dir)
 
     # copy completion scripts into venv
     completion_path = copy_completion_scripts(dest_dir)
@@ -173,10 +115,12 @@ if __name__ == "__main__":
             shell = os.path.basename(shell)
             ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
 
-            print("You may also want to source the completion script (for %s):" % shell)
+            print("You may also want to source the "
+                  "completion script (for %s):" % shell)
             print("source {0}/complete.{1}".format(completion_path, ext))
         else:
-            print("You may also want to source the relevant completion script from:")
+            print("You may also want to source the "
+                  "relevant completion script from:")
             print(completion_path)
 
     print('')
