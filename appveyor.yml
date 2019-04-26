@@ -4,7 +4,7 @@ image:
 
 install:
   - echo I run on both..
-  - ps: echo ..Windows..
+  - cmd: echo ..Windows..
   - sh: echo ..and Linux!
 
   # Try setup.py
@@ -15,13 +15,11 @@ install:
 
 test_script:
   - sh: echo $(pwd)
-  - ps: echo %cd%
-  - sh: export PATH=/home/appveyor/projects/bleeding-rez/install/bin:$PATH
-  - ps: set PATH=C:\projects\bleeding-rez\install\Scripts;%PATH%
+  - cmd: echo %cd%
+  - sh: export PATH=$(pwd)/install/bin:$PATH
+  - cmd: set PATH=C:\projects\bleeding-rez\install\Scripts;%PATH%
   - rez --version
   - rez env -- exit
-  - rez memcache
-  - rez-memcache
   - rez bind --quickstart
 
 build: off
