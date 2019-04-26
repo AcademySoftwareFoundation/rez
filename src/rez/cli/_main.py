@@ -151,14 +151,8 @@ def run(command=None):
     sys.exit(returncode or 0)
 
 
-def rez():
-    return run()
 
-
-# Alias
-rezolve = rez
-
-
+# Entry points for pip
 def rez_config():
     return run("config")
 

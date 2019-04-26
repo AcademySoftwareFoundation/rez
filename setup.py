@@ -41,8 +41,6 @@ version = _rez_version
 
 
 scripts = [
-    "rezolve",
-    "rez",
     "rez-config",
     "rez-build",
     "rez-release",
@@ -60,7 +58,6 @@ scripts = [
     "rez-depends",
     "rez-memcache",
     "rez-yaml2py",
-    "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete",
     "rez-gui"
@@ -81,6 +78,12 @@ setup(
     license="LGPL",
     entry_points={
         "console_scripts": [
+            "rez = rez.cli._main:run",
+            "bez = rez.cli._bez:run",
+
+            # Alias
+            "rezolve = rez.cli._main:run",
+        ] + [
             "{cmd} = rez.cli._main:{func}".format(
                 cmd=script,
                 func=script.replace("-", "_")
