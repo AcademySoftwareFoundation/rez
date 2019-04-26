@@ -81,8 +81,8 @@ setup(
     license="LGPL",
     entry_points={
         "console_scripts": [
-            "{cmd} = rez.cli._main:{func}".format(
-                cmd=os.path.join("rez", script),
+            "rez/{cmd} = rez.cli._main:{func}".format(
+                cmd=script,
                 func=script.replace("-", "_")
             )
             for script in scripts
