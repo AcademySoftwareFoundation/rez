@@ -8,12 +8,14 @@ install:
   - sh: echo ..and Linux!
 
   # Try setup.py
-  - pip install . --user
+  - pip install --user .
 
   # Then try install.py
   - python install.py -v ./install
 
 test_script:
+  - sh: export PATH=$(pwd)/install/bin
+  - ps: set PATH=%cd%\install\Scripts
   - rez --version
   - rez env -- exit
   - rez memcache
