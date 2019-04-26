@@ -46,7 +46,7 @@ def setup_parser_common(parser):
             cls_ = clss[0]
             title = "%s build system arguments" % cls_.name()
             group = parser.add_argument_group(title)
-            cls_.bind_cli(parser, group)
+            cls_.bind_cli(group)
 
         types = [x.name() for x in clss]
     else:

@@ -60,7 +60,7 @@ class CustomBuildSystem(BuildSystem):
             child_build_args=child_build_args)
 
     @classmethod
-    def bind_cli(cls, parser, group):
+    def bind_cli(cls, parser):
         """
         Uses a 'parse_build_args.py' file to add options, if found.
         """
@@ -74,7 +74,7 @@ class CustomBuildSystem(BuildSystem):
         before_args = set(x.dest for x in parser._actions)
 
         try:
-            exec source in {"parser": group}
+            exec source in {"parser": parser}
         except Exception as e:
             print_warning("Error in ./parse_build_args.py: %s" % str(e))
 
