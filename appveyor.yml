@@ -4,7 +4,7 @@ image:
 
 install:
   # Try setup.py
-  - pip install .
+  - pip install . --user
 
   # Then try install.py
   - python install.py -v ./install
