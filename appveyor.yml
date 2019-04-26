@@ -3,9 +3,9 @@ image:
 - Ubuntu
 
 install:
-  - I run on both..
-  - ps: ..Windows..
-  - sh: ..and Linux!
+  - echo I run on both..
+  - ps: echo ..Windows..
+  - sh: echo ..and Linux!
 
   # Try setup.py
   - pip install . --user
