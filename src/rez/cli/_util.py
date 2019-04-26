@@ -135,7 +135,7 @@ def sigbase_handler(signum, frame):
     # FIXME this kills parent procs as well
     if not _env_var_true("_REZ_NO_KILLPG"):
         if os.name == "nt":
-            os.kill(os.getpid(0), signal.CTRL_C_EVENT)
+            os.kill(os.getpid(), signal.CTRL_C_EVENT)
         else:
             os.killpg(os.getpgid(0), signum)
     sys.exit(1)
