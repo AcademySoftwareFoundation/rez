@@ -3,13 +3,21 @@ image:
 - Ubuntu
 
 install:
+  - I run on both..
+  - ps: ..Windows..
+  - sh: ..and Linux!
+
   # Try setup.py
   - pip install . --user
 
   # Then try install.py
   - python install.py -v ./install
 
-build_script:
-  - echo "All ok"
+test_script:
+  - rez --version
+  - rez env -- exit
+  - rez memcache
+  - rez-memcache
+  - rez bind --quickstart
 
 build: off
