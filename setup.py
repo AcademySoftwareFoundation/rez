@@ -81,7 +81,7 @@ setup(
     license="LGPL",
     entry_points={
         "console_scripts": [
-            "{cmd} = rez.cli._main:{func}".format(
+            "rez/{cmd} = rez.cli._main:{func}".format(
                 cmd=script,
                 func=script.replace("-", "_")
             )
