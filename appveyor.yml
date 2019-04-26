@@ -20,6 +20,10 @@ test_script:
   - cmd: set PATH=C:\projects\bleeding-rez\install\Scripts;%PATH%
   - rez --version
   - rez env -- exit
+
+  # Quickstart requires some setup
+  - cmd: mkdir %USERPROFILE%\packages
+  - sh: mkdir ~\packages
   - rez bind --quickstart
 
 build: off
