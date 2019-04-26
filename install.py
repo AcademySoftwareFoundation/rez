@@ -97,7 +97,7 @@ if __name__ == "__main__":
     completion_path = copy_completion_scripts(dest_dir)
 
     # mark venv as production rez install. Do not remove - rez uses this!
-    dest_bin_dir = os.path.join(venv_bin_dir, "rez")
+    dest_bin_dir = os.path.join(venv_bin_dir)
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
         f.write(_rez_version)
