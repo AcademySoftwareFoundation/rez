@@ -138,7 +138,13 @@ def program_dependent(program_name, *program_names):
 
         with open(os.devnull, 'wb') as DEVNULL:
             try:
-                subprocess.check_call(command, stdout=DEVNULL, stderr=DEVNULL)
+                subprocess.check_call(command,
+                                      stdout=DEVNULL,
+                                      stderr=DEVNULL,
+
+                                      # Windows doesn't consider PATH
+                                      # unless shell=True
+                                      shell=os.name == "nt")
             except (OSError, IOError, subprocess.CalledProcessError):
                 return False
             else:

@@ -81,57 +81,7 @@ class CMD(Shell):
             whitespace = "[\s]+"
             return whitespace.join(parts)
 
-        paths = []
-
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKCU\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_CURRENT_USER\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
+        paths = os.getenv("PATH").split(os.pathsep)
 
         cls.syspaths = set([x for x in paths if x])
         return cls.syspaths
