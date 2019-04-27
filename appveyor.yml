@@ -19,4 +19,8 @@ test_script:
   - sh: mkdir /home/appveyor/packages
   - rez bind --quickstart
 
+  # Run selftest
+  - cmd: rez selftest -s cmd
+  - sh: rez selftest -s bash
+
 build: off
