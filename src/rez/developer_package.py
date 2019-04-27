@@ -168,6 +168,7 @@ class DeveloperPackage(Package):
 
         with add_sys_paths(config.package_definition_build_python_paths):
             preprocess_func = getattr(self, "preprocess", None)
+            funcname = None
 
             if preprocess_func:
                 print_info("Applying preprocess from package.py")
@@ -175,7 +176,6 @@ class DeveloperPackage(Package):
             else:
                 # load globally configured preprocess function
                 dotted = self.config.package_preprocess_function
-                funcname = dotted
 
                 if not dotted:
                     return None
