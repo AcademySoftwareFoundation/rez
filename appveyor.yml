@@ -1,0 +1,26 @@
+image:
+- Visual Studio 2015  # for Python 2.7
+- Ubuntu
+
+install:
+  # Try setup.py
+  - sh: sudo pip install .
+  - cmd: pip install .
+
+  # Then try install.py
+  - python install.py -v ./install
+
+test_script:
+  - rez --version
+  - rez env -- exit
+
+  # Quickstart requires some setup
+  - cmd: mkdir %USERPROFILE%\packages
+  - sh: mkdir /home/appveyor/packages
+  - rez bind --quickstart
+
+  # Run selftest
+  - cmd: rez selftest -s cmd
+  - sh: rez selftest -s bash
+
+build: off
