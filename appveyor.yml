@@ -34,15 +34,4 @@ test_script:
 # Automatically upload to PyPI whenever a new tag is made
 #
 deploy_script:
-  - cmd: echo "Starting Artifact deployment"
-  - cmd: echo [distutils] > %USERPROFILE%\\.pypirc
-  - cmd: echo index-servers = >> %USERPROFILE%\\.pypirc
-  - cmd: echo   pypi >> %USERPROFILE%\\.pypirc
-  - cmd: echo [pypi] >> %USERPROFILE%\\.pypirc
-  - cmd: echo repository=https://pypi.python.org/pypi >> %USERPROFILE%\\.pypirc
-  - cmd: echo username=%PYPI_LOGIN >> %USERPROFILE%\\.pypirc
-  - cmd: echo password=%PYPI_PASSWORD% >> %USERPROFILE%\\.pypirc
-
-  # Deploy on tag
-  - cmd: pip install wheel twine
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload -r pypi --skip-existing dist/*" } Else { write-output "Not on a tag, won't deploy to pypi" }
+  - cmd: python .appveyor/deploy.py
