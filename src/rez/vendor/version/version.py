@@ -568,16 +568,28 @@ class _VersionRangeParser(object):
          "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
          "        (?P<upper_version>{version_group})?"
          "    )$"
-         "|"  # Or match a range (e.g. 1.0.0+<2.0.0)
-         "    ^(?P<range>"
-         "        (?P<range_lower>"
-         "           (?P<range_lower_prefix>>|>=)?"  # Lower bound is exclusive?
-         "           (?P<range_lower_version>{version_group})?"
-         "           (?(range_lower_prefix)|\+)?"  # + only if lower bound is not exclusive
-         "       )(?P<range_upper>"
-         "           (?(range_lower_version),?|)"  # , only if lower bound is found
-         "           (?P<range_upper_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
-         "           (?P<range_upper_version>{version_group})?"
+         "|"  # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
+         "    ^(?P<range_asc>"
+         "        (?P<range_lower_asc>"
+         "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
+         "           (?P<range_lower_asc_version>{version_group})?"
+         "           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
+         "       )(?P<range_upper_asc>"
+         "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
+         "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
+         "           (?P<range_upper_asc_version>{version_group})?"
+         "       )"
+         "    )$"
+         "|"  # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
+         "    ^(?P<range_desc>"
+         "        (?P<range_upper_desc>"
+         "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
+         "           (?P<range_upper_desc_version>{version_group})?"
+         "           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
+         "       )(?P<range_lower_desc>"
+         "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want to recognize something like "<4>3"
+         "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed by a version group
+         "           (?P<range_lower_desc_version>{version_group})?"
          "       )"
          "    )$").format(version_group=version_group)
 
@@ -617,8 +629,11 @@ class _VersionRangeParser(object):
             if self._groups['upper_bound']:
                 self._act_upper_bound()
 
-            if self._groups['range']:
-                self._act_lower_and_upper_bound()
+            if self._groups['range_asc']:
+                self._act_lower_and_upper_bound_asc()
+
+            if self._groups['range_desc']:
+                self._act_lower_and_upper_bound_desc()
 
     def _is_lower_bound_exclusive(self, token):
         return True if token == ">" else False
@@ -684,18 +699,35 @@ class _VersionRangeParser(object):
         self.bounds.append(_Bound(None, upper_bound))
 
     @action
-    def _act_lower_and_upper_bound(self):
+    def _act_lower_and_upper_bound_asc(self):
         lower_bound = None
         upper_bound = None
 
-        if self._groups['range_lower']:
-            version = self._create_version_from_token(self._groups['range_lower_version'])
-            exclusive = self._is_lower_bound_exclusive(self._groups['range_lower_prefix'])
+        if self._groups['range_lower_asc']:
+            version = self._create_version_from_token(self._groups['range_lower_asc_version'])
+            exclusive = self._is_lower_bound_exclusive(self._groups['range_lower_asc_prefix'])
             lower_bound = _LowerBound(version, not exclusive)
 
-        if self._groups['range_upper']:
-            version = self._create_version_from_token(self._groups['range_upper_version'])
-            exclusive = self._is_upper_bound_exclusive(self._groups['range_upper_prefix'])
+        if self._groups['range_upper_asc']:
+            version = self._create_version_from_token(self._groups['range_upper_asc_version'])
+            exclusive = self._is_upper_bound_exclusive(self._groups['range_upper_asc_prefix'])
+            upper_bound = _UpperBound(version, not exclusive)
+
+        self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
+
+    @action
+    def _act_lower_and_upper_bound_desc(self):
+        lower_bound = None
+        upper_bound = None
+
+        if self._groups['range_lower_desc']:
+            version = self._create_version_from_token(self._groups['range_lower_desc_version'])
+            exclusive = self._is_lower_bound_exclusive(self._groups['range_lower_desc_prefix'])
+            lower_bound = _LowerBound(version, not exclusive)
+
+        if self._groups['range_upper_desc']:
+            version = self._create_version_from_token(self._groups['range_upper_desc_version'])
+            exclusive = self._is_upper_bound_exclusive(self._groups['range_upper_desc_prefix'])
             upper_bound = _UpperBound(version, not exclusive)
 
         self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
