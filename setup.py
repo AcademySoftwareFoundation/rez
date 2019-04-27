@@ -33,7 +33,9 @@ def find_files(pattern, path=None, root="rez"):
 
 
 # get version from source
-with open("src/rez/utils/_version.py") as f:
+dirname = os.path.dirname(__file__)
+version = os.path.join(dirname, "src", "rez", "utils", "_version.py")
+with open(version) as f:
     code = f.read().strip()
 _rez_version = None  # just to keep linting happy
 exec(code)  # inits _rez_version
