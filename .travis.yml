@@ -8,7 +8,7 @@ matrix:
 
 install:
   - 'if [ "$_REZ_SHELL" == "tcsh" ]; then sudo apt-get install tcsh; fi'
-  - 'python ./install.py ../rez_install'
+  - 'python setup.py install'
 
 script:
-  - '../rez_install/bin/rez/rez-selftest -s $_REZ_SHELL'
+  - 'rez-selftest -s $_REZ_SHELL'

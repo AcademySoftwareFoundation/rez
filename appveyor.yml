@@ -2,13 +2,19 @@ image:
 - Visual Studio 2015  # for Python 2.7
 - Ubuntu
 
-install:
-  # Try setup.py
-  - sh: sudo pip install .
-  - cmd: pip install .
+# Enable build_script below
+build: Script
 
-  # Then try install.py
-  - python install.py -v ./install
+environment:
+  PYPI_LOGIN: mottosso
+
+  # Encrypt @ https://ci.appveyor.com/account/mottosso/tools/encrypt
+  PYPI_PASSWORD:
+    secure: O34+lDNbRNVJ2EgaHAmEVg==
+
+build_script:
+  - cmd: pip install .
+  - sh: sudo pip install .
 
 test_script:
   - rez --version
@@ -20,7 +26,23 @@ test_script:
   - rez bind --quickstart
 
   # Run selftest
+  - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
   - cmd: rez selftest -s cmd
   - sh: rez selftest -s bash
 
-build: off
+#
+# Automatically upload to PyPI whenever a new tag is made
+#
+deploy_script:
+  - cmd: echo "Starting Artifact deployment"
+  - cmd: echo [distutils] > %USERPROFILE%\\.pypirc
+  - cmd: echo index-servers = >> %USERPROFILE%\\.pypirc
+  - cmd: echo   pypi >> %USERPROFILE%\\.pypirc
+  - cmd: echo [pypi] >> %USERPROFILE%\\.pypirc
+  - cmd: echo repository=https://pypi.python.org/pypi >> %USERPROFILE%\\.pypirc
+  - cmd: echo username=%PYPI_LOGIN >> %USERPROFILE%\\.pypirc
+  - cmd: echo password=%PYPI_PASSWORD% >> %USERPROFILE%\\.pypirc
+
+  # Deploy on tag
+  - cmd: pip install wheel twine
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload -r pypi --skip-existing dist/*" } Else { write-output "Not on a tag, won't deploy to pypi" }
