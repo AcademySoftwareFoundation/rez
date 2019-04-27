@@ -175,6 +175,7 @@ class DeveloperPackage(Package):
             else:
                 # load globally configured preprocess function
                 dotted = self.config.package_preprocess_function
+                funcname = dotted
 
                 if not dotted:
                     return None
