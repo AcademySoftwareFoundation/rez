@@ -158,7 +158,7 @@ class TestBuild(TestBase, TempdirMixin):
         self.assertRaises(PackageFamilyNotFoundError, self._create_context,
                           "sup_world==3.8")
         self._test_build_translate_lib()
-        self._test_build_sup_world()
+        # self._test_build_sup_world()
 
     @program_dependent("make", "g++")
     def test_build_custom(self):
