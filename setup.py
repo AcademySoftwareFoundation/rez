@@ -65,7 +65,7 @@ scripts = [
 
 
 setup(
-    name="rez",
+    name=os.getenv("REZ_PYPI_NAME", "rez"),  # for development on fork
     version=version,
     description=("A cross-platform packaging system that can build and "
                  "install multiple version of packages, and dynamically "
