@@ -96,9 +96,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     package_dir={'': 'src'},
-    packages=find_packages('src', exclude=["build_utils",
-                                           "build_utils.*",
-                                           "tests"]),
+    packages=find_packages('src', exclude=["tests"]),
     package_data={
         'rez':
             ['rezconfig', 'utils/logging.conf'] +

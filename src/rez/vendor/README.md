@@ -1,7 +1,5 @@
 This folder contains all the libraries on which rez depends to run.
 
-Libraries that are required to install Rez can be found in [src/build_utils](../../build_utils).
-
 The dependencies list found here is used to track which version we use so that when we
 revisit the install procedure, it will be much simpler to do any change in the vendored
 libraries (updating them, un-vendoring some, etc).

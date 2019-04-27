@@ -7,9 +7,6 @@ install:
   - sh: sudo pip install .
   - cmd: pip install .
 
-  # Then try install.py
-  - python install.py -v ./install
-
 test_script:
   - rez --version
   - rez env -- exit
