@@ -12,6 +12,32 @@ Rez, with all [feature branches](https://github.com/mottosso/bleeding-rez/branch
     </tr>
     <tr></tr>
     <tr>
+        <td>Rez & PyPI</td>
+        <td>
+
+bleeding-rez is now a standard pip package and available on PyPI.
+
+```bash
+$ pip install bleeding-rez
+```
+
+`--target` is supported with one caveat on Windows; the destination must be available on your PYTHONPATH either globally or for the user. It cannot be added from within a console, as Rez is looking at your registry for where to find it.
+
+```bash
+$ pip install bleeding-rez --target ./some_dir
+$ setx PYTHONPATH=some_dir
+```
+</td>
+        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-appveyor><i>link</i></a></td>
+    <tr></tr>
+    </tr>
+        <td>Preprocess function</td>
+        <td>
+
+`rezconfig.py` can take a `preprocess` function, rather than having to create and manage a separate module and `PYTHONPATH`</td>
+        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-appveyor><i>link</i></a></td>
+    </tr>
+    <tr>
         <td>Windows Tests</td>
         <td>Tests now run on both Windows and Linux</td>
         <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-appveyor><i>link</i></a></td>
