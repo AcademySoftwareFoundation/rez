@@ -3,7 +3,7 @@
 .pydevproject
 .nfs*
 *.swp
-src/rez.egg-info/
+*.egg-info/
 build/
 dist/
 *~

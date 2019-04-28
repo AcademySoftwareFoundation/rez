@@ -151,6 +151,84 @@ def run(command=None):
     sys.exit(returncode or 0)
 
 
+
+# Entry points for pip
+def rez_config():
+    return run("config")
+
+
+def rez_build():
+    return run("build")
+
+
+def rez_release():
+    return run("release")
+
+
+def rez_env():
+    return run("env")
+
+
+def rez_context():
+    return run("context")
+
+
+def rez_suite():
+    return run("suite")
+
+
+def rez_interpret():
+    return run("interpret")
+
+
+def rez_python():
+    return run("python")
+
+
+def rez_selftest():
+    return run("selftest")
+
+
+def rez_bind():
+    return run("bind")
+
+
+def rez_search():
+    return run("search")
+
+
+def rez_view():
+    return run("view")
+
+
+def rez_status():
+    return run("status")
+
+
+def rez_help():
+    return run("help")
+
+
+def rez_depends():
+    return run("depends")
+
+
+def rez_memcache():
+    return run("memcache")
+
+
+def rez_yaml2py():
+    return run("yaml2py")
+
+
+def run_fwd():
+    return run("forward")
+
+
+def run_complete():
+    return run("complete")
+
+
 if __name__ == '__main__':
     run()
 

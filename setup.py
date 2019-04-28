@@ -33,7 +33,9 @@ def find_files(pattern, path=None, root="rez"):
 
 
 # get version from source
-with open("src/rez/utils/_version.py") as f:
+dirname = os.path.dirname(__file__)
+version = os.path.join(dirname, "src", "rez", "utils", "_version.py")
+with open(version) as f:
     code = f.read().strip()
 _rez_version = None  # just to keep linting happy
 exec(code)  # inits _rez_version
@@ -41,8 +43,6 @@ version = _rez_version
 
 
 scripts = [
-    "rezolve",
-    "rez",
     "rez-config",
     "rez-build",
     "rez-release",
@@ -60,7 +60,6 @@ scripts = [
     "rez-depends",
     "rez-memcache",
     "rez-yaml2py",
-    "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete",
     "rez-gui"
@@ -68,7 +67,7 @@ scripts = [
 
 
 setup(
-    name="rez",
+    name=os.getenv("REZ_PYPI_NAME", "rez"),  # for development on fork
     version=version,
     description=("A cross-platform packaging system that can build and "
                  "install multiple version of packages, and dynamically "
@@ -79,14 +78,26 @@ setup(
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
     license="LGPL",
-    scripts=[os.path.join('bin', x) for x in scripts],
+    entry_points={
+        "console_scripts": [
+            "rez = rez.cli._main:run",
+            "bez = rez.cli._bez:run",
+
+            # Alias
+            "rezolve = rez.cli._main:run",
+        ] + [
+            "{cmd} = rez.cli._main:{func}".format(
+                cmd=script,
+                func=script.replace("-", "_")
+            )
+            for script in scripts
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
-    package_dir = {'': 'src'},
-    packages=find_packages('src', exclude=["build_utils",
-                                           "build_utils.*",
-                                           "tests"]),
-    package_data = {
+    package_dir={'': 'src'},
+    packages=find_packages('src', exclude=["tests"]),
+    package_data={
         'rez':
             ['rezconfig', 'utils/logging.conf'] +
             ['README*'] +
@@ -100,7 +111,7 @@ setup(
             find_files('rezguiconfig', root='rezgui') +
             find_files('*', 'icons', root='rezgui')
     },
-    classifiers = [
+    classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",
@@ -113,4 +124,3 @@ setup(
         "Topic :: System :: Software Distribution"
     ]
 )
-

@@ -1,3 +1,0 @@
-#!/usr/bin/env python
-from rez.cli._main import run
-run("cp")

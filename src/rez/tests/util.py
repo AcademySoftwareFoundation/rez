@@ -138,7 +138,13 @@ def program_dependent(program_name, *program_names):
 
         with open(os.devnull, 'wb') as DEVNULL:
             try:
-                subprocess.check_call(command, stdout=DEVNULL, stderr=DEVNULL)
+                subprocess.check_call(command,
+                                      stdout=DEVNULL,
+                                      stderr=DEVNULL,
+
+                                      # Windows doesn't consider PATH
+                                      # unless shell=True
+                                      shell=os.name == "nt")
             except (OSError, IOError, subprocess.CalledProcessError):
                 return False
             else:
@@ -183,7 +189,7 @@ def install_dependent(fn):
     from a production install"""
     @functools.wraps(fn)
     def _fn(self, *args, **kwargs):
-        if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
+        if os.getenv("__REZ_SELFTEST_RUNNING"):
             fn(self, *args, **kwargs)
         else:
             print ("\nskipping test, must be run via 'rez-selftest' tool, from "

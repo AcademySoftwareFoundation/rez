@@ -1,0 +1,37 @@
+image:
+- Visual Studio 2015  # for Python 2.7
+- Ubuntu
+
+# Enable build_script below
+build: Script
+
+environment:
+  PYPI_LOGIN: mottosso
+
+  # Encrypt @ https://ci.appveyor.com/account/mottosso/tools/encrypt
+  PYPI_PASSWORD:
+    secure: O34+lDNbRNVJ2EgaHAmEVg==
+
+build_script:
+  - cmd: pip install .
+  - sh: sudo pip install .
+
+test_script:
+  - rez --version
+  - rez env -- exit
+
+  # Quickstart requires some setup
+  - cmd: mkdir %USERPROFILE%\packages
+  - sh: mkdir /home/appveyor/packages
+  - rez bind --quickstart
+
+  # Run selftest
+  - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
+  - cmd: rez selftest -s cmd
+  - sh: rez selftest -s bash
+
+#
+# Automatically upload to PyPI whenever a new tag is made
+#
+deploy_script:
+  - cmd: python .appveyor/deploy.py

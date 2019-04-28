@@ -207,16 +207,9 @@ class System(object):
                 binpath = os.path.dirname(path)
 
         if binpath:
-            validation_file = os.path.join(binpath, ".rez_production_install")
-            if os.path.exists(validation_file):
-                return os.path.realpath(binpath)
+            return os.path.realpath(binpath)
 
         return None
-
-    @property
-    def is_production_rez_install(self):
-        """Return True if this is a production rez install."""
-        return bool(self.rez_bin_path)
 
     def get_summary_string(self):
         """Get a string summarising the state of Rez as a whole.

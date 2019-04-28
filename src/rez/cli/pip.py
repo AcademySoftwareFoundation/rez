@@ -20,14 +20,13 @@ def setup_parser(parser, completions=False):
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
+        "--no-deps", action="store_true", help="Do not install dependencies")
+    parser.add_argument(
         "-va", "--variant", action="append",
         help="Install package as variant, may be called multiple times.")
     parser.add_argument(
         "-p", "--prefix", type=str, metavar='PATH',
         help="install to a custom package repository path.")
-    parser.add_argument(
-        "-w", "--use-wheel", action="store_true",
-        help="Prefer use of wheels, at the expense of no --install-options")
     parser.add_argument(
         "PACKAGE", nargs="+",
         help="package to install or archive/url to install from")
@@ -51,7 +50,7 @@ def command(opts, parser, extra_arg_groups=None):
             python_version=opts.py_ver,
             release=opts.release,
             prefix=opts.prefix,
-            use_wheel=opts.use_wheel,
+            no_deps=opts.no_deps,
             variants=opts.variant
         )
 

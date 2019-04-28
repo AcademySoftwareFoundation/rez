@@ -76,64 +76,21 @@ class CMD(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # detect system paths using registry
-        def gen_expected_regex(parts):
-            whitespace = "[\s]+"
-            return whitespace.join(parts)
+        paths = os.getenv("PATH").split(os.pathsep)
 
-        paths = []
+        cls.syspaths = list(set([x for x in paths if x]))
 
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
+        # add Rez binaries
+        cmd = "where rez"
         p = popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
+        out_, err_ = p.communicate()
+        assert not p.returncode, "Couldn't find rez, this is a bug"
 
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
+        line = out_.split(os.linesep)[0]
+        rez_bin_dir = os.path.dirname(line)
+        cls.syspaths.insert(0, rez_bin_dir)
 
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKCU\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_CURRENT_USER\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cls.syspaths = set([x for x in paths if x])
         return cls.syspaths
 
     def _bind_interactive_rez(self):
@@ -163,12 +120,11 @@ class CMD(Shell):
             if bind_rez:
                 ex.interpreter._bind_interactive_rez()
             if print_msg and not quiet:
-                if system.is_production_rez_install:
-                    # previously this was called with the /K flag, however
-                    # that would leave spawn_shell hung on a blocked call
-                    # waiting for the user to type "exit" into the shell that
-                    # was spawned to run the rez context printout
-                    ex.command("cmd /Q /C rez context")
+                # previously this was called with the /K flag, however
+                # that would leave spawn_shell hung on a blocked call
+                # waiting for the user to type "exit" into the shell that
+                # was spawned to run the rez context printout
+                ex.command("cmd /Q /C rez context")
 
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),
