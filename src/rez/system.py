@@ -207,9 +207,7 @@ class System(object):
                 binpath = os.path.dirname(path)
 
         if binpath:
-            validation_file = os.path.join(binpath, ".rez_production_install")
-            if os.path.exists(validation_file):
-                return os.path.realpath(binpath)
+            return os.path.realpath(binpath)
 
         return None
 
