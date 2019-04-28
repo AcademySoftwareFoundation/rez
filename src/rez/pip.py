@@ -237,7 +237,16 @@ def pip_install_package(source_name, python_version=None,
     if use_wheel:
         cmd = [
             python_exe, "-m", "pip", "install",
-            "--target", destpath
+            "--target", destpath,
+
+            # Delegate the installation of dependencies to the user
+            # This is important, as each dependency may have different
+            # requirements of its own, and variants to go with it.
+            "--no-deps",
+
+            # Handle case where the Python distribution used alongside
+            # pip already has a package installed in its `site-packages/` dir.
+            "--ignore-installed",
         ]
 
     else:
@@ -251,6 +260,7 @@ def pip_install_package(source_name, python_version=None,
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
+
     cmd.append(source_name)
 
     _cmd(context=context, command=cmd)
