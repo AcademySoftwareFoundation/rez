@@ -20,6 +20,8 @@ def setup_parser(parser, completions=False):
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
+        "--no-deps", action="store_true", help="Do not install dependencies")
+    parser.add_argument(
         "-va", "--variant", action="append",
         help="Install package as variant, may be called multiple times.")
     parser.add_argument(
@@ -41,11 +43,19 @@ def command(opts, parser, extra_arg_groups=None):
         p.wait()
         return
 
-    installed_variants, skipped_variants = pip_install_package(
-        opts.PACKAGE,
-        python_version=opts.py_ver,
-        release=opts.release,
-        variants=opts.variant)
+    installed_variants, skipped_variants = set(), set()
+    for package in opts.PACKAGE:
+        installed, skipped = pip_install_package(
+            package,
+            python_version=opts.py_ver,
+            release=opts.release,
+            prefix=opts.prefix,
+            no_deps=opts.no_deps,
+            variants=opts.variant
+        )
+
+        installed_variants.update(installed)
+        skipped_variants.update(skipped)
 
     # print summary
     #
