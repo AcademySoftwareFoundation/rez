@@ -189,7 +189,7 @@ def install_dependent(fn):
     from a production install"""
     @functools.wraps(fn)
     def _fn(self, *args, **kwargs):
-        if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
+        if os.getenv("__REZ_SELFTEST_RUNNING"):
             fn(self, *args, **kwargs)
         else:
             print ("\nskipping test, must be run via 'rez-selftest' tool, from "

@@ -113,12 +113,11 @@ class CMD(Shell):
             if bind_rez:
                 ex.interpreter._bind_interactive_rez()
             if print_msg and not quiet:
-                if system.is_production_rez_install:
-                    # previously this was called with the /K flag, however
-                    # that would leave spawn_shell hung on a blocked call
-                    # waiting for the user to type "exit" into the shell that
-                    # was spawned to run the rez context printout
-                    ex.command("cmd /Q /C rez context")
+                # previously this was called with the /K flag, however
+                # that would leave spawn_shell hung on a blocked call
+                # waiting for the user to type "exit" into the shell that
+                # was spawned to run the rez context printout
+                ex.command("cmd /Q /C rez context")
 
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),
