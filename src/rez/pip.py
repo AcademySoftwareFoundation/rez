@@ -183,7 +183,7 @@ def create_context(python_version=None):
 
 def pip_install_package(source_name, python_version=None,
                         mode=InstallMode.min_deps, release=False,
-                        prefix=None, use_wheel=False,
+                        prefix=None,
                         variants=None):
     """Install a pip-compatible python package as a rez package.
     Args:
@@ -222,9 +222,6 @@ def pip_install_package(source_name, python_version=None,
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     destpath = os.path.join(stagingdir, "python")
-    binpath = os.path.join(stagingdir, "bin")
-    incpath = os.path.join(stagingdir, "include")
-    datapath = stagingdir
 
     if context and config.debug("package_release"):
         buf = StringIO()
@@ -233,29 +230,19 @@ def pip_install_package(source_name, python_version=None,
         _log(buf.getvalue())
 
     # Build pip commandline
-    if use_wheel:
-        cmd = [
-            python_exe, "-m", "pip", "install",
-            "--target", destpath,
+    cmd = [
+        python_exe, "-m", "pip", "install",
+        "--target", destpath,
 
-            # Delegate the installation of dependencies to the user
-            # This is important, as each dependency may have different
-            # requirements of its own, and variants to go with it.
-            "--no-deps",
+        # Delegate the installation of dependencies to the user
+        # This is important, as each dependency may have different
+        # requirements of its own, and variants to go with it.
+        "--no-deps",
 
-            # Handle case where the Python distribution used alongside
-            # pip already has a package installed in its `site-packages/` dir.
-            "--ignore-installed",
-        ]
-
-    else:
-        cmd = [
-            python_exe, "-m", "pip", "install",
-            "--install-option=--install-lib=%s" % destpath,
-            "--install-option=--install-scripts=%s" % binpath,
-            "--install-option=--install-headers=%s" % incpath,
-            "--install-option=--install-data=%s" % datapath
-        ]
+        # Handle case where the Python distribution used alongside
+        # pip already has a package installed in its `site-packages/` dir.
+        "--ignore-installed",
+    ]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")

@@ -20,11 +20,14 @@ def setup_parser(parser, completions=False):
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
-        "PACKAGE",
-        help="package to install or archive/url to install from")
-    parser.add_argument(
         "-va", "--variant", action="append",
         help="Install package as variant, may be called multiple times.")
+    parser.add_argument(
+        "-p", "--prefix", type=str, metavar='PATH',
+        help="install to a custom package repository path.")
+    parser.add_argument(
+        "PACKAGE", nargs="+",
+        help="package to install or archive/url to install from")
 
 
 def command(opts, parser, extra_arg_groups=None):
