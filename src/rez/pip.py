@@ -4,7 +4,6 @@ from rez.vendor.distlib import DistlibException
 from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
-from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
 from rez.utils.system import popen
 from rez.utils.logging_ import print_debug, print_info, print_warning
@@ -20,27 +19,6 @@ import os.path
 import shutil
 import sys
 import os
-
-
-class InstallMode(Enum):
-    # don't install dependencies. Build may fail, for example the package may
-    # need to compile against a dependency. Will work for pure python though.
-    no_deps = 0
-    # only install dependencies that we have to. If an existing rez package
-    # satisfies a dependency already, it will be used instead. The default.
-    min_deps = 1
-    # install dependencies even if an existing rez package satisfies the
-    # dependency, if the dependency is newer.
-    new_deps = 2
-    # install dependencies even if a rez package of the same version is already
-    # available, if possible. For example, if you are performing a local
-    # install, a released (central) package may match a dependency; but
-    # with this mode enabled, a new local package of the same version
-    # will be installed as well.
-    #
-    # Typically, if performing a central install with the
-    # rez-pip --release flag, max_deps is equivalent to new_deps.
-    max_deps = 3
 
 
 def _get_dependencies(requirement, distributions):
@@ -329,6 +307,68 @@ def classifiers_to_variants(classifiers, with_minor=False):
     ]
 
 
+def wheel_to_variants(distribution):
+    """Parse WHEEL file of `distribution` as per PEP427
+
+    https://www.python.org/dev/peps/pep-0427/#file-contents
+
+    """
+
+    variants = {
+        "platform": None,
+        "os": None,
+        "python": None
+    }
+
+    py = {
+        "2": False,
+        "3": False,
+    }
+
+    wheen_fname = os.path.join(distribution.path, "WHEEL")
+    with open(wheen_fname) as f:
+        for line in f.readlines():
+            line = line.rstrip()
+
+            if not line:
+                continue
+
+            line = line.replace(" ", "")
+            key, value = line.lower().split(":")
+
+            if key == "root-is-purelib" and value == "false":
+                variants["platform"] = platform_.name
+
+            if key == "tag":
+                # Possible combinations:
+                #   py2-none-any
+                #   py3-none-any
+                #   cp36-cp36m-win_amd64
+                py_tag, abi_tag, plat_tag = value.split("-")
+                major_ver = py_tag[2]
+                py[major_ver] = True
+
+    if py["2"] and py["3"]:
+        variants["python"] = None
+
+    elif py["2"]:
+        variants["python"] = "2"
+
+    elif py["3"]:
+        variants["python"] = "3"
+
+    return [
+        k + "-" + variants[k]
+
+        # Order is important
+        for k in ("platform",
+                  "os",
+                  "python")
+
+        if variants[k] is not None
+    ]
+
+
 def pip_install_package(source_name, python_version=None,
                         release=False, no_deps=False,
                         prefix=None, auto_variants=True,
@@ -357,8 +397,6 @@ def pip_install_package(source_name, python_version=None,
     installed_variants = []
     skipped_variants = []
 
-    python_exe, context = find_python(python_version)
-
     if prefix is not None:
         config.release_packages_path = prefix
 
@@ -374,6 +412,7 @@ def pip_install_package(source_name, python_version=None,
 
     destpath = os.path.join(stagingdir, "python")
 
+    python_exe, context = find_python(python_version)
     if context and config.debug("package_release"):
         buf = StringIO()
         print >> buf, "\n\npackage download environment:"
@@ -404,7 +443,7 @@ def pip_install_package(source_name, python_version=None,
     _cmd(context=context, command=cmd)
 
     # Collect resulting python packages using distlib
-    distribution_path = DistributionPath([destpath], include_egg=True)
+    distribution_path = DistributionPath([destpath])
     distributions = [d for d in distribution_path.get_distributions()]
 
     for distribution in distribution_path.get_distributions():
@@ -478,21 +517,8 @@ def pip_install_package(source_name, python_version=None,
         # determine variant requirements
         variants_ = variants or []
 
-        if not variants_ and auto_variants:
-            classifiers = distribution.metadata.classifiers
-
-            for variant in classifiers_to_variants(classifiers):
-                # Out of all classifiers, only Python is relevant here.
-                if variant.startswith("python"):
-                    variants_.append(variant)
-
-            # TODO: Detect whether wheel is a binary package,
-            # if so, it must be compatible with this and only
-            # this platform as otherwise Pip wouldn't have let
-            # us find it in the first place.
-            is_binary = False
-            if is_binary:
-                variants_.append("platform-" % platform_.name)
+        if (not variants_) and auto_variants:
+            variants_.extend(wheel_to_variants(distribution))
 
             if variants_:
                 print_info("'%s' - Automatically detected variants: %s" % (
