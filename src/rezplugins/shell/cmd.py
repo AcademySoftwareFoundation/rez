@@ -76,11 +76,6 @@ class CMD(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # detect system paths using registry
-        def gen_expected_regex(parts):
-            whitespace = "[\s]+"
-            return whitespace.join(parts)
-
         paths = os.getenv("PATH").split(os.pathsep)
 
         cls.syspaths = set([x for x in paths if x])
