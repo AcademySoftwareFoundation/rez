@@ -224,6 +224,10 @@ def classifiers_to_variants(classifiers, with_minor=False):
 
             variants["platform"] = "windows"
 
+            # TODO: Double-check that the versions
+            # are actually this correlated to the
+            # Windows product version;
+            # i.e. is Windows 8 really version 8?
             if cfr.endswith("windows 10"):
                 variants["os"] = "10"
 
@@ -232,11 +236,6 @@ def classifiers_to_variants(classifiers, with_minor=False):
 
             elif cfr.endswith("windows 7"):
                 variants["os"] = "7"
-
-            if platform_.name != "windows":
-                raise OSError(
-                    "Package only available on Windows"
-                )
 
         # Operating System :: posix :: linux
         if cfr.startswith("posix") or cfr.endswith("linux"):
@@ -248,20 +247,16 @@ def classifiers_to_variants(classifiers, with_minor=False):
 
             variants["platform"] = "linux"
 
-            if platform_.name != "linux":
-                raise OSError(
-                    "Package only available on Linux"
-                )
-
-            # The classifier merey says "Linux"
-            # It doesn't contain the flavour of Linux
-            # is being referred to. So here we convert
-            # the generic "Linux" to whatever the current
-            # os is. Not 100% clean, as it would
-            # install to e.g. CentOS when really the
-            # package author meant Ubuntu, but there is
-            # no way for them to communicate that to us.
-            variants["os"] = platform_.os
+            if platform_.name == "linux":
+                # The classifier merey says "Linux"
+                # It doesn't contain the flavour of Linux
+                # is being referred to. So here we convert
+                # the generic "Linux" to whatever the current
+                # os is. Not 100% clean, as it would
+                # install to e.g. CentOS when really the
+                # package author meant Ubuntu, but there is
+                # no way for them to communicate that to us.
+                variants["os"] = platform_.os
 
     def _on_programming_language(cfr):
         try:
@@ -484,14 +479,18 @@ def pip_install_package(source_name, python_version=None,
         if not variants_ and auto_variants:
             classifiers = distribution.metadata.classifiers
 
-            try:
-                variants_ = classifiers_to_variants(classifiers)
-            except OSError as e:
-                # Package not available on the current OS
-                print_warning(
-                    "Skipping installation: '%s' %s" % (name, str(e))
-                )
-                continue
+            for variant in classifiers_to_variants(classifiers):
+                # Out of all classifiers, only Python is relevant here.
+                if variant.startswith("python"):
+                    variants_.append(variant)
+
+            # TODO: Detect whether wheel is a binary package,
+            # if so, it must be compatible with this and only
+            # this platform as otherwise Pip wouldn't have let
+            # us find it in the first place.
+            is_binary = False
+            if is_binary:
+                variants_.append("platform-" % platform_.name)
 
             if variants_:
                 print_info("'%s' - Automatically detected variants: %s" % (
