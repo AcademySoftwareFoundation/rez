@@ -4,9 +4,44 @@ Rez, with all [feature branches](https://github.com/mottosso/bleeding-rez/branch
 
 <br>
 
+### Usage
+
+There are a few ways you can use this repo.
+
+1. Use it in place of Rez, it is entirely backwards compatible with your existing install and package repository
+1. Each feature branch is self-contained and compatible with Rez, you can merge only the ones you like
+2. Most commits are self-contained and well documented, you could cherry-pick only the ones that interest you
+
+**Install**
+
+```bash
+$ pip install bleeding-rez
+```
+
+<details>
+    <summary>Alternative 1 - Latest `master`</summary>
+
+```bash
+$ pip install git+https://github.com/mottosso/bleeding-rez.git
+```
+</details>
+
+
+<details>
+    <summary>Alterantive 2 - Specific feature branch</summary>
+
+```bash
+$ pip install git+https://github.com/mottosso/bleeding-rez.git@feature/windows-alias-additional-argument
+```
+</details>
+
+<br>
+
+### Changes
+
 <table>
     <tr>
-        <th width="20%">Feature</th>
+        <th width="25%">Feature</th>
         <th>Description</th>
         <th></th>
     </tr>
@@ -97,6 +132,12 @@ You can now iterate over `request` and `resolve` from within your `package.py:co
 `rez pip` can now take a `--prefix` argument, letting you install packages wherever</td>
         <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-prefix><i>link</i></a></td>
     </tr>
+        <td>PyYAML and Python 3</td>
+        <td>
+
+Prior to this, you couldn't use PyYAML and Python 3 as Rez packages.</td>
+        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-multipleinstall><i>link</i></a></td>
+    </tr>
 </table>
 
 <br>
@@ -120,18 +161,3 @@ Change</th>
         <td>[#618](https://github.com/nerdvegas/rez/pull/618)</td>
     </tr>
 </table>
-
-<br>
-
-### A note on backwards compatibility
-
-1. This repo is fully backwards compatible with Rez
-1. The master branch is fully functional
-1. Every added feature or change have a corresponding PR in the original Rez repo
-
-However.
-
-1. Not all new features are guaranteed or expected to last
-1. Not all new features are guaranteed or expected to merge with Rez
-
-It is an experimental, development fork of Rez with the intent on exploring new usecases and features beyond the hypothetical stage.
