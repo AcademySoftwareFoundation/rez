@@ -78,7 +78,19 @@ class CMD(Shell):
 
         paths = os.getenv("PATH").split(os.pathsep)
 
-        cls.syspaths = set([x for x in paths if x])
+        cls.syspaths = list(set([x for x in paths if x]))
+
+        # add Rez binaries
+        cmd = "where rez"
+        p = popen(cmd, stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE, shell=True)
+        out_, err_ = p.communicate()
+        assert not p.returncode, "Couldn't find rez, this is a bug"
+
+        line = out_.split(os.linesep)[0]
+        rez_bin_dir = os.path.dirname(line)
+        cls.syspaths.insert(0, rez_bin_dir)
+
         return cls.syspaths
 
     def _bind_interactive_rez(self):

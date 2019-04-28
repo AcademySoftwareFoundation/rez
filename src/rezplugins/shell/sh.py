@@ -58,6 +58,18 @@ class SH(UnixShell):
             if path not in paths:
                 paths.append(path)
         cls.syspaths = [x for x in paths if x]
+
+        # add Rez binaries
+        cmd = "which rez"
+        p = popen(cmd, stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE, shell=True)
+        out_, err_ = p.communicate()
+        assert not p.returncode, "Couldn't find rez, this is a bug"
+
+        line = out_.split(os.linesep)[0]
+        rez_bin_dir = os.path.dirname(line)
+        cls.syspaths.insert(0, rez_bin_dir)
+
         return cls.syspaths
 
     @classmethod
