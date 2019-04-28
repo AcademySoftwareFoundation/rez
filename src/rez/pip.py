@@ -386,6 +386,9 @@ def pip_install_package(source_name, python_version=None,
         python_exe, "-m", "pip", "install",
         "--target", destpath,
 
+        # Only ever consider wheels, anything else is ancient
+        "--use-pep517",
+
         # Handle case where the Python distribution used alongside
         # pip already has a package installed in its `site-packages/` dir.
         "--ignore-installed",
