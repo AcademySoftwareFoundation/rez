@@ -16,7 +16,6 @@ from rez.system import System
 from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
-import subprocess
 import os.path
 import shutil
 import sys
@@ -34,12 +33,13 @@ class InstallMode(Enum):
     # dependency, if the dependency is newer.
     new_deps = 2
     # install dependencies even if a rez package of the same version is already
-    # available, if possible. For example, if you are performing a local install,
-    # a released (central) package may match a dependency; but with this mode
-    # enabled, a new local package of the same version will be installed as well.
+    # available, if possible. For example, if you are performing a local
+    # install, a released (central) package may match a dependency; but
+    # with this mode enabled, a new local package of the same version
+    # will be installed as well.
     #
-    # Typically, if performing a central install with the rez-pip --release flag,
-    # max_deps is equivalent to new_deps.
+    # Typically, if performing a central install with the
+    # rez-pip --release flag, max_deps is equivalent to new_deps.
     max_deps = 3
 
 
@@ -85,7 +85,7 @@ def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
-def run_pip_command(command_args, pip_version=None, python_version=None):
+def run_pip_command(command_args, python_version=None):
     """Run a pip command.
 
     Args:
@@ -94,8 +94,8 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
     Returns:
         `subprocess.Popen`: Pip process.
     """
-    pip_exe, context = find_pip(pip_version, python_version)
-    command = [pip_exe] + list(command_args)
+    python_exe, context = find_python(python_version)
+    command = [python_exe, "-m", "pip"] + list(command_args)
 
     if context is None:
         return popen(command)
@@ -103,7 +103,7 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
         return context.execute_shell(command=command, block=False)
 
 
-def find_pip(pip_version=None, python_version=None):
+def find_python(python_version=None):
     """Find a pip exe using the given python version.
 
     Returns:
@@ -112,44 +112,40 @@ def find_pip(pip_version=None, python_version=None):
             `ResolvedContext`: Context containing pip, or None if we fell back
                 to system pip.
     """
-    pip_exe = "pip"
+    python_exe = "python"
 
     try:
-        context = create_context(pip_version, python_version)
+        context = create_context(python_version)
     except BuildError as e:
         # fall back on system pip. Not ideal but at least it's something
         from rez.backport.shutilwhich import which
 
-        pip_exe = which("pip")
+        python_exe = which("python")
 
-        if pip_exe:
+        if python_exe:
             print_warning(
-                "pip rez package could not be found; system 'pip' command (%s) "
-                "will be used instead." % pip_exe)
+                "python rez package could not be found; system 'python' "
+                "command (%s) will be used instead." % python_exe)
             context = None
         else:
             raise e
 
-    return pip_exe, context
+    return python_exe, context
 
 
-def create_context(pip_version=None, python_version=None):
+def create_context(python_version=None):
     """Create a context containing the specific pip and python.
 
     Args:
-        pip_version (str or `Version`): Version of pip to use, or latest if None.
-        python_version (str or `Version`): Python version to use, or latest if
-            None.
+        python_version (str or `Version`): Python version to use,
+            or latest if None.
 
     Returns:
         `ResolvedContext`: Context containing pip and python.
-    """
-    # determine pip pkg to use for install, and python variants to install on
-    if pip_version:
-        pip_req = "pip-%s" % str(pip_version)
-    else:
-        pip_req = "pip"
 
+    """
+
+    # determine pip pkg to use for install, and python variants to install on
     if python_version:
         ver = Version(str(python_version))
         major_minor_ver = ver.trim(2)
@@ -166,18 +162,20 @@ def create_context(pip_version=None, python_version=None):
 
         py_req = "python-%s" % str(major_minor_ver)
 
-    # use pip + latest python to perform pip download operations
-    request = [pip_req, py_req]
+    # use specified version of python to perform pip download operations
+    request = [py_req]
 
-    with convert_errors(from_=(PackageFamilyNotFoundError, PackageNotFoundError),
+    with convert_errors(from_=(PackageFamilyNotFoundError,
+                               PackageNotFoundError),
                         to=BuildError, msg="Cannot run - pip or python rez "
                         "package is not present"):
         context = ResolvedContext(request)
 
     # print pip package used to perform the install
-    pip_variant = context.get_resolved_package("pip")
-    pip_package = pip_variant.parent
-    print_info("Using %s (%s)" % (pip_package.qualified_name, pip_variant.uri))
+    python_variant = context.get_resolved_package("python")
+    python_package = python_variant.parent
+    print_info("Using %s (%s)" % (python_package.qualified_name,
+                                  python_variant.uri))
 
     return context
 
@@ -190,12 +188,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         source_name (str): Name of package or archive/url containing the pip
             package source. This is the same as the arg you would pass to
             the 'pip install' command.
-        pip_version (str or `Version`): Version of pip to use to perform the
-            install, uses latest if None.
         python_version (str or `Version`): Python version to use to perform the
             install, and subsequently have the resulting rez package depend on.
-        mode (`InstallMode`): Installation mode, determines how dependencies are
-            managed.
+        mode (`InstallMode`): Installation mode, determines how
+            dependencies are managed.
         release (bool): If True, install as a released package; otherwise, it
             will be installed as a local package.
 
@@ -208,9 +204,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     installed_variants = []
     skipped_variants = []
 
-    pip_exe, context = find_pip(pip_version, python_version)
+    python_exe, context = find_python(python_version)
 
-    # TODO: should check if packages_path is writable before continuing with pip
+    # TODO: should check if packages_path is writable
+    # before continuing with pip
     #
     packages_path = (config.release_packages_path if release
                      else config.local_packages_path)
@@ -220,9 +217,6 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     destpath = os.path.join(stagingdir, "python")
-    binpath = os.path.join(stagingdir, "bin")
-    incpath = os.path.join(stagingdir, "include")
-    datapath = stagingdir
 
     if context and config.debug("package_release"):
         buf = StringIO()
@@ -231,11 +225,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         _log(buf.getvalue())
 
     # Build pip commandline
-    cmd = [pip_exe, "install",
-           "--install-option=--install-lib=%s" % destpath,
-           "--install-option=--install-scripts=%s" % binpath,
-           "--install-option=--install-headers=%s" % incpath,
-           "--install-option=--install-data=%s" % datapath]
+    cmd = [
+        python_exe, "-m", "pip", "install",
+        "--target", destpath
+    ]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
@@ -250,31 +243,39 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     for distribution in distribution_path.get_distributions():
         requirements = []
         if distribution.metadata.run_requires:
-            # Handle requirements. Currently handles conditional environment based
+            # Handle requirements. Currently handles
+            # conditional environment based
             # requirements and normal requirements
             # TODO: Handle optional requirements?
             for requirement in distribution.metadata.run_requires:
                 if "environment" in requirement:
                     if interpret(requirement["environment"]):
-                        requirements.extend(_get_dependencies(requirement, distributions))
+                        requirements.extend(_get_dependencies(
+                            requirement, distributions))
                 elif "extra" in requirement:
                     # Currently ignoring optional requirements
                     pass
                 else:
-                    requirements.extend(_get_dependencies(requirement, distributions))
+                    requirements.extend(_get_dependencies(
+                        requirement, distributions))
 
         tools = []
         src_dst_lut = {}
+        files = distribution.list_installed_files()
 
-        for installed_file in distribution.list_installed_files(allow_fail=True):
-            source_file = os.path.normpath(os.path.join(destpath, installed_file[0]))
+        for installed_file in files:
+            source_file = os.path.join(destpath, installed_file[0])
+            source_file = os.path.normpath(source_file)
 
             if os.path.exists(source_file):
-                destination_file = installed_file[0].split(stagingsep)[1]
+                destination_file = source_file.split(stagingsep)[1]
                 exe = False
 
-                if is_exe(source_file) and \
-                        destination_file.startswith("%s%s" % ("bin", os.path.sep)):
+                starts_with_bin = destination_file.startswith(
+                    "%s%s" % ("bin", os.path.sep)
+                )
+
+                if is_exe(source_file) and starts_with_bin:
                     _, _file = os.path.split(destination_file)
                     tools.append(_file)
                     exe = True
@@ -286,12 +287,15 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         def make_root(variant, path):
             """Using distlib to iterate over all installed files of the current
-            distribution to copy files to the target directory of the rez package
-            variant
+            distribution to copy files to the target directory of the rez
+            package variant
+
             """
+
             for source_file, data in src_dst_lut.items():
                 destination_file, exe = data
-                destination_file = os.path.normpath(os.path.join(path, destination_file))
+                destination_file = os.path.join(path, destination_file)
+                destination_file = os.path.normpath(destination_file)
 
                 if not os.path.exists(os.path.dirname(destination_file)):
                     os.makedirs(os.path.dirname(destination_file))
