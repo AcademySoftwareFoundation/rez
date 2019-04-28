@@ -12,7 +12,7 @@ from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, convert_errors
 from rez.package_maker__ import make_package
 from rez.config import config
-from rez.system import System
+from rez.utils.platform_ import platform_
 from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
@@ -181,9 +181,162 @@ def create_context(python_version=None):
     return context
 
 
+def classifiers_to_variants(classifiers, with_minor=False):
+    """Determine variants based on `classifiers`
+
+    The classifier section of setup() is standardised but
+    also hand-made, so not 100% accurate at all times.
+
+    https://pypi.org/classifiers/
+
+    Arguments:
+        classifiers (list): Strings of classifiers
+        with_minor (bool, optional): Whether to take into account
+            Python minor version, or just major.
+            E.g. python-2 versus python-2.6
+
+    """
+
+    # Only one of these may exist per install
+    variants = {
+        "os": None,
+        "platform": None,
+        "arch": None,
+        "python": None,
+    }
+
+    py = {
+        "2": False,
+        "3": False,
+    }
+
+    def _on_operating_system(cfr):
+        if cfr == "os independent":
+            return
+
+        # Operating System :: Microsoft :: Windows
+        if cfr.startswith("microsoft"):
+            if variants["platform"]:
+
+                # This distribution is deemed cross-platform
+                variants.pop("platform")
+                return
+
+            variants["platform"] = "windows"
+
+            if cfr.endswith("windows 10"):
+                variants["os"] = "10"
+
+            elif cfr.endswith("windows 8"):
+                variants["os"] = "8"
+
+            elif cfr.endswith("windows 7"):
+                variants["os"] = "7"
+
+            if platform_.name != "windows":
+                raise OSError(
+                    "Package only available on Windows"
+                )
+
+        # Operating System :: posix :: linux
+        if cfr.startswith("posix") or cfr.endswith("linux"):
+            if variants["platform"]:
+
+                # This distribution is deemed cross-platform
+                variants.pop("platform")
+                return
+
+            variants["platform"] = "linux"
+
+            if platform_.name != "linux":
+                raise OSError(
+                    "Package only available on Linux"
+                )
+
+            # The classifier merey says "Linux"
+            # It doesn't contain the flavour of Linux
+            # is being referred to. So here we convert
+            # the generic "Linux" to whatever the current
+            # os is. Not 100% clean, as it would
+            # install to e.g. CentOS when really the
+            # package author meant Ubuntu, but there is
+            # no way for them to communicate that to us.
+            variants["os"] = platform_.os
+
+    def _on_programming_language(cfr):
+        try:
+            language, ver = cfr.split("::", 1)
+        except ValueError:
+            # Programming Language :: Python
+            return
+
+        if language != "python":
+            return
+
+        # Python :: 3 :: Only
+        if ver.endswith("::only"):
+            # making life easy
+            version, _ = ver.split("::")
+            py[version] = True
+            return
+
+        # E.g. :: Implementation :: PyPy
+        if "." not in ver:
+            return
+
+        try:
+            major = ver.split(".", 1)[0]
+        except ValueError:
+            major = ver
+
+        if major == "2":
+            py["2"] = True
+
+        if major == "3":
+            py["3"] = True
+
+    for cfr in classifiers:
+        cfr = cfr.lower()  # case-insensitive
+        cfr = cfr.replace(" :: ", "::")
+        cfr = cfr.replace(" ::", "::")
+        cfr = cfr.replace(":: ", "::")
+        key, value = cfr.split("::", 1)
+
+        if key == "operating system":
+            _on_operating_system(value)
+
+        elif key == "programming language":
+            _on_programming_language(value)
+
+        else:
+            # Not relevant
+            pass
+
+    if py["2"] and py["3"]:
+        variants["python"] = None
+
+    elif py["2"]:
+        variants["python"] = "2"
+
+    elif py["3"]:
+        variants["python"] = "3"
+
+    return [
+        k + "-" + variants[k]
+
+        # Order is important
+        for k in ("platform",
+                  "arch",
+                  "os",
+                  "python")
+
+        if variants[k] is not None
+    ]
+
+
 def pip_install_package(source_name, python_version=None,
-                        mode=InstallMode.min_deps, release=False,
-                        prefix=None,
+                        release=False, no_deps=False,
+                        prefix=None, auto_variants=True,
                         variants=None):
     """Install a pip-compatible python package as a rez package.
     Args:
@@ -192,8 +345,11 @@ def pip_install_package(source_name, python_version=None,
             the 'pip install' command.
         python_version (str or `Version`): Python version to use to perform the
             install, and subsequently have the resulting rez package depend on.
-        mode (`InstallMode`): Installation mode, determines how
-            dependencies are managed.
+        prefix (str, optional): Override install location to here,
+            similar to `rez build --prefix`
+        no_deps (bool, optional): The `pip --no-deps` argument
+        auto_variants (bool, optional): Compute variants from the PyPI
+            classifiers portion of setup()
         release (bool): If True, install as a released package; otherwise, it
             will be installed as a local package.
         prefix (str, optional): Override release path with this absolute path
@@ -235,17 +391,15 @@ def pip_install_package(source_name, python_version=None,
         python_exe, "-m", "pip", "install",
         "--target", destpath,
 
-        # Delegate the installation of dependencies to the user
-        # This is important, as each dependency may have different
-        # requirements of its own, and variants to go with it.
-        "--no-deps",
-
         # Handle case where the Python distribution used alongside
         # pip already has a package installed in its `site-packages/` dir.
         "--ignore-installed",
     ]
 
-    if mode == InstallMode.no_deps:
+    if no_deps:
+        # Delegate the installation of dependencies to the user
+        # This is important, as each dependency may have different
+        # requirements of its own, and variants to go with it.
         cmd.append("--no-deps")
 
     cmd.append(source_name)
@@ -257,6 +411,7 @@ def pip_install_package(source_name, python_version=None,
     distributions = [d for d in distribution_path.get_distributions()]
 
     for distribution in distribution_path.get_distributions():
+
         requirements = []
         if distribution.metadata.run_requires:
             # Handle requirements. Currently handles
@@ -320,19 +475,36 @@ def pip_install_package(source_name, python_version=None,
                 if exe:
                     shutil.copystat(source_file, destination_file)
 
-        # determine variant requirements
-        variants = variants or []
-
         name, _ = parse_name_and_version(distribution.name_and_version)
         name = distribution.name[0:len(name)].replace("-", "_")
+
+        # determine variant requirements
+        variants_ = variants or []
+
+        if not variants_ and auto_variants:
+            classifiers = distribution.metadata.classifiers
+
+            try:
+                variants_ = classifiers_to_variants(classifiers)
+            except OSError as e:
+                # Package not available on the current OS
+                print_warning(
+                    "Skipping installation: '%s' %s" % (name, str(e))
+                )
+                continue
+
+            if variants_:
+                print_info("'%s' - Automatically detected variants: %s" % (
+                    name, ", ".join(variants_))
+                )
 
         with make_package(name, packages_path, make_root=make_root) as pkg:
             pkg.version = distribution.version
             if distribution.metadata.summary:
                 pkg.description = distribution.metadata.summary
 
-            if variants:
-                pkg.variants = [variants]
+            if variants_:
+                pkg.variants = [variants_]
 
             if requirements:
                 pkg.requires = requirements
