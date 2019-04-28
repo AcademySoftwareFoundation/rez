@@ -170,22 +170,28 @@ class System(object):
         """
         @returns Fully qualified domain name, eg 'somesvr.somestudio.com'
         """
-        import socket
-        return socket.getfqdn()
+        return self.hostname
+        # import socket
+        # return socket.getfqdn()
 
     @cached_property
     def hostname(self):
         """
         @returns The machine hostname, eg 'somesvr'
         """
-        return self.fqdn.split('.', 1)[0]
+        import socket
+        return socket.gethostname()
 
     @cached_property
     def domain(self):
         """
         @returns The domain, eg 'somestudio.com'
         """
-        return self.fqdn.split('.', 1)[1]
+        return ""
+        # try:
+        #     return self.fqdn.split('.', 1)[1]
+        # except IndexError:
+        #     return ""
 
     @cached_property
     def rez_bin_path(self):
