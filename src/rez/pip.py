@@ -50,6 +50,7 @@ def _get_dependencies(requirement, distributions):
             _name, _ = parse_name_and_version(dist.name_and_version)
             if _name.replace("-", "_") == pip_to_rez_name:
                 return dist.name.replace("-", "_")
+        return pip_to_rez_name
 
     result = []
     requirements = ([requirement] if isinstance(requirement, basestring)
@@ -71,8 +72,8 @@ def _get_dependencies(requirement, distributions):
                     version = version.replace("==", "")
                     versions.append(version)
                 version = "".join(versions)
+                name = get_distrubution_name(name)
 
-            name = get_distrubution_name(name)
             result.append("-".join([name, version]))
         else:
             name = get_distrubution_name(package)
