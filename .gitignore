@@ -12,3 +12,5 @@ docs/_build
 .rez-gen-wiki-tmp
 LATEST_CHANGELOG.md
 .coverage
+coverage.xml
+htmlcov

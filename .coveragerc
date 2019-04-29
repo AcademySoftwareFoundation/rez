@@ -1,0 +1,9 @@
+[report]
+omit = 
+    *rez/vendor*
+    *rez/backport*
+    *rez/tests*
+
+    ; Tests create a lot of temporary files
+    *temp*
+    *tmp*
