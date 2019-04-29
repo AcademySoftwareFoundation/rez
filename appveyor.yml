@@ -31,8 +31,10 @@ test_script:
   - sh: rez selftest -s bash
   
   # Coverage
-  - cmd: pip install coverage
+  - cmd: pip install coverage codecov
   - cmd: coverage run -m rez selftest >NUL 2>NUL
+  - cmd: codecov
+
 
 #
 # Automatically upload to PyPI whenever a new tag is made
