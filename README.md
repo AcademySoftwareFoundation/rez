@@ -3,8 +3,8 @@
 
 Rez, with all [feature branches](https://github.com/mottosso/bleeding-rez/branches/all?utf8=%E2%9C%93&query=feature%2F) merged.
 
-![](https://ci.appveyor.com/api/projects/status/github/mottosso/bleeding-rez?branch=dev&svg=true&passingText=dev%20-%20OK&failingText=master%20-%20failing&pendingText=master%20-%20pending)
-![](https://ci.appveyor.com/api/projects/status/github/mottosso/bleeding-rez?branch=master&svg=true&passingText=master%20-%20OK&failingText=dev%20-%20failing&pendingText=master%20-%20pending)
+[![](https://ci.appveyor.com/api/projects/status/github/mottosso/bleeding-rez?branch=dev&svg=true&passingText=dev%20-%20OK&failingText=master%20-%20failing&pendingText=master%20-%20pending)](https://ci.appveyor.com/project/mottosso/bleeding-rez)
+[![](https://ci.appveyor.com/api/projects/status/github/mottosso/bleeding-rez?branch=master&svg=true&passingText=master%20-%20OK&failingText=dev%20-%20failing&pendingText=master%20-%20pending)](https://ci.appveyor.com/project/mottosso/bleeding-rez)
 
 <br>
 
