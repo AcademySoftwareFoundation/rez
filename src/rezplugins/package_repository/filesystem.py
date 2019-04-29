@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import os.path
 import os
 import stat
+import errno
 import time
 
 from rez.package_repository import PackageRepository
@@ -583,9 +584,15 @@ class FileSystemPackageRepository(PackageRepository):
 
         # check repo exists on disk
         path = self.location
-        if not os.path.exists(path):
-            raise PackageRepositoryError(
-                "Package repository path does not exist: %s" % path)
+
+        try:
+            os.makedirs(path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise PackageRepositoryError(
+                    "Package repository did not exist "
+                    "and could not be created."
+                )
 
         # install the variant
         def _create_variant():
