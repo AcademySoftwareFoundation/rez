@@ -25,6 +25,8 @@ $ pip install bleeding-rez
 <details>
     <summary>Alternative 1 - Latest `master`</summary>
 
+Each release on PyPI comes from tagged commits on master.
+
 ```bash
 $ pip install git+https://github.com/mottosso/bleeding-rez.git
 ```
@@ -32,7 +34,20 @@ $ pip install git+https://github.com/mottosso/bleeding-rez.git
 
 
 <details>
-    <summary>Alterantive 2 - Specific feature branch</summary>
+    <summary>Alternative 2 - Latest `dev`</summary>
+
+Where development happens, with commits that are later cherry-picked into `master` and their corresponding feature branch.
+
+```bash
+$ pip install git+https://github.com/mottosso/bleeding-rez.git
+```
+</details>
+
+
+<details>
+    <summary>Alterantive 3 - Specific feature branch</summary>
+
+Each feature works both standalone and together.
 
 ```bash
 $ pip install git+https://github.com/mottosso/bleeding-rez.git@feature/windows-alias-additional-argument
