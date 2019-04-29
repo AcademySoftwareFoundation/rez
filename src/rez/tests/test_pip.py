@@ -3,6 +3,7 @@ test rez pip
 """
 
 from rez.tests.util import TempdirMixin, TestBase
+from rez.utils.platform_ import platform_
 from rez import pip
 
 
@@ -73,7 +74,8 @@ class TestPip(TestBase, TempdirMixin):
         ]
 
         variants = pip.classifiers_to_variants(classifiers)
-        self.assertListEqual(variants, ["platform-linux"])
+        self.assertListEqual(variants, [
+            "platform-linux", "os-%s" % platform_.os])
 
     def test_classifiers_python_2(self):
         """Test Python dual-compatible"""
