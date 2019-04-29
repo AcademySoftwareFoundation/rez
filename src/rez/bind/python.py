@@ -20,13 +20,15 @@ def setup_parser(parser):
 
 
 def commands():
-    env.PATH.append('{this.root}/bin')
+    global alias
+    alias("python", "{this.exe}")
 
 
 def post_commands():
     # these are the builtin modules for this python executable. If we don't
     # include these, some python behavior can be incorrect.
-    import os, os.path
+    import os
+    global this
 
     path = os.path.join(this.root, "python")
     for dirname in os.listdir(path):
@@ -37,7 +39,7 @@ def post_commands():
 def bind(path, version_range=None, opts=None, parser=None):
     # find executable, determine version
     exepath = find_exe("python", opts.exe)
-    code = "import sys; print '.'.join(str(x) for x in sys.version_info)"
+    code = "import sys;print('.'.join(str(x) for x in sys.version_info))"
     version = extract_version(exepath, ["-c", code])
 
     check_version(version, version_range)
@@ -51,7 +53,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     for dirname, module_name in entries:
         success, out, err = run_python_command([
             "import %s" % module_name,
-            "print %s.__file__" % module_name])
+            "print(%s.__file__)" % module_name])
 
         if success:
             pypath = os.path.dirname(out)
@@ -65,10 +67,6 @@ def bind(path, version_range=None, opts=None, parser=None):
     #
 
     def make_root(variant, root):
-        binpath = make_dirs(root, "bin")
-        link = os.path.join(binpath, "python")
-        platform_.symlink(exepath, link)
-
         if builtin_paths:
             pypath = make_dirs(root, "python")
             for dirname, srcpath in builtin_paths.iteritems():
@@ -81,6 +79,7 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.tools = ["python"]
         pkg.commands = commands
         pkg.variants = [system.variant]
+        pkg.exe = exepath
 
         if builtin_paths:
             pkg.post_commands = post_commands
