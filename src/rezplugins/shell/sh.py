@@ -10,6 +10,7 @@ from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.shells import Shell, UnixShell
 from rez.rex import EscapedString
+from rez.backport.shutilwhich import which
 
 
 class SH(UnixShell):
@@ -60,14 +61,9 @@ class SH(UnixShell):
         cls.syspaths = [x for x in paths if x]
 
         # add Rez binaries
-        cmd = "which rez"
-        p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
-        out_, err_ = p.communicate()
-        assert not p.returncode, "Couldn't find rez, this is a bug"
-
-        line = out_.split(os.linesep)[0]
-        rez_bin_dir = os.path.dirname(line)
+        exe = which("rez")
+        assert exe, "Could not find rez binary, this is a bug"
+        rez_bin_dir = os.path.dirname(exe)
         cls.syspaths.insert(0, rez_bin_dir)
 
         return cls.syspaths

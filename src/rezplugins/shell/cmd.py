@@ -4,10 +4,10 @@ Windows Command Prompt (DOS) shell.
 from rez.config import config
 from rez.rex import RexExecutor, literal, OutputStyle, EscapedString
 from rez.shells import Shell
-from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.util import shlex_join
+from rez.backport.shutilwhich import which
 from functools import partial
 import os
 import re
@@ -136,14 +136,9 @@ class CMD(Shell):
         cls.syspaths = list(set([x for x in paths if x]))
 
         # add Rez binaries
-        cmd = "where rez"
-        p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
-        out_, err_ = p.communicate()
-        assert not p.returncode, "Couldn't find rez, this is a bug"
-
-        line = out_.split(os.linesep)[0]
-        rez_bin_dir = os.path.dirname(line)
+        exe = which("rez")
+        assert exe, "Could not find rez binary, this is a bug"
+        rez_bin_dir = os.path.dirname(exe)
         cls.syspaths.insert(0, rez_bin_dir)
 
         return cls.syspaths
