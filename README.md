@@ -151,11 +151,26 @@ You can now iterate over `request` and `resolve` from within your `package.py:co
 `rez pip` can now take a `--prefix` argument, letting you install packages wherever</td>
         <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-prefix><i>link</i></a></td>
     </tr>
+    <tr>
         <td>PyYAML and Python 3</td>
         <td>
 
 Prior to this, you couldn't use PyYAML and Python 3 as Rez packages.</td>
         <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-multipleinstall><i>link</i></a></td>
+    </tr>
+    <tr>
+        <td>Auto-create missing repository dir</td>
+        <td>
+
+New users no longer have to worry about creating their default package repository directory at `~/packages`, which may seem minor but was the resulting traceback was the first thing any new user would experience with Rez.</td>
+        <td><a href=https://github.com/nerdvegas/rez/pull/623><i>PR</i></a></td>
+    </tr>
+    <tr>
+        <td>Cross-platform rez-bind python</td>
+        <td>
+
+rez-bind previously used features unsupported on Windows to create the default Python package, now it uses the cross-compatible `alias()` command instead.</td>
+        <td><a href=https://github.com/nerdvegas/rez/pull/624><i>PR</i></a></td>
     </tr>
 </table>
 
