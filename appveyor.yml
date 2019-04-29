@@ -29,6 +29,10 @@ test_script:
   - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
   - cmd: rez selftest -s cmd
   - sh: rez selftest -s bash
+  
+  # Coverage
+  - cmd: pip install coverage
+  - cmd: coverage run -m rez selftest >NUL 2>NUL
 
 #
 # Automatically upload to PyPI whenever a new tag is made
