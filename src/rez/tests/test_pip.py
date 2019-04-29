@@ -46,7 +46,7 @@ class TestPip(TestBase, TempdirMixin):
 
         variants = pip.classifiers_to_variants(classifiers)
         self.assertListEqual(variants, [
-            "platform-windows", "os-10", "python-2"])
+            "platform-windows", "python-2"])
 
     def test_classifiers_os_independent(self):
         """Test OS independent pip classifiers"""
