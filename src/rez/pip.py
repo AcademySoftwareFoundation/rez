@@ -202,19 +202,6 @@ def classifiers_to_variants(classifiers, with_minor=False):
 
             variants["platform"] = "windows"
 
-            # TODO: Double-check that the versions
-            # are actually this correlated to the
-            # Windows product version;
-            # i.e. is Windows 8 really version 8?
-            if cfr.endswith("windows 10"):
-                variants["os"] = "10"
-
-            elif cfr.endswith("windows 8"):
-                variants["os"] = "8"
-
-            elif cfr.endswith("windows 7"):
-                variants["os"] = "7"
-
         # Operating System :: posix :: linux
         if cfr.startswith("posix") or cfr.endswith("linux"):
             if variants["platform"]:
@@ -224,17 +211,6 @@ def classifiers_to_variants(classifiers, with_minor=False):
                 return
 
             variants["platform"] = "linux"
-
-            if platform_.name == "linux":
-                # The classifier merey says "Linux"
-                # It doesn't contain the flavour of Linux
-                # is being referred to. So here we convert
-                # the generic "Linux" to whatever the current
-                # os is. Not 100% clean, as it would
-                # install to e.g. CentOS when really the
-                # package author meant Ubuntu, but there is
-                # no way for them to communicate that to us.
-                variants["os"] = platform_.os
 
     def _on_programming_language(cfr):
         try:
