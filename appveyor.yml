@@ -31,7 +31,7 @@ test_script:
   - sh: rez selftest -s bash
   
   # Coverage
-  - sh: pip install coverage codecov
+  - sh: sudo pip install coverage codecov
   - sh: coverage run -m rez selftest
   - sh: codecov
 
