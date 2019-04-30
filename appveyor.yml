@@ -32,7 +32,7 @@ test_script:
   
   # Coverage
   - sh: sudo pip install coverage codecov
-  - sh: coverage run -m rez selftest
+  - sh: coverage run -m rez selftest -s bash
   - sh: codecov
 
 
