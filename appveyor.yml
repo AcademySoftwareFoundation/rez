@@ -29,6 +29,12 @@ test_script:
   - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
   - cmd: rez selftest -s cmd
   - sh: rez selftest -s bash
+  
+  # Coverage
+  - sh: sudo pip install coverage codecov
+  - sh: coverage run -m rez selftest -s bash
+  - sh: codecov
+
 
 #
 # Automatically upload to PyPI whenever a new tag is made
