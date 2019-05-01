@@ -1,14 +1,21 @@
-language: python
-
 matrix:
   include:
-    - python: 2.7
+
+    # 3.7 is default on Linux..
+    - name: "Python 2.7 on Linux"
       os: linux
-      env: _REZ_SHELL=bash
+      python: 2.7
+    # ..but on MacOS it's 2.7
+    - name: "Python 2.7 on macOS"
+      os: osx
+      language: shell       # 'language: python' is an error on Travis CI macOS
+
+language: python
+
+python: 2.7
 
 install:
-  - 'if [ "$_REZ_SHELL" == "tcsh" ]; then sudo apt-get install tcsh; fi'
-  - 'sudo pip install .'
+  - sudo pip install .
 
 script:
-  - 'rez selftest -s $_REZ_SHELL'
+  - rez selftest -s bash
