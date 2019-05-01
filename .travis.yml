@@ -1,6 +1,14 @@
-os:
-  - linux
-  - osx
+matrix:
+  include:
+
+    # 3.7 is default on Linux..
+    - name: "Python 2.7 on Linux"
+      os: linux
+      python: 2.7
+    # ..but on MacOS it's 2.7
+    - name: "Python 2.7 on macOS"
+      os: osx
+      language: shell       # 'language: python' is an error on Travis CI macOS
 
 language: python
 
