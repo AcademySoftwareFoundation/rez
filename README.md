@@ -121,17 +121,100 @@ Resolved environments can also be created via the API:
 
 ## Quickstart
 
-First, install Rez. Download the source, and from the source directory, run
-(with DEST_DIR replaced with your install location):
+Choose your installation method.
 
-    ]$ python ./install.py -v DEST_DIR
+<details>
+  <summary>Simple</summary>
+<table>
+<tr><td>
+<br>
 
-This installs the Rez command line tools. It will print a message at the end
-telling you how to use Rez when the installation has completed. Rez is not a
-normal Python package and so you do not typically install it with pip or setup.py.
-Do *not* move the installation - re-install to a new location if you want to
-change the install path. If you want to install rez for multiple operating
-systems, perform separate installs for each of those systems.
+**Simple** The simple approach is well suited for beginners and those looking to learn more about Rez and whether it is suited to their problem and environment.
+
+</td></tr>
+<tr><td>
+
+```bash
+$ pip install rez
+```
+</td></tr>
+<tr><td>
+
+<br>
+
+**Advantages**
+
+- **User-friendly and familiar installation method** Everybody loves pip
+
+</td></tr>
+</table>
+
+</details>
+</details><details>
+  <summary>Recommended</summary>
+
+<table>
+<tr><td>
+<br>
+
+**Recommended** The recommended approach is better suited for live production, where you've committed to Rez and want precision and control.
+
+</td></tr>
+<tr><td>
+
+```bash
+$ python -m virtualenv rez
+$ rez\Scripts\activate
+(rez) $ pip install rez
+```
+</td></tr>
+<tr><td>
+<br>
+
+**Advantages**
+
+- **Isolated PATH** No interference from external binaries in your `Scripts/` Python directory.
+- **Isolated site-packages** No interference from system-wide Python packages
+
+</td></tr>
+</table>
+</details>
+<details>
+  <summary>Developer</summary>
+
+<table>
+<tr><td>
+<br>
+
+**Developer** The developer approach maintains Git history and enables you to contribute back to this project (yay!)
+
+</td></tr>
+<tr><td>
+
+```bash
+$ python -m virtualenv rez-dev
+$ rez-dev\Scripts\activate
+(rez) $ git clone https://github.com/nerdvegas/rez.git
+(rez) $ cd rez
+(rez) $ pip install . -U
+```
+
+</td></tr>
+<tr><td>
+<br>
+
+From here, you can create a junction from your Git src/rez directory to site-packages/rez and see your changes from Git reflected immediately in your installed version.
+
+**Advantages**
+
+- **Git history** History is maintained and you're all set to contribute back to the project
+
+</td></tr>
+</table>
+</details>
+<br>
+
+This installs the Rez command line tools.
 
 Next, you need to create some essential Rez packages. The *rez-bind* tool creates
 Rez packages that are based on software already installed on your system. Try
