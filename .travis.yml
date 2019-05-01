@@ -1,14 +1,13 @@
+os:
+  - linux
+  - osx
+
 language: python
 
-matrix:
-  include:
-    - python: 2.7
-      os: linux
-      env: _REZ_SHELL=bash
+python: 2.7
 
 install:
-  - 'if [ "$_REZ_SHELL" == "tcsh" ]; then sudo apt-get install tcsh; fi'
-  - 'sudo pip install .'
+  - sudo pip install .
 
 script:
-  - 'rez selftest -s $_REZ_SHELL'
+  - rez selftest -s bash
