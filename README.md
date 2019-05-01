@@ -135,7 +135,7 @@ Choose your installation method.
 <tr><td>
 
 ```bash
-$ pip install rez
+$ pip install rez --user
 ```
 </td></tr>
 <tr><td>
@@ -196,7 +196,7 @@ $ python -m virtualenv rez-dev
 $ rez-dev\Scripts\activate
 (rez) $ git clone https://github.com/nerdvegas/rez.git
 (rez) $ cd rez
-(rez) $ pip install . -U
+(rez) $ pip install . -e
 ```
 
 </td></tr>
