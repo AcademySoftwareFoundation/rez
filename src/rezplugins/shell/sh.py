@@ -61,7 +61,7 @@ class SH(UnixShell):
         cls.syspaths = [x for x in paths if x]
 
         # add Rez binaries
-        exe = which("rez")
+        exe = which("rez-env")
         assert exe, "Could not find rez binary, this is a bug"
         rez_bin_dir = os.path.dirname(exe)
         cls.syspaths.insert(0, rez_bin_dir)
