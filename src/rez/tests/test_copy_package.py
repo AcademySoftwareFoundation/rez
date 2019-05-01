@@ -147,8 +147,9 @@ class TestCopyPackage(TestBase, TempdirMixin):
         pyfile = os.path.join(dest_pkg.base, "python")
         ctime = os.stat(pyfile).st_ctime
 
-        # In case tests runs too fast
-        time.sleep(0.1)
+        if os.getenv("TRAVIS_OS_NAME") == "osx":
+            # In case tests runs too fast
+            time.sleep(2)
 
         # overwrite same package copy
         result = copy_package(
@@ -188,8 +189,9 @@ class TestCopyPackage(TestBase, TempdirMixin):
             ctime = os.stat(pyfile).st_ctime
             ctimes.append(ctime)
 
-        # In case tests runs too fast
-        time.sleep(0.1)
+        if os.getenv("TRAVIS_OS_NAME") == "osx":
+            # In case tests runs too fast
+            time.sleep(2)
 
         # copy variant with no overwrite, should do nothing
         result = copy_package(
