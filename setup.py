@@ -8,12 +8,12 @@ import sys
 try:
     from setuptools import setup, find_packages
 except ImportError:
-    print >> sys.stderr, "install failed - requires setuptools"
+    sys.stderr.write("install failed - requires setuptools\n")
     sys.exit(1)
 
 
 if sys.version_info < (2, 6):
-    print >> sys.stderr, "install failed - requires python v2.6 or greater"
+    sys.stderr.write("install failed - requires python v2.6 or greater\n")
     sys.exit(1)
 
 
@@ -94,9 +94,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     package_dir={'': 'src'},
-    packages=find_packages('src', exclude=["build_utils",
-                                           "build_utils.*",
-                                           "tests"]),
+    packages=find_packages('src', exclude=["tests"]),
     package_data={
         'rez':
             ['rezconfig', 'utils/logging.conf'] +
