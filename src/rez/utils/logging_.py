@@ -2,6 +2,7 @@ from contextlib import contextmanager
 import logging
 import logging.config
 import os
+import time
 from rez import module_root_path
 
 
@@ -9,9 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 def setup_logging():
-    logging_conf_file = os.environ.get('REZ_LOGGING_CONF',
-                                       os.path.join(module_root_path, 'utils', 'logging.conf'))
-    logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)
+    fname = os.path.join(module_root_path, 'utils', 'logging.conf')
+    logging_conf_file = os.environ.get('REZ_LOGGING_CONF', fname)
+    logging.config.fileConfig(
+        logging_conf_file, disable_existing_loggers=False)
+
+
+def print_debug(msg, *nargs):
+    logger.debug(msg, *nargs)
 
 
 def print_info(msg, *nargs):
