@@ -201,4 +201,55 @@ Change</th>
         <td>E.g. `requires = ["urllib3>=1.21.1,<1.23"]`</td>
         <td>[#618](https://github.com/nerdvegas/rez/pull/618)</td>
     </tr>
+    <tr></tr>
+    <tr>
+        <td>Misc Improvements</td>
+        <td>
+
+> Make logging less destructive.
+
+Previously, when configured in rez.__init__ rez's logging (when used as
+an api) would clobber anything set by the calling application.  Push log
+configuration down into the cli only so it's more acceptale to api
+usage.
+
+> Allow for packages which have no versions.
+
+> Fix typo.
+
+> Catch exception raised on Windows.
+
+On Windows it is likely the local packages path is on a different drive
+to the release packages path.  This causes an exception to be raised in
+this function.
+
+> Add missing unimplmented methods.
+
+> Reset to base configuration, some of our site specific configuration …
+
+…slipped out on a recent merge.
+
+> Clean up syntax.
+
+> This helps external projects (that use FindPackage from CMake) locate…
+
+… things installed by rez.
+
+> Various improvements to git vcs repository.
+
+* Handle the case where we might be both ahead of and behind the remote.
+* Fix docstrings.
+* Add a check for untracked files.  This was in rez 1 although does make
+  things more strict
+* Handle if the changelog is broken - if history is rewritten or the
+  repository moves (in our case git to github) the changelog can fail
+  ungracefully.
+* Don't let the export function leave you in a different directory to
+  which you started - that is bad for tests etc.            
+
+</td>
+        <td>
+
+[#204](https://github.com/nerdvegas/rez/pull/204)</td>
+    </tr>
 </table>
