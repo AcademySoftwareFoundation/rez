@@ -2,7 +2,7 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal, OutputStyle, EscapedString
+from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
@@ -146,35 +146,28 @@ class CMD(Shell):
     def _bind_interactive_rez(self):
         if config.set_prompt and self.settings.prompt:
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
-            curr_prompt = stored_prompt or os.getenv("PROMPT", "")
-            if not stored_prompt:
-                self.setenv("REZ_STORED_PROMPT", curr_prompt)
 
-            new_prompt = "%%REZ_ENV_PROMPT%%"
-            new_prompt = (new_prompt + " %s") if config.prefix_prompt \
-                else ("%s " + new_prompt)
-            new_prompt = new_prompt % curr_prompt
+            space = ""
+            if not stored_prompt:
+                os.environ["REZ_STORED_PROMPT"] = "1"
+                space = " "
+
+            new_prompt = (
+                ("$G" + space + "%s")
+                if config.prefix_prompt
+                else ("%s" + space + "$G")
+            )
+
+            new_prompt = new_prompt % os.getenv("PROMPT", "")
             self._addline('set PROMPT=%s' % new_prompt)
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
                     pre_command=None, **Popen_args):
 
-        startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
-        shell_command = None
-
-        def _record_shell(ex, files, bind_rez=True, print_msg=False):
-            ex.source(context_file)
-            if startup_sequence["envvar"]:
-                ex.unsetenv(startup_sequence["envvar"])
-            if bind_rez:
-                ex.interpreter._bind_interactive_rez()
-            if print_msg and not quiet:
-                # previously this was called with the /K flag, however
-                # that would leave spawn_shell hung on a blocked call
-                # waiting for the user to type "exit" into the shell that
-                # was spawned to run the rez context printout
-                ex.command("cmd /Q /C rez context")
+        startup_sequence = self.get_startup_sequence(
+            rcfile, norc, bool(stdin), command)
+        shell_command = startup_sequence.get("command")
 
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),
@@ -182,43 +175,12 @@ class CMD(Shell):
                                add_default_namespaces=False)
 
         executor = _create_ex()
+        executor.source(context_file)
 
-        if self.settings.prompt:
-            newprompt = '%%REZ_ENV_PROMPT%%%s' % self.settings.prompt
-            executor.interpreter._saferefenv('REZ_ENV_PROMPT')
-            executor.env.REZ_ENV_PROMPT = literal(newprompt)
+        if startup_sequence["envvar"]:
+            executor.unsetenv(startup_sequence["envvar"])
 
-        if startup_sequence["command"] is not None:
-            _record_shell(executor, files=startup_sequence["files"])
-            shell_command = startup_sequence["command"]
-        else:
-            _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
-
-        if shell_command:
-            # Launch the provided command in the configured shell and wait
-            # until it exits.
-            executor.command(shell_command)
-
-        # Test for None specifically because resolved_context.execute_rex_code
-        # passes '' and we do NOT want to keep a shell open during a rex code
-        # exec operation.
-        elif shell_command is None: 
-            # Launch the configured shell itself and wait for user interaction
-            # to exit.
-            executor.command('cmd /Q /K')
-            
-        # Exit the configured shell.
-        executor.command('exit %errorlevel%')
-
-        code = executor.get_output()
-        target_file = os.path.join(tmpdir, "rez-shell.%s"
-                                   % self.file_extension())
-
-        with open(target_file, 'w') as f:
-            f.write(code)
-
-        if startup_sequence["stdin"] and stdin and (stdin is not True):
-            Popen_args["stdin"] = stdin
+        executor.interpreter._bind_interactive_rez()
 
         cmd = []
         if pre_command:
@@ -229,14 +191,34 @@ class CMD(Shell):
 
         if shell_command:
             cmd_flags = ['/Q', '/C']
-        else:
+            executor.command(shell_command)
+
+        elif shell_command is None:
+            # Test for None specifically because
+            # resolved_context.execute_rex_code
+            # passes '' and we do NOT want to keep
+            # a shell open during a rex code
+            # exec operation.
             cmd_flags = ['/Q', '/K']
 
-        cmd = cmd + [self.executable] + cmd_flags + ['call {}'.format(target_file)]
-        is_detached = (cmd[0] == 'START')
+        elif not quiet:
+            # previously this was called with the /K flag, however
+            # that would leave spawn_shell hung on a blocked call
+            # waiting for the user to type "exit" into the shell that
+            # was spawned to run the rez context printout
+            executor.command('cmd /Q /C rez context')
 
-        p = popen(cmd, env=env, shell=is_detached, **Popen_args)
-        return p
+        # Example code
+        #
+        # call c:\users\me\appdata\local\temp\rez_context_rn3tn3\context.bat
+        # set PROMPT=$G$G (anima rez) $$
+        #
+        code = executor.get_output()
+        code = ' & '.join(code.splitlines())
+        cmd = cmd + [self.executable] + cmd_flags + [code]
+        is_detached = cmd[0] == 'START'
+
+        return popen(cmd, env=env, shell=is_detached, **Popen_args)
 
     def get_output(self, style=OutputStyle.file):
         if style == OutputStyle.file:
@@ -287,7 +269,7 @@ class CMD(Shell):
             try:
                 self.__class__._doskey = \
                     self.find_executable("doskey", check_syspaths=True)
-            except:
+            except Exception:
                 self._doskey = "doskey"
 
         self._addline("%s %s=%s $*" % (self._doskey, key, value))
