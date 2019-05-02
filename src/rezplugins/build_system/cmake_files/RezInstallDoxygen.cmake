@@ -161,7 +161,7 @@ macro (rez_install_doxygen)
 				install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${dest_dir}/${_tagfile} DESTINATION ${dest_dir})
 			endif ()
 
-		endif(CENTRAL OR INSTDOX_FORCE)
+		endif()
 	else(DOXYGEN_EXECUTABLE)
 		message(WARNING "RezInstallDoxygen cannot find Doxygen - documentation was not built.")
 	endif(DOXYGEN_EXECUTABLE)
