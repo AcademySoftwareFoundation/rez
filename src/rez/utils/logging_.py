@@ -1,13 +1,17 @@
 from contextlib import contextmanager
 import logging
-import time
+import logging.config
+import os
+from rez import module_root_path
 
 
 logger = logging.getLogger(__name__)
 
 
-def print_debug(msg, *nargs):
-    logger.debug(msg, *nargs)
+def setup_logging():
+    logging_conf_file = os.environ.get('REZ_LOGGING_CONF',
+                                       os.path.join(module_root_path, 'utils', 'logging.conf'))
+    logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)
 
 
 def print_info(msg, *nargs):
