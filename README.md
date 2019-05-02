@@ -172,6 +172,13 @@ New users no longer have to worry about creating their default package repositor
 rez-bind previously used features unsupported on Windows to create the default Python package, now it uses the cross-compatible `alias()` command instead.</td>
         <td><a href=https://github.com/nerdvegas/rez/pull/624><i>PR</i></a></td>
     </tr>
+    <tr>
+        <td>No more "Terminate Batch Job? (Y/N)"</td>
+        <td>
+
+Rez used to create a .bat file which was later used as the Rez context. Exiting a .bat file using CTRL+C prompts the user for a "Terminate Batch Job? (Y/N)", adding some extra annoyance to exiting a Rez context.</td>
+        <td><a href=https://github.com/nerdvegas/rez/pull/626><i>PR</i></a></td>
+    </tr>
 </table>
 
 <br>
