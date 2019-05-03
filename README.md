@@ -150,7 +150,7 @@ $ pip install rez --user
 </table>
 
 </details>
-</details><details>
+<details>
   <summary>Recommended</summary>
 
 <table>
@@ -164,11 +164,49 @@ $ pip install rez --user
 
 ```bash
 $ python -m virtualenv rez
-$ rez\Scripts\activate
+$ rez\Scripts\activate  # *
 (rez) $ pip install rez
 ```
+
+> Use `source rez/bin/activate` on Linux and OSX
+
 </td></tr>
 <tr><td>
+<br>
+
+**Optional**
+
+Virtualenv exposes a `python` and `pip` binary on your `PATH` which make them available from within a Rez context despite no `python` or `pip` package having been included. For additional protection, you can create a separate directory with only Rez binaries and expose this on your `PATH` instead.
+
+<details>
+  <summary>Windows</summary>
+
+```bash
+(rez) $ mkdir rez\Scripts\rez
+(rez) $ cp rez\Scripts\rez*.exe rez\Scripts\rez\
+(rez) $ deactivate
+$ set PATH=%cd%\rez\Scripts\rez
+$ rez env
+> $ python
+'python' is not recognized as an internal or external command,
+operable program or batch file.
+```
+</details>
+
+<details>
+  <summary>Linux and MacOS</summary>
+
+```bash
+(rez) $ mkdir rez\bin\rez
+(rez) $ cp rez\bin\rez* rez\bin\rez\
+(rez) $ deactivate
+$ export PATH=$(pwd)\rez\bin\rez
+$ rez env
+> $ python
+-bash: python: command not found
+```
+
+</details>
 <br>
 
 **Advantages**
@@ -202,8 +240,6 @@ $ rez-dev\Scripts\activate
 </td></tr>
 <tr><td>
 <br>
-
-From here, you can create a junction from your Git src/rez directory to site-packages/rez and see your changes from Git reflected immediately in your installed version.
 
 **Advantages**
 
