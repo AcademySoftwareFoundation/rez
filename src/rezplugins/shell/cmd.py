@@ -158,7 +158,7 @@ class CMD(Shell):
                 else ("%s" + space + "$G")
             )
 
-            new_prompt = new_prompt % os.getenv("PROMPT", "").rstrip()
+            new_prompt = new_prompt % os.getenv("PROMPT", "")
             self._addline('set PROMPT=%s' % new_prompt)
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
@@ -189,9 +189,8 @@ class CMD(Shell):
             else:
                 cmd = pre_command
 
-        cmd_flags = []
         if shell_command:
-            cmd_flags[:] = ['/Q', '/C']
+            cmd_flags = ['/Q', '/C']
             executor.command(shell_command)
 
         elif shell_command is None:
@@ -200,16 +199,14 @@ class CMD(Shell):
             # passes '' and we do NOT want to keep
             # a shell open during a rex code
             # exec operation.
-            cmd_flags[:] = ['/Q', '/K']
+            cmd_flags = ['/Q', '/K']
 
-            if not quiet:
-                # previously this was called with the /K flag, however
-                # that would leave spawn_shell hung on a blocked call
-                # waiting for the user to type "exit" into the shell that
-                # was spawned to run the rez context printout
-                executor.command('cmd /Q /C rez context')
-        else:
-            executor.command('cmd /Q /C')
+        elif not quiet:
+            # previously this was called with the /K flag, however
+            # that would leave spawn_shell hung on a blocked call
+            # waiting for the user to type "exit" into the shell that
+            # was spawned to run the rez context printout
+            executor.command('cmd /Q /C rez context')
 
         # Example code
         #
