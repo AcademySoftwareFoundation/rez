@@ -4,10 +4,8 @@ Windows Command Prompt (DOS) shell.
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
-from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
-from rez.util import shlex_join
 from functools import partial
 import os
 import re
@@ -201,6 +199,8 @@ class CMD(Shell):
                 # waiting for the user to type "exit" into the shell that
                 # was spawned to run the rez context printout
                 executor.command('cmd /Q /C rez context')
+
+        # For selftest
         else:
             executor.command('cmd /Q /C')
 
@@ -292,7 +292,7 @@ class CMD(Shell):
         return "%%%s%%" % key
 
     def join(self, command):
-        return shlex_join(command).replace("'", '"')
+        return " ".join(command)
 
 
 def register_plugin():
