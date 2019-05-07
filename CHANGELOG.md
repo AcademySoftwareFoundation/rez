@@ -1,6 +1,21 @@
 # Change Log
 
-## [2.29.1](https://github.com/nerdvegas/rez/tree/2.29.0) (2019-04-22)
+## [2.30.0](https://github.com/nerdvegas/rez/tree/2.30.0) (2019-05-07)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.29.1...2.30.0)
+
+**Merged pull requests:**
+
+- fqdn [\#621](https://github.com/nerdvegas/rez/pull/621) ([bpabel](https://github.com/bpabel))
+- Fix path list with whitespace [\#588](https://github.com/nerdvegas/rez/pull/588) ([asztalosdani](https://github.com/asztalosdani))
+- Close the amqp connection after message publish [\#615](https://github.com/nerdvegas/rez/pull/615) ([loup-kreidl](https://github.com/loup-kreidl))
+
+**Closed issues:**
+
+- rezbuild.py broken [\#619](https://github.com/nerdvegas/rez/issues/619)
+- rez-env Performance and socket.getfqdn() [\#617](https://github.com/nerdvegas/rez/issues/617)
+- "parse_build_args.py" file parser arguments are not accessible anymore in "os.environ". [\#590](https://github.com/nerdvegas/rez/issues/590)
+
+## [2.29.1](https://github.com/nerdvegas/rez/tree/2.29.1) (2019-04-22)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.29.0...2.29.1)
 
 **Merged pull requests:**
