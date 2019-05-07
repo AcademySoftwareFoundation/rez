@@ -89,9 +89,12 @@ def _publish_message(host, amqp_settings, routing_key, data):
         )
     except Exception as e:
         print_error("Failed to publish message: %s" % (e))
-        return False
+        success = False
+    else:
+        success = True
 
-    return True
+    conn.close()
+    return success
 
 
 def _publish_messages_async():
