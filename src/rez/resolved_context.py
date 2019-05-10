@@ -218,7 +218,7 @@ class ResolvedContext(object):
         self.rez_version = __version__
         self.rez_path = module_root_path
         self.user = getpass.getuser()
-        self.host = system.fqdn
+        self.host = system.hostname
         self.platform = system.platform
         self.arch = system.arch
         self.os = system.os
@@ -1478,7 +1478,7 @@ class ResolvedContext(object):
             return
 
         data = {
-            "host": socket.getfqdn(),
+            "host": socket.gethostname(),
             "user": getpass.getuser()
         }
 

@@ -16,6 +16,9 @@ import sys
 class BezBuildSystem(BuildSystem):
     """The Bez build system.
 
+    ### DEPRECATED, PLEASE USE CUSTOM BUILD COMMAND INSTEAD ###
+    https://github.com/nerdvegas/rez/wiki/Building-Packages#custom-build-commands
+
     Bez is a simple build system, which runs the 'bez' binary in the build
     environment. All bez does is run the file 'rezbuild.py' (your package's
     build file) in a python subprocess. The code in rezbuild.py has access to

@@ -69,17 +69,17 @@ class CMakeBuildSystem(BuildSystem):
         return os.path.isfile(os.path.join(path, "CMakeLists.txt"))
 
     @classmethod
-    def bind_cli(cls, parser):
+    def bind_cli(cls, parser, group):
         settings = config.plugins.build_system.cmake
-        parser.add_argument("--bt", "--build-target", dest="build_target",
-                            type=str, choices=cls.build_targets,
-                            default=settings.build_target,
-                            help="set the build target (default: %(default)s).")
-        parser.add_argument("--bs", "--cmake-build-system",
-                            dest="cmake_build_system",
-                            choices=cls.build_systems.keys(),
-                            default=settings.build_system,
-                            help="set the cmake build system (default: %(default)s).")
+        group.add_argument("--bt", "--build-target", dest="build_target",
+                           type=str, choices=cls.build_targets,
+                           default=settings.build_target,
+                           help="set the build target (default: %(default)s).")
+        group.add_argument("--bs", "--cmake-build-system",
+                           dest="cmake_build_system",
+                           choices=cls.build_systems.keys(),
+                           default=settings.build_system,
+                           help="set the cmake build system (default: %(default)s).")
 
     def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
