@@ -380,7 +380,7 @@ class UnixShell(Shell):
     def command(self, value):
         if hasattr(value, '__iter__'):
             it = iter(value)
-            cmd = EscapedString.disallow(it.next())
+            cmd = EscapedString.disallow(next(it))
             args_str = ' '.join(self.escape_string(x) for x in it)
             value = "%s %s" % (cmd, args_str)
         else:
