@@ -16,6 +16,7 @@ The empty version '', and empty version range '', are also handled. The empty
 version is used to denote unversioned objects. The empty version range, also
 known as the 'any' range, is used to refer to any version of an object.
 """
+from __future__ import print_function
 from rez.vendor.version.util import VersionError, ParseException, _Common, \
     total_ordering, dedup
 import rez.vendor.pyparsing.pyparsing as pp
@@ -649,10 +650,10 @@ class _VersionRangeParser(object):
             result = fn(self)
             if self.debug:
                 label = fn.__name__.replace("_act_", "")
-                print "%-21s: %s" % (label, self._input_string)
+                print("%-21s: %s" % (label, self._input_string))
                 for key, value in self._groups.items():
-                    print "    %-17s= %s" % (key, value)
-                print "    %-17s= %s" % ("bounds", self.bounds)
+                    print("    %-17s= %s" % (key, value))
+                print("    %-17s= %s" % ("bounds", self.bounds))
             return result
         return fn_
 
@@ -660,7 +661,7 @@ class _VersionRangeParser(object):
     def _act_version(self):
         version = self._create_version_from_token(self._groups['version'])
         lower_bound = _LowerBound(version, True)
-        upper_bound = _UpperBound(version.next(), False) if version else None
+        upper_bound = _UpperBound(next(version), False) if version else None
 
         self.bounds.append(_Bound(lower_bound, upper_bound))
 
