@@ -987,7 +987,7 @@ class ResolvedContext(object):
         """
         variants = set()
         tools_dict = self.get_tools(request_only=False)
-        for variant, tools in tools_dict.itervalues():
+        for variant, tools in tools_dict.values():
             if tool_name in tools:
                 variants.add(variant)
         return variants
@@ -1007,7 +1007,7 @@ class ResolvedContext(object):
 
         tool_sets = defaultdict(set)
         tools_dict = self.get_tools(request_only=request_only)
-        for variant, tools in tools_dict.itervalues():
+        for variant, tools in tools_dict.values():
             for tool in tools:
                 tool_sets[tool].add(variant)
 

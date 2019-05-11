@@ -409,7 +409,7 @@ class Suite(object):
         s.contexts = d["contexts"]
         if s.contexts:
             s.next_priority = max(x["priority"]
-                                  for x in s.contexts.itervalues()) + 1
+                                  for x in s.contexts.values()) + 1
         else:
             s.next_priority = 1
         return s
@@ -612,7 +612,7 @@ class Suite(object):
         colors = [None, None]
 
         entries_dict = defaultdict(list)
-        for d in self.get_tools().itervalues():
+        for d in self.get_tools().values():
             entries_dict[d["context_name"]].append(d)
 
         if verbose:
@@ -623,7 +623,7 @@ class Suite(object):
                 entries_dict[d["context_name"]].append(d_)
 
             # add conflicting tools
-            for docs in self.tool_conflicts.itervalues():
+            for docs in self.tool_conflicts.values():
                 for d in docs:
                     d_ = d.copy()
                     d_["conflicting"] = True
@@ -688,7 +688,7 @@ class Suite(object):
     def _validate_tool(self, context_name, tool_name):
         context = self.context(context_name)
         context_tools = context.get_tools(request_only=True)
-        for _, tool_names in context_tools.itervalues():
+        for _, tool_names in context_tools.values():
             if tool_name in tool_names:
                 return
         raise SuiteError("No such tool %r in context %r"
@@ -711,7 +711,7 @@ class Suite(object):
             context = self.context(context_name)
             context_tools = context.get_tools(request_only=True)
 
-            for variant, tool_names in context_tools.itervalues():
+            for variant, tool_names in context_tools.values():
                 for tool_name in tool_names:
                     alias = tool_aliases.get(tool_name)
                     if alias is None:

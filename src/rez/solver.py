@@ -1710,7 +1710,7 @@ class _ResolvePhase(_Common):
         edges = set()
         scopes = dict((x.package_name, x) for x in self.scopes)
 
-        for scope in scopes.itervalues():
+        for scope in scopes.values():
             variant = scope._get_solved_variant()
             if variant:
                 nodes.add(variant.name)

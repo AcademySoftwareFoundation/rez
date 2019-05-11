@@ -137,9 +137,9 @@ class PackageFilter(PackageFilterBase):
     def __and__(self, other):
         """Combine two filters."""
         result = self.copy()
-        for rule in other._excludes.itervalues():
+        for rule in other._excludes.values():
             result.add_exclusion(rule)
-        for rule in other._includes.itervalues():
+        for rule in other._includes.values():
             result.add_inclusion(rule)
         return result
 
@@ -183,7 +183,7 @@ class PackageFilter(PackageFilterBase):
                                  ("includes", self._includes)):
             if dict_:
                 rules = []
-                for rules_ in dict_.itervalues():
+                for rules_ in dict_.values():
                     rules.extend(map(str, rules_))
                 data[namespace] = rules
         return data

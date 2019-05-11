@@ -33,7 +33,7 @@ class ProcessTrackerThread(QtCore.QThread):
             is the epoch time the process was added.
         """
         handle = (id(context), process_name)
-        it = self.processes.get(handle, {}).itervalues()
+        it = self.processes.get(handle, {}).values()
         entries = [x for x in it if x[0].poll() is None]
         return entries
 
@@ -72,7 +72,7 @@ class ProcessTrackerThread(QtCore.QThread):
         # rebuild proc list to iterate over
         if self.processes and not self.proc_list:
             for (context_id, process_name), d in self.processes.items():
-                for proc, _ in d.itervalues():
+                for proc, _ in d.values():
                     entry = (context_id, process_name, proc)
                     self.proc_list.append(entry)
 
