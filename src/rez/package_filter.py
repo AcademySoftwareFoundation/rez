@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 from rez.packages_ import iter_packages
 from rez.exceptions import ConfigurationError
 from rez.config import config
@@ -169,7 +170,7 @@ class PackageFilter(PackageFilterBase):
         for namespace, func in (("excludes", f.add_exclusion),
                                 ("includes", f.add_inclusion)):
             rule_strs = data.get(namespace, [])
-            if isinstance(rule_strs, basestring):
+            if isinstance(rule_strs, six.string_types):
                 rule_strs = [rule_strs]
             for rule_str in rule_strs:
                 rule = Rule.parse_rule(rule_str)

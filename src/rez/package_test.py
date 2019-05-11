@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.packages_ import get_latest_package_from_string, Variant
@@ -160,7 +161,7 @@ class PackageTestRunner(object):
             requires = test_info["requires"]
 
             # expand refs like {root} in commands
-            if isinstance(command, basestring):
+            if isinstance(command, six.string_types):
                 command = variant.format(command)
             else:
                 command = map(variant.format, command)
@@ -198,7 +199,7 @@ class PackageTestRunner(object):
             if self.verbose:
                 context.print_info(self.stdout)
 
-                if isinstance(command, basestring):
+                if isinstance(command, six.string_types):
                     cmd_str = command
                 else:
                     cmd_str = ' '.join(map(quote, command))

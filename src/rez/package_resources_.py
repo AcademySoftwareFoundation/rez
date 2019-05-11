@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 from rez.utils.resources import Resource
 from rez.utils.schema import Required, schema_keys
 from rez.utils.logging_ import print_warning
@@ -399,7 +400,7 @@ class PackageResourceHelper(PackageResource):
                 print_warning(msg)
             commands = convert_old_commands(commands)
 
-        if isinstance(commands, basestring):
+        if isinstance(commands, six.string_types):
             return SourceCode(source=commands)
         elif callable(commands):
             return SourceCode(func=commands)

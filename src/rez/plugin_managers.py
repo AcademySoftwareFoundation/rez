@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 """
 Manages loading of all types of Rez plugins.
 """
@@ -104,7 +105,7 @@ class RezPluginType(object):
         # extend_path, above). this means that `walk_packages` will walk over all
         # modules on the search path at the same level (.e.g in a
         # 'rezplugins/type_name' sub-directory).
-        paths = [package.__path__] if isinstance(package.__path__, basestring) \
+        paths = [package.__path__] if isinstance(package.__path__, six.string_types) \
             else package.__path__
         for path in paths:
             for loader, modname, ispkg in pkgutil.walk_packages(

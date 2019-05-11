@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 """
 This sourcefile is intended to be imported in package.py files, in functions
 including:
@@ -189,7 +190,7 @@ def exec_python(attr, src, executable="python"):
     """
     import subprocess
 
-    if isinstance(src, basestring):
+    if isinstance(src, six.string_types):
         src = [src]
 
     p = popen([executable, "-c", "; ".join(src)],

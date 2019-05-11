@@ -1,4 +1,5 @@
 from __future__ import print_function
+from rez.vendor.six import six
 import os
 import sys
 import re
@@ -728,7 +729,7 @@ class EscapedString(object):
         return "%s(%r)" % (self.__class__.__name__, self.strings)
 
     def __eq__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, six.string_types):
             return (str(self) == str(other))
         else:
             return (isinstance(other, EscapedString)

@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 """
 Utilities for working with dict-based schemas.
 """
@@ -31,7 +32,7 @@ def schema_keys(schema):
 
     for key in dict_.iterkeys():
         key_ = _get_leaf(key)
-        if isinstance(key_, basestring):
+        if isinstance(key_, six.string_types):
             keys.add(key_)
 
     return keys
@@ -57,7 +58,7 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
         if isinstance(value, dict):
             d = {}
             for k, v in value.items():
-                if isinstance(k, basestring):
+                if isinstance(k, six.string_types):
                     k = Required(k) if required else Optional(k)
                 d[k] = _to(v)
             if allow_custom_keys:

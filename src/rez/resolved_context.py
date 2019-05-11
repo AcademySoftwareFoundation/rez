@@ -1,4 +1,5 @@
 from __future__ import print_function
+from rez.vendor.six import six
 from rez import __version__, module_root_path
 from rez.package_repository import package_repository_manager
 from rez.solver import SolverCallbackReturn
@@ -194,7 +195,7 @@ class ResolvedContext(object):
 
         self._package_requests = []
         for req in package_requests:
-            if isinstance(req, basestring):
+            if isinstance(req, six.string_types):
                 req = PackageRequest(req)
             self._package_requests.append(req)
 
@@ -464,7 +465,7 @@ class ResolvedContext(object):
             request_ = []
 
             for req in package_requests:
-                if isinstance(req, basestring):
+                if isinstance(req, six.string_types):
                     req = PackageRequest(req)
 
                 if req.name in request_dict:
@@ -1488,7 +1489,7 @@ class ResolvedContext(object):
         # remove fields with unexpanded env-vars, or empty string
         def _del(value):
             return (
-                isinstance(value, basestring) and
+                isinstance(value, six.string_types) and
                 (not value or ENV_VAR_REGEX.search(value))
             )
 

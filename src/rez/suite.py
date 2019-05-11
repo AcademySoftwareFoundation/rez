@@ -1,4 +1,5 @@
 from __future__ import print_function
+from rez.vendor.six import six
 from rez.util import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
@@ -145,7 +146,7 @@ class Suite(object):
             names = [x for x in names if _in_request(x)]
 
         if in_resolve:
-            if isinstance(in_resolve, basestring):
+            if isinstance(in_resolve, six.string_types):
                 in_resolve = PackageRequest(in_resolve)
 
             def _in_resolve(name):

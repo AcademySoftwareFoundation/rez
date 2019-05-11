@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 from rez.config import config
 from rez.packages_ import Package
 from rez.serialise import load_from_file, FileFormat, set_objects
@@ -81,13 +82,13 @@ class DeveloperPackage(Package):
                     break
             if data:
                 name = data.get("name")
-                if name is not None or isinstance(name, basestring):
+                if name is not None or isinstance(name, six.string_types):
                     break
 
         if data is None:
             raise PackageMetadataError("No package definition file found at %s" % path)
 
-        if name is None or not isinstance(name, basestring):
+        if name is None or not isinstance(name, six.string_types):
             raise PackageMetadataError(
                 "Error in %r - missing or non-string field 'name'" % filepath)
 
@@ -184,7 +185,7 @@ class DeveloperPackage(Package):
                     funcname = dotted.__name__
                     preprocess_func = dotted
 
-                elif isinstance(dotted, basestring):
+                elif isinstance(dotted, six.string_types):
                     if '.' not in dotted:
                         print_error(
                             "Setting 'package_preprocess_function' must be of "

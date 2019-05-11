@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 """See util.create_forwarding_script()."""
 from rez.vendor import argparse
 
@@ -41,7 +42,7 @@ def command(opts, parser, extra_arg_groups=None):
     nargs = doc.get("nargs", [])
     kwargs = doc.get("kwargs", {})
 
-    if isinstance(doc["module"], basestring):
+    if isinstance(doc["module"], six.string_types):
         # refers to a rez module
         from rez.backport.importlib import import_module
         namespace = "rez.%s" % doc["module"]

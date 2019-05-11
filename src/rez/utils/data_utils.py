@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 """
 Utilities related to managing data types.
 """
@@ -376,7 +377,7 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
     attrs = dir(instance)
     try:
         for attr in instance:
-            if isinstance(attr, basestring):
+            if isinstance(attr, six.string_types):
                 attrs.append(attr)
     except TypeError:
         pass
@@ -507,7 +508,7 @@ class LazyAttributeMeta(type):
                 optional = isinstance(key, Optional)
                 while isinstance(key, Schema):
                     key = key._schema
-                if isinstance(key, basestring):
+                if isinstance(key, six.string_types):
                     keys.add(key)
 
                     if _defined(key):

@@ -2,6 +2,7 @@
 Utility functions for bind modules.
 """
 from __future__ import absolute_import
+from rez.vendor.six import six
 from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
@@ -89,7 +90,7 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
     Returns:
         `Version` object.
     """
-    if isinstance(version_arg, basestring):
+    if isinstance(version_arg, six.string_types):
         version_arg = [version_arg]
     args = [exepath] + version_arg
 

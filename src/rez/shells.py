@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
@@ -349,7 +350,7 @@ class UnixShell(Shell):
 
         cmd = []
         if pre_command:
-            if isinstance(pre_command, basestring):
+            if isinstance(pre_command, six.string_types):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command

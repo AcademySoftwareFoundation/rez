@@ -1,4 +1,5 @@
 from __future__ import print_function
+from rez.vendor.six import six
 from rez.packages_ import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding
@@ -42,7 +43,7 @@ class PackageHelp(object):
 
         if package:
             help_ = package.help
-            if isinstance(help_, basestring):
+            if isinstance(help_, six.string_types):
                 sections = [["Help", help_]]
             elif isinstance(help_, list):
                 sections = help_

@@ -1,3 +1,4 @@
+from rez.vendor.six import six
 from functools import partial
 import os.path
 import shutil
@@ -95,7 +96,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
             "Cannot copy non-relocatable package: %s" % package.uri
         )
 
-    if isinstance(dest_repository, basestring):
+    if isinstance(dest_repository, six.string_types):
         repo_path = dest_repository
         dest_pkg_repo = package_repository_manager.get_repository(repo_path)
     else:

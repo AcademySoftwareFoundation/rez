@@ -1,4 +1,5 @@
 from __future__ import print_function
+from rez.vendor.six import six
 from rez.packages_ import get_latest_package
 from rez.vendor.version.version import Version
 from rez.vendor.distlib import DistlibException
@@ -32,7 +33,7 @@ def _get_dependencies(requirement, distributions):
         return pip_to_rez_name
 
     result = []
-    requirements = ([requirement] if isinstance(requirement, basestring)
+    requirements = ([requirement] if isinstance(requirement, six.string_types)
                     else requirement["requires"])
 
     for package in requirements:

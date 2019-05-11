@@ -2,6 +2,7 @@
 Functions for manipulating dot-based resolve graphs.
 """
 from __future__ import print_function
+from rez.vendor.six import six
 import re
 import os.path
 import subprocess
@@ -29,7 +30,7 @@ def read_graph_from_string(txt):
         return read_dot(txt)  # standard dot format
 
     def conv(value):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             return '"' + value + '"'
         else:
             return value
@@ -42,7 +43,7 @@ def read_graph_from_string(txt):
         attrs = [(k, conv(v)) for k, v in attrs]
 
         for value in values:
-            if isinstance(value, basestring):
+            if isinstance(value, six.string_types):
                 node_name = value
                 attrs_ = attrs
             else:
@@ -77,7 +78,7 @@ def write_compacted(g):
     d_edges = {}
 
     def conv(value):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             return value.strip('"')
         else:
             return value
