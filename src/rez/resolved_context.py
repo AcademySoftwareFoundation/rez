@@ -1324,8 +1324,8 @@ class ResolvedContext(object):
             requested_timestamp=self.requested_timestamp,
             building=self.building,
             caching=self.caching,
-            implicit_packages=map(str, self.implicit_packages),
-            package_requests=map(str, self._package_requests),
+            implicit_packages=list(map(str, self.implicit_packages)),
+            package_requests=list(map(str, self._package_requests)),
             package_paths=self.package_paths,
 
             default_patch_lock=self.default_patch_lock.name,
