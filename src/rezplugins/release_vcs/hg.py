@@ -147,7 +147,7 @@ class HgReleaseVCS(ReleaseVCS):
         # rsplit, once, since we KNOW how the right side should be formatted
         tags = dict(line.rstrip().rsplit(None, 1) for line in lines
                     if line.strip())
-        for tag_name, tag_info in tags.iteritems():
+        for tag_name, tag_info in tags.items():
             rev, shortnode = tag_info.split(':')
             tags[tag_name] = {'rev': rev, 'shortnode': shortnode}
         return tags

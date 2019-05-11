@@ -177,7 +177,7 @@ class CommandReleaseHook(ReleaseHook):
                 msgs = []
                 msgs.append("running command: %s" % list2cmdline(toks))
                 if env:
-                    for key, value in env.iteritems():
+                    for key, value in env.items():
                         msgs.append("    with: %s=%s" % (key, value))
 
                 if self.settings.print_commands:

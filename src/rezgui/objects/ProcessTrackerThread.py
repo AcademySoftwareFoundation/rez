@@ -71,7 +71,7 @@ class ProcessTrackerThread(QtCore.QThread):
 
         # rebuild proc list to iterate over
         if self.processes and not self.proc_list:
-            for (context_id, process_name), d in self.processes.iteritems():
+            for (context_id, process_name), d in self.processes.items():
                 for proc, _ in d.itervalues():
                     entry = (context_id, process_name, proc)
                     self.proc_list.append(entry)

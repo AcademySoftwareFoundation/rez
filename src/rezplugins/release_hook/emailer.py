@@ -124,7 +124,7 @@ class EmailReleaseHook(ReleaseHook):
             match = True
 
             if filters:
-                for attr, test_value in test(filters, dict).iteritems():
+                for attr, test_value in test(filters, dict).items():
 
                     missing = object()
                     value = getattr(self.package, attr, missing)

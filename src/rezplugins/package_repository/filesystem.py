@@ -371,7 +371,7 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
 
             overrides = self.parent.version_overrides
             if overrides:
-                for range_, data_ in overrides.iteritems():
+                for range_, data_ in overrides.items():
                     if version in range_:
                         data.update(data_)
                 del data["version_overrides"]
@@ -1037,7 +1037,7 @@ class FileSystemPackageRepository(PackageRepository):
         # This is done so that variants added to an existing package don't change
         # attributes such as 'timestamp' or release-related fields like 'revision'.
         #
-        for key, value in overrides.iteritems():
+        for key, value in overrides.items():
             if existing_package:
                 if key not in package_data:
                     package_data[key] = value
