@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import os
 import os.path
@@ -111,10 +112,10 @@ class Status(object):
             b_ = fn(obj, buf, b)
             b |= b_
             if b_:
-                print >> buf, ''
+                print('', file=buf)
 
         if not b:
-            print >> buf, "Rez does not know what '%s' is" % obj
+            print("Rez does not know what '%s' is" % obj, file=buf)
         return b
 
     def print_tools(self, pattern=None, buf=sys.stdout):
@@ -238,7 +239,7 @@ class Status(object):
                     msg = "Packages (in conflict): %s" % vars_str
                     _pr(msg, critical)
                 else:
-                    variant = iter(variants).next()
+                    variant = next(iter(variants))
                     _pr("Package:  %s" % variant.qualified_package_name)
                 return True
 
@@ -365,7 +366,7 @@ class Status(object):
             lines.append("\nCurrently within context %r in suite at %s"
                          % (context_name, self.parent_suite.load_path))
 
-        print >> buf, "\n".join(lines)
+        print("\n".join(lines), file=buf)
 
 
 # singleton
