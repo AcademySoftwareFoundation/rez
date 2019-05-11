@@ -119,7 +119,7 @@ class PerFamilyOrder(PackageOrder):
 
     def reorder(self, iterable, key=None):
         try:
-            item = iter(iterable).next()
+            item = next(iter(iterable))
         except:
             return None
 
