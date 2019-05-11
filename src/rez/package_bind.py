@@ -1,3 +1,4 @@
+from __future__ import print_function
 from rez.exceptions import RezBindError
 from rez import module_root_path
 from rez.util import get_close_pkgs
@@ -22,7 +23,7 @@ def get_bind_modules(verbose=False):
 
     for path in searchpaths:
         if verbose:
-            print "searching %s..." % path
+            print("searching %s..." % path)
         if not os.path.isdir(path):
             continue
 
@@ -60,10 +61,10 @@ def find_bind_module(name, verbose=False):
 
     if fuzzy_matches:
         rows = [(x[0], bindnames[x[0]]) for x in fuzzy_matches]
-        print "'%s' not found. Close matches:" % name
-        print '\n'.join(columnise(rows))
+        print("'%s' not found. Close matches:" % name)
+        print('\n'.join(columnise(rows)))
     else:
-        print "No matches."
+        print("No matches.")
 
     return None
 
@@ -134,8 +135,8 @@ def bind_package(name, path=None, version_range=None, no_deps=False,
             exc_type = RezBindError
 
     if installed_variants and not quiet:
-        print "The following packages were installed:"
-        print
+        print("The following packages were installed:")
+        print()
         _print_package_list(installed_variants)
 
     return installed_variants
@@ -150,7 +151,7 @@ def _bind_package(name, path=None, version_range=None, bind_args=None,
     # load the bind module
     stream = open(bindfile)
     namespace = {}
-    exec stream in namespace
+    exec(stream, namespace)
 
     # parse bind module params
     bind_parser = argparse.ArgumentParser(prog="rez bind %s" % name,
@@ -164,7 +165,7 @@ def _bind_package(name, path=None, version_range=None, bind_args=None,
     install_path = path or config.local_packages_path
 
     if not quiet:
-        print "creating package '%s' in %s..." % (name, install_path)
+        print("creating package '%s' in %s..." % (name, install_path))
 
     bindfunc = namespace.get("bind")
     if not bindfunc:
@@ -185,4 +186,4 @@ def _print_package_list(variants):
     rows = [["PACKAGE", "URI"],
             ["-------", "---"]]
     rows += [(x.name, x.uri) for x in packages]
-    print '\n'.join(columnise(rows))
+    print('\n'.join(columnise(rows)))
