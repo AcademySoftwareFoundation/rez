@@ -421,7 +421,7 @@ def register_orderer(cls):
 
 # registration of builtin orderers
 _orderers = {}
-for o in globals().values():
+for o in globals().copy().values():
     register_orderer(o)
 
 
