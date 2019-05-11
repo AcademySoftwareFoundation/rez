@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import subprocess
 import sys
@@ -601,12 +602,12 @@ class Python(ActionInterpreter):
     def info(self, value):
         if not self.passive:
             value = self.escape_string(value)
-            print value
+            print(value)
 
     def error(self, value):
         if not self.passive:
             value = self.escape_string(value)
-            print >> sys.stderr, value
+            print(value, file=sys.stderr)
 
     def subprocess(self, args, **subproc_kwargs):
         if self.manager:
@@ -624,7 +625,7 @@ class Python(ActionInterpreter):
 
         if hasattr(value, '__iter__'):
             it = iter(value)
-            cmd = EscapedString.disallow(it.next())
+            cmd = EscapedString.disallow(next(it))
             value = [cmd] + [self.escape_string(x) for x in it]
         else:
             value = EscapedString.disallow(value)
@@ -821,7 +822,7 @@ class EscapedString(object):
             return EscapedString('')
 
         it = iter(values)
-        result = EscapedString.promote(it.next())
+        result = EscapedString.promote(next(it))
 
         for value in it:
             result = result + sep
@@ -886,7 +887,7 @@ class NamespaceFormatter(Formatter):
 
     def format(self, format_string, *args, **kwargs):
         def escape_envvar(matchobj):
-            value = (x for x in matchobj.groups() if x is not None).next()
+            value = next((x for x in matchobj.groups() if x is not None))
             return "${{%s}}" % value
 
         format_string_ = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
@@ -1173,7 +1174,7 @@ class RexExecutor(object):
                 if isinstance(code, SourceCode):
                     code.exec_(globals_=exec_namespace)
                 else:
-                    exec pyc in exec_namespace
+                    exec(pyc, exec_namespace)
             except RexError:
                 raise
             except SourceCodeError as e:
@@ -1223,12 +1224,12 @@ class RexExecutor(object):
         """
         # makes a copy of the func
         import types
-        fn = types.FunctionType(func.func_code,
-                                func.func_globals.copy(),
-                                name=func.func_name,
-                                argdefs=func.func_defaults,
-                                closure=func.func_closure)
-        fn.func_globals.update(self.globals)
+        fn = types.FunctionType(func.__code__,
+                                func.__globals__.copy(),
+                                name=func.__name__,
+                                argdefs=func.__defaults__,
+                                closure=func.__closure__)
+        fn.__globals__.update(self.globals)
 
         error_class = Exception if config.catch_rex_errors else None
 
