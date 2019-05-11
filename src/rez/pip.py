@@ -15,7 +15,7 @@ from rez.package_maker__ import make_package
 from rez.config import config
 from rez.utils.platform_ import platform_
 from tempfile import mkdtemp
-from StringIO import StringIO
+from rez.vendor.six.six.moves import StringIO
 from pipes import quote
 import os.path
 import shutil

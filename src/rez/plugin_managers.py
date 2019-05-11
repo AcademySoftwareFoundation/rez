@@ -146,7 +146,7 @@ class RezPluginType(object):
                         self.failed_plugins[nameish] = str(e)
                         if config.debug("plugins"):
                             import traceback
-                            from StringIO import StringIO
+                            from rez.vendor.six.six.moves import StringIO
                             out = StringIO()
                             traceback.print_exc(file=out)
                             print_debug(out.getvalue())

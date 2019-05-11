@@ -215,7 +215,7 @@ def get_cli_output(args):
     """
 
     import sys
-    from StringIO import StringIO
+    from rez.vendor.six.six.moves import StringIO
 
     command = args[0]
     other_args = list(args[1:])

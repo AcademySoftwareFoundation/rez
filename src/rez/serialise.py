@@ -3,7 +3,7 @@ Read and write data from file. File caching via a memcached server is supported.
 """
 from contextlib import contextmanager
 from inspect import isfunction, ismodule, getargspec
-from StringIO import StringIO
+from rez.vendor.six.six.moves import StringIO
 import sys
 import stat
 import os
