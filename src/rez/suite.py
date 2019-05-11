@@ -54,7 +54,7 @@ class Suite(object):
         Reurns:
             List of strings.
         """
-        return self.contexts.keys()
+        return list(self.contexts.keys())
 
     @cached_property
     def tools_path(self):
@@ -360,7 +360,7 @@ class Suite(object):
             List of strings.
         """
         self._update_tools()
-        return self.tool_conflicts.keys()
+        return list(self.tool_conflicts.keys())
 
     def get_alias_conflicts(self, tool_alias):
         """Get a list of conflicts on the given tool alias.

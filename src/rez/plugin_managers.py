@@ -267,14 +267,14 @@ class RezPluginManager(object):
 
     def get_plugin_types(self):
         """Return a list of the registered plugin types."""
-        return self._plugin_types.keys()
+        return list(self._plugin_types.keys())
 
     # -- plugins
 
     def get_plugins(self, plugin_type):
         """Return a list of the registered names available for the given plugin
         type."""
-        return self._get_plugin_type(plugin_type).plugin_classes.keys()
+        return list(self._get_plugin_type(plugin_type).plugin_classes.keys())
 
     def get_plugin_class(self, plugin_type, plugin_name):
         """Return the class registered under the given plugin name."""
