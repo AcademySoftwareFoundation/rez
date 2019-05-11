@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import sys
 import signal
@@ -147,7 +148,7 @@ def sigint_handler(signum, frame):
     if not _handled_int:
         _handled_int = True
         if not _env_var_true("_REZ_QUIET_ON_SIG"):
-            print >> sys.stderr, "Interrupted by user"
+            print("Interrupted by user", file=sys.stderr)
         sigbase_handler(signum, frame)
 
 
@@ -157,7 +158,7 @@ def sigterm_handler(signum, frame):
     if not _handled_term:
         _handled_term = True
         if not _env_var_true("_REZ_QUIET_ON_SIG"):
-            print >> sys.stderr, "Terminated by user"
+            print("Terminated by user", file=sys.stderr)
         sigbase_handler(signum, frame)
 
 

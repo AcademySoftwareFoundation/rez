@@ -1,6 +1,7 @@
 '''
 Build a package from source and deploy it.
 '''
+from __future__ import print_function
 import os
 import sys
 from subprocess import call
@@ -104,7 +105,7 @@ def command(opts, parser, extra_arg_groups=None):
                 txt += changelog
 
             with open(filepath, 'w') as f:
-                print >> f, txt
+                print(txt, file=f)
 
         call([config.editor, filepath])
 
@@ -126,11 +127,11 @@ def command(opts, parser, extra_arg_groups=None):
         if not release_msg:
             ch = None
             while ch not in ('A', 'a', 'C', 'c'):
-                print "Empty release message. [A]bort or [C]ontinue release?"
+                print("Empty release message. [A]bort or [C]ontinue release?")
                 ch = raw_input()
 
             if ch in ('A', 'a'):
-                print "Release aborted."
+                print("Release aborted.")
                 sys.exit(1)
 
     # perform the release

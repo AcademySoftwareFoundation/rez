@@ -1,6 +1,7 @@
 '''
 Search for packages.
 '''
+from __future__ import print_function
 import os
 import sys
 
@@ -104,11 +105,11 @@ def command(opts, parser, extra_arg_groups=None):
         search_results = [x for x in search_results if x.validation_error]
 
         if not search_results:
-            print >> sys.stderr, "No matching erroneous %s found." % resource_type
+            print("No matching erroneous %s found." % resource_type, file=sys.stderr)
             sys.exit(1)
 
     elif not search_results:
-        print >> sys.stderr, "No matching %s found." % resource_type
+        print("No matching %s found." % resource_type, file=sys.stderr)
         sys.exit(1)
 
     formatter = ResourceSearchResultFormatter(

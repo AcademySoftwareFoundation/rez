@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import sys
 import os.path
@@ -20,7 +21,7 @@ def run():
     # check necessary files, load info about the build
     for file in ("build.rxt", ".bez.yaml"):
         if not os.path.isfile(file):
-            print >> sys.stderr, "no %s file found. Stop." % file
+            print("no %s file found. Stop." % file, file=sys.stderr)
             sys.exit(1)
 
     with open(".bez.yaml") as f:
@@ -29,7 +30,7 @@ def run():
     source_path = doc["source_path"]
     buildfile = os.path.join(source_path, "rezbuild.py")
     if not os.path.isfile(buildfile):
-        print >> sys.stderr, "no rezbuild.py at %s. Stop." % source_path
+        print("no rezbuild.py at %s. Stop." % source_path, file=sys.stderr)
         sys.exit(1)
 
     # run rezbuild.py:build() in python subprocess. Cannot import module here
@@ -72,7 +73,7 @@ def run():
     with open(bezfile, "w") as fd:
         fd.write(cli_code)
 
-    print "executing rezbuild.py..."
+    print("executing rezbuild.py...")
     cmd = ["python", bezfile]
     p = subprocess.Popen(cmd)
     p.wait()

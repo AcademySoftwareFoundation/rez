@@ -1,6 +1,7 @@
 '''
 Open a rez-configured shell, possibly interactive.
 '''
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -166,7 +167,7 @@ def command(opts, parser, extra_arg_groups=None):
             from rez.status import status
             context = status.context
             if context is None:
-                print >> sys.stderr, "cannot patch: not in a context"
+                print("cannot patch: not in a context", file=sys.stderr)
                 sys.exit(1)
 
         # modify the request in terms of the given patch request
@@ -214,8 +215,7 @@ def command(opts, parser, extra_arg_groups=None):
                 g = context.graph(as_dot=True)
                 view_graph(g)
             else:
-                print >> sys.stderr, \
-                    "the failed resolve context did not generate a graph."
+                print("the failed resolve context did not generate a graph.", file=sys.stderr)
 
     if opts.output:
         if opts.output == '-':  # print to stdout

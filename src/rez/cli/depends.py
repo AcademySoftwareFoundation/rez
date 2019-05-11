@@ -1,6 +1,7 @@
 """
 Perform a reverse package dependency lookup.
 """
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -64,7 +65,7 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.graph or opts.print_graph or opts.write_graph:
         gstr = write_dot(g)
         if opts.print_graph:
-            print gstr
+            print(gstr)
         elif opts.write_graph:
             save_graph(gstr, dest_file=opts.write_graph)
         else:
@@ -76,7 +77,7 @@ def command(opts, parser, extra_arg_groups=None):
             toks = pkgs
         else:
             toks = ["#%d:" % i] + pkgs
-        print ' '.join(toks)
+        print(' '.join(toks))
 
 
 # Copyright 2013-2016 Allan Johns.

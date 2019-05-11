@@ -1,6 +1,7 @@
 '''
 Print current rez settings.
 '''
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -25,12 +26,12 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.search_list:
         for filepath in config.filepaths:
-            print filepath
+            print(filepath)
         return
 
     if opts.source_list:
         for filepath in config.sourced_filepaths:
-            print filepath
+            print(filepath)
         return
 
     data = config.data
@@ -46,9 +47,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     if isinstance(data, (dict, list)):
         txt = dump_yaml(data).strip()
-        print txt
+        print(txt)
     else:
-        print data
+        print(data)
 
 
 # Copyright 2013-2016 Allan Johns.

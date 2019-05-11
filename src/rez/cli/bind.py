@@ -1,6 +1,7 @@
 '''
 Create a Rez package for existing software.
 '''
+from __future__ import print_function
 from rez.vendor import argparse
 
 
@@ -51,7 +52,7 @@ def command(opts, parser, extra_arg_groups=None):
         rows = [["PACKAGE", "BIND MODULE"],
                 ["-------", "-----------"]]
         rows += sorted(d.items())
-        print '\n'.join(columnise(rows))
+        print('\n'.join(columnise(rows)))
         return
 
     if opts.quickstart:
@@ -68,7 +69,7 @@ def command(opts, parser, extra_arg_groups=None):
         variants = []
 
         for name in names:
-            print "Binding %s into %s..." % (name, install_path)
+            print("Binding %s into %s..." % (name, install_path))
             variants_ = bind_package(name,
                                      path=install_path,
                                      no_deps=True,
@@ -78,7 +79,7 @@ def command(opts, parser, extra_arg_groups=None):
         if variants:
             print ("\nSuccessfully converted the following software found on "
                    "the current system into Rez packages:")
-            print
+            print()
             _print_package_list(variants)
 
         print ("\nTo bind other software, see what's available using the "

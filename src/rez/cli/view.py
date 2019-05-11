@@ -1,6 +1,7 @@
 """
 View the contents of a package.
 """
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -38,12 +39,12 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.current:
         context = status.context
         if context is None:
-            print >> sys.stderr, "not in a resolved environment context."
+            print("not in a resolved environment context.", file=sys.stderr)
             sys.exit(1)
 
         variant = context.get_resolved_package(req.name)
         if variant is None:
-            print >> sys.stderr, "Package %r is not in the current context" % req.name
+            print("Package %r is not in the current context" % req.name, file=sys.stderr)
             sys.exit(1)
 
         package = variant.parent
@@ -52,17 +53,17 @@ def command(opts, parser, extra_arg_groups=None):
         packages = sorted(it, key=lambda x: x.version)
 
         if not packages:
-            print "no matches found"
+            print("no matches found")
             sys.exit(1)
 
         package = packages[-1]
 
     if not opts.brief:
-        print "URI:"
-        print package.uri
+        print("URI:")
+        print(package.uri)
 
-        print
-        print "CONTENTS:"
+        print()
+        print("CONTENTS:")
 
     if opts.format == "py":
         format_ = FileFormat.py
