@@ -1,3 +1,4 @@
+from __future__ import print_function
 from rez.packages_ import iter_packages
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
@@ -328,7 +329,7 @@ class BuildProcessHelper(BuildProcess):
             debug_print("Running %s hook '%s'...",
                         hook_event.label, hook.name())
             try:
-                func = getattr(hook, hook_event.func_name)
+                func = getattr(hook, hook_event.__name__)
                 func(user=getpass.getuser(), **kwargs)
             except ReleaseHookCancellingError as e:
                 raise ReleaseError(
@@ -405,7 +406,7 @@ class BuildProcessHelper(BuildProcess):
         if self.verbose:
             if nargs:
                 txt = txt % nargs
-            print txt
+            print(txt)
 
     def _print_header(self, txt, n=1):
         if self.quiet:
