@@ -127,7 +127,7 @@ def get_dict_diff(d1, d2):
                     else:
                         changed.append(namespace + [k1])
 
-        for k2 in d2_.iterkeys():
+        for k2 in d2_.keys():
             if k2 not in d1_:
                 added.append(namespace + [k2])
 

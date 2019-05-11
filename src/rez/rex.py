@@ -948,7 +948,7 @@ class EnvironmentDict(dict):
         """
         self.manager = manager
         self._var_cache = dict((k, EnvironmentVariable(k, self))
-                               for k in manager.parent_environ.iterkeys())
+                               for k in manager.parent_environ.keys())
 
     def keys(self):
         return self._var_cache.keys()

@@ -36,7 +36,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         super(ContextSettingsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
-        self.schema_keys = set(self.schema_dict.iterkeys())
+        self.schema_keys = set(self.schema_dict.keys())
         if attributes:
             self.schema_keys &= set(attributes)
             assert self.schema_keys

@@ -30,7 +30,7 @@ def schema_keys(schema):
     dict_ = schema._schema
     assert isinstance(dict_, dict)
 
-    for key in dict_.iterkeys():
+    for key in dict_.keys():
         key_ = _get_leaf(key)
         if isinstance(key_, six.string_types):
             keys.add(key_)

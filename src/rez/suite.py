@@ -532,7 +532,7 @@ class Suite(object):
             _pr("Suite is empty.")
             return
 
-        context_names = sorted(self.contexts.iterkeys())
+        context_names = sorted(self.contexts.keys())
         _pr("Suite contains %d contexts:" % len(context_names))
 
         if not verbose:
@@ -605,7 +605,7 @@ class Suite(object):
             self._context(context_name)  # check context exists
             context_names = [context_name]
         else:
-            context_names = sorted(self.contexts.iterkeys())
+            context_names = sorted(self.contexts.keys())
 
         rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
                 ["----", "--------", "-------", "-------", ""]]

@@ -1621,7 +1621,7 @@ class _ResolvePhase(_Common):
                 _add_edge(id1, id2)
 
         # add extraction intersections
-        extracted_fams = set(x[1] for x in self.extractions.iterkeys())
+        extracted_fams = set(x[1] for x in self.extractions.keys())
         for fam in extracted_fams:
             requests = [v for k, v in self.extractions.items() if k[1] == fam]
             if len(requests) > 1:
