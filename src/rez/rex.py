@@ -1,11 +1,7 @@
 from __future__ import print_function
 import os
-import subprocess
 import sys
-import pipes
 import re
-import UserDict
-import inspect
 import traceback
 from string import Formatter
 from rez.system import system
@@ -931,7 +927,7 @@ class NamespaceFormatter(Formatter):
 # Environment Classes
 #===============================================================================
 
-class EnvironmentDict(UserDict.DictMixin):
+class EnvironmentDict(dict):
     """
     Provides a mapping interface to `EnvironmentVariable` instances,
     which provide an object-oriented interface for recording environment
