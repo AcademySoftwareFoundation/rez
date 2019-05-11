@@ -65,7 +65,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
     lookup = defaultdict(set)
 
     for i, package_name_ in enumerate(package_names):
-        bar.next()
+        next(bar)
         packages = list(iter_packages(name=package_name_, paths=paths))
         if not packages:
             continue
@@ -133,7 +133,7 @@ def get_plugins(package_name, paths=None):
 
     plugin_pkgs = []
     for package_name_ in package_names:
-        bar.next()
+        next(bar)
         if package_name_ == package_name:
             continue  # not a plugin of itself
 
