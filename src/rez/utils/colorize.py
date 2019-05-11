@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import logging
 from rez.vendor import colorama
@@ -297,7 +298,7 @@ class Printer(object):
                         or stream_is_tty(buf)
 
     def __call__(self, msg='', style=None):
-        print >> self.buf, self.get(msg, style)
+        print(self.get(msg, style), file=self.buf)
         self.buf.flush()
 
     def get(self, msg, style=None):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 from rez.packages_ import iter_packages
 from rez.config import config
 from rez.plugin_managers import plugin_manager
@@ -37,14 +38,14 @@ def diff_packages(pkg1, pkg2=None):
     paths = []
 
     for pkg in (pkg1, pkg2):
-        print "Exporting %s..." % pkg.qualified_name
+        print("Exporting %s..." % pkg.qualified_name)
         path_ = os.path.join(path, pkg.qualified_name)
         vcs_cls_1 = plugin_manager.get_plugin_class("release_vcs", pkg1.vcs)
         vcs_cls_1.export(revision=pkg.revision, path=path_)
         paths.append(path_)
 
     difftool = config.difftool
-    print "Opening diff viewer %s..." % difftool
+    print("Opening diff viewer %s..." % difftool)
     proc = Popen([difftool] + paths)
     proc.wait()
 

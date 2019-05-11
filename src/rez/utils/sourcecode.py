@@ -212,7 +212,7 @@ class SourceCode(object):
         pyc = self.compiled
 
         try:
-            exec pyc in globals_
+            exec(pyc, globals_)
         except Exception as e:
             stack = traceback.format_exc()
             raise SourceCodeExecError(

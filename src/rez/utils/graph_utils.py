@@ -1,6 +1,7 @@
 """
 Functions for manipulating dot-based resolve graphs.
 """
+from __future__ import print_function
 import re
 import os.path
 import subprocess
@@ -232,7 +233,7 @@ def view_graph(graph_str, dest_file=None):
     from rez.config import config
 
     if (system.platform == "linux") and (not os.getenv("DISPLAY")):
-        print >> sys.stderr, "Unable to open display."
+        print("Unable to open display.", file=sys.stderr)
         sys.exit(1)
 
     dest_file = _write_graph(graph_str, dest_file=dest_file)
@@ -240,7 +241,7 @@ def view_graph(graph_str, dest_file=None):
     # view graph
     viewed = False
     prog = config.image_viewer or 'browser'
-    print "loading image viewer (%s)..." % prog
+    print("loading image viewer (%s)..." % prog)
 
     if config.image_viewer:
         proc = popen([config.image_viewer, dest_file])
@@ -259,7 +260,7 @@ def _write_graph(graph_str, dest_file=None):
         os.close(tmpf[0])
         dest_file = tmpf[1]
 
-    print "rendering image to " + dest_file + "..."
+    print("rendering image to " + dest_file + "...")
     save_graph(graph_str, dest_file)
     return dest_file
 
