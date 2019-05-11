@@ -1,10 +1,11 @@
 from __future__ import with_statement
-import rez.vendor.unittest2 as unittest
+from __future__ import absolute_import
+import unittest as unittest
 import os
 import tempfile
 
 
-from schema import Schema, Use, And, Or, Optional, SchemaError
+from .schema import Schema, Use, And, Or, Optional, SchemaError
 
 # REZ: These are some regular expressions used in converting from original
 #      pytest format to standard unittest format

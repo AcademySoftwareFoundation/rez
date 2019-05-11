@@ -1,4 +1,5 @@
-import rez.vendor.unittest2 as unittest
+from __future__ import print_function
+import unittest
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types
 from rez.system import system
@@ -177,7 +178,7 @@ def shell_dependent(exclude=None):
             for shell in shells:
                 if exclude and shell in exclude:
                     self.skipTest("This test does not run on %s shell." % shell)
-                print "\ntesting in shell: %s..." % shell
+                print("\ntesting in shell: %s..." % shell)
                 config.override("default_shell", shell)
                 func(self, *args, **kwargs)
         return wrapper

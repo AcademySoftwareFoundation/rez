@@ -1,3 +1,4 @@
+from __future__ import print_function
 from build_util import build_directory_recurse, check_visible
 
 def build(source_path, build_path, install_path, targets):
@@ -13,7 +14,7 @@ def build(source_path, build_path, install_path, targets):
         import loco
         raise Exception('loco should not be here')
     except ImportError:
-        print 'Intentionally raising an ImportError since loco should not be available'
+        print('Intentionally raising an ImportError since loco should not be available')
         pass
 
 

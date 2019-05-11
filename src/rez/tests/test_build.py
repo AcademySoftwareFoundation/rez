@@ -6,7 +6,7 @@ from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildError, BuildContextResolveError,\
     PackageFamilyNotFoundError
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
     shell_dependent, install_dependent, program_dependent
 import shutil

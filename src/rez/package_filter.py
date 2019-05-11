@@ -66,7 +66,7 @@ class PackageFilterBase(object):
 
     @property
     def sha1(self):
-        return sha1(str(self)).hexdigest()
+        return sha1(str(self).encode("ascii")).hexdigest()
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))

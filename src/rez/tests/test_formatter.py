@@ -1,7 +1,7 @@
 """
 test rex string formatting
 """
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
 import sys
@@ -49,34 +49,34 @@ class TestFormatter(TestBase):
         self.assert_formatter_equal("The year is {0.year}", "The year is 2007", d)
 
         # classes we'll use for testing
-        class C:
+        class C(object):
             def __init__(self, x=100):
                 self._x = x
             def __format__(self, spec):
                 return spec
 
-        class D:
+        class D(object):
             def __init__(self, x):
                 self.x = x
             def __format__(self, spec):
                 return str(self.x)
 
         # class with __str__, but no __format__
-        class E:
+        class E(object):
             def __init__(self, x):
                 self.x = x
             def __str__(self):
                 return 'E(' + self.x + ')'
 
         # class with __repr__, but no __format__ or __str__
-        class F:
+        class F(object):
             def __init__(self, x):
                 self.x = x
             def __repr__(self):
                 return 'F(' + self.x + ')'
 
         # class with __format__ that forwards to string, for some format_spec's
-        class G:
+        class G(object):
             def __init__(self, x):
                 self.x = x
             def __str__(self):
@@ -87,7 +87,7 @@ class TestFormatter(TestBase):
                 return object.__format__(self, format_spec)
 
         # class that returns a bad type from __format__
-        class H:
+        class H(object):
             def __format__(self, format_spec):
                 return 1.0
 

@@ -1,10 +1,11 @@
 """
 test dependency resolving algorithm
 """
+from __future__ import print_function
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 from rez.config import config
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase
 import itertools
 import os.path
@@ -42,7 +43,7 @@ class TestSolver(TestBase):
         return (s1, s2, s_perms)
 
     def _solve(self, packages, expected_resolve):
-        print
+        print()
         reqs = [Requirement(x) for x in packages]
         s1, s2, s_perms = self._create_solvers(reqs)
 
@@ -50,19 +51,19 @@ class TestSolver(TestBase):
         self.assertEqual(s1.status, SolverStatus.solved)
         resolve = [str(x) for x in s1.resolved_packages]
 
-        print
-        print "request: %s" % ' '.join(packages)
-        print "expecting: %s" % ' '.join(expected_resolve)
-        print "result: %s" % ' '.join(str(x) for x in resolve)
+        print()
+        print("request: %s" % ' '.join(packages))
+        print("expecting: %s" % ' '.join(expected_resolve))
+        print("result: %s" % ' '.join(str(x) for x in resolve))
         self.assertEqual(resolve, expected_resolve)
 
-        print "checking that unoptimised solve matches optimised..."
+        print("checking that unoptimised solve matches optimised...")
         s2.solve()
         self.assertEqual(s2.status, SolverStatus.solved)
         resolve2 = [str(x) for x in s2.resolved_packages]
         self.assertEqual(resolve2, resolve)
 
-        print "checking that permutations also succeed..."
+        print("checking that permutations also succeed...")
         for s in s_perms:
             s.solve()
             self.assertEqual(s.status, SolverStatus.solved)
@@ -70,23 +71,23 @@ class TestSolver(TestBase):
         return s1
 
     def _fail(self, *packages):
-        print
+        print()
         reqs = [Requirement(x) for x in packages]
         s1, s2, s_perms = self._create_solvers(reqs)
 
         s1.solve()
-        print
-        print "request: %s" % ' '.join(packages)
-        print "expecting failure"
+        print()
+        print("request: %s" % ' '.join(packages))
+        print("expecting failure")
         self.assertEqual(s1.status, SolverStatus.failed)
-        print "result: %s" % str(s1.failure_reason())
+        print("result: %s" % str(s1.failure_reason()))
 
-        print "checking that unoptimised solve fail matches optimised..."
+        print("checking that unoptimised solve fail matches optimised...")
         s2.solve()
         self.assertEqual(s2.status, SolverStatus.failed)
         self.assertEqual(s1.failure_reason(), s2.failure_reason())
 
-        print "checking that permutations also fail..."
+        print("checking that permutations also fail...")
         for s in s_perms:
             s.solve()
             self.assertEqual(s.status, SolverStatus.failed)

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import shutil
 import os.path
 
@@ -7,7 +8,7 @@ def build_directory_recurse(src_dir, dest_dir, source_path, build_path,
                             install_path=None):
 
     def _copy(src, dest):
-        print "copying %s to %s..." % (src, dest)
+        print("copying %s to %s..." % (src, dest))
         if os.path.exists(dest):
             shutil.rmtree(dest)
         shutil.copytree(src, dest)
