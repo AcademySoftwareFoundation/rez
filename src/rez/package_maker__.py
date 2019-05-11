@@ -117,7 +117,7 @@ class PackageMaker(AttrDictWrapper):
         # retrieve the package from the new repository
         family_resource = repo.get_package_family(self.name)
         it = repo.iter_packages(family_resource)
-        package_resource = it.next()
+        package_resource = next(it)
 
         package = self.package_cls(package_resource)
 
