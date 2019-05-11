@@ -1,3 +1,4 @@
+from __future__ import print_function
 from rez import __version__, module_root_path
 from rez.package_repository import package_repository_manager
 from rez.solver import SolverCallbackReturn
@@ -862,7 +863,7 @@ class ResolvedContext(object):
             for pkg in sorted(removed_packages, key=lambda x: x.name):
                 rows.append((pkg.qualified_name, "-", ""))
 
-        print '\n'.join(columnise(rows))
+        print('\n'.join(columnise(rows)))
 
     def _on_success(fn):
         @wraps(fn)
@@ -1382,7 +1383,7 @@ class ResolvedContext(object):
             msg.append("was written by a newer version of Rez. The load may "
                        "fail (serialize version %d > %d)"
                        % (_print_version(load_ver), _print_version(curr_ver)))
-            print >> sys.stderr, ' '.join(msg)
+            print(' '.join(msg), file=sys.stderr)
 
         # create and init the context
         r = ResolvedContext.__new__(ResolvedContext)
