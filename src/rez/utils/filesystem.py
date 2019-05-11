@@ -484,7 +484,7 @@ def encode_filesystem_name(input_str):
     if isinstance(input_str, str):
         input_str = unicode(input_str)
     elif not isinstance(input_str, unicode):
-        raise TypeError("input_str must be a basestring")
+        raise TypeError("input_str must be a str")
 
     as_is = u'abcdefghijklmnopqrstuvwxyz0123456789.-'
     uppercase = u'ABCDEFGHIJKLMNOPQRSTUVWXYZ'

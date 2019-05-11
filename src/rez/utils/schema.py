@@ -19,7 +19,7 @@ def schema_keys(schema):
         Set of string keys of a schema which is in the form (eg):
 
             schema = Schema({Required("foo"): int,
-                             Optional("bah"): basestring})
+                             Optional("bah"): str})
     """
     def _get_leaf(value):
         if isinstance(value, Schema):
@@ -62,7 +62,7 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
                     k = Required(k) if required else Optional(k)
                 d[k] = _to(v)
             if allow_custom_keys:
-                d[Optional(basestring)] = modifier or object
+                d[Optional(str)] = modifier or object
             schema = Schema(d)
         elif modifier:
             schema = And(value, modifier)

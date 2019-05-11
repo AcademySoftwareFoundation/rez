@@ -208,7 +208,7 @@ def get_cli_output(args):
 
     Returns
     -------
-    stdout : basestring
+    stdout : str
         the captured output to sys.stdout
     exitcode : int
         the returncode from the command

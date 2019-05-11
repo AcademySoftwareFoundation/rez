@@ -41,7 +41,7 @@ class Shell(ActionInterpreter):
     """
 
     schema_dict = {
-        "prompt": basestring}
+        "prompt": str}
 
     @classmethod
     def name(cls):

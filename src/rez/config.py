@@ -24,7 +24,7 @@ PY3 = sys.version_info >= (3, 0, 0)
 if PY3:
     str_type = str
 else:
-    str_type = basestring
+    str_type = str
 
 
 # -----------------------------------------------------------------------------
