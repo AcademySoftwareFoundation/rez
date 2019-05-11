@@ -306,7 +306,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         # check copied variant contains expected timestamp
         dest_pkg = self._get_dest_pkg("floob", "1.2.0")
 
-        for k, v in overrides.iteritems():
+        for k, v in overrides.items():
             self.assertEqual(getattr(dest_pkg, k), v)
 
     def test_8(self):

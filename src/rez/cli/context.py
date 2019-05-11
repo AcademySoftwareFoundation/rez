@@ -163,7 +163,7 @@ def command(opts, parser, extra_arg_groups=None):
         env = rc.get_environ(parent_environ=parent_env)
 
         if opts.format == 'table':
-            rows = [x for x in sorted(env.iteritems())]
+            rows = [x for x in sorted(env.items())]
             print('\n'.join(columnise(rows)))
         elif opts.format == 'dict':
             print(pformat(env))

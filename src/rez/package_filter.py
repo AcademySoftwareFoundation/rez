@@ -156,7 +156,7 @@ class PackageFilter(PackageFilterBase):
             float: The approximate cost of the filter.
         """
         total = 0.0
-        for family, rules in self._excludes.iteritems():
+        for family, rules in self._excludes.items():
             cost = sum(x.cost() for x in rules)
             if family:
                 cost = cost / float(10)

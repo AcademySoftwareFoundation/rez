@@ -1112,7 +1112,7 @@ def _get_dependency_order(g, node_list):
     """Return list of nodes as close as possible to the ordering in node_list,
     but with child nodes earlier in the list than parents."""
     access_ = accessibility(g)
-    deps = dict((k, set(v) - set([k])) for k, v in access_.iteritems())
+    deps = dict((k, set(v) - set([k])) for k, v in access_.items())
     nodes = node_list + list(set(g.nodes()) - set(node_list))
     ordered_nodes = []
 
@@ -1614,7 +1614,7 @@ class _ResolvePhase(_Common):
                     _add_edge(id1, id2)
 
         # add extractions
-        for (src_fam, _), dest_req in self.extractions.iteritems():
+        for (src_fam, _), dest_req in self.extractions.items():
             id1 = scope_nodes.get(src_fam)
             if id1 is not None:
                 id2 = _add_request_node(dest_req)
@@ -1623,7 +1623,7 @@ class _ResolvePhase(_Common):
         # add extraction intersections
         extracted_fams = set(x[1] for x in self.extractions.iterkeys())
         for fam in extracted_fams:
-            requests = [v for k, v in self.extractions.iteritems() if k[1] == fam]
+            requests = [v for k, v in self.extractions.items() if k[1] == fam]
             if len(requests) > 1:
                 reqlist = RequirementList(requests)
                 if not reqlist.conflict:
@@ -1680,7 +1680,7 @@ class _ResolvePhase(_Common):
                     _add_cycle_edge(id1, id2)
 
         # connect leaf-node requests to a matching scope, if any
-        for request, id1 in request_nodes.iteritems():
+        for request, id1 in request_nodes.items():
             if not g.neighbors(id1):  # leaf node
                 id2 = scope_nodes.get(request.name)
                 if id2 is not None:
@@ -1693,7 +1693,7 @@ class _ResolvePhase(_Common):
             access_dict = accessibility(g)
             del_nodes = set()
 
-            for n, access_nodes in access_dict.iteritems():
+            for n, access_nodes in access_dict.items():
                 if not (set(access_nodes) & failure_nodes):
                     del_nodes.add(n)
 

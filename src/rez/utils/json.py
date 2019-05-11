@@ -28,7 +28,7 @@ else:
             elif isinstance(input, dict) and not ignore_dicts:
                 return {
                     _byteify(k, ignore_dicts=True): _byteify(v, True)
-                    for k, v in input.iteritems()
+                    for k, v in input.items()
                 }
             else:
                 return input

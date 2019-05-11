@@ -26,7 +26,7 @@ class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
 
     def validated_data(self):
         data = ResourceWrapper.validated_data(self)
-        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        data = dict((k, v) for k, v in data.items() if v is not None)
         return data
 
     @property

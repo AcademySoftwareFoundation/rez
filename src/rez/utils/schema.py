@@ -56,7 +56,7 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
     def _to(value):
         if isinstance(value, dict):
             d = {}
-            for k, v in value.iteritems():
+            for k, v in value.items():
                 if isinstance(k, basestring):
                     k = Required(k) if required else Optional(k)
                 d[k] = _to(v)

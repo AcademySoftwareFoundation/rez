@@ -148,7 +148,7 @@ class Status(object):
                     seen.add(tool)
 
         for suite in self.suites:
-            for tool, d in suite.get_tools().iteritems():
+            for tool, d in suite.get_tools().items():
                 if tool in seen:
                     continue
                 if pattern and not fnmatch(tool, pattern):

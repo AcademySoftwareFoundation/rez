@@ -260,7 +260,7 @@ class BuildSystem(object):
                                      build_path=build_path,
                                      install_path=install_path)
 
-        for var, value in vars.iteritems():
+        for var, value in vars.items():
             executor.env[var] = value
 
 

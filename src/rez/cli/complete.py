@@ -54,7 +54,7 @@ def command(opts, parser, extra_arg_groups=None):
         subcommand = cmd.split("-", 1)[-1]
 
     if subcommand is None:
-        cmds = [k for k, v in subcommands.iteritems() if not v.get("hidden")]
+        cmds = [k for k, v in subcommands.items() if not v.get("hidden")]
 
         if prefix:
             cmds = (x for x in cmds if x.startswith(prefix))

@@ -389,7 +389,7 @@ class Suite(object):
 
     def to_dict(self):
         contexts_ = {}
-        for k, data in self.contexts.iteritems():
+        for k, data in self.contexts.items():
             data_ = data.copy()
             if "context" in data_:
                 del data_["context"]
@@ -457,7 +457,7 @@ class Suite(object):
             print("creating alias wrappers in %r..." % tools_path)
 
         tools = self.get_tools()
-        for tool_alias, d in tools.iteritems():
+        for tool_alias, d in tools.items():
             tool_name = d["tool_name"]
             context_name = d["context_name"]
 

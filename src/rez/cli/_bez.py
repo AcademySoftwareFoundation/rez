@@ -55,7 +55,7 @@ def run():
 
     import inspect
     args = inspect.getargspec(buildfunc).args
-    kwargs = dict((k, v) for k, v in kwargs.iteritems() if k in args)
+    kwargs = dict((k, v) for k, v in kwargs.items() if k in args)
 
     buildfunc(**kwargs)
 

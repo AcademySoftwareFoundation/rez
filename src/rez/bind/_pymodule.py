@@ -112,7 +112,7 @@ def bind(name, path, import_name=None, version_range=None, version=None,
         else:
             pkg.commands = commands
 
-        for key, value in extra_attrs.iteritems():
+        for key, value in extra_attrs.items():
             pkg[key] = value
 
     return pkg.installed_variants
