@@ -1,6 +1,7 @@
 """The main command-line entry point."""
 from __future__ import print_function
 import sys
+import importlib
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.utils.logging_ import print_error
@@ -44,7 +45,7 @@ class SetupRezSubParser(object):
 
     def get_module(self):
         if self.module_name not in sys.modules:
-            __import__(self.module_name, globals(), locals(), [], -1)
+            importlib.import_module(self.module_name)
         return sys.modules[self.module_name]
 
 
