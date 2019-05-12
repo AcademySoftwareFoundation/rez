@@ -158,9 +158,14 @@ class BuildSystem(object):
         return None
 
     @classmethod
-    def bind_cli(cls, parser):
+    def bind_cli(cls, parser, group):
         """Expose parameters to an argparse.ArgumentParser that are specific
         to this build system.
+
+        Args:
+            parser (`ArgumentParser`): Arg parser.
+            group (`ArgumentGroup`): Arg parser group - you should add args to
+                this, NOT to `parser`.
         """
         pass
 
