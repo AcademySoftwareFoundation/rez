@@ -27,8 +27,8 @@ test_script:
 
   # Run selftest
   - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
-  - cmd: rez selftest -s cmd
-  - sh: rez selftest -s bash
+  - cmd: rez selftest -s cmd -vvv
+  - sh: rez selftest -s bash -vvv
   
   # Coverage
   - sh: sudo pip install coverage codecov

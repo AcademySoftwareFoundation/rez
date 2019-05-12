@@ -18,4 +18,4 @@ install:
   - sudo pip install .
 
 script:
-  - rez selftest -s bash
+  - rez selftest -s bash -vvv
