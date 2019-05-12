@@ -17,7 +17,7 @@ version is used to denote unversioned objects. The empty version range, also
 known as the 'any' range, is used to refer to any version of an object.
 """
 from __future__ import print_function
-from rez.vendor.version.util import VersionError, ParseException, _Common, \
+from .util import VersionError, ParseException, _Common, \
     total_ordering, dedup
 import rez.vendor.pyparsing.pyparsing as pp
 from bisect import bisect_left
@@ -29,19 +29,32 @@ import re
 re_token = re.compile(r"[a-zA-Z0-9_]+")
 
 
-@total_ordering
 class _Comparable(_Common):
-    def __lt__(self, other):
-        raise NotImplementedError
+    def __gt__(self, other):
+        return not (self < other or self == other)
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return not self < other
 
 
-@total_ordering
 class _ReversedComparable(_Common):
     def __init__(self, value):
         self.value = value
 
     def __lt__(self, other):
         return not (self.value < other.value)
+
+    def __gt__(self, other):
+        return not (self < other or self == other)
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return not self < other
 
     def __str__(self):
         return "reverse(%s)" % str(self.value)
@@ -661,7 +674,7 @@ class _VersionRangeParser(object):
     def _act_version(self):
         version = self._create_version_from_token(self._groups['version'])
         lower_bound = _LowerBound(version, True)
-        upper_bound = _UpperBound(next(version), False) if version else None
+        upper_bound = _UpperBound(version.next(), False) if version else None
 
         self.bounds.append(_Bound(lower_bound, upper_bound))
 
@@ -1302,6 +1315,9 @@ class _ContainsVersionIterator(object):
 
     def __iter__(self):
         return self
+
+    def __next__(self):
+        return self.next_fn()
 
     def next(self):
         return self.next_fn()
