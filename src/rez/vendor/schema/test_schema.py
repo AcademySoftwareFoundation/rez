@@ -60,8 +60,10 @@ class TestSchema(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if os.path.exists(cls.test_file_name):
+        try:
             os.remove(cls.test_file_name)
+        except OSError:
+            pass
 
     def test_schema(self):
 
