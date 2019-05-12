@@ -408,8 +408,7 @@ _plugin_config_dict = {
 # Config
 # -----------------------------------------------------------------------------
 
-@six.add_metaclass(LazyAttributeMeta)
-class Config(object):
+class Config(six.with_metaclass(LazyAttributeMeta, object)):
     """Rez configuration settings.
 
     You should call the `create_config` function, rather than constructing a

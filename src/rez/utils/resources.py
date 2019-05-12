@@ -35,9 +35,10 @@ from rez.config import config
 from rez.exceptions import ResourceError
 from rez.backport.lru_cache import lru_cache
 from rez.utils.logging_ import print_debug
+from rez.vendor.six import six
 
 
-class Resource(object):
+class Resource(six.with_metaclass(LazyAttributeMeta, object)):
     """Abstract base class for a data resource.
 
     A resource is an object uniquely identified by a 'key' (the resource type),
@@ -70,7 +71,6 @@ class Resource(object):
         schema_error (Exception): The exception type to raise on key
             validation failure.
     """
-    __metaclass__ = LazyAttributeMeta
     key = None
     schema = None
     schema_error = Exception
@@ -223,7 +223,7 @@ class ResourcePool(object):
         return resource_class(resource_handle.variables)
 
 
-class ResourceWrapper(object):
+class ResourceWrapper(six.with_metaclass(AttributeForwardMeta, object)):
     """An object that wraps a resource instance.
 
     A resource wrapper is useful for two main reasons. First, we can wrap
@@ -241,7 +241,6 @@ class ResourceWrapper(object):
     the resource that you want to expose in the wrapper. The `schema_keys`
     function is provided to help get a list of keys from a resource schema.
     """
-    __metaclass__ = AttributeForwardMeta
     keys = None
 
     def __init__(self, resource):

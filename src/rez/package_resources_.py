@@ -408,7 +408,11 @@ class PackageResourceHelper(PackageResource):
             return commands
 
 
-class VariantResourceHelper(VariantResource):
+class _Metas(AttributeForwardMeta, LazyAttributeMeta):
+    pass
+
+
+class VariantResourceHelper(six.with_metaclass(_Metas, VariantResource)):
     """Helper class for implementing variants that inherit properties from their
     parent package.
 
@@ -417,10 +421,8 @@ class VariantResourceHelper(VariantResource):
     exceptions - eg 'variants', 'requires'). This is a common enough pattern
     that it's supplied here for other repository plugins to use.
     """
-    class _Metas(AttributeForwardMeta, LazyAttributeMeta):
-        pass
 
-    __metaclass__ = _Metas
+    # __metaclass__ = _Metas
 
     # Note: lazy key validation doesn't happen in this class, it just fowards on
     # attributes from the package. But LazyAttributeMeta does still use this
