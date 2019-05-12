@@ -188,7 +188,7 @@ class TestShells(TestBase, TempdirMixin):
 
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
-            token = '\r\n' if platform_.name == 'windows' else '\n'
+            token = "\n"  # universal newline
             output = out.strip().split(token)
             self.assertEqual(output, expected_output)
 

@@ -44,8 +44,11 @@ class CSH(UnixShell):
         # detect system paths using registry
         cmd = "cmd=`which %s`; unset PATH; $cmd %s 'echo __PATHS_ $PATH'" \
               % (cls.name(), cls.command_arg)
-        p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
+        p = popen(cmd,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+                  universal_newlines=True,
+                  shell=True)
         out_, err_ = p.communicate()
         if p.returncode:
             paths = []
