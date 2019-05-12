@@ -193,7 +193,7 @@ class CMD(Shell):
                                    % self.file_extension())
 
         with open(target_file, 'w') as f:
-            f.write(code)
+                f.write(code)
 
         if startup_sequence["stdin"] and stdin and (stdin is not True):
             Popen_args["stdin"] = stdin
@@ -296,7 +296,7 @@ class CMD(Shell):
         return "%%%s%%" % key
 
     def join(self, command):
-        return shlex_join(command).replace("'", '"')
+        return " ".join(command)
 
 
 def register_plugin():
