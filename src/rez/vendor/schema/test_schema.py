@@ -54,8 +54,9 @@ class TestSchema(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.test_file_fd, cls.test_file_name = tempfile.mkstemp(suffix='LICENSE-MIT')
-        os.write(cls.test_file_fd, "Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>")
-        os.close(cls.test_file_fd)
+
+        with open(cls.test_file_fd, "w") as f:
+            f.write("Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>")
 
     @classmethod
     def tearDownClass(cls):
@@ -84,8 +85,9 @@ class TestSchema(unittest.TestCase):
         self.assertRaises(SchemaError, Schema(lambda n: 0 < n < 5).validate, -1)
 
     def test_validate_file(self):
-        assert Schema(
-                Use(open)).validate(self.test_file_name).read().startswith('Copyright')
+        with open(self.test_file_name) as f:
+            assert Schema(Use(lambda _: f)).validate(
+                self.test_file_name).read().startswith('Copyright')
         self.assertRaises(SchemaError, Schema(Use(open)).validate, 'NON-EXISTENT')
         assert Schema(os.path.exists).validate('.') == '.'
         self.assertRaises(SchemaError, Schema(os.path.exists).validate, './non-existent/')
@@ -194,14 +196,15 @@ class TestSchema(unittest.TestCase):
         self.assertRaises(TypeError, Optional, And(str, Use(int)), default=7)
 
     def test_complex(self):
-        s = Schema({'<file>': And([Use(open)], lambda l: len(l)),
-                    '<path>': os.path.exists,
-                    Optional('--count'): And(int, lambda n: 0 <= n <= 5)})
-        data = s.validate({'<file>': [self.test_file_name], '<path>': './'})
-        assert len(data) == 2
-        assert len(data['<file>']) == 1
-        assert data['<file>'][0].read().startswith('Copyright')
-        assert data['<path>'] == './'
+        with open(self.test_file_name) as f:
+            s = Schema({'<file>': And([Use(lambda _: f)], lambda l: len(l)),
+                        '<path>': os.path.exists,
+                        Optional('--count'): And(int, lambda n: 0 <= n <= 5)})
+            data = s.validate({'<file>': [self.test_file_name], '<path>': './'})
+            assert len(data) == 2
+            assert len(data['<file>']) == 1
+            assert data['<file>'][0].read().startswith('Copyright')
+            assert data['<path>'] == './'
 
     def test_nice_errors(self):
         try:
