@@ -193,7 +193,7 @@ class CMD(Shell):
                                    % self.file_extension())
 
         with open(target_file, 'w') as f:
-                f.write(code)
+            f.write(code)
 
         if startup_sequence["stdin"] and stdin and (stdin is not True):
             Popen_args["stdin"] = stdin
@@ -205,12 +205,17 @@ class CMD(Shell):
             else:
                 cmd = pre_command
 
-        if shell_command:
-            cmd_flags = ['/Q', '/C']
-        else:
+        # Test for None specifically because resolved_context.execute_rex_code
+        # passes '' and we do NOT want to keep a shell open during a rex code
+        # exec operation.
+        if shell_command is None:
             cmd_flags = ['/Q', '/K']
+        else:
+            cmd_flags = ['/Q', '/C']
 
-        cmd = cmd + [self.executable] + cmd_flags + ['call {}'.format(target_file)]
+        cmd += [self.executable]
+        cmd += cmd_flags
+        cmd += ['call {}'.format(target_file)]
 
         if shell_command:
             cmd += ["& " + shell_command]
