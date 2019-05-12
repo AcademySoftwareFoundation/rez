@@ -55,7 +55,7 @@ class TestSchema(unittest.TestCase):
     def setUpClass(cls):
         cls.test_file_fd, cls.test_file_name = tempfile.mkstemp(suffix='LICENSE-MIT')
 
-        with open(cls.test_file_fd, "w") as f:
+        with open(cls.test_file_name, "w") as f:
             f.write("Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>")
 
     @classmethod
