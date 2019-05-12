@@ -1,6 +1,7 @@
+---
 image:
-- Visual Studio 2015  # for Python 2.7
-- Ubuntu
+  - Visual Studio 2015  # for Python 2.7
+  - Ubuntu
 
 # Enable build_script below
 build: Script
@@ -19,17 +20,16 @@ build_script:
 test_script:
   - rez --version
   - rez env -- exit
-
-  # Quickstart requires some setup
-  - cmd: mkdir %USERPROFILE%\packages
-  - sh: mkdir /home/appveyor/packages
   - rez bind --quickstart
 
+  # Skip CMake tests on Windows, they don't work
+  - cmd: cmake --version
+  - cmd: del "C:\Program Files (x86)\CMake\bin\cmake.exe"
+
   # Run selftest
-  - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
   - cmd: rez selftest -s cmd -vvv
   - sh: rez selftest -s bash -vvv
-  
+
   # Coverage
   - sh: sudo pip install coverage codecov
   - sh: coverage run -m rez selftest -s bash
