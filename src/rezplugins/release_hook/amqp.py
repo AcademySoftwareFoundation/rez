@@ -6,6 +6,12 @@ from rez.utils.logging_ import print_error, print_debug
 from rez.utils.amqp import publish_message
 from rez.config import config
 
+try:
+    basestring
+except NameError:
+    # Python 3+
+    basestring = str
+
 
 class AmqpReleaseHook(ReleaseHook):
     """

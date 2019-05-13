@@ -10,7 +10,12 @@ from rez.utils.scope import scoped_formatter
 from rez.vendor.schema.schema import Or
 import os.path
 import smtplib
-import sys
+
+try:
+    basestring
+except NameError:
+    # Python 3+
+    basestring = str
 
 
 class EmailReleaseHook(ReleaseHook):

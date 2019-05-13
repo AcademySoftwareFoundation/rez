@@ -1,7 +1,6 @@
 from rez.plugin_managers import extend_path
 __path__ = extend_path(__path__, __name__)
 
-
 # Copyright 2013-2016 Allan Johns.
 #
 # This library is free software: you can redistribute it and/or

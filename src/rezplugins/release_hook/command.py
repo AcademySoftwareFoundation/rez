@@ -17,6 +17,12 @@ from rez.utils.formatting import expandvars
 from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
 from rez.util import which
 
+try:
+    basestring
+except NameError:
+    # Python 3+
+    basestring = str
+
 
 class CommandReleaseHook(ReleaseHook):
 

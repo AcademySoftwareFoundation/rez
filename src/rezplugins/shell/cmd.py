@@ -6,12 +6,17 @@ from rez.rex import RexExecutor, literal, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
-from rez.util import shlex_join
 from rez.backport.shutilwhich import which
 from functools import partial
 import os
 import re
 import subprocess
+
+try:
+    basestring
+except NameError:
+    # Python 3+
+    basestring = str
 
 
 class CMD(Shell):

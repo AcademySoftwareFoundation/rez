@@ -30,6 +30,11 @@ from rez.vendor.version.version import Version, VersionRange
 
 debug_print = config.debug_printer("resources")
 
+try:
+    basestring
+except NameError:
+    # Python 3+
+    basestring = str
 
 # ------------------------------------------------------------------------------
 # format version

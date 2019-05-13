@@ -17,6 +17,12 @@ import os.path
 import sys
 import os
 
+try:
+    basestring
+except NameError:
+    # Python 3+
+    basestring = str
+
 
 class RezCMakeError(BuildSystemError):
     pass
