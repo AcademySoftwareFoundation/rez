@@ -960,7 +960,7 @@ class FileSystemPackageRepository(PackageRepository):
         if existing_package:
             if variant.index is None:
                 existing_installed_variant = \
-                    self.iter_variants(existing_package).next()
+                    next(self.iter_variants(existing_package))
             else:
                 variant_requires = variant.variant_requires
 
