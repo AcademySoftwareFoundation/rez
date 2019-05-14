@@ -74,7 +74,7 @@ class CustomBuildSystem(BuildSystem):
         before_args = set(x.dest for x in parser._actions)
 
         try:
-            exec source in {"parser": parser}
+            exec(source, {"parser": parser})
         except Exception as e:
             print_warning("Error in ./parse_build_args.py: %s" % str(e))
 
