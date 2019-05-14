@@ -81,7 +81,7 @@ def create_build_system(working_dir, buildsys_type=None, package=None, opts=None
             raise BuildSystemError(("Source could be built with one of: %s; "
                                    "Please specify a build system") % s)
 
-        buildsys_type = iter(clss).next().name()
+        buildsys_type = next(iter(clss)).name()
 
     # create instance of build system
     cls_ = plugin_manager.get_plugin_class('build_system', buildsys_type)
