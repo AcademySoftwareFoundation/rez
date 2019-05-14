@@ -35,16 +35,16 @@ def run():
 
     # run rezbuild.py:build() in python subprocess. Cannot import module here
     # because we're in a python env configured for rez, not the build
-    code = \
-    """
+    code = """\
+    from __future__ import print_function
     stream=open("%(buildfile)s")
     env={}
-    exec stream in env
+    exec(compile(stream.read(), stream.name, 'exec'), env)
 
     buildfunc = env.get("build")
     if not buildfunc:
         import sys
-        print >> sys.stderr, "Did not find function 'build' in rezbuild.py"
+        print("Did not find function 'build' in rezbuild.py", file=sys.stderr)
         sys.exit(1)
 
     kwargs = dict(source_path="%(srcpath)s",
@@ -55,7 +55,7 @@ def run():
 
     import inspect
     args = inspect.getargspec(buildfunc).args
-    kwargs = dict((k, v) for k, v in kwargs.items() if k in args)
+    kwargs = {k: v for k, v in kwargs.items() if k in args}
 
     buildfunc(**kwargs)
 
