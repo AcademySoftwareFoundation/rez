@@ -83,7 +83,7 @@ class CMD(Shell):
 
         # detect system paths using registry
         def gen_expected_regex(parts):
-            whitespace = "[\s]+"
+            whitespace = r"[\s]+"
             return whitespace.join(parts)
 
         paths = []
