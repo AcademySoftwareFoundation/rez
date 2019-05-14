@@ -156,8 +156,13 @@ class Platform(object):
         raise NotImplementedError
 
     def _logical_cores(self):
-        from multiprocessing import cpu_count
-        return cpu_count()
+        try:
+            # Favour Python 3
+            return os.cpu_count()
+
+        except AttributeError:
+            import multiprocessing
+            return multiprocessing.cpu_count()
 
 
 # -----------------------------------------------------------------------------
