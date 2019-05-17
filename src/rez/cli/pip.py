@@ -143,12 +143,12 @@ def command(opts, parser, extra_arg_groups=None):
                     print("\t" + package_version)
 
             if valid or suitable:
-                while option != "q" or option not in valid:
+                while option != "q" or option not in valid or option not in suitable:
                     option = raw_input("Install version (q to quit): ")
 
                     if option == "q":
                         return
-                    elif option in valid:
+                    elif option in valid or option in suitable:
                         break
                     else:
                         continue
