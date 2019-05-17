@@ -1,6 +1,6 @@
 ---
 image:
-  - Visual Studio 2015  # for Python 2.7
+  - Visual Studio 2015
   - Ubuntu
 
 # Enable build_script below
@@ -14,7 +14,8 @@ environment:
     secure: O34+lDNbRNVJ2EgaHAmEVg==
 
 build_script:
-  - cmd: pip install .
+  - cmd: C:\Python27\python.exe -m pip install .
+  - cmd: C:\Python36-x64\python.exe -m pip install .
   - sh: sudo pip install .
 
 test_script:
@@ -27,7 +28,8 @@ test_script:
   - cmd: del "C:\Program Files (x86)\CMake\bin\cmake.exe"
 
   # Run selftest
-  - cmd: rez selftest -s cmd -vvv
+  - cmd: C:\Python27\python.exe -m rez selftest -s cmd -vvv
+  - cmd: C:\Python36-x64\python.exe -m rez selftest -s cmd -vvv
   - sh: rez selftest -s bash -vvv
 
   # Coverage
