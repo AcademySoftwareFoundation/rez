@@ -19,7 +19,9 @@ from rez.system import System
 from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
+from email.parser import Parser
 import subprocess
+import pkg_resources
 import os.path
 import shutil
 import sys
@@ -198,7 +200,7 @@ def pip_to_rez_package_name(distribution):
     return name
 
 
-def run_pip_command(command_args, pip_version=None, python_version=None):
+def run_pip_command(command_args, process_output=False, pip_version=None, python_version=None):
     """Run a pip command.
 
     Args:
@@ -210,7 +212,17 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
     pip_exe, context = find_pip(pip_version, python_version)
     command = [pip_exe] + list(command_args)
 
-    if context is None:
+    if process_output:
+        try:
+            subprocess.check_output(command, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            regex = r"(?<=\(from versions:).*?(?=\))"
+            pattern = re.compile(regex)
+            match = pattern.search(e.output)
+            output = match.group(0).split(",")
+            return output
+
+    elif context is None:
         return popen(command)
     else:
         return context.execute_shell(command=command, block=False)
@@ -335,6 +347,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     """
     installed_variants = []
     skipped_variants = []
+    variant_types = []
 
     pip_exe, context = find_pip(pip_version, python_version)
 
@@ -370,6 +383,20 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     _cmd(context=context, command=cmd)
     _system = System()
+
+    def pure_python_package(installed_dist):
+
+        true_table = {
+            "true": True,
+            "false": False
+        }
+
+        packages = pkg_resources.find_distributions(destpath)
+        dist = next((package for package in packages if package.key == installed_dist.key), None)
+        wheel_data = dist.get_metadata('WHEEL')
+        wheel_data = Parser().parsestr(wheel_data)
+
+        return true_table[wheel_data["Root-Is-Purelib"]]
 
     # Collect resulting python packages using distlib
     distribution_path = DistributionPath([destpath])
@@ -446,18 +473,29 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                     shutil.copystat(source_file, destination_file)
 
         # determine variant requirements
-        # TODO detect if platform/arch/os necessary, no if pure python
         variant_reqs = []
-        variant_reqs.append("platform-%s" % _system.platform)
-        variant_reqs.append("arch-%s" % _system.arch)
-        variant_reqs.append("os-%s" % _system.os)
+
+        pure = pure_python_package(distribution)
+        if not pure:
+            variant_types.append("non-pure")
+            variant_reqs.append("platform-%s" % _system.platform)
+            variant_reqs.append("arch-%s" % _system.arch)
+        else:
+            variant_types.append("pure")
 
         if context is None:
             # since we had to use system pip, we have to assume system python version
-            py_ver = '.'.join(map(str, sys.version_info[:2]))
+            if pure:
+                py_ver = '.'.join(map(str, sys.version_info[:1]))
+            else:
+                py_ver = '.'.join(map(str, sys.version_info[:2]))
         else:
             python_variant = context.get_resolved_package("python")
-            py_ver = python_variant.version.trim(2)
+
+            if pure:
+                py_ver = python_variant.version.trim(1)
+            else:
+                py_ver = python_variant.version.trim(2)
 
         variant_reqs.append("python-%s" % py_ver)
 
@@ -487,7 +525,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     # cleanup
     shutil.rmtree(tmpdir)
 
-    return installed_variants, skipped_variants
+    return installed_variants, skipped_variants, variant_types
 
 
 def _cmd(context, command):
