@@ -614,6 +614,7 @@ class Python(ActionInterpreter):
         return popen(args,
                      shell=shell_mode,
                      env=self.target_environ,
+                     universal_newlines=True,
                      **subproc_kwargs)
 
     def command(self, value):
