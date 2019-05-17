@@ -128,6 +128,10 @@ class PackageMaker(AttrDictWrapper):
     def _get_data(self):
         data = self._data.copy()
 
+        if "requires" in data:
+            if None in data["requires"]:
+                data["requires"] = [x for x in data["requires"] if x is not None]
+
         data.pop("installed_variants", None)
         data.pop("skipped_variants", None)
         data.pop("package_cls", None)
