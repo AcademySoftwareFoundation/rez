@@ -74,7 +74,7 @@ def run():
         fd.write(cli_code)
 
     print("executing rezbuild.py...")
-    cmd = ["python", bezfile]
+    cmd = [sys.executable, bezfile]
     p = subprocess.Popen(cmd)
     p.wait()
     tmpdir_manager.clear()

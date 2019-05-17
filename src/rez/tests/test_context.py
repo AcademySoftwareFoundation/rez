@@ -10,6 +10,7 @@ import unittest
 import subprocess
 import os.path
 import os
+import sys
 
 
 class TestContext(TestBase, TempdirMixin):
@@ -71,8 +72,7 @@ class TestContext(TestBase, TempdirMixin):
                   "print(os.getenv('BIGLY')); "
                   "print(os.getenv('OH_HAI_WORLD'))")
 
-        args = ["python", "-c", pycode]
-
+        args = [sys.executable, "-c", pycode]
         p = r.execute_command(args, parent_environ=parent_environ,
                               stdout=subprocess.PIPE)
         stdout, _ = p.communicate()

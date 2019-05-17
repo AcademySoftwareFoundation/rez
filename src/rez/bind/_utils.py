@@ -11,8 +11,8 @@ from rez.utils.system import popen
 from rez.utils.logging_ import print_debug
 from pipes import quote
 import subprocess
-import os.path
 import os
+import sys
 
 
 def log(msg):
@@ -29,7 +29,7 @@ def make_dirs(*dirs):
 
 def run_python_command(commands, exe=None):
     py_cmd = "; ".join(commands)
-    args = [exe or "python", "-c", py_cmd]
+    args = [exe or sys.executable, "-c", py_cmd]
     stdout, stderr, returncode = _run_command(args)
     return (returncode == 0), stdout.strip(), stderr.strip()
 
