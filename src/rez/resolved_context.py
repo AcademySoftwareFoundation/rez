@@ -1520,7 +1520,7 @@ class ResolvedContext(object):
             amqp_settings=config.context_tracking_amqp,
             routing_key=routing_key,
             data=data,
-            async=True
+            block=False
         )
 
     @classmethod
