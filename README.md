@@ -1,255 +1,192 @@
+[![Build Status](https://travis-ci.org/nerdvegas/rez.svg?branch=master)](https://travis-ci.org/nerdvegas/rez)
 
-![image](https://user-images.githubusercontent.com/2152766/56459362-3eb1ff00-638a-11e9-9db4-6ae83f6dc70f.png)
+![logo](media/rez_banner_256.png)
 
-Rez, with all [feature branches](https://github.com/mottosso/bleeding-rez/branches/all?utf8=%E2%9C%93&query=feature%2F) merged.
-
-[![](https://ci.appveyor.com/api/projects/status/github/mottosso/bleeding-rez?branch=dev&svg=true&passingText=dev%20-%20OK&failingText=master%20-%20failing&pendingText=master%20-%20pending)](https://ci.appveyor.com/project/mottosso/bleeding-rez)
-[![](https://ci.appveyor.com/api/projects/status/github/mottosso/bleeding-rez?branch=master&svg=true&passingText=master%20-%20OK&failingText=dev%20-%20failing&pendingText=dev%20-%20pending)](https://ci.appveyor.com/project/mottosso/bleeding-rez)
-
-<br>
-
-### Usage
-
-There are a few ways you can use this repo.
-
-1. Use it in place of Rez, it is entirely backwards compatible with your existing install and package repository
-1. Each feature branch is self-contained and compatible with Rez, you can merge only the ones you like
-2. Most commits are self-contained and well documented, you could cherry-pick only the ones that interest you
-
-**Install**
-
-```bash
-$ pip install bleeding-rez
-```
-
-<details>
-    <summary>Alternative 1 - Latest `master`</summary>
-
-Each release on PyPI comes from tagged commits on master.
-
-```bash
-$ pip install git+https://github.com/mottosso/bleeding-rez.git
-```
-</details>
+- [What Is Rez?](#what-is-rez)
+- [The Basics](#the-basics)
+- [Examples](#examples)
+- [Quickstart](#quickstart)
+- [Building Your First Package](#building-your-first-package)
+- [Features](#features)
 
 
-<details>
-    <summary>Alternative 2 - Latest `dev`</summary>
+## What Is Rez?
 
-Where development happens, with commits that are later cherry-picked into `master` and their corresponding feature branch.
+Rez is a cross-platform package manager with a difference. Using Rez you can create
+standalone environments configured for a given set of packages. However, unlike many
+other package managers, packages are not installed into these standalone environments.
+Instead, all package versions are installed into a central repository, and standalone
+environments reference these existing packages. This means that configured environments
+are lightweight, and very fast to create, often taking just a few seconds to configure
+despite containing hundreds of packages.
 
-```bash
-$ pip install git+https://github.com/mottosso/bleeding-rez.git
-```
-</details>
+See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
 
-
-<details>
-    <summary>Alterantive 3 - Specific feature branch</summary>
-
-Each feature works both standalone and together.
-
-```bash
-$ pip install git+https://github.com/mottosso/bleeding-rez.git@feature/windows-alias-additional-argument
-```
-</details>
+<p align="center">
+<a href="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png">
+<img src="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png"></a>
+<br><i>Typical package managers install packages into an environment</i>
+</p>
 
 <br>
-
-### Changes
-
-<table>
-    <tr>
-        <th width="25%">Feature</th>
-        <th>Description</th>
-        <th></th>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Rez & PyPI</td>
-        <td>
-
-bleeding-rez is now a standard pip package and available on PyPI.
-
-```bash
-$ pip install bleeding-rez
-```
-
-`--target` is supported with one caveat on Windows; the destination must be available on your PYTHONPATH either globally or for the user. It cannot be added from within a console, as Rez is looking at your registry for where to find it.
-
-```bash
-$ pip install bleeding-rez --target ./some_dir
-$ setx PYTHONPATH=some_dir
-```
-</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-appveyor><i>link</i></a></td>
-    <tr></tr>
-    </tr>
-        <td>Preprocess function</td>
-        <td>
-
-`rezconfig.py` can take a `preprocess` function, rather than having to create and manage a separate module and `PYTHONPATH`</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-appveyor><i>link</i></a></td>
-    </tr>
-    <tr>
-        <td>Windows Tests</td>
-        <td>Tests now run on both Windows and Linux</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-appveyor><i>link</i></a></td>
-    <tr></tr>
-    </tr>
-        <td>Preprocess function</td>
-        <td>
-
-`rezconfig.py` can take a `preprocess` function, rather than having to create and manage a separate module and `PYTHONPATH`</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-appveyor><i>link</i></a></td>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Aliases & Windows</td>
-        <td>
-
-The `package.py:commands()` function `alias` didn't let Windows-users pass additional arguments to their aliases (doskeys)</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/windows-alias-additional-arguments><i>link</i></a></td>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Pip & Usability</td>
-        <td>
-
-As it happens, no one is actually using the `rez pip` command. It has some severe flaws which makes it unusable on anything other than a testing environment on a local machine you don't update.</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/useful-pip><i>link</i></a></td>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>`Request.__iter__`</td>
-        <td>
-
-You can now iterate over `request` and `resolve` from within your `package.py:commands()` section, e.g. `for req in request: print(req)`
-<td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/iterate-over-request><i>link</i></a></td>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Pip & Wheels</td>
-        <td>
-
-`rez pip` now uses wheels when available, avoiding needless a build step</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-wheels-windows><i>link</i></a></td>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Pip & Multi-install</td>
-        <td>
-
-`rez pip` can now take multiple packages, e.g. `rez pip --install six requests`</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-multipleinstall><i>link</i></a></td>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Pip & `--prefix`</td>
-        <td>
-
-`rez pip` can now take a `--prefix` argument, letting you install packages wherever</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-prefix><i>link</i></a></td>
-    </tr>
-    <tr>
-        <td>PyYAML and Python 3</td>
-        <td>
-
-Prior to this, you couldn't use PyYAML and Python 3 as Rez packages.</td>
-        <td><a href=https://github.com/mottosso/bleeding-rez/tree/feature/pip-multipleinstall><i>link</i></a></td>
-    </tr>
-    <tr>
-        <td>Auto-create missing repository dir</td>
-        <td>
-
-New users no longer have to worry about creating their default package repository directory at `~/packages`, which may seem minor but was the resulting traceback was the first thing any new user would experience with Rez.</td>
-        <td><a href=https://github.com/nerdvegas/rez/pull/623><i>PR</i></a></td>
-    </tr>
-    <tr>
-        <td>Cross-platform rez-bind python</td>
-        <td>
-
-rez-bind previously used features unsupported on Windows to create the default Python package, now it uses the cross-compatible `alias()` command instead.</td>
-        <td><a href=https://github.com/nerdvegas/rez/pull/624><i>PR</i></a></td>
-    </tr>
-    <tr>
-        <td>No more "Terminate Batch Job? (Y/N)"</td>
-        <td>
-
-Rez used to create a .bat file which was later used as the Rez context. Exiting a .bat file using CTRL+C prompts the user for a "Terminate Batch Job? (Y/N)", adding some extra annoyance to exiting a Rez context.</td>
-        <td><a href=https://github.com/nerdvegas/rez/pull/626><i>PR</i></a></td>
-    </tr>
-</table>
+<p align="center">
+<a href="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png">
+<img src="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png"></a>
+<br><i>Rez installs packages once, and configures environments dynamically</i>
+</p>
 
 <br>
+Rez takes a list of package requests, and constructs the target environment, resolving
+all the necessary package dependencies. Any type of software package is supported -
+compiled, python, applications and libraries.
 
-### PRs
 
-Along with merged pull-requests from the original repository, as they can take a while to get through (some take years!)
+## The Basics
 
-<table>
-    <tr>
-        <th>
+Packages are stored in repositories on disk. Each package has a single concise
+definition file (*package.py*) that defines its dependencies, its commands (how it
+configures the environment containing it), and other metadata. For example, the
+following is the package definition file for the popular *requests* python module:
 
-Change</th>
-        <th>Description</th>
-        <th></th>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Support for inverse version range</td>
-        <td>E.g. `requires = ["urllib3>=1.21.1,<1.23"]`</td>
-        <td>[#618](https://github.com/nerdvegas/rez/pull/618)</td>
-    </tr>
-    <tr></tr>
-    <tr>
-        <td>Misc Improvements</td>
-        <td>
+    name = "requests"
 
-> Make logging less destructive.
+    version = "2.8.1"
 
-Previously, when configured in rez.__init__ rez's logging (when used as
-an api) would clobber anything set by the calling application.  Push log
-configuration down into the cli only so it's more acceptale to api
-usage.
+    authors = ["Kenneth Reitz"]
 
-> Allow for packages which have no versions.
+    requires = [
+        "python-2.7+"
+    ]
 
-> Fix typo.
+    def commands():
+        env.PYTHONPATH.append("{root}/python")
 
-> Catch exception raised on Windows.
+This package requires python-2.7 or greater. When used, the 'python' subdirectory
+within its install location is appended to the PYTHONPATH environment variable.
 
-On Windows it is likely the local packages path is on a different drive
-to the release packages path.  This causes an exception to be raised in
-this function.
+When an environment is created with the rez API or *rez-env* tool, a dependency
+resolution algorithm tracks package requirements and resolves to a list of needed
+packages. The commands from these packages are concatenated and evaluated, resulting
+in a configured environment. Rez is able to configure environments containing
+hundreds of packages, often within a few seconds. Resolves can also be saved to file,
+and when re-evaluated later will reconstruct the same environment once more.
 
-> Add missing unimplmented methods.
 
-> Reset to base configuration, some of our site specific configuration …
+## Examples
 
-…slipped out on a recent merge.
+This example places the user into a resolved shell containing the requested packages,
+using the [rez-env](https://github.com/nerdvegas/rez/wiki/Command-Line-Tools#rez-env) tool:
 
-> Clean up syntax.
+    ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
 
-> This helps external projects (that use FindPackage from CMake) locate…
+    You are now in a rez-configured environment.
 
-… things installed by rez.
+    resolved by ajohns@nn188.somewhere.com, on Wed Feb 26 15:56:20 2014, using Rez v2.0.0
 
-> Various improvements to git vcs repository.
+    requested packages:
+    requests-2.2+
+    python-2.6
+    pymongo-0+<2.7
 
-* Handle the case where we might be both ahead of and behind the remote.
-* Fix docstrings.
-* Add a check for untracked files.  This was in rez 1 although does make
-  things more strict
-* Handle if the changelog is broken - if history is rewritten or the
-  repository moves (in our case git to github) the changelog can fail
-  ungracefully.
-* Don't let the export function leave you in a different directory to
-  which you started - that is bad for tests etc.            
+    resolved packages:
+    python-2.6.8    /software/ext/python/2.6.8
+    platform-linux  /software/ext/platform/linux
+    requests-2.2.1  /software/ext/requests/2.2.1/python-2.6
+    pymongo-2.6.3   /software/ext/pymongo/2.6.3
+    arch-x86_64     /software/ext/arch/x86_64
 
-</td>
-        <td>
+    > ]$ _
 
-[#204](https://github.com/nerdvegas/rez/pull/204)</td>
-    </tr>
-</table>
+This example creates an environment containing the package 'houdini' version 12.5
+or greater, and runs the command 'hescape -h' inside that environment:
+
+    ]$ rez-env houdini-12.5+ -- hescape -h
+    Usage: hescape [-foreground] [-s editor] [filename ...]
+    -h: output this usage message
+    -s: specify starting desktop by name
+    -foreground: starts process in foreground
+
+Resolved environments can also be created via the API:
+
+    >>> import subprocess
+    >>> from rez.resolved_context import ResolvedContext
+    >>>
+    >>> r = ResolvedContext(["houdini-12.5+", "houdini-0+<13", "java", "!java-1.8+"])
+    >>> p = r.execute_shell(command='which hescape', stdout=subprocess.PIPE)
+    >>> out, err = p.communicate()
+    >>>
+    >>> print out
+    '/software/ext/houdini/12.5.562/bin/hescape'
+
+
+## Quickstart
+
+First, install Rez. Download the source, and from the source directory, run
+(with DEST_DIR replaced with your install location):
+
+    ]$ python ./install.py -v DEST_DIR
+
+This installs the Rez command line tools. It will print a message at the end
+telling you how to use Rez when the installation has completed. Rez is not a
+normal Python package and so you do not typically install it with pip or setup.py.
+Do *not* move the installation - re-install to a new location if you want to
+change the install path. If you want to install rez for multiple operating
+systems, perform separate installs for each of those systems.
+
+Next, you need to create some essential Rez packages. The *rez-bind* tool creates
+Rez packages that are based on software already installed on your system. Try
+binding the following list of packages (note that for Python, you may need
+administrative privileges):
+
+    ]$ rez-bind platform
+    ]$ rez-bind arch
+    ]$ rez-bind os
+    ]$ rez-bind python
+
+Now you should be able to create an environment containing Python. Try this:
+
+    ]$ rez-env python -- which python
+    /home/ajohns/packages/python-2.7.8/platform-linux/arch-x86_64/os-Ubuntu-12.04/bin/python
+
+
+## Building Your First Package
+
+The *rez-build* tool is used to build packages and install them locally (typically
+to *$HOME/packages*). Once you've done that, you can use them via *rez-env*, just
+like any other package:
+
+    ]$ cd example_packages/hello_world
+    ]$ rez-build --install
+    ...
+    ]$ rez-env hello_world -- hello
+    Hello world!
+
+
+## Features
+
+* Supports Linux, OSX and Windows;
+* Allows for a fast and efficient build-install-test cycle;
+* Creates shells of type: bash, tcsh, other (shells can be added as plugins);
+* Contains a deployment system supporting git, mercurial and svn (as plugins);
+* Environment resolves can be saved to disk and reused at a later date (a bit
+  like VirtualEnv);
+* Highly pluggable, supports five different plugin types to do things from
+  adding new shell types, to adding new build systems;
+* Contains a version resolving algorithm, for avoiding version clashes;
+* Visualises resolved environments in a rendered dot-graph;
+* Packages are found in a search path, so different packages can be deployed
+  to different locations;
+* Supports alphanumeric version numbers;
+* Has a powerful version requirements syntax, able to describe any version
+  range, and a conflict operator for rejecting version ranges;
+* Package 'variants' - a way to define different flavors of the same package
+  version, for example a plugin built for multiple versions of the host app;
+* Custom release hooks (such as post-release operations) can be added as plugins;
+* Has a time lock feature, which allows old resolves to be recreated (newer
+  packages are ignored);
+* Package definitions are a single, succinct file;
+* Packages define their effect on the environment (adding to PATH etc) in a
+  platform- and shell- agnostic way, using a dedicated python API;
+* Has a memcached-based caching system, for caching environment resolves;
+* Has a package filtering feature, allowing for staged package releases such as
+  alpha and beta packages.
