@@ -21,10 +21,11 @@ import os.path
 import copy
 
 PY3 = sys.version_info >= (3, 0, 0)
+
 if PY3:
     str_type = str
 else:
-    str_type = str
+    str_type = basestring
 
 
 # -----------------------------------------------------------------------------
