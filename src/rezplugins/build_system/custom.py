@@ -14,6 +14,7 @@ from rez.resolved_context import ResolvedContext
 from rez.exceptions import PackageMetadataError
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_warning
+from rez.util import create_forwarding_script
 from rez.config import config
 
 
