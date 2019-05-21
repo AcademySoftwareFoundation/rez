@@ -20,9 +20,18 @@ class Client(object):
     - unlimited key length;
     - hard/soft flushing;
     - ability to cache None.
+
     """
+
     class _Miss(object):
-        def __nonzero__(self): return False
+        def __nonzero__(self):
+            return False
+
+        def __iter__(self):
+            yield {}  # solver_dict
+            yield {}  # variant_states_dict
+            yield {}  # release_times_dict
+
     miss = _Miss()
 
     logger = config.debug_printer("memcache")
@@ -163,7 +172,7 @@ class Client(object):
 
     @classmethod
     def _key_hash(cls, key):
-        return md5(key).hexdigest()
+        return md5(key.encode("ascii")).hexdigest()
 
     @classmethod
     def _debug_key_hash(cls, key):
