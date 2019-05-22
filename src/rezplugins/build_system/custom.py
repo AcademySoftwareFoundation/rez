@@ -16,6 +16,7 @@ from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_warning
 from rez.util import create_forwarding_script
 from rez.config import config
+from rez.vendor.six import six
 
 
 class CustomBuildSystem(BuildSystem):
@@ -125,7 +126,7 @@ class CustomBuildSystem(BuildSystem):
             install_ = "install" if install else ''
             return txt.format(root=root, install=install_).strip()
 
-        if isinstance(command, basestring):
+        if isinstance(command, six.string_types):
             if self.build_args:
                 command = command + ' ' + ' '.join(map(quote, self.build_args))
 
