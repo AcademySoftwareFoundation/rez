@@ -1205,7 +1205,11 @@ class ResolvedContext(object):
         """
         sh = create_shell(shell)
 
-        if hasattr(command, "__iter__"):
+        is_iterable = hasattr(command, "__iter__")
+        is_string = isinstance(command, six.string_types)
+
+        # In Python 2, a string does not have `__iter__`
+        if is_iterable and not is_string:
             command = sh.join(command)
 
         # start a new session if specified
@@ -1257,6 +1261,7 @@ class ResolvedContext(object):
             (RezToolsVisibility[config.rez_tools_visibility] == RezToolsVisibility.never)
 
         # spawn the shell subprocess
+        # print("Command: %s" % str(command))
         p = sh.spawn_shell(context_file,
                            tmpdir,
                            rcfile=rcfile,
