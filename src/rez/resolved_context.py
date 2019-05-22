@@ -1261,7 +1261,6 @@ class ResolvedContext(object):
             (RezToolsVisibility[config.rez_tools_visibility] == RezToolsVisibility.never)
 
         # spawn the shell subprocess
-        # print("Command: %s" % str(command))
         p = sh.spawn_shell(context_file,
                            tmpdir,
                            rcfile=rcfile,
