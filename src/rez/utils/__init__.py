@@ -14,9 +14,10 @@ def reraise(exc, new_exc_cls=None, format_str=None):
         six.reraise(*sys.exc_info())
 
     if format_str is not None:
-        warnings.warn("Argument `format_str` is deprecated")
+        warnings.warn("Argument `reraise.format_str` is deprecated")
 
-    six.reraise(new_exc_cls, exc)
+    type_, value, traceback = sys.exc_info()
+    six.reraise(new_exc_cls, exc, traceback)
 
 
 # Copyright 2013-2016 Allan Johns.
