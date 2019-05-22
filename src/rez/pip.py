@@ -378,6 +378,7 @@ def pip_install_package(source_name, python_version=None,
 
     if prefix is not None:
         config.release_packages_path = prefix
+        config.local_packages_path = prefix
 
     # TODO: should check if packages_path is writable
     # before continuing with pip
