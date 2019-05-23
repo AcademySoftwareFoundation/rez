@@ -7,8 +7,12 @@ from rez.utils.resources import Resource, ResourcePool, ResourceHandle, \
 from rez.package_repository import PackageRepository
 from rez.utils.schema import Required
 from rez.exceptions import ResourceError
+from rez.vendor.six import six
 import unittest
 from rez.vendor.schema.schema import Schema, Use, And, Optional
+
+# Backwards compatibility with Python 2
+basestring = six.string_types[0]
 
 
 class PetResourceError(Exception):
@@ -40,11 +44,11 @@ pets = dict(
 
 
 pet_schema = Schema({
-    Required("name"):       str,
-    Required("colors"):     And([str], Use(set)),
+    Required("name"):       basestring,
+    Required("colors"):     And([basestring], Use(set)),
     Required("male"):       bool,
     Required("age"):        float,
-    Optional("owner"):      str
+    Optional("owner"):      basestring
 })
 
 

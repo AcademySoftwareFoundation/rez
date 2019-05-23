@@ -4,12 +4,16 @@ from rez.serialise import FileFormat
 from rez.package_resources_ import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
+from rez.vendor.six import six
 from rez.utils.sourcecode import SourceCode
 from rez.utils.formatting import PackageRequest, indent, \
     dict_to_attributes_code, as_block_string
 from rez.utils.schema import Required
 from rez.utils.yaml import dump_yaml
 from pprint import pformat
+
+# Backwards compatibility with Python 2
+basestring = six.string_types[0]
 
 
 # preferred order of keys in a package definition file
@@ -40,17 +44,17 @@ package_key_order = [
     'previous_revision']
 
 
-version_schema = Or(str, And(Version, Use(str)))
+version_schema = Or(basestring, And(Version, Use(str)))
 
-package_request_schema = Or(str, And(PackageRequest, Use(str)))
+package_request_schema = Or(basestring, And(PackageRequest, Use(str)))
 
-source_code_schema = Or(SourceCode, And(str, Use(SourceCode)))
+source_code_schema = Or(SourceCode, And(basestring, Use(SourceCode)))
 
 tests_schema = Schema({
-    Optional(str): Or(
-        Or(str, [str]),
+    Optional(basestring): Or(
+        Or(basestring, [basestring]),
         {
-            "command": Or(str, [str]),
+            "command": Or(basestring, [basestring]),
             Optional("requires"): [package_request_schema]
         }
     )
@@ -59,11 +63,11 @@ tests_schema = Schema({
 
 # package serialisation schema
 package_serialise_schema = Schema({
-    Required("name"):                   str,
+    Required("name"):                   basestring,
     Optional("version"):                version_schema,
-    Optional("description"):            str,
-    Optional("authors"):                [str],
-    Optional("tools"):                  late_bound([str]),
+    Optional("description"):            basestring,
+    Optional("authors"):                [basestring],
+    Optional("tools"):                  late_bound([basestring]),
 
     Optional('requires'):               late_bound([package_request_schema]),
     Optional('build_requires'):         late_bound([package_request_schema]),
@@ -79,19 +83,19 @@ package_serialise_schema = Schema({
     Optional('post_commands'):          source_code_schema,
 
     Optional("help"):                   late_bound(help_schema),
-    Optional("uuid"):                   str,
+    Optional("uuid"):                   basestring,
     Optional("config"):                 dict,
 
     Optional('tests'):                  late_bound(tests_schema),
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,
-    Optional('changelog'):              str,
-    Optional('release_message'):        Or(None, str),
+    Optional('changelog'):              basestring,
+    Optional('release_message'):        Or(None, basestring),
     Optional('previous_version'):       version_schema,
     Optional('previous_revision'):      object,
 
-    Optional(str):               object
+    Optional(basestring):               object
 })
 
 

@@ -1,4 +1,3 @@
-from rez.vendor.six import six
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
@@ -11,10 +10,14 @@ from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
+from rez.vendor.six import six
 import subprocess
 import os
 import os.path
 import pipes
+
+# Backwards compatibility with Python 2
+basestring = six.string_types[0]
 
 
 def get_shell_types():
@@ -41,7 +44,7 @@ class Shell(ActionInterpreter):
     """
 
     schema_dict = {
-        "prompt": str}
+        "prompt": basestring}
 
     @classmethod
     def name(cls):

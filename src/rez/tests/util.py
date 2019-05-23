@@ -3,6 +3,7 @@ import unittest
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types
 from rez.system import system
+from rez.vendor.six import six
 import tempfile
 import shutil
 import os.path
@@ -10,6 +11,9 @@ import os
 import functools
 import sys
 from contextlib import contextmanager
+
+# Backwards compatibility with Python 2
+basestring = six.string_types[0]
 
 
 class TestBase(unittest.TestCase):
@@ -209,7 +213,7 @@ def get_cli_output(args):
 
     Returns
     -------
-    stdout : str
+    stdout : basestring
         the captured output to sys.stdout
     exitcode : int
         the returncode from the command

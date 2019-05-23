@@ -4,6 +4,8 @@ Utilities for working with dict-based schemas.
 """
 from rez.vendor.schema.schema import Schema, Optional, Use, And
 
+# Backwards compatibility with Python 2
+basestring = six.string_types[0]
 
 # an alias which just so happens to be the same number of characters as
 # 'Optional' so that our schema are easier to read
@@ -19,7 +21,7 @@ def schema_keys(schema):
         Set of string keys of a schema which is in the form (eg):
 
             schema = Schema({Required("foo"): int,
-                             Optional("bah"): str})
+                             Optional("bah"): basestring})
     """
     def _get_leaf(value):
         if isinstance(value, Schema):
@@ -62,7 +64,7 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
                     k = Required(k) if required else Optional(k)
                 d[k] = _to(v)
             if allow_custom_keys:
-                d[Optional(str)] = modifier or object
+                d[Optional(basestring)] = modifier or object
             schema = Schema(d)
         elif modifier:
             schema = And(value, modifier)

@@ -6,6 +6,7 @@ from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
 from uuid import uuid4
+from rez.vendor.six import six
 import weakref
 import atexit
 import posixpath
@@ -15,6 +16,10 @@ import shutil
 import os
 import re
 import stat
+
+
+# Backwards compatibility with Python 2
+basestring = six.string_types[0]
 
 
 class TempDirs(object):
@@ -484,7 +489,7 @@ def encode_filesystem_name(input_str):
     if isinstance(input_str, str):
         input_str = unicode(input_str)
     elif not isinstance(input_str, unicode):
-        raise TypeError("input_str must be a str")
+        raise TypeError("input_str must be a basestring")
 
     as_is = u'abcdefghijklmnopqrstuvwxyz0123456789.-'
     uppercase = u'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
