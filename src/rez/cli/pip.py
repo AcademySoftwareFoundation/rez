@@ -10,10 +10,10 @@ def setup_parser(parser, completions=False):
         "that the pip package(s) will be installed with a dependency on "
         "python-MAJOR.MINOR.")
     parser.add_argument(
-        "-i", "--install", action="store_true",
+        "-i", "--install", nargs="+",
         help="install the package")
     parser.add_argument(
-        "-s", "--search", action="store_true",
+        "-s", "--search", nargs="+",
         help="search for the package on PyPi")
     parser.add_argument(
         "-r", "--release", action="store_true",
@@ -25,29 +25,24 @@ def setup_parser(parser, completions=False):
         "-va", "--variant", action="append",
         help="Install package as variant, may be called multiple times.")
     parser.add_argument(
-        "-p", "--prefix", type=str, metavar='PATH',
+        "-p", "--prefix", type=str, metavar="PATH",
         help="install to a custom package repository path.")
-    parser.add_argument(
-        "PACKAGE", nargs="+",
-        help="package to install or archive/url to install from")
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.pip import pip_install_package, run_pip_command
-
-    if not (opts.search or opts.install):
-        parser.error("Expected one of: --install, --search")
+    import subprocess
+    from rez.pip import pip_install_package
 
     if opts.search:
-        p = run_pip_command(["search", opts.PACKAGE])
-        p.wait()
-        return
+        return subprocess.check_call([
+            "python", "-m", "pip" "search", opts.search
+        ]).wait()
 
     installed_variants, skipped_variants = set(), set()
-    for package in opts.PACKAGE:
+
+    if opts.install:
         installed, skipped = pip_install_package(
-            package,
-            python_version=opts.py_ver,
+            opts.install,
             release=opts.release,
             prefix=opts.prefix,
             no_deps=opts.no_deps,
