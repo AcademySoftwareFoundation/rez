@@ -826,6 +826,10 @@ class FileSystemPackageRepository(PackageRepository):
 
         # find or create the package family
         family = self.get_package_family(variant_name)
+
+        if not family and dry_run:
+            return None
+
         if not family:
             family = self._create_family(variant_name)
 
