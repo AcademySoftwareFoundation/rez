@@ -5,52 +5,45 @@ Install a pip-compatible python package, and its dependencies, as rez packages.
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
+        "--pip-version", dest="pip_ver", metavar="VERSION",
+        help="pip version (rez package) to use, default is latest")
+    parser.add_argument(
         "--python-version", dest="py_ver", metavar="VERSION",
         help="python version (rez package) to use, default is latest. Note "
         "that the pip package(s) will be installed with a dependency on "
         "python-MAJOR.MINOR.")
     parser.add_argument(
-        "-i", "--install", nargs="+",
+        "-i", "--install", action="store_true",
         help="install the package")
     parser.add_argument(
-        "-s", "--search", nargs="+",
+        "-s", "--search", action="store_true",
         help="search for the package on PyPi")
     parser.add_argument(
         "-r", "--release", action="store_true",
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
-        "--no-deps", action="store_true", help="Do not install dependencies")
-    parser.add_argument(
-        "-va", "--variant", action="append",
-        help="Install package as variant, may be called multiple times.")
-    parser.add_argument(
-        "-p", "--prefix", type=str, metavar="PATH",
-        help="install to a custom package repository path.")
+        "PACKAGE",
+        help="package to install or archive/url to install from")
 
 
 def command(opts, parser, extra_arg_groups=None):
-    import subprocess
-    from rez.pip import pip_install_package
+    from rez.pip import pip_install_package, run_pip_command
+    import sys
+
+    if not (opts.search or opts.install):
+        parser.error("Expected one of: --install, --search")
 
     if opts.search:
-        return subprocess.check_call([
-            "python", "-m", "pip" "search", opts.search
-        ]).wait()
+        p = run_pip_command(["search", opts.PACKAGE])
+        p.wait()
+        return
 
-    installed_variants, skipped_variants = set(), set()
-
-    if opts.install:
-        installed, skipped = pip_install_package(
-            opts.install,
-            release=opts.release,
-            prefix=opts.prefix,
-            no_deps=opts.no_deps,
-            variants=opts.variant
-        )
-
-        installed_variants.update(installed)
-        skipped_variants.update(skipped)
+    installed_variants, skipped_variants = pip_install_package(
+        opts.PACKAGE,
+        pip_version=opts.pip_ver,
+        python_version=opts.py_ver,
+        release=opts.release)
 
     # print summary
     #
