@@ -83,6 +83,7 @@ def command(opts, parser, extra_arg_groups=None):
         _search(opts)
 
     if opts.install:
+        t0 = time.time()
         tmpdir = tempfile.mkdtemp(suffix="-rez", prefix="wheel-")
         tempdir = os.path.join(tmpdir, "rez_staging", "python")
         success = False
@@ -95,7 +96,10 @@ def command(opts, parser, extra_arg_groups=None):
             with stage("Cleaning up temporary files.. "):
                 shutil.rmtree(tmpdir)
 
-        tell("Success" if success else "Failed")
+        tell(
+            ("Completed in %.2fs" % (time.time() - t0))
+            if success else "Failed"
+        )
 
 
 def _install(opts, tempdir):
@@ -147,10 +151,6 @@ def _install(opts, tempdir):
                 exists.append(item)
             else:
                 new.append(item)
-
-    # pip delivers these in random order
-    new.sort()
-    exists.sort()
 
     if not new:
         for item in exists:

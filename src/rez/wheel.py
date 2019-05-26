@@ -181,7 +181,12 @@ def download(names, tempdir=None, no_deps=False):
     distribution_path = DistributionPath([tempdir])
     distributions = list(distribution_path.get_distributions())
 
-    return distributions
+    return sorted(
+        distributions,
+
+        # Upper-case characters typically come first
+        key=lambda d: d.name.lower()
+    )
 
 
 def exists(package, path):
@@ -249,8 +254,8 @@ def deploy(distribution, package, path):
     """Deploy `distribution` as `package` at `path`
 
     Arguments:
-        distribution ():
-        package ():
+        distribution (distlib.database.InstalledDistribution): Source
+        package (rez.Package): Source package
         path (str): Path to install directory, e.g. "~/packages"
 
     """
