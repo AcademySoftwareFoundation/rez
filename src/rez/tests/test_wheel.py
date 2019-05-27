@@ -159,9 +159,6 @@ I am b'a'd
         """Install a compiled Python package"""
         self._test_install("pyyaml", "5.1")
 
-    # def test_nowheel(self):
-    #     self._install("PySide==1.2.4")
-
     def test_dependencies(self):
         """Install mkdocs, which carries lots of dependencies"""
         installed = self._install("mkdocs==1.0.4")
@@ -174,36 +171,30 @@ I am b'a'd
             for package in installed
         }
 
+        self.assertEqual(versions["mkdocs"], "1.0.4")
+
+        # From https://github.com/mkdocs/mkdocs/blob/1.0.4/setup.py#L58
         dependencies = (
-            "markupsafe-1.1.1",
-            "backports_abc-0.5",
-            "livereload-2.6.1",
-            "pyyaml-5.1",
-            "futures-3.2.0",
-            "setuptools-41.0.1",
-            "singledispatch-3.4.0.3",
-            "six-1.12.0",
-            "tornado-5.1.1",
-            "click-7.0",
-            "jinja2-2.10.1",
-            "markdown-3.1.1"
+            "click",
+            "jinja2",
+            "livereload",
+            "markdown",
+            "pyyaml",
+            "tornado",
         )
 
-        for dependency in dependencies:
-            name, version = dependency.split("-", 1)
-            self.assertIn(name, names)
-            self.assertEqual(versions[name], version)
+        for name in dependencies:
+            self.assertIn(name.lower(), names)
 
         # All requirements have been installed
         for req in package.requires:
-            self.assertIn(req.name, names)
+            self.assertIn(req.name.lower(), names)
 
     def test_override_variant(self):
         """Test overriding variant"""
         installed = self._install("six", variants=["python-2"])
         assert installed, "Something should have been installed"
         package = installed[0].variants[0][0]
-        print(package)
         self.assertEqual(str(package), "python-2")
 
     def test_battery(self):
@@ -243,16 +234,3 @@ I am b'a'd
         """Install PySide2"""
         if self.python_version != 3:
             self.skipTest("PySide2 is not available on PyPI for Python 2")
-
-    def test_pyside(self):
-        """Install (failing) PySide"""
-        if self.python_version != 2:
-            self.skipTest("PySide doesn't exist for Python 3")
-
-        self.assertRaises(OSError, self._install, "pyside")
-
-    # def test_api(self):
-    #     """Install packages from Python API"""
-
-    # def test_yes(self):
-    #     """--yes doesn't ask questions"""
