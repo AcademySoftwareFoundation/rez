@@ -24,7 +24,7 @@ def rmtree(path):
     shutil.rmtree(path, onerror=del_rw)
 
 
-class TestPip(TestBase, TempdirMixin):
+class TestWheel(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
