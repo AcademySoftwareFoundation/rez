@@ -11,6 +11,7 @@ from rez.tests.util import TempdirMixin, TestBase
 from rez import wheel
 from rez.resolved_context import ResolvedContext
 from rez.package_maker__ import make_package
+from rez.packages_ import iter_packages
 from rez.util import which
 
 
@@ -73,6 +74,9 @@ class TestPip(TestBase, TempdirMixin):
 
     def _install(self, *packages, **kwargs):
         return wheel.install(packages, prefix=self.temprepo, **kwargs)
+
+    def _installed_packages(self, name):
+        return list(iter_packages(name, paths=[self.temprepo]))
 
     def _test_install(self, package, version):
         installed = self._install("%s==%s" % (package, version))
@@ -196,6 +200,25 @@ I am b'a'd
         assert installed, "Something should have been installed"
         package = installed[0].variants[0][0]
         self.assertEqual(str(package), "python-2")
+
+    def test_existing_variant(self):
+        """Test installing another variant"""
+
+        # Package does not exist prior to install it
+        self.assertEqual(self._installed_packages(name="six"), [])
+
+        self._install("six", variants=["python-2"])
+        package = self._installed_packages("six")[0]
+        variants = [str(v[0]) for v in package.variants]
+        self.assertEqual(variants, ["python-2"])
+
+        # Make sure an install doesn't break or remove a prior variant
+        # This normally happens when installing the same package
+        # on another platform.
+        self._install("six", variants=["python-3"])
+        package = self._installed_packages("six")[0]
+        variants = [str(v[0]) for v in package.variants]
+        self.assertEqual(variants, ["python-2", "python-3"])
 
     def test_battery(self):
         """Install a variety of packages"""
