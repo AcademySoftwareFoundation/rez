@@ -442,7 +442,13 @@ class FileSystemPackageRepository(PackageRepository):
     building_prefix = ".building"
     ignore_prefix = ".ignore"
 
-    package_file_mode = (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+    package_file_mode = (
+        None if os.name == "nt" else
+
+        # These aren't supported on Windows
+        # https://docs.python.org/2/library/os.html#os.chmod
+        (stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+    )
 
     @classmethod
     def name(cls):
