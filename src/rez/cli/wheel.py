@@ -11,28 +11,33 @@ quiet = False
 def setup_parser(parser, completions=False):
     parser.add_argument(
         "-i", "--install", nargs="+",
-        help="install the package")
+        help="Install the package")
     parser.add_argument(
         "-s", "--search", nargs="+",
-        help="search for the package on PyPi")
+        help="Search for the package on PyPi")
     parser.add_argument(
         "-r", "--release", action="store_true",
-        help="install as released package; if not set, package is installed "
+        help="Install as released package; if not set, package is installed "
         "locally only")
+    parser.add_argument(
+        "-va", "--variant", action="append",
+        help="Install package as variant, may be called multiple times.")
+    parser.add_argument(
+        "-p", "--prefix", type=str, metavar="PATH",
+        help="Install to a custom package repository path.")
+    parser.add_argument(
+        "-y", "--yes", action="store_true",
+        help="Pre-emptively answer the question to continue")
+    parser.add_argument(
+        "-q", "--quiet", action="store_true",
+        help="Do not output anything to stdout, overridden with -vvv")
+
+    # Additional pip-specific arguments
     parser.add_argument(
         "--no-deps", action="store_true", help="Do not install dependencies")
     parser.add_argument(
-        "-va", "--variant", action="append",
-        help="install package as variant, may be called multiple times.")
-    parser.add_argument(
-        "-p", "--prefix", type=str, metavar="PATH",
-        help="install to a custom package repository path.")
-    parser.add_argument(
-        "-y", "--yes", action="store_true",
-        help="pre-emptively answer the question to continue")
-    parser.add_argument(
-        "-q", "--quiet", action="store_true",
-        help="do not output anything to stdout, overridden with -vvv")
+        "--index-url", default="https://pypi.org/simple",
+        help="Provide a custom PyPI index")
 
 
 def tell(msg, newlines=1):
@@ -41,6 +46,11 @@ def tell(msg, newlines=1):
 
     import sys
     sys.stdout.write("%s%s" % (msg, "\n" * newlines))
+
+
+def error(msg, newlines=1):
+    import sys
+    sys.stderr.write("ERROR: %s\n" % msg)
 
 
 def ask(msg):
@@ -93,8 +103,7 @@ def command(opts, parser, extra_arg_groups=None):
             success = True
 
         finally:
-            with stage("Cleaning up temporary files.. "):
-                shutil.rmtree(tmpdir)
+            shutil.rmtree(tmpdir)
 
         tell(
             ("Completed in %.2fs" % (time.time() - t0))
@@ -111,15 +120,19 @@ def _install(opts, tempdir):
     pip_version = wheel.pip_version()
 
     if not python_version:
-        tell("Python could not be found")
+        error("Python could not be found")
         exit(1)
 
     if not pip_version:
-        tell("pip could not be found")
+        error("pip could not be found")
         exit(1)
 
-    tell("Using %s" % python_version)
-    tell("Using %s" % pip_version)
+    if pip_version < "19.0.0":
+        error("Requires pip>=19")
+        exit(1)
+
+    tell("Using python-%s" % python_version)
+    tell("Using pip-%s" % pip_version)
 
     try:
         with stage("Reading package lists... "):
@@ -127,6 +140,7 @@ def _install(opts, tempdir):
                 opts.install,
                 tempdir=tempdir,
                 no_deps=opts.no_deps,
+                index_url=opts.index_url,
             )
     except OSError as e:
         tell(e)

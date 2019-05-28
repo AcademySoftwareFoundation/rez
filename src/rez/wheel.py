@@ -39,7 +39,12 @@ logging.getLogger("rez.vendor.distlib").setLevel(logging.CRITICAL)
 _basestring = six.string_types[0]
 
 
-def install(names, prefix=None, no_deps=False, release=False, variants=None):
+def install(names,
+            prefix=None,
+            no_deps=False,
+            release=False,
+            variants=None,
+            index_url=None):
     """Convenience function to below functions
 
     Arguments:
@@ -49,6 +54,9 @@ def install(names, prefix=None, no_deps=False, release=False, variants=None):
             equivalent to pip --no-deps
         release (bool, optional): Install onto REZ_RELEASE_PACKAGES_PATH
         variants (list, optional): Override variants detected by WHEEL
+        index (str, optional): Override PyPI index. This should point to a
+            repository compliant with PEP 503 (the simple repository API)
+            or a local directory laid out in the same format.
 
     """
 
@@ -62,6 +70,7 @@ def install(names, prefix=None, no_deps=False, release=False, variants=None):
         names,
         tempdir=tempdir,
         no_deps=no_deps,
+        index_url=index_url,
     )
 
     packagesdir = prefix or (
@@ -93,7 +102,7 @@ def install(names, prefix=None, no_deps=False, release=False, variants=None):
     return [item["package"] for item in new]
 
 
-def download(names, tempdir=None, no_deps=False):
+def download(names, tempdir=None, no_deps=False, index_url=None):
     """Gather pip packages in `tempdir`
 
     Arguments:
@@ -102,6 +111,7 @@ def download(names, tempdir=None, no_deps=False):
         tempdir (str, optional): Absolute path to where pip packages go until
             they've been installed as Rez packages, defaults to the cwd
         no_deps (bool, optional): Equivalent to pip --no-deps, default to False
+        index_url (str, optional): Custom PyPI index
 
     Returns:
         distributions (list): Downloaded distlib.database.InstalledDistribution
@@ -134,16 +144,20 @@ def download(names, tempdir=None, no_deps=False):
 
         # rez pip users don't have to see this
         "--disable-pip-version-check",
-
-        # Prevent user-settings from interfering with install
-        "--isolated",
     ]
+
+    if index_url:
+        cmd += ["--index-url", index_url]
+
+    else:
+        # Prevent user-settings from interfering with install
+        cmd += ["--isolated"]
 
     if no_deps:
         # Delegate the installation of dependencies to the user
         # This is important, as each dependency may have different
         # requirements of its own, and variants to go with it.
-        cmd.append("--no-deps")
+        cmd += ["--no-deps"]
 
     cmd += names
 
@@ -406,7 +420,7 @@ def python_version():
     try:
         # Use supplied Python
         package = context.get_resolved_package("python")
-        return package.qualified_package_name
+        return str(package.version)
     except AttributeError:
         # In a context, but no Python was found
         pass
@@ -422,7 +436,9 @@ def python_version():
     )
 
     if popen.wait() == 0:
-        return popen.stdout.read().rstrip()
+        version = popen.stdout.read().rstrip()
+        version = version.split()[-1]  # Python 2.7.11
+        return version + " (system)"  # 2.7.11
 
 
 def pip_version():
@@ -433,14 +449,14 @@ def pip_version():
     try:
         # Use supplied Python
         package = context.get_resolved_package("pip")
-        return package.qualified_package_name
+        return str(package.version)
     except AttributeError:
         # In a context, but no Python was found
         pass
 
     # Try system Python
     popen = subprocess.Popen(
-        "python -m pip --version",
+        "python -c \"import pip;print(pip.__version__)\"",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         universal_newlines=True,
@@ -449,7 +465,8 @@ def pip_version():
     )
 
     if popen.wait() == 0:
-        return popen.stdout.read().rstrip()
+        version = popen.stdout.read().rstrip()
+        return version + " (system)"
 
 
 _verbose = config.debug("package_release")
