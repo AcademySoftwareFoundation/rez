@@ -258,17 +258,9 @@ def convert(distribution, variants=None):
 
     # Store files from distribution for deployment
     files = list()
-    for fname, md5, size in distribution.list_installed_files():
-        dist_info = distribution.path
-        dirname = os.path.dirname(dist_info)
-        abspath = os.path.join(dirname, fname)
-        normpath = os.path.normpath(abspath)
-
-        if not os.path.exists(normpath):
-            print("WARNING: %s didn't exist" % normpath)
-            continue
-
-        files += [normpath]
+    for relpath, md5, size in distribution.list_installed_files():
+        root = os.path.dirname(distribution.path)
+        files += [(root, relpath)]
 
     _files[name] = files
 
@@ -285,12 +277,15 @@ def deploy(package, path):
 
     """
 
-    stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
+    def make_root(variant, destination_root):
+        for source_root, relpath in _files.pop(package.name):
+            src = os.path.join(source_root, relpath)
+            src = os.path.normpath(src)
 
-    def make_root(variant, root):
-        for src in _files.pop(package.name):
-            dst = src.split(stagingsep)[1]
-            dst = os.path.join(path, dst)
+            if not os.path.exists(src):
+                continue
+
+            dst = os.path.join(root, "python", relpath)
             dst = os.path.normpath(dst)
 
             if not os.path.exists(os.path.dirname(dst)):
@@ -486,7 +481,6 @@ def _rez_name(pip_name):
 
 
 def _get_dependencies(requirement):
-
     requirements = ([requirement] if isinstance(requirement, basestring)
                     else requirement["requires"])
 
