@@ -37,6 +37,7 @@ __all__ = [
 # Mute unnecessary messages
 logging.getLogger("rez.vendor.distlib").setLevel(logging.CRITICAL)
 _basestring = six.string_types[0]
+_files = {}
 
 
 def install(names,
@@ -82,24 +83,19 @@ def install(names,
     for dist in distributions:
         package = convert(dist, variants=variants)
 
-        item = {
-            "distribution": dist,
-            "package": package,
-        }
-
         if exists(package, packagesdir):
-            existing.append(item)
+            existing.append(package)
         else:
-            new.append(item)
+            new.append(package)
 
     if not new:
         return []
 
-    for item in new:
-        deploy(item["distribution"], item["package"], path=packagesdir)
+    for package in new:
+        deploy(package, path=packagesdir)
 
     shutil.rmtree(tempdir)
-    return [item["package"] for item in new]
+    return new
 
 
 def download(names, tempdir=None, no_deps=False, index_url=None):
@@ -260,39 +256,47 @@ def convert(distribution, variants=None):
         "env.PYTHONPATH.append('{root}/python')"
     ])
 
+    # Store files from distribution for deployment
+    files = list()
+    for fname, md5, size in distribution.list_installed_files():
+        dist_info = distribution.path
+        dirname = os.path.dirname(dist_info)
+        abspath = os.path.join(dirname, fname)
+        normpath = os.path.normpath(abspath)
+
+        if not os.path.exists(normpath):
+            print("WARNING: %s didn't exist" % normpath)
+            continue
+
+        files += [normpath]
+
+    _files[name] = files
+
     package = maker.get_package()
     return package
 
 
-def deploy(distribution, package, path):
+def deploy(package, path):
     """Deploy `distribution` as `package` at `path`
 
     Arguments:
-        distribution (distlib.database.InstalledDistribution): Source
         package (rez.Package): Source package
         path (str): Path to install directory, e.g. "~/packages"
 
     """
 
+    stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
+
     def make_root(variant, root):
-        for installed_file in distribution.list_installed_files():
-            source_file = os.path.join(distribution.path, installed_file[0])
-            source_file = os.path.normpath(source_file)
+        for src in _files.pop(package.name):
+            dst = src.split(stagingsep)[1]
+            dst = os.path.join(path, dst)
+            dst = os.path.normpath(dst)
 
-            if not os.path.exists(source_file):
-                # Can happen with e.g. script files that don't install
-                # when using `pip --target`
-                continue
+            if not os.path.exists(os.path.dirname(dst)):
+                os.makedirs(os.path.dirname(dst))
 
-            stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
-            destination_file = source_file.split(stagingsep)[1]
-            destination_file = os.path.join(path, destination_file)
-            destination_file = os.path.normpath(destination_file)
-
-            if not os.path.exists(os.path.dirname(destination_file)):
-                os.makedirs(os.path.dirname(destination_file))
-
-            shutil.copyfile(source_file, destination_file)
+            shutil.copyfile(src, dst)
 
     variant = next(package.iter_variants())
     variant_ = variant.install(path)

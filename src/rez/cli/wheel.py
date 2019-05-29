@@ -156,20 +156,15 @@ def _install(opts, tempdir):
         for dist in distributions:
             package = wheel.convert(dist, variants=opts.variant)
 
-            item = {
-                "distribution": dist,
-                "package": package,
-            }
-
             if wheel.exists(package, packagesdir):
-                exists.append(item)
+                exists.append(package)
             else:
-                new.append(item)
+                new.append(package)
 
     if not new:
-        for item in exists:
+        for package in exists:
             tell("%s-%s was already installed" % (
-                item["package"].name, item["package"].version
+                package.name, package.version
             ))
 
         return tell("No new packages were installed")
@@ -182,31 +177,31 @@ def _install(opts, tempdir):
 
     # Determine column width for upcoming printing
     all_ = new + exists
-    max_name = max((i["package"].name for i in all_), key=len)
-    max_version = max((str(i["package"].version) for i in all_), key=len)
+    max_name = max((i.name for i in all_), key=len)
+    max_version = max((str(i.version) for i in all_), key=len)
     row_line = "  {:<%d}{:<%d}{}" % (len(max_name) + 4, len(max_version) + 2)
 
     def format_variants(package):
         return (
-            "/".join(str(v) for v in item["package"].variants[0])
-            if item["package"].variants else ""
+            "/".join(str(v) for v in package.variants[0])
+            if package.variants else ""
         )
 
     tell("The following NEW packages will be installed:")
-    for item in new:
+    for package in new:
         tell(row_line.format(
-            item["package"].name,
-            item["package"].version,
-            format_variants(item["package"])
+            package.name,
+            package.version,
+            format_variants(package)
         ))
 
     if exists:
         tell("The following packages will be SKIPPED:")
-        for item in exists:
+        for package in exists:
             tell(row_line.format(
-                item["package"].name,
-                item["package"].version,
-                format_variants(item["package"])
+                package.name,
+                package.version,
+                format_variants(package)
             ))
 
     tell("Packages will be installed to %s" % packagesdir)
@@ -216,17 +211,16 @@ def _install(opts, tempdir):
         if not ask("Do you want to continue? [Y/n] "):
             return
 
-    for index, item in enumerate(new):
+    for index, package in enumerate(new):
         msg = "(%d/%d) Installing %s-%s... " % (
             index + 1, len(new),
-            item["package"].name,
-            item["package"].version,
+            package.name,
+            package.version,
         )
 
         with stage(msg, timing=False):
             wheel.deploy(
-                item["distribution"],
-                item["package"],
+                package,
                 path=packagesdir
             )
 
