@@ -718,11 +718,11 @@ class FileSystemPackageRepository(PackageRepository):
         # tested regardless. Failed releases may cause 'building files' to be
         # left behind, so we need to clear these out also
         #
-        dirs = set()
+        dirs = list()
         building_dirs = set()
 
         # find dirs and dirs marked as 'building'
-        for name in os.listdir(root):
+        for name in sorted(os.listdir(root), reverse=True):
             if name.startswith('.'):
                 if not name.startswith(self.building_prefix):
                     continue
@@ -732,8 +732,8 @@ class FileSystemPackageRepository(PackageRepository):
 
             path = os.path.join(root, name)
 
-            if os.path.isdir(path) and not ignore_dir(name):
-                dirs.add(name)
+            if name not in dirs and os.path.isdir(path) and not ignore_dir(name):
+                dirs.append(name)
 
         # check 'building' dirs for validity
         for name in building_dirs:
@@ -745,7 +745,7 @@ class FileSystemPackageRepository(PackageRepository):
                 # package probably still being built
                 dirs.remove(name)
 
-        return list(dirs)
+        return dirs
 
     # True if `path` contains package.py or similar
     def _is_valid_package_directory(self, path):
