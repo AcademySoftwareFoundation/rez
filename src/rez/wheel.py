@@ -482,7 +482,7 @@ def _log(msg):
 
 
 def _rez_name(pip_name):
-    return pip_name.lower().replace("-", "_")
+    return pip_name.replace("-", "_")
 
 
 def _get_dependencies(requirement):
