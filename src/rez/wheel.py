@@ -18,6 +18,7 @@ from rez.config import config
 from rez.vendor.six import six
 from rez.utils.platform_ import platform_
 from rez.utils.filesystem import retain_cwd
+from rez.backport.lru_cache import lru_cache
 
 import os
 import errno
@@ -160,7 +161,8 @@ def download(names, tempdir=None, no_deps=False, index_url=None):
     popen = subprocess.Popen(cmd,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT,
-                             universal_newlines=True)
+                             universal_newlines=True,
+                             shell=True)
 
     output = []
     for line in iter(popen.stdout.readline, ""):
@@ -336,7 +338,7 @@ def wheel_to_variants(wheel):
     py = {
         "2": False,
         "3": False,
-        "version": [],
+        "minor": False,
     }
 
     for line in wheel.splitlines():
@@ -367,7 +369,6 @@ def wheel_to_variants(wheel):
             py_tag, abi_tag, plat_tag = value.split("-")
             major_ver = py_tag[2]
 
-            py["version"] += [major_ver]
             py[major_ver] = True
 
             if plat_tag != "any":
@@ -380,13 +381,24 @@ def wheel_to_variants(wheel):
                 variants["os"] = os_name()
                 variants["platform"] = platform_name()  # e.g. windows
 
-                minor_version = py_tag[3]  # e.g. cp27
-                py["version"] += [minor_version]
+                # Indicate that this week depends on the Python minor version
+                # which is true of any compiled Python package.
+                py["minor"] = True
 
-    if py["2"] and py["3"]:
+    if py["minor"]:
+        # Use the actual version from the running Python
+        # rather than what's coming out of the the WHEEL
+        # See 
+        variants["python"] = python_version()
+
+    elif py["2"] and py["3"]:
         variants["python"] = None
-    else:
-        variants["python"] = ".".join(py["version"])
+
+    elif py["2"]:
+        variants["python"] = "2"
+
+    elif py["3"]:
+        variants["python"] = "3"
 
     return [
         k + "-" + variants[k]
@@ -411,7 +423,10 @@ def platform_name():
     return platform_.name
 
 
+@lru_cache()
 def python_version():
+    """Return major.minor version of Python, prefer current context"""
+
     import subprocess
     from rez.status import status
     context = status.context
@@ -419,14 +434,21 @@ def python_version():
     try:
         # Use supplied Python
         package = context.get_resolved_package("python")
-        return str(package.version)
+        return ".".join(str(v) for v in package.version[:2])
+
     except AttributeError:
         # In a context, but no Python was found
         pass
 
+    except IndexError:
+        # We'll need this for almost every package on PyPI
+        raise IndexError("%s didn't have a minor version" % package.uri)
+
     # Try system Python
     popen = subprocess.Popen(
-        "python --version",
+        """\
+        python -c "import sys;print('.'.join(map(str, sys.version_info[:2])))"
+        """,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         universal_newlines=True,
@@ -436,11 +458,12 @@ def python_version():
 
     if popen.wait() == 0:
         version = popen.stdout.read().rstrip()
-        version = version.split()[-1]  # Python 2.7.11
-        return version + " (system)"  # 2.7.11
+        return version  # 3.7
 
 
+@lru_cache()
 def pip_version():
+    """Return version of pip"""
     import subprocess
     from rez.status import status
     context = status.context
@@ -465,7 +488,7 @@ def pip_version():
 
     if popen.wait() == 0:
         version = popen.stdout.read().rstrip()
-        return version + " (system)"
+        return version
 
 
 _verbose = config.debug("package_release")
