@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.packages_ import iter_packages
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
@@ -405,7 +407,7 @@ class BuildProcessHelper(BuildProcess):
         if self.verbose:
             if nargs:
                 txt = txt % nargs
-            print txt
+            print(txt)
 
     def _print_header(self, txt, n=1):
         if self.quiet:

@@ -37,7 +37,7 @@ def post_commands():
 def bind(path, version_range=None, opts=None, parser=None):
     # find executable, determine version
     exepath = find_exe("python", opts.exe)
-    code = "import sys; print '.'.join(str(x) for x in sys.version_info)"
+    code = "import sys; print('.'.join(str(x) for x in sys.version_info))"
     version = extract_version(exepath, ["-c", code])
 
     check_version(version, version_range)
@@ -51,7 +51,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     for dirname, module_name in entries:
         success, out, err = run_python_command([
             "import %s" % module_name,
-            "print %s.__file__" % module_name])
+            "print(%s.__file__)" % module_name])
 
         if success:
             pypath = os.path.dirname(out)

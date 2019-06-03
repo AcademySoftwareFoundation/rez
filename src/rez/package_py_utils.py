@@ -30,11 +30,11 @@ def expand_requirement(request, paths=None):
 
     Examples:
 
-        >>> print expand_requirement('python-2.*')
+        >>> print(expand_requirement('python-2.*'))
         python-2.7
-        >>> print expand_requirement('python==2.**')
+        >>> print(expand_requirement('python==2.**'))
         python==2.7.12
-        >>> print expand_requirement('python<**')
+        >>> print(expand_requirement('python<**'))
         python<3.0.5
 
     Args:
@@ -145,9 +145,9 @@ def expand_requires(*requests):
 
     Example:
 
-        >>> print expand_requires(["boost-1.*.*"])
+        >>> print(expand_requires(["boost-1.*.*"]))
         ["boost-1.55.0"]
-        >>> print expand_requires(["boost-1.*"])
+        >>> print(expand_requires(["boost-1.*"]))
         ["boost-1.55"]
 
     Args:
@@ -230,7 +230,7 @@ def find_site_python(module_name, paths=None):
     import ast
     import os
 
-    py_cmd = 'import {x}; print {x}.__path__'.format(x=module_name)
+    py_cmd = 'import {x}; print({x}.__path__)'.format(x=module_name)
 
     p = popen(["python", "-c", py_cmd], stdout=subprocess.PIPE,
                stderr=subprocess.PIPE)

@@ -1,6 +1,8 @@
 """
 Filesystem-related utilities.
 """
+from __future__ import print_function
+
 from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
@@ -557,13 +559,13 @@ def decode_filesystem_name(filename):
 
 def test_encode_decode():
     def do_test(orig, expected_encoded):
-        print '=' * 80
-        print orig
+        print('=' * 80)
+        print(orig)
         encoded = encode_filesystem_name(orig)
-        print encoded
+        print(encoded)
         assert encoded == expected_encoded
         decoded = decode_filesystem_name(encoded)
-        print decoded
+        print(decoded)
         assert decoded == orig
 
     do_test("Foo_Bar (fun).txt", '_foo___bar_020_028fun_029.txt')

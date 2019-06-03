@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.resolved_context import ResolvedContext
 from rez.utils.colorize import heading, local, critical, Printer
 from rez.utils.data_utils import cached_property
@@ -202,12 +204,12 @@ class Wrapper(object):
     def print_about(self):
         """Print an info message about the tool."""
         filepath = os.path.join(self.suite_path, "bin", self.tool_name)
-        print "Tool:     %s" % self.tool_name
-        print "Path:     %s" % filepath
-        print "Suite:    %s" % self.suite_path
+        print("Tool:     %s" % self.tool_name)
+        print("Path:     %s" % filepath)
+        print("Suite:    %s" % self.suite_path)
 
         msg = "%s (%r)" % (self.context.load_path, self.context_name)
-        print "Context:  %s" % msg
+        print("Context:  %s" % msg)
 
         variants = self.context.get_tool_variants(self.tool_name)
         if variants:
@@ -215,7 +217,7 @@ class Wrapper(object):
                 self._print_conflicting(variants)
             else:
                 variant = iter(variants).next()
-                print "Package:  %s" % variant.qualified_package_name
+                print("Package:  %s" % variant.qualified_package_name)
         return 0
 
     def print_package_versions(self):

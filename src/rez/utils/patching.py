@@ -6,9 +6,9 @@ def get_patched_request(requires, patchlist):
 
     For example, consider:
 
-        >>> print get_patched_request(["foo-5", "bah-8.1"], ["foo-6"])
+        >>> print(get_patched_request(["foo-5", "bah-8.1"], ["foo-6"]))
         ["foo-6", "bah-8.1"]
-        >>> print get_patched_request(["foo-5", "bah-8.1"], ["^bah"])
+        >>> print(get_patched_request(["foo-5", "bah-8.1"], ["^bah"]))
         ["foo-5"]
 
     The following rules apply wrt how normal/conflict/weak patches override

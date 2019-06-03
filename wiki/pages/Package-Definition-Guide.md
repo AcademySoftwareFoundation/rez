@@ -479,12 +479,12 @@ installation instead, and binds that into a rez package.
     def _bin_path():
         return this._exec_python(
             "_bin_path",
-            "import sys, os.path; print os.path.dirname(sys.executable)")
+            "import sys, os.path; print(os.path.dirname(sys.executable))")
 
     def _version():
         return _exec_python(
             "version",
-            "import sys; print sys.version.split()[0]")
+            "import sys; print(sys.version.split()[0])")
 
     __version = _version()
 
@@ -708,7 +708,7 @@ You should set the uuid on a new package once, and not change it from then on. T
 string doesn't actually matter, but you'd typically use a true UUID, and you can generate one
 like so:
 
-    ]$ python -c 'import uuid; print uuid.uuid4().hex'
+    ]$ python -c 'import uuid; print(uuid.uuid4().hex)'
 
 ### variants
 *List of list of string*
