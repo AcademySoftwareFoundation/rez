@@ -113,7 +113,7 @@ def command(opts, parser, extra_arg_groups=None):
 
             seen.add(family.name)
 
-        print "memcached servers are warmed."
+        print("memcached servers are warmed.")
         return
 
     if opts.reset_stats:

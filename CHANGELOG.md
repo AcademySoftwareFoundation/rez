@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.30.2](https://github.com/nerdvegas/rez/tree/2.30.2) (2019-06-03)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.30.1...2.30.2)
+
+**Merged pull requests:**
+
+- Update print statements to be Python 3 compatible [\#641](https://github.com/nerdvegas/rez/pull/641) ([bpabel](https://github.com/bpabel))
+
 ## [2.30.1](https://github.com/nerdvegas/rez/tree/2.30.1) (2019-06-03)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.30.0...2.30.1)
 
