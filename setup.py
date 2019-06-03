@@ -1,4 +1,5 @@
-from __future__ import with_statement
+from __future__ import print_function, with_statement
+
 import fnmatch
 import os
 import os.path
@@ -8,12 +9,12 @@ import sys
 try:
     from setuptools import setup, find_packages
 except ImportError:
-    print >> sys.stderr, "install failed - requires setuptools"
+    print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
 
 
 if sys.version_info < (2, 6):
-    print >> sys.stderr, "install failed - requires python v2.6 or greater"
+    print("install failed - requires python v2.6 or greater", file=sys.stderr)
     sys.exit(1)
 
 

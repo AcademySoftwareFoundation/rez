@@ -68,8 +68,8 @@ class TestContext(TestBase, TempdirMixin):
         r = ResolvedContext(["hello_world"])
 
         pycode = ("import os; "
-                  "print os.getenv(\"BIGLY\"); "
-                  "print os.getenv(\"OH_HAI_WORLD\")")
+                  "print(os.getenv(\"BIGLY\")); "
+                  "print(os.getenv(\"OH_HAI_WORLD\"))")
 
         args = ["python", "-c", pycode]
 

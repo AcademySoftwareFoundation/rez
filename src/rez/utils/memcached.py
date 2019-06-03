@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.config import config
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
 from threading import local
@@ -152,7 +154,7 @@ class Client(object):
         """Disconnect from server(s). Behaviour is undefined after this call."""
         if self.servers and self._client:
             self._client.disconnect_all()
-        #print "Disconnected memcached client %s" % str(self)
+        # print("Disconnected memcached client %s" % str(self))
 
     def _qualified_key(self, key):
         return "%s:%s:%s" % (cache_interface_version, self.current, key)

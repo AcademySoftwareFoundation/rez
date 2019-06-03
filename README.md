@@ -115,7 +115,7 @@ Resolved environments can also be created via the API:
     >>> p = r.execute_shell(command='which hescape', stdout=subprocess.PIPE)
     >>> out, err = p.communicate()
     >>>
-    >>> print out
+    >>> print(out)
     '/software/ext/houdini/12.5.562/bin/hescape'
 
 

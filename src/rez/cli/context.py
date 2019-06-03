@@ -1,6 +1,7 @@
 '''
 Print information about the current rez context, or a given context file.
 '''
+from __future__ import print_function
 
 # Disable context tracking. Use of rez-context doesn't really indicate usage of
 # the packages in the context; and tracking this causes doubling up, ie most
@@ -103,7 +104,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     rxt_file = opts.RXT if opts.RXT else status.context_file
     if not rxt_file:
-        print >> sys.stderr, "not in a resolved environment context."
+        print("not in a resolved environment context.", file=sys.stderr)
         sys.exit(1)
 
     if rxt_file == '-':  # read from stdin
@@ -115,16 +116,16 @@ def command(opts, parser, extra_arg_groups=None):
         if rc.has_graph:
             return rc.graph(as_dot=True)
         else:
-            print >> sys.stderr, "The context does not contain a graph."
+            print("The context does not contain a graph.", file=sys.stderr)
             sys.exit(1)
 
     parent_env = {} if opts.no_env else None
 
     if not opts.interpret:
         if opts.print_request:
-            print " ".join(str(x) for x in rc.requested_packages(False))
+            print(" ".join(str(x) for x in rc.requested_packages(False)))
         elif opts.print_resolve:
-            print ' '.join(x.qualified_package_name for x in rc.resolved_packages)
+            print(' '.join(x.qualified_package_name for x in rc.resolved_packages))
         elif opts.tools:
             rc.print_tools()
         elif opts.diff:
@@ -139,12 +140,12 @@ def command(opts, parser, extra_arg_groups=None):
             cmd = opts.which
             path = rc.which(cmd, parent_environ=parent_env)
             if path:
-                print path
+                print(path)
             else:
-                print >> sys.stderr, "'%s' not found in the context" % cmd
+                print("'%s' not found in the context" % cmd, file=sys.stderr)
         elif opts.print_graph:
             gstr = _graph()
-            print gstr
+            print(gstr)
         elif opts.graph or opts.write_graph:
             gstr = _graph()
             if opts.prune_pkg:
@@ -163,16 +164,16 @@ def command(opts, parser, extra_arg_groups=None):
 
         if opts.format == 'table':
             rows = [x for x in sorted(env.iteritems())]
-            print '\n'.join(columnise(rows))
+            print('\n'.join(columnise(rows)))
         elif opts.format == 'dict':
-            print pformat(env)
+            print(pformat(env))
         else:  # json
-            print json.dumps(env, sort_keys=True, indent=4)
+            print(json.dumps(env, sort_keys=True, indent=4))
     else:
         code = rc.get_shell_code(shell=opts.format,
                                  parent_environ=parent_env,
                                  style=OutputStyle[opts.style])
-        print code
+        print(code)
 
 
 # Copyright 2013-2016 Allan Johns.

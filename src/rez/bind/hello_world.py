@@ -5,7 +5,8 @@ Note: Even though this is a python-based package, it does not list python as a
 requirement. This is not typical! This package is intended as a very simple test
 case, and for that reason we do not want any dependencies.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
+
 from rez.package_maker__ import make_package
 from rez.vendor.version.version import Version
 from rez.utils.lint_helper import env
@@ -31,7 +32,7 @@ def hello_world_source():
     opts,args = p.parse_args()
 
     if not opts.quiet:
-        print "Hello Rez World!"
+        print("Hello Rez World!")
     sys.exit(opts.retcode)
 
 

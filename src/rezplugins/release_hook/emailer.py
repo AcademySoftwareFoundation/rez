@@ -1,6 +1,8 @@
 """
 Sends a post-release email
 """
+from __future__ import print_function
+
 from rez.release_hook import ReleaseHook
 from rez.system import system
 from email.mime.text import MIMEText
@@ -71,8 +73,8 @@ class EmailReleaseHook(ReleaseHook):
         if not recipients:
             return
 
-        print "Sending release email to:"
-        print '\n'.join("- %s" % x for x in recipients)
+        print("Sending release email to:")
+        print('\n'.join("- %s" % x for x in recipients))
 
         msg = MIMEText(body)
         msg["Subject"] = subject
@@ -84,7 +86,7 @@ class EmailReleaseHook(ReleaseHook):
             s.sendmail(from_addr=self.settings.sender,
                        to_addrs=recipients,
                        msg=msg.as_string())
-            print 'Email(s) sent.'
+            print('Email(s) sent.')
         except Exception, e:
             print_error("release email delivery failed: %s" % str(e))
 

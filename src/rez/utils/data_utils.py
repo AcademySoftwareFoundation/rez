@@ -162,7 +162,7 @@ class cached_property(object):
         >>> class Foo(object):
         >>>     @cached_property
         >>>     def bah(self):
-        >>>         print 'bah'
+        >>>         print('bah')
         >>>         return 1
         >>>
         >>> f = Foo()
@@ -202,7 +202,7 @@ class cached_class_property(object):
         >>> class Foo(object):
         >>>     @cached_class_property
         >>>     def bah(cls):
-        >>>         print 'bah'
+        >>>         print('bah')
         >>>         return 1
         >>>
         >>> Foo.bah
@@ -437,11 +437,11 @@ class AttributeForwardMeta(type):
         >>>
         >>> x = Foo()
         >>> y = Bah(x)
-        >>> print y.a
+        >>> print(y.a)
         a_from_bah
-        >>> print y.b
+        >>> print(y.b)
         b_from_foo
-        >>> print y.c
+        >>> print(y.c)
         None
     """
     def __new__(cls, name, parents, members):

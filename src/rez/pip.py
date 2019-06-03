@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.packages_ import get_latest_package
 from rez.vendor.version.version import Version
 from rez.vendor.distlib import DistlibException
@@ -224,7 +226,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     if context and config.debug("package_release"):
         buf = StringIO()
-        print >> buf, "\n\npackage download environment:"
+        print("\n\npackage download environment:", file=buf)
         context.print_info(buf)
         _log(buf.getvalue())
 

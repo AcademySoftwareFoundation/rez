@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import subprocess
 import sys
@@ -601,12 +603,12 @@ class Python(ActionInterpreter):
     def info(self, value):
         if not self.passive:
             value = self.escape_string(value)
-            print value
+            print(value)
 
     def error(self, value):
         if not self.passive:
             value = self.escape_string(value)
-            print >> sys.stderr, value
+            print(value, file=sys.stderr)
 
     def subprocess(self, args, **subproc_kwargs):
         if self.manager:

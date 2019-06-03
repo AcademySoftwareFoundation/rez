@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.utils.formatting import StringFormatMixin, StringFormatType
 import UserDict
 import sys
@@ -11,16 +13,16 @@ class RecursiveAttribute(UserDict.UserDict, StringFormatMixin):
         >>> a.foo['eek'] = 'hey'
         >>> a.fee = 1
 
-        >>> print a.to_dict()
+        >>> print(a.to_dict())
         {'foo': {'bah': 5, 'eek': 'hey'}, 'fee': 1}
 
     A recursive attribute can also be created from a dict, and made read-only::
 
         >>> d = {'fee': {'fi': {'fo': 'fum'}}, 'ho': 'hum'}
         >>> a = RecursiveAttribute(d, read_only=True)
-        >>> print str(a)
+        >>> print(str(a))
         {'fee': {'fi': {'fo': 'fum'}}, 'ho': 'hum'}
-        >>> print a.ho
+        >>> print(a.ho)
         hum
         >>> a.new = True
         AttributeError: 'RecursiveAttribute' object has no attribute 'new'
@@ -47,7 +49,7 @@ class RecursiveAttribute(UserDict.UserDict, StringFormatMixin):
             _noattrib()
 
         # the new attrib isn't actually added to this instance until it's set
-        # to something. This stops code like "print instance.notexist" from
+        # to something. This stops code like "print(instance.notexist)" from
         # adding empty attributes
         attr_ = self._create_child_attribute(attr)
         assert(isinstance(attr_, RecursiveAttribute))
@@ -182,7 +184,7 @@ class ScopeContext(object):
 
     The dictionaries can then be retrieved::
 
-        >>> print pprint.pformat(scope.to_dict())
+        >>> print(pprint.pformat(scope.to_dict()))
         {'animal': {'count': 3,
                     'cat': {'friendly': False,
                             'num_legs': 4},
@@ -243,7 +245,7 @@ def scoped_format(txt, **objects):
         >>> Class Foo(object):
         >>>     def __init__(self):
         >>>         self.name = "Dave"
-        >>> print scoped_format("hello {foo.name}", foo=Foo())
+        >>> print(scoped_format("hello {foo.name}", foo=Foo()))
         hello Dave
 
     Args:
