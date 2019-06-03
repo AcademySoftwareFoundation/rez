@@ -8,8 +8,12 @@ build_requires = ["floob"]
 
 private_build_requires = ["build_util"]
 
+@include("late_utils")
 def commands():
     env.PYTHONPATH.append('{root}/python')
+    env.FOO_IN_DA_HOUSE = "1"
+
+    late_utils.add_eek_var(env)
 
 
 # Copyright 2013-2016 Allan Johns.

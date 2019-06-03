@@ -199,7 +199,11 @@ class TestShells(TestBase, TempdirMixin):
 
             def _print(value):
                 env.FOO = value
-                info("%FOO%" if windows else "${FOO}")
+                # Wrap the output in quotes to prevent the shell from
+                # interpreting parts of our output as commands. This can happen
+                # when we include special characters (&, <, >, ^) in a
+                # variable.
+                info('"%FOO%"' if windows else '"${FOO}"')
 
             env.GREET = "hi"
             env.WHO = "Gary"
@@ -228,6 +232,12 @@ class TestShells(TestBase, TempdirMixin):
             _print(literal("${WHO}"))
             _print(literal("${WHO}").e(" %WHO%" if windows else " $WHO"))
 
+            # Make sure we are escaping &, <, >, ^ properly.
+            _print('hey & world')
+            _print('hey > world')
+            _print('hey < world')
+            _print('hey ^ world')
+
         expected_output = [
             "ello",
             "ello",
@@ -251,8 +261,17 @@ class TestShells(TestBase, TempdirMixin):
             "hi Gary",
             "hi $WHO",
             "${WHO}",
-            "${WHO} Gary"
+            "${WHO} Gary",
+            "hey & world",
+            "hey > world",
+            "hey < world",
+            "hey ^ world"
         ]
+
+        # We are wrapping all variable outputs in quotes in order to make sure
+        # our shell isn't interpreting our output as instructions when echoing
+        # it but this means we need to wrap our expected output as well.
+        expected_output = ['"{}"'.format(o) for o in expected_output]
 
         _execute_code(_rex_assigning, expected_output)
 
@@ -274,6 +293,40 @@ class TestShells(TestBase, TempdirMixin):
         ]
 
         _execute_code(_rex_appending, expected_output)
+
+    @shell_dependent()
+    def test_rex_code_alias(self):
+        """Ensure PATH changes do not influence the alias command.
+
+        This is important for Windows because the doskey.exe might not be on
+        the PATH anymore at the time it's executed. That's why we figure out
+        the absolute path to doskey.exe before we modify PATH and continue to
+        use the absolute path after the modifications.
+
+        """
+        def _execute_code(func):
+            loc = inspect.getsourcelines(func)[0][1:]
+            code = textwrap.dedent('\n'.join(loc))
+            r = self._create_context([])
+            p = r.execute_rex_code(code, stdout=subprocess.PIPE)
+
+            out, _ = p.communicate()
+            self.assertEqual(p.returncode, 0)
+
+        def _alias_after_path_manipulation():
+            # Appending something to the PATH and creating an alias afterwards
+            # did fail before we implemented a doskey specific fix.
+            env.PATH.append("hey")
+            alias('alias_test', '"echo test_echo"')
+
+            # We can not run the command from a batch file because the Windows
+            # doskey doesn't support it. From the docs:
+            # "You cannot run a doskey macro from a batch program."
+            # command('alias_test')
+
+        # We don't expect any output, the shell should just return with exit
+        # code 0.
+        _execute_code(_alias_after_path_manipulation)
 
 
 if __name__ == '__main__':

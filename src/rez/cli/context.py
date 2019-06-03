@@ -3,18 +3,18 @@ Print information about the current rez context, or a given context file.
 '''
 from __future__ import print_function
 
+# Disable context tracking. Use of rez-context doesn't really indicate usage of
+# the packages in the context; and tracking this causes doubling up, ie most
+# rez-env invocations do a rez-context immediately after. So turning this off
+# cuts down on the amount of data getting tracked, and is more indicative of
+# actual package use.
+#
+import os
+os.environ["REZ_CONTEXT_TRACKING_HOST"] = ''
+
+import json
 import sys
 from rez.rex import OutputStyle
-
-try:
-    # part of Python since 2.6
-    import json
-except ImportError:
-    try:
-        # for Python < 2.6
-        import simplejson as json
-    except ImportError:
-        json = None
 
 
 def setup_parser(parser, completions=False):

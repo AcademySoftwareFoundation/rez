@@ -203,7 +203,7 @@ class PackageTestRunner(object):
                 else:
                     cmd_str = ' '.join(map(quote, command))
 
-                print_header("\nRunning test command: %s\n" % cmd_str)
+                print_header("\nRunning test command: %s\n", cmd_str)
 
             retcode, _, _ = context.execute_shell(
                 command=command,

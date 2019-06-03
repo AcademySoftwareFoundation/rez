@@ -226,6 +226,20 @@ class TestConfig(TestBase):
         finally:
             os.environ = old_environ
 
+    def test_7(self):
+        """Test path list environment variable with whitespace."""
+        c = Config([self.root_config_file], locked=False)
+
+        # test basic env-var override
+        packages_path = [
+            "/foo bar/baz",
+            "/foo bar/baz hey",
+            "/home/foo bar/baz",
+        ]
+        os.environ["REZ_PACKAGES_PATH"] = os.pathsep.join(packages_path)
+
+        self.assertEqual(c.packages_path, packages_path)
+
 
 if __name__ == '__main__':
     unittest.main()

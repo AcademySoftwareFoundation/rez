@@ -1,6 +1,8 @@
 from __future__ import print_function
+import os
 
-from build_util import check_visible
+from build_util import build_directory_recurse, check_visible
+
 
 
 def build(source_path, build_path, install_path, targets):
@@ -16,8 +18,15 @@ def build(source_path, build_path, install_path, targets):
     import floob
     print(floob.hello())
 
-    # note - this package intentionally doesn't build anything
-    pass
+    # do the build
+    if "install" not in (targets or []):
+        install_path = None
+
+    build_directory_recurse(src_dir="bah",
+                            dest_dir=os.path.join("python", "bah"),
+                            source_path=source_path,
+                            build_path=build_path,
+                            install_path=install_path)
 
 
 # Copyright 2013-2016 Allan Johns.

@@ -23,7 +23,7 @@ both maya versions. Consider the following package definition for our plugin:
 
     variants = [
         ["maya-2016.sp2"],
-        ["maya-2017]
+        ["maya-2017"]
     ]
 
 When you build and install this package, two separate builds will occur - one
@@ -57,6 +57,36 @@ The *root* of a package is the root directory of its current variant (the one
 the current environment is configured to use); the *base* of a package is the
 directory containing its variants. In a package that does not have variants,
 *base* and *root* are the same.
+
+## Hashed Variants
+
+There are two problems with the variant subpath as illustrated above:
+* The variant install path can become long if there are many requirements;
+* If some variant requirements contain characters such as `!` and `<`, they
+  can cause escaping problems that affect build systems; and, depending on the
+  platform, may not be a valid filesystem path.
+
+You can avoid these issues by using _hashed variants_. This sets the variant
+subpath to a hash of its requirements, rather than the requirements themselves.
+The resulting subdirectly is somewhat unwieldy (example:
+`83e0c415db1b602f9d59cee028da6ac785e9bacc`). However, another feature -
+_variant shortlinks_ - deals with this. A shortlink is a symlink to each variant,
+created in a separate subdirectory (default `_v`).
+
+Here is an example hashed variant path:
+
+    /rez/packages/my_maya_plugin/1.0.0/83e0c415db1b602f9d59cee028da6ac785e9bacc
+
+Here is the matching _shortlink_, which is what will be used in a resolved
+environment:
+
+    /rez/packages/my_maya_plugin/1.0.0/_v/a
+
+Hashed variants must be enabled explicitly for a package. To do this, simply set
+this in your package definition:
+
+    hashed_variants = True
+
 
 ## Platform As Variant
 

@@ -157,16 +157,12 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
     if opts.input:
-        if opts.PKG:
-            parser.error("Cannot use --input and provide PKG(s) at the same time")
+        if opts.PKG and not opts.patch:
+            parser.error("Cannot use --input and provide PKG(s), unless patching.")
+
         context = ResolvedContext.load(opts.input)
-        if context.status != ResolverStatus.solved:
-            print("cannot rez-env into a failed context", file=sys.stderr)
-            sys.exit(1)
 
     if opts.patch:
-        # TODO: patching is lagging behind in options, and needs to be updated
-        # anyway.
         if context is None:
             from rez.status import status
             context = status.context
@@ -174,6 +170,7 @@ def command(opts, parser, extra_arg_groups=None):
                 print("cannot patch: not in a context", file=sys.stderr)
                 sys.exit(1)
 
+        # modify the request in terms of the given patch request
         request = context.get_patched_request(request,
                                               strict=opts.strict,
                                               rank=opts.patch_rank)
@@ -209,6 +206,7 @@ def command(opts, parser, extra_arg_groups=None):
                                   print_stats=opts.stats)
 
     success = (context.status == ResolverStatus.solved)
+
     if not success:
         context.print_info(buf=sys.stderr)
         if opts.fail_graph:
@@ -232,8 +230,11 @@ def command(opts, parser, extra_arg_groups=None):
 
     # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.
-    if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
-        opts.stdin = False
+    try:
+        if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
+            opts.stdin = False
+    except select.error:
+        pass  # because windows
 
     quiet = opts.quiet or bool(command)
     returncode, _, _ = context.execute_shell(

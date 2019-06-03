@@ -39,20 +39,24 @@ class CMakeBuildSystem(BuildSystem):
       if 0, just a build is occurring.
     """
 
-    build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
-                     'codeblocks':  "CodeBlocks - Unix Makefiles",
-                     'make':        "Unix Makefiles",
-                     'nmake':       "NMake Makefiles",
-                     'xcode':       "Xcode"}
+    build_systems = {
+        'eclipse': "Eclipse CDT4 - Unix Makefiles",
+        'codeblocks': "CodeBlocks - Unix Makefiles",
+        'make': "Unix Makefiles",
+        'nmake': "NMake Makefiles",
+        'mingw': "MinGW Makefiles",
+        'xcode': "Xcode"
+    }
 
     build_targets = ["Debug", "Release", "RelWithDebInfo"]
 
     schema_dict = {
-        "build_target":     Or(*build_targets),
-        "build_system":     Or(*build_systems.keys()),
-        "cmake_args":       [basestring],
-        "cmake_binary":     Or(None, basestring),
-        "make_binary":     Or(None, basestring)}
+        "build_target": Or(*build_targets),
+        "build_system": Or(*build_systems.keys()),
+        "cmake_args": [basestring],
+        "cmake_binary": Or(None, basestring),
+        "make_binary": Or(None, basestring)
+    }
 
     @classmethod
     def name(cls):
@@ -63,20 +67,21 @@ class CMakeBuildSystem(BuildSystem):
         return "make"
 
     @classmethod
-    def is_valid_root(cls, path):
+    def is_valid_root(cls, path, package=None):
         return os.path.isfile(os.path.join(path, "CMakeLists.txt"))
 
     @classmethod
-    def bind_cli(cls, parser):
+    def bind_cli(cls, parser, group):
         settings = config.plugins.build_system.cmake
-        parser.add_argument("--bt", "--build-target", dest="build_target",
-                            type=str, choices=cls.build_targets,
-                            default=settings.build_target,
-                            help="set the build target (default: %(default)s).")
-        parser.add_argument("--bs", "--build-system", dest="build_system",
-                            type=str, choices=cls.build_systems.keys(),
-                            default=settings.build_system,
-                            help="set the cmake build system (default: %(default)s).")
+        group.add_argument("--bt", "--build-target", dest="build_target",
+                           type=str, choices=cls.build_targets,
+                           default=settings.build_target,
+                           help="set the build target (default: %(default)s).")
+        group.add_argument("--bs", "--cmake-build-system",
+                           dest="cmake_build_system",
+                           choices=cls.build_systems.keys(),
+                           default=settings.build_system,
+                           help="set the cmake build system (default: %(default)s).")
 
     def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
@@ -90,10 +95,9 @@ class CMakeBuildSystem(BuildSystem):
             child_build_args=child_build_args)
 
         self.settings = self.package.config.plugins.build_system.cmake
-        self.build_target = (opts and opts.build_target) or \
-                            self.settings.build_target
-        self.cmake_build_system = (opts and opts.build_system) or \
-                                  self.settings.build_system
+        self.build_target = getattr(opts, "build_target", self.settings.build_target)
+        self.cmake_build_system = getattr(opts, "cmake_build_system", self.settings.build_system)
+
         if self.cmake_build_system == 'xcode' and platform_.name != 'osx':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
@@ -177,14 +181,20 @@ class CMakeBuildSystem(BuildSystem):
             return ret
 
         # assemble make command
-        if self.settings.make_binary:
-            cmd = [self.settings.make_binary]
-        else:
-            cmd = ["make"]
-        cmd += (self.child_build_args or [])
+        make_binary = self.settings.make_binary
+
+        if not make_binary:
+            if self.cmake_build_system == "mingw":
+                make_binary = "mingw32-make"
+            elif self.cmake_build_system == "nmake":
+                make_binary = "nmake"
+            else:
+                make_binary = "make"
+
+        cmd = [make_binary] + (self.child_build_args or [])
 
         # nmake has no -j
-        if self.settings.make_binary != 'nmake':
+        if make_binary != "nmake":
             if not any(x.startswith("-j") for x in (self.child_build_args or [])):
                 n = variant.config.build_thread_count
                 cmd.append("-j%d" % n)

@@ -16,7 +16,7 @@ def setup_parser(parser, completions=False):
         help="Include build requirements")
     parser.add_argument(
         "-p", "--private-build-requires", action="store_true",
-        help="Include private build requirements")
+        help="Include private build requirements of PKG, if any")
     parser.add_argument(
         "-g", "--graph", action="store_true",
         help="display the dependency tree as an image")

@@ -168,6 +168,17 @@ if __name__ == "__main__":
     print(dest_bin_dir)
 
     if completion_path:
-        print("You may also want to source the relevant completion script from:")
-        print(completion_path)
-    print()
+        print('')
+        shell = os.getenv('SHELL')
+
+        if shell:
+            shell = os.path.basename(shell)
+            ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
+
+            print("You may also want to source the completion script (for %s):" % shell)
+            print("source {0}/complete.{1}".format(completion_path, ext))
+        else:
+            print("You may also want to source the relevant completion script from:")
+            print(completion_path)
+
+    print('')
