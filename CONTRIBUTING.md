@@ -3,6 +3,8 @@
 If you would like to contribute code you can do so through GitHub by forking the repository and
 sending a pull request. Please follow these guidelines:
 
+* Always retain backwards compatibility, unless a breaking change is necessary. If it is necessary, the associated
+  release notes must make this explicit and obvious;
 * Make every effort to follow existing conventions and style;
 * Follow [PEP8](https://www.python.org/dev/peps/pep-0008/);
 * Follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
