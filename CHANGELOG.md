@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.30.1](https://github.com/nerdvegas/rez/tree/2.30.1) (2019-06-03)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.30.0...2.30.1)
+
+**Merged pull requests:**
+
+- WIP Fix file permissions of package.py on Windows [\#598](https://github.com/nerdvegas/rez/pull/598) ([mottosso](https://github.com/mottosso))
+
 ## [2.30.0](https://github.com/nerdvegas/rez/tree/2.30.0) (2019-05-07)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.29.1...2.30.0)
 
