@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from inspect import isfunction, ismodule, getargspec
 from StringIO import StringIO
 import sys
+import stat
 import os
 import os.path
 import threading
@@ -64,8 +65,21 @@ def open_file_for_write(filepath, mode=None):
 
     debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
 
-    with atomic_write(filepath, overwrite=True) as f:
-        f.write(content)
+    for attempt in range(2):
+        try:
+            with atomic_write(filepath, overwrite=True) as f:
+                f.write(content)
+
+        except WindowsError as e:
+            if attempt == 0:
+                # `overwrite=True` of atomic_write doesn't restore
+                # writability to the file being written to.
+                os.chmod(filepath, stat.S_IWRITE | stat.S_IREAD)
+
+            else:
+                # Under Windows, atomic_write doesn't tell you about
+                # which file actually failed.
+                raise WindowsError("%s: '%s'" % (e, filepath))
 
     if mode is not None:
         os.chmod(filepath, mode)
