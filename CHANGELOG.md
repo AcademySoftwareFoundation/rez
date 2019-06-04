@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.31.0](https://github.com/nerdvegas/rez/tree/2.31.0) (2019-06-04)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.30.2...2.31.0)
+
+**Merged pull requests:**
+
+- Fix/add support for reversed version range [\#618](https://github.com/nerdvegas/rez/pull/618) ([instinct-vfx](https://github.com/instinct-vfx))
+
 ## [2.30.2](https://github.com/nerdvegas/rez/tree/2.30.2) (2019-06-03)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.30.1...2.30.2)
 
