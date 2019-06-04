@@ -238,6 +238,15 @@ class TestVersionSchema(unittest.TestCase):
         _eq("10+,<20", "10+<20")
         _eq("1+<1.0", "1+<1.0")
         _eq(">=2", "2+")
+        _eq(">=1.21.1,<1.23", ">=1.21.1<1.23")
+        _eq(">1.21.1,<1.23", ">1.21.1<1.23")
+        _eq(">1.21.1<1.23", ">1.21.1<1.23")
+        _eq(">1.21.1,<=1.23", ">1.21.1<=1.23")
+
+        # Reverse order which is a syntax pip packages use more often now.
+        # Only allowed when separated by a comma.
+        _eq("<1.23,>=1.21.1", ">=1.21.1<1.23")
+        _eq("<1.23,>1.21.1", ">1.21.1<1.23")
 
         # optimised cases
         _eq("3|3", "3")
@@ -305,7 +314,7 @@ class TestVersionSchema(unittest.TestCase):
             "><",           # both greater and less than empty version
             ">3>4",         # both are lower bounds
             "<3<4",         # both are upper bounds
-            "<4>3",         # upper bound before lower
+            "<4>3",         # upper bound before lower without comma
             ",<4",          # leading comma
             "4+,",          # trailing comma
             "1>=",          # pre-lower-op in post
