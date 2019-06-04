@@ -44,5 +44,4 @@ Here is an example changelog entry:
 - "parse_build_args.py" file parser arguments are not accessible anymore in "os.environ". [\#590](https://github.com/nerdvegas/rez/issues/590)
 ```
 
-Please include the relevant issues that your PR closes, matching the syntax shown above. When the PR is merged to master, the PR itself will be added to the same changelog entry by the maintainer.
-
+Please include the relevant issues that your PR closes, matching the syntax shown above. When the PR is merged to master, the PR info will be added to the same changelog entry by the maintainer. Don't be too concerned with the date and 'full changelog' line, this will also be patched by the maintainer.
