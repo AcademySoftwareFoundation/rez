@@ -9,9 +9,8 @@ To merge a PR to master and release a new version:
    is correct, and change if necessary. The version may have been correct at the
    time of PR submission, but may need an update due to releases that have occurred
    since;
-4. Update [the changelog](https://github.com/nerdvegas/rez/blob/master/CHANGELOG.md)
-   to include the PR itself, as per existing entries. Also, make sure that the
-   date and 'full changelog' link are correct;
+4. Update [the changelog](CHANGELOG.md) to include the PR itself, as per existing
+   entries. Also, make sure that the date and 'full changelog' link are correct;
 5. Push to master;
 6. Run `bash tag.sh -p`. This tags the git repo with the version in `utils/_version.py`;
 7. Generate the new GitHub release notes, like so:
