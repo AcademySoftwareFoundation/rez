@@ -179,7 +179,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     print()
     if installed_variants:
-        print "%d packages were installed:" % len(installed_variants)
+        print("%d packages were installed:" % len(installed_variants))
         for variant, purity in zip(installed_variants, variant_types):
             print("[{}]".format(purity))
             print_variant(variant)
