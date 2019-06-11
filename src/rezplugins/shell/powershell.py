@@ -186,9 +186,13 @@ class PowerShell(Shell):
         else:
             _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
 
+        if shell_command:
+            executor.command(shell_command)
+
         code = executor.get_output()
-        target_file = os.path.join(tmpdir, "rez-shell.%s"
-                                   % self.file_extension())
+        target_file = os.path.join(
+            tmpdir, "rez-shell.%s" % self.file_extension()
+        )
 
         with open(target_file, 'w') as f:
             f.write(code)
@@ -200,11 +204,11 @@ class PowerShell(Shell):
             if not isinstance(cmd, (tuple, list)):
                 cmd = pre_command.rstrip().split()
 
-        cmd += [self.executable, "-noexit"]
+        cmd += [self.executable]
         cmd += ['. "{}"'.format(target_file)]
 
-        if shell_command:
-            cmd += shell_command
+        if not shell_command:
+            cmd.insert(1, "-noexit")
 
         p = popen(cmd,
                   env=env,
