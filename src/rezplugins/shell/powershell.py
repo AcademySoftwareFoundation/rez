@@ -263,7 +263,7 @@ class PowerShell(Shell):
         self._addline(self.setenv(key, value))
 
     def alias(self, key, value):
-        self._addline("Set-Alias -Name %s -Value \"%s\"" % key, value)
+        self._addline("Set-Alias -Name %s -Value \"%s\"" % (key, value))
 
     def comment(self, value):
         for line in value.split('\n'):
