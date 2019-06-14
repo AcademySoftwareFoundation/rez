@@ -24,7 +24,7 @@ class CMD(Shell):
 
     # Regex to aid with escaping of Windows-specific special chars:
     # http://ss64.com/nt/syntax-esc.html
-    _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])')
+    _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])|(\|)')
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
     @property
