@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.31.1](https://github.com/nerdvegas/rez/tree/2.31.1) (2019-06-18)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.0...2.31.1)
+
+**Merged pull requests:**
+
+- Automatically create missing package repository dir [\#623](https://github.com/nerdvegas/rez/pull/623) ([mottosso](https://github.com/mottosso))
+
 ## [2.31.0](https://github.com/nerdvegas/rez/tree/2.31.0) (2019-06-04)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.30.2...2.31.0)
 
