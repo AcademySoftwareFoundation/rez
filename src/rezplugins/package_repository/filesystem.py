@@ -588,7 +588,7 @@ class FileSystemPackageRepository(PackageRepository):
                 variant_version == variant_resource.version:
             return variant_resource
 
-        # check repo exists on disk
+        # create repo path on disk if it doesn't exist
         path = self.location
 
         try:
@@ -596,8 +596,8 @@ class FileSystemPackageRepository(PackageRepository):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise PackageRepositoryError(
-                    "Package repository did not exist "
-                    "and could not be created."
+                    "Package repository path %r could not be created: %s: %s"
+                    % (path, e.__class__.__name__, e)
                 )
 
         # install the variant
