@@ -312,7 +312,7 @@ environment from being constructed (use the [stop](#stop) command for that).
     if getenv("REZ_MAYA_VERSION") == "2016.sp1":
         pass
 
-Gets the value of an environment variable, or returns None if the environment variable is not set.
+Gets the value of an environment variable; raises *RexUndefinedVariableError* if not set.
 
 ### implicits
 *Dict-like object*
