@@ -109,10 +109,6 @@ class OptionalStr(Str):
     schema = Or(None, basestring)
 
 
-class OptionalObject(Str):
-    schema = Or(None, object)
-
-
 class StrList(Setting):
     schema = Schema([basestring])
     sep = ','
@@ -238,6 +234,14 @@ class RezToolsVisibility_(Str):
         return Or(*(x.name for x in RezToolsVisibility))
 
 
+class OptionalStrOrFunction(Setting):
+    schema = Or(None, basestring, callable)
+
+    def _parse_env_var(self, value):
+        # note: env-var override only supports string, eg 'mymodule.preprocess_func'
+        return value
+
+
 class BuildThreadCount_(Setting):
     # may be a positive int, or the values "physical" or "logical"
 
@@ -320,7 +324,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
-    "package_preprocess_function":                  OptionalObject,
+    "package_preprocess_function":                  OptionalStrOrFunction,
     "context_tracking_host":                        OptionalStr,
     "variant_shortlinks_dirname":                   OptionalStr,
     "build_thread_count":                           BuildThreadCount_,

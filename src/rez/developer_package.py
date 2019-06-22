@@ -174,17 +174,16 @@ class DeveloperPackage(Package):
 
             else:
                 # load globally configured preprocess function
-                dotted = self.config.package_preprocess_function
-                funcname = dotted
+                package_preprocess_function = self.config.package_preprocess_function
 
-                if not dotted:
+                if not package_preprocess_function:
                     return None
 
-                elif isfunction(dotted):
-                    preprocess_func = dotted
+                elif isfunction(package_preprocess_function):
+                    preprocess_func = package_preprocess_function
 
-                elif isinstance(dotted, basestring):
-                    if '.' not in dotted:
+                elif isinstance(package_preprocess_function, basestring):
+                    if '.' not in package_preprocess_function:
                         print_error(
                             "Setting 'package_preprocess_function' must be of "
                             "form 'module[.module.module...].funcname'. "
@@ -192,14 +191,14 @@ class DeveloperPackage(Package):
                         )
                         return None
 
-                    name, funcname = dotted.rsplit('.', 1)
+                    name, funcname = package_preprocess_function.rsplit('.', 1)
 
                     try:
                         module = __import__(name=name, fromlist=[funcname])
                     except Exception as e:
                         print_error(
                             "Failed to load preprocessing function '%s': %s"
-                            % (dotted, str(e))
+                            % (package_preprocess_function, str(e))
                         )
 
                         return None
@@ -209,15 +208,15 @@ class DeveloperPackage(Package):
 
                 else:
                     print_error(
-                        "Invalid package_preprocess_function: %s" % dotted
+                        "Invalid package_preprocess_function: %s" % package_preprocess_function
                     )
                     return None
 
-            if not preprocess_func or not isfunction(preprocess_func):
-                print_error("Function '%s' not found" % dotted)
-                return None
+                print_info("Applying preprocess function %s" % preprocess_func)
 
-            print_info("Applying preprocess function %s" % dotted)
+            if not preprocess_func or not isfunction(preprocess_func):
+                print_error("Function '%s' not found" % package_preprocess_function)
+                return None
 
             preprocessed_data = deepcopy(data)
 
