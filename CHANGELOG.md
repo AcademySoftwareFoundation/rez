@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.31.3](https://github.com/nerdvegas/rez/tree/2.31.3) (2019-06-22)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.2...2.31.3)
+
+**Merged pull requests:**
+
+- Bugfix for alias() on Windows [\#607](https://github.com/nerdvegas/rez/pull/607) ([mottosso](https://github.com/mottosso))
+
 ## [2.31.2](https://github.com/nerdvegas/rez/tree/2.31.2) (2019-06-22)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.1...2.31.2)
 
