@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.31.2](https://github.com/nerdvegas/rez/tree/2.31.2) (2019-06-22)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.1...2.31.2)
+
+**Merged pull requests:**
+
+- Fix #558 [\#647](https://github.com/nerdvegas/rez/pull/647) ([mottosso](https://github.com/mottosso))
+
+**Closed issues:**
+
+- rez-build breaks if "|" in a required package's version on Windows [\#558](https://github.com/nerdvegas/rez/issues/558)
+
 ## [2.31.1](https://github.com/nerdvegas/rez/tree/2.31.1) (2019-06-18)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.0...2.31.1)
 
