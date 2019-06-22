@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.31.4](https://github.com/nerdvegas/rez/tree/2.31.4) (2019-06-22)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.3...2.31.4)
+
+**Merged pull requests:**
+
+- Expose Python standard module __file__ and __name__ to rezconfig [\#636](https://github.com/nerdvegas/rez/pull/636) ([mottosso](https://github.com/mottosso))
+
 ## [2.31.3](https://github.com/nerdvegas/rez/tree/2.31.3) (2019-06-22)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.2...2.31.3)
 
