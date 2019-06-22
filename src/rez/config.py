@@ -795,6 +795,12 @@ def _load_config_py(filepath):
     from rez.vendor.six.six import exec_
 
     reserved = dict(
+        # Standard Python module variables
+        # Made available from within the module,
+        # and later excluded from the `Config` class
+        __name__=os.path.splitext(os.path.basename(filepath))[0],
+        __file__=filepath,
+
         rez_version=__version__,
         ModifyList=ModifyList
     )
