@@ -6,9 +6,18 @@ from rez.exceptions import PackageMetadataError, InvalidPackageError
 from rez.utils.system import add_sys_paths
 from rez.utils.sourcecode import SourceCode
 from rez.utils.logging_ import print_info, print_error
+from rez.vendor.enum import Enum
 from inspect import isfunction
 import os.path
 import stat
+
+
+class PreprocessMode(Enum):
+    """Defines when a package preprocess will be executed.
+    """
+    before = 0    # Package's preprocess function is executed before the global preprocess
+    after = 1     # Package's preprocess function is executed after the global preprocess
+    override = 2  # Package's preprocess function completely overrides the global preprocess.
 
 
 class DeveloperPackage(Package):
@@ -159,28 +168,36 @@ class DeveloperPackage(Package):
     def _get_preprocessed(self, data):
         """
         Returns:
-            (DeveloperPackage, new_data) 2-tuple IFF the preprocess function
+            (DeveloperPackage, new_data) 2-tuple IF the preprocess function
             changed the package; otherwise None.
         """
         from rez.serialise import process_python_objects
         from rez.utils.data_utils import get_dict_diff_str
         from copy import deepcopy
 
-        with add_sys_paths(config.package_definition_build_python_paths):
-            preprocess_func = getattr(self, "preprocess", None)
+        package_preprocess_mode = self.config.package_preprocess_mode
 
-            if preprocess_func:
-                print_info("Applying preprocess from package.py")
+        def _get_package_level():
+            print_info("Applying preprocess from package.py")
+            return getattr(self, "preprocess", None)
+
+        def _get_global_level():
+            # load globally configured preprocess function
+            package_preprocess_function = self.config.package_preprocess_function
+
+            if not package_preprocess_function:
+                return None
+
+            elif isfunction(package_preprocess_function):
+                preprocess_func = package_preprocess_function
 
             else:
-                # load globally configured preprocess function
-                package_preprocess_function = self.config.package_preprocess_function
-
-                if not package_preprocess_function:
+                if '.' not in package_preprocess_function:
+                    print_error(
+                        "Setting 'package_preprocess_function' must be of "
+                        "form 'module[.module.module...].funcname'. Package  "
+                        "preprocessing has not been applied.")
                     return None
-
-                elif isfunction(package_preprocess_function):
-                    preprocess_func = package_preprocess_function
 
                 elif isinstance(package_preprocess_function, basestring):
                     if '.' not in package_preprocess_function:
@@ -212,23 +229,41 @@ class DeveloperPackage(Package):
                     )
                     return None
 
-                print_info("Applying preprocess function %s" % preprocess_func)
-
             if not preprocess_func or not isfunction(preprocess_func):
                 print_error("Function '%s' not found" % package_preprocess_function)
                 return None
 
+            print_info("Applying preprocess function %s" % package_preprocess_function)
+            return preprocess_func
+
+        with add_sys_paths(config.package_definition_build_python_paths):
+
+            preprocess_mode = PreprocessMode[self.config.package_preprocess_mode]
+            package_preprocess = _get_package_level()
+            global_preprocess = _get_global_level()
+
+            if preprocess_mode == PreprocessMode.after:
+                preprocessors = [global_preprocess, package_preprocess]
+            elif preprocess_mode == PreprocessMode.before:
+                preprocessors = [package_preprocess, global_preprocess]
+            else:
+                preprocessors = [package_preprocess or global_preprocess]
+
             preprocessed_data = deepcopy(data)
 
-            # apply preprocessing
-            try:
-                preprocess_func(this=self, data=preprocessed_data)
-            except InvalidPackageError:
-                raise
-            except Exception as e:
-                print_error("Failed to apply preprocess: %s: %s"
-                            % (e.__class__.__name__, str(e)))
-                return None
+            for preprocessor in preprocessors:
+                if not preprocessor:
+                    continue
+
+                # apply preprocessing
+                try:
+                    preprocessor(this=self, data=preprocessed_data)
+                except InvalidPackageError:
+                    raise
+                except Exception as e:
+                    print_error("Failed to apply preprocess: %s: %s"
+                                % (e.__class__.__name__, str(e)))
+                    return None
 
         # if preprocess added functions, these may need to be converted to
         # SourceCode instances

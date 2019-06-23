@@ -242,6 +242,13 @@ class OptionalStrOrFunction(Setting):
         return value
 
 
+class PreprocessMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.developer_package import PreprocessMode
+        return Or(*(x.name for x in PreprocessMode))
+
+
 class BuildThreadCount_(Setting):
     # may be a positive int, or the values "physical" or "logical"
 
@@ -325,6 +332,7 @@ config_schema = Schema({
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
     "package_preprocess_function":                  OptionalStrOrFunction,
+    "package_preprocess_mode":                      PreprocessMode_,
     "context_tracking_host":                        OptionalStr,
     "variant_shortlinks_dirname":                   OptionalStr,
     "build_thread_count":                           BuildThreadCount_,

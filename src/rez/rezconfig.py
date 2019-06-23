@@ -372,8 +372,12 @@ package_commands_sourced_first = True
 # get $PATH from there; Windows inspects its registry).
 standard_system_paths = []
 
-# If you define this function, it will be called as the *preprocess function*
-# on every package that does not provide its own, as part of the build process.
+# If you define this function, by default it will be called as the
+# *preprocess function* on every package that does not provide its own,
+# as part of the build process. This behavior can be changed by using the
+# [package_preprocess_mode](#package_preprocess_mode) setting so that
+# it gets executed even if a package define its own preprocess function.
+#
 # The setting can be a function defined in your rezconfig.py, or a string.
 #
 # Example of a function to define the setting:
@@ -413,6 +417,18 @@ standard_system_paths = []
 #             raise InvalidPackageError("Invalid package name.")
 #
 package_preprocess_function = None
+
+# Defines in which order the [package_preprocess_function](#package_preprocess_function)
+# and the `preprocess` function inside a `package.py` are executed.
+#
+# Note that "global preprocess" means the preprocess defined by
+# [package_preprocess_function](#package_preprocess_function).
+#
+# Possible values are:
+# - "before": Package's preprocess function is executed before the global preprocess;
+# - "after": Package's preprocess function is executed after the global preprocess;
+# - "override": Package's preprocess function completely overrides the global preprocess.
+package_preprocess_mode = "override"
 
 
 ###############################################################################
