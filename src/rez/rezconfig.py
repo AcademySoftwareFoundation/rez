@@ -374,8 +374,16 @@ standard_system_paths = []
 
 # If you define this function, it will be called as the *preprocess function*
 # on every package that does not provide its own, as part of the build process.
-# The given function must be made available by setting the value of
-# [package_definition_build_python_paths](#package_definition_build_python_paths)
+# The setting can be a function defined in your rezconfig.py, or a string.
+#
+# Example of a function to define the setting:
+#
+#     # in your rezconfig.py
+#     def package_preprocess_function(this, data):
+#         # some custom code...
+#
+# In the case where the function is a string, it must be made available by setting
+# the value of [package_definition_build_python_paths](#package_definition_build_python_paths)
 # appropriately.
 #
 # For example, consider the settings:

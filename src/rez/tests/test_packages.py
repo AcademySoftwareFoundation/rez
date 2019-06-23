@@ -71,7 +71,8 @@ class TestPackages(TestBase, TempdirMixin):
         cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
         cls.package_definition_build_python_paths = [
-            os.path.join(path, "data", "python", "early_bind")
+            os.path.join(path, "data", "python", "early_bind"),
+            os.path.join(path, "data", "python", "preprocess")
         ]
 
         cls.settings = dict(
@@ -185,7 +186,7 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(len(packages), 1)
         self.assertEqual(package, packages[0])
 
-    def test_5(self):
+    def test_developer(self):
         """test developer package."""
         path = os.path.join(self.packages_base_path, "developer")
         package = get_developer_package(path)
@@ -201,14 +202,61 @@ class TestPackages(TestBase, TempdirMixin):
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
+    def test_developer_dynamic_local_preprocess(self):
+        """test developer package with a local preprocess function"""
         # a developer package with features such as expanding requirements,
         # early-binding attribute functions, and preprocessing
-        path = os.path.join(self.packages_base_path, "developer_dynamic")
+
+        # Here we will also verifies that the local preprocess function wins over
+        # the global one.
+        self.update_settings(
+            {
+                "package_preprocess_function": "global_preprocess.inject_data"
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_local_preprocess")
         package = get_developer_package(path)
 
         self.assertEqual(package.description, "This.")
         self.assertEqual(package.requires, [PackageRequest('versioned-3')])
         self.assertEqual(package.authors, ["tweedle-dee", "tweedle-dum"])
+        self.assertFalse(hasattr(package, "added_by_global_preprocess"))
+
+    def test_developer_dynamic_global_preprocess_string(self):
+        """test developer package with a global preprocess function as string"""
+        # a developer package with features such as expanding requirements,
+        # global preprocessing
+        self.update_settings(
+            {
+                "package_preprocess_function": "global_preprocess.inject_data"
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_global_preprocess")
+        package = get_developer_package(path)
+
+        self.assertEqual(package.description, "This.")
+        self.assertEqual(package.added_by_global_preprocess, True)
+
+    def test_developer_dynamic_global_preprocess_func(self):
+        """test developer package with a global preprocess function as function"""
+        # a developer package with features such as expanding requirements,
+        # global preprocessing
+        def preprocess(this, data):
+            data["dynamic_attribute_added"] = {'test': True}
+
+        self.update_settings(
+            {
+                "package_preprocess_function": preprocess
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_global_preprocess")
+        package = get_developer_package(path)
+
+        self.assertEqual(package.description, "This.")
+        self.assertEqual(package.dynamic_attribute_added, {'test': True})
 
     def test_6(self):
         """test variant iteration."""
