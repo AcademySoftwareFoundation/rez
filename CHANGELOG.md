@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.32.0](https://github.com/nerdvegas/rez/tree/2.32.0) (2019-06-23)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.4...2.32.0)
+
+**Merged pull requests:**
+
+- Implement preprocess function support for rezconfig.py (takeover) [\#650](https://github.com/nerdvegas/rez/pull/650) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
 ## [2.31.4](https://github.com/nerdvegas/rez/tree/2.31.4) (2019-06-22)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.3...2.31.4)
 
