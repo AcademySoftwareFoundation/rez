@@ -44,7 +44,6 @@ class InstallMode(Enum):
     # max_deps is equivalent to new_deps.
     max_deps = 3
 
-
 def _get_dependencies(requirement, distributions):
     def get_distrubution_name(pip_name):
         pip_to_rez_name = pip_name.lower().replace("-", "_")
@@ -59,28 +58,41 @@ def _get_dependencies(requirement, distributions):
 
     for package in requirements:
         if "(" in package:
+            versions = []
             try:
                 name, version = parse_name_and_version(package)
-                version = version.replace("==", "")
-                name = get_distrubution_name(name)
+                versions = [version.replace("==", "")]
             except DistlibException:
                 n, vs = package.split(' (')
                 vs = vs[:-1]
-                versions = []
                 for v in vs.split(','):
                     package = "%s (%s)" % (n, v)
                     name, version = parse_name_and_version(package)
                     version = version.replace("==", "")
                     versions.append(version)
-                version = "".join(versions)
 
             name = get_distrubution_name(name)
-            result.append("-".join([name, version]))
+            if name is None:
+                # Occurs when pip determines it can skip installing the requirement
+                print_warning("Skipping installation: Requirement wasn't installed: %s" % package)
+                continue
+
+            name = get_distrubution_name(name)
+            for version in versions:
+                req_string = "-".join([name, version])
+                # Convert 'packge-!=v1.0.0' into '!package-v1.0.0'
+                if version.count('!='):
+                    req_string = '!{}'.format(req_string.replace('!=', ''))
+                result.append(req_string)
         else:
             name = get_distrubution_name(package)
+            if name is None:
+                print_warning("Skipping installation: Requirement wasn't installed: %s" % package)
+                continue
             result.append(name)
 
     return result
+
 
 
 def is_exe(fpath):
