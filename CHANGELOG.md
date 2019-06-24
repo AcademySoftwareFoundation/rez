@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.32.1](https://github.com/nerdvegas/rez/tree/2.32.1) (2019-06-24)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.32.0...2.32.1)
+
+**Merged pull requests:**
+
+- Support for external PyYAML and Python 3 [\#622](https://github.com/nerdvegas/rez/pull/622) ([mottosso](https://github.com/mottosso))
+- Fix escaping backslashes in tcsh on Mac OS [\#497](https://github.com/nerdvegas/rez/pull/497) ([skral](https://github.com/skral))
+
 ## [2.32.0](https://github.com/nerdvegas/rez/tree/2.32.0) (2019-06-23)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.31.4...2.32.0)
 
