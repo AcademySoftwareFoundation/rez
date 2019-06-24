@@ -34,7 +34,6 @@ class TCSH(CSH):
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
-                txt = txt.replace('\\', '\\\\')
                 txt = txt.replace('"', '"\\""')
                 txt = txt.replace('!', '\\!')
                 txt = '"%s"' % txt
