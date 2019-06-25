@@ -220,7 +220,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     destpath = os.path.join(stagingdir, "python")
-    # TODO use binpath once https://github.com/pypa/pip/pull/5983 is approved
+    # TODO use binpath once https://github.com/pypa/pip/pull/3934 is approved
     binpath = os.path.join(stagingdir, "bin")
 
     if context and config.debug("package_release"):
@@ -245,6 +245,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     distribution_path = DistributionPath([destpath])
     distributions = [d for d in distribution_path.get_distributions()]
 
+    folders = [folder for folder in os.listdir(destpath) if os.path.isdir(os.path.join(destpath, folder))]
+    if "bin" in folders:
+        shutil.move(os.path.join(destpath, "bin"), binpath)
+
     for distribution in distribution_path.get_distributions():
         requirements = []
         if distribution.metadata.run_requires:
@@ -265,23 +269,31 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         src_dst_lut = {}
 
         for installed_file in distribution.list_installed_files():
-            if 'bin' in installed_file[0]:
-                installed = os.path.relpath(installed_file[0], os.path.join('..','..'))
-            else:
-                installed = installed_file[0]
+            # a relative directory that needs to be appended without the
+            # os.sep (via os.path.join) in order for normpath to return the
+            # correct path, this is in order to match the wheel RECORD file
 
-            source_file = os.path.normpath(os.path.join(destpath, installed))
+            # Example
+
+            # destpath = /tmp/pip-HBkRGa-rez/re]z_staging/python
+            # installed_file[0] = ../../bin/pydocstyle
+            # normpath of /tmp/pip-HBkRGa-rez/rez_staging/python../../bin/pydocstyle =  /tmp/pip-HBkRGa-rez/rez_staging/bin/pydocstyle OK
+            # normapth of /tmp/pip-HBkRGa-rez/rez_staging/python/../../bin/pydocstyle = /tmp/pip-HBkRGa-rez/bin/pydocstyle WRONG
+            if installed_file[0].startswith("."):
+                installed = destpath + installed_file[0]
+            else:
+                installed = os.path.join(destpath, installed_file[0])
+
+            source_file = os.path.normpath(installed)
 
             if os.path.exists(source_file):
                 destination_file = source_file.split(stagingsep)[1]
                 exe = False
 
                 if is_exe(source_file):
-                    if destination_file.startswith("%s%s" % (os.path.join("python", "bin"), os.path.sep)):
-                        destination_file = os.path.join("bin", os.path.basename(source_file))
-                        _, _file = os.path.split(destination_file)
-                        tools.append(_file)
-                        exe = True
+                    _file = os.path.basename(destination_file)
+                    tools.append(_file)
+                    exe = True
 
                 data = [destination_file, exe]
                 src_dst_lut[source_file] = data
