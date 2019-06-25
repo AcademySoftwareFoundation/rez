@@ -38,28 +38,13 @@ _DEFAULT_MANIFEST = '''
 
 # check if Python is called on the first line with this expression
 FIRST_LINE_RE = re.compile(b'^#!.*pythonw?[0-9.]*([ \t].*)?$')
-SCRIPT_TEMPLATE = '''# -*- coding: utf-8 -*-
+SCRIPT_TEMPLATE = r'''# -*- coding: utf-8 -*-
+import re
+import sys
+from %(module)s import %(import_name)s
 if __name__ == '__main__':
-    import sys, re
-
-    def _resolve(module, func):
-        __import__(module)
-        mod = sys.modules[module]
-        parts = func.split('.')
-        result = getattr(mod, parts.pop(0))
-        for p in parts:
-            result = getattr(result, p)
-        return result
-
-    try:
-        sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
-
-        func = _resolve('%(module)s', '%(func)s')
-        rc = func() # None interpreted as 0
-    except Exception as e:  # only supporting Python >= 2.6
-        sys.stderr.write('%%s\\n' %% e)
-        rc = 1
-    sys.exit(rc)
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(%(func)s())
 '''
 
 
@@ -136,6 +121,37 @@ class ScriptMaker(object):
                 return executable
             return '/usr/bin/env %s' % executable
 
+    def _build_shebang(self, executable, post_interp):
+        """
+        Build a shebang line. In the simple case (on Windows, or a shebang line
+        which is not too long or contains spaces) use a simple formulation for
+        the shebang. Otherwise, use /bin/sh as the executable, with a contrived
+        shebang which allows the script to run either under Python or sh, using
+        suitable quoting. Thanks to Harald Nordgren for his input.
+
+        See also: http://www.in-ulm.de/~mascheck/various/shebang/#length
+                  https://hg.mozilla.org/mozilla-central/file/tip/mach
+        """
+        if os.name != 'posix':
+            simple_shebang = True
+        else:
+            # Add 3 for '#!' prefix and newline suffix.
+            shebang_length = len(executable) + len(post_interp) + 3
+            if sys.platform == 'darwin':
+                max_shebang_length = 512
+            else:
+                max_shebang_length = 127
+            simple_shebang = ((b' ' not in executable) and
+                              (shebang_length <= max_shebang_length))
+
+        if simple_shebang:
+            result = b'#!' + executable + post_interp + b'\n'
+        else:
+            result = b'#!/bin/sh\n'
+            result += b"'''exec' " + executable + post_interp + b' "$0" "$@"\n'
+            result += b"' '''"
+        return result
+
     def _get_shebang(self, encoding, post_interp=b'', options=None):
         enquote = True
         if self.executable:
@@ -169,7 +185,7 @@ class ScriptMaker(object):
         if (sys.platform == 'cli' and '-X:Frames' not in post_interp
             and '-X:FullFrames' not in post_interp):  # pragma: no cover
             post_interp += b' -X:Frames'
-        shebang = b'#!' + executable + post_interp + b'\n'
+        shebang = self._build_shebang(executable, post_interp)
         # Python parser starts to read a script using UTF-8 until
         # it gets a #coding:xxx cookie. The shebang has to be the
         # first line of a file, the #coding:xxx cookie cannot be
@@ -194,6 +210,7 @@ class ScriptMaker(object):
 
     def _get_script_text(self, entry):
         return self.script_template % dict(module=entry.prefix,
+                                           import_name=entry.suffix.split('.')[0],
                                            func=entry.suffix)
 
     manifest = _DEFAULT_MANIFEST
@@ -205,8 +222,10 @@ class ScriptMaker(object):
     def _write_script(self, names, shebang, script_bytes, filenames, ext):
         use_launcher = self.add_launchers and self._is_nt
         linesep = os.linesep.encode('utf-8')
+        if not shebang.endswith(linesep):
+            shebang += linesep
         if not use_launcher:
-            script_bytes = shebang + linesep + script_bytes
+            script_bytes = shebang + script_bytes
         else:  # pragma: no cover
             if ext == 'py':
                 launcher = self._get_launcher('t')
@@ -216,7 +235,7 @@ class ScriptMaker(object):
             with ZipFile(stream, 'w') as zf:
                 zf.writestr('__main__.py', script_bytes)
             zip_data = stream.getvalue()
-            script_bytes = launcher + shebang + linesep + zip_data
+            script_bytes = launcher + shebang + zip_data
         for name in names:
             outname = os.path.join(self.target_dir, name)
             if use_launcher:  # pragma: no cover
