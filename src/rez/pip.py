@@ -255,8 +255,9 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     distribution_path = DistributionPath([destpath])
     distributions = [d for d in distribution_path.get_distributions()]
 
-    folders = [folder for folder in os.listdir(destpath) if os.path.isdir(os.path.join(destpath, folder))]
-    if "bin" in folders:
+    # moving bin folder to expected relative location as per wheel RECORD files
+    staged_binpath = os.path.join(destpath, "bin")
+    if os.path.isdir(staged_binpath):
         shutil.move(os.path.join(destpath, "bin"), binpath)
 
     for distribution in distribution_path.get_distributions():
