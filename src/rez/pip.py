@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from rez.packages_ import get_latest_package
-from rez.vendor.version.version import Version
+from rez.vendor.version.version import Version, VersionError
 from rez.vendor.distlib import DistlibException
 from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.markers import interpret
@@ -23,6 +23,7 @@ import os.path
 import shutil
 import sys
 import os
+import re
 
 
 class InstallMode(Enum):
@@ -131,6 +132,15 @@ def find_pip(pip_version=None, python_version=None):
             context = None
         else:
             raise e
+    finally:
+        pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
+        ver_str = subprocess.check_output([pip_exe, '-V'])
+        match = re.search(pattern, ver_str)
+        ver = match.group('ver')
+        pip_major = ver.split('.')[0]
+
+        if int(pip_major) < 19:
+            raise VersionError("pip >= 19 is required! Please update your pip.")
 
     return pip_exe, context
 
