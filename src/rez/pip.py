@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from rez.packages_ import get_latest_package
-from rez.vendor.version.version import Version
+from rez.vendor.version.version import Version, VersionError
 from rez.vendor.distlib import DistlibException
 from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.markers import interpret
@@ -23,7 +23,43 @@ import os.path
 import shutil
 import sys
 import os
+import re
 
+VERSION_PATTERN = r"""
+    v?
+    (?:
+        (?:(?P<epoch>[0-9]+)!)?                           # epoch
+        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
+        (?P<pre>                                          # pre-release
+            [-_\.]?
+            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+            [-_\.]?
+            (?P<pre_n>[0-9]+)?
+        )?
+        (?P<post>                                         # post release
+            (?:-(?P<post_n1>[0-9]+))
+            |
+            (?:
+                [-_\.]?
+                (?P<post_l>post|rev|r)
+                [-_\.]?
+                (?P<post_n2>[0-9]+)?
+            )
+        )?
+        (?P<dev>                                          # dev release
+            [-_\.]?
+            (?P<dev_l>dev)
+            [-_\.]?
+            (?P<dev_n>[0-9]+)?
+        )?
+    )
+    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
+"""
+
+CANONICAL_VERSION_RE = re.compile(
+    r"^\s*" + VERSION_PATTERN + r"\s*$",
+    re.VERBOSE | re.IGNORECASE,
+)
 
 class InstallMode(Enum):
     # don't install dependencies. Build may fail, for example the package may
@@ -87,6 +123,73 @@ def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
+def pip_to_rez_version(dist_version):
+    """Convert a distribution version to a rez compatible version.
+
+    The python version schema specification isn't 100% compatible with rez.
+
+    1: version epochs (they make no sense to rez, so they'd just get stripped
+       of the leading N!;
+    2: python versions are case insensitive, so they should probably be
+       lowercased when converted to a rez version.
+    3: local versions are also not compatible with rez
+
+    The canonical public version identifiers MUST comply with the following scheme:
+    [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
+
+    Epoch segment: N! - skip
+    Release segment: N(.N)* 0 as is
+    Pre-release segment: {a|b|rc}N - always lowercase
+    Post-release segment: .postN - always lowercase
+    Development release segment: .devN - always lowercase
+
+    Local version identifiers MUST comply with the following scheme:
+    <public version identifier>[+<local version label>] - use - instead of + convert . to _
+
+    Arguments:
+        dist_version (str): The distribution version to be converted.
+    """
+    version_match = CANONICAL_VERSION_RE.match(dist_version)
+    version_segments = version_match.groupdict()
+
+    available_segments = dict((k, v) for k, v in version_segments.iteritems() if v)
+    version = ""
+    if "release" in available_segments:
+        release = available_segments["release"]
+        version += release
+        if "pre" in available_segments:
+            pre = available_segments["pre"].lower()
+            version += pre
+        if "post" in available_segments:
+            post = available_segments["post"].lower()
+            version += post
+        if "dev" in available_segments:
+            dev = available_segments["dev"].lower()
+            version += dev
+        if "local" in available_segments:
+            local = available_segments["local"].replace("-", "_")
+            version += "-" + local
+
+    return version
+
+
+def pip_to_rez_package_name(distribution):
+    """Convert a distribution name to a rez compatible name.
+
+    The rez package name can't be simply set to the dist name, because some
+    pip packages have hyphen in the name. In rez this is not a valid package
+    name (it would be interpreted as the start of the version).
+
+    Example: my-pkg-1.2 is 'my', version 'pkg-1.2'.
+
+    Arguments:
+        distribution (Distribution): The distribution whose name to convert.
+    """
+    name, _ = parse_name_and_version(distribution.name_and_version)
+    name = distribution.name[0:len(name)].replace("-", "_")
+    return name
+
+
 def run_pip_command(command_args, pip_version=None, python_version=None):
     """Run a pip command.
 
@@ -131,6 +234,15 @@ def find_pip(pip_version=None, python_version=None):
             context = None
         else:
             raise e
+    finally:
+        pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
+        ver_str = subprocess.check_output([pip_exe, '-V'])
+        match = re.search(pattern, ver_str)
+        ver = match.group('ver')
+        pip_major = ver.split('.')[0]
+
+        if int(pip_major) < 19:
+            raise VersionError("pip >= 19 is required! Please update your pip.")
 
     return pip_exe, context
 
@@ -220,9 +332,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     destpath = os.path.join(stagingdir, "python")
+    # TODO use binpath once https://github.com/pypa/pip/pull/3934 is approved
     binpath = os.path.join(stagingdir, "bin")
-    incpath = os.path.join(stagingdir, "include")
-    datapath = stagingdir
 
     if context and config.debug("package_release"):
         buf = StringIO()
@@ -232,10 +343,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     # Build pip commandline
     cmd = [pip_exe, "install",
-           "--install-option=--install-lib=%s" % destpath,
-           "--install-option=--install-scripts=%s" % binpath,
-           "--install-option=--install-headers=%s" % incpath,
-           "--install-option=--install-data=%s" % datapath]
+           "--use-pep517",
+           "--target=%s" % destpath]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
@@ -245,8 +354,13 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     _system = System()
 
     # Collect resulting python packages using distlib
-    distribution_path = DistributionPath([destpath], include_egg=True)
+    distribution_path = DistributionPath([destpath])
     distributions = [d for d in distribution_path.get_distributions()]
+
+    # moving bin folder to expected relative location as per wheel RECORD files
+    staged_binpath = os.path.join(destpath, "bin")
+    if os.path.isdir(staged_binpath):
+        shutil.move(os.path.join(destpath, "bin"), binpath)
 
     for distribution in distribution_path.get_distributions():
         requirements = []
@@ -267,16 +381,27 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         tools = []
         src_dst_lut = {}
 
-        for installed_file in distribution.list_installed_files(allow_fail=True):
-            source_file = os.path.normpath(os.path.join(destpath, installed_file[0]))
+        for installed_file in distribution.list_installed_files():
+            # distlib expects the script files to be located in ../../bin/
+            # when in fact ../bin seems to be the resulting path after the
+            # installation as such we need to point the bin files to the
+            # expected location to match wheel RECORD files
+            installed_filepath = installed_file[0]
+            bin_prefix = os.path.join('..', '..', 'bin') + os.sep
+            if installed_filepath.startswith(bin_prefix):
+                # account for extra parentdir as explained above
+                installed = os.path.join(destpath, '_', installed_filepath)
+            else:
+                installed = os.path.join(destpath, installed_filepath)
+
+            source_file = os.path.normpath(installed)
 
             if os.path.exists(source_file):
-                destination_file = installed_file[0].split(stagingsep)[1]
+                destination_file = os.path.relpath(source_file, stagingdir)
                 exe = False
 
-                if is_exe(source_file) and \
-                        destination_file.startswith("%s%s" % ("bin", os.path.sep)):
-                    _, _file = os.path.split(destination_file)
+                if is_exe(source_file):
+                    _file = os.path.basename(destination_file)
                     tools.append(_file)
                     exe = True
 
@@ -317,11 +442,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         variant_reqs.append("python-%s" % py_ver)
 
-        name, _ = parse_name_and_version(distribution.name_and_version)
-        name = distribution.name[0:len(name)].replace("-", "_")
+        name = pip_to_rez_package_name(distribution)
 
         with make_package(name, packages_path, make_root=make_root) as pkg:
-            pkg.version = distribution.version
+            pkg.version = pip_to_rez_version(distribution.version)
             if distribution.metadata.summary:
                 pkg.description = distribution.metadata.summary
 
