@@ -88,6 +88,23 @@ def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
+def pip_to_rez_package_name(distribution):
+    """Convert a distribution name to a rez compatible name.
+
+    The rez package name can't be simply set to the dist name, because some
+    pip packages have hyphen in the name. In rez this is not a valid package
+    name (it would be interpreted as the start of the version).
+
+    Example: my-pkg-1.2 is 'my', version 'pkg-1.2'.
+
+    Arguments:
+        distribution [Distribution] -- The distribution whose name to convert.
+    """
+    name, _ = parse_name_and_version(distribution.name_and_version)
+    name = distribution.name[0:len(name)].replace("-", "_")
+    return name
+
+
 def run_pip_command(command_args, pip_version=None, python_version=None):
     """Run a pip command.
 
@@ -340,7 +357,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         variant_reqs.append("python-%s" % py_ver)
 
-        name = distribution.metadata.name
+        name = pip_to_rez_package_name(distribution)
 
         with make_package(name, packages_path, make_root=make_root) as pkg:
             pkg.version = distribution.metadata.version
