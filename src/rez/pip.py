@@ -295,7 +295,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             source_file = os.path.normpath(installed)
 
             if os.path.exists(source_file):
-                destination_file = source_file.split(stagingsep)[1]
+                destination_file = os.path.relpath(source_file, stagingdir)
                 exe = False
 
                 if is_exe(source_file):
