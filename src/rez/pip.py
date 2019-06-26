@@ -25,6 +25,7 @@ import sys
 import os
 import re
 
+
 VERSION_PATTERN = r"""
     v?
     (?:
@@ -61,6 +62,7 @@ CANONICAL_VERSION_RE = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
+
 class InstallMode(Enum):
     # don't install dependencies. Build may fail, for example the package may
     # need to compile against a dependency. Will work for pure python though.
@@ -82,7 +84,7 @@ class InstallMode(Enum):
 
 
 def _get_dependencies(requirement, distributions):
-    def get_distrubution_name(pip_name):
+    def get_distribution_name(pip_name):
         pip_to_rez_name = pip_name.lower().replace("-", "_")
         for dist in distributions:
             _name, _ = parse_name_and_version(dist.name_and_version)
@@ -98,7 +100,7 @@ def _get_dependencies(requirement, distributions):
             try:
                 name, version = parse_name_and_version(package)
                 version = version.replace("==", "")
-                name = get_distrubution_name(name)
+                name = get_distribution_name(name)
             except DistlibException:
                 n, vs = package.split(' (')
                 vs = vs[:-1]
@@ -110,10 +112,10 @@ def _get_dependencies(requirement, distributions):
                     versions.append(version)
                 version = "".join(versions)
 
-            name = get_distrubution_name(name)
+            name = get_distribution_name(name)
             result.append("-".join([name, version]))
         else:
-            name = get_distrubution_name(package)
+            name = get_distribution_name(package)
             result.append(name)
 
     return result
@@ -144,7 +146,7 @@ def pip_to_rez_version(dist_version):
     Development release segment: .devN - always lowercase
 
     Local version identifiers MUST comply with the following scheme:
-    <public version identifier>[+<local version label>] - use - instead of + convert . to _
+    <public version identifier>[+<local version label>] - use - instead of +
 
     Arguments:
         dist_version (str): The distribution version to be converted.
@@ -167,7 +169,7 @@ def pip_to_rez_version(dist_version):
             dev = available_segments["dev"].lower()
             version += dev
         if "local" in available_segments:
-            local = available_segments["local"].replace("-", "_")
+            local = available_segments["local"]
             version += "-" + local
 
     return version
@@ -221,7 +223,7 @@ def find_pip(pip_version=None, python_version=None):
 
     try:
         context = create_context(pip_version, python_version)
-    except BuildError as e:
+    except BuildError:
         # fall back on system pip. Not ideal but at least it's something
         from rez.backport.shutilwhich import which
 
@@ -233,8 +235,10 @@ def find_pip(pip_version=None, python_version=None):
                 "will be used instead." % pip_exe)
             context = None
         else:
-            raise e
-    finally:
+            raise
+
+    # check pip version, must be >=19 to support PEP517
+    try:
         pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
         ver_str = subprocess.check_output([pip_exe, '-V'])
         match = re.search(pattern, ver_str)
@@ -243,6 +247,10 @@ def find_pip(pip_version=None, python_version=None):
 
         if int(pip_major) < 19:
             raise VersionError("pip >= 19 is required! Please update your pip.")
+    except:
+        # silently skip if pip version detection failed, pip itself will show
+        # a reasonable error message at the least.
+        pass
 
     return pip_exe, context
 
@@ -342,9 +350,11 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         _log(buf.getvalue())
 
     # Build pip commandline
-    cmd = [pip_exe, "install",
-           "--use-pep517",
-           "--target=%s" % destpath]
+    cmd = [
+        pip_exe, "install",
+        "--use-pep517",
+        "--target=%s" % destpath
+    ]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
@@ -388,6 +398,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             # expected location to match wheel RECORD files
             installed_filepath = installed_file[0]
             bin_prefix = os.path.join('..', '..', 'bin') + os.sep
+
             if installed_filepath.startswith(bin_prefix):
                 # account for extra parentdir as explained above
                 installed = os.path.join(destpath, '_', installed_filepath)

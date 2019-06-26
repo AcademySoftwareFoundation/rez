@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.33.0](https://github.com/nerdvegas/rez/tree/2.33.0) (2019-06-26)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.32.1...2.33.0)
+
+**Merged pull requests:**
+
+- Update distlib vendor library [\#654](https://github.com/nerdvegas/rez/pull/654) ([lambdaclan](https://github.com/lambdaclan))
+- [WIP] Feature/pip install modern [\#602](https://github.com/nerdvegas/rez/pull/602) ([lambdaclan](https://github.com/lambdaclan))
+
 ## [2.32.1](https://github.com/nerdvegas/rez/tree/2.32.1) (2019-06-24)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.32.0...2.32.1)
 
