@@ -280,16 +280,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         src_dst_lut = {}
 
         for installed_file in distribution.list_installed_files():
-            # a relative directory that needs to be appended without the
-            # os.sep (via os.path.join) in order for normpath to return the
-            # correct path, this is in order to match the wheel RECORD file
-
-            # Example
-
-            # destpath = /tmp/pip-HBkRGa-rez/re]z_staging/python
-            # installed_file[0] = ../../bin/pydocstyle
-            # normpath of /tmp/pip-HBkRGa-rez/rez_staging/python../../bin/pydocstyle =  /tmp/pip-HBkRGa-rez/rez_staging/bin/pydocstyle OK
-            # normapth of /tmp/pip-HBkRGa-rez/rez_staging/python/../../bin/pydocstyle = /tmp/pip-HBkRGa-rez/bin/pydocstyle WRONG
+            # distlib expects the script files to be located in ../../bin/
+            # when in fact ../bin seems to be the resulting path after the
+            # installation as such we need to point the bin files to the
+            # expected location to match wheel RECORD files
             if installed_file[0].startswith("."):
                 installed = destpath + installed_file[0]
             else:
