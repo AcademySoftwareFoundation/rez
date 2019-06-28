@@ -396,7 +396,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             # when in fact ../bin seems to be the resulting path after the
             # installation as such we need to point the bin files to the
             # expected location to match wheel RECORD files
-            installed_filepath = installed_file[0]
+            installed_filepath = os.path.normpath(installed_file[0])
             bin_prefix = os.path.join('..', '..', 'bin') + os.sep
 
             if installed_filepath.startswith(bin_prefix):
