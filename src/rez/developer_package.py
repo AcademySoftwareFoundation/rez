@@ -178,7 +178,6 @@ class DeveloperPackage(Package):
         package_preprocess_mode = self.config.package_preprocess_mode
 
         def _get_package_level():
-            print_info("Applying preprocess from package.py")
             return getattr(self, "preprocess", None)
 
         def _get_global_level():
@@ -233,7 +232,6 @@ class DeveloperPackage(Package):
                 print_error("Function '%s' not found" % package_preprocess_function)
                 return None
 
-            print_info("Applying preprocess function %s" % package_preprocess_function)
             return preprocess_func
 
         with add_sys_paths(config.package_definition_build_python_paths):
@@ -254,6 +252,9 @@ class DeveloperPackage(Package):
             for preprocessor in preprocessors:
                 if not preprocessor:
                     continue
+
+                level = "global" if preprocessor == global_preprocess else "local"
+                print_info("Applying {0} preprocess function".format(level))
 
                 # apply preprocessing
                 try:

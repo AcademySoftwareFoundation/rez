@@ -1,4 +1,3 @@
-
 name = "developer_dynamic_local_preprocess_additive"
 
 @early()
@@ -10,7 +9,6 @@ requires = [
 ]
 
 def preprocess(this, data):
-    print 'Local preprocess'
     from early_utils import get_authors
     data["authors"] = get_authors()
     data["dynamic_attribute_added"] = {"value_set_by": "local"}
