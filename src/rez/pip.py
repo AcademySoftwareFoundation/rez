@@ -102,6 +102,9 @@ def _get_dependencies(requirement, distributions):
                 version = version.replace("==", "")
                 name = get_distribution_name(name)
             except DistlibException:
+                # check if package contains erroneous additional environment info and remove it
+                if ";" in package:
+                    package = package.split(";")[0].strip()
                 n, vs = package.split(' (')
                 vs = vs[:-1]
                 versions = []
