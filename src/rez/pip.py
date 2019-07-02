@@ -250,6 +250,8 @@ def find_pip(pip_version=None, python_version=None):
 
         if int(pip_major) < 19:
             raise VersionError("pip >= 19 is required! Please update your pip.")
+    except VersionError:
+        raise
     except:
         # silently skip if pip version detection failed, pip itself will show
         # a reasonable error message at the least.
