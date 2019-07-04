@@ -85,7 +85,7 @@ def command(opts, parser, extra_arg_groups=None):
             python_requires = filter(None, python_requires)
 
             if not python_requires:
-                print("Package version is valid but PyPi does not contain a specific Python version. Too old?")
+                print("Package version is valid but PyPI does not contain a specific Python version requirement.")
                 return
 
             for i, j in itertools.groupby(python_requires, key=lambda x: x[0]):
