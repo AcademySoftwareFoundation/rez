@@ -37,6 +37,20 @@ def setup_parser(parser, completions=False):
         help="package to install or archive/url to install from")
 
 
+def get_pypi_api_url():
+    from rez.pip import pip_install_package, run_pip_command
+
+    default_url = "https://pypi.python.org/pypi"
+    output = run_pip_command(["config", "get", "rez.pypi-api-endpoint"], process_output=True)
+    if "ERROR" in output:
+        print(("WARNING: pip config or rez.pypi-api-endpoint key not found. "
+              "Falling to default: ({}) API endpoint.").format(default_url))
+        return default_url
+    else:
+        # take second line of output since the first is the Python 2 depreciation warning
+        return output.split('\n')[1]
+
+
 def command(opts, parser, extra_arg_groups=None):
     from rez.pip import pip_install_package, run_pip_command
     from rez.vendor.version.version import Version, VersionRange
@@ -61,10 +75,9 @@ def command(opts, parser, extra_arg_groups=None):
         return
 
     if opts.query:
-        URL = "https://pypi.python.org/pypi/{0}/{1}/json"
+        URL = "{0}/{1}/{2}/json"
         try:
-            data = json.load(urllib2.urlopen(URL.format(opts.PACKAGE, opts.query)))
-
+            data = json.load(urllib2.urlopen(URL.format(get_pypi_api_url(), opts.PACKAGE, opts.query)))
             classifiers = data["info"]["classifiers"]
             python_requires = [classifier for classifier in classifiers if "Programming Language :: Python ::" in classifier]
             python_requires = ''.join(python_requires)
@@ -78,16 +91,16 @@ def command(opts, parser, extra_arg_groups=None):
             for i, j in itertools.groupby(python_requires, key=lambda x: x[0]):
                 print("Python" + i + ":", [Version(z) for z in list(j) if z != i])
         except urllib2.HTTPError:
-            print("Package version not found, please check rez-pip -l {0}".format(opts.PACKAGE))
+            print("Package version not found, please check your PyPI API endpoint and rez-pip -l {0}".format(opts.PACKAGE))
         return
 
     option = ""
     if opts.constrain:
         ver_range = VersionRange(opts.constrain)
 
-        URL = "https://pypi.python.org/pypi/{0}/json"
+        URL = "{0}/{1}/json"
         try:
-            data = json.load(urllib2.urlopen(URL.format(opts.PACKAGE)))
+            data = json.load(urllib2.urlopen(URL.format(get_pypi_api_url(), opts.PACKAGE)))
             releases = data["releases"].keys()
             releases = sorted(releases)
 

@@ -214,12 +214,16 @@ def run_pip_command(command_args, process_output=False, pip_version=None, python
 
     if process_output:
         try:
-            subprocess.check_output(command, stderr=subprocess.STDOUT)
+            output = subprocess.check_output(command, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            regex = r"(?<=\(from versions:).*?(?=\))"
-            pattern = re.compile(regex)
-            match = pattern.search(e.output)
-            output = match.group(0).split(",")
+            if "rez.pypi-api-endpoint" in command:
+                output = e.output
+            else:
+                regex = r"(?<=\(from versions:).*?(?=\))"
+                pattern = re.compile(regex)
+                match = pattern.search(e.output)
+                output = match.group(0).split(",")
+        finally:
             return output
 
     elif context is None:
