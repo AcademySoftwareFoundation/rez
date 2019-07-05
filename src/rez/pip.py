@@ -417,7 +417,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 destination_file = os.path.relpath(source_file, stagingdir)
                 exe = False
 
-                if is_exe(source_file) and destination_file.startswith("bin"):
+                if is_exe(source_file) and destination_file.startswith("bin" + os.sep):
                     _file = os.path.basename(destination_file)
                     tools.append(_file)
                     exe = True
