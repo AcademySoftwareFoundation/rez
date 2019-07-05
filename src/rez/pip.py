@@ -7,6 +7,7 @@ from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
+from rez.vendor.packaging.version import parse, LegacyVersion, InvalidVersion
 from rez.resolved_context import ResolvedContext
 from rez.utils.system import popen
 from rez.utils.logging_ import print_debug, print_info, print_warning
@@ -24,44 +25,6 @@ import shutil
 import sys
 import os
 import re
-
-
-VERSION_PATTERN = r"""
-    v?
-    (?:
-        (?:(?P<epoch>[0-9]+)!)?                           # epoch
-        (?P<release>[0-9]+(?:\.[0-9]+)*)                  # release segment
-        (?P<pre>                                          # pre-release
-            [-_\.]?
-            (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
-            [-_\.]?
-            (?P<pre_n>[0-9]+)?
-        )?
-        (?P<post>                                         # post release
-            (?:-(?P<post_n1>[0-9]+))
-            |
-            (?:
-                [-_\.]?
-                (?P<post_l>post|rev|r)
-                [-_\.]?
-                (?P<post_n2>[0-9]+)?
-            )
-        )?
-        (?P<dev>                                          # dev release
-            [-_\.]?
-            (?P<dev_l>dev)
-            [-_\.]?
-            (?P<dev_n>[0-9]+)?
-        )?
-    )
-    (?:\+(?P<local>[a-z0-9]+(?:[-_\.][a-z0-9]+)*))?       # local version
-"""
-
-CANONICAL_VERSION_RE = re.compile(
-    r"^\s*" + VERSION_PATTERN + r"\s*$",
-    re.VERBOSE | re.IGNORECASE,
-)
-
 
 class InstallMode(Enum):
     # don't install dependencies. Build may fail, for example the package may
@@ -129,7 +92,7 @@ def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
-def pip_to_rez_version(dist_version):
+def pip_to_rez_version(dist_version, allow_legacy=True):
     """Convert a distribution version to a rez compatible version.
 
     The python version schema specification isn't 100% compatible with rez.
@@ -145,8 +108,8 @@ def pip_to_rez_version(dist_version):
 
     Epoch segment: N! - skip
     Release segment: N(.N)* 0 as is
-    Pre-release segment: {a|b|rc}N - always lowercase
-    Post-release segment: .postN - always lowercase
+    Pre-release segment: {a|b|c|rc|alpha|beta|pre|preview}N - always lowercase
+    Post-release segment: .{post|rev|r}N - always lowercase
     Development release segment: .devN - always lowercase
 
     Local version identifiers MUST comply with the following scheme:
@@ -154,29 +117,60 @@ def pip_to_rez_version(dist_version):
 
     Arguments:
         dist_version (str): The distribution version to be converted.
+        allow_legacy (bool): Flag to allow/disallow PEP440 incompatibility.
+
+    Raises:
+        InvalidVersion: When legacy mode is not allowed and a PEP440
+        incompatible version is detected.
+
+    .. _PEP 440 (all possible matches):
+        https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
+
+    .. _Core utilities for Python packages:
+        https://packaging.pypa.io/en/latest/version/
+
     """
-    version_match = CANONICAL_VERSION_RE.match(dist_version)
-    version_segments = version_match.groupdict()
+    pkg_version = parse(dist_version)
 
-    available_segments = dict((k, v) for k, v in version_segments.iteritems() if v)
-    version = ""
-    if "release" in available_segments:
-        release = available_segments["release"]
-        version += release
-        if "pre" in available_segments:
-            pre = available_segments["pre"].lower()
-            version += pre
-        if "post" in available_segments:
-            post = available_segments["post"].lower()
-            version += post
-        if "dev" in available_segments:
-            dev = available_segments["dev"].lower()
-            version += dev
-        if "local" in available_segments:
-            local = available_segments["local"]
-            version += "-" + local
+    if isinstance(pkg_version, LegacyVersion):
+        if allow_legacy:
+            print("Warning invalid PEP440 version detected: {}. Falling to legacy mode.".format(pkg_version))
+            # this will always be the entire version string
+            return pkg_version.base_version.lower()
+        else:
+            raise InvalidVersion("Version: {} is not compatible with PEP440.".format(dist_version))
 
-    return version
+    rez_version = ""
+
+    if pkg_version.release:
+        # the components of the release segment excluding epoch or any prerelease/development/postrelease suffixes
+        rez_version += '.'.join(str(i) for i in pkg_version.release)
+
+        if pkg_version.is_prerelease and pkg_version.pre:
+            # additional check is necessary because dev releases are also considered prereleases
+            # pair of the prerelease phase (the string "a", "b", or "rc") and the prerelease number
+            # the following conversions (-->) take place:
+            # a --> a, alpha --> a, b --> b, beta --> b, c --> c, rc --> rc, pre --> rc, preview --> rc
+            phase, number = pkg_version.pre
+            rez_version += phase + str(number)
+
+        if pkg_version.is_postrelease:
+            # this attribute will be the postrelease number (an integer)
+            # the following conversions (-->) take place:
+            # post --> post, rev --> post, r --> post
+            rez_version += ".post" + str(pkg_version.post)
+
+        if pkg_version.is_devrelease:
+            # this attribute will be the development release number (an integer)
+            rez_version += ".dev" + str(pkg_version.dev)
+
+        if pkg_version.local:
+            # representation of the local version portion is any
+            # the following conversions (-->) take place:
+            # 1.0[+ubuntu-1] --> 1.0[-ubuntu.1]
+            rez_version += "-" + pkg_version.local
+
+    return rez_version
 
 
 def pip_to_rez_package_name(distribution):
