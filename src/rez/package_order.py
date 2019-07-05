@@ -1,6 +1,8 @@
 from inspect import isclass
 from hashlib import sha1
 
+from rez.vendor.version.version import Version
+
 
 class PackageOrder(object):
     """Package reorderer base class."""
@@ -40,6 +42,9 @@ class PackageOrder(object):
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
+
+    def __eq__(self, other):
+        return type(self) == type(other) and str(self) == str(other)
 
 
 class NullPackageOrder(PackageOrder):
@@ -245,11 +250,11 @@ class VersionSplitPackageOrder(PackageOrder):
             type: version_split
             first_version: "3.0.0"
         """
-        return dict(first_version=self.first_version)
+        return dict(first_version=str(self.first_version))
 
     @classmethod
     def from_pod(cls, data):
-        return cls(data["first_version"])
+        return cls(Version(data["first_version"]))
 
 
 class TimestampPackageOrder(PackageOrder):
