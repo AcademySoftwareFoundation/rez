@@ -102,7 +102,8 @@ def _get_dependencies(requirement, distributions):
                 version = version.replace("==", "")
                 name = get_distribution_name(name)
             except DistlibException:
-                # check if package contains erroneous additional environment info and remove it
+                # check if package contains extraneous environment info and remove it
+                # see environment markers: https://www.python.org/dev/peps/pep-0508/#environment-markers
                 if ";" in package:
                     package = package.split(";")[0].strip()
                 n, vs = package.split(' (')
