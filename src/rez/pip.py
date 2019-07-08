@@ -465,11 +465,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         pure = pure_python_package(distribution)
         if not pure:
-            variant_types.append("non-pure")
             variant_reqs.append("platform-%s" % _system.platform)
             variant_reqs.append("arch-%s" % _system.arch)
-        else:
-            variant_types.append("pure")
 
         if context is None:
             # since we had to use system pip, we have to assume system python version
@@ -513,7 +510,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     # cleanup
     shutil.rmtree(tmpdir)
 
-    return installed_variants, skipped_variants, variant_types
+    return installed_variants, skipped_variants
 
 
 def _cmd(context, command):
