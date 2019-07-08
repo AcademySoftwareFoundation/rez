@@ -14,7 +14,7 @@ import re
 import time
 
 
-PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_-]+)*"
+PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
 PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
 
 ENV_VAR_REGSTR = r'\$(\w+|\{[^}]*\})'
@@ -502,3 +502,4 @@ def as_block_string(txt):
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+

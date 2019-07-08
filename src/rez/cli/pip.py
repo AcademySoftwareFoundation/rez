@@ -174,7 +174,7 @@ def command(opts, parser, extra_arg_groups=None):
     if option:
         opts.PACKAGE += "=={0}".format(option)
 
-    installed_variants, skipped_variants, variant_types = pip_install_package(
+    installed_variants, skipped_variants = pip_install_package(
         opts.PACKAGE,
         pip_version=opts.pip_ver,
         python_version=opts.py_ver,
@@ -193,8 +193,7 @@ def command(opts, parser, extra_arg_groups=None):
     print()
     if installed_variants:
         print("%d packages were installed:" % len(installed_variants))
-        for variant, purity in zip(installed_variants, variant_types):
-            print("[{}]".format(purity))
+        for variant in installed_variants:
             print_variant(variant)
     else:
         print("NO packages were installed.")
@@ -222,3 +221,4 @@ def command(opts, parser, extra_arg_groups=None):
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+

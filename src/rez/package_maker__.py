@@ -128,10 +128,6 @@ class PackageMaker(AttrDictWrapper):
     def _get_data(self):
         data = self._data.copy()
 
-        if "requires" in data:
-            if None in data["requires"]:
-                data["requires"] = [x for x in data["requires"] if x is not None]
-
         data.pop("installed_variants", None)
         data.pop("skipped_variants", None)
         data.pop("package_cls", None)
@@ -237,3 +233,4 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+
