@@ -382,8 +382,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         packages = pkg_resources.find_distributions(destpath)
         dist = next((package for package in packages if package.key == installed_dist.key), None)
         wheel_data = dist.get_metadata('WHEEL')
+        # see https://www.python.org/dev/peps/pep-0566/#json-compatible-metadata
         wheel_data = Parser().parsestr(wheel_data)
 
+        # see https://www.python.org/dev/peps/pep-0427/#what-s-the-deal-with-purelib-vs-platlib
         return true_table[wheel_data["Root-Is-Purelib"]]
 
     # Collect resulting python packages using distlib
