@@ -246,7 +246,7 @@ def find_pip(pip_version=None, python_version=None):
     # check pip version, must be >=19 to support PEP517
     try:
         pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
-        ver_str = subprocess.check_output([pip_exe, '-V'])
+        ver_str = subprocess.check_output('{} -V'.format(pip_exe), shell=True)
         match = re.search(pattern, ver_str)
         ver = match.group('ver')
         pip_major = ver.split('.')[0]
