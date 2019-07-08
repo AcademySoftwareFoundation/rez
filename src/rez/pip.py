@@ -200,29 +200,17 @@ def pip_to_rez_package_name(distribution):
     return name
 
 
-def run_pip_command(command_args, process_output=False, pip_version=None, python_version=None):
+def run_pip_command(command_args, pip_version=None, python_version=None):
     """Run a pip command.
-
     Args:
         command_args (list of str): Args to pip.
-
     Returns:
         `subprocess.Popen`: Pip process.
     """
     pip_exe, context = find_pip(pip_version, python_version)
     command = [pip_exe] + list(command_args)
 
-    if process_output:
-        try:
-            subprocess.check_output(command, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            regex = r"(?<=\(from versions:).*?(?=\))"
-            pattern = re.compile(regex)
-            match = pattern.search(e.output)
-            output = match.group(0).split(",")
-            return output
-
-    elif context is None:
+    if context is None:
         return popen(command)
     else:
         return context.execute_shell(command=command, block=False)
