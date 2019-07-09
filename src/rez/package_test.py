@@ -83,7 +83,7 @@ class PackageTestRunner(object):
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
 
-        self.package = None
+        self._package = None
         self.contexts = {}
 
         # use a common timestamp across all tests - this ensures that tests
@@ -93,26 +93,25 @@ class PackageTestRunner(object):
         if use_current_env:
             raise NotImplementedError
 
-    def get_package(self):
+    @property
+    def package(self):
         """Get the target package.
 
         Returns:
             `Package`: Package to run tests on.
         """
-        if self.package is not None:
-            return self.package
+        if self._package:
+            return self._package
 
         if self.use_current_env:
             pass
         else:
-            package = get_latest_package_from_string(str(self.package_request),
-                                                     self.package_paths)
-            if package is None:
-                raise PackageNotFoundError("Could not find package to test: %s"
-                                           % str(self.package_request))
+            package = get_package_from_string(str(self.package_request), self.package_paths)
 
-        self.package = package
-        return self.package
+            if not package:
+                raise PackageNotFoundError("Could not find package to test: %s" % str(self.package_request))
+
+            return package
 
     def get_test_names(self):
         """Get the names of tests in this package.
@@ -120,8 +119,7 @@ class PackageTestRunner(object):
         Returns:
             List of str: Test names.
         """
-        package = self.get_package()
-        return sorted((package.tests or {}).keys())
+        return sorted((self.package.tests or {}).keys())
 
     def run_test(self, test_name):
         """Run a test.
@@ -144,12 +142,12 @@ class PackageTestRunner(object):
 
         if test_name not in self.get_test_names():
             raise PackageTestError("Test '%s' not found in package %s"
-                                   % (test_name, package.uri))
+                                   % (test_name, self.package.uri))
 
         if self.use_current_env:
             return self._run_test_in_current_env(test_name)
 
-        for variant in package.iter_variants():
+        for variant in self.package.iter_variants():
 
             # get test info for this variant. If None, that just means that this
             # variant doesn't provide this test. That's ok - 'tests' might be
@@ -223,11 +221,10 @@ class PackageTestRunner(object):
             variant_index (int): chosen variant index
             test_name (string): name of test 
         """
-        package = self.get_package()
-        variant = package.get_variant(variant_index)
+        variant = self.package.get_variant(variant_index)
 
         if not variant:
-            raise ValueError('Variant {variant_index} does not exist'.format(variant_index=str(variant_index)))
+            variant = self.package
 
         test_info = self._get_test_info(test_name, variant)
 

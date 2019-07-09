@@ -15,15 +15,12 @@ from rez.exceptions import PackageMetadataError
 
 class TestRezTest(unittest.TestCase):
     @mock.patch('rez.cli.test.get_developer_package', side_effect=PackageMetadataError())
-    def test_getPackage_invalidPackageName_exitWithProperExitCode(self, get_developer_package):
-        # Arrange
-        proper_exit_code = 1
+    def test_getPackage_invalidPackageName_returnsNone(self, get_developer_package):
+        # Arrange / Act
+        result = get_package('invalid_package_name')
 
-        # Act / Arrange
-        with self.assertRaises(SystemExit) as exit_code:
-            get_package('invalid_package_name')
-
-            self.assertEqual(exit_code.exception.code, proper_exit_code)
+        # Assert
+        self.assertIsNone(result)
 
     @mock.patch('rez.cli.test.get_developer_package', return_value=mock.MagicMock(spec=DeveloperPackage))
     def test_getPackage_validPackageName_packageReturned(self, get_developer_package):
