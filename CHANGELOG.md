@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.34.0](https://github.com/nerdvegas/rez/tree/2.34.0) (2019-07-10)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.33.0...2.34.0)
+
+**Merged pull requests:**
+
+- [Fix] Wheel pip regressions [\#656](https://github.com/nerdvegas/rez/pull/656) ([lambdaclan](https://github.com/lambdaclan))
+
 ## [2.33.0](https://github.com/nerdvegas/rez/tree/2.33.0) (2019-06-26)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.32.1...2.33.0)
 

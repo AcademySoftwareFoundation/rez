@@ -26,6 +26,7 @@ import sys
 import os
 import re
 
+
 class InstallMode(Enum):
     # don't install dependencies. Build may fail, for example the package may
     # need to compile against a dependency. Will work for pure python though.
@@ -115,9 +116,12 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
     Local version identifiers MUST comply with the following scheme:
     <public version identifier>[+<local version label>] - use - instead of +
 
-    Arguments:
+    Args:
         dist_version (str): The distribution version to be converted.
         allow_legacy (bool): Flag to allow/disallow PEP440 incompatibility.
+
+    Returns:
+        str: Rez-compatible equivalent version string.
 
     Raises:
         InvalidVersion: When legacy mode is not allowed and a PEP440
@@ -134,7 +138,7 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
 
     if isinstance(pkg_version, LegacyVersion):
         if allow_legacy:
-            print("Warning invalid PEP440 version detected: {}. Falling to legacy mode.".format(pkg_version))
+            print_warning("Invalid PEP440 version detected: %s. Falling to legacy mode.", pkg_version)
             # this will always be the entire version string
             return pkg_version.base_version.lower()
         else:
@@ -143,7 +147,8 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
     rez_version = ""
 
     if pkg_version.release:
-        # the components of the release segment excluding epoch or any prerelease/development/postrelease suffixes
+        # the components of the release segment excluding epoch or any
+        # prerelease/development/postrelease suffixes
         rez_version += '.'.join(str(i) for i in pkg_version.release)
 
         if pkg_version.is_prerelease and pkg_version.pre:
@@ -182,8 +187,11 @@ def pip_to_rez_package_name(distribution):
 
     Example: my-pkg-1.2 is 'my', version 'pkg-1.2'.
 
-    Arguments:
+    Args:
         distribution (Distribution): The distribution whose name to convert.
+
+    Returns:
+        str: Rez-compatible package name.
     """
     name, _ = parse_name_and_version(distribution.name_and_version)
     name = distribution.name[0:len(name)].replace("-", "_")
