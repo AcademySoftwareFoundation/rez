@@ -188,22 +188,6 @@ class CMD(Shell):
         else:
             _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
 
-        if shell_command:
-            # Launch the provided command in the configured shell and wait
-            # until it exits.
-            executor.command(shell_command)
-
-        # Test for None specifically because resolved_context.execute_rex_code
-        # passes '' and we do NOT want to keep a shell open during a rex code
-        # exec operation.
-        elif shell_command is None: 
-            # Launch the configured shell itself and wait for user interaction
-            # to exit.
-            executor.command('cmd /Q /K')
-            
-        # Exit the configured shell.
-        executor.command('exit %errorlevel%')
-
         code = executor.get_output()
         target_file = os.path.join(tmpdir, "rez-shell.%s"
                                    % self.file_extension())
@@ -221,12 +205,21 @@ class CMD(Shell):
             else:
                 cmd = pre_command
 
-        if shell_command:
-            cmd_flags = ['/Q', '/C']
-        else:
+        # Test for None specifically because resolved_context.execute_rex_code
+        # passes '' and we do NOT want to keep a shell open during a rex code
+        # exec operation.
+        if shell_command is None:
             cmd_flags = ['/Q', '/K']
+        else:
+            cmd_flags = ['/Q', '/C']
 
-        cmd = cmd + [self.executable] + cmd_flags + ['call {}'.format(target_file)]
+        cmd += [self.executable]
+        cmd += cmd_flags
+        cmd += ['call {}'.format(target_file)]
+
+        if shell_command:
+            cmd += ["& " + shell_command]
+
         is_detached = (cmd[0] == 'START')
 
         p = popen(cmd, env=env, shell=is_detached, **Popen_args)
@@ -308,7 +301,7 @@ class CMD(Shell):
         return "%%%s%%" % key
 
     def join(self, command):
-        return shlex_join(command).replace("'", '"')
+        return " ".join(command)
 
 
 def register_plugin():
