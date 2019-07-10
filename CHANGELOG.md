@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.35.0](https://github.com/nerdvegas/rez/tree/2.35.0) (2019-07-10)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.34.0...2.35.0)
+
+**Merged pull requests:**
+
+- WIP No more "Terminate Batch Job? (Y/N)" - Take 2 [\#627](https://github.com/nerdvegas/rez/pull/627) ([mottosso](https://github.com/mottosso))
+
+**Closed issues:**
+
+- Shell history not working in cmd.exe or PowerShell [\#616](https://github.com/nerdvegas/rez/issues/616)
+
 ## [2.34.0](https://github.com/nerdvegas/rez/tree/2.34.0) (2019-07-10)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.33.0...2.34.0)
 
