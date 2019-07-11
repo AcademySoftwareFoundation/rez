@@ -21,7 +21,8 @@ from rez.utils._version import _rez_version
 from rez.backport.shutilwhich import which
 from build_utils.virtualenv.virtualenv import Logger, create_environment, \
     path_locations
-from build_utils.distlib.scripts import ScriptMaker
+#from build_utils.distlib.scripts import ScriptMaker
+from rez.vendor.distlib.scripts import ScriptMaker
 
 
 class fake_entry(object):
