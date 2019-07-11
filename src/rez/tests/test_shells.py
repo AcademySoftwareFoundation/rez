@@ -3,6 +3,7 @@ test shell invocation
 """
 from __future__ import print_function
 
+from rez.config import config
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
@@ -327,6 +328,24 @@ class TestShells(TestBase, TempdirMixin):
         # We don't expect any output, the shell should just return with exit
         # code 0.
         _execute_code(_alias_after_path_manipulation)
+
+    @shell_dependent()
+    def test_standard_system_paths_visibility(self):
+
+        config.override("standard_system_paths_visibility", "replace")
+        config.override("standard_system_paths", ["SinglePath"])
+        sh = create_shell()
+        self.assertListEqual(sh.get_syspaths(), ["SinglePath"])
+
+        config.override("standard_system_paths_visibility", "prepend")
+        config.override("standard_system_paths", ["AnotherPath"])
+        sh = create_shell()
+        self.assertEqual(sh.get_syspaths()[0], "AnotherPath")
+
+        config.override("standard_system_paths_visibility", "append")
+        config.override("standard_system_paths", ["YetAnotherPath"])
+        sh = create_shell()
+        self.assertEqual(sh.get_syspaths()[-1], "YetAnotherPath")
 
 
 if __name__ == '__main__':
