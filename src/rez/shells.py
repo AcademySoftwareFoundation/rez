@@ -28,13 +28,17 @@ def syspaths_composer(func):
     """Decorator for Shell get_syspath methods, that handles
     standard_system_paths_visibility"""
     def wrapper(cls):
+
+        mode = StandardPathVisibility[config.standard_system_paths_visibility]
+
+        # Don't even load the shell syspaths if we are replacing them anyway
+        if config.standard_system_paths and mode == StandardPathVisibility.replace:
+            return config.standard_system_paths
+
         syspaths = list(func(cls))
 
         if config.standard_system_paths:
-            mode = StandardPathVisibility[config.standard_system_paths_visibility]
-            if mode == StandardPathVisibility.replace:
-                syspaths = config.standard_system_paths
-            elif mode == StandardPathVisibility.append:
+            if mode == StandardPathVisibility.append:
                 syspaths += config.standard_system_paths
             elif mode == StandardPathVisibility.prepend:
                 syspaths = config.standard_system_paths + syspaths
