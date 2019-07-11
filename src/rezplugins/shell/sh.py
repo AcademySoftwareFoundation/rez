@@ -8,7 +8,7 @@ import subprocess
 from rez.config import config
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
-from rez.shells import Shell, UnixShell
+from rez.shells import Shell, UnixShell, syspaths_composer
 from rez.rex import EscapedString
 
 
@@ -33,12 +33,9 @@ class SH(UnixShell):
         return 'sh'
 
     @classmethod
+    @syspaths_composer
     def get_syspaths(cls):
         if cls.syspaths is not None:
-            return cls.syspaths
-
-        if config.standard_system_paths:
-            cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
         # detect system paths using registry

@@ -366,10 +366,18 @@ rez_tools_visibility = "append"
 # scripts (such as .bashrc). If False, package commands are sourced after.
 package_commands_sourced_first = True
 
+# Defines how the standard_system_paths configuration acts on the $PATH:
+# - "replace":           Replace $PATH if standard_system_paths is set
+# - "append":            Append standard_system_paths to determined $PATH
+# - "prepend":           Prepend standard_system_paths to determined $PATH
+standard_system_paths_visibility = "replace"
+
 # Defines paths to initially set $PATH to, if a resolve appends/prepends $PATH.
 # If this is an empty list, then this initial value is determined automatically
 # depending on the shell (for example, *nix shells create a temp clean shell and
 # get $PATH from there; Windows inspects its registry).
+# The way the list is combined with $PATH is controlled via
+# rez_standard_system_paths_visibility.
 standard_system_paths = []
 
 # If you define this function, it will be called as the *preprocess function*

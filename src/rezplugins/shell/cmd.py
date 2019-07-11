@@ -3,7 +3,7 @@ Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
 from rez.rex import RexExecutor, literal, OutputStyle, EscapedString
-from rez.shells import Shell
+from rez.shells import Shell, syspaths_composer
 from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
@@ -68,12 +68,9 @@ class CMD(Shell):
         )
 
     @classmethod
+    @syspaths_composer
     def get_syspaths(cls):
         if cls.syspaths is not None:
-            return cls.syspaths
-
-        if config.standard_system_paths:
-            cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
         # detect system paths using registry

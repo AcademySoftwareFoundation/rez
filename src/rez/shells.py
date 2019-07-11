@@ -10,10 +10,37 @@ from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
+from rez.vendor.enum import Enum
 import subprocess
 import os
 import os.path
 import pipes
+
+
+class StandardPathVisibility(Enum):
+    """Defines how the standard_system_paths configuration acts on the $PATH"""
+    replace = 0             # Replace $PATH if standard_system_paths is set
+    append  = 1             # Append standard_system_paths to determined $PATH
+    prepend = 2             # Prepend standard_system_paths to determined $PATH
+
+
+def syspaths_composer(func):
+    """Decorator for Shell get_syspath methods, that handles
+    standard_system_paths_visibility"""
+    def wrapper(cls):
+        syspaths = list(func(cls))
+
+        if config.standard_system_paths:
+            mode = StandardPathVisibility[config.standard_system_paths_visibility]
+            if mode == StandardPathVisibility.replace:
+                syspaths = config.standard_system_paths
+            elif mode == StandardPathVisibility.append:
+                syspaths += config.standard_system_paths
+            elif mode == StandardPathVisibility.prepend:
+                syspaths = config.standard_system_paths + syspaths
+
+        return syspaths
+    return wrapper
 
 
 def get_shell_types():
@@ -62,6 +89,8 @@ class Shell(ActionInterpreter):
 
     @classmethod
     def get_syspaths(cls):
+        """Implement and decorate with syspaths_composer to enable class
+        level caching and to compose the result based on config"""
         raise NotImplementedError
 
     def __init__(self):
@@ -170,6 +199,7 @@ class Shell(ActionInterpreter):
             A string object representing the command.
         """
         raise NotImplementedError
+
 
 class UnixShell(Shell):
     """

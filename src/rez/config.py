@@ -234,6 +234,13 @@ class RezToolsVisibility_(Str):
         return Or(*(x.name for x in RezToolsVisibility))
 
 
+class StandardPathVisibility_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.shells import StandardPathVisibility
+        return Or(*(x.name for x in StandardPathVisibility))
+
+
 class OptionalStrOrFunction(Setting):
     schema = Or(None, basestring, callable)
 
@@ -271,6 +278,7 @@ config_schema = Schema({
     "plugin_path":                                  PathList,
     "bind_module_path":                             PathList,
     "standard_system_paths":                        PathList,
+    "standard_system_paths_visibility":             StandardPathVisibility_,
     "package_definition_build_python_paths":        PathList,
     "implicit_packages":                            StrList,
     "platform_map":                                 OptionalDict,
