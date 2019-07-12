@@ -4,13 +4,14 @@ production-ready Rez installation in the specified directory.
 """
 from __future__ import print_function
 
+import argparse
 import os
 import sys
 import shutil
 import os.path
 import textwrap
 import subprocess
-from optparse import OptionParser
+
 
 source_path = os.path.dirname(os.path.realpath(__file__))
 bin_path = os.path.join(source_path, "bin")
@@ -19,10 +20,10 @@ sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
 from rez.backport.shutilwhich import which
+from rez.vendor.distlib.scripts import ScriptMaker
+
 from build_utils.virtualenv.virtualenv import Logger, create_environment, \
     path_locations
-#from build_utils.distlib.scripts import ScriptMaker
-from rez.vendor.distlib.scripts import ScriptMaker
 
 
 class fake_entry(object):
@@ -56,11 +57,31 @@ class _ScriptMaker(ScriptMaker):
         return entry.get_script_text()
 
 
+
+
+
+def get_venv_executable(dest_dir, name):
+    # get virtualenv's python executable
+    _, _, _, venv_bin_dir = path_locations(dest_dir)
+
+    env = {
+        "PATH": venv_bin_dir,
+        "PATHEXT": os.environ.get("PATHEXT", "")
+    }
+
+    return venv_bin_dir, which(name, env=env)
+
+
+def run_command(args, cwd=source_path):
+    if opts.verbose:
+        print("running in %s: %s" % (cwd, " ".join(args)))
+    p = subprocess.Popen(args, cwd=source_path)
+    p.wait()
+
+
 def patch_rez_binaries(dest_dir):
     bin_names = os.listdir(bin_path)
-    _, _, _, venv_bin_path = path_locations(dest_dir)
-    venv_py_executable = which("python", env={"PATH":venv_bin_path,
-                                              "PATHEXT":os.environ.get("PATHEXT", "")})
+    venv_bin_path, py_executable = get_venv_executable(dest_dir, "python")
 
     # delete rez bin files written by setuptools
     for name in bin_names:
@@ -77,7 +98,7 @@ def patch_rez_binaries(dest_dir):
     os.makedirs(dest_bin_path)
 
     maker = _ScriptMaker(bin_path, dest_bin_path)
-    maker.executable = venv_py_executable
+    maker.executable = py_executable
     options = dict(interpreter_args=["-E"])
 
     for name in bin_names:
@@ -104,29 +125,46 @@ def copy_completion_scripts(dest_dir):
     return None
 
 
+def install_rez_from_source(dest_dir):
+    _, py_executable = get_venv_executable(dest_dir, "python")
+    _, pip_executable = get_venv_executable(dest_dir, "pip")
+
+    # build wheel
+    run_command([py_executable, "setup.py", "bdist_wheel"])
+
+    # find built wheel
+    names = os.listdir(os.path.join(source_path, "dist"))
+    names = [x for x in names if os.path.splitext(x)[-1] == ".whl"]
+    whl = os.path.join(source_path, "dist", names[0])
+
+    # install wheel
+    run_command([pip_executable, "install", whl])
+
+
 if __name__ == "__main__":
-    usage = ("usage: %prog [options] DEST_DIR ('{version}' in DEST_DIR will "
-             "expand to Rez version)")
-    parser = OptionParser(usage=usage)
-    parser.add_option(
+    parser = argparse.ArgumentParser("Rez installer")
+    parser.add_argument(
         '-v', '--verbose', action='count', dest='verbose', default=0,
         help="Increase verbosity.")
-    parser.add_option(
+    parser.add_argument(
         '-s', '--keep-symlinks', action="store_true", default=False,
         help="Don't run realpath on the passed DEST_DIR to resolve symlinks; "
              "ie, the baked script locations may still contain symlinks")
-    opts, args = parser.parse_args()
+    parser.add_argument(
+        "DIR", default="/opt/rez", nargs='?',
+        help="Destination directory. If '{version}' is present, it will be "
+        "expanded to the rez version. Default: %(default)s")
+
+    opts = parser.parse_args()
 
     if " " in os.path.realpath(__file__):
-        err_str = "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n" \
-                  "Please move installation files to another location or rename offending folder(s).\n"
-        parser.error(err_str)
+        parser.error(
+            "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n"
+            "Please move installation files to another location or rename offending folder(s).\n"
+        )
 
     # determine install path
-    if len(args) != 1:
-        parser.error("expected DEST_DIR")
-
-    dest_dir = args[0].format(version=_rez_version)
+    dest_dir = opts.DIR.format(version=_rez_version)
     dest_dir = os.path.expanduser(dest_dir)
     if not opts.keep_symlinks:
         dest_dir = os.path.realpath(dest_dir)
@@ -135,21 +173,13 @@ if __name__ == "__main__":
 
     # make virtualenv verbose
     log_level = Logger.level_for_integer(2 - opts.verbose)
-    logger = Logger([(log_level, sys.stdout)])
+    _ = Logger([(log_level, sys.stdout)])  # noqa
 
     # create the virtualenv
     create_environment(dest_dir)
 
     # install rez from source
-    _, _, _, venv_bin_dir = path_locations(dest_dir)
-    py_executable = which("python", env={"PATH":venv_bin_dir,
-                                         "PATHEXT":os.environ.get("PATHEXT",
-                                                                  "")})
-    args = [py_executable, "setup.py", "install"]
-    if opts.verbose:
-        print("running in %s: %s" % (source_path, " ".join(args)))
-    p = subprocess.Popen(args, cwd=source_path)
-    p.wait()
+    install_rez_from_source(dest_dir)
 
     # patch the rez binaries
     patch_rez_binaries(dest_dir)
@@ -158,6 +188,7 @@ if __name__ == "__main__":
     completion_path = copy_completion_scripts(dest_dir)
 
     # mark venv as production rez install. Do not remove - rez uses this!
+    _, _, _, venv_bin_dir = path_locations(dest_dir)
     dest_bin_dir = os.path.join(venv_bin_dir, "rez")
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
