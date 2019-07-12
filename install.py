@@ -9,7 +9,6 @@ import os
 import sys
 import shutil
 import os.path
-import textwrap
 import subprocess
 
 
@@ -19,45 +18,11 @@ src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
+from rez.cli._entry_points import get_specifications
 from rez.backport.shutilwhich import which
 from rez.vendor.distlib.scripts import ScriptMaker
 
-from build_utils.virtualenv.virtualenv import Logger, create_environment, \
-    path_locations
-
-
-class fake_entry(object):
-    code_template = textwrap.dedent(
-        """
-        from rez.cli.{module} import run
-        run({target})
-        """).strip() + '\n'
-
-    def __init__(self, name):
-        self.name = name
-
-    def get_script_text(self):
-        module = "_main"
-        target = ""
-        if self.name == "bez":
-            module = "_bez"
-        elif self.name == "_rez_fwd":  # TODO rename this binary
-            target = "'forward'"
-        elif self.name not in ("rez", "rezolve"):
-            target = "'%s'" % self.name.split('-', 1)[-1]
-        return self.code_template.format(module=module, target=target)
-
-
-class _ScriptMaker(ScriptMaker):
-    def __init__(self, *nargs, **kwargs):
-        super(_ScriptMaker, self).__init__(*nargs, **kwargs)
-        self.variants = set(('',))
-
-    def _get_script_text(self, entry):
-        return entry.get_script_text()
-
-
-
+from build_utils.virtualenv.virtualenv import create_environment, path_locations
 
 
 def get_venv_executable(dest_dir, name):
@@ -83,8 +48,10 @@ def patch_rez_binaries(dest_dir):
     bin_names = os.listdir(bin_path)
     venv_bin_path, py_executable = get_venv_executable(dest_dir, "python")
 
-    # delete rez bin files written by setuptools
-    for name in bin_names:
+    specs = get_specifications()
+
+    # delete rez bin files written into virtualenv
+    for name in specs.keys():
         filepath = os.path.join(venv_bin_path, name)
         if os.path.isfile(filepath):
             os.remove(filepath)
@@ -97,13 +64,13 @@ def patch_rez_binaries(dest_dir):
         shutil.rmtree(dest_bin_path)
     os.makedirs(dest_bin_path)
 
-    maker = _ScriptMaker(bin_path, dest_bin_path)
+    maker = ScriptMaker(bin_path, dest_bin_path)
     maker.executable = py_executable
-    options = dict(interpreter_args=["-E"])
 
-    for name in bin_names:
-        entry = fake_entry(name)
-        maker._make_script(entry, [], options=options)
+    maker.make_multiple(
+        specifications=specs.values(),
+        options=dict(interpreter_args=["-E"])
+    )
 
 
 def copy_completion_scripts(dest_dir):
@@ -170,10 +137,6 @@ if __name__ == "__main__":
         dest_dir = os.path.realpath(dest_dir)
 
     print("installing rez to %s..." % dest_dir)
-
-    # make virtualenv verbose
-    log_level = Logger.level_for_integer(2 - opts.verbose)
-    _ = Logger([(log_level, sys.stdout)])  # noqa
 
     # create the virtualenv
     create_environment(dest_dir)
