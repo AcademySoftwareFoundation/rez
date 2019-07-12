@@ -93,8 +93,10 @@ class Shell(ActionInterpreter):
 
     @classmethod
     def get_syspaths(cls):
-        """Implement and decorate with syspaths_composer to enable class
-        level caching and to compose the result based on config"""
+        """
+        Implement and decorate with syspaths_composer to compose the result
+        based on standard_system_paths_visibility
+        """
         raise NotImplementedError
 
     def __init__(self):
