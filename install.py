@@ -13,7 +13,7 @@ import subprocess
 
 
 source_path = os.path.dirname(os.path.realpath(__file__))
-bin_path = os.path.join(source_path, "bin")
+#bin_path = os.path.join(source_path, "bin")
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
@@ -45,7 +45,6 @@ def run_command(args, cwd=source_path):
 
 
 def patch_rez_binaries(dest_dir):
-    bin_names = os.listdir(bin_path)
     venv_bin_path, py_executable = get_venv_executable(dest_dir, "python")
 
     specs = get_specifications()
@@ -64,11 +63,20 @@ def patch_rez_binaries(dest_dir):
         shutil.rmtree(dest_bin_path)
     os.makedirs(dest_bin_path)
 
-    maker = ScriptMaker(bin_path, dest_bin_path)
+    maker = ScriptMaker(
+        # note: no filenames are referenced in any specifications, so
+        # source_dir is unused
+        source_dir=None,
+        target_dir=dest_bin_path
+    )
+
     maker.executable = py_executable
 
     maker.make_multiple(
         specifications=specs.values(),
+        # the -E arg is crucial - it means rez cli tools still work within a
+        # rez-resolved env, even if PYTHONPATH or related env-vars would have
+        # otherwise changed rez's behaviour
         options=dict(interpreter_args=["-E"])
     )
 
