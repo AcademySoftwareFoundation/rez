@@ -335,7 +335,6 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     """
     installed_variants = []
     skipped_variants = []
-    variant_types = []
 
     pip_exe, context = find_pip(pip_version, python_version)
 
