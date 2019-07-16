@@ -1,11 +1,22 @@
 # Change Log
 
+## [2.36.1](https://github.com/nerdvegas/rez/tree/2.36.0) (2019-07-16)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.0...2.36.1)
+
+**Merged pull requests:**
+
+- [Fix] Sh failing in `test_shells.TeshShells.text_rex_code_alias` [\#663](https://github.com/nerdvegas/rez/pull/663) ([bfloch](https://github.com/bfloch))
+
 ## [2.36.0](https://github.com/nerdvegas/rez/tree/2.36.0) (2019-07-16)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.35.0...2.36.0)
 
 **Merged pull requests:**
 
-- Add a package_preprocess_mode [\#609](https://github.com/nerdvegas/rez/pull/609) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Add a package_preprocess_mode [\#651](https://github.com/nerdvegas/rez/pull/651) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+**Closed issues:**
+
+- Support "additive" preprocess functions [\#609](https://github.com/nerdvegas/rez/issues/609)
 
 ## [2.35.0](https://github.com/nerdvegas/rez/tree/2.35.0) (2019-07-10)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.34.0...2.35.0)
