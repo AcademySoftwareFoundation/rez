@@ -1,6 +1,13 @@
 # Change Log
 
-## [2.36.1](https://github.com/nerdvegas/rez/tree/2.36.0) (2019-07-16)
+## [2.36.2](https://github.com/nerdvegas/rez/tree/2.36.2) (2019-07-16)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.1...2.36.2)
+
+**Merged pull requests:**
+
+[Feature] Pure python package detection [\#628](https://github.com/nerdvegas/rez/pull/628) ([lambdaclan](https://github.com/lambdaclan))
+
+## [2.36.1](https://github.com/nerdvegas/rez/tree/2.36.1) (2019-07-16)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.0...2.36.1)
 
 **Merged pull requests:**

@@ -19,7 +19,9 @@ from rez.system import System
 from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
+from email.parser import Parser
 import subprocess
+import pkg_resources
 import os.path
 import shutil
 import sys
@@ -200,10 +202,8 @@ def pip_to_rez_package_name(distribution):
 
 def run_pip_command(command_args, pip_version=None, python_version=None):
     """Run a pip command.
-
     Args:
         command_args (list of str): Args to pip.
-
     Returns:
         `subprocess.Popen`: Pip process.
     """
@@ -371,6 +371,22 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     _cmd(context=context, command=cmd)
     _system = System()
 
+    def pure_python_package(installed_dist):
+
+        true_table = {
+            "true": True,
+            "false": False
+        }
+
+        packages = pkg_resources.find_distributions(destpath)
+        dist = next((package for package in packages if package.key == installed_dist.key), None)
+        wheel_data = dist.get_metadata('WHEEL')
+        # see https://www.python.org/dev/peps/pep-0566/#json-compatible-metadata
+        wheel_data = Parser().parsestr(wheel_data)
+
+        # see https://www.python.org/dev/peps/pep-0427/#what-s-the-deal-with-purelib-vs-platlib
+        return true_table[wheel_data["Root-Is-Purelib"]]
+
     # Collect resulting python packages using distlib
     distribution_path = DistributionPath([destpath])
     distributions = [d for d in distribution_path.get_distributions()]
@@ -446,12 +462,28 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                     shutil.copystat(source_file, destination_file)
 
         # determine variant requirements
-        # TODO detect if platform/arch/os necessary, no if pure python
         variant_reqs = []
-        variant_reqs.append("platform-%s" % _system.platform)
-        variant_reqs.append("arch-%s" % _system.arch)
-        variant_reqs.append("os-%s" % _system.os)
 
+        pure = pure_python_package(distribution)
+
+        if not pure:
+            variant_reqs.append("platform-%s" % _system.platform)
+            variant_reqs.append("arch-%s" % _system.arch)
+
+        # Add the python version requirement. Note that we specify python to
+        # minor version because of environment markers - these often mean that
+        # you cannot use a loose python requirement (ie major version only)
+        # because then the package requirements would not be correct for all
+        # versions of python within that major version.
+        #
+        # This is not perfect. It means that often we will overspecify the required
+        # python version; and theoretically there could be markers that specify
+        # python down to the patch version. However, accurately varianting on
+        # python based on markers may be overly complicated, and may also
+        # result in odd varianting cases.
+        #
+        # https://www.python.org/dev/peps/pep-0508/#environment-markers
+        #
         if context is None:
             # since we had to use system pip, we have to assume system python version
             py_ver = '.'.join(map(str, sys.version_info[:2]))
