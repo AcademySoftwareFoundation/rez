@@ -465,23 +465,31 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         variant_reqs = []
 
         pure = pure_python_package(distribution)
+
         if not pure:
             variant_reqs.append("platform-%s" % _system.platform)
             variant_reqs.append("arch-%s" % _system.arch)
 
+        # Add the python version requirement. Note that we specify python to
+        # minor version because of environment markers - these often mean that
+        # you cannot use a loose python requirement (ie major version only)
+        # because then the package requirements would not be correct for all
+        # versions of python within that major version.
+        #
+        # This is not perfect. It means that often we will overspecify the required
+        # python version; and theoretically there could be markers that specify
+        # python down to the patch version. However, accurately varianting on
+        # python based on markers may be overly complicated, and may also
+        # result in odd varianting cases.
+        #
+        # https://www.python.org/dev/peps/pep-0508/#environment-markers
+        #
         if context is None:
             # since we had to use system pip, we have to assume system python version
-            if pure:
-                py_ver = '.'.join(map(str, sys.version_info[:1]))
-            else:
-                py_ver = '.'.join(map(str, sys.version_info[:2]))
+            py_ver = '.'.join(map(str, sys.version_info[:2]))
         else:
             python_variant = context.get_resolved_package("python")
-
-            if pure:
-                py_ver = python_variant.version.trim(1)
-            else:
-                py_ver = python_variant.version.trim(2)
+            py_ver = python_variant.version.trim(2)
 
         variant_reqs.append("python-%s" % py_ver)
 
