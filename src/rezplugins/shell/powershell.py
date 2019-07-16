@@ -1,6 +1,5 @@
-"""
-Windows Command Prompt (DOS) shell.
-"""
+"""Windows PowerShell 5"""
+
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
@@ -10,7 +9,6 @@ from rez.backport.shutilwhich import which
 from functools import partial
 import os
 import re
-import subprocess
 
 try:
     basestring
@@ -174,7 +172,8 @@ class PowerShell(Shell):
             if bind_rez:
                 ex.interpreter._bind_interactive_rez()
             if print_msg and not quiet:
-                ex.command("rez context")
+                # Rez may not be available
+                ex.command("Try { rez context } Catch { }")
 
         executor = RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},
@@ -184,10 +183,15 @@ class PowerShell(Shell):
             _record_shell(executor, files=startup_sequence["files"])
             shell_command = startup_sequence["command"]
         else:
-            _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
+            _record_shell(executor,
+                          files=startup_sequence["files"],
+                          print_msg=(not quiet))
 
         if shell_command:
             executor.command(shell_command)
+
+        # Forward exit call to parent PowerShell process
+        executor.command("exit $LastExitCode")
 
         code = executor.get_output()
         target_file = os.path.join(
@@ -207,12 +211,11 @@ class PowerShell(Shell):
         cmd += [self.executable]
         cmd += ['. "{}"'.format(target_file)]
 
-        if not shell_command:
+        if shell_command is None:
             cmd.insert(1, "-noexit")
 
         p = popen(cmd,
                   env=env,
-                  shell=True,
                   universal_newlines=True,
                   **Popen_args)
         return p
@@ -263,7 +266,9 @@ class PowerShell(Shell):
         self._addline(self.setenv(key, value))
 
     def alias(self, key, value):
-        self._addline("Set-Alias -Name %s -Value \"%s\"" % (key, value))
+        value = EscapedString.disallow(value)
+        cmd = "function {key}() {{ {value} $args }}"
+        self._addline(cmd.format(key=key, value=value))
 
     def comment(self, value):
         for line in value.split('\n'):
@@ -273,12 +278,15 @@ class PowerShell(Shell):
         for line in value.split('\n'):
             self._addline('Write-Host %s' % line)
 
+            # Prefer Write-Host to Write-Output
+            # See https://github.com/mottosso/bleeding-rez/issues/48
+
     def error(self, value):
         for line in value.split('\n'):
             self._addline('Write-Error "%s"' % line)
 
     def source(self, value):
-        self._addline("%s" % value)
+        self._addline(". \"%s\"" % value)
 
     def command(self, value):
         self._addline(value)
