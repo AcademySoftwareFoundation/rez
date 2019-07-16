@@ -27,6 +27,7 @@ import shutil
 import sys
 import os
 import re
+import platform
 
 
 class InstallMode(Enum):
@@ -246,7 +247,12 @@ def find_pip(pip_version=None, python_version=None):
     # check pip version, must be >=19 to support PEP517
     try:
         pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
-        ver_str = subprocess.check_output('{} -V'.format(pip_exe), shell=True)
+
+        if "Windows" in platform.system():
+            ver_str = subprocess.check_output('{} -V'.format(pip_exe), shell=True)
+        else:
+            ver_str = subprocess.check_output('{} -V'.format(pip_exe))
+
         match = re.search(pattern, ver_str)
         ver = match.group('ver')
         pip_major = ver.split('.')[0]
