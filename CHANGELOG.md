@@ -10,6 +10,12 @@
 ## [2.35.0](https://github.com/nerdvegas/rez/tree/2.35.0) (2019-07-10)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.34.0...2.35.0)
 
+**Backwards Compatibility Issues**
+
+Please note that this update alters the process hierarchy of a resolved rez environment,
+for Windows users. This does not necessarily represent a compatibility issue, but please
+be on the lookout for unintended side effects and report them if they arise.
+
 **Merged pull requests:**
 
 - WIP No more "Terminate Batch Job? (Y/N)" - Take 2 [\#627](https://github.com/nerdvegas/rez/pull/627) ([mottosso](https://github.com/mottosso))
