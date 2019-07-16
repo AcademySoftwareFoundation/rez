@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.36.0](https://github.com/nerdvegas/rez/tree/2.36.0) (2019-07-16)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.35.0...2.36.0)
+
+**Merged pull requests:**
+
+- Add a package_preprocess_mode [\#609](https://github.com/nerdvegas/rez/pull/609) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
 ## [2.35.0](https://github.com/nerdvegas/rez/tree/2.35.0) (2019-07-10)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.34.0...2.35.0)
 
