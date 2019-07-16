@@ -34,14 +34,8 @@ def copy_module(name, destpath):
          "print(%s.__path__[0] if hasattr(%s, '__path__') else '')" % (name, name)])
 
     if out:
-        if name == "pip":
-            path = subprocess.check_output('python -c "import pip; print(pip.__path__)"', shell=True)
-            # retrieve second line since first is the Python 2 deprecation warning
-            srcpath = path.strip()[2:-2]
-            shutil.copytree(srcpath, os.path.join(destpath, name))
-        else:
-            srcpath = out
-            shutil.copytree(srcpath, os.path.join(destpath, name))
+        srcpath = out
+        shutil.copytree(srcpath, os.path.join(destpath, name))
     else:
         success, out, err = run_python_command(
             ["import %s" % name,
@@ -67,15 +61,10 @@ def bind(name, path, import_name=None, version_range=None, version=None,
     import_name = import_name or name
 
     if version is None:
-        if name == "pip":
-            ver = subprocess.check_output('python -c "import pip; print(pip.__version__)"', shell=True)
-            version = ver.strip()
-
-        else:
-            version = get_version_in_python(
-                name,
-                ["import %s" % import_name,
-                 "print(%s.__version__)" % import_name])
+        version = get_version_in_python(
+            name,
+            ["import %s" % import_name,
+             "print(%s.__version__)" % import_name])
 
     check_version(version, version_range)
 
