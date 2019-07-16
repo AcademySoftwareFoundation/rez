@@ -194,7 +194,7 @@ def pip_to_rez_package_name(distribution):
         str: Rez-compatible package name.
     """
     name, _ = parse_name_and_version(distribution.name_and_version)
-    name = distribution.name[0:len(name)].replace("-", "_")
+    name = distribution.name[:len(name)].replace("-", "_")
     return name
 
 
