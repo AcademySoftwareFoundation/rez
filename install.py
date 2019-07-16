@@ -25,7 +25,7 @@ from rez.vendor.distlib.scripts import ScriptMaker
 from build_utils.virtualenv.virtualenv import create_environment, path_locations
 
 
-def get_venv_executable(dest_dir, name):
+def get_py_venv_executable(dest_dir):
     # get virtualenv's python executable
     _, _, _, venv_bin_dir = path_locations(dest_dir)
 
@@ -34,7 +34,7 @@ def get_venv_executable(dest_dir, name):
         "PATHEXT": os.environ.get("PATHEXT", "")
     }
 
-    return venv_bin_dir, which(name, env=env)
+    return venv_bin_dir, which("python", env=env)
 
 
 def run_command(args, cwd=source_path):
@@ -45,7 +45,7 @@ def run_command(args, cwd=source_path):
 
 
 def patch_rez_binaries(dest_dir):
-    venv_bin_path, py_executable = get_venv_executable(dest_dir, "python")
+    venv_bin_path, py_executable = get_py_venv_executable(dest_dir)
 
     specs = get_specifications()
 
@@ -101,19 +101,10 @@ def copy_completion_scripts(dest_dir):
 
 
 def install_rez_from_source(dest_dir):
-    _, py_executable = get_venv_executable(dest_dir, "python")
-    _, pip_executable = get_venv_executable(dest_dir, "pip")
+    _, py_executable = get_py_venv_executable(dest_dir)
 
-    # build wheel
-    run_command([py_executable, "setup.py", "bdist_wheel"])
-
-    # find built wheel
-    names = os.listdir(os.path.join(source_path, "dist"))
-    names = [x for x in names if os.path.splitext(x)[-1] == ".whl"]
-    whl = os.path.join(source_path, "dist", names[0])
-
-    # install wheel
-    run_command([pip_executable, "install", whl])
+    # install via pip
+    run_command([py_executable, "-m", "pip", "install", "."])
 
 
 if __name__ == "__main__":
