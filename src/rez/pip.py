@@ -249,9 +249,9 @@ def find_pip(pip_version=None, python_version=None):
         pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
 
         if "Windows" in platform.system():
-            ver_str = subprocess.check_output('{} -V'.format(pip_exe), shell=True)
+            ver_str = subprocess.check_output('{} -V'.format(pip_exe), shell=True, universal_newlines=True)
         else:
-            ver_str = subprocess.check_output('{} -V'.format(pip_exe))
+            ver_str = subprocess.check_output(['{}'.format(pip_exe), '-V'], universal_newlines=True)
 
         match = re.search(pattern, ver_str)
         ver = match.group('ver')

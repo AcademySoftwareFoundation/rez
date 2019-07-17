@@ -120,9 +120,9 @@ def _run_command(args):
     log("running: %s" % cmd_str)
 
     if "Windows" in platform.system():
-        p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
     else:
-        p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
 
     stdout, stderr = p.communicate()
