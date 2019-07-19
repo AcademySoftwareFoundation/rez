@@ -10,11 +10,11 @@ sending a pull request. Please follow these guidelines:
 4.  Follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
     for docstrings;
 5.  Use *spaces*, not *tabs*;
-6.  Update the [rez version](https://github.com/nerdvegas/rez/blob/master/src/rez/utils/_version.py) appropriately, and 
+6.  Update the [rez version](https://github.com/nerdvegas/rez/blob/master/src/rez/utils/_version.py) appropriately, and
     follow [semantic versioning](https://semver.org/);
-7.  Update [the changelog](https://github.com/nerdvegas/rez/blob/master/CHANGELOG.md); see the section below for more 
+7.  Update [the changelog](https://github.com/nerdvegas/rez/blob/master/CHANGELOG.md); see the section below for more
     details;
-8.  Use [this format](https://help.github.com/articles/closing-issues-using-keywords/) to mention the issue(s) your PR 
+8.  Use [this format](https://help.github.com/articles/closing-issues-using-keywords/) to mention the issue(s) your PR
     closes;
 9.  Add relevant tests to demonstrate that your changes work;
 10. Add relevant documentation (see [here](https://github.com/nerdvegas/rez/blob/master/wiki/README.md)) to document your
@@ -37,11 +37,23 @@ Here is an example changelog entry:
 ## [2.30.0](https://github.com/nerdvegas/rez/tree/2.30.0) (2019-05-07)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.29.1...2.30.0)
 
+**Notes**
+
+Fixed error in foo rex command on Windows.
+
+**Backwards Compatibility Issues**
+
+Describe any backwards compatiblity issues here. If there are none, do not include
+this section. Any breaking changes should be rare and only introduced for good
+reason.
+
+**Merged pull requests:**
+
+- Fix foo command [\#101](https://github.com/nerdvegas/rez/pull/101) ([jbloggs](https://github.com/jbloggs))
+
 **Closed issues:**
 
-- rezbuild.py broken [\#619](https://github.com/nerdvegas/rez/issues/619)
-- rez-env Performance and socket.getfqdn() [\#617](https://github.com/nerdvegas/rez/issues/617)
-- "parse_build_args.py" file parser arguments are not accessible anymore in "os.environ". [\#590](https://github.com/nerdvegas/rez/issues/590)
+- rex foo command broken [\#102](https://github.com/nerdvegas/rez/issues/102)
 ```
 
 Please include the relevant issues that your PR closes, matching the syntax shown above. When the PR is merged to master, the PR info will be added to the same changelog entry by the maintainer. Don't be too concerned with the date and 'full changelog' line, this will also be patched by the maintainer.
