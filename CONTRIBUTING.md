@@ -39,7 +39,8 @@ Here is an example changelog entry:
 
 **Notes**
 
-Fixed error in foo rex command on Windows.
+Describe the fixes the PR addresses here. It's ok if this is a summary of a longer
+description found in the PR itself, in fact that should be common.
 
 **Backwards Compatibility Issues**
 
@@ -49,11 +50,11 @@ reason.
 
 **Merged pull requests:**
 
-- Fix foo command [\#101](https://github.com/nerdvegas/rez/pull/101) ([jbloggs](https://github.com/jbloggs))
+- PR_TITLE_HERE [\#XXX](https://github.com/nerdvegas/rez/pull/XXX) ([USER](https://github.com/USER))
 
 **Closed issues:**
 
-- rex foo command broken [\#102](https://github.com/nerdvegas/rez/issues/102)
+- ISSUE_TITLE_HERE [\#YYY](https://github.com/nerdvegas/rez/issues/YYY)
 ```
 
 Please include the relevant issues that your PR closes, matching the syntax shown above. When the PR is merged to master, the PR info will be added to the same changelog entry by the maintainer. Don't be too concerned with the date and 'full changelog' line, this will also be patched by the maintainer.
