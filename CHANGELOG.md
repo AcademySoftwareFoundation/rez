@@ -12,7 +12,7 @@ object, it now returns a list of graph objects.
 
 **Merged pull requests:**
 
-- Fix pydot regression [\#XXX](https://github.com/nerdvegas/rez/pull/XXX) ([nerdvegas](https://github.com/nerdvegas))
+- Fix pydot regression [\#668](https://github.com/nerdvegas/rez/pull/668) ([nerdvegas](https://github.com/nerdvegas))
 
 ## [2.37.0](https://github.com/nerdvegas/rez/tree/2.37.0) (2019-07-19)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.2...2.37.0)
