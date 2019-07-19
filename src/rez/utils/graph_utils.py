@@ -13,6 +13,7 @@ from rez.config import config
 from rez.vendor.pydot import pydot
 from rez.utils.system import popen
 from rez.utils.formatting import PackageRequest
+from rez.utils.logging_ import print_warning
 from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
@@ -212,15 +213,48 @@ def save_graph(graph_str, dest_file, fmt=None, image_ratio=None):
     Returns:
         String representing format that was written, such as 'png'.
     """
-    g = pydot.graph_from_dot_data(graph_str)
+
+    # Disconnected edges can result in multiple graphs. We should never see
+    # this - it's a bug in graph generation if we do.
+    #
+    graphs = pydot.graph_from_dot_data(graph_str)
+
+    if not graphs:
+        raise RuntimeError("No graph generated")
+
+    if len(graphs) > 1:
+        path, ext = os.path.splitext(dest_file)
+        dest_files = []
+
+        for i, g in enumerate(graphs):
+            try:
+                dest_file_ = "%s.%d%s" % (path, i + 1, ext)
+                save_graph_object(g, dest_file_, fmt, image_ratio)
+                dest_files.append(dest_file)
+            except:
+                pass
+
+        raise RuntimeError(
+            "More than one graph was generated; this probably indicates a bug "
+            "in graph generation. Graphs were written to %r" % dest_files
+        )
+
+    # write the graph
+    return save_graph_object(graphs[0], dest_file, fmt, image_ratio)
+
+
+def save_graph_object(g, dest_file, fmt=None, image_ratio=None):
+    """Like `save_graph`, but takes a pydot Dot object.
+    """
 
     # determine the dest format
     if fmt is None:
         fmt = os.path.splitext(dest_file)[1].lower().strip('.') or "png"
+
     if hasattr(g, "write_" + fmt):
         write_fn = getattr(g, "write_" + fmt)
     else:
-        raise Exception("Unsupported graph format: '%s'" % fmt)
+        raise RuntimeError("Unsupported graph format: '%s'" % fmt)
 
     if image_ratio:
         g.set_ratio(str(image_ratio))
