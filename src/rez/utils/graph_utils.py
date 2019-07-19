@@ -229,7 +229,7 @@ def save_graph(graph_str, dest_file, fmt=None, image_ratio=None):
             try:
                 dest_file_ = "%s.%d%s" % (path, i + 1, ext)
                 save_graph_object(g, dest_file_, fmt, image_ratio)
-                dest_files.append(dest_file)
+                dest_files.append(dest_file_)
             except:
                 pass
 
