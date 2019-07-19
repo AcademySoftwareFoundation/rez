@@ -1,11 +1,23 @@
 # Change Log
 
+## [2.37.0](https://github.com/nerdvegas/rez/tree/2.37.0) (2019-07-19)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.2...2.37.0)
+
+**Notes**
+
+Adds PowerShell support.
+https://docs.microsoft.com/en-us/powershell/
+
+**Merged pull requests:**
+
+- Implement PowerShell [\#644](https://github.com/nerdvegas/rez/pull/644) ([mottosso](https://github.com/mottosso))
+
 ## [2.36.2](https://github.com/nerdvegas/rez/tree/2.36.2) (2019-07-16)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.1...2.36.2)
 
 **Merged pull requests:**
 
-[Feature] Pure python package detection [\#628](https://github.com/nerdvegas/rez/pull/628) ([lambdaclan](https://github.com/lambdaclan))
+- [Feature] Pure python package detection [\#628](https://github.com/nerdvegas/rez/pull/628) ([lambdaclan](https://github.com/lambdaclan))
 
 ## [2.36.1](https://github.com/nerdvegas/rez/tree/2.36.1) (2019-07-16)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.0...2.36.1)

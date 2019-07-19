@@ -278,9 +278,6 @@ class PowerShell(Shell):
         for line in value.split('\n'):
             self._addline('Write-Host %s' % line)
 
-            # Prefer Write-Host to Write-Output
-            # See https://github.com/mottosso/bleeding-rez/issues/48
-
     def error(self, value):
         for line in value.split('\n'):
             self._addline('Write-Error "%s"' % line)
