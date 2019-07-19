@@ -13,7 +13,6 @@ from rez.config import config
 from rez.vendor.pydot import pydot
 from rez.utils.system import popen
 from rez.utils.formatting import PackageRequest
-from rez.utils.logging_ import print_warning
 from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
