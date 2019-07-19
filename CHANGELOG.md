@@ -1,5 +1,19 @@
 # Change Log
 
+## [2.37.1](https://github.com/nerdvegas/rez/tree/2.37.1) (2019-07-19)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.37.0...2.37.1)
+
+**Notes**
+
+This fixes a regression introduced in `2.34.0`, which causes `rez-context -g` to
+fail. The pydot vendor package was updated, and the newer version includes a
+breaking change. Where `pydot.graph_from_dot_data` used to return a single graph
+object, it now returns a list of graph objects.
+
+**Merged pull requests:**
+
+- Fix pydot regression [\#XXX](https://github.com/nerdvegas/rez/pull/XXX) ([nerdvegas](https://github.com/nerdvegas))
+
 ## [2.37.0](https://github.com/nerdvegas/rez/tree/2.37.0) (2019-07-19)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.2...2.37.0)
 
