@@ -411,7 +411,7 @@ error is detected and it is not possible to configure a valid environment.
         ...
 
 This object provided system information, such as current platform, arch and os. See
-[the source](https://github.com/nerdvegas/rez/blob/master/src/rez/system.py) for more info.
+[the source](src/rez/system.py) for more info.
 
 ### this
 *Package object*
