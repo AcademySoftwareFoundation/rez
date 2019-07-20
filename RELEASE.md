@@ -11,12 +11,12 @@ To merge a PR to master and release a new version:
    since;
 4. Update [the changelog](CHANGELOG.md) to include the PR itself, as per existing
    entries. Also, make sure that the date and 'full changelog' link are correct;
-5. Push to master;
-6. Run `bash tag.sh -p`. This tags the git repo with the version in `utils/_version.py`;
-7. Generate the new GitHub release notes, like so:
+5. Run the release-rez utility script. This performs the following actions:
+   * Pushes codebase to master;
+   * Creates tag on latest version, and pushes tag to master;
+   * Generates the new GitHub release (https://github.com/nerdvegas/rez/releases).
+
       ```
-      ]$ python ./release_util.py create-release-notes
+      ]$ python ./release-rez.py
       ```
-   Then, verify the notes have been created correctly - they should appear
-   [here](https://github.com/nerdvegas/rez/releases).
-8. Relax.
+6. Relax.

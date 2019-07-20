@@ -1,11 +1,68 @@
 # Change Log
 
+## 2.38.1 (2019-07-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.38.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.0...2.38.1)
+
+**Notes**
+
+Fixes issue on Windows where rez-bind'ing pip creates a broken package.
+
+**Merged pull requests:**
+
+- [Fix] Windows rez-bind pip [\#659](https://github.com/nerdvegas/rez/pull/659) ([lambdaclan](https://github.com/lambdaclan))
+
+## 2.38.0 (2019-07-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.38.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.37.1...2.38.0)
+
+**Notes**
+
+Updates the installer (install.py).
+
+* patched distlib (in build_utils) has been removed. The patch we were relying on
+  has since been made part of the main distlib release, which we already have vendored;
+* virtualenv has been updated to latest;
+* scripts have been removed, and entry points are used instead;
+* install.py code has been cleaned up and simplified. Specifically, standard use of
+  distlib.ScriptMaker has been put in place;
+* INSTALL.md has been updated with a full explanation of the installer, and why a
+  pip-based installation is not the same as using install.py.
+
+**Merged pull requests:**
+
+- Installer updates [\#662](https://github.com/nerdvegas/rez/pull/662) ([nerdvegas](https://github.com/nerdvegas))
+
+## [2.37.1](https://github.com/nerdvegas/rez/tree/2.37.1) (2019-07-20)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.37.0...2.37.1)
+
+**Notes**
+
+This fixes a regression introduced in `2.34.0`, which causes `rez-context -g` to
+fail. The pydot vendor package was updated, and the newer version includes a
+breaking change. Where `pydot.graph_from_dot_data` used to return a single graph
+object, it now returns a list of graph objects.
+
+**Merged pull requests:**
+
+- Fix pydot regression [\#668](https://github.com/nerdvegas/rez/pull/668) ([nerdvegas](https://github.com/nerdvegas))
+
+## [2.37.0](https://github.com/nerdvegas/rez/tree/2.37.0) (2019-07-19)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.2...2.37.0)
+
+**Notes**
+
+Adds PowerShell support.
+https://docs.microsoft.com/en-us/powershell/
+
+**Merged pull requests:**
+
+- Implement PowerShell [\#644](https://github.com/nerdvegas/rez/pull/644) ([mottosso](https://github.com/mottosso))
+
 ## [2.36.2](https://github.com/nerdvegas/rez/tree/2.36.2) (2019-07-16)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.1...2.36.2)
 
 **Merged pull requests:**
 
-[Feature] Pure python package detection [\#628](https://github.com/nerdvegas/rez/pull/628) ([lambdaclan](https://github.com/lambdaclan))
+- [Feature] Pure python package detection [\#628](https://github.com/nerdvegas/rez/pull/628) ([lambdaclan](https://github.com/lambdaclan))
 
 ## [2.36.1](https://github.com/nerdvegas/rez/tree/2.36.1) (2019-07-16)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.36.0...2.36.1)
