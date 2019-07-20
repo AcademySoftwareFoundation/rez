@@ -240,12 +240,17 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     if os.path.isdir(staged_binpath):
         shutil.move(os.path.join(destpath, "bin"), binpath)
 
+    # get list of package and dependencies
+    distributions = list(distribution_path.get_distributions())
+    dist_names = [x.name for x in distributions]
+
     # iterate over package and dependencies
-    for distribution in distribution_path.get_distributions():
+    for distribution in distributions:
         # convert pip requirements into rez requirements
         rez_requires = get_rez_requirements(
             installed_dist=distribution,
-            python_version=py_ver
+            python_version=py_ver,
+            name_casings=dist_names
         )
 
         # log the pip -> rez translation, for debugging

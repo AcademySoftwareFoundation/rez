@@ -358,7 +358,7 @@ def is_pure_python_package(installed_dist):
     return (wheel_data["Root-Is-Purelib"].lower() == "true")
 
 
-def get_rez_requirements(installed_dist, python_version):
+def get_rez_requirements(installed_dist, python_version, name_casings=None):
     """Get requirements of the given dist, in rez-compatible format.
 
     Example result:
@@ -381,6 +381,14 @@ def get_rez_requirements(installed_dist, python_version):
             to convert.
         python_version (`Version`): Python version used to perform the
             installation.
+        name_casings (list of str): A list of pip package names in their correct
+            casings (eg, 'Foo' rather than 'foo'). Any requirement whose name
+            case-insensitive-matches a name in this list, is set to that name.
+            This is needed because pip package names are case insensitive. So a
+            package may list a requirement for package 'foo', when in fact the
+            package that pip has downloaded is called 'Foo'. Be sure to provide
+            names in PIP format, not REZ format (the pip package 'foo-bah' will
+            be converted to 'foo_bah' in rez).
 
     Returns:
         Dict: See example above.
@@ -388,6 +396,9 @@ def get_rez_requirements(installed_dist, python_version):
     _system = System()
     result_requires = []
     result_variant_requires = []
+
+    # create cased names lookup
+    name_mapping = dict((x.lower(), x) for x in (name_casings or []))
 
     # requirements such as platform, arch, os, and python
     sys_requires = set(["python"])
@@ -409,8 +420,6 @@ def get_rez_requirements(installed_dist, python_version):
     # filter requirements
     for req_ in requires:
         reqs = normalize_requirement(req_)
-
-        print("NORM: %r --> %r" % (req_, reqs))
 
         for req in reqs:
             # skip if env marker is present and doesn't evaluate
@@ -441,6 +450,11 @@ def get_rez_requirements(installed_dist, python_version):
                 if marker_reqs:
                     sys_requires.update(marker_reqs)
                     to_variant = True
+
+            # remap the requirement name
+            remapped = name_mapping.get(req.name.lower())
+            if remapped:
+                req.name = remapped
 
             # convert the requirement to rez equivalent
             rez_req = str(packaging_req_to_rez_req(req))
