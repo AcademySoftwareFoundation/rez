@@ -501,7 +501,7 @@ class WindowsPlatform(Platform):
             # Starting with Windows 10 Insiders build 14972, symlinks can be
             # created without needing to elevate the console as administrator.
             # https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/#joC5tFKhdXs2gGml.97
-            subprocess.check_output('mklink %s %s' % (link_name, source), shell=True)
+            subprocess.check_output("mklink %s %s" % (link_name, source), shell=True)
         else:
             import ctypes
             csl = ctypes.windll.kernel32.CreateSymbolicLinkW

@@ -119,11 +119,16 @@ def _run_command(args):
     cmd_str = ' '.join(quote(x) for x in args)
     log("running: %s" % cmd_str)
 
-    if "Windows" in platform.system():
-        p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
-    else:
-        p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    # https://github.com/nerdvegas/rez/pull/659
+    use_shell = ("Windows" in platform.system())
 
+    p = popen(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=use_shell,
+        universal_newlines=True
+    )
 
     stdout, stderr = p.communicate()
     return stdout, stderr, p.returncode

@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.38.1 (2019-07-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.38.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.0...2.38.1)
+
+**Notes**
+
+Fixes issue on Windows where rez-bind'ing pip creates a broken package.
+
+**Merged pull requests:**
+
+- [Fix] Windows rez-bind pip [\#659](https://github.com/nerdvegas/rez/pull/659) ([lambdaclan](https://github.com/lambdaclan))
+
 ## 2.38.0 (2019-07-20)
 [Source](https://github.com/nerdvegas/rez/tree/2.38.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.37.1...2.38.0)
 
