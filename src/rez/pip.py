@@ -10,7 +10,7 @@ from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
 from rez.utils.system import popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
-    pip_to_rez_version
+    pip_to_rez_version, get_pip_version
 from rez.utils.logging_ import print_debug, print_info, print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, convert_errors
@@ -22,14 +22,10 @@ from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
 from pprint import pformat
-import subprocess
-import pkg_resources
 import os.path
 import shutil
 import sys
 import os
-import re
-import platform
 
 
 class InstallMode(Enum):
@@ -101,28 +97,14 @@ def find_pip(pip_version=None, python_version=None):
 
     # check pip version, must be >=19 to support PEP517
     try:
-        pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
+        pip_ver = get_pip_version(pip_exe)
 
-        if "Windows" in platform.system():
-            # https://github.com/nerdvegas/rez/pull/659
-            ver_str = subprocess.check_output(
-                pip_exe + " -V",
-                shell=True,
-                universal_newlines=True
-            )
-        else:
-            ver_str = subprocess.check_output(
-                [pip_exe, '-V'],
-                universal_newlines=True
-            )
+        if pip_ver:
+            pip_major = pip_ver.split('.')[0]
+            if int(pip_major) < 19:
+                raise RezSystemError("pip >= 19 is required! Please update your pip.")
 
-        match = re.search(pattern, ver_str)
-        ver = match.group('ver')
-        pip_major = ver.split('.')[0]
-
-        if int(pip_major) < 19:
-            raise VersionError("pip >= 19 is required! Please update your pip.")
-    except VersionError:
+    except RezSystemError:
         raise
     except:
         # silently skip if pip version detection failed, pip itself will show

@@ -4,6 +4,9 @@ Python packaging related utilities.
 import os.path
 import sys
 from email.parser import Parser
+import platform
+import subprocess
+import re
 
 import pkg_resources
 
@@ -21,6 +24,35 @@ from rez.vendor.version.version import Version, VersionRange
 from rez.utils.logging_ import print_warning
 from rez.exceptions import PackageRequestError
 from rez.system import System
+
+
+def get_pip_version(pip_exe):
+    """Get the version of the given pip executable.
+
+    Returns:
+        str: Pip version, eg "19.1.1", or None if version couldn't be detected
+    """
+    pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
+
+    if "Windows" in platform.system():
+        # https://github.com/nerdvegas/rez/pull/659
+        ver_str = subprocess.check_output(
+            pip_exe + " -V",
+            shell=True,
+            universal_newlines=True
+        )
+    else:
+        ver_str = subprocess.check_output(
+            [pip_exe, '-V'],
+            universal_newlines=True
+        )
+
+    match = re.search(pattern, ver_str)
+    if not match:
+        return None
+
+    ver = match.group('ver')
+    return ver
 
 
 def pip_to_rez_package_name(dist_name):
