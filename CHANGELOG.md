@@ -1,6 +1,26 @@
 # Change Log
 
-## [2.37.1](https://github.com/nerdvegas/rez/tree/2.37.1) (2019-07-19)
+## [2.38.0](https://github.com/nerdvegas/rez/tree/2.38.0) (2019-07-20)
+[Full Changelog](https://github.com/nerdvegas/rez/compare/2.37.1...2.38.0)
+
+**Notes**
+
+Updates the installer (install.py).
+
+* patched distlib (in build_utils) has been removed. The patch we were relying on
+  has since been made part of the main distlib release, which we already have vendored;
+* virtualenv has been updated to latest;
+* scripts have been removed, and entry points are used instead;
+* install.py code has been cleaned up and simplified. Specifically, standard use of
+  distlib.ScriptMaker has been put in place;
+* INSTALL.md has been updated with a full explanation of the installer, and why a
+  pip-based installation is not the same as using install.py.
+
+**Merged pull requests:**
+
+- Installer updates [\#662](https://github.com/nerdvegas/rez/pull/662) ([nerdvegas](https://github.com/nerdvegas))
+
+## [2.37.1](https://github.com/nerdvegas/rez/tree/2.37.1) (2019-07-20)
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.37.0...2.37.1)
 
 **Notes**
