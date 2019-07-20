@@ -49,8 +49,8 @@ package, the installation of that package would look like so:
 The anatomy of a package with variants is illustrated in the following diagram:
 
 <p align="center">
-<a href="https://github.com/nerdvegas/rez/wiki/media/pkg_path_anatomy.png">
-<img src="https://github.com/nerdvegas/rez/wiki/media/pkg_path_anatomy.png">
+<a href="media/pkg_path_anatomy.png">
+<img src="media/pkg_path_anatomy.png">
 </a></p>
 
 The *root* of a package is the root directory of its current variant (the one

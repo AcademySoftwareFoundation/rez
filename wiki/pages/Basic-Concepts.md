@@ -276,8 +276,8 @@ version, and so on.
 Consider the following example (the arrows indicate dependencies):
 
 <p align="center">
-<a href="https://github.com/nerdvegas/rez/wiki/media/rez_deps_simple_eg.png">
-<img src="https://github.com/nerdvegas/rez/wiki/media/rez_deps_simple_eg.png">
+<a href="media/rez_deps_simple_eg.png">
+<img src="media/rez_deps_simple_eg.png">
 </a></p>
 
 Here we have three packages - 'foo', 'bah' and 'eek', where both foo and bah have dependencies on
@@ -348,8 +348,8 @@ The following diagram shows what happens when the command *"rez-env mplugin-1.3.
 
 
 <p align="center">
-<a href="https://github.com/nerdvegas/rez/wiki/media/rez_env.png">
-<img src="https://github.com/nerdvegas/rez/wiki/media/rez_env.png">
+<a href="media/rez_env.png">
+<img src="media/rez_env.png">
 </a></p>
 
 The digram shows the following operations occurring:
