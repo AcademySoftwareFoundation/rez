@@ -5,6 +5,7 @@ Read RELEASE.md before using this utility.
 """
 import argparse
 import os
+from getpass import getpass
 from pipes import quote
 import subprocess
 import sys
@@ -22,13 +23,16 @@ sys.path.insert(0, src_path)
 from rez.utils._version import _rez_version
 
 
-github_username = os.getenv("GITHUB_USER")
+github_username = os.getenv("GITHUB_USERNAME")
 github_password = os.getenv("GITHUB_PASSWORD")
+verbose = False
 
 
 def run_command(*nargs):
-    print("RUNNING: %s" % ' '.join(map(quote, nargs)))
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    if verbose:
+        print("RUNNING: %s" % ' '.join(map(quote, nargs)))
+
+    proc = subprocess.Popen(nargs, stdout=subprocess.PIPE)
     out, _ = proc.communicate()
 
     if proc.returncode:
@@ -102,7 +106,7 @@ def create_github_release_notes():
     latest_release_tag = response.json()["tag_name"]
 
     if latest_release_tag == _rez_version:
-        sys.stderr.write("Release for %s already exists.\n" % latest_tag)
+        sys.stderr.write("Release for %s already exists.\n" % _rez_version)
         sys.exit(1)
 
     # parse latest release out of changelog
@@ -111,8 +115,8 @@ def create_github_release_notes():
     tag_name = changelog["version"]
     if tag_name != _rez_version:
         sys.stderr.write(
-            "Latest entry in changelog (%s) doesn't match latest tag (%s).\n"
-            % (tag_name, latest_tag)
+            "Latest entry in changelog (%s) doesn't match current version (%s).\n"
+            % (tag_name, _rez_version)
         )
         sys.exit(1)
 
@@ -137,10 +141,14 @@ def create_github_release_notes():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--step", choices=("push", "tag", "release_notes"),
+        "-s", "--step", choices=("push", "tag", "release_notes"),
         help="Just run one step of the release process")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true",
+        help="verbose mode")
 
     opts = parser.parse_args()
+    verbose = opts.verbose
 
     print("Releasing rez-%s..." % _rez_version)
 
