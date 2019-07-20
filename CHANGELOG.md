@@ -1,6 +1,7 @@
 # Change Log
 
-## [2.38.0](https://github.com/nerdvegas/rez/tree/2.38.0) (2019-07-20)
+## 2.38.0 (2019-07-20)
+[Full Source](https://github.com/nerdvegas/rez/tree/2.38.0) |
 [Full Changelog](https://github.com/nerdvegas/rez/compare/2.37.1...2.38.0)
 
 **Notes**
