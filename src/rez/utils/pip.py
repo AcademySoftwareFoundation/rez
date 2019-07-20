@@ -286,8 +286,6 @@ def pip_specifier_to_rez_requirement(specifier):
 
         # !=1.* --> <1|2+; !=1.2.* --> <1.2|1.3+
         if spec.startswith("!=") and spec.endswith(".*"):
-            v = Version(parsed_rez_ver())
-            v_next = next_pip_version(str(v))
             return fmt("<{V}|{VNEXT}+")
 
         # !=1 --> <1|1.1+; !=1.2 --> <1.2|1.2.1+
