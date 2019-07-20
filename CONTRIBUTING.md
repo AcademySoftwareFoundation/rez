@@ -17,8 +17,11 @@ sending a pull request. Please follow these guidelines:
 8.  Use [this format](https://help.github.com/articles/closing-issues-using-keywords/) to mention the issue(s) your PR
     closes;
 9.  Add relevant tests to demonstrate that your changes work;
-10. Add relevant documentation (see [here](https://github.com/nerdvegas/rez/blob/master/wiki/README.md)) to document your
-    changes, if applicable.
+10. Add relevant documentation [here](https://github.com/nerdvegas/rez/tree/master/wiki/pages) to document your
+    changes, if applicable. Those markdown files prefixed with `_` are internal and should not be changed.
+11. If you changes add a new rez config setting, update [rezconfig.py](src/rez/rezconfig.py) and document the
+    setting. The comments in this file are extracted and turned into Wiki content. Pay attention to the comment
+    formatting and follow the existing style closely.
 
 ## Reporting Bugs
 
