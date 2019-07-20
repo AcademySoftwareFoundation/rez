@@ -179,6 +179,12 @@ def pip_specifier_to_rez_requirement(specifier):
     rather, they do exist in the sense that '1.0.post1' is a valid rez version
     number, but it has no special meaning).
 
+    Note also that the specifier is being converted into rez format, but in a
+    way that still expresses how _pip_ interprets the specifier. For example,
+    '==1' is a valid version range in rez, but '==1' has a different meaning to
+    pip than it does to rez ('1.0' matches '==1' in pip, but not in rez). This
+    is why '==1' is converted to '1+<1.1' in rez, rather than '==1'.
+
     Example conversions:
 
         |   PEP440    |     rez     |
@@ -384,11 +390,11 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
         name_casings (list of str): A list of pip package names in their correct
             casings (eg, 'Foo' rather than 'foo'). Any requirement whose name
             case-insensitive-matches a name in this list, is set to that name.
-            This is needed because pip package names are case insensitive. So a
-            package may list a requirement for package 'foo', when in fact the
-            package that pip has downloaded is called 'Foo'. Be sure to provide
-            names in PIP format, not REZ format (the pip package 'foo-bah' will
-            be converted to 'foo_bah' in rez).
+            This is needed because pip package names are case insensitive, but
+            rez is case-sensitive. So a package may list a requirement for package
+            'foo', when in fact the package that pip has downloaded is called 'Foo'.
+            Be sure to provide names in PIP format, not REZ format (the pip package
+            'foo-bah' will be converted to 'foo_bah' in rez).
 
     Returns:
         Dict: See example above.
