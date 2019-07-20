@@ -29,6 +29,6 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ ! -z "$push" ]; then
-    echo "pushing tags..."
-    git push --tags
+    echo "pushing tag..."
+    git push origin $version
 fi
