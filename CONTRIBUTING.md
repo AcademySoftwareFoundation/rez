@@ -34,8 +34,8 @@ If you report a bug, please ensure to specify the following:
 Here is an example changelog entry:
 
 ```
-## [2.30.0](https://github.com/nerdvegas/rez/tree/2.30.0) (2019-05-07)
-[Full Changelog](https://github.com/nerdvegas/rez/compare/2.29.1...2.30.0)
+## 2.38.0 (2019-07-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.38.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.37.1...2.38.0)
 
 **Notes**
 
