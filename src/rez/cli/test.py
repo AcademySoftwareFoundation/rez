@@ -14,6 +14,9 @@ from __future__ import print_function
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
+        "-c", "--clean", action="store_true",
+        help="clear the current tests artifacts before rerunning.")
+    parser.add_argument(
         "-l", "--list", action="store_true",
         help="list package's tests and exit")
     parser.add_argument(
@@ -65,7 +68,7 @@ def command(opts, parser, extra_arg_groups=None):
     runner = PackageTestRunner(package_request=pkg_request,
                                package_paths=pkg_paths,
                                extra_package_requests=opts.extra_packages,
-                               verbose=True)
+                               verbose=True, clean=opts.clean)
 
     test_names = runner.get_test_names()
     if not test_names:

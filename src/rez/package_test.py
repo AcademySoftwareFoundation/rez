@@ -1,11 +1,15 @@
+import shutil
+
 from rez.config import config
 from rez.resolved_context import ResolvedContext
-from rez.packages_ import get_latest_package_from_string, Variant
+from rez.packages_ import get_latest_package_from_string, get_package_from_string, Variant
 from rez.exceptions import PackageNotFoundError, PackageTestError
 from rez.utils.colorize import heading, Printer
 from rez.vendor.six import six
+from rez.utils.system import change_dir
 from pipes import quote
 import subprocess
+import os
 import time
 import sys
 
@@ -53,7 +57,7 @@ class PackageTestRunner(object):
     """
     def __init__(self, package_request, use_current_env=False,
                  extra_package_requests=None, package_paths=None, stdout=None,
-                 stderr=None, verbose=False, **context_kwargs):
+                 stderr=None, verbose=False, clean=False, **context_kwargs):
         """Create a package tester.
 
         Args:
@@ -68,6 +72,7 @@ class PackageTestRunner(object):
             stdout (file-like object): Defaults to sys.stdout.
             stderr (file-like object): Defaults to sys.stderr.
             verbose (bool): Verbose mode.
+            clean (bool): States whether clean test artifacts before rerunning
             context_kwargs: Extra arguments which are passed to the
                 `ResolvedContext` instances used to run the tests within.
                 Ignored if `use_current_env` is True.
@@ -78,6 +83,7 @@ class PackageTestRunner(object):
         self.stdout = stdout or sys.stdout
         self.stderr = stderr or sys.stderr
         self.verbose = verbose
+        self.clean = clean
         self.context_kwargs = context_kwargs
 
         self.package_paths = (config.packages_path if package_paths is None
@@ -109,8 +115,12 @@ class PackageTestRunner(object):
             package = get_package_from_string(str(self.package_request), self.package_paths)
 
             if not package:
+                package = get_latest_package_from_string(str(self.package_request), self.package_paths)
+
+            if not package:
                 raise PackageNotFoundError("Could not find package to test: %s" % str(self.package_request))
 
+            self._package = package
             return package
 
     def get_test_names(self):
@@ -199,11 +209,20 @@ class PackageTestRunner(object):
 
                 self._print_header("\nRunning test command: %s\n" % cmd_str)
 
-            retcode, _, _ = context.execute_shell(
-                command=command,
-                stdout=self.stdout,
-                stderr=self.stderr,
-                block=True)
+            test_result_dir = os.path.abspath('build/rez_test_result' if not test_info["run_in_root"] else '.')
+
+            if self.clean and os.path.exists(test_result_dir):
+                shutil.rmtree(test_result_dir)
+
+            if not os.path.exists(test_result_dir):
+                os.makedirs(test_result_dir)
+
+            with change_dir(test_result_dir):
+                retcode, _, _ = context.execute_shell(
+                    command=command,
+                    stdout=self.stdout,
+                    stderr=self.stderr,
+                    block=True)
 
             if retcode:
                 return retcode
@@ -290,5 +309,6 @@ class PackageTestRunner(object):
 
         return {
             "command": test_entry["command"],
-            "requires": requires
+            "requires": requires,
+            "run_in_root": test_entry.get("run_in_root", False)
         }
