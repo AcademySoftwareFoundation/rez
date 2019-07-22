@@ -545,36 +545,36 @@ class _VersionRangeParser(object):
     version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"  # A Version Number
 
     version_range_regex = \
-        (r"   ^(?P<version>{version_group})$"
+        (r"   ^(!?)(?P<version>{version_group})$"
          "|"
          # Or match an exact version number (e.g. ==1.0.0)
-         "    ^(?P<exact_version>"
+         "    ^(!?)(?P<exact_version>"
          "        =="  # Required == operator
          "        (?P<exact_version_group>{version_group})?"
          "    )$"
          "|"
          # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
-         "    ^(?P<inclusive_bound>"
+         "    ^(!?)(?P<inclusive_bound>"
          "        (?P<inclusive_lower_version>{version_group})?"
          "        \.\."  # Required .. operator
          "        (?P<inclusive_upper_version>{version_group})?"
          "    )$"
          "|"
          # Or match a lower bound (e.g. 1.0.0+)
-         "    ^(?P<lower_bound>"
+         "    ^(!?)(?P<lower_bound>"
          "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
          "        (?P<lower_version>{version_group})?"
          "        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
          "    )$"
          "|"
          # Or match an upper bound (e.g. <=1.0.0)
-         "    ^(?P<upper_bound>"
+         "    ^(!?)(?P<upper_bound>"
          "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
          "        (?P<upper_version>{version_group})?"
          "    )$"
          "|"
          # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
-         "    ^(?P<range_asc>"
+         "    ^(!?)(?P<range_asc>"
          "        (?P<range_lower_asc>"
          "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
          "           (?P<range_lower_asc_version>{version_group})?"
@@ -587,7 +587,7 @@ class _VersionRangeParser(object):
          "    )$"
          "|"
          # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
-         "    ^(?P<range_desc>"
+         "    ^(!?)(?P<range_desc>"
          "        (?P<range_upper_desc>"
          "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
          "           (?P<range_upper_desc_version>{version_group})?"
@@ -604,6 +604,7 @@ class _VersionRangeParser(object):
     def __init__(self, input_string, make_token, invalid_bound_error=True):
         self.make_token = make_token
         self._groups = {}
+        self._unnamed = []
         self._input_string = input_string
         self.bounds = []
         self.invalid_bound_error = invalid_bound_error
@@ -620,6 +621,8 @@ class _VersionRangeParser(object):
                 raise ParseException("Syntax error in version range '%s'" % part)
 
             self._groups = match.groupdict()
+            self._unnamed = [item for item in match.groups() if item]
+
             if self._groups['version']:
                 self._act_version()
 
@@ -640,6 +643,9 @@ class _VersionRangeParser(object):
 
             if self._groups['range_desc']:
                 self._act_lower_and_upper_bound_desc()
+
+            if self._unnamed[0] == "!":
+                self.bounds = VersionRange._inverse(self.bounds)
 
     def _is_lower_bound_exclusive(self, token):
         return True if token == ">" else False
