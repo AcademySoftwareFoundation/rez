@@ -320,18 +320,23 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         version = pip_to_rez_version(distribution.version)
         requires = rez_requires["requires"]
         variant_requires = rez_requires["variant_requires"]
+        metadata = rez_requires["metadata"]
 
         with make_package(name, packages_path, make_root=make_root) as pkg:
+            # basics (version etc)
             pkg.version = version
+
             if distribution.metadata.summary:
                 pkg.description = distribution.metadata.summary
 
+            # requirements and variants
             if requires:
                 pkg.requires = requires
 
             if variant_requires:
                 pkg.variants = [variant_requires]
 
+            # commands
             commands = []
             commands.append("env.PYTHONPATH.append('{root}/python')")
 
@@ -340,6 +345,18 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 commands.append("env.PATH.append('{root}/bin')")
 
             pkg.commands = '\n'.join(commands)
+
+            # Make the package use hashed variants. This is required because we
+            # can't control what ends up in its variants, and that can easily
+            # include problematic chars (>, +, ! etc).
+            # TODO: https://github.com/nerdvegas/rez/issues/672
+            #
+            pkg.hashed_variants = True
+
+            # add some custom attributes to retain pip-related info
+            pkg.pip_name = distribution.name_and_version
+            pkg.from_pip = True
+            pkg.is_pure_python = metadata["is_pure_python"]
 
         installed_variants.extend(pkg.installed_variants or [])
         skipped_variants.extend(pkg.skipped_variants or [])

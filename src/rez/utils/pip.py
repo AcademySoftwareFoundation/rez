@@ -17,7 +17,6 @@ from rez.vendor.packaging.version import (
     InvalidVersion as packaging_InvalidVersion
 )
 from rez.vendor.packaging.requirements import Requirement as packaging_Requirement
-from rez.vendor.packaging.markers import _operators as marker_operators
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import Version, VersionRange
 
@@ -369,7 +368,11 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
 
         {
             "requires": ["foo-1.2+<2"],
-            "variant_requires": ["future", "python-2.7"]
+            "variant_requires": ["future", "python-2.7"],
+            "metadata": {
+                # metadata pertinent to rez
+                ...
+            }
         }
 
     Each requirement has had its package name converted to the rez equivalent.
@@ -408,7 +411,8 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
     sys_requires = set(["python"])
 
     # assume package is platform- and arch- specific if it isn't pure python
-    if not is_pure_python_package(installed_dist):
+    is_pure_python = is_pure_python_package(installed_dist)
+    if not is_pure_python:
         sys_requires.update(["platform", "arch"])
 
     # Note: This is supposed to give a requirements list that has already been
@@ -490,7 +494,10 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
 
     return {
         "requires": result_requires,
-        "variant_requires": sys_variant_requires + result_variant_requires
+        "variant_requires": sys_variant_requires + result_variant_requires,
+        "metadata": {
+            "is_pure_python": is_pure_python
+        }
     }
 
 
