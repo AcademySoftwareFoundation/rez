@@ -56,8 +56,8 @@ def create_executable_script(filepath, body, program=None):
     # clean up the files once the test has run.  Temporarily we don't bother
     # setting the permissions, but this will need to change.
     if os.name == "posix":
-    	os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+                 | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
@@ -77,7 +77,7 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
         doc["kwargs"] = kwargs
 
     body = dump_yaml(doc)
-    create_executable_script(filepath, body, "_rez_fwd")
+    create_executable_script(filepath, body, "_rez-fwd")
 
 
 def dedup(seq):
