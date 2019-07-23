@@ -82,6 +82,8 @@ class PowerShell(Shell):
             whitespace = r"[\s]+"
             return whitespace.join(parts)
 
+        # TODO: Research if there is an easier way to pull system PATH from
+        # registry in powershell
         paths = []
 
         cmd = [
@@ -257,6 +259,8 @@ class PowerShell(Shell):
 
     def alias(self, key, value):
         value = EscapedString.disallow(value)
+        # TODO: Find a way to properly escape paths in alias() calls that also
+        # contain args
         cmd = "function {key}() {{ {value} $args }}"
         self._addline(cmd.format(key=key, value=value))
 
