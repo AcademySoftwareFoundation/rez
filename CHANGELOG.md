@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.38.2 (2019-07-23)
+[Source](https://github.com/nerdvegas/rez/tree/2.38.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.1...2.38.2)
+
+**Notes**
+
+Fixes regression in 2.38.0 that unintentionally renamed _rez_fwd tool to _rez-fwd.
+
+**Merged pull requests:**
+
+- fixed regression in 2.38.0 that unintentionally renamed _rez_fwd to _rez-fwd [\#676](https://github.com/nerdvegas/rez/pull/676) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- build scripts generated with incorrect shebang arg [\#671](https://github.com/nerdvegas/rez/issues/671)
+
 ## 2.38.1 (2019-07-20)
 [Source](https://github.com/nerdvegas/rez/tree/2.38.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.0...2.38.1)
 
