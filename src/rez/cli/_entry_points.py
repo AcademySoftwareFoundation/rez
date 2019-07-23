@@ -89,7 +89,7 @@ def run_rez_complete():
     return run("complete")
 
 
-@scriptname("_rez-fwd")
+@scriptname("_rez_fwd")
 def run_rez_fwd():
     check_production_install()
     from rez.cli._main import run

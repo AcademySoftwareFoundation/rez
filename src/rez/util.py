@@ -57,7 +57,7 @@ def create_executable_script(filepath, body, program=None):
     # setting the permissions, but this will need to change.
     if os.name == "posix":
     	os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+                 | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
