@@ -97,8 +97,8 @@ class PowerShell(Shell):
         ])
 
         p = popen(cmd,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE,
+                  stdout=PIPE,
+                  stderr=PIPE,
                   universal_newlines=True,
                   shell=True)
         out_, _ = p.communicate()
@@ -117,8 +117,8 @@ class PowerShell(Shell):
         ])
 
         p = popen(cmd,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE,
+                  stdout=PIPE,
+                  stderr=PIPE,
                   universal_newlines=True,
                   shell=True)
         out_, _ = p.communicate()
