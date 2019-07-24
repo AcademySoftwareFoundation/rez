@@ -591,11 +591,11 @@ class _VersionRangeParser(object):
          "        (?P<range_upper_desc>"
          "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
          "           (?P<range_upper_desc_version>{version_group})?"
-         "           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
          "       )(?P<range_lower_desc>"
          "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want to recognize something like "<4>3"
-         "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed by a version group
+         "           (?P<range_lower_desc_prefix>>(?={version_group})|>=)?"  # >= or > only if followed by a version group
          "           (?P<range_lower_desc_version>{version_group})?"
+         "           (?(range_lower_desc_prefix)|\+)?" # only if lower bound is not exclusive
          "       )"
          "    )$").format(version_group=version_group)
 
