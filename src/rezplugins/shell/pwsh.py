@@ -1,4 +1,4 @@
-"""Windows PowerShell 5"""
+"""Windows PowerShell 6+"""
 
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
