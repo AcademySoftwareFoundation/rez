@@ -9,6 +9,7 @@ from rez.backport.shutilwhich import which
 from functools import partial
 import os
 import re
+import subprocess
 
 try:
     basestring
