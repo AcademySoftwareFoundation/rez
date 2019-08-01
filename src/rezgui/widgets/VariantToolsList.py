@@ -1,10 +1,10 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.objects.App import app
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.ToolWidget import ToolWidget
 
 
-class VariantToolsList(QtGui.QTableWidget, ContextViewMixin):
+class VariantToolsList(QtWidgets.QTableWidget, ContextViewMixin):
     def __init__(self, context_model=None, parent=None):
         super(VariantToolsList, self).__init__(0, 1, parent)
         ContextViewMixin.__init__(self, context_model)
@@ -14,8 +14,8 @@ class VariantToolsList(QtGui.QTableWidget, ContextViewMixin):
 
         self.setGridStyle(QtCore.Qt.DotLine)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         hh = self.horizontalHeader()
         hh.setStretchLastSection(True)
@@ -48,8 +48,8 @@ class VariantToolsList(QtGui.QTableWidget, ContextViewMixin):
                 self.setCellWidget(i, 0, widget)
                 self.tool_widgets[tool] = widget
 
-            select_mode = QtGui.QAbstractItemView.SingleSelection \
-                if context else QtGui.QAbstractItemView.NoSelection
+            select_mode = QtWidgets.QAbstractItemView.SingleSelection \
+                if context else QtWidgets.QAbstractItemView.NoSelection
             self.setSelectionMode(select_mode)
 
         self.variant = variant

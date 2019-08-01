@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.util import get_timestamp_str
@@ -6,7 +6,7 @@ from rez.packages_ import iter_packages
 from rez.exceptions import RezError
 
 
-class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
+class PackageVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
     def __init__(self, context_model=None, parent=None, callback=None):
         """
         Args:
@@ -22,14 +22,14 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.packages = {}
 
         self.setGridStyle(QtCore.Qt.DotLine)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
 
         hh = self.horizontalHeader()
         hh.setStretchLastSection(True)
         vh = self.verticalHeader()
-        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.clear()
 
     def clear(self):
@@ -68,7 +68,7 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         rows = []
 
         busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
-        QtGui.QApplication.setOverrideCursor(busy_cursor)
+        QtWidgets.QApplication.setOverrideCursor(busy_cursor)
         try:
             packages = list(iter_packages(name=str(package_name),
                             paths=package_paths))
@@ -78,7 +78,7 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         if not packages:
             self.setEnabled(False)
             self.package_name = None
-            QtGui.QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
             return
 
         for i, package in enumerate(sorted(packages, key=lambda x: x.version,
@@ -91,19 +91,19 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
             rows.append((enabled, version_str, path_str, release_str))
             self.packages[i] = package
 
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
         self.setRowCount(len(rows))
         first_selectable_row = -1
 
         for i, row in enumerate(rows):
             enabled, version_str = row[:2]
             row = row[2:]
-            item = QtGui.QTableWidgetItem(version_str)
+            item = QtWidgets.QTableWidgetItem(version_str)
             item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
             self.setVerticalHeaderItem(i, item)
 
             for j in range(len(row)):
-                item = QtGui.QTableWidgetItem(row[j])
+                item = QtWidgets.QTableWidgetItem(row[j])
                 if enabled:
                     if first_selectable_row == -1:
                         first_selectable_row = i

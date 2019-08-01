@@ -1,11 +1,11 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.utils.formatting import readable_time_duration
 import time
 
 
-class ContextResolveTimeLabel(QtGui.QLabel, ContextViewMixin):
+class ContextResolveTimeLabel(QtWidgets.QLabel, ContextViewMixin):
     def __init__(self, context_model=None, parent=None):
         super(ContextResolveTimeLabel, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)

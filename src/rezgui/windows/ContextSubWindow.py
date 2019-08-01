@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.objects.App import app
 from rezgui.widgets.ContextManagerWidget import ContextManagerWidget
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
@@ -7,7 +7,7 @@ from rezgui.models.ContextModel import ContextModel
 import os.path
 
 
-class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
+class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
     def __init__(self, context=None, parent=None):
         super(ContextSubWindow, self).__init__(parent)
         context_model = ContextModel(context)
@@ -49,28 +49,28 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
             title = "Close context"
 
         if self.context_model.is_stale():
-            ret = QtGui.QMessageBox.warning(
+            ret = QtWidgets.QMessageBox.warning(
                 self,
                 title,
                 "%s is pending a resolve.\n"
                 "Close and discard changes?\n"
                 "If you close, your changes will be lost."
                 % id_str.capitalize(),
-                QtGui.QMessageBox.Discard,
-                QtGui.QMessageBox.Cancel)
-            return (ret == QtGui.QMessageBox.Discard)
+                QtWidgets.QMessageBox.Discard,
+                QtWidgets.QMessageBox.Cancel)
+            return (ret == QtWidgets.QMessageBox.Discard)
         else:
-            ret = QtGui.QMessageBox.warning(
+            ret = QtWidgets.QMessageBox.warning(
                 self,
                 title,
                 "Save the changes to %s before closing?\n"
                 "If you don't save the context, your changes will be lost."
                 % id_str,
-                buttons=QtGui.QMessageBox.Save
-                    | QtGui.QMessageBox.Discard
-                    | QtGui.QMessageBox.Cancel)
+                buttons=QtWidgets.QMessageBox.Save
+                    | QtWidgets.QMessageBox.Discard
+                    | QtWidgets.QMessageBox.Cancel)
 
-            if ret == QtGui.QMessageBox.Save:
+            if ret == QtWidgets.QMessageBox.Save:
                 if self.is_saveable():
                     self._save_context()
                     return True
@@ -78,7 +78,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
                     assert self.is_save_as_able()
                     return self._save_context_as()
             else:
-                return (ret == QtGui.QMessageBox.Discard)
+                return (ret == QtWidgets.QMessageBox.Discard)
 
         # should never get here
         assert False
@@ -125,7 +125,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
 
     def _save_context_as(self):
         dir_ = os.path.dirname(self.filepath()) if self.filepath() else ""
-        filepath = QtGui.QFileDialog.getSaveFileName(
+        filepath = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save Context", dir_, "Context files (*.rxt)")
 
         if filepath:

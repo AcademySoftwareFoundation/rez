@@ -1,8 +1,8 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets, QtGui
 from rezgui.widgets.FindPopup import FindPopup
 
 
-class SearchableTextEdit(QtGui.QTextEdit):
+class SearchableTextEdit(QtWidgets.QTextEdit):
     """A TextEdit that can be searched.
     """
     def __init__(self, parent=None):

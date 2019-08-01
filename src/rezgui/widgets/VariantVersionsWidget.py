@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.util import create_pane
 from rezgui.widgets.VariantVersionsTable import VariantVersionsTable
 from rezgui.widgets.PackageLoadingWidget import PackageLoadingWidget
@@ -29,27 +29,27 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
         self.reference_variant = reference_variant
         self.pending_changelog_packages = None
 
-        self.label = QtGui.QLabel()
+        self.label = QtWidgets.QLabel()
         self.changelog_edit = ChangelogEdit()
         self.table = VariantVersionsTable(self.context_model,
                                           reference_variant=reference_variant)
 
-        self.tab = QtGui.QTabWidget()
+        self.tab = QtWidgets.QTabWidget()
         self.tab.addTab(self.table, "list view")
         self.tab.addTab(self.changelog_edit, "changelogs")
         self.tab.currentChanged.connect(self._tabIndexChanged)
 
         buttons = [None]
         if self.in_window:
-            close_btn = QtGui.QPushButton("Close")
+            close_btn = QtWidgets.QPushButton("Close")
             buttons.append(close_btn)
             close_btn.clicked.connect(self._close_window)
         else:
-            browse_versions_btn = QtGui.QPushButton("Browse Versions...")
+            browse_versions_btn = QtWidgets.QPushButton("Browse Versions...")
             browse_versions_btn.clicked.connect(self._browseVersions)
             buttons.append(browse_versions_btn)
 
-            window_btn = QtGui.QPushButton("View In Window...")
+            window_btn = QtWidgets.QPushButton("View In Window...")
             window_btn.clicked.connect(self._view_changelogs_window)
             buttons.append(window_btn)
 

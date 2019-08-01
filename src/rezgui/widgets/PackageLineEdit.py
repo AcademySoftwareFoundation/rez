@@ -1,11 +1,11 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages_ import get_completions, iter_packages
 from rez.vendor.version.requirement import Requirement
 
 
-class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
+class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
 
     focusOutViaKeyPress = QtCore.Signal(str)
     focusOut = QtCore.Signal(str)
@@ -30,9 +30,9 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
             self.setPlaceholderText("enter package")
             self._update_font()
 
-        self.completer = QtGui.QCompleter(self)
-        self.completer.setCompletionMode(QtGui.QCompleter.PopupCompletion)
-        self.completions = QtGui.QStringListModel(self.completer)
+        self.completer = QtWidgets.QCompleter(self)
+        self.completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+        self.completions = QtCore.QStringListModel(self.completer)
         self.completer.setModel(self.completions)
         self.setCompleter(self.completer)
 

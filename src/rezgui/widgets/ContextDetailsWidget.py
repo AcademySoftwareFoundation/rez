@@ -1,4 +1,4 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets, QtGui
 from rezgui.util import create_pane
 from rezgui.widgets.ContextEnvironWidget import ContextEnvironWidget
 from rezgui.widgets.SearchableTextEdit import SearchableTextEdit
@@ -11,7 +11,7 @@ from rez.system import system
 import pprint
 
 
-class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
+class ContextDetailsWidget(QtWidgets.QTabWidget, ContextViewMixin):
     def __init__(self, context_model=None, parent=None):
         super(ContextDetailsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
@@ -27,7 +27,7 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         self.code_edit = SearchableTextEdit()
         self.code_edit.setStyleSheet("font: 12pt 'Courier'")
 
-        self.code_combo = QtGui.QComboBox()
+        self.code_combo = QtWidgets.QComboBox()
         # strip out 'sh' and 'csh', they only differ from bash and tcsh in shell
         # startup behaviour, which is irrelevant here
         code_types = set(get_shell_types()) - set([system.shell, "sh", "csh"])
@@ -35,7 +35,7 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         for code_type in code_types:
             self.code_combo.addItem(code_type)
 
-        label = QtGui.QLabel("Format:")
+        label = QtWidgets.QLabel("Format:")
         btn_pane = create_pane([None, label, self.code_combo], True)
         code_pane = create_pane([self.code_edit, btn_pane], False)
 

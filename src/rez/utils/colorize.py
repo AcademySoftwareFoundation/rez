@@ -300,7 +300,8 @@ class Printer(object):
 
     def __call__(self, msg='', style=None):
         print(self.get(msg, style), file=self.buf)
-        self.buf.flush()
+        if hasattr(self.buf, 'flush'):
+            self.buf.flush()
 
     def get(self, msg, style=None):
         if style and self.colorize:
@@ -309,7 +310,7 @@ class Printer(object):
 
 
 # Copyright 2013-2016 Allan Johns.
-#
+#   
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation, either

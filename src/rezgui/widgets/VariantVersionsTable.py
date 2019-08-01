@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.package_filter import PackageFilterList
 from rezgui.util import get_timestamp_str, update_font, get_icon_widget, create_pane
@@ -6,7 +6,7 @@ from rez.packages_ import iter_packages
 from rez.vendor.version.version import VersionRange
 
 
-class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
+class VariantVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
     def __init__(self, context_model=None, reference_variant=None, parent=None):
         super(VariantVersionsTable, self).__init__(0, 2, parent)
         ContextViewMixin.__init__(self, context_model)
@@ -21,20 +21,20 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.setWordWrap(False)
         self.setGridStyle(QtCore.Qt.DotLine)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
 
         hh = self.horizontalHeader()
         hh.setVisible(False)
         vh = self.verticalHeader()
-        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.clear()
 
     def selectionCommand(self, index, event=None):
-        return QtGui.QItemSelectionModel.ClearAndSelect if self.allow_selection \
-            else QtGui.QItemSelectionModel.NoUpdate
+        return QtCore.QItemSelectionModel.ClearAndSelect if self.allow_selection \
+            else QtCore.QItemSelectionModel.NoUpdate
 
     def clear(self):
         super(VariantVersionsTable, self).clear()
@@ -64,7 +64,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
 
         hh = self.horizontalHeader()
         self.setHorizontalHeaderLabels(["path", "released"])
-        hh.setResizeMode(0, QtGui.QHeaderView.Interactive)
+        hh.setResizeMode(0, QtWidgets.QHeaderView.Interactive)
         hh.setStretchLastSection(True)
         hh.setVisible(True)
 
@@ -98,7 +98,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
 
             for row, package in enumerate(packages):
                 version_str = str(package.version) + ' '
-                item = QtGui.QTableWidgetItem(version_str)
+                item = QtWidgets.QTableWidgetItem(version_str)
                 item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 self.setVerticalHeaderItem(row, item)
 
@@ -112,7 +112,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                     update_font(item, bold=True, italic=True)
 
                 def _item():
-                    item_ = QtGui.QTableWidgetItem()
+                    item_ = QtWidgets.QTableWidgetItem()
                     item_.setBackground(brush)  # get rid of mouse-hover coloring
                     return item_
 
@@ -139,7 +139,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                     icons.append(icon)
 
                 if icons:
-                    label = QtGui.QLabel(txt)
+                    label = QtWidgets.QLabel(txt)
                     pane = create_pane(icons + [label, None], True, compact=True)
                     self.setCellWidget(row, 0, pane)
                 else:

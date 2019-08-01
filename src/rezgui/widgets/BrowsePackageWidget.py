@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
 from rezgui.widgets.PackageLineEdit import PackageLineEdit
 from rezgui.widgets.PackageVersionsTable import PackageVersionsTable
@@ -8,7 +8,7 @@ from rezgui.objects.App import app
 from rez.vendor.version.requirement import Requirement
 
 
-class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
+class BrowsePackageWidget(QtWidgets.QWidget, ContextViewMixin):
     """A widget for browsing rez packages.
     """
     packageSelected = QtCore.Signal()
@@ -34,7 +34,7 @@ class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
             splitter.setStretchFactor(0, 2)
             splitter.setStretchFactor(1, 1)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.edit)
         layout.addWidget(splitter)
         self.setLayout(layout)

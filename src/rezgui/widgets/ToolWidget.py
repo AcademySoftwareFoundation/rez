@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.dialogs.ProcessDialog import ProcessDialog
 from rezgui.objects.App import app
 from rezgui.util import get_icon_widget, update_font, add_menu_action
@@ -8,7 +8,7 @@ import subprocess
 import time
 
 
-class ToolWidget(QtGui.QWidget):
+class ToolWidget(QtWidgets.QWidget):
 
     clicked = QtCore.Signal()
 
@@ -19,8 +19,8 @@ class ToolWidget(QtGui.QWidget):
         self.process_tracker = process_tracker
 
         tool_icon = get_icon_widget("spanner")
-        self.label = QtGui.QLabel(tool_name)
-        self.instances_label = QtGui.QLabel("")
+        self.label = QtWidgets.QLabel(tool_name)
+        self.instances_label = QtWidgets.QLabel("")
         self.instances_label.setEnabled(False)
         update_font(self.instances_label, italic=True)
 
@@ -30,7 +30,7 @@ class ToolWidget(QtGui.QWidget):
                 entries = self.get_processes()
                 self.set_instance_count(len(entries))
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(2)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.addWidget(tool_icon)
@@ -49,7 +49,7 @@ class ToolWidget(QtGui.QWidget):
         if not self.context:
             return
 
-        menu = QtGui.QMenu(self)
+        menu = QtWidgets.QMenu(self)
         add_menu_action(menu, "Run", self._launch_tool)
         fn = partial(self._launch_tool, terminal=True)
         add_menu_action(menu, "Run In Terminal", fn)
@@ -100,7 +100,7 @@ class ToolWidget(QtGui.QWidget):
         else:
             txt = "There are no running processes."
 
-        QtGui.QMessageBox.information(self, "Processes", txt)
+        QtWidgets.QMessageBox.information(self, "Processes", txt)
 
     def set_instance_count(self, nprocs):
         if nprocs:

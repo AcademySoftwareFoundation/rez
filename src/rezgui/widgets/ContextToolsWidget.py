@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.widgets.ToolWidget import ToolWidget
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
@@ -6,7 +6,7 @@ from rezgui.util import get_icon
 from rezgui.objects.App import app
 
 
-class _TreeNode(QtGui.QLabel):
+class _TreeNode(QtWidgets.QLabel):
 
     clicked = QtCore.Signal()
 
@@ -22,7 +22,7 @@ class _TreeNode(QtGui.QLabel):
             self.item.setExpanded(not self.item.isExpanded())
 
 
-class ContextToolsWidget(QtGui.QTreeWidget, ContextViewMixin):
+class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
 
     toolsChanged = QtCore.Signal()
 
@@ -35,7 +35,7 @@ class ContextToolsWidget(QtGui.QTreeWidget, ContextViewMixin):
 
         h = self.header()
         h.stretchLastSection()
-        h.setResizeMode(QtGui.QHeaderView.Fixed)
+        h.setResizeMode(QtWidgets.QHeaderView.Fixed)
         h.setVisible(False)
 
         self.setColumnCount(2)
@@ -60,14 +60,14 @@ class ContextToolsWidget(QtGui.QTreeWidget, ContextViewMixin):
             if not variant.tools:
                 continue
 
-            item = QtGui.QTreeWidgetItem(self)
+            item = QtWidgets.QTreeWidgetItem(self)
             item.setIcon(0, self.package_icon)
             widget = _TreeNode(item, variant.qualified_package_name)
             widget.clicked.connect(self._clear_selection)
             self.setItemWidget(item, 1, widget)
 
             for tool in sorted(variant.tools):
-                item_ = QtGui.QTreeWidgetItem(item)
+                item_ = QtWidgets.QTreeWidgetItem(item)
                 widget = ToolWidget(context, tool)  #, app.process_tracker)
                 widget.clicked.connect(self._clear_selection)
                 self.setItemWidget(item_, 1, widget)

@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.util import create_pane
 from rezgui.widgets.IconButton import IconButton
 from rezgui.widgets.TimeSelecterPopup import TimeSelecterPopup
@@ -6,25 +6,25 @@ from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
 import time
 
 
-class TimestampWidget(QtGui.QFrame):
+class TimestampWidget(QtWidgets.QFrame):
 
     timeChanged = QtCore.Signal(int)  # epoch time
 
     def __init__(self, context_model, parent=None):
         super(TimestampWidget, self).__init__(parent)
-        self.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
+        self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
         self.context_model = context_model
 
         self.popup = None
         self.package_btn = IconButton("package", "select package release date")
         self.clock_btn = IconButton("clock", "select time in the past")
-        self.checkbox = QtGui.QCheckBox("ignore packages released after:")
+        self.checkbox = QtWidgets.QCheckBox("ignore packages released after:")
         pane = create_pane([None,
                            self.checkbox,
                            self.package_btn,
                            self.clock_btn], True, compact=True)
 
-        self.edit = QtGui.QDateTimeEdit()
+        self.edit = QtWidgets.QDateTimeEdit()
         self.edit.setCalendarPopup(True)
         self.edit.setDateTime(QtCore.QDateTime.currentDateTime())
 

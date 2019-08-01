@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 from rezgui.util import update_font, create_pane, interp_color
 from rezgui.widgets.EffectivePackageCellWidget import EffectivePackageCellWidget
 from rezgui.widgets.PackageSelectWidget import PackageSelectWidget
@@ -14,7 +14,7 @@ from functools import partial
 import os.path
 
 
-class CompareCell(QtGui.QWidget):
+class CompareCell(QtWidgets.QWidget):
     def __init__(self, context_model, variant_left=None, variant_right=None,
                  parent=None):
         super(CompareCell, self).__init__(parent)
@@ -106,12 +106,12 @@ class CompareCell(QtGui.QWidget):
                                         parent=self)
             dlg.exec_()
         elif self.mode == "equal_to":
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 "Equal Package",
                 "The packages are equal")
         elif self.mode == "equalish":
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 "Equal Version Package",
                 "The package in the current resolve:\n(%s)\n\nis the same "
@@ -119,24 +119,24 @@ class CompareCell(QtGui.QWidget):
                 "but is a different package."
                 % (self.left_variant.uri, self.right_variant.uri))
         elif self.mode == "missing":
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 "Missing Package",
                 "The package is present in the reference resolve only")
         elif self.mode == "new":
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 "New Package",
                 "The package is present in the current resolve only")
         elif self.mode == "greater_than":
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 "Newer Package",
                 "The package in the current resolve:\n(%s)\n\nis newer than "
                 "the package in the reference resolve (%s)"
                 % (self.left_variant.uri, self.right_variant.uri))
         else:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 "Older Package",
                 "The package in the current resolve:\n(%s)\n\nis older than "
@@ -153,7 +153,7 @@ class CompareCell(QtGui.QWidget):
         self.color = QtGui.QColor.fromRgbF(*c)
 
 
-class CellDelegate(QtGui.QStyledItemDelegate):
+class CellDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, parent=None):
         super(CellDelegate, self).__init__(parent)
         pal = self.parent().palette()
@@ -235,10 +235,10 @@ class CellDelegate(QtGui.QStyledItemDelegate):
             draw_right_edge = True
 
             def _draw_path():
-                painter.setRenderHints(QtGui.QPainter.Antialiasing, True)
+                painter.setRenderHints(QtWidgets.QPainter.Antialiasing, True)
                 painter.drawPath(self.path)
                 painter.resetTransform()
-                painter.setRenderHints(QtGui.QPainter.Antialiasing, False)
+                painter.setRenderHints(QtWidgets.QPainter.Antialiasing, False)
 
             if cmp_widget:
                 if cmp_widget.left():
@@ -280,7 +280,7 @@ class CellDelegate(QtGui.QStyledItemDelegate):
             table.update(index)
 
 
-class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
+class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
 
     default_row_count = 10
     double_arrow = u"\u27FA"
@@ -299,14 +299,14 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         self._show_effective_request = False
         self._current_variant = None
 
-        self.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 
         hh = self.horizontalHeader()
         hh.setDefaultSectionSize(12 * self.fontMetrics().height())
 
         vh = self.verticalHeader()
-        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         vh.setVisible(False)
 
         self.delegate = CellDelegate(self)
@@ -323,9 +323,9 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
 
         widget = self.cellWidget(row, column)
         if self._widget_is_selectable(widget):
-            return QtGui.QItemSelectionModel.ClearAndSelect
+            return QtCore.QItemSelectionModel.ClearAndSelect
         else:
-            return QtGui.QItemSelectionModel.Clear
+            return QtCore.QItemSelectionModel.Clear
 
     def current_variant(self):
         """Returns the currently selected variant, if any."""
@@ -432,7 +432,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
 
             if self.diff_mode:
                 hh = self.horizontalHeader()
-                hh.setResizeMode(2, QtGui.QHeaderView.Fixed)
+                hh.setResizeMode(2, QtWidgets.QHeaderView.Fixed)
                 self.setColumnWidth(2, 50)
 
             if self.context():
@@ -474,7 +474,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
             headers[1][1] = True
 
         for column, (label, italic) in enumerate(headers):
-            item = QtGui.QTableWidgetItem(label)
+            item = QtWidgets.QTableWidgetItem(label)
             update_font(item, italic=italic)
             self.setHorizontalHeaderItem(column, item)
 
@@ -542,7 +542,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
             self.setCurrentIndex(QtCore.QModelIndex())
 
     def _iter_column_widgets(self, column, types=None):
-        types = types or QtGui.QWidget
+        types = types or QtWidgets.QWidget
         for row in range(self.rowCount()):
             widget = self.cellWidget(row, column)
             if widget and isinstance(widget, types):
@@ -663,7 +663,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
 
         if self.cellWidget(row, column):
             self.removeCellWidget(row, column)
-        item = QtGui.QTableWidgetItem(txt)
+        item = QtWidgets.QTableWidgetItem(txt)
         self.setItem(row, column, item)
 
     def _packageTextChanged(self, row, column, txt):

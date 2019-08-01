@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtGui
 from rezgui.widgets.SearchableTextEdit import SearchableTextEdit
 import threading
 

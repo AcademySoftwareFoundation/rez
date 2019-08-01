@@ -1,10 +1,10 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.util import create_pane
 from rezgui.objects.LoadPackagesThread import LoadPackagesThread
 from functools import partial
 
 
-class PackageLoadingWidget(QtGui.QWidget):
+class PackageLoadingWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(PackageLoadingWidget, self).__init__(parent)
         self.main_widget = None
@@ -14,8 +14,8 @@ class PackageLoadingWidget(QtGui.QWidget):
 
         self.timer = None
 
-        label = QtGui.QLabel("Loading Packages...")
-        self.bar = QtGui.QProgressBar()
+        label = QtWidgets.QLabel("Loading Packages...")
+        self.bar = QtWidgets.QProgressBar()
         self.loading_widget = create_pane([label, self.bar, None], False, compact=True)
 
         create_pane([self.loading_widget], True, compact=True, compact_spacing=0,
