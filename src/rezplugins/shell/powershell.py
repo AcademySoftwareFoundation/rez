@@ -7,6 +7,7 @@ from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.backport.shutilwhich import which
 from functools import partial
+from subprocess import PIPE
 import os
 import re
 
@@ -41,7 +42,10 @@ class PowerShell(Shell):
         return 'ps1'
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
+    def startup_capabilities(cls,
+                             rcfile=False,
+                             norc=False,
+                             stdin=False,
                              command=False):
         cls._unsupported_option('rcfile', rcfile)
         cls._unsupported_option('norc', norc)
@@ -56,15 +60,13 @@ class PowerShell(Shell):
         rcfile, norc, stdin, command = \
             cls.startup_capabilities(rcfile, norc, stdin, command)
 
-        return dict(
-            stdin=stdin,
-            command=command,
-            do_rcfile=False,
-            envvar=None,
-            files=[],
-            bind_files=[],
-            source_bind_files=(not norc)
-        )
+        return dict(stdin=stdin,
+                    command=command,
+                    do_rcfile=False,
+                    envvar=None,
+                    files=[],
+                    bind_files=[],
+                    source_bind_files=(not norc))
 
     @classmethod
     def get_syspaths(cls):
@@ -80,32 +82,25 @@ class PowerShell(Shell):
             whitespace = r"[\s]+"
             return whitespace.join(parts)
 
+        # TODO: Research if there is an easier way to pull system PATH from
+        # registry in powershell
         paths = []
 
         cmd = [
-            "REG",
-            "QUERY",
-            (
-                "HKLM\\SYSTEM\\CurrentControlSet\\"
-                "Control\\Session Manager\\Environment"
-            ),
-            "/v",
-            "PATH"
+            "REG", "QUERY",
+            ("HKLM\\SYSTEM\\CurrentControlSet\\"
+             "Control\\Session Manager\\Environment"), "/v", "PATH"
         ]
 
         expected = gen_expected_regex([
-            (
-                "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\"
-                "Control\\\\Session Manager\\\\Environment"
-            ),
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
+            ("HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\"
+             "Control\\\\Session Manager\\\\Environment"), "PATH",
+            "REG_(EXPAND_)?SZ", "(.*)"
         ])
 
         p = popen(cmd,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE,
+                  stdout=PIPE,
+                  stderr=PIPE,
                   universal_newlines=True,
                   shell=True)
         out_, _ = p.communicate()
@@ -116,24 +111,16 @@ class PowerShell(Shell):
             if match:
                 paths.extend(match.group(2).split(os.pathsep))
 
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKCU\\Environment",
-            "/v",
-            "PATH"
-        ]
+        cmd = ["REG", "QUERY", "HKCU\\Environment", "/v", "PATH"]
 
         expected = gen_expected_regex([
-            "HKEY_CURRENT_USER\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
+            "HKEY_CURRENT_USER\\\\Environment", "PATH", "REG_(EXPAND_)?SZ",
             "(.*)"
         ])
 
         p = popen(cmd,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE,
+                  stdout=PIPE,
+                  stderr=PIPE,
                   universal_newlines=True,
                   shell=True)
         out_, _ = p.communicate()
@@ -158,11 +145,20 @@ class PowerShell(Shell):
         if config.set_prompt and self.settings.prompt:
             self._addline('Function prompt {"%s"}' % self.settings.prompt)
 
-    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, **Popen_args):
+    def spawn_shell(self,
+                    context_file,
+                    tmpdir,
+                    rcfile=None,
+                    norc=False,
+                    stdin=False,
+                    command=None,
+                    env=None,
+                    quiet=False,
+                    pre_command=None,
+                    **Popen_args):
 
-        startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
+        startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin),
+                                                     command)
         shell_command = None
 
         def _record_shell(ex, files, bind_rez=True, print_msg=False):
@@ -194,9 +190,8 @@ class PowerShell(Shell):
         executor.command("exit $LastExitCode")
 
         code = executor.get_output()
-        target_file = os.path.join(
-            tmpdir, "rez-shell.%s" % self.file_extension()
-        )
+        target_file = os.path.join(tmpdir,
+                                   "rez-shell.%s" % self.file_extension())
 
         with open(target_file, 'w') as f:
             f.write(code)
@@ -214,10 +209,7 @@ class PowerShell(Shell):
         if shell_command is None:
             cmd.insert(1, "-noexit")
 
-        p = popen(cmd,
-                  env=env,
-                  universal_newlines=True,
-                  **Popen_args)
+        p = popen(cmd, env=env, universal_newlines=True, **Popen_args)
         return p
 
     def get_output(self, style=OutputStyle.file):
@@ -267,6 +259,8 @@ class PowerShell(Shell):
 
     def alias(self, key, value):
         value = EscapedString.disallow(value)
+        # TODO: Find a way to properly escape paths in alias() calls that also
+        # contain args
         cmd = "function {key}() {{ {value} $args }}"
         self._addline(cmd.format(key=key, value=value))
 
