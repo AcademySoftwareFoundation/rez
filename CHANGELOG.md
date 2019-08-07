@@ -1,12 +1,27 @@
 # Change Log
 
+## 2.40.0 (2019-08-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.39.0...2.40.0)
+
+**Notes**
+
+- Adds new Zsh shell plugin (**BETA**)
+
+**Merged pull requests:**
+
+- initial implementation of zsh shell plugin [\#686](https://github.com/nerdvegas/rez/pull/686) ([maxnbk](https://github.com/maxnbk))
+
+**Closed issues:**
+
+- zsh plugin for rez [\#451](https://github.com/nerdvegas/rez/issues/451)
+
 ## 2.39.0 (2019-08-07)
 [Source](https://github.com/nerdvegas/rez/tree/2.39.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.2...2.39.0)
 
 **Notes**
 
 - Fixes errors in new powershell plugin
-- Adds new powershell core 6+ plugin.
+- Adds new powershell core 6+ plugin (**BETA**).
 
 **Merged pull requests:**
 
