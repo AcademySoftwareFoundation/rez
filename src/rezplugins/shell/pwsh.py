@@ -11,12 +11,6 @@ from subprocess import PIPE
 import os
 import re
 
-try:
-    basestring
-except NameError:
-    # Python 3+
-    basestring = str
-
 
 class PowerShell(Shell):
     syspaths = None
