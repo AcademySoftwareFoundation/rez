@@ -10,6 +10,9 @@ csh:
 tcsh:
     prompt: '>'
 
+zsh:
+    prompt: '%'
+
 cmd:
     prompt: '$G'
 
