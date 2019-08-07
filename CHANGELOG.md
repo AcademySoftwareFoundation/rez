@@ -1,5 +1,22 @@
 # Change Log
 
+## 2.39.0 (2019-08-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.39.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.2...2.39.0)
+
+**Notes**
+
+- Fixes errors in new powershell plugin
+- Adds new powershell core 6+ plugin.
+
+**Merged pull requests:**
+
+- Fix missing import in powershell plugin [\#674](https://github.com/nerdvegas/rez/pull/674) ([instinct-vfx](https://github.com/instinct-vfx))
+- Add powershell core 6+ support (pwsh) [\#679](https://github.com/nerdvegas/rez/pull/679) ([instinct-vfx](https://github.com/instinct-vfx))
+
+**Closed issues:**
+
+- Add shell plugin for poweshell 6+ [\#678](https://github.com/nerdvegas/rez/issues/678)
+
 ## 2.38.2 (2019-07-23)
 [Source](https://github.com/nerdvegas/rez/tree/2.38.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.1...2.38.2)
 
