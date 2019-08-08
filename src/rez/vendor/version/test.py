@@ -291,6 +291,17 @@ class TestVersionSchema(unittest.TestCase):
         _inv("3.5", "<3.5|3.5_+")
         self.assertTrue(~VersionRange() is None)
 
+        # negation
+        _eq("!3.5.6", "<3.5.6|3.5.6_+")
+        _eq("!==3.5.6", "<3.5.6|>3.5.6")
+        _eq("!3.5.6..6.5.0", "<3.5.6|>6.5.0")
+        _eq("!3.5.6+", "<3.5.6")
+        _eq("!>3.5.6", "<=3.5.6")
+        _eq("!>=3.5.6", "<3.5.6")
+        _eq("!<3.5.6", "3.5.6+")
+        _eq("!<=3.5.6", ">3.5.6")
+        _eq("!3.5.6+<6.5.0", "<3.5.6|6.5.0+")
+
         # odd (but valid) cases
         _eq(">", ">")       # greater than the empty version
         _eq("+", "")        # greater or equal to empty version (is all vers)
