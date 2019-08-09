@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.40.1 (2019-08-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.0...2.40.1)
+
+**Notes**
+
+Fixes regression introduced in v2.39.0.
+
+**Merged pull requests:**
+
+- added missing plugin config [\#690](https://github.com/nerdvegas/rez/pull/690) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- [Regression - Version >= 2.39.0] ConfigurationError: Error in Rez configuration under plugins.shell [\#688](https://github.com/nerdvegas/rez/issues/688)
+
 ## 2.40.0 (2019-08-07)
 [Source](https://github.com/nerdvegas/rez/tree/2.40.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.39.0...2.40.0)
 
