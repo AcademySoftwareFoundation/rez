@@ -16,6 +16,7 @@ import shutil
 import os
 import re
 import stat
+import platform
 
 
 class TempDirs(object):
@@ -124,6 +125,23 @@ def retain_cwd():
     finally:
         os.chdir(cwd)
 
+def get_case_canonical_path(path):
+    """Get the packages path in the canonical case.
+
+    Paths on windows are case-insensitive therefore the filesystem package repo
+    filepath should be lower()ed on windows so that stuff like the unique repo identifier,
+    and the local path that gets stored into variant handles, doesn't differ.
+
+    Args:
+        path (str): Packages path to convert the case.
+
+    Returns:
+        str: The packages path in the canonical case form (always lowered).
+    """
+    if "Windows" in platform.system():
+        return path.lower()
+    else:
+        return path
 
 def get_existing_path(path, topmost_path=None):
     """Get the longest parent path in `path` that exists.
