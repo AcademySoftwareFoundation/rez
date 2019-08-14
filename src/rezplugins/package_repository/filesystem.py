@@ -786,16 +786,10 @@ class FileSystemPackageRepository(PackageRepository):
 
     def _get_family(self, name):
         is_valid_package_name(name, raise_error=True)
-        if "Windows" in platform.system():
-            if os.path.isdir(self.location):
-                if name in os.listdir(self.location):
-                    family = self.get_resource(
-                        FileSystemPackageFamilyResource.key,
-                        location=self.location,
-                        name=name)
-                    return family
-            return None
-        elif os.path.isdir(os.path.join(self.location, name)):
+        if os.path.isdir(os.path.join(self.location, name)):
+            # force case-sensitive match on pkg family, on case-insensitive platforms
+            if "Windows" in platform.system() and name not in os.listdir(self.location):
+                return None
             family = self.get_resource(
                 FileSystemPackageFamilyResource.key,
                 location=self.location,
