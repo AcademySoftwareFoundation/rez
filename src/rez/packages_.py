@@ -15,7 +15,6 @@ from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import FileFormat
 from rez.config import config
 import sys
-import os
 
 
 # ------------------------------------------------------------------------------
@@ -750,20 +749,11 @@ def get_latest_package_from_string(txt, paths=None, error=False):
 
 def _get_families(name, paths=None):
     entries = []
-    valid = False
     for path in (paths or config.packages_path):
-        if not os.path.isdir(path):
-            continue
-        else:
-            if name in os.listdir(path):
-                valid = True
-            else:
-                continue
-        if valid:
-            repo = package_repository_manager.get_repository(path)
-            family_resource = repo.get_package_family(name)
-            if family_resource:
-                entries.append((repo, family_resource))
+        repo = package_repository_manager.get_repository(path)
+        family_resource = repo.get_package_family(name)
+        if family_resource:
+            entries.append((repo, family_resource))
 
     return entries
 
