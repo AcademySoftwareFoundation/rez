@@ -7,6 +7,7 @@ import os
 import stat
 import errno
 import time
+import platform
 
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper, \
@@ -20,7 +21,7 @@ from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning
 from rez.utils.memcached import memcached, pool_memcached_connections
-from rez.utils.filesystem import make_path_writable
+from rez.utils.filesystem import make_path_writable, get_case_canonical_path
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
@@ -461,6 +462,7 @@ class FileSystemPackageRepository(PackageRepository):
         Args:
             location (str): Path containing the package repository.
         """
+        location = get_case_canonical_path(location)
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
 
         global _settings
@@ -784,7 +786,16 @@ class FileSystemPackageRepository(PackageRepository):
 
     def _get_family(self, name):
         is_valid_package_name(name, raise_error=True)
-        if os.path.isdir(os.path.join(self.location, name)):
+        if "Windows" in platform.system():
+            if os.path.isdir(self.location):
+                if name in os.listdir(self.location):
+                    family = self.get_resource(
+                        FileSystemPackageFamilyResource.key,
+                        location=self.location,
+                        name=name)
+                    return family
+            return None
+        elif os.path.isdir(os.path.join(self.location, name)):
             family = self.get_resource(
                 FileSystemPackageFamilyResource.key,
                 location=self.location,
