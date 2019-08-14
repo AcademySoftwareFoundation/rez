@@ -106,7 +106,7 @@ class RezPluginType(object):
         # 'rezplugins/type_name' sub-directory).
         paths = [package.__path__] if isinstance(package.__path__, basestring) \
             else package.__path__
-        for path in paths:
+        for path in reversed(paths):
             for loader, modname, ispkg in pkgutil.walk_packages(
                     [path], package.__name__ + '.'):
                 if loader is not None:
