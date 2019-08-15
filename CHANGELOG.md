@@ -1,5 +1,23 @@
 # Change Log
 
+## 2.40.2 (2019-08-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.1...2.40.2)
+
+**Notes**
+
+This release fixes an issue on Windows, which has non-case-sensitive filepaths. Requesting a package with a case
+differing from that on disk would cause two packages to exist in the resolve, which really were just different
+cases of the same package.
+
+The behaviour on Windows is now:
+
+- Packages are case-sensitive - `rez-env Foo` will fail if the package folder on disk is `foo`;
+- Package repository paths are case-insensitive - `~/packages` and `~/Packages` are regarded as the same repo.
+
+**Merged pull requests:**
+
+- [FIX] Make package resolve request respect case sensitivity -- Windows [\#689](https://github.com/nerdvegas/rez/pull/689) ([lambdaclan](https://github.com/lambdaclan)
+
 ## 2.40.1 (2019-08-07)
 [Source](https://github.com/nerdvegas/rez/tree/2.40.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.0...2.40.1)
 
