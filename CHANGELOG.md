@@ -10,7 +10,7 @@ in which plugins are loaded, so that builtins are loaded last.
 
 **Merged pull requests:**
 
-- Reverse order for plugins loading [\#692](https://github.com/nerdvegas/rez/pull/692) ([predat](https://github.com/predat)
+- Reverse order for plugins loading [\#692](https://github.com/nerdvegas/rez/pull/692) ([predat](https://github.com/predat))
 
 **Closed issues:**
 
@@ -32,7 +32,7 @@ The behaviour on Windows is now:
 
 **Merged pull requests:**
 
-- [FIX] Make package resolve request respect case sensitivity -- Windows [\#689](https://github.com/nerdvegas/rez/pull/689) ([lambdaclan](https://github.com/lambdaclan)
+- [FIX] Make package resolve request respect case sensitivity -- Windows [\#689](https://github.com/nerdvegas/rez/pull/689) ([lambdaclan](https://github.com/lambdaclan))
 
 ## 2.40.1 (2019-08-07)
 [Source](https://github.com/nerdvegas/rez/tree/2.40.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.0...2.40.1)
