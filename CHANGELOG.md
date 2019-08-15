@@ -1,5 +1,21 @@
 # Change Log
 
+## 2.40.3 (2019-08-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.2...2.40.3)
+
+**Notes**
+
+This update allows custom plugins to override the builtin rez plugins. It does so by reversing the order
+in which plugins are loaded, so that builtins are loaded last.
+
+**Merged pull requests:**
+
+- Reverse order for plugins loading [\#692](https://github.com/nerdvegas/rez/pull/692) ([predat](https://github.com/predat)
+
+**Closed issues:**
+
+- rezplugins loading order [\#677](https://github.com/nerdvegas/rez/issues/677)
+
 ## 2.40.2 (2019-08-15)
 [Source](https://github.com/nerdvegas/rez/tree/2.40.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.1...2.40.2)
 
