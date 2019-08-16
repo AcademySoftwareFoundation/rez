@@ -120,8 +120,8 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
     if isinstance(pkg_version, packaging_LegacyVersion):
         if allow_legacy:
             print_warning(
-                "Invalid PEP440 version detected: %r. Reverting to legacy mode.",
-                pkg_version
+                "Invalid PEP440 version detected: %r. "
+                "Reverting to legacy mode." % pkg_version
             )
             # this will always be the entire version string
             return pkg_version.base_version.lower()
@@ -292,8 +292,8 @@ def pip_specifier_to_rez_requirement(specifier):
             return fmt("<{V}|{VADJ}+")
 
         raise PackageRequestError(
-            "Don't know how to convert PEP440 specifier %r into rez equivalent",
-            specifier
+            "Don't know how to convert PEP440 specifier %r "
+            "into rez equivalent" % specifier
         )
 
     for part in parts:
@@ -309,7 +309,7 @@ def pip_specifier_to_rez_requirement(specifier):
         if total_range is None:
             raise PackageRequestError(
                 "PEP440 specifier %r converts to a non-intersecting rez "
-                "version range", specifier
+                "version range" % specifier
             )
 
     return total_range
@@ -328,8 +328,8 @@ def packaging_req_to_rez_req(packaging_req):
     """
     if packaging_req.extras:
         print_warning(
-            "Ignoring extras requested on %r - this is not yet supported",
-            str(packaging_req)
+            "Ignoring extras requested on %r - "
+            "this is not yet supported" % str(packaging_req)
         )
 
     rez_req_str = pip_to_rez_package_name(packaging_req.name)
@@ -418,8 +418,9 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
     # Note: This is supposed to give a requirements list that has already been
     # filtered down based on the extras requested at install time, and on any
     # environment markers present. However, this is not working in distlib. The
-    # package gets assigned a LegacyMetadata metadata object, and in that code
-    # path, this filtering doesn't happen.
+    # package gets assigned a LegacyMetadata metadata object (only if a package metadata
+    # version is not equal to 2.0) and in that code path, this filtering
+    # doesn't happen.
     #
     # See: vendor/distlib/metadata.py#line-892
     #
@@ -550,30 +551,30 @@ def get_marker_sys_requirements(marker):
         # TODO There is no way to associate a python version with its implementation
         # currently (ie CPython etc). When we have "package features", we may be
         # able to manage this; ignore for now
-        "implementation_name": [_py],
-        "implementation_version": [_py],
-        "platform_python_implementation": [_py],
-        "platform.python_implementation": [_py],
-        "python_implementation": [_py],
+        "implementation_name": [_py],  # PEP-0508
+        "implementation_version": [_py],  # PEP-0508
+        "platform_python_implementation": [_py],  # PEP-0508
+        "platform.python_implementation": [_py],  # PEP-0345
+        "python_implementation": [_py],  # setuptools legacy. Same as platform_python_implementation
 
-        "sys.platform": [_plat],
-        "sys_platform": [_plat],
+        "sys.platform": [_plat],  # PEP-0345
+        "sys_platform": [_plat],  # PEP-0508
 
-        "os.name": [_plat, _arch, _os],
-        "os_name": [_plat, _arch, _os],
+        "os.name": [_plat, _arch, _os],  # PEP-0345
+        "os_name": [_plat, _arch, _os],  # PEP-0508
 
-        "platform.machine": [_plat, _arch],
-        "platform_machine": [_plat, _arch],
+        "platform.machine": [_plat, _arch],  # PEP-0345
+        "platform_machine": [_plat, _arch],  # PEP-0508
 
         # TODO hmm, we never variant on plat version, let's leave this for now...
-        "platform.version": [_plat],
-        "platform_version": [_plat],
+        "platform.version": [_plat],  # PEP-0345
+        "platform_version": [_plat],  # PEP-0508
 
         # somewhat ambiguous cases
-        "platform_system": [_plat],
-        "platform_release": [_plat],
-        "python_version": [_py],
-        "python_full_version": [_py]
+        "platform_system": [_plat],  # PEP-0508
+        "platform_release": [_plat],  # PEP-0508
+        "python_version": [_py],  # PEP-0508
+        "python_full_version": [_py]  # PEP-0508
     }
 
     sys_requires = set()
@@ -632,7 +633,7 @@ def normalize_requirement(requirement):
         if req.specifier:
             new_req_str += " (%s)" % str(req.specifier)
 
-        if marker_str is None:
+        if marker_str is None and req.marker:
             marker_str = str(req.marker)
 
         if marker_str:
@@ -643,6 +644,8 @@ def normalize_requirement(requirement):
         return new_req
 
     # PEP426 dict syntax
+    # So only metadata that are of version 2.0 will be in dict. The other versions
+    # (1.0, 1.1, 1.2, 2.1) will be strings.
     if isinstance(requirement, dict):
         result = []
         requires = requirement["requires"]
@@ -651,7 +654,7 @@ def normalize_requirement(requirement):
 
         # conditional extra, equivalent to: 'foo ; extra = "doc"'
         if extra:
-            conditional_extras = [extra]
+            conditional_extras = set([extra])
         else:
             conditional_extras = None
 
