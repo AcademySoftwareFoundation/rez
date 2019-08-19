@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 from rez.packages_ import get_latest_package
 from rez.vendor.version.version import Version, VersionError
@@ -10,10 +10,10 @@ from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
 from rez.utils.system import popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
-    pip_to_rez_version, get_pip_version
+    pip_to_rez_version
 from rez.utils.logging_ import print_debug, print_info, print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
-    PackageNotFoundError, convert_errors
+    PackageNotFoundError, RezSystemError, convert_errors
 from rez.package_maker__ import make_package
 from rez.config import config
 from rez.system import System
@@ -22,6 +22,7 @@ from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
 from pprint import pformat
+import subprocess
 import os.path
 import shutil
 import sys
@@ -59,8 +60,8 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
     Returns:
         `subprocess.Popen`: Pip process.
     """
-    pip_exe, context = find_pip(pip_version, python_version)
-    command = [pip_exe] + list(command_args)
+    py_exe, context = find_pip(pip_version, python_version)
+    command = [py_exe, "-m", "pip"] + list(command_args)
 
     if context is None:
         return popen(command)
@@ -69,49 +70,52 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
 
 
 def find_pip(pip_version=None, python_version=None):
-    """Find a pip exe using the given python version.
+    """Find pip.
+
+    Will revert to native pip installed with rez, if a pip rez package cannot
+    be found. In this case, None is returned.
+
+    Args:
+        pip_version (str or `Version`): Version of pip to use, or latest if None.
+        python_version (str or `Version`): Python version to use, or latest if
+            None.
 
     Returns:
         2-tuple:
-            str: pip executable;
-            `ResolvedContext`: Context containing pip, or None if we fell back
-                to system pip.
+        - str: Python executable.
+        - `ResolvedContext`: Context containing pip, or None if we fell back
+          to system pip.
     """
-    pip_exe = "pip"
+    py_exe = "python"
+    context = None
 
+    # find pip, fall back to system if rez pip package not found
     try:
         context = create_context(pip_version, python_version)
+        py_exe = context.which("python")
     except BuildError:
-        # fall back on system pip. Not ideal but at least it's something
-        from rez.backport.shutilwhich import which
+        # fall back on system pip
+        py_exe = sys.executable
+        print_info("Using %s -m pip", py_exe)
 
-        pip_exe = which("pip")
+    # check version, must be >=19
+    if context:
+        proc = context.execute_command(
+            [py_exe, "-c", "import pip; print pip.__version__"],
+            stdout=subprocess.PIPE
+        )
+        out, _ = proc.communicate()
+        pip_version = out.strip()
 
-        if pip_exe:
-            print_warning(
-                "pip rez package could not be found; system 'pip' command (%s) "
-                "will be used instead." % pip_exe)
-            context = None
-        else:
-            raise
+    else:
+        import pip
+        pip_version = pip.__version__
 
-    # check pip version, must be >=19 to support PEP517
-    try:
-        pip_ver = get_pip_version(pip_exe)
+    pip_major = pip_version.split('.')[0]
+    if int(pip_major) < 19:
+        raise RezSystemError("pip >= 19 is required! Please update your pip.")
 
-        if pip_ver:
-            pip_major = pip_ver.split('.')[0]
-            if int(pip_major) < 19:
-                raise RezSystemError("pip >= 19 is required! Please update your pip.")
-
-    except RezSystemError:
-        raise
-    except:
-        # silently skip if pip version detection failed, pip itself will show
-        # a reasonable error message at the least.
-        pass
-
-    return pip_exe, context
+    return py_exe, context
 
 
 def create_context(pip_version=None, python_version=None):
@@ -187,7 +191,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     installed_variants = []
     skipped_variants = []
 
-    pip_exe, context = find_pip(pip_version, python_version)
+    py_exe, context = find_pip(pip_version, python_version)
 
     # TODO: should check if packages_path is writable before continuing with pip
     #
@@ -210,7 +214,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     # Build pip commandline
     cmd = [
-        pip_exe, "install",
+        py_exe, "-m", "pip", "install",
         "--use-pep517",
         "--target=%s" % destpath
     ]
@@ -231,20 +235,17 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         python_variant = context.get_resolved_package("python")
         py_ver = python_variant.version
 
-    # Collect resulting python packages using distlib
-    distribution_path = DistributionPath([destpath])
-    distributions = list(distribution_path.get_distributions())
-
     # moving bin folder to expected relative location as per wheel RECORD files
     staged_binpath = os.path.join(destpath, "bin")
     if os.path.isdir(staged_binpath):
         shutil.move(os.path.join(destpath, "bin"), binpath)
 
-    # get list of package and dependencies
+    # Collect resulting python packages using distlib
+    distribution_path = DistributionPath([destpath])
     distributions = list(distribution_path.get_distributions())
     dist_names = [x.name for x in distributions]
 
-    # iterate over package and dependencies
+    # get list of package and dependencies
     for distribution in distributions:
         # convert pip requirements into rez requirements
         rez_requires = get_rez_requirements(

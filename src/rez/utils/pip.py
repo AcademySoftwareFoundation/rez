@@ -5,8 +5,6 @@ import os.path
 import sys
 from email.parser import Parser
 import platform
-import subprocess
-import re
 
 import pkg_resources
 
@@ -23,35 +21,6 @@ from rez.vendor.version.version import Version, VersionRange
 from rez.utils.logging_ import print_warning
 from rez.exceptions import PackageRequestError
 from rez.system import System
-
-
-def get_pip_version(pip_exe):
-    """Get the version of the given pip executable.
-
-    Returns:
-        str: Pip version, eg "19.1.1", or None if version couldn't be detected
-    """
-    pattern = r"pip\s(?P<ver>\d+\.*\d*\.*\d*)"
-
-    if "Windows" in platform.system():
-        # https://github.com/nerdvegas/rez/pull/659
-        ver_str = subprocess.check_output(
-            pip_exe + " -V",
-            shell=True,
-            universal_newlines=True
-        )
-    else:
-        ver_str = subprocess.check_output(
-            [pip_exe, '-V'],
-            universal_newlines=True
-        )
-
-    match = re.search(pattern, ver_str)
-    if not match:
-        return None
-
-    ver = match.group('ver')
-    return ver
 
 
 def pip_to_rez_package_name(dist_name):
@@ -130,36 +99,44 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
                 "Version: {} is not compatible with PEP440.".format(dist_version)
             )
 
-    rez_version = ""
+    # the components of the release segment excluding epoch or any
+    # prerelease/development/postrelease suffixes
+    rez_version = pkg_version.base_version
 
-    if pkg_version.release:
-        # the components of the release segment excluding epoch or any
-        # prerelease/development/postrelease suffixes
-        rez_version += '.'.join(str(i) for i in pkg_version.release)
+    if pkg_version.is_prerelease and pkg_version.pre:
+        # Additional check is necessary because dev releases are also considered
+        # prereleases pair of the prerelease phase (the string "a", "b", or "rc")
+        # and the prerelease number the following conversions take place:
+        # * a --> a
+        # * alpha --> a
+        # * b --> b
+        # * beta --> b
+        # * c --> c
+        # * rc --> rc
+        # * pre --> rc
+        # * preview --> rc
+        #
+        phase, number = pkg_version.pre
+        rez_version += '.' + phase + str(number)
 
-        if pkg_version.is_prerelease and pkg_version.pre:
-            # additional check is necessary because dev releases are also considered prereleases
-            # pair of the prerelease phase (the string "a", "b", or "rc") and the prerelease number
-            # the following conversions (-->) take place:
-            # a --> a, alpha --> a, b --> b, beta --> b, c --> c, rc --> rc, pre --> rc, preview --> rc
-            phase, number = pkg_version.pre
-            rez_version += '.' + phase + str(number)
+    if pkg_version.is_postrelease:
+        # this attribute will be the postrelease number (an integer)
+        # the following conversions take place:
+        # * post --> post
+        # * rev --> post
+        # * r --> post
+        #
+        rez_version += ".post" + str(pkg_version.post)
 
-        if pkg_version.is_postrelease:
-            # this attribute will be the postrelease number (an integer)
-            # the following conversions (-->) take place:
-            # post --> post, rev --> post, r --> post
-            rez_version += ".post" + str(pkg_version.post)
+    if pkg_version.is_devrelease:
+        # this attribute will be the development release number (an integer)
+        rez_version += ".dev" + str(pkg_version.dev)
 
-        if pkg_version.is_devrelease:
-            # this attribute will be the development release number (an integer)
-            rez_version += ".dev" + str(pkg_version.dev)
-
-        if pkg_version.local:
-            # representation of the local version portion is any
-            # the following conversions (-->) take place:
-            # 1.0[+ubuntu-1] --> 1.0[-ubuntu.1]
-            rez_version += "-" + pkg_version.local
+    if pkg_version.local:
+        # representation of the local version portion is any
+        # the following conversions take place:
+        # 1.0[+ubuntu-1] --> 1.0[-ubuntu.1]
+        rez_version += "-" + pkg_version.local
 
     return rez_version
 
@@ -415,6 +392,13 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
     if not is_pure_python:
         sys_requires.update(["platform", "arch"])
 
+    # evaluate wrt python version, which may not be the current interpreter version
+    marker_env = {
+        "python_full_version": str(python_version),
+        "python_version": str(python_version.trim(2)),
+        "implementation_version": str(python_version)
+    }
+
     # Note: This is supposed to give a requirements list that has already been
     # filtered down based on the extras requested at install time, and on any
     # environment markers present. However, this is not working in distlib. The
@@ -431,7 +415,7 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
 
         for req in reqs:
             # skip if env marker is present and doesn't evaluate
-            if req.marker and not req.marker.evaluate():
+            if req.marker and not req.marker.evaluate(environment=marker_env):
                 continue
 
             # skip if req is conditional on extras that weren't requested
@@ -559,11 +543,11 @@ def get_marker_sys_requirements(marker):
         "sys.platform": [_plat],
         "sys_platform": [_plat],
 
-        "os.name": [_plat, _arch, _os],
-        "os_name": [_plat, _arch, _os],
+        "os.name": [_os],
+        "os_name": [_os],
 
-        "platform.machine": [_plat, _arch],
-        "platform_machine": [_plat, _arch],
+        "platform.machine": [_arch],
+        "platform_machine": [_arch],
 
         # TODO hmm, we never variant on plat version, let's leave this for now...
         "platform.version": [_plat],
