@@ -535,8 +535,10 @@ def get_marker_sys_requirements(marker):
         "sys.platform": [_plat],
         "sys_platform": [_plat],
 
-        "os.name": [_os],
-        "os_name": [_os],
+        # note that this maps to python's os.name, which does not mean distro
+        # (as 'os' does in rez). See https://docs.python.org/2/library/os.html#os.name
+        "os.name": [_plat],
+        "os_name": [_plat],
 
         "platform.machine": [_arch],
         "platform_machine": [_arch],
