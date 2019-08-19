@@ -3,22 +3,27 @@ test the pip utilities
 """
 import os
 
-import pkg_resources
-
 from rez.vendor import unittest2
 import rez.vendor.packaging.version
 import rez.vendor.distlib.database
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.packaging.requirements import Requirement as packaging_Requirement
+from rez.vendor.packaging.specifiers import SpecifierSet
 from rez.exceptions import PackageRequestError
 
 import rez.utils.pip
 
 
-class TestPip(unittest2.TestCase):
+class TestPipUtils(unittest2.TestCase):
     """
     """
+    @classmethod
+    def setUpClass(cls):
+        cls.dist_path = os.path.join(
+            os.path.realpath(os.path.dirname(__file__)),
+            "data", "pip", "installed_distributions"
+        )
 
     def test_pip_to_rez_package_name(self):
         """
@@ -40,76 +45,83 @@ class TestPip(unittest2.TestCase):
 
     def test_pip_to_rez_version_raises(self):
         with self.assertRaises(rez.vendor.packaging.version.InvalidVersion):
-            self.assertEqual(rez.utils.pip.pip_to_rez_version("2.0b1pl0", allow_legacy=False), "2.0b1pl0")
+            self.assertEqual(
+                rez.utils.pip.pip_to_rez_version("2.0b1pl0", allow_legacy=False),
+                "2.0b1pl0"
+            )
 
     def test_pip_specifier_to_rez_requirement(self):
         """
         """
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("==1"),
-            VersionRange("1+<1.1")
+        def assertPipRezEquivalent(pip_spec_str, rez_req_str):
+            pip_spec = SpecifierSet(pip_spec_str)
+            self.assertEqual(
+                rez.utils.pip.pip_specifier_to_rez_requirement(pip_spec),
+                VersionRange(rez_req_str)
+            )
+
+        assertPipRezEquivalent(
+            "==1",
+            "1+<1.1"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement(">1"),
-            VersionRange("1.1+")
+        assertPipRezEquivalent(
+            ">1",
+            "1.1+"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("<1"),
-            VersionRange("<1")
+        assertPipRezEquivalent(
+            "<1",
+            "<1"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement(">=1"),
-            VersionRange("1+")
+        assertPipRezEquivalent(
+            ">=1",
+            "1+"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("<=1"),
-            VersionRange("<1.1")
+        assertPipRezEquivalent(
+            "<=1",
+            "<1.1"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("~=1.2"),
-            VersionRange("1.2+<2")
+        assertPipRezEquivalent(
+            "~=1.2",
+            "1.2+<2"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("~=1.2.3"),
-            VersionRange("1.2.3+<1.3")
+        assertPipRezEquivalent(
+            "~=1.2.3",
+            "1.2.3+<1.3"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("!=1"),
-            VersionRange("<1|1.1+")
+        assertPipRezEquivalent(
+            "!=1",
+            "<1|1.1+"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("!=1.2"),
-            VersionRange("<1.2|1.2.1+")
+        assertPipRezEquivalent(
+            "!=1.2",
+            "<1.2|1.2.1+"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("!=1.*"),
-            VersionRange("<1|2+")
+        assertPipRezEquivalent(
+            "!=1.*",
+            "<1|2+"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("!=1.2.*"),
-            VersionRange("<1.2|1.3+")
+        assertPipRezEquivalent(
+            "!=1.2.*",
+            "<1.2|1.3+"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement(">=1.2.a1"),
-            VersionRange("1.2.a1+")
+        assertPipRezEquivalent(
+            ">=1.2.a1",
+            "1.2.a1+"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement("==1.*"),
-            VersionRange("1")
+        assertPipRezEquivalent(
+            "==1.*",
+            "1"
         )
-        self.assertEqual(
-            rez.utils.pip.pip_specifier_to_rez_requirement(">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, <4"),
-            VersionRange("2.6+<3.0|3.3+<4")
+        assertPipRezEquivalent(
+            ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*, <4",
+            "2.6+<3.0|3.3+<4"
         )
 
     def test_pip_specifier_to_rez_requirement_raises(self):
         """
         """
         with self.assertRaises(PackageRequestError):
-            rez.utils.pip.pip_specifier_to_rez_requirement("1.2.3")
-
-        with self.assertRaises(PackageRequestError):
-            rez.utils.pip.pip_specifier_to_rez_requirement("<2,>3")
+            rez.utils.pip.pip_specifier_to_rez_requirement(SpecifierSet("<2,>3"))
 
     def test_packaging_req_to_rez_req(self):
         """
@@ -130,95 +142,95 @@ class TestPip(unittest2.TestCase):
     def test_is_pure_python_package(self):
         """
         """
-        path = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
-        dist_path = rez.vendor.distlib.database.DistributionPath(
-            [os.path.join(path, "data", "pip", "installed_distributions")]
-        )
-        dist = list(dist_path.get_distributions())[0]
+        dpath = rez.vendor.distlib.database.DistributionPath([self.dist_path])
+        dist = list(dpath.get_distributions())[0]
 
         self.assertTrue(rez.utils.pip.is_pure_python_package(dist))
 
     def test_convert_distlib_to_setuptools_wrong(self):
         """
         """
-        path = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
-        dist_path = rez.vendor.distlib.database.DistributionPath(
-            [os.path.join(path, "data", "pip", "installed_distributions")]
-        )
-        dist = list(dist_path.get_distributions())[0]
-        dist.key = 'ramdom-unexisting-package'
+        dpath = rez.vendor.distlib.database.DistributionPath([self.dist_path])
+        dist = list(dpath.get_distributions())[0]
+        dist.key = 'random-unexisting-package'
 
         self.assertEqual(rez.utils.pip.convert_distlib_to_setuptools(dist), None)
 
     def test_get_marker_sys_requirements(self):
         """
         """
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('implementation_name == "cpython"'),
+        def assertSysRequirements(req_str, sys_reqs):
+            self.assertEqual(
+                rez.utils.pip.get_marker_sys_requirements(req_str),
+                sys_reqs
+            )
+
+        assertSysRequirements(
+            'implementation_name == "cpython"',
             ["python"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('implementation_version == "3.4.0"'),
+        assertSysRequirements(
+            'implementation_version == "3.4.0"',
             ["python"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform_python_implementation == "Jython"'),
+        assertSysRequirements(
+            'platform_python_implementation == "Jython"',
             ["python"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform.python_implementation == "Jython"'),
+        assertSysRequirements(
+            'platform.python_implementation == "Jython"',
             ["python"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('python_implementation == "Jython"'),
+        assertSysRequirements(
+            'python_implementation == "Jython"',
             ["python"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('sys_platform == "linux2"'),
+        assertSysRequirements(
+            'sys_platform == "linux2"',
             ["platform"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('sys.platform == "linux2"'),
+        assertSysRequirements(
+            'sys.platform == "linux2"',
             ["platform"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('os_name == "linux2"'),
-            ["platform", "arch", "os"]
-        )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('os.name == "linux2"'),
-            ["platform", "arch", "os"]
-        )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform_machine == "x86_64"'),
-            ["platform", "arch"]
-        )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform.machine == "x86_64"'),
-            ["platform", "arch"]
-        )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform_version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"'),
+        assertSysRequirements(
+            'os_name == "linux2"',
             ["platform"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform.version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"'),
+        assertSysRequirements(
+            'os.name == "linux2"',
             ["platform"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform_system == "Linux"'),
+        assertSysRequirements(
+            'platform_machine == "x86_64"',
+            ["arch"]
+        )
+        assertSysRequirements(
+            'platform.machine == "x86_64"',
+            ["arch"]
+        )
+        assertSysRequirements(
+            'platform_version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"',
             ["platform"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('platform_release == "5.2.8-arch1-1-ARCH"'),
+        assertSysRequirements(
+            'platform.version == "#1 SMP Fri Apr 25 13:07:35 EDT 2014"',
             ["platform"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('python_version == "3.7"'),
+        assertSysRequirements(
+            'platform_system == "Linux"',
+            ["platform"]
+        )
+        assertSysRequirements(
+            'platform_release == "5.2.8-arch1-1-ARCH"',
+            ["platform"]
+        )
+        assertSysRequirements(
+            'python_version == "3.7"',
             ["python"]
         )
-        self.assertEqual(
-            rez.utils.pip.get_marker_sys_requirements('python_full_version == "3.7.4"'),
+        assertSysRequirements(
+            'python_full_version == "3.7.4"',
             ["python"]
         )
 
