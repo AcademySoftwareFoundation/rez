@@ -101,7 +101,7 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
 
     # the components of the release segment excluding epoch or any
     # prerelease/development/postrelease suffixes
-    rez_version = pkg_version.base_version
+    rez_version = '.'.join(str(i) for i in pkg_version.release)
 
     if pkg_version.is_prerelease and pkg_version.pre:
         # Additional check is necessary because dev releases are also considered
@@ -179,17 +179,11 @@ def pip_specifier_to_rez_requirement(specifier):
         | !=1.2.*     | <1.2|1.3+   |
 
     Args:
-        specifier (str): PEP440-compatible specifier string.
+        specifier (`package.SpecifierSet`): Pip specifier.
 
     Returns:
         `VersionRange`: Equivalent rez version range.
     """
-    ranges = []
-    parts = specifier.split(',')
-
-    # PEP440 allows spaces, rez doesn't
-    parts = [''.join(x.split()) for x in parts]
-
     def is_release(rez_ver):
         parts = rez_ver.split('.')
         try:
@@ -218,9 +212,7 @@ def pip_specifier_to_rez_requirement(specifier):
 
     def convert_spec(spec):
         def parsed_rez_ver():
-            v = spec
-            for substr in ('!', '=', '~', '<', '>', ".*"):
-                v = v.replace(substr, '')
+            v = spec.version.replace(".*", "")
             return pip_to_rez_version(v)
 
         def fmt(txt):
@@ -230,42 +222,42 @@ def pip_specifier_to_rez_requirement(specifier):
             return txt.format(V=v, VNEXT=vnext, VADJ=vadj)
 
         # ==1.* --> 1
-        if spec.startswith("==") and spec.endswith(".*"):
+        if spec.operator == "==" and spec.version.endswith(".*"):
             return fmt("{V}")
 
         # ==1 --> 1+<1.1
-        if spec.startswith("=="):
+        if spec.operator == "==":
             return fmt("{V}+<{VADJ}")
 
         # >=1 --> 1+
-        if spec.startswith(">="):
+        if spec.operator == ">=":
             return fmt("{V}+")
 
         # >1 --> 1.1+
-        if spec.startswith(">"):
+        if spec.operator == ">":
             return fmt("{VADJ}+")
 
         # <= 1 --> <1.1
-        if spec.startswith("<="):
+        if spec.operator == "<=":
             return fmt("<{VADJ}")
 
         # <1 --> <1
-        if spec.startswith("<"):
+        if spec.operator == "<":
             return fmt("<{V}")
 
         # ~=1.2 --> 1.2+<2; ~=1.2.3 --> 1.2.3+<1.3
-        if spec.startswith("~="):
+        if spec.operator == "~=":
             v = Version(parsed_rez_ver())
             v = v.trim(len(v) - 1)
             v_next = next_ver(str(v))
             return fmt("{V}+<" + v_next)
 
         # !=1.* --> <1|2+; !=1.2.* --> <1.2|1.3+
-        if spec.startswith("!=") and spec.endswith(".*"):
+        if spec.operator == "!=" and spec.version.endswith(".*"):
             return fmt("<{V}|{VNEXT}+")
 
         # !=1 --> <1|1.1+; !=1.2 --> <1.2|1.2.1+
-        if spec.startswith("!="):
+        if spec.operator == "!=":
             return fmt("<{V}|{VADJ}+")
 
         raise PackageRequestError(
@@ -273,8 +265,8 @@ def pip_specifier_to_rez_requirement(specifier):
             specifier
         )
 
-    for part in parts:
-        ranges.append(convert_spec(part))
+    # convert each spec into rez equivalent
+    ranges = map(convert_spec, specifier)
 
     # AND together ranges
     total_range = VersionRange(ranges[0])
@@ -312,7 +304,7 @@ def packaging_req_to_rez_req(packaging_req):
     rez_req_str = pip_to_rez_package_name(packaging_req.name)
 
     if packaging_req.specifier:
-        range_ = pip_specifier_to_rez_requirement(str(packaging_req.specifier))
+        range_ = pip_specifier_to_rez_requirement(packaging_req.specifier)
         rez_req_str += '-' + str(range_)
 
     return Requirement(rez_req_str)
