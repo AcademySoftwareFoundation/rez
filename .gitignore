@@ -6,6 +6,8 @@
 src/rez.egg-info/
 build/
 dist/
+htmlcov/
+.coverage
 *~
 docs/_build
 .DS_Store
