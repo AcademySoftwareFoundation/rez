@@ -1,5 +1,101 @@
 # Change Log
 
+## 2.40.3 (2019-08-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.2...2.40.3)
+
+**Notes**
+
+This update allows custom plugins to override the builtin rez plugins. It does so by reversing the order
+in which plugins are loaded, so that builtins are loaded last.
+
+**Merged pull requests:**
+
+- Reverse order for plugins loading [\#692](https://github.com/nerdvegas/rez/pull/692) ([predat](https://github.com/predat))
+
+**Closed issues:**
+
+- rezplugins loading order [\#677](https://github.com/nerdvegas/rez/issues/677)
+
+## 2.40.2 (2019-08-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.1...2.40.2)
+
+**Notes**
+
+This release fixes an issue on Windows, which has non-case-sensitive filepaths. Requesting a package with a case
+differing from that on disk would cause two packages to exist in the resolve, which really were just different
+cases of the same package.
+
+The behaviour on Windows is now:
+
+- Packages are case-sensitive - `rez-env Foo` will fail if the package folder on disk is `foo`;
+- Package repository paths are case-insensitive - `~/packages` and `~/Packages` are regarded as the same repo.
+
+**Merged pull requests:**
+
+- [FIX] Make package resolve request respect case sensitivity -- Windows [\#689](https://github.com/nerdvegas/rez/pull/689) ([lambdaclan](https://github.com/lambdaclan))
+
+## 2.40.1 (2019-08-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.40.0...2.40.1)
+
+**Notes**
+
+Fixes regression introduced in v2.39.0.
+
+**Merged pull requests:**
+
+- added missing plugin config [\#690](https://github.com/nerdvegas/rez/pull/690) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- [Regression - Version >= 2.39.0] ConfigurationError: Error in Rez configuration under plugins.shell [\#688](https://github.com/nerdvegas/rez/issues/688)
+
+## 2.40.0 (2019-08-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.40.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.39.0...2.40.0)
+
+**Notes**
+
+- Adds new Zsh shell plugin (**BETA**)
+
+**Merged pull requests:**
+
+- initial implementation of zsh shell plugin [\#686](https://github.com/nerdvegas/rez/pull/686) ([maxnbk](https://github.com/maxnbk))
+
+**Closed issues:**
+
+- zsh plugin for rez [\#451](https://github.com/nerdvegas/rez/issues/451)
+
+## 2.39.0 (2019-08-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.39.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.2...2.39.0)
+
+**Notes**
+
+- Fixes errors in new powershell plugin
+- Adds new powershell core 6+ plugin (**BETA**).
+
+**Merged pull requests:**
+
+- Fix missing import in powershell plugin [\#674](https://github.com/nerdvegas/rez/pull/674) ([instinct-vfx](https://github.com/instinct-vfx))
+- Add powershell core 6+ support (pwsh) [\#679](https://github.com/nerdvegas/rez/pull/679) ([instinct-vfx](https://github.com/instinct-vfx))
+
+**Closed issues:**
+
+- Add shell plugin for poweshell 6+ [\#678](https://github.com/nerdvegas/rez/issues/678)
+
+## 2.38.2 (2019-07-23)
+[Source](https://github.com/nerdvegas/rez/tree/2.38.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.1...2.38.2)
+
+**Notes**
+
+Fixes regression in 2.38.0 that unintentionally renamed _rez_fwd tool to _rez-fwd.
+
+**Merged pull requests:**
+
+- fixed regression in 2.38.0 that unintentionally renamed _rez_fwd to _rez-fwd [\#676](https://github.com/nerdvegas/rez/pull/676) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- build scripts generated with incorrect shebang arg [\#671](https://github.com/nerdvegas/rez/issues/671)
+
 ## 2.38.1 (2019-07-20)
 [Source](https://github.com/nerdvegas/rez/tree/2.38.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.38.0...2.38.1)
 

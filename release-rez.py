@@ -76,7 +76,21 @@ def parse_topmost_changelog():
                 result["name"] = result["version"] + ' '.join(parts[2:])
 
             elif result.get("version"):
-                body_lines.append(line)
+                # GitHub seems to treat separate lines in the md as line breaks,
+                # rather than keeping them in the same paragraph as a typical
+                # md renderer would. So patch that up here.
+                #
+                br_chars = ('*', '-', '#', '[')
+
+                if body_lines and \
+                        body_lines[-1].strip() and \
+                        body_lines[-1][0] not in br_chars and \
+                        line.strip() and \
+                        line[0] not in br_chars:
+                    # append to previous line
+                    body_lines[-1] = body_lines[-1].rstrip() + ' ' + line
+                else:
+                    body_lines.append(line)
 
     # should never get here
     assert False

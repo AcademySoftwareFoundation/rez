@@ -7,6 +7,7 @@ import os
 import stat
 import errno
 import time
+import platform
 
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper, \
@@ -21,6 +22,7 @@ from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable
+from rez.utils.platform_ import platform_
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
@@ -461,6 +463,12 @@ class FileSystemPackageRepository(PackageRepository):
         Args:
             location (str): Path containing the package repository.
         """
+
+        # ensure that differing case doesn't get interpreted as different repos
+        # on case-insensitive platforms (eg windows)
+        if not platform_.has_case_sensitive_filesystem:
+            location = location.lower()
+
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
 
         global _settings
@@ -785,20 +793,31 @@ class FileSystemPackageRepository(PackageRepository):
     def _get_family(self, name):
         is_valid_package_name(name, raise_error=True)
         if os.path.isdir(os.path.join(self.location, name)):
-            family = self.get_resource(
+            # force case-sensitive match on pkg family dir, on case-insensitive platforms
+            if not platform_.has_case_sensitive_filesystem and \
+                    name not in os.listdir(self.location):
+                return None
+
+            return self.get_resource(
                 FileSystemPackageFamilyResource.key,
                 location=self.location,
-                name=name)
-            return family
+                name=name
+            )
         else:
             filepath, format_ = self.get_file(self.location, package_filename=name)
             if filepath:
-                family = self.get_resource(
+                # force case-sensitive match on pkg filename, on case-insensitive platforms
+                if not platform_.has_case_sensitive_filesystem:
+                    ext = os.path.splitext(filepath)[-1]
+                    if (name + ext) not in os.listdir(self.location):
+                        return None
+
+                return self.get_resource(
                     FileSystemCombinedPackageFamilyResource.key,
                     location=self.location,
                     name=name,
-                    ext=format_.extension)
-                return family
+                    ext=format_.extension
+                )
         return None
 
     def _get_packages(self, package_family_resource):

@@ -1,4 +1,4 @@
-"""Windows PowerShell 5"""
+"""Windows PowerShell 6+"""
 
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
@@ -24,12 +24,12 @@ class PowerShell(Shell):
     @property
     def executable(cls):
         if cls._executable is None:
-            cls._executable = Shell.find_executable('powershell')
+            cls._executable = Shell.find_executable('pwsh')
         return cls._executable
 
     @classmethod
     def name(cls):
-        return 'powershell'
+        return 'pwsh'
 
     @classmethod
     def file_extension(cls):
@@ -76,8 +76,6 @@ class PowerShell(Shell):
             whitespace = r"[\s]+"
             return whitespace.join(parts)
 
-        # TODO: Research if there is an easier way to pull system PATH from
-        # registry in powershell
         paths = []
 
         cmd = [
@@ -198,7 +196,7 @@ class PowerShell(Shell):
                 cmd = pre_command.rstrip().split()
 
         cmd += [self.executable]
-        cmd += ['. "{}"'.format(target_file)]
+        cmd += ['{}'.format(target_file)]
 
         if shell_command is None:
             cmd.insert(1, "-noexit")
@@ -253,8 +251,6 @@ class PowerShell(Shell):
 
     def alias(self, key, value):
         value = EscapedString.disallow(value)
-        # TODO: Find a way to properly escape paths in alias() calls that also
-        # contain args
         cmd = "function {key}() {{ {value} $args }}"
         self._addline(cmd.format(key=key, value=value))
 

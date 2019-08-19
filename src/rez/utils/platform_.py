@@ -105,6 +105,10 @@ class Platform(object):
                         % str(e))
         return 1
 
+    @property
+    def has_case_sensitive_filesystem(self):
+        return True
+
     # -- implementation
 
     def _arch(self):
@@ -476,6 +480,10 @@ class WindowsPlatform(Platform):
                 toks.append(item)
         final_version = str('.').join(toks)
         return "windows-%s" % final_version
+
+    @property
+    def has_case_sensitive_filesystem(self):
+        return False
 
     def _image_viewer(self):
         # os.system("file.jpg") will open default viewer on windows

@@ -16,6 +16,7 @@ import shutil
 import os
 import re
 import stat
+import platform
 
 
 class TempDirs(object):
