@@ -1,7 +1,7 @@
 """Windows PowerShell 5"""
 
 from rez.config import config
-from rez.rex import RexExecutor, OutputStyle, EscapedString
+from rez.rex import RexExecutor, OutputStyle, EscapedString, literal
 from rez.shells import Shell
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
@@ -12,28 +12,43 @@ import os
 import re
 
 
-class PowerShell(Shell):
+class PowerShellBase(Shell):
+    """
+    Abstract base class for Powershell-like shells.
+    """
+    expand_env_vars = True
+
     syspaths = None
     _executable = None
 
-    # Regex to aid with escaping of Windows-specific special chars:
-    # http://ss64.com/nt/syntax-esc.html
-    _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])')
-    _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
+    # Make sure that the $Env:VAR formats come before the $VAR formats since
+    # Powershell Environment variables are ambiguous with Unix paths.
+    ENV_VAR_REGEX = re.compile(
+        "|".join([
+            "\\$[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)",  # $Env:ENVVAR
+            Shell.ENV_VAR_REGEX.pattern,                   # Generic form
+        ])
+    )
+
+    @staticmethod
+    def _escape_quotes(s):
+        return s.replace('"', '`"').replace("'", "`'")
+
+    @staticmethod
+    def _escape_vars(s):
+        return s.replace('$', '`$')
 
     @property
     def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('powershell')
-        return cls._executable
+        raise NotImplementedError
 
     @classmethod
     def name(cls):
-        return 'powershell'
+        raise NotImplementedError
 
     @classmethod
     def file_extension(cls):
-        return 'ps1'
+        raise NotImplementedError
 
     @classmethod
     def startup_capabilities(cls,
@@ -139,6 +154,15 @@ class PowerShell(Shell):
         if config.set_prompt and self.settings.prompt:
             self._addline('Function prompt {"%s"}' % self.settings.prompt)
 
+    def _additional_commands(self, executor):
+        # Make .py launch within cmd without extension.
+        # For PowerShell this will also execute in the same window, so that
+        # stdout can be captured.
+        if platform_.name == "windows" and self.settings.additional_pathext:
+            executor.command('$Env:PATHEXT = $Env:PATHEXT + ";{}"'.format(
+                ";".join(self.settings.additional_pathext)
+            ))
+
     def spawn_shell(self,
                     context_file,
                     tmpdir,
@@ -177,6 +201,8 @@ class PowerShell(Shell):
                           files=startup_sequence["files"],
                           print_msg=(not quiet))
 
+        self._additional_commands(executor)
+
         if shell_command:
             executor.command(shell_command)
 
@@ -198,7 +224,9 @@ class PowerShell(Shell):
                 cmd = pre_command.rstrip().split()
 
         cmd += [self.executable]
-        cmd += ['. "{}"'.format(target_file)]
+
+        # Generic form of sourcing that works in powershell and pwsh
+        cmd += ['-File', '{}'.format(target_file)]
 
         if shell_command is None:
             cmd.insert(1, "-noexit")
@@ -222,18 +250,17 @@ class PowerShell(Shell):
         return script
 
     def escape_string(self, value):
-        """Escape the <, >, ^, and & special characters reserved by Windows.
+        value = EscapedString.promote(value)
+        value = value.expanduser()
+        result = ''
 
-        Args:
-            value (str/EscapedString): String or already escaped string.
-
-        Returns:
-            str: The value escaped for Windows.
-
-        """
-        if isinstance(value, EscapedString):
-            return value.formatted(self._escaper)
-        return self._escaper(value)
+        for is_literal, txt in value.strings:
+            if is_literal:
+                txt = self._escape_quotes(self._escape_vars(txt))
+            else:
+                txt = self._escape_quotes(txt)
+            result += txt
+        return result
 
     def _saferefenv(self, key):
         pass
@@ -243,7 +270,15 @@ class PowerShell(Shell):
 
     def setenv(self, key, value):
         value = self.escape_string(value)
-        self._addline('$env:{0} = "{1}"'.format(key, value))
+        self._addline('$Env:{0} = "{1}"'.format(key, value))
+
+    def appendenv(self, key, value):
+        value = self.escape_string(value)
+        # Be careful about ambiguous case in pwsh on Linux where pathsep is :
+        # so that the ${ENV:VAR} form has to be used to not collide.
+        self._addline(
+            '$Env:{0} = "${{Env:{0}}}{1}{2}"'.format(key, os.path.pathsep, value)
+        )
 
     def unsetenv(self, key):
         self._addline(r"Remove-Item Env:\%s" % key)
@@ -276,11 +311,36 @@ class PowerShell(Shell):
     def command(self, value):
         self._addline(value)
 
-    def get_key_token(self, key):
-        return "$env:%s" % key
+    @classmethod
+    def get_key_token(cls, key, form=0):
+        if form == 1:
+            return "$Env:%s" % key
+        else:
+            return "${Env:%s}" % key
+
+    @classmethod
+    def key_form_count(cls):
+        return 2
 
     def join(self, command):
         return " ".join(command)
+
+
+class PowerShell(PowerShellBase):
+
+    @property
+    def executable(cls):
+        if cls._executable is None:
+            cls._executable = Shell.find_executable('powershell')
+        return cls._executable
+
+    @classmethod
+    def name(cls):
+        return 'powershell'
+
+    @classmethod
+    def file_extension(cls):
+        return 'ps1'
 
 
 def register_plugin():

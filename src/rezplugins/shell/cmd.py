@@ -25,6 +25,9 @@ class CMD(Shell):
     syspaths = None
     _executable = None
     _doskey = None
+    expand_env_vars = True
+
+    _env_var_regex = re.compile("%([A-Za-z0-9_]+)%")    # %ENVVAR%
 
     # Regex to aid with escaping of Windows-specific special chars:
     # http://ss64.com/nt/syntax-esc.html
@@ -186,6 +189,12 @@ class CMD(Shell):
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
             executor.env.REZ_ENV_PROMPT = literal(newprompt)
 
+        # Make .py launch within cmd without extension.
+        if self.settings.additional_pathext:
+            executor.command('set PATHEXT=%PATHEXT%;{}'.format(
+                ";".join(self.settings.additional_pathext)
+            ))
+
         if startup_sequence["command"] is not None:
             _record_shell(executor, files=startup_sequence["files"])
             shell_command = startup_sequence["command"]
@@ -251,9 +260,19 @@ class CMD(Shell):
             str: The value escaped for Windows.
 
         """
-        if isinstance(value, EscapedString):
-            return value.formatted(self._escaper)
-        return self._escaper(value)
+        value = EscapedString.promote(value)
+        value = value.expanduser()
+        result = ''
+
+        for is_literal, txt in value.strings:
+            if is_literal:
+                txt = self._escaper(txt)
+                # Note that cmd uses ^% while batch files use %% to escape %
+                txt = self._env_var_regex.sub(r"%%\1%%", txt)
+            else:
+                txt = self._escaper(txt)
+            result += txt
+        return result
 
     def _saferefenv(self, key):
         pass
@@ -301,8 +320,13 @@ class CMD(Shell):
     def command(self, value):
         self._addline(value)
 
-    def get_key_token(self, key):
-        return "%%%s%%" % key
+    @classmethod
+    def get_key_token(cls, key, form=0):
+        return "%{}%".format(key)
+
+    @classmethod
+    def key_form_count(cls):
+        return 1
 
     def join(self, command):
         return " ".join(command)

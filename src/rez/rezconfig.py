@@ -620,6 +620,29 @@ suite_alias_prefix_char = "+"
 
 
 ###############################################################################
+# Utils
+###############################################################################
+
+# Default option on how to create scripts with util.create_executable_script.
+# In order to support both windows and other OS it is recommended to set this
+# to 'both'.
+#
+# Possible modes:
+# - requested:
+#       Requested shebang script only. Usually extension-less.
+# - py:
+#       Create .py script that will allow launching scripts on windows,
+#       if the shell adds .py to PATHEXT. Make sure to use PEP-397 py.exe
+#       as default application for .py files.
+# - platform_specific:
+#       Will create py script on windows and requested on other platforms
+# - both:
+#       Creates the requested file and a .py script so that scripts can be
+#       launched without extension from windows and other systems.
+create_executable_script_mode = "requested"
+
+
+###############################################################################
 # Appearance
 ###############################################################################
 

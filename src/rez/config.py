@@ -239,6 +239,13 @@ class RezToolsVisibility_(Str):
         return Or(*(x.name for x in RezToolsVisibility))
 
 
+class ExecutableScriptMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.util import ExecutableScriptMode
+        return Or(*(x.name for x in ExecutableScriptMode))
+
+
 class OptionalStrOrFunction(Setting):
     schema = Or(None, basestring, callable)
 
@@ -308,6 +315,7 @@ config_schema = Schema({
     "documentation_url":                            Str,
     "suite_visibility":                             SuiteVisibility_,
     "rez_tools_visibility":                         RezToolsVisibility_,
+    "create_executable_script_mode":                ExecutableScriptMode_,
     "suite_alias_prefix_char":                      Char,
     "package_definition_python_path":               OptionalStr,
     "tmpdir":                                       OptionalStr,

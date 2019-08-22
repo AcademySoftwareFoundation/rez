@@ -15,6 +15,7 @@ import subprocess
 import os
 import os.path
 import pipes
+import re
 
 
 basestring = six.string_types[0]
@@ -42,7 +43,6 @@ def create_shell(shell=None, **kwargs):
 class Shell(ActionInterpreter):
     """Class representing a shell, such as bash or tcsh.
     """
-
     schema_dict = {
         "prompt": basestring}
 
@@ -164,6 +164,29 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
+    @classmethod
+    def get_key_token(cls, key, form=0):
+        """
+        Encodes the environment variable into the shell specific form.
+        Shells might implement multiple forms, but the most common/safest
+        should be implemented as form 0 or if the form exceeds key_form_count.
+
+        Args:
+            key: Variable name to encode
+            form: number of token form
+
+        Returns:
+            str of encoded token form
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def key_form_count(cls):
+        """
+        Returns: Number of forms get_key_token supports
+        """
+        raise NotImplementedError
+
     def join(self, command):
         """
         Args:
@@ -174,6 +197,7 @@ class Shell(ActionInterpreter):
             A string object representing the command.
         """
         raise NotImplementedError
+
 
 class UnixShell(Shell):
     """
@@ -400,8 +424,16 @@ class UnixShell(Shell):
     def shebang(self):
         self._addline("#!%s" % self.executable)
 
-    def get_key_token(self, key):
-        return "${%s}" % key
+    @classmethod
+    def get_key_token(cls, key, form=0):
+        if form == 1:
+            return "$%s" % key
+        else:
+            return "${%s}" % key
+
+    @classmethod
+    def key_form_count(cls):
+        return 2
 
     def join(self, command):
         return shlex_join(command)
