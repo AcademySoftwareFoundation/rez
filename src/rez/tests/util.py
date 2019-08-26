@@ -175,7 +175,14 @@ def shell_dependent(exclude=None):
                     self.skipTest("This test does not run on %s shell." % shell)
                 print("\ntesting in shell: %s..." % shell)
                 config.override("default_shell", shell)
-                func(self, *args, **kwargs)
+                try:
+                    func(self, *args, **kwargs)
+                except AssertionError as e:
+                    # Add the shell to the exception message
+                    args = list(e.args)
+                    args[0] += " (in shell '{}')".format(shell)
+                    e.args = tuple(args)
+                    raise
         return wrapper
     return decorator
 
