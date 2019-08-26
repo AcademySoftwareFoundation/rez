@@ -329,7 +329,8 @@ class CMD(Shell):
         return 1
 
     def join(self, command):
-        return " ".join(command)
+        # Surround with quotes if includes whitespaces
+        return " ".join(['"{}"'.format(x) if " " in x else x for x in command])
 
 
 def register_plugin():
