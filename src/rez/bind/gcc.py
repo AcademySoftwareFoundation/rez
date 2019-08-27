@@ -24,12 +24,12 @@ def bind(path, version_range=None, opts=None, parser=None):
 
     # gcc
     gcc_path = find_exe('gcc', filepath=exe_path)
-    gcc_version = extract_version(gcc_path, ['-dumpversion', '-dumpfullversion'])
+    gcc_version = extract_version(gcc_path, ['-dumpfullversion', '-dumpversion'])
     log("binding gcc: %s" % gcc_path)
 
     # g++
     gpp_path = find_exe('g++', filepath=exe_path)
-    gpp_version = extract_version(gpp_path, ['-dumpversion', '-dumpfullversion'])
+    gpp_version = extract_version(gpp_path, ['-dumpfullversion', '-dumpversion'])
     log("binding g++: %s" % gpp_path)
 
     if gcc_version != gpp_version:
