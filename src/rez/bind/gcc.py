@@ -5,6 +5,7 @@ from rez.utils.lint_helper import env
 from rez.utils.platform_ import platform_
 import os.path
 from rez.exceptions import RezBindError
+from rez.system import system
 
 
 def setup_parser(parser):
@@ -48,6 +49,7 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.version = gcc_version
         pkg.tools = ['gcc', 'g++']
         pkg.commands = commands
+        pkg.variants = [system.variant]
 
     return pkg.installed_variants
 
