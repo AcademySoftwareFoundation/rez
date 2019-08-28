@@ -7,7 +7,7 @@ from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.backport.shutilwhich import which
 from functools import partial
-from subprocess import PIPE
+from subprocess import PIPE, list2cmdline
 import os
 import re
 
@@ -323,7 +323,9 @@ class PowerShellBase(Shell):
         return 2
 
     def join(self, command):
-        return " ".join(command)
+        # TODO: This may disappear in future [1]
+        # [1] https://bugs.python.org/issue10838
+        return list2cmdline(command)
 
 
 class PowerShell(PowerShellBase):

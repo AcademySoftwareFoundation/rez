@@ -7,7 +7,7 @@ from rez.shells import Shell
 from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
-from rez.util import shlex_join
+from rezplugins.shell.powershell import list2cmdline
 from rez.vendor.six import six
 from functools import partial
 import os
@@ -341,8 +341,9 @@ class CMD(Shell):
         return 1
 
     def join(self, command):
-        # Surround with quotes if includes whitespaces
-        return " ".join(['"{}"'.format(x) if " " in x else x for x in command])
+        # TODO: This may disappear in future [1]
+        # [1] https://bugs.python.org/issue10838
+        return subprocess.list2cmdline(command)
 
 
 def register_plugin():
