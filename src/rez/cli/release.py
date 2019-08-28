@@ -97,7 +97,7 @@ def command(opts, parser, extra_arg_groups=None):
             try:
                 changelog = builder.get_changelog()
             except:
-                pass
+                changelog = None
 
             if changelog:
                 txt += ("\n\n%s This is for reference only - this line and all "
