@@ -398,7 +398,7 @@ def load_yaml(stream, **kwargs):
     content = stream.read()
     try:
         return yaml.load(content) or {}
-    except Exception, e:
+    except Exception as e:
         if stream.name and stream.name != '<string>':
             for mark_name in 'context_mark', 'problem_mark':
                 mark = getattr(e, mark_name, None)

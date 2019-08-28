@@ -31,7 +31,7 @@ class HgReleaseVCS(ReleaseVCS):
         except AssertionError:
             raise HgReleaseVCSError(
                 "'%s' is not the root of a mercurial working copy" % self.vcs_root)
-        except Exception, err:
+        except Exception as err:
             raise HgReleaseVCSError("failed to call hg binary: " + str(err))
 
         self.patch_path = os.path.join(hgdir, 'patches')
