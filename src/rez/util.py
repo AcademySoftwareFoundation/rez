@@ -23,8 +23,8 @@ class ExecutableScriptMode(Enum):
     """
     # Start with 1 to not collide with None checks
 
-    # Requested shebang script only. Usually extension-less.
-    requested = 1
+    # Requested script only. Usually extension-less.
+    single = 1
 
     # Create .py script that will allow launching scripts on
     # windows without extension, but may require extension on
@@ -126,6 +126,7 @@ def _get_python_script_files(filepath, py_script_mode, platform):
         platform (str): Platform to evaluate the script files for
 
     Returns:
+        list of str: filepaths of scripts to create based on inputs
 
     """
     script_filepaths = []
@@ -133,7 +134,7 @@ def _get_python_script_files(filepath, py_script_mode, platform):
     has_py_ext = extension == ".py"
     is_windows = platform == "windows"
 
-    if py_script_mode == ExecutableScriptMode.requested or \
+    if py_script_mode == ExecutableScriptMode.single or \
             py_script_mode == ExecutableScriptMode.both or \
             (py_script_mode == ExecutableScriptMode.py and has_py_ext) or \
             (py_script_mode == ExecutableScriptMode.platform_specific and

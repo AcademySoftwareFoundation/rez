@@ -899,9 +899,7 @@ class NamespaceFormatter(Formatter):
             value = next((x for x in matchobj.groups() if x is not None))
             return "${{%s}}" % value
 
-        regex = ActionInterpreter.ENV_VAR_REGEX
-        if "regex" in kwargs:
-            regex = kwargs["regex"]
+        regex = kwargs.get("regex") or ActionInterpreter.ENV_VAR_REGEX
 
         format_string_ = re.sub(regex, escape_envvar, format_string)
 

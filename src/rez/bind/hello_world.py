@@ -44,9 +44,6 @@ def bind(path, version_range=None, opts=None, parser=None):
         binpath = make_dirs(root, "bin")
         filepath = os.path.join(binpath, "hello_world")
 
-        # In order for this script to run on each platform we create the
-        # platform-specific script. This also requires the additional_pathext
-        # setting of the windows shell plugins to include ".PY"
         create_executable_script(
             filepath,
             hello_world_source,

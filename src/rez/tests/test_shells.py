@@ -81,12 +81,12 @@ class TestShells(TestBase, TempdirMixin):
             self.assertListEqual(files, [py_script_file])
 
             files = _get_python_script_files(script_file,
-                                             ExecutableScriptMode.requested,
+                                             ExecutableScriptMode.single,
                                              platform)
             self.assertListEqual(files, [script_file])
 
             files = _get_python_script_files(py_script_file,
-                                             ExecutableScriptMode.requested,
+                                             ExecutableScriptMode.single,
                                              platform)
             self.assertListEqual(files, [py_script_file])
 
@@ -120,8 +120,7 @@ class TestShells(TestBase, TempdirMixin):
 
         if command:
             r = self._create_context(["hello_world"])
-            script = "hello_world"
-            p = r.execute_shell(command=script,
+            p = r.execute_shell(command="hello_world",
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
@@ -188,16 +187,8 @@ class TestShells(TestBase, TempdirMixin):
         # here we are making sure that running a command via rez-env prints
         # exactly what we expect.
         sh = create_shell()
-        echo_cmd = which("echo")
 
-        # Certain shells will not find echo.
-        # TODO: If this exception was created for the following shells then
-        #  it is redundant. Can we clarify which platforms this was meant for?
-        has_buildin_echo = sh.name() in ['cmd', 'powershell', 'pwsh']
-        if not echo_cmd and not has_buildin_echo:
-            print("\nskipping test, 'echo' command not found.")
-            return
-
+        # Assumes that the shell has an echo command, build-in or alias
         cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
         process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         sh_out, _ = process.communicate()

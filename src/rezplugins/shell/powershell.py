@@ -38,18 +38,6 @@ class PowerShellBase(Shell):
     def _escape_vars(s):
         return s.replace('$', '`$')
 
-    @property
-    def executable(cls):
-        raise NotImplementedError
-
-    @classmethod
-    def name(cls):
-        raise NotImplementedError
-
-    @classmethod
-    def file_extension(cls):
-        raise NotImplementedError
-
     @classmethod
     def startup_capabilities(cls,
                              rcfile=False,
