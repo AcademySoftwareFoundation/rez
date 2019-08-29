@@ -310,7 +310,8 @@ class PowerShellBase(Shell):
     def key_form_count(cls):
         return 2
 
-    def join(self, command):
+    @classmethod
+    def join(cls, command):
         # TODO: This may disappear in future [1]
         # [1] https://bugs.python.org/issue10838
         return list2cmdline(command)

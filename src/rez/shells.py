@@ -187,7 +187,8 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
-    def join(self, command):
+    @classmethod
+    def join(cls, command):
         """
         Args:
             command:
@@ -435,7 +436,8 @@ class UnixShell(Shell):
     def key_form_count(cls):
         return 2
 
-    def join(self, command):
+    @classmethod
+    def join(cls, command):
         return shlex_join(command)
 
 
