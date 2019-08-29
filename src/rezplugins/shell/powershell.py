@@ -316,6 +316,10 @@ class PowerShellBase(Shell):
         # [1] https://bugs.python.org/issue10838
         return list2cmdline(command)
 
+    @classmethod
+    def line_terminator(cls):
+        return "\n"
+
 
 class PowerShell(PowerShellBase):
 

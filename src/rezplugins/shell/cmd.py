@@ -346,6 +346,10 @@ class CMD(Shell):
         # [1] https://bugs.python.org/issue10838
         return subprocess.list2cmdline(command)
 
+    @classmethod
+    def line_terminator(cls):
+        return "\r\n"
+
 
 def register_plugin():
     if platform_.name == "windows":

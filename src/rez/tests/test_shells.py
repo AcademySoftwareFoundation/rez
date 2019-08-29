@@ -226,9 +226,8 @@ class TestShells(TestBase, TempdirMixin):
 
             # Powershell and Unix uses \n
             sh = create_shell()
-            token = '\r\n' if sh.name() == 'cmd' else '\n'
 
-            output = out.strip().split(token)
+            output = out.strip().split(sh.line_terminator())
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():

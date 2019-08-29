@@ -188,6 +188,14 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
+    def line_terminator(cls):
+        """
+        Returns:
+            str: default line terminator
+        """
+        raise NotImplementedError
+
+    @classmethod
     def join(cls, command):
         """
         Args:
@@ -440,6 +448,9 @@ class UnixShell(Shell):
     def join(cls, command):
         return shlex_join(command)
 
+    @classmethod
+    def line_terminator(cls):
+        return "\n"
 
 # Copyright 2013-2016 Allan Johns.
 #
