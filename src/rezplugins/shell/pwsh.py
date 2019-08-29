@@ -3,7 +3,6 @@
 from rez.shells import Shell
 from rez.utils.platform_ import platform_
 from rezplugins.shell.powershell import PowerShellBase
-from rezplugins.shell.sh import SH
 
 
 class PowerShellCore(PowerShellBase):
@@ -24,10 +23,15 @@ class PowerShellCore(PowerShellBase):
 
     @classmethod
     def get_syspaths(cls):
-        # TODO: Clean dependency from SH
         if platform_.name == "windows":
             return super(PowerShellCore, cls).get_syspaths()
         else:
+            # TODO: Newer versions of pwsh will parse .profile via sh [1], so
+            # we could use a similar technique as SH itself. For now, to
+            # support older pwsh version we depend on SH on unix like platforms
+            # directly.
+            # [1] https://github.com/PowerShell/PowerShell/pull/10050
+            from rezplugins.shell.sh import SH
             return SH.get_syspaths()
 
 
