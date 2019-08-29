@@ -447,7 +447,7 @@ class ActionInterpreter(object):
     expand_env_vars = False
 
     # RegEx that captures environment variables (generic form).
-    # Extend/Override to regex formats that can captured environment formats
+    # Extend/override to regex formats that can capture environment formats
     # in other interpreters like shells if needed
     ENV_VAR_REGEX = re.compile(
         "|".join([

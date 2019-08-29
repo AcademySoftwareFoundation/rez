@@ -224,7 +224,7 @@ class TestShells(TestBase, TempdirMixin):
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
 
-            # Powershell and Unix uses \n
+            # PowerShell and Unix uses \n
             sh = create_shell()
 
             output = out.strip().split(sh.line_terminator())

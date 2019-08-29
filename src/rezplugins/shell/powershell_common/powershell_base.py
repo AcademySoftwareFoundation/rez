@@ -12,7 +12,7 @@ from rez.utils.system import popen
 
 class PowerShellBase(Shell):
     """
-    Abstract base class for Powershell-like shells.
+    Abstract base class for PowerShell-like shells.
     """
     expand_env_vars = True
 
@@ -20,7 +20,7 @@ class PowerShellBase(Shell):
     _executable = None
 
     # Make sure that the $Env:VAR formats come before the $VAR formats since
-    # Powershell Environment variables are ambiguous with Unix paths.
+    # PowerShell Environment variables are ambiguous with Unix paths.
     ENV_VAR_REGEX = re.compile(
         "|".join([
             "\\$[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)",       # $Env:ENVVAR
@@ -142,7 +142,7 @@ class PowerShellBase(Shell):
             self._addline('Function prompt {"%s"}' % self.settings.prompt)
 
     def _additional_commands(self, executor):
-        # Make .py launch within cmd without extension.
+        # Make .py launch within shell without extension.
         # For PowerShell this will also execute in the same window, so that
         # stdout can be captured.
         if platform_.name == "windows" and self.settings.additional_pathext:

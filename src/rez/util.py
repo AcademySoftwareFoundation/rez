@@ -88,7 +88,7 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
     # default python, or in case of later python versions 'py' that should
     # try to use sensible python interpreters depending on the shebang line.
     # Compare PEP-397.
-    # In order to execution to work from windows we need to create a .py
+    # In order for execution to work in windows we need to create a .py
     # file and set the PATHEXT to include .py (as done by the shell plugins)
     # So depending on the py_script_mode we might need to create more then
     # one script

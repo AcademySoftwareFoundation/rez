@@ -77,9 +77,8 @@ class Shell(ActionInterpreter):
 
     def convert_tokens(self, value):
         """
-        Converts any token form like ${VAR} and $VAR to shell specific
-        form. Uses the ENV_VAR_REGEX class variable to correctly parse
-        variables.
+        Converts any token like ${VAR} and $VAR to shell specific form.
+        Uses the ENV_VAR_REGEX to correctly parse tokens.
 
         Args:
             value: str to convert

@@ -28,7 +28,7 @@ class PowerShellCore(PowerShellBase):
         else:
             # TODO: Newer versions of pwsh will parse .profile via sh [1], so
             # we could use a similar technique as SH itself. For now, to
-            # support older pwsh version we depend on SH on unix like platforms
+            # support older pwsh version we depend on SH on Unix-like platforms
             # directly.
             # [1] https://github.com/PowerShell/PowerShell/pull/10050
             from rezplugins.shell.sh import SH
