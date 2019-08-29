@@ -182,25 +182,32 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def get_key_token(cls, key, form=0):
+    def get_key_token(cls, key):
         """
         Encodes the environment variable into the shell specific form.
         Shells might implement multiple forms, but the most common/safest
-        should be implemented as form 0 or if the form exceeds key_form_count.
+        should be returned here.
 
         Args:
             key: Variable name to encode
-            form: number of token form
 
         Returns:
             str of encoded token form
         """
-        raise NotImplementedError
+        return cls.get_all_key_tokens(key)[0]
 
     @classmethod
-    def key_form_count(cls):
+    def get_all_key_tokens(cls, key):
         """
-        Returns: Number of forms get_key_token supports
+        Encodes the environment variable into the shell specific forms.
+        Shells might implement multiple forms, but the most common/safest
+        should be always returned at index 0.
+
+        Args:
+            key: Variable name to encode
+
+        Returns:
+            list of str with encoded token forms
         """
         raise NotImplementedError
 
@@ -452,15 +459,8 @@ class UnixShell(Shell):
         self._addline("#!%s" % self.executable)
 
     @classmethod
-    def get_key_token(cls, key, form=0):
-        if form == 1:
-            return "$%s" % key
-        else:
-            return "${%s}" % key
-
-    @classmethod
-    def key_form_count(cls):
-        return 2
+    def get_all_key_tokens(cls, key):
+        return ["${%s}" % key, "$%s" % key]
 
     @classmethod
     def join(cls, command):

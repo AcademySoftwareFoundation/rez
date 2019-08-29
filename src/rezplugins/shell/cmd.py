@@ -336,12 +336,8 @@ class CMD(Shell):
         self._addline(value)
 
     @classmethod
-    def get_key_token(cls, key, form=0):
-        return "%{}%".format(key)
-
-    @classmethod
-    def key_form_count(cls):
-        return 1
+    def get_all_key_tokens(cls, key):
+        return ["%{}%".format(key)]
 
     @classmethod
     def join(cls, command):

@@ -305,15 +305,8 @@ class PowerShellBase(Shell):
         self._addline(value)
 
     @classmethod
-    def get_key_token(cls, key, form=0):
-        if form == 1:
-            return "$Env:%s" % key
-        else:
-            return "${Env:%s}" % key
-
-    @classmethod
-    def key_form_count(cls):
-        return 2
+    def get_all_key_tokens(cls, key):
+        return ["${Env:%s}" % key, "$Env:%s" % key]
 
     @classmethod
     def join(cls, command):

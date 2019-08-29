@@ -278,12 +278,12 @@ class TestShells(TestBase, TempdirMixin):
             _print('hey ^ world')
 
             # Platform dependent form of variables.
-            for i in range(sh.key_form_count()):
-                _print("hey " + sh.get_key_token("WHO", i))
-                _print(expandable("${GREET} ").e(sh.get_key_token("WHO", i)))
-                _print(expandable("${GREET} ").l(sh.get_key_token("WHO", i)))
-                _print(literal(sh.get_key_token("WHO", i)))
-                _print(literal(sh.get_key_token("WHO", i)).e(" " + sh.get_key_token("WHO", i)))
+            for token in sh.get_all_key_tokens("WHO"):
+                _print("hey " + token)
+                _print(expandable("${GREET} ").e(token))
+                _print(expandable("${GREET} ").l(token))
+                _print(literal(token))
+                _print(literal(token).e(" " + token))
 
         expected_output = [
             "ello",
@@ -318,13 +318,13 @@ class TestShells(TestBase, TempdirMixin):
         # Assertions for other environment variable types
         from rez.shells import create_shell
         sh = create_shell()
-        for i in range(sh.key_form_count()):
+        for token in sh.get_all_key_tokens("WHO"):
             expected_output += [
                 "hey Gary",
                 "hi Gary",
-                "hi " + sh.get_key_token("WHO", i),
-                sh.get_key_token("WHO", i),
-                sh.get_key_token("WHO", i) + " Gary",
+                "hi " + token,
+                token,
+                token + " Gary",
             ]
 
         # We are wrapping all variable outputs in quotes in order to make sure
@@ -352,25 +352,6 @@ class TestShells(TestBase, TempdirMixin):
         ]
 
         _execute_code(_rex_appending, expected_output)
-
-    @shell_dependent()
-    def test_variable_encoding(self):
-        """
-        Sanity test so we can make use of get_key_token in other tests.
-        """
-        sh = create_shell()
-        name = sh.name()
-        if name == "cmd":
-            self.assertEqual("%HELLO%", sh.get_key_token("HELLO", 0))
-            self.assertEqual(1, sh.key_form_count())
-        elif name == "powershell" or name == "pwsh":
-            self.assertEqual("${Env:HELLO}", sh.get_key_token("HELLO", 0))
-            self.assertEqual("$Env:HELLO", sh.get_key_token("HELLO", 1))
-            self.assertEqual(2, sh.key_form_count())
-        else:
-            self.assertEqual("${HELLO}", sh.get_key_token("HELLO", 0))
-            self.assertEqual("$HELLO", sh.get_key_token("HELLO", 1))
-            self.assertEqual(2, sh.key_form_count())
 
     @shell_dependent()
     def test_rex_code_alias(self):
