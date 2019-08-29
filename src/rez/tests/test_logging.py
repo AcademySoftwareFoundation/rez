@@ -2,7 +2,7 @@
 Test importing logging modules.
 """
 from rez.tests.util import TestBase
-import rez.vendor.unittest2 as unittest
+import unittest
 from  rez.utils import logging_
 
 

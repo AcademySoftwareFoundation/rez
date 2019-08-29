@@ -7,7 +7,7 @@ from rez.utils.resources import Resource, ResourcePool, ResourceHandle, \
 from rez.package_repository import PackageRepository
 from rez.utils.schema import Required
 from rez.exceptions import ResourceError
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.vendor.schema.schema import Schema, Use, And, Optional
 
 

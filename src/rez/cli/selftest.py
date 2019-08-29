@@ -51,7 +51,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     import sys
-    from rez.vendor.unittest2.main import main
+    from unittest.main import main
 
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 

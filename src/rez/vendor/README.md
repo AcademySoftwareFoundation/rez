@@ -38,4 +38,3 @@ Note that the latest versions column is just to give us an idea of how far back 
 
 | Package   | Version              | Latest               | Note                                                                                 |
 |-----------|----------------------|----------------------|--------------------------------------------------------------------------------------|
-| unittest2 | 0.5.1 (Jul 12, 2010) | 1.1.0 (Jun 30, 2015) | If we drop support for python 2.6, we will be able to use unittest from the std lib. Note: Can be done now, 2.6 already officially dropped. |

@@ -7,7 +7,7 @@ from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.rex import RexExecutor, literal, expandable
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.util import which

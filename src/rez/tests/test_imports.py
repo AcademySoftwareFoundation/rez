@@ -2,7 +2,7 @@
 test importing of all source
 """
 from rez.tests.util import TestBase
-import rez.vendor.unittest2 as unittest
+import unittest
 
 
 class TestImports(TestBase):

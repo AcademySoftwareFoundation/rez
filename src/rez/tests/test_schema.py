@@ -1,7 +1,7 @@
 """
 unit tests for 'schema' module
 """
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.vendor.schema.test_schema import TestSchema
 
 
