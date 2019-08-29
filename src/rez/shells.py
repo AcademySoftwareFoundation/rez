@@ -75,6 +75,23 @@ class Shell(ActionInterpreter):
     def _addline(self, line):
         self._lines.append(line)
 
+    def convert_tokens(self, value):
+        """
+        Converts any token form like ${VAR} and $VAR to shell specific
+        form. Uses the ENV_VAR_REGEX class variable to correctly parse
+        variables.
+
+        Args:
+            value: str to convert
+
+        Returns:
+            str with shell specific variables
+        """
+        return self.ENV_VAR_REGEX.sub(
+            lambda m: "".join(self.get_key_token(g) for g in m.groups() if g),
+            value
+        )
+
     def get_output(self, style=OutputStyle.file):
         if style == OutputStyle.file:
             script = '\n'.join(self._lines) + '\n'
@@ -221,6 +238,7 @@ class UnixShell(Shell):
     stdin_arg = '-s'
     last_command_status = '$?'
     syspaths = None
+
 
     #
     # startup rules

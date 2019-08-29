@@ -25,8 +25,9 @@ class PowerShellBase(Shell):
     # Powershell Environment variables are ambiguous with Unix paths.
     ENV_VAR_REGEX = re.compile(
         "|".join([
-            "\\$[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)",  # $Env:ENVVAR
-            Shell.ENV_VAR_REGEX.pattern,                   # Generic form
+            "\\$[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)",       # $Env:ENVVAR
+            "\\${[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)}",     # ${Env:ENVVAR}
+            Shell.ENV_VAR_REGEX.pattern,                        # Generic form
         ])
     )
 
@@ -287,10 +288,14 @@ class PowerShellBase(Shell):
 
     def info(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
+            line = self.convert_tokens(line)
             self._addline('Write-Host %s' % line)
 
     def error(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
+            line = self.convert_tokens(line)
             self._addline('Write-Error "%s"' % line)
 
     def source(self, value):

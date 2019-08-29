@@ -231,9 +231,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():
-            from rez.shells import create_shell, UnixShell
+            from rez.shells import create_shell
             sh = create_shell()
-            is_powershell = sh.name() in ["powershell", "pwsh"]
 
             def _print(value):
                 env.FOO = value
@@ -241,10 +240,7 @@ class TestShells(TestBase, TempdirMixin):
                 # interpreting parts of our output as commands. This can happen
                 # when we include special characters (&, <, >, ^) in a
                 # variable.
-                if is_powershell:
-                    info('`"{}`"'.format(sh.get_key_token("FOO")))
-                else:
-                    info('"{}"'.format(sh.get_key_token("FOO")))
+                info('"${FOO}"')
 
             env.GREET = "hi"
             env.WHO = "Gary"
@@ -282,15 +278,12 @@ class TestShells(TestBase, TempdirMixin):
             _print('hey ^ world')
 
             # Platform dependent form of variables.
-            # No need to test in unix shells since their for, matches the
-            # generic form $VAR and ${VAR}.
-            if not isinstance(sh, UnixShell):
-                for i in range(sh.key_form_count()):
-                    _print("hey " + sh.get_key_token("WHO", i))
-                    _print(expandable("${GREET} ").e(sh.get_key_token("WHO", i)))
-                    _print(expandable("${GREET} ").l(sh.get_key_token("WHO", i)))
-                    _print(literal(sh.get_key_token("WHO", i)))
-                    _print(literal(sh.get_key_token("WHO", i)).e(" " + sh.get_key_token("WHO", i)))
+            for i in range(sh.key_form_count()):
+                _print("hey " + sh.get_key_token("WHO", i))
+                _print(expandable("${GREET} ").e(sh.get_key_token("WHO", i)))
+                _print(expandable("${GREET} ").l(sh.get_key_token("WHO", i)))
+                _print(literal(sh.get_key_token("WHO", i)))
+                _print(literal(sh.get_key_token("WHO", i)).e(" " + sh.get_key_token("WHO", i)))
 
         expected_output = [
             "ello",
@@ -323,19 +316,16 @@ class TestShells(TestBase, TempdirMixin):
         ]
 
         # Assertions for other environment variable types
-        from rez.shells import create_shell, UnixShell
+        from rez.shells import create_shell
         sh = create_shell()
-        if not isinstance(sh, UnixShell):
-            from rez.shells import create_shell, UnixShell
-            sh = create_shell()
-            for i in range(sh.key_form_count()):
-                expected_output += [
-                    "hey Gary",
-                    "hi Gary",
-                    "hi " + sh.get_key_token("WHO", i),
-                    sh.get_key_token("WHO", i),
-                    sh.get_key_token("WHO", i) + " Gary",
-                ]
+        for i in range(sh.key_form_count()):
+            expected_output += [
+                "hey Gary",
+                "hi Gary",
+                "hi " + sh.get_key_token("WHO", i),
+                sh.get_key_token("WHO", i),
+                sh.get_key_token("WHO", i) + " Gary",
+            ]
 
         # We are wrapping all variable outputs in quotes in order to make sure
         # our shell isn't interpreting our output as instructions when echoing

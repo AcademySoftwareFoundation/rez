@@ -7,7 +7,6 @@ from rez.shells import Shell
 from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
-from rezplugins.shell.powershell import list2cmdline
 from rez.vendor.six import six
 from functools import partial
 import os
@@ -320,10 +319,14 @@ class CMD(Shell):
 
     def info(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
+            line = self.convert_tokens(line)
             self._addline('echo %s' % line)
 
     def error(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
+            line = self.convert_tokens(line)
             self._addline('echo "%s" 1>&2' % line)
 
     def source(self, value):
