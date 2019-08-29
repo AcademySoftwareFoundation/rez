@@ -4,7 +4,7 @@ Run unit tests.
 
 import inspect
 import os
-import rez.vendor.argparse as argparse
+import argparse
 from pkgutil import iter_modules
 
 cli_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))

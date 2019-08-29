@@ -1,5 +1,5 @@
 """See util.create_forwarding_script()."""
-from rez.vendor import argparse
+import argparse
 
 __doc__ = argparse.SUPPRESS
 
