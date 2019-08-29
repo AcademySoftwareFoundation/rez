@@ -96,8 +96,7 @@ def command(opts, parser, extra_arg_groups=None):
             # get stripped out again before being added as package release notes.
             try:
                 changelog = builder.get_changelog()
-            except Exception as e:
-                print(e)
+            except:
                 changelog = None
 
             if changelog:
