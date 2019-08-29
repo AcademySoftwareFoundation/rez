@@ -1,6 +1,7 @@
 '''
 Copy a package from one repository to another.
 '''
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -92,13 +93,13 @@ def command(opts, parser, extra_arg_groups=None):
 
     src_pkgs = list(it)
     if not src_pkgs:
-        print >> sys.stderr, "No matching packages found."
+        print("No matching packages found.", file=sys.stderr)
         sys.exit(1)
 
     if len(src_pkgs) > 1:
-        print >> sys.stderr, "More than one package matches, please choose:"
+        print("More than one package matches, please choose:", file=sys.stderr)
         for pkg in sorted(src_pkgs, key=lambda x: x.version):
-            print >> sys.stderr, pkg.qualified_name
+            print(pkg.qualified_name, file=sys.stderr)
         sys.exit(1)
 
     src_pkg = src_pkgs[0]
@@ -113,14 +114,14 @@ def command(opts, parser, extra_arg_groups=None):
         dest_pkg_repo = package_repository_manager.get_repository(opts.dest_path)
 
         if (not opts.allow_empty) and dest_pkg_repo.is_empty():
-            print >> sys.stderr, (
+            print((
                 "Attempting to copy a package into an EMPTY repository. Are you "
                 "sure that --dest-path is the correct path? This should not "
                 "include package name and/or version."
                 "\n\n"
                 "If this is a valid new package repository, use the "
                 "--allow-empty flag to continue."
-            )
+            ), file=sys.stderr)
             sys.exit(1)
     else:
         dest_pkg_repo = src_pkg.repository

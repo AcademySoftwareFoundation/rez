@@ -87,7 +87,7 @@ class EmailReleaseHook(ReleaseHook):
                        to_addrs=recipients,
                        msg=msg.as_string())
             print('Email(s) sent.')
-        except Exception, e:
+        except Exception as e:
             print_error("release email delivery failed: %s" % str(e))
 
     def get_recipients(self):
