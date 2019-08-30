@@ -88,7 +88,7 @@ class Wrapper(object):
         return retcode
 
     def _run(self, prefix_char, args):
-        from rez.vendor import argparse
+        import argparse
 
         parser = argparse.ArgumentParser(prog=self.tool_name,
                                          prefix_chars=prefix_char)

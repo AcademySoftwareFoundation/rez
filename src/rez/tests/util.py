@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types
 from rez.system import system

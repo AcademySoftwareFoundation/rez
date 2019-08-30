@@ -6,7 +6,7 @@ from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
 from rez.resolved_context import ResolvedContext
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
-import rez.vendor.unittest2 as unittest
+import unittest
 import subprocess
 import os.path
 import os

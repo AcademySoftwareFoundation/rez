@@ -6,7 +6,7 @@ from rez.util import get_close_pkgs
 from rez.utils.formatting import columnise
 from rez.utils.logging_ import print_error
 from rez.config import config
-from rez.vendor import argparse
+import argparse
 import os.path
 import os
 import sys

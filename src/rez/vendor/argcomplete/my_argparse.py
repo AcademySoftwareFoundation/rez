@@ -1,7 +1,7 @@
 # Copyright 2012-2013, Andrey Kislyuk and argcomplete contributors.
 # Licensed under the Apache License. See https://github.com/kislyuk/argcomplete for more info.
 
-from rez.vendor.argparse import ArgumentParser, ArgumentError, SUPPRESS, \
+from argparse import ArgumentParser, ArgumentError, SUPPRESS, \
     OPTIONAL, ZERO_OR_MORE, ONE_OR_MORE, REMAINDER, PARSER, _get_action_name, _
 
 def action_is_satisfied(action):
