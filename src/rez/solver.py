@@ -1973,7 +1973,7 @@ class Solver(_Common):
         elif self.print_stats:
             from pprint import pformat
             data = {"solve_stats": self.solve_stats}
-            print(pformat(data), file=self.buf or sys.stdout)
+            print(pformat(data), file=(self.buf or sys.stdout))
 
     @property
     def solve_stats(self):
