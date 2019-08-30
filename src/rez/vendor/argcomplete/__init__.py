@@ -4,7 +4,7 @@
 from __future__ import print_function, unicode_literals
 
 import os, sys, contextlib, locale, re
-from rez.vendor import argparse
+import argparse
 
 from . import my_shlex as shlex
 

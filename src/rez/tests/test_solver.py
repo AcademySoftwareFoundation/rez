@@ -6,7 +6,7 @@ from __future__ import print_function
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 from rez.config import config
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase
 import itertools
 import os.path

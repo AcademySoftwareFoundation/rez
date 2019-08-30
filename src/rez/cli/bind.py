@@ -3,7 +3,7 @@ Create a Rez package for existing software.
 '''
 from __future__ import print_function
 
-from rez.vendor import argparse
+import argparse
 
 
 def setup_parser(parser, completions=False):

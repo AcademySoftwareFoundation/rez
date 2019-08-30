@@ -5,7 +5,7 @@ from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
-    from rez.vendor.argparse import SUPPRESS
+    from argparse import SUPPRESS
     from rez.config import config
     from rez.system import system
     from rez.shells import get_shell_types

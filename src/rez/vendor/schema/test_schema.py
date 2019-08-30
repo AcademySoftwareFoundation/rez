@@ -1,5 +1,5 @@
 from __future__ import with_statement
-import rez.vendor.unittest2 as unittest
+import unittest
 import os
 import tempfile
 

@@ -3,7 +3,7 @@ Prints package completion strings.
 """
 from __future__ import print_function
 
-from rez.vendor import argparse
+import argparse
 
 
 __doc__ = argparse.SUPPRESS
