@@ -150,9 +150,9 @@ def _bind_package(name, path=None, version_range=None, bind_args=None,
         raise RezBindError("Bind module not found for '%s'" % name)
 
     # load the bind module
-    stream = open(bindfile)
     namespace = {}
-    exec stream in namespace
+    with open(bindfile) as stream:
+        exec(compile(stream.read(), stream.name, 'exec'), namespace)
 
     # parse bind module params
     bind_parser = argparse.ArgumentParser(prog="rez bind %s" % name,
