@@ -2,8 +2,8 @@
 test the pip utilities
 """
 import os
+import unittest
 
-from rez.vendor import unittest2
 import rez.vendor.packaging.version
 import rez.vendor.distlib.database
 from rez.vendor.version.version import VersionRange
@@ -15,7 +15,7 @@ from rez.exceptions import PackageRequestError
 import rez.utils.pip
 
 
-class TestPipUtils(unittest2.TestCase):
+class TestPipUtils(unittest.TestCase):
     """
     """
     @classmethod
