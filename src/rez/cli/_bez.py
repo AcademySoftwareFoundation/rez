@@ -41,9 +41,9 @@ def run():
     """
     from __future__ import print_function
 
-    stream=open("%(buildfile)s")
     env={}
-    exec stream in env
+    with open("%(buildfile)s") as stream:
+        exec(compile(stream.read(), stream.name, 'exec'), env)
 
     buildfunc = env.get("build")
     if not buildfunc:
