@@ -10,6 +10,7 @@ from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
 from rez.vendor.version.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
+from rez.vendor.six import six
 
 from textwrap import dedent
 import os.path
@@ -406,8 +407,10 @@ class PackageResourceHelper(PackageResource):
         else:
             return commands
 
+class _Metas(AttributeForwardMeta, LazyAttributeMeta):
+    pass
 
-class VariantResourceHelper(VariantResource):
+class VariantResourceHelper(six.with_metaclass(_Metas, VariantResource)):
     """Helper class for implementing variants that inherit properties from their
     parent package.
 
@@ -416,10 +419,6 @@ class VariantResourceHelper(VariantResource):
     exceptions - eg 'variants', 'requires'). This is a common enough pattern
     that it's supplied here for other repository plugins to use.
     """
-    class _Metas(AttributeForwardMeta, LazyAttributeMeta):
-        pass
-
-    __metaclass__ = _Metas
 
     # Note: lazy key validation doesn't happen in this class, it just fowards on
     # attributes from the package. But LazyAttributeMeta does still use this
