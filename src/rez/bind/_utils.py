@@ -13,6 +13,7 @@ import subprocess
 import os.path
 import os
 import platform
+import sys
 
 
 def log(msg):
@@ -29,7 +30,7 @@ def make_dirs(*dirs):
 
 def run_python_command(commands, exe=None):
     py_cmd = "; ".join(commands)
-    args = [exe or "python", "-c", py_cmd]
+    args = [exe or sys.executable, "-c", py_cmd]
     stdout, stderr, returncode = _run_command(args)
     return (returncode == 0), stdout.strip(), stderr.strip()
 
