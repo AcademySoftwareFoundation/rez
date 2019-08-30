@@ -68,7 +68,8 @@ def find_exe(name, filepath=None):
     """
     if filepath:
         if not os.path.exists(filepath):
-            open(filepath)  # raise IOError
+            with open(filepath):
+                pass  # raise IOError
         elif not os.path.isfile(filepath):
             raise RezBindError("not a file: %s" % filepath)
     else:
