@@ -228,7 +228,8 @@ def _load_py(stream, filepath=None):
              InvalidPackageError=InvalidPackageError)
 
     try:
-        exec stream in g
+        with open(filepath, "rb") as f:
+            exec(compile(f.read(), filepath, 'exec'), g)
     except Exception as e:
         import traceback
         frames = traceback.extract_tb(sys.exc_info()[2])
