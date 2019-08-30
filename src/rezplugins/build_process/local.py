@@ -250,7 +250,7 @@ class LocalBuildProcess(BuildProcessHelper):
         for name in self.package.includes:
             filepath = os.path.join(definition_python_path, name) + ".py"
 
-            with open(filepath) as f:
+            with open(filepath, "rb") as f:
                 txt = f.read().strip()
 
             uuid = sha1(txt).hexdigest()
