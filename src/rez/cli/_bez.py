@@ -39,8 +39,6 @@ def run():
     # because we're in a python env configured for rez, not the build
     code = \
     """
-    from __future__ import print_function
-
     env={}
     with open("%(buildfile)s") as stream:
         exec(compile(stream.read(), stream.name, 'exec'), env)
@@ -48,7 +46,7 @@ def run():
     buildfunc = env.get("build")
     if not buildfunc:
         import sys
-        print("Did not find function 'build' in rezbuild.py", file=sys.stderr)
+        sys.stderr.write("Did not find function 'build' in rezbuild.py\\n")
         sys.exit(1)
 
     kwargs = dict(source_path="%(srcpath)s",
