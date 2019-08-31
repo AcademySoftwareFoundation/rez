@@ -36,7 +36,7 @@ def get_last_changed_revision(client, url):
         if not svn_entries:
             raise ReleaseVCSError("svn.info2() returned no results on url %s" % url)
         return svn_entries[0][1].last_changed_rev
-    except pysvn.ClientError, ce:
+    except pysvn.ClientError as ce:
         raise ReleaseVCSError("svn.info2() raised ClientError: %s" % ce)
 
 

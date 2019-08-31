@@ -135,7 +135,7 @@ def _load_from_file__key(filepath, format_, update_data_callback):
         callback_key = getattr(update_data_callback, "__name__", "None")
 
     return str(("package_file", filepath, str(format_), callback_key,
-                st.st_ino, st.st_mtime))
+                int(st.st_ino), st.st_mtime))
 
 
 @memcached(servers=config.memcached_uri if config.cache_package_files else None,
@@ -228,7 +228,8 @@ def _load_py(stream, filepath=None):
              InvalidPackageError=InvalidPackageError)
 
     try:
-        exec stream in g
+        with open(filepath, "rb") as f:
+            exec(compile(f.read(), filepath, 'exec'), g)
     except Exception as e:
         import traceback
         frames = traceback.extract_tb(sys.exc_info()[2])
