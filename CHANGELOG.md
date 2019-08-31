@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.42.2 (2019-08-31)
+[Source](https://github.com/nerdvegas/rez/tree/2.42.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.42.1...2.42.2)
+
+**Merged pull requests:**
+
+- fixed bez rezbuild.py breaking on old-style print [\#705](https://github.com/nerdvegas/rez/pull/705) ([nerdvegas](https://github.com/nerdvegas))
+- zsh tests passing by way of enabling analogue for bash shell completion [\#711](https://github.com/nerdvegas/rez/pull/711) ([maxnbk](https://github.com/maxnbk))
+
 ## 2.42.1 (2019-08-31)
 [Source](https://github.com/nerdvegas/rez/tree/2.42.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.42.0...2.42.1)
 
