@@ -1175,7 +1175,7 @@ class RexExecutor(object):
                 if isinstance(code, SourceCode):
                     code.exec_(globals_=exec_namespace)
                 else:
-                    exec pyc in exec_namespace
+                    exec(pyc, exec_namespace)
             except RexError:
                 raise
             except SourceCodeError as e:

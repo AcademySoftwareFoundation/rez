@@ -1,7 +1,7 @@
 """
 test configuration settings
 """
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase
 from rez.exceptions import ConfigurationError
 from rez.config import Config, get_module_root_config, _replace_config

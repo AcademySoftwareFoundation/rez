@@ -4,7 +4,7 @@ test suites
 from rez.tests.util import TestBase, TempdirMixin
 from rez.resolved_context import ResolvedContext
 from rez.suite import Suite
-import rez.vendor.unittest2 as unittest
+import unittest
 import uuid
 import os.path
 

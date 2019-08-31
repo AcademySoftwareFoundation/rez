@@ -5,7 +5,8 @@ import sys
 import os.path
 import textwrap
 import subprocess
-from rez.vendor import yaml, argparse
+import argparse
+from rez.vendor import yaml
 from rez.utils.filesystem import TempDirs
 from rez.config import config
 
@@ -38,9 +39,9 @@ def run():
     # because we're in a python env configured for rez, not the build
     code = \
     """
-    stream=open("%(buildfile)s")
     env={}
-    exec stream in env
+    with open("%(buildfile)s") as stream:
+        exec(compile(stream.read(), stream.name, 'exec'), env)
 
     buildfunc = env.get("build")
     if not buildfunc:
@@ -75,7 +76,7 @@ def run():
         fd.write(cli_code)
 
     print("executing rezbuild.py...")
-    cmd = ["python", bezfile]
+    cmd = [sys.executable, bezfile]
     p = subprocess.Popen(cmd)
     p.wait()
     tmpdir_manager.clear()

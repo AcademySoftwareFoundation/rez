@@ -1,7 +1,7 @@
 """
 unit tests for 'version' module
 """
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.vendor.version.test import TestVersionSchema
 
 

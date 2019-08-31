@@ -9,7 +9,7 @@ from rez.package_py_utils import expand_requirement
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.sourcecode import SourceCode
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.vendor.version.version import Version
 from rez.vendor.version.util import VersionError
 import os.path

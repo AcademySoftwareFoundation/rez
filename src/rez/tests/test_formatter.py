@@ -1,7 +1,7 @@
 """
 test rex string formatting
 """
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
 import sys
