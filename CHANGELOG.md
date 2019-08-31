@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.42.1 (2019-08-31)
+[Source](https://github.com/nerdvegas/rez/tree/2.42.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.42.0...2.42.1)
+
+**Notes**
+
+This PR introduces py3 compatibilities that do not functionally alter py2 code.
+
+**Merged pull requests:**
+
+- miscellanous atomic nonaffective py2/py3 compatibilities [\#710](https://github.com/nerdvegas/rez/pull/710) ([maxnbk](https://github.com/maxnbk))
+
 ## 2.42.0 (2019-08-30)
 [Source](https://github.com/nerdvegas/rez/tree/2.42.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.41.0...2.42.0)
 

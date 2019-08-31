@@ -809,8 +809,6 @@ def _replace_config(other):
 
 @lru_cache()
 def _load_config_py(filepath):
-    from rez.vendor.six.six import exec_
-
     reserved = dict(
         # Standard Python module variables
         # Made available from within the module,
@@ -822,18 +820,18 @@ def _load_config_py(filepath):
         ModifyList=ModifyList
     )
 
-    globs = reserved.copy()
+    g = reserved.copy()
     result = {}
 
     with open(filepath) as f:
         try:
             code = compile(f.read(), filepath, 'exec')
-            exec_(code, globs)
+            exec(code, g)
         except Exception as e:
             raise ConfigurationError("Error loading configuration from %s: %s"
                                      % (filepath, str(e)))
 
-    for k, v in globs.iteritems():
+    for k, v in g.iteritems():
         if k != '__builtins__' \
                 and not ismodule(v) \
                 and k not in reserved:

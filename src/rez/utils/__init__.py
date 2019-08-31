@@ -1,8 +1,7 @@
-from contextlib import contextmanager
 import re
 import sys
-import warnings
 from rez.vendor.six import six
+from contextlib import contextmanager
 
 
 @contextmanager
@@ -10,14 +9,8 @@ def with_noop():
     yield
 
 
-def reraise(exc, new_exc_cls=None, format_str=None):
-    if new_exc_cls is None:
-        six.reraise(*sys.exc_info())
-
-    if format_str is not None:
-        warnings.warn("Argument `reraise.format_str` is deprecated")
-
-    type_, value, traceback = sys.exc_info()
+def reraise(exc, new_exc_cls):
+    traceback = sys.exc_info()[2]
     six.reraise(new_exc_cls, exc, traceback)
 
 
