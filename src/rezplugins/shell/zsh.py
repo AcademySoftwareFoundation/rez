@@ -79,7 +79,7 @@ class Zsh(SH):
 
     def _bind_interactive_rez(self):
         super(Zsh, self)._bind_interactive_rez()
-        completion = os.path.join(module_root_path, "completion", "complete.sh")
+        completion = os.path.join(module_root_path, "completion", "complete.zsh")
         self.source(completion)
 
 
