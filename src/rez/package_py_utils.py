@@ -113,8 +113,8 @@ def expand_requirement(request, paths=None):
         # to detect this case and remap the uid-ified wildcard back here too.
         #
         for v, expanded_v in expanded_versions.iteritems():
-            if version == v.next():
-                return expanded_v.next()
+            if version == next(v):
+                return next(expanded_v)
 
         version_ = expand_version(version)
         if version_ is None:

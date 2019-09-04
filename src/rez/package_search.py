@@ -85,7 +85,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
             if not req.conflict:
                 lookup[req.name].add(package_name_)
 
-        bar.next()
+        next(bar)
 
     bar.finish()
 
@@ -142,7 +142,7 @@ def get_plugins(package_name, paths=None):
 
     plugin_pkgs = []
     for package_name_ in package_names:
-        bar.next()
+        next(bar)
         if package_name_ == package_name:
             continue  # not a plugin of itself
 

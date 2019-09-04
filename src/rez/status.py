@@ -240,7 +240,7 @@ class Status(object):
                     msg = "Packages (in conflict): %s" % vars_str
                     _pr(msg, critical)
                 else:
-                    variant = iter(variants).next()
+                    variant = next(iter(variants))
                     _pr("Package:  %s" % variant.qualified_package_name)
                 return True
 

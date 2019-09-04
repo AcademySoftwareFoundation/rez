@@ -537,7 +537,7 @@ def get_package(name, version, paths=None):
 
     it = iter_packages(name, range_, paths)
     try:
-        return it.next()
+        return next(it)
     except StopIteration:
         return None
 
@@ -687,7 +687,7 @@ def get_completions(prefix, paths=None, family_only=False):
         words = set(x.name for x in iter_package_families(paths=paths)
                     if x.name.startswith(prefix))
         if len(words) == 1:
-            fam = iter(words).next()
+            fam = next(iter(words))
 
     if family_only:
         return words

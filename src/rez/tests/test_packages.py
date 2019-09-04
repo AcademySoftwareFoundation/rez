@@ -348,14 +348,14 @@ class TestPackages(TestBase, TempdirMixin):
             package = get_developer_package(path)
 
             # install variants of the developer package into new repo
-            variant = package.iter_variants().next()
+            variant = next(package.iter_variants())
             result = variant.install(repo_path, dry_run=True)
             self.assertEqual(result, None)
 
             for variant in package.iter_variants():
                 variant.install(repo_path)
 
-            variant = package.iter_variants().next()
+            variant = next(package.iter_variants())
             result = variant.install(repo_path, dry_run=True)
             self.assertNotEqual(result, None)
 
@@ -371,7 +371,7 @@ class TestPackages(TestBase, TempdirMixin):
 
             # install a variant again. Even though the variant is already installed,
             # this should update the package, because data outside the variant changed.
-            variant = package.iter_variants().next()
+            variant = next(package.iter_variants())
             result = variant.install(repo_path, dry_run=True)
             self.assertEqual(result, None)
             variant.install(repo_path)
@@ -477,7 +477,7 @@ class TestMemoryPackages(TestBase):
         desc = 'the foo package'
         package = create_package('foo', {'description': desc})
         self.assertEqual(package.description, desc)
-        variant = package.iter_variants().next()
+        variant = next(package.iter_variants())
         parent_package = variant.parent
         self.assertEqual(package.description, desc)
 
