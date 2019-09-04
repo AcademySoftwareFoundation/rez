@@ -845,7 +845,7 @@ def _load_config_yaml(filepath):
     with open(filepath) as f:
         content = f.read()
     try:
-        doc = yaml.load(content) or {}
+        doc = yaml.load(content, Loader=yaml.FullLoader) or {}
     except YAMLError as e:
         raise ConfigurationError("Error loading configuration from %s: %s"
                                  % (filepath, str(e)))

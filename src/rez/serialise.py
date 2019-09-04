@@ -398,7 +398,7 @@ def load_yaml(stream, **kwargs):
     # "<string>" with the filename if there's an error...
     content = stream.read()
     try:
-        return yaml.load(content) or {}
+        return yaml.load(content, Loader=yaml.FullLoader) or {}
     except Exception as e:
         if stream.name and stream.name != '<string>':
             for mark_name in 'context_mark', 'problem_mark':

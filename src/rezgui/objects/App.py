@@ -27,7 +27,7 @@ class App(QtGui.QApplication):
         filepath = os.path.dirname(filepath)
         filepath = os.path.join(filepath, "rezguiconfig")
         with open(filepath) as f:
-            settings = yaml.load(f.read())
+            settings = yaml.load(f.read(), Loader=yaml.FullLoader)
 
         return Config(settings,
                       organization=organisation_name,

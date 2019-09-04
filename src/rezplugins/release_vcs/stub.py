@@ -67,7 +67,7 @@ class StubReleaseVCS(ReleaseVCS):
 
     def _read_stub(self):
         with open(os.path.join(self.vcs_root, '.stub')) as f:
-            return yaml.load(f.read()) or {}
+            return yaml.load(f.read(), Loader=yaml.FullLoader) or {}
 
     def _write_stub(self, data):
         with open(os.path.join(self.vcs_root, '.stub'), 'w') as f:

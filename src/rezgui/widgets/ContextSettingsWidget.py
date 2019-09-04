@@ -83,7 +83,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         # load new content
         try:
             txt = self.edit.toPlainText()
-            data = yaml.load(str(txt))
+            data = yaml.load(str(txt), Loader=yaml.FullLoader)
         except YAMLError as e:
             _content_error("Invalid syntax", str(e))
             return

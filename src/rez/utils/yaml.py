@@ -73,7 +73,7 @@ def load_yaml(filepath):
     """Convenience function for loading yaml-encoded data from disk."""
     with open(filepath) as f:
         txt = f.read()
-    return yaml.load(txt)
+    return yaml.load(txt, Loader=yaml.FullLoader)
 
 
 # Copyright 2013-2016 Allan Johns.

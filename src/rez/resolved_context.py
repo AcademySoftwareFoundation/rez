@@ -1530,7 +1530,7 @@ class ResolvedContext(object):
         if content.startswith('{'):  # assume json content
             doc = json.loads(content)
         else:
-            doc = yaml.load(content)
+            doc = yaml.load(content, Loader=yaml.FullLoader)
 
         context = cls.from_dict(doc, identifier_str)
         return context
