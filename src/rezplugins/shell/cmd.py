@@ -190,9 +190,13 @@ class CMD(Shell):
 
         # Make .py launch within cmd without extension.
         if self.settings.additional_pathext:
-            executor.command('set PATHEXT=%PATHEXT%;{}'.format(
-                ";".join(self.settings.additional_pathext)
-            ))
+            # Ensure that the PATHEXT does not append duplicates.
+            for pathext in self.settings.additional_pathext:
+                executor.command('echo %PATHEXT%|C:\\Windows\\System32\\findstr.exe /i /c:"{0}">nul || set PATHEXT=%PATHEXT%;{0}'.format(
+                    pathext
+                ))
+            # This resets the errorcode, which is tainted by the code above
+            executor.command("(call )")
 
         if startup_sequence["command"] is not None:
             _record_shell(executor, files=startup_sequence["files"])

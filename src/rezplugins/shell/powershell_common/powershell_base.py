@@ -146,7 +146,9 @@ class PowerShellBase(Shell):
         # For PowerShell this will also execute in the same window, so that
         # stdout can be captured.
         if platform_.name == "windows" and self.settings.additional_pathext:
-            executor.command('$Env:PATHEXT = $Env:PATHEXT + ";{}"'.format(
+            # Ensures that the PATHEXT does not append duplicates.
+            executor.command(
+                '$Env:PATHEXT = ((($Env:PATHEXT + ";{}") -split ";") | Select-Object -Unique) -join ";"'.format(
                 ";".join(self.settings.additional_pathext)
             ))
 
