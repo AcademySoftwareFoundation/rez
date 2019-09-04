@@ -6,7 +6,7 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.util import shlex_join, dedup
+from rez.util import shlex_join, dedup, is_non_string_iterable
 from rez.utils.sourcecode import SourceCodeError
 from rez.utils.colorize import critical, heading, local, implicit, Printer
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX
@@ -1205,7 +1205,7 @@ class ResolvedContext(object):
         """
         sh = create_shell(shell)
 
-        if hasattr(command, "__iter__"):
+        if is_non_string_iterable(command):
             command = sh.join(command)
 
         # start a new session if specified
