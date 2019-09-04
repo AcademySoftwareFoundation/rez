@@ -2,7 +2,7 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal, OutputStyle, EscapedString
+from rez.rex import RexExecutor, expandable, literal, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.system import popen
@@ -184,9 +184,9 @@ class CMD(Shell):
         executor = _create_ex()
 
         if self.settings.prompt:
-            newprompt = '%%REZ_ENV_PROMPT%%%s' % self.settings.prompt
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
-            executor.env.REZ_ENV_PROMPT = literal(newprompt)
+            executor.env.REZ_ENV_PROMPT = \
+                expandable("%REZ_ENV_PROMPT%").literal(self.settings.prompt)
 
         # Make .py launch within cmd without extension.
         if self.settings.additional_pathext:
