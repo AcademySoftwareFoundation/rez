@@ -134,7 +134,7 @@ class ReleaseHookEvent(Enum):
     def __init__(self, label, noun, func_name):
         self.label = label
         self.noun = noun
-        self.func_name = func_name
+        self.__name__ = func_name
 
 
 # Copyright 2013-2016 Allan Johns.

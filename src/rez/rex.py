@@ -1224,12 +1224,12 @@ class RexExecutor(object):
         """
         # makes a copy of the func
         import types
-        fn = types.FunctionType(func.func_code,
-                                func.func_globals.copy(),
-                                name=func.func_name,
-                                argdefs=func.func_defaults,
-                                closure=func.func_closure)
-        fn.func_globals.update(self.globals)
+        fn = types.FunctionType(func.__code__,
+                                func.__globals__.copy(),
+                                name=func.__name__,
+                                argdefs=func.__defaults__,
+                                closure=func.__closure__)
+        fn.__globals__.update(self.globals)
 
         error_class = Exception if config.catch_rex_errors else None
 

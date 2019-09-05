@@ -330,7 +330,7 @@ class BuildProcessHelper(BuildProcess):
             debug_print("Running %s hook '%s'...",
                         hook_event.label, hook.name())
             try:
-                func = getattr(hook, hook_event.func_name)
+                func = getattr(hook, hook_event.__name__)
                 func(user=getpass.getuser(), **kwargs)
             except ReleaseHookCancellingError as e:
                 raise ReleaseError(
