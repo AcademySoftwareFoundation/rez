@@ -16,7 +16,7 @@ _thread = None
 _num_pending = 0
 
 
-def publish_message(host, amqp_settings, routing_key, data, async=False):
+def publish_message(host, amqp_settings, routing_key, data, block=True):
     """Publish an AMQP message.
 
     Returns:
@@ -32,7 +32,7 @@ def publish_message(host, amqp_settings, routing_key, data, async=False):
         "data": data
     }
 
-    if not async:
+    if block:
         return _publish_message(**kwargs)
 
     if _thread is None:
