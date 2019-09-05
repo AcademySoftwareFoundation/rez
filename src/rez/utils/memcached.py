@@ -23,7 +23,15 @@ class Client(object):
     - ability to cache None.
     """
     class _Miss(object):
-        def __nonzero__(self): return False
+        def __nonzero__(self):
+            return False
+
+        def __iter__(self):
+            # solver_dict, variant_states_dict, release_times_dict
+            yield {}
+            yield {}
+            yield {}
+
     miss = _Miss()
 
     logger = config.debug_printer("memcache")
