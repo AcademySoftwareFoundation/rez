@@ -1,11 +1,10 @@
 from __future__ import print_function
 
 from rez.utils.formatting import StringFormatMixin, StringFormatType
-import UserDict
 import sys
 
 
-class RecursiveAttribute(UserDict.UserDict, StringFormatMixin):
+class RecursiveAttribute(dict, StringFormatMixin):
     """An object that can have new attributes added recursively::
 
         >>> a = RecursiveAttribute()
