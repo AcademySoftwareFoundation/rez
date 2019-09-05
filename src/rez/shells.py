@@ -2,7 +2,7 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
-from rez.util import shlex_join
+from rez.util import shlex_join, is_non_string_iterable
 from rez.backport.shutilwhich import which
 from rez.utils.logging_ import print_warning
 from rez.utils.system import popen
@@ -379,7 +379,7 @@ class UnixShell(Shell):
 
     # escaping is allowed in args, but not in program string
     def command(self, value):
-        if hasattr(value, '__iter__'):
+        if is_non_string_iterable(value):
             it = iter(value)
             cmd = EscapedString.disallow(next(it))
             args_str = ' '.join(self.escape_string(x) for x in it)
