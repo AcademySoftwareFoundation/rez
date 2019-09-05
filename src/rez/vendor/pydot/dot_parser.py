@@ -11,7 +11,7 @@ from __future__ import division
 from __future__ import print_function
 import sys
 
-from rez.vendor.pyparsing.pyparsing import (
+from ..pyparsing.pyparsing import (
     nestedExpr, Literal, CaselessLiteral,
     Word, OneOrMore,
     Forward,
@@ -21,7 +21,7 @@ from rez.vendor.pyparsing.pyparsing import (
     ParseException, ParseResults, CharsNotIn,
     QuotedString)
 
-import pydot
+from ..pydot import pydot
 
 __author__ = ['Michael Krause', 'Ero Carrera']
 __license__ = 'MIT'
