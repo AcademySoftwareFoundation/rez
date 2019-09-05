@@ -138,10 +138,13 @@ class NumericToken(VersionToken):
     def less_than(self, other):
         return (self.n < other.n)
 
-    def next(self):
+    def __next__(self):
         other = copy.copy(self)
         other.n = self.n = 1
         return other
+
+    def next(self):
+        return self.__next__()
 
 
 class _SubToken(_Comparable):
@@ -213,7 +216,7 @@ class AlphanumericVersionToken(VersionToken):
     def less_than(self, other):
         return (self.subtokens < other.subtokens)
 
-    def next(self):
+    def __next__(self):
         other = AlphanumericVersionToken(None)
         other.subtokens = self.subtokens[:]
         subtok = other.subtokens[-1]
@@ -222,6 +225,9 @@ class AlphanumericVersionToken(VersionToken):
         else:
             other.subtokens.append(_SubToken('_'))
         return other
+
+    def next(self):
+        return self.__next__()
 
     @classmethod
     def _parse(cls, s):
@@ -327,7 +333,7 @@ class Version(_Comparable):
         other.seps = self.seps[:len_ - 1]
         return other
 
-    def next(self):
+    def __next__(self):
         """Return 'next' version. Eg, next(1.2) is 1.2_"""
         if self.tokens:
             other = self.copy()
@@ -336,6 +342,9 @@ class Version(_Comparable):
             return other
         else:
             return Version.inf
+
+    def next(self):
+        return self.__next__()
 
     @property
     def major(self):
