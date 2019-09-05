@@ -625,7 +625,7 @@ class Python(ActionInterpreter):
 
         if hasattr(value, '__iter__'):
             it = iter(value)
-            cmd = EscapedString.disallow(it.next())
+            cmd = EscapedString.disallow(next(it))
             value = [cmd] + [self.escape_string(x) for x in it]
         else:
             value = EscapedString.disallow(value)
@@ -822,7 +822,7 @@ class EscapedString(object):
             return EscapedString('')
 
         it = iter(values)
-        result = EscapedString.promote(it.next())
+        result = EscapedString.promote(next(it))
 
         for value in it:
             result = result + sep
@@ -887,7 +887,7 @@ class NamespaceFormatter(Formatter):
 
     def format(self, format_string, *args, **kwargs):
         def escape_envvar(matchobj):
-            value = (x for x in matchobj.groups() if x is not None).next()
+            value = next((x for x in matchobj.groups() if x is not None))
             return "${{%s}}" % value
 
         format_string_ = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)

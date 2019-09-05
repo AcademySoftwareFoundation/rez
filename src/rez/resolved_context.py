@@ -489,7 +489,7 @@ class ResolvedContext(object):
                 if variant.name not in overrides:
                     if len(variant.version) >= rank:
                         version = variant.version.trim(rank - 1)
-                        version = version.next()
+                        version = next(version)
                         req = "~%s<%s" % (variant.name, str(version))
                         rank_limiters.append(req)
             request += rank_limiters

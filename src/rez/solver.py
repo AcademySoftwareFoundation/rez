@@ -761,7 +761,7 @@ class _PackageVariantSlice(_Common):
             if self.pr:
                 if common_fams:
                     if len(common_fams) == 1:
-                        reason_str = iter(common_fams).next()
+                        reason_str = next(iter(common_fams))
                     else:
                         reason_str = ", ".join(common_fams)
                 else:

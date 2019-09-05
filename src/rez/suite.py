@@ -584,7 +584,7 @@ class Suite(object):
                 if verbose:
                     package = ", ".join(x.qualified_package_name for x in variant)
                 else:
-                    v = iter(variant).next()
+                    v = next(iter(variant))
                     package = "%s (+%d more)" % (v.qualified_package_name,
                                                  len(variant) - 1)
             else:
