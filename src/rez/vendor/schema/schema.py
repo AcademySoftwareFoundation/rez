@@ -147,7 +147,7 @@ class Schema(object):
             #
             #      schema = Schema({
             #          Optional('foo'):int
-            #          Optional(basestring):int
+            #          Optional(str):int
             #      })
             #
             #      data = {
@@ -172,7 +172,7 @@ class Schema(object):
                 key_name = key
                 while isinstance(key_name, Schema):
                     key_name = key_name._schema
-                if isinstance(key_name, basestring):
+                if isinstance(key_name, str):
                     schema_key_map[key_name] = key
             for key, value in data.items():
                 nkey = None
