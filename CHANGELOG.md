@@ -1,5 +1,22 @@
 # Change Log
 
+## 2.43.0 (2019-09-05)
+[Source](https://github.com/nerdvegas/rez/tree/2.43.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.42.2...2.43.0)
+
+**Notes**
+
+Misc Py3 compatibility updates.
+
+**Merged pull requests:**
+
+- very small py3 compat changes [\#712](https://github.com/nerdvegas/rez/pull/712) ([maxnbk](https://github.com/maxnbk))
+- .next() to next() [\#713](https://github.com/nerdvegas/rez/pull/713) ([maxnbk](https://github.com/maxnbk))
+- yaml upgrade [\#714](https://github.com/nerdvegas/rez/pull/714) ([maxnbk](https://github.com/maxnbk))
+- improve non-string iterable handling [\#715](https://github.com/nerdvegas/rez/pull/715) ([maxnbk](https://github.com/maxnbk))
+- replace async with block to avoid py3 async keyword [\#716](https://github.com/nerdvegas/rez/pull/716) ([maxnbk](https://github.com/maxnbk))
+- import queue module through six [\#717](https://github.com/nerdvegas/rez/pull/717) ([maxnbk](https://github.com/maxnbk))
+- swap 2.6 support for 3.x in version module [\#718](https://github.com/nerdvegas/rez/pull/718) ([maxnbk](https://github.com/maxnbk))
+
 ## 2.42.2 (2019-08-31)
 [Source](https://github.com/nerdvegas/rez/tree/2.42.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.42.1...2.42.2)
 
