@@ -3,7 +3,6 @@ Read and write data from file. File caching via a memcached server is supported.
 """
 from contextlib import contextmanager
 from inspect import isfunction, ismodule, getargspec
-from StringIO import StringIO
 import sys
 import stat
 import os
@@ -21,6 +20,7 @@ from rez.utils.system import add_sys_paths
 from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
+from rez.vendor.six.six.moves import StringIO
 from rez.vendor import yaml
 
 
