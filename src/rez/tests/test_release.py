@@ -55,7 +55,7 @@ class TestRelease(TestBase, TempdirMixin):
 
         self.packagefile = os.path.join(self.src_root, "package.yaml")
         with open(self.packagefile) as f:
-            self.package_data = yaml.load(f.read())
+            self.package_data = yaml.load(f.read(), Loader=yaml.FullLoader)
 
         # check build system type
         buildsys = create_build_system(self.src_root, verbose=True)
@@ -151,7 +151,7 @@ class TestRelease(TestBase, TempdirMixin):
         # check the vcs contains the tags we expect
         expected_value = set(["foo-1.0", "foo-1.0.1", "foo-1.1"])
         with open(self.stubfile) as f:
-            stub_data = yaml.load(f.read())
+            stub_data = yaml.load(f.read(), Loader=yaml.FullLoader)
         tags = set(stub_data.get("tags", {}).keys())
         self.assertEqual(tags, expected_value)
 

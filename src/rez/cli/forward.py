@@ -32,7 +32,7 @@ def command(opts, parser, extra_arg_groups=None):
     with open(yaml_file) as f:
         content = f.read()
     try:
-        doc = yaml.load(content)
+        doc = yaml.load(content, Loader=yaml.FullLoader)
     except YAMLError as e:
         raise RezSystemError("Invalid executable file %s: %s"
                              % (yaml_file, str(e)))

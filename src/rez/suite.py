@@ -487,7 +487,7 @@ class Suite(object):
 
         try:
             with open(filepath) as f:
-                data = yaml.load(f.read())
+                data = yaml.load(f.read(), Loader=yaml.FullLoader)
         except YAMLError as e:
             raise SuiteError("Failed loading suite: %s" % str(e))
 

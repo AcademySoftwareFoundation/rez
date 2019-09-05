@@ -13,29 +13,6 @@ class _Dumper(SafeDumper):
     """Dumper which can serialise custom types such as Version, and keeps
     long strings nicely formatted in >/| block-style format.
     """
-    # modified from yaml.representer.SafeRepresenter.represent_str()
-    def represent_str(self, data):
-        tag = None
-
-        if '\n' in data:
-            style = '|'
-        elif len(data) > 80:
-            style = '>'
-        else:
-            style = None
-
-        try:
-            data = unicode(data, 'ascii')
-            tag = u'tag:yaml.org,2002:str'
-        except UnicodeDecodeError:
-            try:
-                data = unicode(data, 'utf-8')
-                tag = u'tag:yaml.org,2002:str'
-            except UnicodeDecodeError:
-                data = data.encode('base64')
-                tag = u'tag:yaml.org,2002:binary'
-                style = '|'
-        return self.represent_scalar(tag, data, style=style)
 
     def represent_as_str(self, data):
         return self.represent_str(str(data))
@@ -73,7 +50,7 @@ def load_yaml(filepath):
     """Convenience function for loading yaml-encoded data from disk."""
     with open(filepath) as f:
         txt = f.read()
-    return yaml.load(txt)
+    return yaml.load(txt, Loader=yaml.FullLoader)
 
 
 # Copyright 2013-2016 Allan Johns.

@@ -27,7 +27,7 @@ def run():
             sys.exit(1)
 
     with open(".bez.yaml") as f:
-        doc = yaml.load(f.read())
+        doc = yaml.load(f.read(), Loader=yaml.FullLoader)
 
     source_path = doc["source_path"]
     buildfile = os.path.join(source_path, "rezbuild.py")

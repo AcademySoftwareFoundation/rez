@@ -33,7 +33,7 @@ class Wrapper(object):
         with open(filepath) as f:
             content = f.read()
         try:
-            doc = yaml.load(content)
+            doc = yaml.load(content, Loader=yaml.FullLoader)
             doc = doc["kwargs"]
             context_name = doc["context_name"]
             tool_name = doc["tool_name"]
