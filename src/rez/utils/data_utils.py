@@ -5,6 +5,10 @@ from rez.vendor.schema.schema import Schema, Optional
 from rez.exceptions import RexError
 from collections import MutableMapping
 from threading import Lock
+from rez.vendor.six import six
+
+
+basestring = six.string_types[0]
 
 
 class ModifyList(object):

@@ -9,6 +9,10 @@ from rez.utils.schema import Required
 from rez.exceptions import ResourceError
 import unittest
 from rez.vendor.schema.schema import Schema, Use, And, Optional
+from rez.vendor.six import six
+
+
+basestring = six.string_types[0]
 
 
 class PetResourceError(Exception):

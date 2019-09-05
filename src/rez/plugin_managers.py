@@ -6,9 +6,13 @@ from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
 from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
+from rez.vendor.six import six
 from rez.exceptions import RezPluginError
 import os.path
 import sys
+
+
+basestring = six.string_types[0]
 
 
 # modified from pkgutil standard library:

@@ -9,6 +9,10 @@ including:
 # these imports just forward the symbols into this module's namespace
 from rez.utils.system import popen
 from rez.exceptions import InvalidPackageError
+from rez.vendor.six import six
+
+
+basestring = six.string_types[0]
 
 
 def expand_requirement(request, paths=None):

@@ -4,9 +4,13 @@ from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rez.config import config
 from rez.vendor import yaml
+from rez.vendor.six import six
 from rez.vendor.yaml.error import YAMLError
 from rez.vendor.schema.schema import Schema, SchemaError, Or, And, Use
 from functools import partial
+
+
+basestring = six.string_types[0]
 
 
 class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):

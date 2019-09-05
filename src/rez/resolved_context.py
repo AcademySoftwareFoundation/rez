@@ -23,6 +23,7 @@ from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
+from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
@@ -40,6 +41,9 @@ import time
 import sys
 import os
 import os.path
+
+
+basestring = six.string_types[0]
 
 
 class RezToolsVisibility(Enum):

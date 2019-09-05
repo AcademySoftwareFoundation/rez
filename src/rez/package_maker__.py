@@ -11,9 +11,13 @@ from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
 from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
+from rez.vendor.six import six
 from rez.vendor.version.version import Version
 from contextlib import contextmanager
 import os
+
+
+basestring = six.string_types[0]
 
 
 # this schema will automatically harden request strings like 'python-*'; see

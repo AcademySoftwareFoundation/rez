@@ -8,12 +8,16 @@ from rez.config import config
 from rez.util import which
 from rez.utils.system import popen
 from rez.utils.logging_ import print_debug
+from rez.vendor.six import six
 from pipes import quote
 import subprocess
 import os.path
 import os
 import platform
 import sys
+
+
+basestring = six.string_types[0]
 
 
 def log(msg):

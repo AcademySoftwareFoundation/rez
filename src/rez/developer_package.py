@@ -7,9 +7,13 @@ from rez.utils.system import add_sys_paths
 from rez.utils.sourcecode import SourceCode
 from rez.utils.logging_ import print_info, print_error
 from rez.vendor.enum import Enum
+from rez.vendor.six import six
 from inspect import isfunction
 import os.path
 import stat
+
+
+basestring = six.string_types[0]
 
 
 class PreprocessMode(Enum):

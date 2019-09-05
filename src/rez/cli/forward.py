@@ -1,7 +1,11 @@
 """See util.create_forwarding_script()."""
 import argparse
+from rez.vendor.six import six
 
 __doc__ = argparse.SUPPRESS
+
+
+basestring = six.string_types[0]
 
 
 def setup_parser(parser, completions=False):

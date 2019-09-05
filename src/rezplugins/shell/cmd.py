@@ -8,10 +8,14 @@ from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
 from rez.util import shlex_join
+from rez.vendor.six import six
 from functools import partial
 import os
 import re
 import subprocess
+
+
+basestring = six.string_types[0]
 
 
 class CMD(Shell):
