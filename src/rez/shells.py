@@ -23,7 +23,7 @@ basestring = six.string_types[0]
 def get_shell_types():
     """Returns the available shell types: bash, tcsh etc."""
     from rez.plugin_managers import plugin_manager
-    return plugin_manager.get_plugins('shell')
+    return list(plugin_manager.get_plugins('shell'))
 
 
 def create_shell(shell=None, **kwargs):

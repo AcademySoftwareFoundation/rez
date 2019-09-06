@@ -266,7 +266,7 @@ def pip_specifier_to_rez_requirement(specifier):
         )
 
     # convert each spec into rez equivalent
-    ranges = map(convert_spec, specifier)
+    ranges = list(map(convert_spec, specifier))
 
     # AND together ranges
     total_range = VersionRange(ranges[0])

@@ -107,7 +107,7 @@ def write_compacted(g):
         value = tuple(list(edge) + [label]) if label else edge
         d_edges.setdefault(tuple(attrs), []).append(tuple(value))
 
-    doc = dict(nodes=d_nodes.items(), edges=d_edges.items())
+    doc = dict(nodes=list(d_nodes.items()), edges=list(d_edges.items()))
     contents = str(doc)
     return contents
 
