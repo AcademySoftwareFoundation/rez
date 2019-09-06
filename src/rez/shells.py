@@ -10,10 +10,14 @@ from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
+from rez.vendor.six import six
 import subprocess
 import os
 import os.path
 import pipes
+
+
+basestring = six.string_types[0]
 
 
 def get_shell_types():

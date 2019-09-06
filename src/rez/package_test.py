@@ -3,10 +3,14 @@ from rez.resolved_context import ResolvedContext
 from rez.packages_ import get_latest_package_from_string, Variant
 from rez.exceptions import PackageNotFoundError, PackageTestError
 from rez.utils.colorize import heading, Printer
+from rez.vendor.six import six
 from pipes import quote
 import subprocess
 import time
 import sys
+
+
+basestring = six.string_types[0]
 
 
 class PackageTestRunner(object):

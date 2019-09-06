@@ -12,10 +12,13 @@ from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
+from rez.vendor.six import six
 from rez.serialise import FileFormat
 from rez.config import config
 import sys
 
+
+basestring = six.string_types[0]
 
 # ------------------------------------------------------------------------------
 # package-related classes

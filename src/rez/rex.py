@@ -18,6 +18,10 @@ from rez.utils.sourcecode import SourceCode, SourceCodeError
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
 from rez.vendor.enum import Enum
+from rez.vendor.six import six
+
+
+basestring = six.string_types[0]
 
 
 #===============================================================================

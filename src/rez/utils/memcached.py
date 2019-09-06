@@ -8,6 +8,9 @@ from functools import update_wrapper
 from inspect import getargspec, isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
+from rez.vendor.six import six
+
+basestring = six.string_types[0]
 
 
 # this version should be changed if and when the caching interface changes

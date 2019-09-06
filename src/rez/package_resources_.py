@@ -17,6 +17,9 @@ import os.path
 from hashlib import sha1
 
 
+basestring = six.string_types[0]
+
+
 # package attributes created at release time
 package_release_keys = (
     "timestamp",

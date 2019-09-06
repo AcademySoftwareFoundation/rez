@@ -11,6 +11,10 @@ from rez.utils.formatting import PackageRequest, indent, \
 from rez.utils.schema import Required
 from rez.utils.yaml import dump_yaml
 from pprint import pformat
+from rez.vendor.six import six
+
+
+basestring = six.string_types[0]
 
 
 # preferred order of keys in a package definition file

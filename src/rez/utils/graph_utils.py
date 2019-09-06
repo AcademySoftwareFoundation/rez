@@ -17,6 +17,10 @@ from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.vendor.pygraph.classes.digraph import digraph
+from rez.vendor.six import six
+
+
+basestring = six.string_types[0]
 
 
 def read_graph_from_string(txt):

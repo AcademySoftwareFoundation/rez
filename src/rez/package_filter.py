@@ -2,10 +2,14 @@ from rez.packages_ import iter_packages
 from rez.exceptions import ConfigurationError
 from rez.config import config
 from rez.utils.data_utils import cached_property, cached_class_property
+from rez.vendor.six import six
 from rez.vendor.version.requirement import VersionedObject, Requirement
 from hashlib import sha1
 import fnmatch
 import re
+
+
+basestring = six.string_types[0]
 
 
 class PackageFilterBase(object):

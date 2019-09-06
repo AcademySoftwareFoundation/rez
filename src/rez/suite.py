@@ -9,11 +9,15 @@ from rez.utils.colorize import warning, critical, Printer, alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.utils.yaml import dump_yaml
+from rez.vendor.six import six
 from collections import defaultdict
 import os
 import os.path
 import shutil
 import sys
+
+
+basestring = six.string_types[0]
 
 
 class Suite(object):
