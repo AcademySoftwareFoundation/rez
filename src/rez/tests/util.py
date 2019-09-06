@@ -178,10 +178,12 @@ def shell_dependent(exclude=None):
                 try:
                     func(self, *args, **kwargs)
                 except AssertionError as e:
-                    # Add the shell to the exception message
-                    args = list(e.args)
-                    args[0] += " (in shell '{}')".format(shell)
-                    e.args = tuple(args)
+                    # Add the shell to the exception message, if possible.
+                    # In some IDEs the args do not exist at all.
+                    if e.args:
+                        args = list(e.args)
+                        args[0] += " (in shell '{}')".format(shell)
+                        e.args = tuple(args)
                     raise
         return wrapper
     return decorator
