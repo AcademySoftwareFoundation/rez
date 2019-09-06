@@ -83,7 +83,7 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         prev_index = self.currentIndex()
         disabled_tabs = set()
 
-        for d in self.tabs.itervalues():
+        for d in self.tabs.values():
             index = d["index"]
             if (not d["lazy"]) or (self.currentIndex() == index):
                 self.widget(index).set_variant(variant)

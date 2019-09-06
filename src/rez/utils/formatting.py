@@ -258,7 +258,7 @@ def dict_to_attributes_code(dict_):
         str.
     """
     lines = []
-    for key, value in dict_.iteritems():
+    for key, value in dict_.items():
         if isinstance(value, dict):
             txt = dict_to_attributes_code(value)
             lines_ = txt.split('\n')

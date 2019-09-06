@@ -68,7 +68,7 @@ def command(opts, parser, extra_arg_groups=None):
     o = ex.get_output()
     if isinstance(o, dict):
         if opts.format == "table":
-            rows = [x for x in sorted(o.iteritems())]
+            rows = [x for x in sorted(o.items())]
             print('\n'.join(columnise(rows)))
         else:
             print(pformat(o))

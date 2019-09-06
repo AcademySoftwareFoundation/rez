@@ -71,7 +71,7 @@ def bind(path, version_range=None, opts=None, parser=None):
 
         if builtin_paths:
             pypath = make_dirs(root, "python")
-            for dirname, srcpath in builtin_paths.iteritems():
+            for dirname, srcpath in builtin_paths.items():
                 destpath = os.path.join(pypath, dirname)
                 log("Copying builtins from %s to %s..." % (srcpath, destpath))
                 shutil.copytree(srcpath, destpath)

@@ -26,7 +26,7 @@ def get_specifications():
     """
     specs = {}
 
-    for attr, obj in sys.modules[__name__].__dict__.iteritems():
+    for attr, obj in sys.modules[__name__].__dict__.items():
         scriptname = getattr(obj, "__scriptname__", None)
         if scriptname:
             spec = "%s = rez.cli._entry_points:%s" % (scriptname, attr)

@@ -40,12 +40,12 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         super(ContextSettingsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
-        self.schema_keys = set(self.schema_dict.iterkeys())
+        self.schema_keys = set(self.schema_dict.keys())
         if attributes:
             self.schema_keys &= set(attributes)
             assert self.schema_keys
 
-        schema_dict = dict((k, v) for k, v in self.schema_dict.iteritems()
+        schema_dict = dict((k, v) for k, v in self.schema_dict.items()
                            if k in self.schema_keys)
         self.schema = Schema(schema_dict)
 
@@ -129,7 +129,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
                 "implicit_packages": implicits,
                 "package_filter": package_filter,
                 "caching": caching}
-        data = dict((k, v) for k, v in data.iteritems()
+        data = dict((k, v) for k, v in data.items()
                     if k in self.schema_keys)
 
         self._set_text(data)
@@ -143,7 +143,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
                 "implicit_packages": implicits,
                 "package_filter": model.package_filter,
                 "caching": model.caching}
-        data = dict((k, v) for k, v in data.iteritems()
+        data = dict((k, v) for k, v in data.items()
                     if k in self.schema_keys)
 
         self._set_text(data)
@@ -152,7 +152,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
 
     def _set_text(self, data):
         lines = []
-        for key, value in data.iteritems():
+        for key, value in data.items():
             lines.append('')
             txt = yaml.dump({key: value}, default_flow_style=False)
             title = self.titles.get(key)

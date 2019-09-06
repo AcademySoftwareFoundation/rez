@@ -119,7 +119,7 @@ class DeveloperPackage(Package):
         package.includes = set()
 
         def visit(d):
-            for k, v in d.iteritems():
+            for k, v in d.items():
                 if isinstance(v, SourceCode):
                     package.includes |= (v.includes or set())
                 elif isinstance(v, dict):
