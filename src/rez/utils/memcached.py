@@ -5,10 +5,15 @@ from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGT
 from threading import local
 from contextlib import contextmanager
 from functools import update_wrapper
-from inspect import getargspec, isgeneratorfunction
+from inspect import isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
 from rez.vendor.six import six
+
+if six.PY2:
+    from inspect import getargspec
+else:
+    from inspect import getfullargspec as getargspec
 
 basestring = six.string_types[0]
 

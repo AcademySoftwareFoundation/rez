@@ -2,7 +2,7 @@
 Read and write data from file. File caching via a memcached server is supported.
 """
 from contextlib import contextmanager
-from inspect import isfunction, ismodule, getargspec
+from inspect import isfunction, ismodule
 import sys
 import stat
 import os
@@ -20,9 +20,14 @@ from rez.utils.system import add_sys_paths
 from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
+from rez.vendor.six import six
 from rez.vendor.six.six.moves import StringIO
 from rez.vendor import yaml
 
+if six.PY2:
+    from inspect import getargspec
+else:
+    from inspect import getfullargspec as getargspec
 
 tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
 debug_print = config.debug_printer("file_loads")

@@ -18,8 +18,11 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import RezSystemError
     from rez.vendor import yaml
     from rez.vendor.yaml.error import YAMLError
-    import inspect
     import os.path
+    if six.PY2:
+        from inspect import getargspec
+    else:
+        from inspect import getfullargspec as getargspec
 
     # we don't usually want warnings printed in a wrapped tool. But in cases
     # where we do (for debugging) we leave a backdoor - setting $REZ_QUIET=0
@@ -57,7 +60,7 @@ def command(opts, parser, extra_arg_groups=None):
         module = plugin_manager.get_plugin_module(plugin_type, plugin_name)
 
     target_func = getattr(module, func_name)
-    func_args = inspect.getargspec(target_func).args
+    func_args = getargspec(target_func).args
     if "_script" in func_args:
         kwargs["_script"] = yaml_file
     if "_cli_args" in func_args:
