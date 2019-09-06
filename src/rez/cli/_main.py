@@ -71,6 +71,9 @@ class InfoAction(_StoreTrueAction):
 
 
 def run(command=None):
+
+    sys.dont_write_bytecode = True
+
     parser = LazyArgumentParser("rez")
 
     parser.add_argument("-i", "--info", action=InfoAction,
