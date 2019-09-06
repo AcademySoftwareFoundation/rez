@@ -306,15 +306,15 @@ def process_python_objects(data, filepath=None):
 
                 # make a copy of the func with its own globals, and add 'this'
                 import types
-                fn = types.FunctionType(func.func_code,
-                                        func.func_globals.copy(),
-                                        name=func.func_name,
-                                        argdefs=func.func_defaults,
-                                        closure=func.func_closure)
+                fn = types.FunctionType(func.__code__,
+                                        func.__globals__.copy(),
+                                        name=func.__name__,
+                                        argdefs=func.__defaults__,
+                                        closure=func.__closure__)
 
                 # apply globals
-                fn.func_globals["this"] = EarlyThis(data)
-                fn.func_globals.update(get_objects())
+                fn.__globals__["this"] = EarlyThis(data)
+                fn.__globals__.update(get_objects())
 
                 # execute the function
                 spec = getargspec(func)
