@@ -1,5 +1,21 @@
 # Change Log
 
+## 2.44.0 (2019-09-06)
+[Source](https://github.com/nerdvegas/rez/tree/2.44.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.43.0...2.44.0)
+
+**Notes**
+
+Misc Py3 compatibility updates, part 2.
+
+**Merged pull requests:**
+
+- pull basestring from six.string_types - py2 gets basestring, py3 gets str [\#721](https://github.com/nerdvegas/rez/pull/721) ([maxnbk](https://github.com/maxnbk))
+- import StringIO from six.moves [\#722](https://github.com/nerdvegas/rez/pull/722) ([maxnbk](https://github.com/maxnbk))
+- update vendored colorama from 0.3.1 to 0.4.1 [\#723](https://github.com/nerdvegas/rez/pull/723) ([maxnbk](https://github.com/maxnbk))
+- update vendored memcache from 1.5.3 to 1.5.9 [\#724](https://github.com/nerdvegas/rez/pull/724) ([maxnbk](https://github.com/maxnbk))
+- make Version properly iterable in py3 [\#725](https://github.com/nerdvegas/rez/pull/725) ([maxnbk](https://github.com/maxnbk))
+- modernize function manipulations and attrs [\#727](https://github.com/nerdvegas/rez/pull/727) ([maxnbk](https://github.com/maxnbk))
+
 ## 2.43.0 (2019-09-05)
 [Source](https://github.com/nerdvegas/rez/tree/2.43.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.42.2...2.43.0)
 
