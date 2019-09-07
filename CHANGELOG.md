@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.44.1 (2019-09-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.44.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.44.0...2.44.1)
+
+**Notes**
+
+Misc Py3 compatibility updates, part 2.
+
+**Merged pull requests:**
+
+- update imports in vendored pydot for py3 [\#728](https://github.com/nerdvegas/rez/pull/728) ([maxnbk](https://github.com/maxnbk))
+- update vendored schema for py3 [\#729](https://github.com/nerdvegas/rez/pull/729) ([maxnbk](https://github.com/maxnbk))
+
 ## 2.44.0 (2019-09-06)
 [Source](https://github.com/nerdvegas/rez/tree/2.44.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.43.0...2.44.0)
 
