@@ -11,14 +11,6 @@ import sys
 import tempfile
 import warnings
 
-try:
-    from rez.vendor.pydot import dot_parser
-except Exception as e:
-    warnings.warn(
-        "Couldn't import dot_parser, "
-        "loading of dot files will not be possible.")
-
-
 __author__ = 'Ero Carrera'
 __version__ = '1.4.2.dev0'
 __license__ = 'MIT'
@@ -279,6 +271,7 @@ def graph_from_dot_data(s):
     @return: Graphs that result from parsing.
     @rtype: `list` of `pydot.Dot`
     """
+    from ..pydot import dot_parser
     return dot_parser.parse_dot_data(s)
 
 
@@ -778,7 +771,7 @@ class Edge(Common):
             # If the graph is undirected, the edge has neither
             # source nor destination.
             #
-            if	( ( self.get_source() == edge.get_source() and
+            if  ( ( self.get_source() == edge.get_source() and
                   self.get_destination() == edge.get_destination() ) or
                 ( edge.get_source() == self.get_destination() and
                  edge.get_destination() == self.get_source() ) ):
@@ -837,7 +830,7 @@ class Edge(Common):
         else:
             edge = [ src ]
 
-        if	(self.get_parent_graph() and
+        if  (self.get_parent_graph() and
             self.get_parent_graph().get_top_graph_type() and
             self.get_parent_graph().get_top_graph_type() == 'digraph' ):
 
