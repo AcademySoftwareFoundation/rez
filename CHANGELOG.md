@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.44.2 (2019-09-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.44.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.44.1...2.44.2)
+
+**Merged pull requests:**
+
+- install variant.json file in the same manner as other extra install files [\#731](https://github.com/nerdvegas/rez/pull/731) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- permissions failure on release (variant.json) [\#730](https://github.com/nerdvegas/rez/issues/730)
+
 ## 2.44.1 (2019-09-07)
 [Source](https://github.com/nerdvegas/rez/tree/2.44.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.44.0...2.44.1)
 
