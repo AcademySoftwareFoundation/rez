@@ -182,11 +182,33 @@ class LocalBuildProcess(BuildProcessHelper):
             })
             re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
 
-            # create build environment
+            # create build environment (also creates build.rxt file)
             context, rxt_filepath = self.create_build_context(
                 variant=re_evaluated_variant,
                 build_type=build_type,
                 build_path=variant_build_path)
+
+            # list of extra files (build.rxt etc) that are installed if an
+            # installation is taking place
+            #
+            extra_install_files = [rxt_filepath]
+
+            # create variant.json file. This identifies which variant this is.
+            # This is important for hashed variants, where it is not obvious
+            # which variant is in which root path. The file is there for
+            # debugging purposes only.
+            #
+            if variant.index is not None:
+                data = {
+                    "index": variant.index,
+                    "data": variant.parent.data["variants"][variant.index]
+                }
+
+                filepath = os.path.join(variant_build_path, "variant.json")
+                extra_install_files.append(filepath)
+
+                with open(filepath, 'w') as f:
+                    json.dump(data, f, indent=2)
 
             # run build system
             build_system_name = self.build_system.name()
@@ -204,27 +226,14 @@ class LocalBuildProcess(BuildProcessHelper):
                 raise BuildError("The %s build system failed." % build_system_name)
 
             if install:
-                # Install the 'variant.json' file, which identifies which variant
-                # this is. This is important for hashed variants, where it is not
-                # obvious which variant is in which root path. The file is there
-                # for debugging purposes only.
-                #
-                if variant.index is not None:
-                    data = {
-                        "index": variant.index,
-                        "data": variant.parent.data["variants"][variant.index]
-                    }
+                # the build system can also specify extra files that need to
+                # be installed
+                filepaths = build_result.get("extra_files")
+                if filepaths:
+                    extra_install_files.extend(filepaths)
 
-                    filepath = os.path.join(variant_install_path, "variant.json")
-                    with open(filepath, 'w') as f:
-                        json.dump(data, f, indent=2)
-
-                # install some files for debugging purposes (incl build.rxt)
-                extra_files = build_result.get("extra_files", [])
-                if rxt_filepath:
-                    extra_files = extra_files + [rxt_filepath]
-
-                for file_ in extra_files:
+                # install extra files
+                for file_ in extra_install_files:
                     copy_or_replace(file_, variant_install_path)
 
                 # Install include modules. Note that this doesn't need to be done
