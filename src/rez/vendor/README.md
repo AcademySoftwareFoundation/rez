@@ -9,7 +9,34 @@ libraries (updating them, un-vendoring some, etc).
 Note that the latest versions column is just to give us an idea of how far back we are.
 
 
-# Common
+# Vendored Packages
+
+<table>
+<tr>
+<th>Package</th>
+<th>Version</th>
+<th>Latest</th>
+<th>Note</th>
+</tr>
+
+<!-- ######################################################### -->
+<tr><td>
+    amqp
+</td><td>
+    1.4.9 (Jan 8, 2016)
+</td><td>
+    2.4.2 (Mar 3, 2019)
+</td><td>
+    -
+</td></tr>
+
+</table>
+
+
+
+
+
+
 
 | Package                     | Version                    | Latest                                  | Note                                                                                                                                                                                                                                  |
 |-----------------------------|----------------------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
