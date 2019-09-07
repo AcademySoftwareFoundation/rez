@@ -30,6 +30,18 @@ Note that the latest versions column is just to give us an idea of how far back 
     -
 </td></tr>
 
+<!-- ######################################################### -->
+<tr><td>
+    argcomplete
+</td><td>
+    ?
+</td><td>
+    1.9.5 (Apr 2, 2019)
+</td><td>
+    Our version seems patched.
+</td></tr>
+
+
 </table>
 
 
@@ -40,7 +52,6 @@ Note that the latest versions column is just to give us an idea of how far back 
 
 | Package                     | Version                    | Latest                                  | Note                                                                                                                                                                                                                                  |
 |-----------------------------|----------------------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| amqp                        | 1.4.9 (Jan 8, 2016)        | 2.4.2 (Mar 3, 2019)                     |                                                                                                                                                                                                                                       |
 | argcomplete                 | ?                          | 1.9.5 (Apr 2, 2019)                     | Our version seems patched.                                                                                                                                                                                                            |
 | atomicwrites                | 1.2.1 (Aug 30, 2018)       | 1.3.0 (Feb 1, 2019)                     |                                                                                                                                                                                                                                       |
 | attrs                | 19.1.0 (Mar 3, 2019)       | 19.1.0 (Mar 3, 2019)                     | Added (July 2019) to enable the use of packaging lib that depends on it.
