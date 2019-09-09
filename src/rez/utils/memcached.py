@@ -167,7 +167,7 @@ class Client(object):
 
     @classmethod
     def _key_hash(cls, key):
-        return md5(key).hexdigest()
+        return md5(key.encode("utf-8")).hexdigest()
 
     @classmethod
     def _debug_key_hash(cls, key):

@@ -59,7 +59,7 @@ class TestContext(TestBase, TempdirMixin):
         r = ResolvedContext(["hello_world"])
         p = r.execute_command(["hello_world"], stdout=subprocess.PIPE)
         stdout, _ = p.communicate()
-        stdout = stdout.strip()
+        stdout = stdout.decode("utf-8").strip()
         self.assertEqual(stdout, "Hello Rez World!")
 
     def test_execute_command_environ(self):
@@ -77,7 +77,7 @@ class TestContext(TestBase, TempdirMixin):
                               stdout=subprocess.PIPE)
         stdout, _ = p.communicate()
         stdout = stdout.strip()
-        parts = [x.strip() for x in stdout.split('\n')]
+        parts = [x.strip() for x in stdout.decode("utf-8").split('\n')]
 
         self.assertEqual(parts, ["covfefe", "hello"])
 

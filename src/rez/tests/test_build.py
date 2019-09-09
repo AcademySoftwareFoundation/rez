@@ -124,7 +124,7 @@ class TestBuild(TestBase, TempdirMixin):
         proc = context.execute_command(['test_ghetto'], stdout=PIPE)
         stdout = proc.communicate()[0]
         self.assertEqual('sup dogg - how is dis shizzle doin today?',
-                         stdout.strip())
+                         stdout.decode("utf-8").strip())
 
     @shell_dependent()
     @install_dependent
@@ -170,7 +170,7 @@ class TestBuild(TestBase, TempdirMixin):
 
         proc = context.execute_command(['hai'], stdout=PIPE)
         stdout = proc.communicate()[0]
-        self.assertEqual('Oh hai!', stdout.strip())
+        self.assertEqual('Oh hai!', stdout.decode("utf-8").strip())
 
 
 if __name__ == '__main__':

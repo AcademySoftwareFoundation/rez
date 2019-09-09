@@ -50,7 +50,7 @@ class SH(UnixShell):
         if p.returncode:
             paths = []
         else:
-            lines = out_.split('\n')
+            lines = out_.decode("utf-8").split('\n')
             line = [x for x in lines if "__PATHS_" in x.split()][0]
             paths = line.strip().split()[-1].split(os.pathsep)
 
