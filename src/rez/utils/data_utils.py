@@ -423,13 +423,14 @@ class AttributeForwardMeta(type):
 
     Example:
 
+        >>> import six
+        >>>
         >>> class Foo(object):
         >>>     def __init__(self):
         >>>         self.a = "a_from_foo"
         >>>         self.b = "b_from_foo"
         >>>
-        >>> class Bah(object):
-        >>>     __metaclass__ = AttributeForwardMeta
+        >>> class Bah(six.with_metaclass(AttributeForwardMeta, object)):
         >>>     keys = ["a", "b", "c"]
         >>>
         >>>     @property
