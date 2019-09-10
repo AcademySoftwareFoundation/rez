@@ -19,7 +19,6 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.vendor import yaml
     from rez.vendor.yaml.error import YAMLError
     from rez.utils import py23
-    import inspect
     import os.path
 
     # we don't usually want warnings printed in a wrapped tool. But in cases
