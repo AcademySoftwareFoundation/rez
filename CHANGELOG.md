@@ -1,5 +1,19 @@
 # Change Log
 
+## 2.45.0 (2019-09-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.45.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.44.2...2.45.0)
+
+**Notes**
+
+Misc Py3 compatibility updates, part 3.
+
+**Merged pull requests:**
+
+- bytecode / pycache related changes [\#733](https://github.com/nerdvegas/rez/pull/733) ([maxnbk](https://github.com/maxnbk))
+- address py3.8 deprecation of collections direct ABC access [\#740](https://github.com/nerdvegas/rez/pull/740) ([maxnbk](https://github.com/maxnbk))
+- fix metaclass usage in example code [\#741](https://github.com/nerdvegas/rez/pull/741) ([maxnbk](https://github.com/maxnbk))
+- Vendor readme [\#738](https://github.com/nerdvegas/rez/pull/738) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.44.2 (2019-09-07)
 [Source](https://github.com/nerdvegas/rez/tree/2.44.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.44.1...2.44.2)
 

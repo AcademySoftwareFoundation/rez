@@ -152,17 +152,58 @@ def create_github_release_notes():
     print "Created release notes: " + url
 
 
+def list_issues(issue_nums):
+    for issue_num in issue_nums:
+        # note that 'issues' endpoint also returns PRs
+        response = requests.get(
+            get_github_url("issues/%d" % issue_num),
+            headers={"Content-Type": "application/json"}
+        )
+
+        if response.status_code == 404:
+            print >> sys.stderr, "Issue/PR does not exist: %d" % issue_num
+            sys.exit(1)
+
+        response.raise_for_status()
+
+        data = response.json()
+        url = data["html_url"]
+        user = data["user"]
+        title = data["title"]
+        title = title.lstrip('-')
+
+        if "pull_request" in data:
+            print (
+                "- %s [\\#%d](%s) ([%s](%s))"
+                % (title, issue_num, url, user["login"], user["html_url"])
+            )
+        else:
+            # issue
+            print (
+                "- %s [\\#%d](%s)"
+                % (title, issue_num, url)
+            )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-s", "--step", choices=("push", "tag", "release_notes"),
         help="Just run one step of the release process")
     parser.add_argument(
+        "-l", "--list-issues", nargs='+', type=int,
+        help="print issues/PRs in md-friendly format. This is just a helper "
+        "for updating the changelog.")
+    parser.add_argument(
         "-v", "--verbose", action="store_true",
         help="verbose mode")
 
     opts = parser.parse_args()
     verbose = opts.verbose
+
+    if opts.list_issues:
+        list_issues(opts.list_issues)
+        sys.exit(0)
 
     print("Releasing rez-%s..." % _rez_version)
 
