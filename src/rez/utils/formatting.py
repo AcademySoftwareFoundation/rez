@@ -23,6 +23,13 @@ ENV_VAR_REGEX = re.compile(ENV_VAR_REGSTR)
 FORMAT_VAR_REGSTR = "{(?P<var>.+?)}"
 FORMAT_VAR_REGEX = re.compile(FORMAT_VAR_REGSTR)
 
+# package names that are invalid because they may clash with reserved dir
+# names in some package repos (eg filesystem)
+#
+invalid_package_names = (
+    "__pycache__",
+)
+
 
 def is_valid_package_name(name, raise_error=False):
     """Test the validity of a package name string.
@@ -34,7 +41,11 @@ def is_valid_package_name(name, raise_error=False):
     Returns:
         bool.
     """
-    is_valid = PACKAGE_NAME_REGEX.match(name) and (name != "__pycache__")
+    is_valid = (
+        PACKAGE_NAME_REGEX.match(name) and
+        name not in invalid_package_names
+    )
+
     if raise_error and not is_valid:
         raise PackageRequestError("Not a valid package name: %r" % name)
     return is_valid
