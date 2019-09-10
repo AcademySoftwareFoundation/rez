@@ -56,7 +56,14 @@ def run():
                   build_args=%(build_args)s)
 
     import inspect
-    args = inspect.getargspec(buildfunc).args
+
+    if hasattr(inspect, "getfullargspec"):
+        # support py3 kw-only args
+        spec = inspect.getfullargspec(buildfunc)
+        args = spec.args + spec.kwonlyargs
+    else:
+        args = inspect.getargspec(buildfunc).args
+
     kwargs = dict((k, v) for k, v in kwargs.iteritems() if k in args)
 
     buildfunc(**kwargs)
