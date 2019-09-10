@@ -180,8 +180,13 @@ def _atexit():
 def is_non_string_iterable(arg):
     """Python 2 and 3 compatible non-string iterable identifier"""
 
+    if six.PY2:
+        iterable_class = collections.Iterable
+    else:
+        iterable_class = collections.abc.Iterable
+
     return (
-        isinstance(arg, collections.Iterable)
+        isinstance(arg, iterable_class)
         and not isinstance(arg, six.string_types)
     )
 
