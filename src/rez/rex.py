@@ -23,6 +23,11 @@ from rez.vendor.six import six
 
 basestring = six.string_types[0]
 
+if six.PY2:
+    from UserDict import DictMixin
+else:
+    from collections import MutableMapping as DictMixin
+
 
 #===============================================================================
 # Actions
@@ -935,7 +940,7 @@ class NamespaceFormatter(Formatter):
 # Environment Classes
 #===============================================================================
 
-class EnvironmentDict(dict):
+class EnvironmentDict(DictMixin):
     """
     Provides a mapping interface to `EnvironmentVariable` instances,
     which provide an object-oriented interface for recording environment
