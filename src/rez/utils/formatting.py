@@ -34,7 +34,7 @@ def is_valid_package_name(name, raise_error=False):
     Returns:
         bool.
     """
-    is_valid = PACKAGE_NAME_REGEX.match(name)
+    is_valid = PACKAGE_NAME_REGEX.match(name) and (name != "__pycache__")
     if raise_error and not is_valid:
         raise PackageRequestError("Not a valid package name: %r" % name)
     return is_valid
