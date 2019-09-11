@@ -260,7 +260,6 @@ if __name__ == "__main__":
         return (opts.step is None) or (step == opts.step)
 
     check_on_master()
-    check_newer_version()
 
     if doit("push"):
         push_codebase()
