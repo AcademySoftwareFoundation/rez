@@ -536,7 +536,7 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
             self.plugins.override(keys[1:], value)
         else:
             self.overrides[key] = value
-            self._uncache(key)
+            self._uncache(key, keep_plugins=True)
 
     def is_overridden(self, key):
         return (key in self.overrides)
@@ -636,7 +636,7 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
                 keys += _get_plugin_completions('')
             return keys
 
-    def _uncache(self, key=None):
+    def _uncache(self, key=None, keep_plugins=False):
         # deleting the attribute falls up back to the class attribute, which is
         # the cached_property descriptor
         if key and hasattr(self, key):
@@ -647,7 +647,7 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
         if hasattr(self, "_data"):
             delattr(self, "_data")
 
-        if hasattr(self, "plugins"):
+        if not keep_plugins and hasattr(self, "plugins"):
             delattr(self, "plugins")
 
     def _swap(self, other):

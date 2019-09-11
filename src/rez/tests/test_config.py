@@ -39,11 +39,13 @@ class TestConfig(TestBase):
         c.override("build_directory", "floober")
         c.override("plugins.release_vcs.tag_name", "bah")
         c.override("plugins.release_hook.emailer.sender", "joe.bloggs")
+        c.override("implicit_packages", ["a list", "of values"])
 
         self.assertEqual(c.debug_none, True)
         self.assertEqual(c.build_directory, "floober")
         self.assertEqual(c.plugins.release_vcs.tag_name, "bah")
         self.assertEqual(c.plugins.release_hook.emailer.sender, "joe.bloggs")
+        self.assertListEqual(c.implicit_packages, ["a list", "of values"])
 
         # second override
         c.override("build_directory", "flabber")
