@@ -1,15 +1,8 @@
 from __future__ import print_function
 
 from rez.utils.formatting import StringFormatMixin, StringFormatType
-from rez.vendor.six import six
+from rez.vendor.six.six.moves import UserDict
 import sys
-
-
-# http://python3porting.com/problems.html#replacing-userdict
-if six.PY2:
-    from UserDict import UserDict
-else:
-    from collections import UserDict
 
 
 class RecursiveAttribute(UserDict, StringFormatMixin):
