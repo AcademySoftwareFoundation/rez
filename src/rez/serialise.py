@@ -2,7 +2,7 @@
 Read and write data from file. File caching via a memcached server is supported.
 """
 from contextlib import contextmanager
-from inspect import isfunction, ismodule, getargspec
+from inspect import isfunction, ismodule
 import sys
 import stat
 import os
@@ -17,6 +17,7 @@ from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
 from rez.utils.system import add_sys_paths
+from rez.utils import py23
 from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
@@ -317,8 +318,8 @@ def process_python_objects(data, filepath=None):
                 fn.__globals__.update(get_objects())
 
                 # execute the function
-                spec = getargspec(func)
-                args = spec.args or []
+                args = py23.get_function_arg_names(func)
+
                 if len(args) not in (0, 1):
                     raise ResourceError("@early decorated function must "
                                         "take zero or one args only")
