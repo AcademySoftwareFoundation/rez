@@ -23,6 +23,7 @@ from rez.vendor.six import six
 
 basestring = six.string_types[0]
 
+# http://python3porting.com/problems.html#replacing-userdict
 if six.PY2:
     from UserDict import DictMixin
 else:

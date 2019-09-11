@@ -5,6 +5,7 @@ from rez.vendor.six import six
 import sys
 
 
+# http://python3porting.com/problems.html#replacing-userdict
 if six.PY2:
     from UserDict import UserDict
 else:
