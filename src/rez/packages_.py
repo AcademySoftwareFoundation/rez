@@ -106,15 +106,19 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         return (self.resource._repository.uid == local_repo.uid)
 
     def print_info(self, buf=None, format_=FileFormat.yaml,
-                   skip_attributes=None, include_release=False):
+                   include_attributes=None, skip_attributes=None,
+                   include_release=False, separator=None, pretty=False):
         """Print the contents of the package.
 
         Args:
             buf (file-like object): Stream to write to.
             format_ (`FileFormat`): Format to write in.
+            include_attributes (list of str): List of attributes to print.
             skip_attributes (list of str): List of attributes to not print.
             include_release (bool): If True, include release-related attributes,
                 such as 'timestamp' and 'changelog'
+            separator (str): Separator to use to prin the fields (used only with pretty).
+            pretty (bool): Show every field in a pretty manner (no yaml/py).
         """
         data = self.validated_data().copy()
 
@@ -135,7 +139,8 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
         buf = buf or sys.stdout
         dump_package_data(data, buf=buf, format_=format_,
-                          skip_attributes=skip_attributes)
+                          include_attributes=include_attributes, skip_attributes=skip_attributes,
+                          separator=separator, pretty=pretty)
 
     def _wrap_forwarded(self, key, value):
         if isinstance(value, SourceCode) and value.late_binding:

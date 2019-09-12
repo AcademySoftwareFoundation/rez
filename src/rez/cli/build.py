@@ -93,9 +93,6 @@ def setup_parser(parser, completions=False):
         help="create build scripts rather than performing the full build. "
         "Running these scripts will place you into a build environment, where "
         "you can invoke the build system directly.")
-    parser.add_argument(
-        "--view-pre", action="store_true",
-        help="just view the preprocessed package definition, and exit.")
     setup_parser_common(parser)
 
 
@@ -121,16 +118,11 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import BuildContextResolveError
     from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
-    from rez.serialise import FileFormat
     import sys
 
     # load package
     working_dir = os.getcwd()
     package = get_current_developer_package()
-
-    if opts.view_pre:
-        package.print_info(format_=FileFormat.py, skip_attributes=["preprocess"])
-        sys.exit(0)
 
     # create build system
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
