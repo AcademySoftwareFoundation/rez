@@ -65,7 +65,7 @@ class TestShells(TestBase, TempdirMixin):
                                 stdout=subprocess.PIPE)
 
             self.assertEqual(
-                _stdout(p), '',
+                _stdout(p).decode("utf-8"), '',
                 "This test and others will fail, because one or more of your "
                 "startup scripts are printing to stdout. Please remove the "
                 "printout and try again.")
@@ -83,7 +83,7 @@ class TestShells(TestBase, TempdirMixin):
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world",
                                 stdout=subprocess.PIPE)
-            self.assertEqual(_stdout(p), "Hello Rez World!")
+            self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
 
     @shell_dependent(exclude=["cmd"])
     def test_command_returncode(self):
@@ -113,7 +113,7 @@ class TestShells(TestBase, TempdirMixin):
             p = r.execute_shell(norc=True,
                                 command="hello_world",
                                 stdout=subprocess.PIPE)
-            self.assertEqual(_stdout(p), "Hello Rez World!")
+            self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
 
     @shell_dependent()
     def test_stdin(self):
@@ -143,7 +143,7 @@ class TestShells(TestBase, TempdirMixin):
             p = r.execute_shell(rcfile=path,
                                 command="hello_world -q",
                                 stdout=subprocess.PIPE)
-            self.assertEqual(_stdout(p), "Hello Rez World!")
+            self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
             os.remove(path)
 
     @shell_dependent(exclude=["cmd"])
@@ -159,7 +159,7 @@ class TestShells(TestBase, TempdirMixin):
         cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
         process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         sh_out, _ = process.communicate()
-        out = str(sh_out).strip()
+        out = str(sh_out.decode("utf-8")).strip()
         self.assertEqual(out, "hey")
 
     @shell_dependent()
@@ -191,7 +191,7 @@ class TestShells(TestBase, TempdirMixin):
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
             token = '\r\n' if platform_.name == 'windows' else '\n'
-            output = out.strip().split(token)
+            output = out.decode("utf-8").strip().split(token)
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():
