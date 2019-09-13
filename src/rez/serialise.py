@@ -360,7 +360,7 @@ def process_python_objects(data, filepath=None):
 
     def _trim(value):
         if isinstance(value, dict):
-            for k, v in value.copy().items():
+            for k, v in list(value.items()):
                 if isfunction(v):
                     if v.__name__ == "preprocess":
                         # preprocess is a special case. It has to stay intact
