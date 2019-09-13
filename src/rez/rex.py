@@ -452,6 +452,17 @@ class ActionInterpreter(object):
     """
     expand_env_vars = False
 
+    # RegEx that captures environment variables (generic form).
+    # Extend/override to regex formats that can capture environment formats
+    # in other interpreters like shells if needed
+    ENV_VAR_REGEX = re.compile(
+        "|".join([
+            "\\${([^\\{\\}]+?)}",               # ${ENVVAR}
+            "\\$([a-zA-Z_]+[a-zA-Z0-9_]*?)",    # $ENVVAR
+        ])
+    )
+
+
     def get_output(self, style=OutputStyle.file):
         """Returns any implementation specific data.
 
@@ -883,12 +894,6 @@ class NamespaceFormatter(Formatter):
     across shells, and avoids some problems with non-curly-braced variables in
     some situations.
     """
-    # Note: the regex used here matches more than just posix environment variable
-    # names, because special shell expansion characters may be present.
-    ENV_VAR_REF_1   = "\\${([^\\{\\}]+?)}"  # ${ENVVAR}
-    ENV_VAR_REF_2   = "\\$([a-zA-Z_]+[a-zA-Z0-9_]*?)"  # $ENVVAR
-    ENV_VAR_REF     = "%s|%s" % (ENV_VAR_REF_1, ENV_VAR_REF_2)
-    ENV_VAR_REGEX   = re.compile(ENV_VAR_REF)
 
     def __init__(self, namespace):
         Formatter.__init__(self)
@@ -900,7 +905,9 @@ class NamespaceFormatter(Formatter):
             value = next((x for x in matchobj.groups() if x is not None))
             return "${{%s}}" % value
 
-        format_string_ = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
+        regex = kwargs.get("regex") or ActionInterpreter.ENV_VAR_REGEX
+
+        format_string_ = re.sub(regex, escape_envvar, format_string)
 
         # for recursive formatting, where a field has a value we want to expand,
         # add kwargs to namespace, so format_field can use them...
@@ -1260,7 +1267,7 @@ class RexExecutor(object):
         return self.manager.get_output(style=style)
 
     def expand(self, value):
-        return self.formatter.format(str(value))
+        return self.formatter.format(str(value), regex=self.interpreter.ENV_VAR_REGEX)
 
 
 # Copyright 2013-2016 Allan Johns.
