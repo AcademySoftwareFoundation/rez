@@ -116,7 +116,7 @@ class RezPluginType(object):
         paths = reversed(paths)
 
         for path in paths:
-            for loader, modname, ispkg in pkgutil.walk_packages(
+            for loader, modname, ispkg in pkgutil.iter_modules(
                     [path], package.__name__ + '.'):
 
                 if loader is None:
@@ -125,6 +125,7 @@ class RezPluginType(object):
                 plugin_name = modname.split('.')[-1]
                 if plugin_name.startswith('_'):
                     continue
+
                 if config.debug("plugins"):
                     print_debug("loading %s plugin at %s: %s..."
                                 % (self.type_name, path, modname))

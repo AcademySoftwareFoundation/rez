@@ -2,7 +2,7 @@
 
 from rez.shells import Shell
 from rez.utils.platform_ import platform_
-from .powershell_common.powershell_base import PowerShellBase
+from ._utils.powershell_base import PowerShellBase
 
 
 class PowerShell(PowerShellBase):
