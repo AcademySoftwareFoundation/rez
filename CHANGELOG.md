@@ -1,5 +1,21 @@
 # Change Log
 
+## 2.46.0 (2019-09-13)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.46.0) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.45.1...2.46.0)
+
+**Notes**
+
+Last round of Py3 updates (not counting further bugfixes found from testing).
+
+Please take note if you notice any changes in performance in Py2. This release includes a number of changes
+from methods like `iteritems` to `items`, which in Py2 means a list construction rather than just an iterator.
+Tests have shown performance to be identical, but you may find a case where it is not.
+
+**Merged pull requests:**
+
+- py3 iterators conversion [\#736](https://github.com/nerdvegas/rez/pull/736) ([maxnbk](https://github.com/maxnbk))
+- py3 finalizations [\#742](https://github.com/nerdvegas/rez/pull/742) ([maxnbk](https://github.com/maxnbk))
+
 ## 2.45.1 (2019-09-11)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.45.1) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.45.0...2.45.1)
 
