@@ -15,9 +15,12 @@ zsh:
 
 cmd:
     prompt: '$G'
+    additional_pathext: ['.PY']
 
 powershell:
     prompt: '> $ '
+    additional_pathext: ['.PY']
 
 pwsh:
     prompt: '> $ '
+    additional_pathext: ['.PY']

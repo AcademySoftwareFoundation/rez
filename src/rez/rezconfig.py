@@ -676,6 +676,25 @@ max_package_changelog_chars = 65536
 # If not zero, truncates all package changelogs to only show the last N commits
 max_package_changelog_revisions = 0
 
+# Default option on how to create scripts with util.create_executable_script.
+# In order to support both windows and other OS it is recommended to set this
+# to 'both'.
+#
+# Possible modes:
+# - single:
+#       Creates the requested script only.
+# - py:
+#       Create .py script that will allow launching scripts on windows,
+#       if the shell adds .py to PATHEXT. Make sure to use PEP-397 py.exe
+#       as default application for .py files.
+# - platform_specific:
+#       Will create py script on windows and requested on other platforms
+# - both:
+#       Creates the requested file and a .py script so that scripts can be
+#       launched without extension from windows and other systems.
+create_executable_script_mode = "single"
+
+
 ###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
@@ -873,7 +892,6 @@ plugins = {
         "check_tag": False
     }
 }
-
 
 
 ###############################################################################

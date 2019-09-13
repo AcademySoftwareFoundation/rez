@@ -15,6 +15,7 @@ import subprocess
 import os
 import os.path
 import pipes
+import re
 
 
 basestring = six.string_types[0]
@@ -42,7 +43,6 @@ def create_shell(shell=None, **kwargs):
 class Shell(ActionInterpreter):
     """Class representing a shell, such as bash or tcsh.
     """
-
     schema_dict = {
         "prompt": basestring}
 
@@ -74,6 +74,22 @@ class Shell(ActionInterpreter):
 
     def _addline(self, line):
         self._lines.append(line)
+
+    def convert_tokens(self, value):
+        """
+        Converts any token like ${VAR} and $VAR to shell specific form.
+        Uses the ENV_VAR_REGEX to correctly parse tokens.
+
+        Args:
+            value: str to convert
+
+        Returns:
+            str with shell specific variables
+        """
+        return self.ENV_VAR_REGEX.sub(
+            lambda m: "".join(self.get_key_token(g) for g in m.groups() if g),
+            value
+        )
 
     def get_output(self, style=OutputStyle.file):
         if style == OutputStyle.file:
@@ -164,7 +180,46 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
-    def join(self, command):
+    @classmethod
+    def get_key_token(cls, key):
+        """
+        Encodes the environment variable into the shell specific form.
+        Shells might implement multiple forms, but the most common/safest
+        should be returned here.
+
+        Args:
+            key: Variable name to encode
+
+        Returns:
+            str of encoded token form
+        """
+        return cls.get_all_key_tokens(key)[0]
+
+    @classmethod
+    def get_all_key_tokens(cls, key):
+        """
+        Encodes the environment variable into the shell specific forms.
+        Shells might implement multiple forms, but the most common/safest
+        should be always returned at index 0.
+
+        Args:
+            key: Variable name to encode
+
+        Returns:
+            list of str with encoded token forms
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def line_terminator(cls):
+        """
+        Returns:
+            str: default line terminator
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def join(cls, command):
         """
         Args:
             command:
@@ -174,6 +229,7 @@ class Shell(ActionInterpreter):
             A string object representing the command.
         """
         raise NotImplementedError
+
 
 class UnixShell(Shell):
     """
@@ -188,6 +244,7 @@ class UnixShell(Shell):
     stdin_arg = '-s'
     last_command_status = '$?'
     syspaths = None
+
 
     #
     # startup rules
@@ -400,12 +457,17 @@ class UnixShell(Shell):
     def shebang(self):
         self._addline("#!%s" % self.executable)
 
-    def get_key_token(self, key):
-        return "${%s}" % key
+    @classmethod
+    def get_all_key_tokens(cls, key):
+        return ["${%s}" % key, "$%s" % key]
 
-    def join(self, command):
+    @classmethod
+    def join(cls, command):
         return shlex_join(command)
 
+    @classmethod
+    def line_terminator(cls):
+        return "\n"
 
 # Copyright 2013-2016 Allan Johns.
 #

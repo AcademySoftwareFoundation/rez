@@ -6,20 +6,19 @@ from __future__ import print_function
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
-from rez.rex import RexExecutor, literal, expandable
+from rez.rex import literal, expandable
+from rez.util import create_executable_script, _get_python_script_files, ExecutableScriptMode
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.util import which
 from rez.bind import hello_world
-from rez.utils.platform_ import platform_
 from rez.vendor.six import six
 import subprocess
 import tempfile
 import inspect
 import textwrap
 import os
-import sys
 
 
 def _stdout(proc):
@@ -48,15 +47,10 @@ class TestShells(TestBase, TempdirMixin):
 
     @classmethod
     def _create_context(cls, pkgs):
-        from rez.config import config
         return ResolvedContext(pkgs, caching=False)
 
-    @shell_dependent(exclude=["cmd"])
+    @shell_dependent()
     def test_no_output(self):
-        # TODO: issues with binding the 'hello_world' package means it is not
-        # possible to run this test on Windows.  The 'hello_world' executable
-        # is not registered correctly on Windows so always returned the
-        # incorrect error code.
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
@@ -70,12 +64,57 @@ class TestShells(TestBase, TempdirMixin):
                 "startup scripts are printing to stdout. Please remove the "
                 "printout and try again.")
 
-    @shell_dependent(exclude=["cmd"])
+    def test_create_executable_script(self):
+        script_file = os.path.join(self.root, "script")
+        py_script_file = os.path.join(self.root, "script.py")
+
+        for platform in ['windows', 'linux']:
+
+            files = _get_python_script_files(script_file,
+                                             ExecutableScriptMode.py,
+                                             platform)
+            self.assertListEqual(files, [py_script_file])
+
+            files = _get_python_script_files(py_script_file,
+                                             ExecutableScriptMode.py,
+                                             platform)
+            self.assertListEqual(files, [py_script_file])
+
+            files = _get_python_script_files(script_file,
+                                             ExecutableScriptMode.single,
+                                             platform)
+            self.assertListEqual(files, [script_file])
+
+            files = _get_python_script_files(py_script_file,
+                                             ExecutableScriptMode.single,
+                                             platform)
+            self.assertListEqual(files, [py_script_file])
+
+            files = _get_python_script_files(script_file,
+                                             ExecutableScriptMode.both,
+                                             platform)
+            self.assertListEqual(files, [script_file, py_script_file])
+
+            files = _get_python_script_files(py_script_file,
+                                             ExecutableScriptMode.both,
+                                             platform)
+            self.assertListEqual(files, [py_script_file])
+
+            files = _get_python_script_files(script_file,
+                                             ExecutableScriptMode.platform_specific,
+                                             platform)
+            if platform == "windows":
+                self.assertListEqual(files, [py_script_file])
+            else:
+                self.assertListEqual(files, [script_file])
+
+            files = _get_python_script_files(py_script_file,
+                                             ExecutableScriptMode.platform_specific,
+                                             platform)
+            self.assertListEqual(files, [py_script_file])
+
+    @shell_dependent()
     def test_command(self):
-        # TODO: issues with binding the 'hello_world' package means it is not
-        # possible to run this test on Windows.  The 'hello_world' executable
-        # is not registered correctly on Windows so always returned the
-        # incorrect error code.
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
 
@@ -85,12 +124,8 @@ class TestShells(TestBase, TempdirMixin):
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
 
-    @shell_dependent(exclude=["cmd"])
+    @shell_dependent()
     def test_command_returncode(self):
-        # TODO: issues with binding the 'hello_world' package means it is not
-        # possible to run this test on Windows.  The 'hello_world' executable
-        # is not registered correctly on Windows so always returned the
-        # incorrect error code.
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
 
@@ -146,16 +181,14 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
             os.remove(path)
 
-    @shell_dependent(exclude=["cmd"])
+    @shell_dependent()
     @install_dependent
     def test_rez_env_output(self):
         # here we are making sure that running a command via rez-env prints
         # exactly what we expect.
-        echo_cmd = which("echo")
-        if not echo_cmd:
-            print("\nskipping test, 'echo' command not found.")
-            return
+        sh = create_shell()
 
+        # Assumes that the shell has an echo command, build-in or alias
         cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
         process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         sh_out, _ = process.communicate()
@@ -190,13 +223,16 @@ class TestShells(TestBase, TempdirMixin):
 
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
-            token = '\r\n' if platform_.name == 'windows' else '\n'
-            output = out.decode("utf-8").strip().split(token)
+
+            # PowerShell and Unix uses \n, cmd etc use \r\n
+            sh = create_shell()
+            output = out.decode("utf-8").strip().split(sh.line_terminator())
+
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():
-            import os
-            windows = os.name == "nt"
+            from rez.shells import create_shell
+            sh = create_shell()
 
             def _print(value):
                 env.FOO = value
@@ -204,7 +240,7 @@ class TestShells(TestBase, TempdirMixin):
                 # interpreting parts of our output as commands. This can happen
                 # when we include special characters (&, <, >, ^) in a
                 # variable.
-                info('"%FOO%"' if windows else '"${FOO}"')
+                info('"${FOO}"')
 
             env.GREET = "hi"
             env.WHO = "Gary"
@@ -226,18 +262,28 @@ class TestShells(TestBase, TempdirMixin):
             _print(literal("hello world"))
             _print(literal("hello 'world'"))
             _print(literal('hello "world"'))
-            _print("hey %WHO%" if windows else "hey $WHO")
-            _print("hey %WHO%" if windows else "hey ${WHO}")
-            _print(expandable("%GREET% " if windows else "${GREET} ").e("%WHO%" if windows else "$WHO"))
-            _print(expandable("%GREET% " if windows else "${GREET} ").l("$WHO"))
+
+            # Generic form of variables
+            _print("hey $WHO")
+            _print("hey ${WHO}")
+            _print(expandable("${GREET} ").e("$WHO"))
+            _print(expandable("${GREET} ").l("$WHO"))
             _print(literal("${WHO}"))
-            _print(literal("${WHO}").e(" %WHO%" if windows else " $WHO"))
+            _print(literal("${WHO}").e(" $WHO"))
 
             # Make sure we are escaping &, <, >, ^ properly.
             _print('hey & world')
             _print('hey > world')
             _print('hey < world')
             _print('hey ^ world')
+
+            # Platform dependent form of variables.
+            for token in sh.get_all_key_tokens("WHO"):
+                _print("hey " + token)
+                _print(expandable("${GREET} ").e(token))
+                _print(expandable("${GREET} ").l(token))
+                _print(literal(token))
+                _print(literal(token).e(" " + token))
 
         expected_output = [
             "ello",
@@ -269,6 +315,18 @@ class TestShells(TestBase, TempdirMixin):
             "hey ^ world"
         ]
 
+        # Assertions for other environment variable types
+        from rez.shells import create_shell
+        sh = create_shell()
+        for token in sh.get_all_key_tokens("WHO"):
+            expected_output += [
+                "hey Gary",
+                "hi Gary",
+                "hi " + token,
+                token,
+                token + " Gary",
+            ]
+
         # We are wrapping all variable outputs in quotes in order to make sure
         # our shell isn't interpreting our output as instructions when echoing
         # it but this means we need to wrap our expected output as well.
@@ -277,15 +335,15 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_rex_assigning, expected_output)
 
         def _rex_appending():
-            import os
-            windows = os.name == "nt"
+            from rez.shells import create_shell
+            sh = create_shell()
 
             env.FOO.append("hey")
-            info("%FOO%" if windows else "${FOO}")
+            info(sh.get_key_token("FOO"))
             env.FOO.append(literal("$DAVE"))
-            info("%FOO%" if windows else "${FOO}")
+            info(sh.get_key_token("FOO"))
             env.FOO.append("Dave's not here man")
-            info("%FOO%" if windows else "${FOO}")
+            info(sh.get_key_token("FOO"))
 
         expected_output = [
             "hey",
