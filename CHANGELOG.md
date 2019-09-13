@@ -1,5 +1,24 @@
 # Change Log
 
+## 2.47.0 (2019-09-13)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.0) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.46.0...2.47.0)
+
+**Notes**
+
+This fixes and improves the shell plugins, especially on Windows for cmd and PowerShell-like.
+Formerly excluded shell-dependent tests are now passing.
+
+Note also that this release fixes a regression in Windows, introduced in 2.35.0.
+
+**Merged pull requests:**
+
+- Enhancements for shell plugins [\#698](https://github.com/nerdvegas/rez/pull/698) ([bfloch](https://github.com/bfloch))
+
+**Closed issues:**
+
+- Quotation marks issues on Windows. [\#691](https://github.com/nerdvegas/rez/issues/691)
+- Rex and expandable in other shells [\#694](https://github.com/nerdvegas/rez/issues/694)
+
 ## 2.46.0 (2019-09-13)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.46.0) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.45.1...2.46.0)
 
