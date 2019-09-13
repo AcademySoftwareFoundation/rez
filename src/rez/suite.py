@@ -58,7 +58,7 @@ class Suite(object):
         Reurns:
             List of strings.
         """
-        return self.contexts.keys()
+        return list(self.contexts.keys())
 
     @cached_property
     def tools_path(self):
@@ -364,7 +364,7 @@ class Suite(object):
             List of strings.
         """
         self._update_tools()
-        return self.tool_conflicts.keys()
+        return list(self.tool_conflicts.keys())
 
     def get_alias_conflicts(self, tool_alias):
         """Get a list of conflicts on the given tool alias.
@@ -394,7 +394,7 @@ class Suite(object):
 
     def to_dict(self):
         contexts_ = {}
-        for k, data in self.contexts.iteritems():
+        for k, data in self.contexts.items():
             data_ = data.copy()
             if "context" in data_:
                 del data_["context"]
@@ -413,7 +413,7 @@ class Suite(object):
         s.contexts = d["contexts"]
         if s.contexts:
             s.next_priority = max(x["priority"]
-                                  for x in s.contexts.itervalues()) + 1
+                                  for x in s.contexts.values()) + 1
         else:
             s.next_priority = 1
         return s
@@ -462,7 +462,7 @@ class Suite(object):
             print("creating alias wrappers in %r..." % tools_path)
 
         tools = self.get_tools()
-        for tool_alias, d in tools.iteritems():
+        for tool_alias, d in tools.items():
             tool_name = d["tool_name"]
             context_name = d["context_name"]
 
@@ -536,7 +536,7 @@ class Suite(object):
             _pr("Suite is empty.")
             return
 
-        context_names = sorted(self.contexts.iterkeys())
+        context_names = sorted(self.contexts.keys())
         _pr("Suite contains %d contexts:" % len(context_names))
 
         if not verbose:
@@ -609,14 +609,14 @@ class Suite(object):
             self._context(context_name)  # check context exists
             context_names = [context_name]
         else:
-            context_names = sorted(self.contexts.iterkeys())
+            context_names = sorted(self.contexts.keys())
 
         rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
                 ["----", "--------", "-------", "-------", ""]]
         colors = [None, None]
 
         entries_dict = defaultdict(list)
-        for d in self.get_tools().itervalues():
+        for d in self.get_tools().values():
             entries_dict[d["context_name"]].append(d)
 
         if verbose:
@@ -627,7 +627,7 @@ class Suite(object):
                 entries_dict[d["context_name"]].append(d_)
 
             # add conflicting tools
-            for docs in self.tool_conflicts.itervalues():
+            for docs in self.tool_conflicts.values():
                 for d in docs:
                     d_ = d.copy()
                     d_["conflicting"] = True
@@ -692,7 +692,7 @@ class Suite(object):
     def _validate_tool(self, context_name, tool_name):
         context = self.context(context_name)
         context_tools = context.get_tools(request_only=True)
-        for _, tool_names in context_tools.itervalues():
+        for _, tool_names in context_tools.values():
             if tool_name in tool_names:
                 return
         raise SuiteError("No such tool %r in context %r"
@@ -715,7 +715,7 @@ class Suite(object):
             context = self.context(context_name)
             context_tools = context.get_tools(request_only=True)
 
-            for variant, tool_names in context_tools.itervalues():
+            for variant, tool_names in context_tools.values():
                 for tool_name in tool_names:
                     alias = tool_aliases.get(tool_name)
                     if alias is None:

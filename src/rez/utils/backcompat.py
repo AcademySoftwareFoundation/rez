@@ -22,7 +22,7 @@ def convert_old_variant_handle(handle_dict):
     old_variables = handle_dict.get("variables", {})
     variables = dict(repository_type="filesystem")
 
-    for old_key, key in variant_key_conversions.iteritems():
+    for old_key, key in variant_key_conversions.items():
         value = old_variables.get(old_key)
         #if value is not None:
         variables[key] = value

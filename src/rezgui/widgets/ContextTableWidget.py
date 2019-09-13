@@ -455,7 +455,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         if flags & ContextModel.LOCKS_CHANGED and self._show_effective_request:
             update_request_columns[0] = self.context_model
 
-        for column, context_model in update_request_columns.iteritems():
+        for column, context_model in update_request_columns.items():
             self._update_request_column(column, context_model)
 
         # set column headers
@@ -498,7 +498,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
                 row += 1
 
             d = context_model.get_lock_requests()
-            for lock, requests in d.iteritems():
+            for lock, requests in d.items():
                 for request in requests:
                     request_str = str(request)
                     self._set_effective_package_cell(row, column, request_str, lock.name)

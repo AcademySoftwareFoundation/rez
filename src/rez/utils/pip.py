@@ -266,7 +266,7 @@ def pip_specifier_to_rez_requirement(specifier):
         )
 
     # convert each spec into rez equivalent
-    ranges = map(convert_spec, specifier)
+    ranges = list(map(convert_spec, specifier))
 
     # AND together ranges
     total_range = VersionRange(ranges[0])
@@ -560,7 +560,7 @@ def get_marker_sys_requirements(marker):
     # note: packaging lib already delimits with whitespace
     marker_parts = marker.split()
 
-    for varname, sys_reqs in sys_requires_lookup.iteritems():
+    for varname, sys_reqs in sys_requires_lookup.items():
         if varname in marker_parts:
             sys_requires.update(sys_reqs)
 

@@ -247,7 +247,7 @@ def _load_py(stream, filepath=None):
     excludes = set(('scope', 'InvalidPackageError', '__builtins__',
                     'early', 'late', 'include', 'ModifyList'))
 
-    for k, v in g.iteritems():
+    for k, v in g.items():
         if k not in excludes and \
                 (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
@@ -360,7 +360,7 @@ def process_python_objects(data, filepath=None):
 
     def _trim(value):
         if isinstance(value, dict):
-            for k, v in value.items():
+            for k, v in value.copy().items():
                 if isfunction(v):
                     if v.__name__ == "preprocess":
                         # preprocess is a special case. It has to stay intact

@@ -56,7 +56,7 @@ class CMakeBuildSystem(BuildSystem):
 
     schema_dict = {
         "build_target": Or(*build_targets),
-        "build_system": Or(*build_systems.keys()),
+        "build_system": Or(*list(build_systems.keys())),
         "cmake_args": [basestring],
         "cmake_binary": Or(None, basestring),
         "make_binary": Or(None, basestring)
@@ -83,7 +83,7 @@ class CMakeBuildSystem(BuildSystem):
                            help="set the build target (default: %(default)s).")
         group.add_argument("--bs", "--cmake-build-system",
                            dest="cmake_build_system",
-                           choices=cls.build_systems.keys(),
+                           choices=list(cls.build_systems.keys()),
                            default=settings.build_system,
                            help="set the cmake build system (default: %(default)s).")
 

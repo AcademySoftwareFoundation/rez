@@ -107,7 +107,7 @@ def write_compacted(g):
         value = tuple(list(edge) + [label]) if label else edge
         d_edges.setdefault(tuple(attrs), []).append(tuple(value))
 
-    doc = dict(nodes=d_nodes.items(), edges=d_edges.items())
+    doc = dict(nodes=list(d_nodes.items()), edges=list(d_edges.items()))
     contents = str(doc)
     return contents
 
@@ -171,7 +171,7 @@ def prune_graph(graph_str, package_name):
     g = read_dot(graph_str)
     nodes = set()
 
-    for node, attrs in g.node_attr.iteritems():
+    for node, attrs in g.node_attr.items():
         attr = [x for x in attrs if x[0] == "label"]
         if attr:
             label = attr[0][1]

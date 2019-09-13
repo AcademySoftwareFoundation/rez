@@ -623,7 +623,7 @@ class Python(ActionInterpreter):
         if self.manager:
             self.target_environ.update(self.manager.environ)
 
-        shell_mode = not hasattr(args, '__iter__')
+        shell_mode = isinstance(args, basestring)
         return popen(args,
                      shell=shell_mode,
                      env=self.target_environ,
@@ -961,7 +961,7 @@ class EnvironmentDict(DictMixin):
         """
         self.manager = manager
         self._var_cache = dict((k, EnvironmentVariable(k, self))
-                               for k in manager.parent_environ.iterkeys())
+                               for k in manager.parent_environ.keys())
 
     def keys(self):
         return self._var_cache.keys()
