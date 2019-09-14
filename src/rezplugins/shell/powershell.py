@@ -7,12 +7,6 @@ from ._utils.powershell_base import PowerShellBase
 
 class PowerShell(PowerShellBase):
 
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('powershell')
-        return cls._executable
-
     @classmethod
     def name(cls):
         return 'powershell'

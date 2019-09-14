@@ -13,13 +13,6 @@ from rez.rex import EscapedString
 class Bash(SH):
     rcfile_arg = '--rcfile'
     norc_arg = '--norc'
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('bash')
-        return cls._executable
 
     @classmethod
     def name(cls):

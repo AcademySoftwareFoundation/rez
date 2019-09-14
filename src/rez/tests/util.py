@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import unittest
 from rez.config import config, _create_locked_config
-from rez.shells import get_shell_types
+from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
 import tempfile
 import shutil
@@ -160,21 +160,27 @@ def program_dependent(program_name, *program_names):
     return wrapper
 
 
-def shell_dependent(exclude=None):
-    """Function decorator that runs the function over all shell types."""
+def per_available_shell():
+    """Function decorator that runs the function over all available shell types."""
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             shells = get_shell_types()
+
             only_shell = os.getenv("__REZ_SELFTEST_SHELL")
             if only_shell:
                 shells = [only_shell]
 
+            # filter to only those shells available
+            shells = [
+                x for x in shells
+                if get_shell_class(x).is_available()
+            ]
+
             for shell in shells:
-                if exclude and shell in exclude:
-                    self.skipTest("This test does not run on %s shell." % shell)
                 print("\ntesting in shell: %s..." % shell)
                 config.override("default_shell", shell)
+
                 try:
                     func(self, *args, **kwargs)
                 except AssertionError as e:
@@ -189,17 +195,19 @@ def shell_dependent(exclude=None):
     return decorator
 
 
-def install_dependent(fn):
+def install_dependent():
     """Function decorator that skips tests if not run via 'rez-selftest' tool,
     from a production install"""
-    @functools.wraps(fn)
-    def _fn(self, *args, **kwargs):
-        if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
-            fn(self, *args, **kwargs)
-        else:
-            print("\nskipping test, must be run via 'rez-selftest' tool, from "
-                  "a PRODUCTION rez installation.")
-    return _fn
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
+                func(self, *args, **kwargs)
+            else:
+                print("\nskipping test, must be run via 'rez-selftest' tool, from "
+                      "a PRODUCTION rez installation.")
+        return wrapper
+    return decorator
 
 
 def get_cli_output(args):

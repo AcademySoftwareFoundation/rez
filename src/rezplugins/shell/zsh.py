@@ -12,13 +12,6 @@ from rez import module_root_path
 class Zsh(SH):
     rcfile_arg = '--rcs'
     norc_arg = '--no-rcs'
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('zsh')
-        return cls._executable
 
     @classmethod
     def name(cls):

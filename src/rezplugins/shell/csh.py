@@ -16,13 +16,6 @@ class CSH(UnixShell):
     last_command_status = '$status'
     histfile = "~/.history"
     histvar = "histfile"
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('csh')
-        return cls._executable
 
     @classmethod
     def name(cls):
