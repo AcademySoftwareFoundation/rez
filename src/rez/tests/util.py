@@ -120,21 +120,18 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
     return None
 
 
-program_tests = {
-    "cmake": ['cmake', '-h'],
-    "make": ['make', '-h'],
-    "g++": ["g++", "--help"]
-}
-
-
 def program_dependent(program_name, *program_names):
     """Function decorator that skips the function if not all given programs are
     visible."""
-
-    # test if program exists
     import subprocess
-    import errno
 
+    program_tests = {
+        "cmake": ['cmake', '-h'],
+        "make": ['make', '-h'],
+        "g++": ["g++", "--help"]
+    }
+
+    # test if programs all exist
     def _test(name):
         command = program_tests[name]
 
@@ -147,17 +144,20 @@ def program_dependent(program_name, *program_names):
                 return True
 
     names = [program_name] + list(program_names)
-    exists = all(_test(x) for x in names)
+    all_exist = all(_test(x) for x in names)
 
-    if exists:
-        def wrapper(fn):
-            return fn
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not all_exist:
+                self.skipTest(
+                    "Requires all programs to be present and functioning: %s"
+                    % names
+                )
 
-    else:
-        def wrapper(fn):
-            return unittest.skip("Program(s) not available: %s" % names)(fn)
-
-    return wrapper
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def per_available_shell():
@@ -182,7 +182,7 @@ def per_available_shell():
                 config.override("default_shell", shell)
 
                 try:
-                    func(self, *args, **kwargs)
+                    return func(self, *args, **kwargs)
                 except AssertionError as e:
                     # Add the shell to the exception message, if possible.
                     # In some IDEs the args do not exist at all.
@@ -202,83 +202,14 @@ def install_dependent():
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
-                func(self, *args, **kwargs)
+                return func(self, *args, **kwargs)
             else:
-                print("\nskipping test, must be run via 'rez-selftest' tool, from "
-                      "a PRODUCTION rez installation.")
+                self.skipTest(
+                    "Must be run via 'rez-selftest' tool, see "
+                    "https://github.com/nerdvegas/rez/wiki/Installation#installation-script"
+                )
         return wrapper
     return decorator
-
-
-def get_cli_output(args):
-    """Invoke the named command-line rez command, with the given string
-    command line args
-
-    Note that it does this by calling rez.cli._main.run within the same
-    python process, for efficiency; if for some reason this is not sufficient
-    encapsulation / etc, you can use subprocess to invoke the rez as a
-    separate process
-
-    Returns
-    -------
-    stdout : basestring
-        the captured output to sys.stdout
-    exitcode : int
-        the returncode from the command
-    """
-
-    import sys
-    from rez.vendor.six.six.moves import StringIO
-
-    command = args[0]
-    other_args = list(args[1:])
-    if command.startswith('rez-'):
-        command = command[4:]
-    exitcode = None
-
-    # first swap sys.argv...
-    old_argv = sys.argv
-    new_argv = ['rez-%s' % command] + other_args
-    sys.argv = new_argv
-    try:
-
-        # then redirect stdout using os.dup2
-
-        # we can't just ye' ol sys.stdout swap trick, because some places may
-        # still be holding onto references to the "real" sys.stdout - ie, if
-        # a function has a kwarg default (as in rez.status.Status.print_info)
-        # So, instead we swap at a file-descriptor level... potentially less
-        # portable, but has been tested to work on linux, osx, and windows...
-        with tempfile.TemporaryFile(bufsize=0, prefix='rez_cliout') as tf:
-            new_fileno = tf.fileno()
-            old_fileno = sys.stdout.fileno()
-            old_fileno_dupe = os.dup(old_fileno)
-
-            # make sure we flush before any switches...
-            sys.stdout.flush()
-            # ...then redirect stdout to our temp file...
-            os.dup2(new_fileno, old_fileno)
-            try:
-                try:
-                    # and finally invoke the "command-line" rez-COMMAND
-                    from rez.cli._main import run
-                    run(command)
-                except SystemExit as e:
-                    exitcode = e.args[0]
-            finally:
-                # restore stdout
-                sys.stdout.flush()
-                tf.flush()
-                os.dup2(old_fileno_dupe, old_fileno)
-
-            # ok, now read the output we redirected to the file...
-            tf.seek(0, os.SEEK_SET)
-            output = tf.read()
-    finally:
-        # restore argv...
-        sys.argv = old_argv
-
-    return output, exitcode
 
 
 @contextmanager
