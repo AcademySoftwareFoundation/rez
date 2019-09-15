@@ -201,7 +201,7 @@ class LinuxPlatform(_UnixPlatform):
         def _parse(txt, distributor_key, release_key):
             distributor_ = None
             release_ = None
-            lines = txt.decode("utf-8").strip().split('\n')
+            lines = txt.strip().split('\n')
             for line in lines:
                 if line.startswith(distributor_key):
                     s = line[len(distributor_key):].strip()
