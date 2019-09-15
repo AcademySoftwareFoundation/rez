@@ -3,9 +3,13 @@ Utilities related to managing data types.
 """
 from rez.vendor.schema.schema import Schema, Optional
 from rez.exceptions import RexError
-from collections import MutableMapping
 from threading import Lock
 from rez.vendor.six import six
+
+if six.PY2:
+    from collections import MutableMapping
+else:
+    from collections.abc import MutableMapping
 
 
 basestring = six.string_types[0]

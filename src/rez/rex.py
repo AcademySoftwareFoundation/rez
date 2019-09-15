@@ -27,7 +27,7 @@ basestring = six.string_types[0]
 if six.PY2:
     from UserDict import DictMixin
 else:
-    from collections import MutableMapping as DictMixin
+    from collections.abc import MutableMapping as DictMixin
 
 
 #===============================================================================
