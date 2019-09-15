@@ -1,4 +1,4 @@
-"""
+r"""
 Rez configuration settings. Do not change this file.
 
 Settings are determined in the following way (higher number means higher
