@@ -987,6 +987,16 @@ class EnvironmentDict(DictMixin):
     def __contains__(self, key):
         return (key in self._var_cache)
 
+    def __delitem__(self, key):
+        del self._var_cache[key]
+
+    def __iter__(self):
+        for key in self._var_cache.keys():
+            yield key
+
+    def __len__(self):
+        return len(self._var_cache)
+
 
 class EnvironmentVariable(object):
     '''
