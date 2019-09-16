@@ -1,5 +1,11 @@
 from rez.utils.platform_ import platform_
 
+platform_map = {
+    "arch": {
+        ".*": "IMPOSSIBLE_ARCH",
+    },
+}
+
 # Test fallback of Conditional
 release_hooks = Conditional(
     {
@@ -10,7 +16,7 @@ release_hooks = Conditional(
 )
 
 prune_failed_graph = ArchDependent({
-     platform_._arch(): False,
+     "IMPOSSIBLE_ARCH": True,
 })
 
 # Fallback of OsDependent

@@ -702,16 +702,25 @@ class ArchDependent(Conditional):
     """
     Specialized Conditional based on platform's arch
     """
-    _cache = None
 
-    def __new__(cls, options, default=ConditionalConfigurationError):
-        # Mapped platform depends on config so lazy import
-        from rez.utils.platform_ import platform_
-        # Do not use platform_mapped properties. This implies that we have to
-        # use our own caching.
-        arch_value = cls._cache if cls._cache else platform_._arch()
-        cls._cache = arch_value
-        return Conditional.__new__(cls, options, key=arch_value,
+    def __new__(cls, options, default=ConditionalConfigurationError,
+                platform_map=None):
+
+        if platform_map is None:
+            # The owner of this conditional might be a config and as such we
+            # have to respect its platform_map as opposed to the platform map of
+            # a global config.
+            import inspect
+            x = inspect.currentframe().f_back
+            platform_map = inspect.currentframe().f_back.f_locals.get(
+                "platform_map",
+                None
+            )
+
+        from rez.utils.platform_ import create_platform
+        platform_ = create_platform(platform_map=platform_map)
+
+        return Conditional.__new__(cls, options, key=platform_.arch,
                                    default=default)
 
 
@@ -719,16 +728,23 @@ class OsDependent(Conditional):
     """
     Specialized Conditional based on platform's os
     """
-    _cache = None
 
-    def __new__(cls, options, default=ConditionalConfigurationError):
-        # Mapped platform depends on config so lazy import
-        from rez.utils.platform_ import platform_
-        # Do not use platform_mapped properties. This implies that we have to
-        # use our own caching.
-        os_value = cls._cache if cls._cache else platform_._os()
-        cls._cache = os_value
-        return Conditional.__new__(cls, options, key=os_value,
+    def __new__(cls, options, default=ConditionalConfigurationError,
+                platform_map=None):
+
+        if platform_map is None:
+            # Compare to ArchDependent.
+            import inspect
+            x = inspect.currentframe().f_back
+            platform_map = inspect.currentframe().f_back.f_locals.get(
+                "platform_map",
+                None
+            )
+
+        from rez.utils.platform_ import create_platform
+        platform_ = create_platform(platform_map=platform_map)
+
+        return Conditional.__new__(cls, options, key=platform_.os,
                                    default=default)
 
 

@@ -66,9 +66,13 @@ class TestConfig(TestBase):
         from rez.utils.platform_ import platform_
         platform_name = platform_.name
         platform_arch = platform_.arch
-        platform_os = platform_.os
+        platform_os = "IMPOSSIBLE_OS"
 
         c = Config([self.root_config_file], locked=True)
+        c.override("platform_map", {
+            "os": {".*": "IMPOSSIBLE_OS"},
+        })
+
         c.validate_data()
 
         # Schema validation still works?
@@ -104,11 +108,16 @@ class TestConfig(TestBase):
         }
         ))
 
-        # Os variant
-        c.override("implicit_packages", OsDependent({
-            platform_os: ["a list", "of values"],
-        }
-        ))
+        # Os variant with explicit platform_map override
+        c.override(
+            "implicit_packages",
+            OsDependent(
+                {
+                    platform_os: ["a list", "of values"],
+                },
+                platform_map=c.platform_map
+            )
+        )
 
         c.validate_data()
 
@@ -125,7 +134,7 @@ class TestConfig(TestBase):
 
         self.assertListEqual(c.plugins.release_hook.emailer.recipients, ["joe@here.com"])
         self.assertEqual(c.release_hooks, ["foo"])
-        self.assertEqual(c.prune_failed_graph, False)
+        self.assertEqual(c.prune_failed_graph, True)
         self.assertEqual(c.warn_all, True)
 
     def test_1(self):

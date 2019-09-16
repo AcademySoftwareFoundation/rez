@@ -23,15 +23,22 @@ def platform_mapped(func):
     """
     def inner(*args, **kwargs):
 
-        # Since platform is being used within config lazy import config to prevent
-        # circular dependencies
-        from rez.config import config
+        # The caller could have a _platform_map attribute which overrides the
+        # default config.platform_map.
+        platform_map = None
+        if len(args) > 0:
+            platform_map = getattr(args[0], "_platform_map", None)
+        if platform_map is None:
+            # Since platform is being used within config lazy import config to
+            # prevent circular dependencies
+            from rez.config import config
+            platform_map = config.platform_map
 
         # Original result
         result = func(*args, **kwargs)
 
         # The function name is used as primary key
-        entry = config.platform_map.get(func.__name__)
+        entry = platform_map.get(func.__name__)
         if entry:
             for key, value in entry.items():
                 result, changes = re.subn(key, value, result)

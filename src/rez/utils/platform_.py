@@ -17,8 +17,14 @@ class Platform(object):
     """
     name = None
 
-    def __init__(self):
-        pass
+    def __init__(self, platform_map=None):
+        """
+        Construct platform
+
+        Args:
+            platform_map: Force explicit platform map
+        """
+        self._platform_map = platform_map
 
     @cached_property
     @platform_mapped
@@ -570,15 +576,31 @@ class WindowsPlatform(Platform):
         return which("meld", "fc")
 
 
+def create_platform(name=None, platform_map=None):
+    """
+    Static factory for
+
+    Args:
+        name (str): force a particular platform construction
+        platform_map (dict): Explicit platform_map. Defaults to platform_ma[
+            from config.
+
+    Returns:
+        Platform or None
+    """
+    if name is None:
+        name = name=platform.system().lower()
+    if name == "linux":
+        return LinuxPlatform(platform_map=platform_map)
+    elif name == "darwin":
+        return OSXPlatform(platform_map=platform_map)
+    elif name == "windows":
+        return WindowsPlatform(platform_map=platform_map)
+    return None
+
+
 # singleton
-platform_ = None
-name = platform.system().lower()
-if name == "linux":
-    platform_ = LinuxPlatform()
-elif name == "darwin":
-    platform_ = OSXPlatform()
-elif name == "windows":
-    platform_ = WindowsPlatform()
+platform_ = create_platform()
 
 
 # Copyright 2013-2016 Allan Johns.
