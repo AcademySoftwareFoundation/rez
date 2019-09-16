@@ -7,7 +7,6 @@ import subprocess
 from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.data_utils import cached_property
-from rez.utils.platform_mapped import platform_mapped
 from rez.exceptions import RezSystemError
 from tempfile import gettempdir
 
@@ -26,17 +25,59 @@ class Platform(object):
         """
         self._platform_map = platform_map
 
-    @cached_property
-    @platform_mapped
-    def arch(self):
-        """Returns the name of the architecture."""
-        return self._arch()
+    def _platform_mapped(self, key, value):
+        """Looks the value up within the _platform_map of the instance or the
+        config.platform_map dictionary.
+
+        Note that there is no guaranteed order within the dictionary evaluation.
+        Only the first matching regular expression is being used.
+        For example:
+
+        config.platform_map = {
+            "os": {
+                r"Scientific Linux-(.*)": r"Scientific-\1",    # Scientific Linux-x.x -> Scientific-x.x
+                r"Ubuntu-14.\d": r"Ubuntu-14",                 # Any Ubuntu-14.x      -> Ubuntu-14
+            },
+            "arch": {
+                "x86_64": "64bit",                             # Maps both x86_64 and amd64 -> 64bit (don't)
+                "amd64": "64bit",
+            },
+        }
+
+        Args:
+            key (str): key to use in the platform_map
+            value (str): the value to map
+
+        Returns:
+            platform mapped value or original value if no map is found
+
+        """
+        platform_map = self._platform_map
+        if platform_map is None:
+            # Since platform is being used within config lazy import config to
+            # prevent circular dependencies
+            from rez.config import config
+            platform_map = config.platform_map
+
+        # The function name is used as primary key
+        entry = platform_map.get(key)
+        if entry:
+            for key, value in entry.iteritems():
+                value, changes = re.subn(key, value, value)
+                if changes > 0:
+                    break
+
+        return value
 
     @cached_property
-    @platform_mapped
+    def arch(self):
+        """Returns the name of the architecture."""
+        return self._platform_mapped("arch", self._arch())
+
+    @cached_property
     def os(self):
         """Returns the name of the operating system."""
-        return self._os()
+        return self._platform_mapped("os", self._os())
 
     @cached_property
     def terminal_emulator_command(self):
