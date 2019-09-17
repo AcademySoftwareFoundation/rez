@@ -27,7 +27,7 @@ basestring = six.string_types[0]
 if six.PY2:
     from UserDict import DictMixin
 else:
-    from collections import MutableMapping as DictMixin
+    from collections.abc import MutableMapping as DictMixin
 
 
 #===============================================================================
@@ -986,6 +986,16 @@ class EnvironmentDict(DictMixin):
 
     def __contains__(self, key):
         return (key in self._var_cache)
+
+    def __delitem__(self, key):
+        del self._var_cache[key]
+
+    def __iter__(self):
+        for key in self._var_cache.keys():
+            yield key
+
+    def __len__(self):
+        return len(self._var_cache)
 
 
 class EnvironmentVariable(object):
