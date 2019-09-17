@@ -22,14 +22,37 @@ basestring = six.string_types[0]
 
 
 def get_shell_types():
-    """Returns the available shell types: bash, tcsh etc."""
+    """Returns the available shell types: bash, tcsh etc.
+
+    Returns:
+    List of str: Shells.
+    """
     from rez.plugin_managers import plugin_manager
     return list(plugin_manager.get_plugins('shell'))
 
 
+def get_shell_class(shell=None):
+    """Get the plugin class associated with the given or current shell.
+
+    Returns:
+        class: Plugin class for shell.
+    """
+    if not shell:
+        shell = config.default_shell
+        if not shell:
+            from rez.system import system
+            shell = system.shell
+
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.get_plugin_class("shell", shell)
+
+
 def create_shell(shell=None, **kwargs):
-    """Returns a Shell of the given type, or the current shell type if shell
-    is None."""
+    """Returns a Shell of the given or current type.
+
+    Returns:
+        `Shell`: Instance of given shell.
+    """
     if not shell:
         shell = config.default_shell
         if not shell:
@@ -48,10 +71,45 @@ class Shell(ActionInterpreter):
 
     @classmethod
     def name(cls):
+        """Plugin name.
+        """
         raise NotImplementedError
 
     @classmethod
+    def executable_name(cls):
+        """Name of executable to create shell instance.
+        """
+        return cls.name()
+
+    @classmethod
+    def executable_filepath(cls):
+        """Get full filepath to executable, or raise if not found.
+        """
+        return cls.find_executable(cls.executable_name())
+
+    @property
+    def executable(self):
+        return self.__class__.executable_filepath()
+
+    @classmethod
+    def is_available(cls):
+        """Determine if the shell is available to instantiate.
+
+        Returns:
+            bool: True if the shell can be created.
+        """
+        try:
+            return cls.executable_filepath() is not None
+        except RuntimeError:
+            return False
+
+    @classmethod
     def file_extension(cls):
+        """Get the file extension associated with the shell.
+
+        Returns:
+            str: Shell file extension.
+        """
         raise NotImplementedError
 
     @classmethod
@@ -74,22 +132,6 @@ class Shell(ActionInterpreter):
 
     def _addline(self, line):
         self._lines.append(line)
-
-    def convert_tokens(self, value):
-        """
-        Converts any token like ${VAR} and $VAR to shell specific form.
-        Uses the ENV_VAR_REGEX to correctly parse tokens.
-
-        Args:
-            value: str to convert
-
-        Returns:
-            str with shell specific variables
-        """
-        return self.ENV_VAR_REGEX.sub(
-            lambda m: "".join(self.get_key_token(g) for g in m.groups() if g),
-            value
-        )
 
     def get_output(self, style=OutputStyle.file):
         if style == OutputStyle.file:
@@ -181,6 +223,23 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
+    def convert_tokens(cls, value):
+        """
+        Converts any token like ${VAR} and $VAR to shell specific form.
+        Uses the ENV_VAR_REGEX to correctly parse tokens.
+
+        Args:
+            value: str to convert
+
+        Returns:
+            str with shell specific variables
+        """
+        return cls.ENV_VAR_REGEX.sub(
+            lambda m: "".join(cls.get_key_token(g) for g in m.groups() if g),
+            value
+        )
+
+    @classmethod
     def get_key_token(cls, key):
         """
         Encodes the environment variable into the shell specific form.
@@ -235,7 +294,6 @@ class UnixShell(Shell):
     """
     A base class for common *nix shells, such as bash and tcsh.
     """
-    executable = None
     rcfile_arg = None
     norc_arg = None
     histfile = None
@@ -244,7 +302,6 @@ class UnixShell(Shell):
     stdin_arg = '-s'
     last_command_status = '$?'
     syspaths = None
-
 
     #
     # startup rules

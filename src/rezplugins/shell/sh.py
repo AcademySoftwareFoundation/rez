@@ -16,13 +16,6 @@ class SH(UnixShell):
     norc_arg = '--noprofile'
     histfile = "~/.bash_history"
     histvar = "HISTFILE"
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('sh')
-        return cls._executable
 
     @classmethod
     def name(cls):

@@ -10,7 +10,7 @@ from rez.vendor import yaml
 from rez.system import system
 from rez.exceptions import ReleaseError, ReleaseVCSError
 import unittest
-from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
+from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
@@ -99,8 +99,8 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertEqual(_standardize_variants(vars1),
                          _standardize_variants(vars2))
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_1(self):
         """Basic release."""
         # release should fail because release path does not exist
@@ -160,8 +160,8 @@ class TestRelease(TestBase, TempdirMixin):
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_2_variant_add(self):
         """Test variant installation on release
         """
@@ -170,7 +170,7 @@ class TestRelease(TestBase, TempdirMixin):
         try:
             self._setup_release()
         finally:
-            # due to shell_dependent, this will run multiple times, don't
+            # due to per_available_shell, this will run multiple times, don't
             # want to add src_path/variants/variants
             self.src_path = orig_src_path
 

@@ -8,7 +8,7 @@ from rez.exceptions import BuildError, BuildContextResolveError,\
     PackageFamilyNotFoundError
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
-    shell_dependent, install_dependent, program_dependent
+    per_available_shell, install_dependent, program_dependent
 import shutil
 import os.path
 
@@ -126,16 +126,16 @@ class TestBuild(TestBase, TempdirMixin):
         self.assertEqual('sup dogg - how is dis shizzle doin today?',
                          stdout.decode("utf-8").strip())
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_build_whack(self):
         """Test that a broken build fails correctly."""
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
         self.assertRaises(BuildError, builder.build, clean=True)
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_builds(self):
         """Test an interdependent set of builds."""
         self._test_build_build_util()
@@ -144,8 +144,8 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_loco()
         self._test_build_bah()
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_builds_anti(self):
         """Test we can build packages that contain anti packages"""
         self._test_build_build_util()

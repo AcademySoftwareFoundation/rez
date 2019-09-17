@@ -22,7 +22,6 @@ class CMD(Shell):
     # commands for the Windows Command Prompt (cmd).  It can be found here :
     # http://ss64.com/nt/cmd.html
     syspaths = None
-    _executable = None
     _doskey = None
     expand_env_vars = True
 
@@ -32,12 +31,6 @@ class CMD(Shell):
     # http://ss64.com/nt/syntax-esc.html
     _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])|(\|)')
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('cmd')
-        return cls._executable
 
     @classmethod
     def name(cls):
@@ -212,11 +205,11 @@ class CMD(Shell):
         # Test for None specifically because resolved_context.execute_rex_code
         # passes '' and we do NOT want to keep a shell open during a rex code
         # exec operation.
-        elif shell_command is None: 
+        elif shell_command is None:
             # Launch the configured shell itself and wait for user interaction
             # to exit.
             executor.command('cmd /Q /K')
-            
+
         # Exit the configured shell.
         executor.command('exit %errorlevel%')
 

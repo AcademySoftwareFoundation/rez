@@ -7,13 +7,14 @@ from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
-from rez.util import create_executable_script, _get_python_script_files, ExecutableScriptMode
-import unittest
-from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
+from rez.util import create_executable_script, _get_python_script_files, \
+    ExecutableScriptMode
+from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.util import which
 from rez.bind import hello_world
 from rez.vendor.six import six
+import unittest
 import subprocess
 import tempfile
 import inspect
@@ -49,7 +50,7 @@ class TestShells(TestBase, TempdirMixin):
     def _create_context(cls, pkgs):
         return ResolvedContext(pkgs, caching=False)
 
-    @shell_dependent()
+    @per_available_shell()
     def test_no_output(self):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
@@ -113,7 +114,7 @@ class TestShells(TestBase, TempdirMixin):
                                              platform)
             self.assertListEqual(files, [py_script_file])
 
-    @shell_dependent()
+    @per_available_shell()
     def test_command(self):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
@@ -124,7 +125,7 @@ class TestShells(TestBase, TempdirMixin):
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
 
-    @shell_dependent()
+    @per_available_shell()
     def test_command_returncode(self):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
@@ -138,7 +139,7 @@ class TestShells(TestBase, TempdirMixin):
                 p.wait()
                 self.assertEqual(p.returncode, 66)
 
-    @shell_dependent()
+    @per_available_shell()
     def test_norc(self):
         sh = create_shell()
         _, norc, _, command = sh.startup_capabilities(norc=True, command=True)
@@ -150,7 +151,7 @@ class TestShells(TestBase, TempdirMixin):
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
 
-    @shell_dependent()
+    @per_available_shell()
     def test_stdin(self):
         sh = create_shell()
         _, _, stdin, _ = sh.startup_capabilities(stdin=True)
@@ -164,7 +165,7 @@ class TestShells(TestBase, TempdirMixin):
             stdout = stdout.strip()
             self.assertEqual(stdout, "Hello Rez World!")
 
-    @shell_dependent()
+    @per_available_shell()
     def test_rcfile(self):
         sh = create_shell()
         rcfile, _, _, command = sh.startup_capabilities(rcfile=True, command=True)
@@ -181,8 +182,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
             os.remove(path)
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_rez_env_output(self):
         # here we are making sure that running a command via rez-env prints
         # exactly what we expect.
@@ -195,8 +196,8 @@ class TestShells(TestBase, TempdirMixin):
         out = str(sh_out.decode("utf-8")).strip()
         self.assertEqual(out, "hey")
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_rez_command(self):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
@@ -211,7 +212,7 @@ class TestShells(TestBase, TempdirMixin):
             p.wait()
             self.assertEqual(p.returncode, 0)
 
-    @shell_dependent()
+    @per_available_shell()
     def test_rex_code(self):
         """Test that Rex code run in the shell creates the environment variable
         values that we expect."""
@@ -353,7 +354,7 @@ class TestShells(TestBase, TempdirMixin):
 
         _execute_code(_rex_appending, expected_output)
 
-    @shell_dependent()
+    @per_available_shell()
     def test_rex_code_alias(self):
         """Ensure PATH changes do not influence the alias command.
 

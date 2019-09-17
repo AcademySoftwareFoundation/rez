@@ -15,9 +15,7 @@ class PowerShellBase(Shell):
     Abstract base class for PowerShell-like shells.
     """
     expand_env_vars = True
-
     syspaths = None
-    _executable = None
 
     # Make sure that the $Env:VAR formats come before the $VAR formats since
     # PowerShell Environment variables are ambiguous with Unix paths.
