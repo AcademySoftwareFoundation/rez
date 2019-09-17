@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.47.1 (2019-09-17)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.1) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.0...2.47.1)
+
+**Merged pull requests:**
+
+- Issue 696 shell availability [\#747](https://github.com/nerdvegas/rez/pull/747) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Shell plugin Support API [\#696](https://github.com/nerdvegas/rez/issues/696)
+
+
 ## 2.47.0 (2019-09-13)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.0) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.46.0...2.47.0)
 
