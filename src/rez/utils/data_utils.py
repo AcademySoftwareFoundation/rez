@@ -6,7 +6,7 @@ import os.path
 
 from rez.vendor.schema.schema import Schema, Optional
 from rez.vendor.six import six
-from inspect import isclass
+from inspect import isclass, currentframe
 from threading import Lock
 
 if six.PY2:
@@ -706,17 +706,6 @@ class ArchDependent(Conditional):
     def __new__(cls, options, default=ConditionalConfigurationError,
                 platform_map=None):
 
-        if platform_map is None:
-            # The owner of this conditional might be a config and as such we
-            # have to respect its platform_map as opposed to the platform map of
-            # a global config.
-            import inspect
-            x = inspect.currentframe().f_back
-            platform_map = inspect.currentframe().f_back.f_locals.get(
-                "platform_map",
-                None
-            )
-
         from rez.utils.platform_ import create_platform
         platform_ = create_platform(platform_map=platform_map)
 
@@ -732,20 +721,48 @@ class OsDependent(Conditional):
     def __new__(cls, options, default=ConditionalConfigurationError,
                 platform_map=None):
 
-        if platform_map is None:
-            # Compare to ArchDependent.
-            import inspect
-            x = inspect.currentframe().f_back
-            platform_map = inspect.currentframe().f_back.f_locals.get(
-                "platform_map",
-                None
-            )
-
         from rez.utils.platform_ import create_platform
         platform_ = create_platform(platform_map=platform_map)
 
         return Conditional.__new__(cls, options, key=platform_.os,
                                    default=default)
+
+
+class InspectedDependent(Conditional):
+
+    def __new__(cls, base, frame, options, default=ConditionalConfigurationError):
+
+        # The owner of this conditional might be a config and as such we
+        # have to respect its platform_map as opposed to the platform map of
+        # a global config.
+        platform_map = frame.f_locals.get(
+            "platform_map",
+            None
+        )
+
+        return base(options, default, platform_map=platform_map)
+
+
+class InConfigArchDependent(ArchDependent):
+    """
+    Constructs an ArchDependent that works with the platform_map within its own
+    config.
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        return InspectedDependent(ArchDependent, currentframe().f_back, options,
+                                  default)
+
+
+class InConfigOsDependent(OsDependent):
+    """
+    Constructs an OsDependent that works with the platform_map within its own
+    config.
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        return InspectedDependent(OsDependent, currentframe().f_back, options,
+                                  default)
 
 
 # Copyright 2013-2016 Allan Johns.
