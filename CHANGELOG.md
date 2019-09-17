@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.47.2 (2019-09-17)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.2) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.1...2.47.2)
+
+**Notes**
+
+Py3 fixes found after testing.
+
+**Merged pull requests:**
+
+- Fix py3 errors and warnings [\#748](https://github.com/nerdvegas/rez/pull/748) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+
 ## 2.47.1 (2019-09-17)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.1) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.0...2.47.1)
 

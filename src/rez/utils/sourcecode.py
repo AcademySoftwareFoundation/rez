@@ -1,22 +1,12 @@
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug
-from rez.vendor.six import six
+from rez.utils import py23
 from inspect import getsourcelines
 from textwrap import dedent
 from glob import glob
 import traceback
 import os.path
-
-
-if six.PY2:
-    import imp
-    def load_source(name, path, fileHandle):
-        return imp.load_source('mod', path, fileHandle)
-else:
-    from importlib.machinery import SourceFileLoader
-    def load_source(name, path, fileHandle):
-        return SourceFileLoader('mod', path).load_module()
 
 
 def early():
@@ -345,9 +335,7 @@ class IncludeModuleManager(object):
         if config.debug("file_loads"):
             print_debug("Loading include sourcefile: %s" % filepath)
 
-        with open(filepath) as f:
-            module = load_source(name, filepath, f)
-
+        module = py23.load_module_from_file(name, filepath)
         self.modules[hash_str] = module
         return module
 
