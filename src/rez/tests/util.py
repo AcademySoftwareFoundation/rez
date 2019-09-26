@@ -182,7 +182,7 @@ def per_available_shell():
                 config.override("default_shell", shell)
 
                 try:
-                    return func(self, *args, **kwargs)
+                    func(self, *args, **kwargs)
                 except AssertionError as e:
                     # Add the shell to the exception message, if possible.
                     # In some IDEs the args do not exist at all.
