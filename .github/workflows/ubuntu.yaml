@@ -29,9 +29,25 @@ jobs:
           mkdir ./build
           python ./install.py ./build
 
-      - name: Install Shells
+      - name: Install csh
         run: |
-          sudo apt-get install csh tcsh zsh
+          sudo apt-get install csh
+
+      - name: Install tcsh
+        run: |
+          sudo apt-get install tcsh
+
+      - name: Install zsh
+        run: |
+          sudo apt-get install zsh
+
+      # https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-6
+      - name: Install pwsh
+        run: |
+          wget -q https://packages.microsoft.com/config/ubuntu/${{ matrix.os-version }}/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y powershell
 
       - name: Run Rez Tests
         run: |
