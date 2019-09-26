@@ -4,11 +4,16 @@ on: [push]
 jobs:
   main:
     name: main
-    runs-on: ubuntu-16.04
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        python-version: ['2.7', '3.6']
+        os:
+          - ubuntu-16.04
+          - ubuntu-18.04
+        python-version:
+          - '2.7'
+          - '3.6'
 
     steps:
       - name: Checkout
@@ -24,6 +29,6 @@ jobs:
           mkdir ./build
           python ./install.py ./build
 
-      - name: Run Tests
+      - name: Run Rez Tests
         run: |
           ./build/bin/rez/rez-selftest
