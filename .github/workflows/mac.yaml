@@ -24,6 +24,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # TODO install shells (which ones need installing?)
+
       - name: Install Rez
         run: |
           mkdir ./build
