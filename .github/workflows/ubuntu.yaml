@@ -14,6 +14,7 @@ jobs:
         python-version:
           - '2.7'
           - '3.6'
+          - '3.7'
 
     steps:
       - name: Checkout
@@ -36,6 +37,10 @@ jobs:
         run: |
           sudo apt-get install zsh
 
+      # TODO: For some reason tests are getting cancelled with error:
+      # "##[error] The operation was canceled."
+      # GH actions bug?
+      #
       # https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-6
       #- name: Install pwsh
       #  run: |
