@@ -1,16 +1,16 @@
-name: ubuntu-16.04
+name: ubuntu
 on: [push]
 
 jobs:
   main:
     name: main
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-${{ matrix.os-version }}
 
     strategy:
       matrix:
-        os:
-          - ubuntu-16.04
-          - ubuntu-18.04
+        os-version:
+          - '16.04'
+          - '18.04'
         python-version:
           - '2.7'
           - '3.6'
@@ -28,6 +28,10 @@ jobs:
         run: |
           mkdir ./build
           python ./install.py ./build
+
+      - name: Install Shells
+        run: |
+          sudo apt-get install csh tcsh zsh
 
       - name: Run Rez Tests
         run: |
