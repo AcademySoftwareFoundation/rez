@@ -24,11 +24,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Rez
-        run: |
-          mkdir ./build
-          python ./install.py ./build
-
       - name: Install csh
         run: |
           sudo apt-get install csh
@@ -48,6 +43,11 @@ jobs:
           sudo dpkg -i packages-microsoft-prod.deb
           sudo apt-get update
           sudo apt-get install -y powershell
+
+      - name: Install Rez
+        run: |
+          mkdir ./build
+          python ./install.py ./build
 
       - name: Run Rez Tests
         run: |
