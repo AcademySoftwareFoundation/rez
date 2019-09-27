@@ -183,13 +183,16 @@ def per_available_shell():
 
                 try:
                     func(self, *args, **kwargs)
-                except AssertionError as e:
+                except Exception as e:
                     # Add the shell to the exception message, if possible.
                     # In some IDEs the args do not exist at all.
-                    if e.args:
-                        args = list(e.args)
-                        args[0] += " (in shell '{}')".format(shell)
-                        e.args = tuple(args)
+                    if hasattr(e, "args") and e.args:
+                        try:
+                            args = list(e.args)
+                            args[0] += " (in shell '{}')".format(shell)
+                            e.args = tuple(args)
+                        except:
+                            raise e
                     raise
         return wrapper
     return decorator
