@@ -30,9 +30,9 @@ jobs:
 
       - name: Install Rez
         run: |
-          mkdir ./build
-          python ./install.py ./build
+          mkdir build
+          python install.py build
 
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest
+          build/bin/rez/rez-selftest
