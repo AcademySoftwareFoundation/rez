@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -52,4 +54,4 @@ jobs:
 
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest --schema
+          ./build/bin/rez/rez-selftest
