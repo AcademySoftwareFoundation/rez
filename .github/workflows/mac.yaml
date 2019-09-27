@@ -27,7 +27,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # TODO install shells (which ones need installing?)
+      - name: Set up Ruby
+        uses: actions/setup-ruby@v1
+
+      - name: Install brew
+        run: |
+          /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
       - name: Install Rez
         run: |
