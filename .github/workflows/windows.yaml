@@ -1,0 +1,38 @@
+name: windows
+on: [push]
+
+jobs:
+  main:
+    name: main
+    runs-on: windows-${{ matrix.os-version }}
+
+    strategy:
+      matrix:
+        os-version:
+          - '2019'
+        python-version:
+          - '2.7'
+          - '3.6'
+          - '3.7'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # TODO install shells (which ones need installing?)
+
+      - name: Install Rez
+        run: |
+          mkdir ./build
+          python ./install.py ./build
+
+      - name: Run Rez Tests
+        run: |
+          ./build/bin/rez/rez-selftest

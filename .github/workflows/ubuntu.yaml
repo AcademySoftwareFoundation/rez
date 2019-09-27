@@ -1,4 +1,4 @@
-name: my-ubuntu
+name: ubuntu
 on: [push]
 
 jobs:
