@@ -28,17 +28,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Verify cmake
+        run: |
+          cmake --version
+
       - name: Install csh
         run: |
-          sudo apt-get install csh
+          sudo apt-get install -y csh
 
       - name: Install tcsh
         run: |
-          sudo apt-get install tcsh
+          sudo apt-get install -y tcsh
 
       - name: Install zsh
         run: |
-          sudo apt-get install zsh
+          sudo apt-get install -y zsh
 
       # https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-6
       - name: Install pwsh

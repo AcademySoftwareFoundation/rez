@@ -30,9 +30,17 @@ jobs:
       - name: Set up Ruby
         uses: actions/setup-ruby@v1
 
+      - name: Verify cmake
+        run: |
+          cmake --version
+
       - name: Install brew
         run: |
           /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+      - name: Install pwsh
+        run: |
+          brew cask install powershell
 
       - name: Install Rez
         run: |
