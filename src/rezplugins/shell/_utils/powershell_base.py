@@ -210,16 +210,18 @@ class PowerShellBase(Shell):
             if not isinstance(cmd, (tuple, list)):
                 cmd = pre_command.rstrip().split()
 
+        cmd += [self.executable]
+
         # Suppresses copyright message of PowerShell and pwsh
-        cmd += [self.executable, '-NoLogo']
+        cmd += ["-NoLogo"]
 
         # Generic form of sourcing that works in powershell and pwsh
-        cmd += ['-File', '{}'.format(target_file)]
+        cmd += ["-File", target_file]
 
         if shell_command is None:
             cmd.insert(1, "-NoExit")
 
-        p = popen(cmd, env=env, universal_newlines=True, **Popen_args)
+        p = popen(cmd, env=env, **Popen_args)
         return p
 
     def get_output(self, style=OutputStyle.file):

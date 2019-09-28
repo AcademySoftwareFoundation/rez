@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/nerdvegas/rez.svg?branch=master)](https://travis-ci.org/nerdvegas/rez)
+![](https://github.com/nerdvegas/rez/workflows/ubuntu/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/mac/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/windows/badge.svg)
 
 ![logo](media/rez_banner_256.png)
 
