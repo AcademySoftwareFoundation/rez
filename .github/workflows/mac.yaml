@@ -28,8 +28,8 @@ jobs:
       - name: Install Requirements
         shell: bash
         run: |
-          /bin/false
-          /bin/true
+          /usr/bin/false
+          /usr/bin/true
 
 
       #- name: Verify cmake
