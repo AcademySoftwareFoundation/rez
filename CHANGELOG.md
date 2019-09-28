@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.47.3 (2019-09-28)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.3) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.2...2.47.3)
+
+**Notes**
+
+* GitHub Actions CI test suite added
+* Windows not passing currently, fixes to come
+* Note that pwsh shell implementation was using the subprocess 'universal_newlines' arg - this has been
+  removed. This was causing `execute_shell` to return an str-type stdout/stderr tuple, rather than
+  bytes as every other shell impl does, and this was causing tests to fail.
+
+**Merged pull requests:**
+
+- Gh actions - first pass [\#750](https://github.com/nerdvegas/rez/pull/750) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.47.2 (2019-09-17)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.2) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.1...2.47.2)
 
