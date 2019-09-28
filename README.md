@@ -3,6 +3,7 @@
 ![](https://github.com/nerdvegas/rez/workflows/MacOS/badge.svg)
 ![](https://github.com/nerdvegas/rez/workflows/Windows/badge.svg)
 
+
 ![logo](media/rez_banner_256.png)
 
 - [What Is Rez?](#what-is-rez)
