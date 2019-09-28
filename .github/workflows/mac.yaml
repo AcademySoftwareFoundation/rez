@@ -33,6 +33,9 @@ jobs:
       - name: Verify cmake
         run: |
           cmake --version
+          if [ $? -eq 0 ]; then
+            echo wheee
+          fi
 
       - name: Install brew
         run: |
