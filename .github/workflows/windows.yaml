@@ -35,13 +35,6 @@ jobs:
         run: |
           pwsh --version
 
-      - name: Install pwsh
-        shell: PowerShell
-        run: |
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          Invoke-WebRequest http://github.com/PowerShell/PowerShell/releases/download/v6.2.3/PowerShell-6.2.3-win-x64.msi -OutFile PowerShell-6.2.3-win-x64.msi
-          Start-Process -Wait -FilePath msiexec -ArgumentList /package, PowerShell-6.2.3-win-x64.msi, /quiet, ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1, ENABLE_PSREMOTING=1, REGISTER_MANIFEST=1
-
       - name: Install Rez
         run: |
           mkdir build

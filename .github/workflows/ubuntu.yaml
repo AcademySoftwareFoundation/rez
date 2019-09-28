@@ -32,6 +32,10 @@ jobs:
         run: |
           cmake --version
 
+      - name: Verify pwsh
+        run: |
+          pwsh --version
+
       - name: Install csh
         run: |
           sudo apt-get install -y csh
