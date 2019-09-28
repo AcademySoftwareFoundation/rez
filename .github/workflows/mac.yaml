@@ -17,25 +17,26 @@ jobs:
       fail-fast: false
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up Ruby
-        uses: actions/setup-ruby@v1
+      #- name: Set up Ruby
+      #  uses: actions/setup-ruby@v1
 
-      - name: Install Requirements
-        shell: bash
+      - name: Verify cmake
         run: |
-          /usr/bin/false
-          /usr/bin/true
+          cmake --version
 
-
-      #- name: Verify cmake
-      #  run: |
-      #    cmake --version
-      #    pwsh --version || /bin/true
+      - name: Verify pwsh
+        run: |
+          pwsh --version
 
       #- name: Install brew
       #  run: |
@@ -44,11 +45,6 @@ jobs:
       #- name: Install pwsh
       #  run: |
       #    brew cask install powershell
-
-      - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
 
       - name: Install Rez
         run: |
