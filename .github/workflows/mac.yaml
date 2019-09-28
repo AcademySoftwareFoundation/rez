@@ -17,11 +17,6 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -30,18 +25,30 @@ jobs:
       - name: Set up Ruby
         uses: actions/setup-ruby@v1
 
-      - name: Verify cmake
+      - name: Install Requirements
+        shell: bash
         run: |
-          cmake --version
-          pwsh --version || /bin/true
+          /bin/false
+          /bin/true
 
-      - name: Install brew
-        run: |
-          /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-      - name: Install pwsh
-        run: |
-          brew cask install powershell
+      #- name: Verify cmake
+      #  run: |
+      #    cmake --version
+      #    pwsh --version || /bin/true
+
+      #- name: Install brew
+      #  run: |
+      #    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+      #- name: Install pwsh
+      #  run: |
+      #    brew cask install powershell
+
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
 
       - name: Install Rez
         run: |
