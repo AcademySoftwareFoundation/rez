@@ -12,6 +12,9 @@ import itertools
 import os.path
 
 
+solver_verbosity = 1
+
+
 class TestSolver(TestBase):
     @classmethod
     def setUpClass(cls):
@@ -26,11 +29,11 @@ class TestSolver(TestBase):
         s1 = Solver(reqs,
                     self.packages_path,
                     optimised=True,
-                    verbosity=Solver.max_verbosity)
+                    verbosity=solver_verbosity)
         s2 = Solver(reqs,
                     self.packages_path,
                     optimised=False,
-                    verbosity=Solver.max_verbosity)
+                    verbosity=solver_verbosity)
 
         s_perms = []
         perms = itertools.permutations(reqs)
@@ -38,7 +41,7 @@ class TestSolver(TestBase):
             s = Solver(reqs_,
                        self.packages_path,
                        optimised=True,
-                       verbosity=Solver.max_verbosity)
+                       verbosity=solver_verbosity)
             s_perms.append(s)
 
         return (s1, s2, s_perms)
