@@ -49,6 +49,7 @@ class TestContext(TestBase, TempdirMixin):
             r.apply()
             self.assertEqual(os.environ.get("OH_HAI_WORLD"), "hello")
 
+    # TODO make shell-dependent (wait until port to pytest)
     def test_execute_command(self):
         """Test command execution in context."""
         if platform_.name == "windows":

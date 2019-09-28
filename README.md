@@ -1,6 +1,7 @@
-![](https://github.com/nerdvegas/rez/workflows/ubuntu/badge.svg)
-![](https://github.com/nerdvegas/rez/workflows/mac/badge.svg)
-![](https://github.com/nerdvegas/rez/workflows/windows/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/Core/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/Ubuntu/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/MacOS/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/Windows/badge.svg)
 
 ![logo](media/rez_banner_256.png)
 
