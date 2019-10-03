@@ -57,10 +57,10 @@ class TestShells(TestBase, TempdirMixin):
         if command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world -q",
-                                stdout=subprocess.PIPE)
+                                stdout=subprocess.PIPE, text=True)
 
             self.assertEqual(
-                _stdout(p).decode("utf-8"), '',
+                _stdout(p), '',
                 "This test and others will fail, because one or more of your "
                 "startup scripts are printing to stdout. Please remove the "
                 "printout and try again.")
@@ -122,8 +122,8 @@ class TestShells(TestBase, TempdirMixin):
         if command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world",
-                                stdout=subprocess.PIPE)
-            self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
+                                stdout=subprocess.PIPE, text=True)
+            self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
     def test_command_returncode(self):
@@ -148,8 +148,8 @@ class TestShells(TestBase, TempdirMixin):
             r = self._create_context(["hello_world"])
             p = r.execute_shell(norc=True,
                                 command="hello_world",
-                                stdout=subprocess.PIPE)
-            self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
+                                stdout=subprocess.PIPE, text=True)
+            self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
     def test_stdin(self):
@@ -178,8 +178,9 @@ class TestShells(TestBase, TempdirMixin):
             r = self._create_context(["hello_world"])
             p = r.execute_shell(rcfile=path,
                                 command="hello_world -q",
-                                stdout=subprocess.PIPE)
-            self.assertEqual(_stdout(p).decode("utf-8"), "Hello Rez World!")
+                                stdout=subprocess.PIPE,
+                                text=True)
+            self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
     @per_available_shell()
@@ -191,10 +192,12 @@ class TestShells(TestBase, TempdirMixin):
 
         # Assumes that the shell has an echo command, build-in or alias
         cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
-        process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sh_out, _ = process.communicate()
-        out = str(sh_out.decode("utf-8")).strip()
-        self.assertEqual(out, "hey")
+        process = subprocess.Popen(
+            cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, universal_newlines=True
+        )
+        sh_out = process.communicate()[0]
+        self.assertEqual(sh_out.strip(), "hey")
 
     @per_available_shell()
     @install_dependent()
@@ -220,14 +223,14 @@ class TestShells(TestBase, TempdirMixin):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
             r = self._create_context([])
-            p = r.execute_rex_code(code, stdout=subprocess.PIPE)
+            p = r.execute_rex_code(code, stdout=subprocess.PIPE, text=True)
 
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
 
             # PowerShell and Unix uses \n, cmd etc use \r\n
             sh = create_shell()
-            output = out.decode("utf-8").strip().split(sh.line_terminator())
+            output = out.strip().split(sh.line_terminator())
 
             self.assertEqual(output, expected_output)
 
