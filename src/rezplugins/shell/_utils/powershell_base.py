@@ -95,7 +95,6 @@ class PowerShellBase(Shell):
         p = popen(cmd,
                   stdout=PIPE,
                   stderr=PIPE,
-                  universal_newlines=True,
                   shell=True)
         out_, _ = p.communicate()
         out_ = out_.strip()
@@ -115,7 +114,6 @@ class PowerShellBase(Shell):
         p = popen(cmd,
                   stdout=PIPE,
                   stderr=PIPE,
-                  universal_newlines=True,
                   shell=True)
         out_, _ = p.communicate()
         out_ = out_.strip()

@@ -16,7 +16,7 @@ def add_sys_paths(paths):
         sys.path = original_syspath
 
 
-def popen(args, **kwargs):
+def popen(args, text=True, **kwargs):
     """Wrapper for `subprocess.Popen`.
 
     Avoids python bug described here: https://bugs.python.org/issue3905. This
@@ -25,6 +25,10 @@ def popen(args, **kwargs):
     In newer version of maya and katana, the sys.stdin object can also become
     replaced by an object with no 'fileno' attribute, this is also taken into
     account.
+
+    Note also the use of 'text'. This matches subprocess in python3. See the
+    section on 'universal_newlines' in:
+    https://docs.python.org/3/library/subprocess.html#frequently-used-arguments.
     """
     if "stdin" not in kwargs:
         try:
@@ -34,5 +38,8 @@ def popen(args, **kwargs):
 
         if file_no not in (0, 1, 2):
             kwargs["stdin"] = subprocess.PIPE
+
+    if text:
+        kwargs["universal_newlines"] = True
 
     return subprocess.Popen(args, **kwargs)
