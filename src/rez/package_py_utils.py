@@ -169,7 +169,7 @@ def exec_command(attr, cmd):
     """
     import subprocess
 
-    p = popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     out, err = p.communicate()
 
     if p.returncode:
@@ -197,7 +197,7 @@ def exec_python(attr, src, executable="python"):
         src = [src]
 
     p = popen([executable, "-c", "; ".join(src)],
-              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     out, err = p.communicate()
 
     if p.returncode:
@@ -237,7 +237,7 @@ def find_site_python(module_name, paths=None):
     py_cmd = 'import {x}; print({x}.__path__)'.format(x=module_name)
 
     p = popen(["python", "-c", py_cmd], stdout=subprocess.PIPE,
-               stderr=subprocess.PIPE)
+               stderr=subprocess.PIPE, text=True)
     out, err = p.communicate()
 
     if p.returncode:

@@ -38,12 +38,12 @@ class SH(UnixShell):
         cmd = "cmd=`which %s`; unset PATH; $cmd %s %s 'echo __PATHS_ $PATH'" \
               % (cls.name(), cls.norc_arg, cls.command_arg)
         p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
+                  stderr=subprocess.PIPE, shell=True, text=True)
         out_, err_ = p.communicate()
         if p.returncode:
             paths = []
         else:
-            lines = out_.decode("utf-8").split('\n')
+            lines = out_.split('\n')
             line = [x for x in lines if "__PATHS_" in x.split()][0]
             paths = line.strip().split()[-1].split(os.pathsep)
 

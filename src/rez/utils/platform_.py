@@ -226,8 +226,10 @@ class LinuxPlatform(_UnixPlatform):
         # next, try getting the output of the lsb_release program
         import subprocess
 
-        p = popen(['/usr/bin/env', 'lsb_release', '-a'],
-                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = popen(
+            ['/usr/bin/env', 'lsb_release', '-a'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
         txt = p.communicate()[0]
 
         if not p.returncode:
@@ -370,7 +372,10 @@ class LinuxPlatform(_UnixPlatform):
     def _physical_cores_from_lscpu(self):
         import subprocess
         try:
-            p = popen(['lscpu'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = popen(
+                ['lscpu'], stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True
+            )
         except (OSError, IOError):
             return None
 
@@ -437,8 +442,11 @@ class OSXPlatform(_UnixPlatform):
     def _physical_cores_from_osx_sysctl(self):
         import subprocess
         try:
-            p = popen(['sysctl', '-n', 'hw.physicalcpu'],
-                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = popen(
+                ['sysctl', '-n', 'hw.physicalcpu'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True
+            )
         except (OSError, IOError):
             return None
 
@@ -526,8 +534,11 @@ class WindowsPlatform(Platform):
         # windows
         import subprocess
         try:
-            p = popen('wmic cpu get NumberOfCores /value'.split(),
-                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = popen(
+                'wmic cpu get NumberOfCores /value'.split(),
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True
+            )
         except (OSError, IOError):
             return None
 

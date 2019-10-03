@@ -38,7 +38,7 @@ class CSH(UnixShell):
         cmd = "cmd=`which %s`; unset PATH; $cmd %s 'echo __PATHS_ $PATH'" \
               % (cls.name(), cls.command_arg)
         p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
+                  stderr=subprocess.PIPE, shell=True, text=True)
         out_, err_ = p.communicate()
         if p.returncode:
             paths = []
