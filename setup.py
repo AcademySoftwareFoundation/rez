@@ -1,4 +1,5 @@
-from __future__ import with_statement
+from __future__ import print_function, with_statement
+
 import fnmatch
 import os
 import os.path
@@ -8,13 +9,22 @@ import sys
 try:
     from setuptools import setup, find_packages
 except ImportError:
-    print >> sys.stderr, "install failed - requires setuptools"
+    print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
 
 
-if sys.version_info < (2, 6):
-    print >> sys.stderr, "install failed - requires python v2.6 or greater"
+if sys.version_info < (2, 7):
+    print("install failed - requires python v2.7 or greater", file=sys.stderr)
     sys.exit(1)
+
+
+# carefully import some sourcefiles that are standalone
+source_path = os.path.dirname(os.path.realpath(__file__))
+src_path = os.path.join(source_path, "src")
+sys.path.insert(0, src_path)
+
+from rez.utils._version import _rez_version
+from rez.cli._entry_points import get_specifications
 
 
 def find_files(pattern, path=None, root="rez"):
@@ -32,45 +42,9 @@ def find_files(pattern, path=None, root="rez"):
     return paths
 
 
-# get version from source
-with open("src/rez/utils/_version.py") as f:
-    code = f.read().strip()
-_rez_version = None  # just to keep linting happy
-exec(code)  # inits _rez_version
-version = _rez_version
-
-
-scripts = [
-    "rezolve",
-    "rez",
-    "rez-config",
-    "rez-build",
-    "rez-release",
-    "rez-env",
-    "rez-context",
-    "rez-suite",
-    "rez-interpret",
-    "rez-python",
-    "rez-selftest",
-    "rez-bind",
-    "rez-search",
-    "rez-view",
-    "rez-status",
-    "rez-help",
-    "rez-depends",
-    "rez-memcache",
-    "rez-yaml2py",
-    "bez",
-    "_rez_fwd",  # TODO rename this _rez-forward for consistency
-    "_rez-complete",
-    "rez-gui",
-    "rez-info"
-]
-
-
 setup(
     name="rez",
-    version=version,
+    version=_rez_version,
     description=("A cross-platform packaging system that can build and "
                  "install multiple version of packages, and dynamically "
                  "configure resolved environments at runtime."),
@@ -80,7 +54,9 @@ setup(
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
     license="LGPL",
-    scripts=[os.path.join('bin', x) for x in scripts],
+    entry_points={
+        "console_scripts": get_specifications().values()
+    },
     include_package_data=True,
     zip_safe=False,
     package_dir = {'': 'src'},
@@ -89,7 +65,7 @@ setup(
                                            "tests"]),
     package_data = {
         'rez':
-            ['rezconfig', 'utils/logging.conf'] +
+            ['utils/logging.conf'] +
             ['README*'] +
             find_files('*', 'completion') +
             find_files('*', 'tests/data'),
@@ -102,16 +78,14 @@ setup(
             find_files('*', 'icons', root='rezgui')
     },
     classifiers = [
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Topic :: Software Development",
         "Topic :: System :: Software Distribution"
     ]
 )
-

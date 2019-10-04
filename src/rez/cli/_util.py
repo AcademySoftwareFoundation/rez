@@ -1,41 +1,61 @@
+from __future__ import print_function
+
 import os
 import sys
 import signal
-from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
+from argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
     ArgumentError
 
 
-subcommands = [
-    "bind",
-    "build",
-    "config",
-    "context",
-    "complete",
-    "depends",
-    "env",
-    "forward",
-    "help",
-    "info",
-    "interpret",
-    "python",
-    "plugins",
-    "pip",
-    "release",
-    "search",
-    "test",
-    "view",
-    "status",
-    "suite",
-    "memcache",
-    "selftest",
-    "yaml2py",
-    "diff",
-    "gui"]
-
-
-hidden_subcommands = [
-    "complete",
-    "forward"]
+# Subcommands and their behaviors.
+#
+# 'arg_mode' determines how cli args are parsed. Values are:
+# * 'grouped': Args can be separated by '--'. This causes args to be grouped into
+#   lists which are then passed as 'extra_arg_groups' to each command.
+# * 'passthrough': Unknown args are passed as first list in 'extra_arg_groups'.
+#   The '--' arg is not treated as a special case.
+# * missing: Native python argparse behavior.
+#
+subcommands = {
+    "bind": {},
+    "build": {
+        "arg_mode": "grouped"
+    },
+    "config": {},
+    "context": {},
+    "complete": {
+        "hidden": True
+    },
+    "cp": {},
+    "depends": {},
+    "diff": {},
+    "env": {
+        "arg_mode": "grouped"
+    },
+    "forward": {
+        "hidden": True,
+        "arg_mode": "passthrough"
+    },
+    "gui": {},
+    "help": {},
+    "interpret": {},
+    "memcache": {},
+    "pip": {},
+    "plugins": {},
+    "python": {
+        "arg_mode": "passthrough"
+    },
+    "release": {
+        "arg_mode": "grouped"
+    },
+    "search": {},
+    "selftest": {},
+    "status": {},
+    "suite": {},
+    "test": {},
+    "view": {},
+    "yaml2py": {},
+}
 
 
 class LazySubParsersAction(_SubParsersAction):
@@ -94,7 +114,7 @@ class LazyArgumentParser(ArgumentParser):
         if self._subparsers:
             for action in self._subparsers._actions:
                 if isinstance(action, LazySubParsersAction):
-                    for parser_name, parser in action._name_parser_map.iteritems():
+                    for parser_name, parser in action._name_parser_map.items():
                         action._setup_subparser(parser_name, parser)
         return super(LazyArgumentParser, self).format_help()
 
@@ -116,7 +136,10 @@ def sigbase_handler(signum, frame):
     # kill all child procs
     # FIXME this kills parent procs as well
     if not _env_var_true("_REZ_NO_KILLPG"):
-        os.killpg(os.getpgid(0), signum)
+        if os.name == "nt":
+            os.kill(os.getpid(), signal.CTRL_C_EVENT)
+        else:
+            os.killpg(os.getpgid(0), signum)
     sys.exit(1)
 
 
@@ -126,7 +149,7 @@ def sigint_handler(signum, frame):
     if not _handled_int:
         _handled_int = True
         if not _env_var_true("_REZ_QUIET_ON_SIG"):
-            print >> sys.stderr, "Interrupted by user"
+            print("Interrupted by user", file=sys.stderr)
         sigbase_handler(signum, frame)
 
 
@@ -136,7 +159,7 @@ def sigterm_handler(signum, frame):
     if not _handled_term:
         _handled_term = True
         if not _env_var_true("_REZ_QUIET_ON_SIG"):
-            print >> sys.stderr, "Terminated by user"
+            print("Terminated by user", file=sys.stderr)
         sigbase_handler(signum, frame)
 
 

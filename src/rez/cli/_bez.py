@@ -1,9 +1,12 @@
+from __future__ import print_function
+
 import os
 import sys
 import os.path
 import textwrap
 import subprocess
-from rez.vendor import yaml, argparse
+import argparse
+from rez.vendor import yaml
 from rez.utils.filesystem import TempDirs
 from rez.config import config
 
@@ -20,30 +23,30 @@ def run():
     # check necessary files, load info about the build
     for file in ("build.rxt", ".bez.yaml"):
         if not os.path.isfile(file):
-            print >> sys.stderr, "no %s file found. Stop." % file
+            print("no %s file found. Stop." % file, file=sys.stderr)
             sys.exit(1)
 
     with open(".bez.yaml") as f:
-        doc = yaml.load(f.read())
+        doc = yaml.load(f.read(), Loader=yaml.FullLoader)
 
     source_path = doc["source_path"]
     buildfile = os.path.join(source_path, "rezbuild.py")
     if not os.path.isfile(buildfile):
-        print >> sys.stderr, "no rezbuild.py at %s. Stop." % source_path
+        print("no rezbuild.py at %s. Stop." % source_path, file=sys.stderr)
         sys.exit(1)
 
     # run rezbuild.py:build() in python subprocess. Cannot import module here
     # because we're in a python env configured for rez, not the build
     code = \
     """
-    stream=open("%(buildfile)s")
     env={}
-    exec stream in env
+    with open("%(buildfile)s") as stream:
+        exec(compile(stream.read(), stream.name, 'exec'), env)
 
     buildfunc = env.get("build")
     if not buildfunc:
         import sys
-        print >> sys.stderr, "Did not find function 'build' in rezbuild.py"
+        sys.stderr.write("Did not find function 'build' in rezbuild.py\\n")
         sys.exit(1)
 
     kwargs = dict(source_path="%(srcpath)s",
@@ -53,8 +56,15 @@ def run():
                   build_args=%(build_args)s)
 
     import inspect
-    args = inspect.getargspec(buildfunc).args
-    kwargs = dict((k, v) for k, v in kwargs.iteritems() if k in args)
+
+    if hasattr(inspect, "getfullargspec"):
+        # support py3 kw-only args
+        spec = inspect.getfullargspec(buildfunc)
+        args = spec.args + spec.kwonlyargs
+    else:
+        args = inspect.getargspec(buildfunc).args
+
+    kwargs = dict((k, v) for k, v in kwargs.items() if k in args)
 
     buildfunc(**kwargs)
 
@@ -72,8 +82,8 @@ def run():
     with open(bezfile, "w") as fd:
         fd.write(cli_code)
 
-    print "executing rezbuild.py..."
-    cmd = ["python", bezfile]
+    print("executing rezbuild.py...")
+    cmd = [sys.executable, bezfile]
     p = subprocess.Popen(cmd)
     p.wait()
     tmpdir_manager.clear()

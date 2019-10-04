@@ -9,6 +9,10 @@ including:
 # these imports just forward the symbols into this module's namespace
 from rez.utils.system import popen
 from rez.exceptions import InvalidPackageError
+from rez.vendor.six import six
+
+
+basestring = six.string_types[0]
 
 
 def expand_requirement(request, paths=None):
@@ -30,11 +34,11 @@ def expand_requirement(request, paths=None):
 
     Examples:
 
-        >>> print expand_requirement('python-2.*')
+        >>> print(expand_requirement('python-2.*'))
         python-2.7
-        >>> print expand_requirement('python==2.**')
+        >>> print(expand_requirement('python==2.**'))
         python==2.7.12
-        >>> print expand_requirement('python<**')
+        >>> print(expand_requirement('python<**'))
         python<3.0.5
 
     Args:
@@ -112,9 +116,9 @@ def expand_requirement(request, paths=None):
         # 'foo-1+<1_' - '1_' is the next possible version after '1'. So we have
         # to detect this case and remap the uid-ified wildcard back here too.
         #
-        for v, expanded_v in expanded_versions.iteritems():
-            if version == v.next():
-                return expanded_v.next()
+        for v, expanded_v in expanded_versions.items():
+            if version == next(v):
+                return next(expanded_v)
 
         version_ = expand_version(version)
         if version_ is None:
@@ -129,7 +133,7 @@ def expand_requirement(request, paths=None):
     result = str(req)
 
     # do some cleanup so that long uids aren't left in invalid wildcarded strings
-    for uid, token in wildcard_map.iteritems():
+    for uid, token in wildcard_map.items():
         result = result.replace(uid, token)
 
     # cast back to a Requirement again, then back to a string. This will catch
@@ -145,9 +149,9 @@ def expand_requires(*requests):
 
     Example:
 
-        >>> print expand_requires(["boost-1.*.*"])
+        >>> print(expand_requires(["boost-1.*.*"]))
         ["boost-1.55.0"]
-        >>> print expand_requires(["boost-1.*"])
+        >>> print(expand_requires(["boost-1.*"]))
         ["boost-1.55"]
 
     Args:
@@ -230,7 +234,7 @@ def find_site_python(module_name, paths=None):
     import ast
     import os
 
-    py_cmd = 'import {x}; print {x}.__path__'.format(x=module_name)
+    py_cmd = 'import {x}; print({x}.__path__)'.format(x=module_name)
 
     p = popen(["python", "-c", py_cmd], stdout=subprocess.PIPE,
                stderr=subprocess.PIPE)

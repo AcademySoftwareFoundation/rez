@@ -1,6 +1,8 @@
 '''
 Build a package from source and deploy it.
 '''
+from __future__ import print_function
+
 import os
 import sys
 from subprocess import call
@@ -9,6 +11,7 @@ from subprocess import call
 def setup_parser(parser, completions=False):
     from rez.cli.build import setup_parser_common
     from rez.release_vcs import get_release_vcs_types
+
     vcs_types = get_release_vcs_types()
     parser.add_argument(
         "-m", "--message", type=str,
@@ -36,16 +39,15 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.packages_ import get_developer_package
     from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
-    from rez.cli.build import get_build_args
+    from rez.cli.build import get_build_args, get_current_developer_package
     from rez.config import config
 
     # load package
     working_dir = os.getcwd()
-    package = get_developer_package(working_dir)
+    package = get_current_developer_package()
 
     # create vcs
     vcs = create_release_vcs(working_dir, opts.vcs)
@@ -95,7 +97,7 @@ def command(opts, parser, extra_arg_groups=None):
             try:
                 changelog = builder.get_changelog()
             except:
-                pass
+                changelog = None
 
             if changelog:
                 txt += ("\n\n%s This is for reference only - this line and all "
@@ -104,7 +106,7 @@ def command(opts, parser, extra_arg_groups=None):
                 txt += changelog
 
             with open(filepath, 'w') as f:
-                print >> f, txt
+                print(txt, file=f)
 
         call([config.editor, filepath])
 
@@ -126,11 +128,11 @@ def command(opts, parser, extra_arg_groups=None):
         if not release_msg:
             ch = None
             while ch not in ('A', 'a', 'C', 'c'):
-                print "Empty release message. [A]bort or [C]ontinue release?"
+                print("Empty release message. [A]bort or [C]ontinue release?")
                 ch = raw_input()
 
             if ch in ('A', 'a'):
-                print "Release aborted."
+                print("Release aborted.")
                 sys.exit(1)
 
     # perform the release

@@ -1,28 +1,32 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from contextlib import contextmanager
+from inspect import isfunction, ismodule
+import sys
+import stat
+import os
+import os.path
+import threading
+
 from rez.package_resources_ import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
-from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
+from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
 from rez.utils.system import add_sys_paths
+from rez.utils import py23
 from rez.config import config
+from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
+from rez.vendor.six.six.moves import StringIO
 from rez.vendor import yaml
-from contextlib import contextmanager
-from inspect import isfunction, ismodule, getargspec
-from StringIO import StringIO
-import sys
-import os
-import os.path
 
 
 tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
-
-
+debug_print = config.debug_printer("file_loads")
 file_cache = {}
 
 
@@ -38,12 +42,19 @@ class FileFormat(Enum):
 
 
 @contextmanager
-def open_file_for_write(filepath):
+def open_file_for_write(filepath, mode=None):
     """Writes both to given filepath, and tmpdir location.
 
     This is to get around the problem with some NFS's where immediately reading
     a file that has just been written is problematic. Instead, any files that we
     write, we also write to /tmp, and reads of these files are redirected there.
+
+    Args:
+        filepath (str): File to write.
+        mode (int): Same mode arg as you would pass to `os.chmod`.
+
+    Yields:
+        File-like object.
     """
     stream = StringIO()
     yield stream
@@ -53,8 +64,26 @@ def open_file_for_write(filepath):
     tmpdir = tmpdir_manager.mkdtemp()
     cache_filepath = os.path.join(tmpdir, os.path.basename(filepath))
 
-    with open(filepath, 'w') as f:
-        f.write(content)
+    debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
+
+    for attempt in range(2):
+        try:
+            with atomic_write(filepath, overwrite=True) as f:
+                f.write(content)
+
+        except WindowsError as e:
+            if attempt == 0:
+                # `overwrite=True` of atomic_write doesn't restore
+                # writability to the file being written to.
+                os.chmod(filepath, stat.S_IWRITE | stat.S_IREAD)
+
+            else:
+                # Under Windows, atomic_write doesn't tell you about
+                # which file actually failed.
+                raise WindowsError("%s: '%s'" % (e, filepath))
+
+    if mode is not None:
+        os.chmod(filepath, mode)
 
     with open(cache_filepath, 'w') as f:
         f.write(content)
@@ -62,7 +91,8 @@ def open_file_for_write(filepath):
     file_cache[filepath] = cache_filepath
 
 
-def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
+def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
+                   disable_memcache=False):
     """Load data from a file.
 
     Note:
@@ -73,17 +103,23 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
         format_ (`FileFormat`): Format of file contents.
         update_data_callback (callable): Used to change data before it is
             returned or cached.
+        disable_memcache (bool): If True, don't r/w to memcache.
 
     Returns:
         dict.
     """
     filepath = os.path.realpath(filepath)
-
     cache_filepath = file_cache.get(filepath)
+
     if cache_filepath:
         # file has been written by this process, read it from /tmp to avoid
         # potential write-then-read issues over NFS
         return _load_file(filepath=cache_filepath,
+                          format_=format_,
+                          update_data_callback=update_data_callback,
+                          original_filepath=filepath)
+    elif disable_memcache:
+        return _load_file(filepath=filepath,
                           format_=format_,
                           update_data_callback=update_data_callback)
     else:
@@ -100,7 +136,7 @@ def _load_from_file__key(filepath, format_, update_data_callback):
         callback_key = getattr(update_data_callback, "__name__", "None")
 
     return str(("package_file", filepath, str(format_), callback_key,
-                st.st_ino, st.st_mtime))
+                int(st.st_ino), st.st_mtime))
 
 
 @memcached(servers=config.memcached_uri if config.cache_package_files else None,
@@ -111,11 +147,15 @@ def _load_from_file(filepath, format_, update_data_callback):
     return _load_file(filepath, format_, update_data_callback)
 
 
-def _load_file(filepath, format_, update_data_callback):
+def _load_file(filepath, format_, update_data_callback, original_filepath=None):
     load_func = load_functions[format_]
 
-    if config.debug("file_loads"):
-        print_debug("Loading file: %s" % filepath)
+    if debug_print:
+        if original_filepath:
+            debug_print("Loading file: %s (local cache of %s)",
+                        filepath, original_filepath)
+        else:
+            debug_print("Loading file: %s", filepath)
 
     with open(filepath) as f:
         result = load_func(f, filepath=filepath)
@@ -123,6 +163,46 @@ def _load_file(filepath, format_, update_data_callback):
     if update_data_callback:
         result = update_data_callback(format_, result)
     return result
+
+
+_set_objects = threading.local()
+
+
+# Default variables to avoid not-defined errors in early-bound attribs
+default_objects = {
+    "building": False,
+    "build_variant_index": 0,
+    "build_variant_requires": []
+}
+
+
+def get_objects():
+    """Get currently bound variables for evaluation of early-bound attribs.
+
+    Returns:
+        dict.
+    """
+    result = default_objects.copy()
+    result.update(getattr(_set_objects, "variables", {}))
+    return result
+
+
+@contextmanager
+def set_objects(objects):
+    """Set the objects made visible to early-bound attributes.
+
+    For example, `objects` might be used to set a 'build_variant_index' var, so
+    that an early-bound 'private_build_requires' can change depending on the
+    currently-building variant.
+
+    Args:
+        objects (dict): Variables to set.
+    """
+    _set_objects.variables = objects
+    try:
+        yield
+    finally:
+        _set_objects.variables = {}
 
 
 def load_py(stream, filepath=None):
@@ -134,16 +214,23 @@ def load_py(stream, filepath=None):
     Returns:
         dict.
     """
+    with add_sys_paths(config.package_definition_build_python_paths):
+        return _load_py(stream, filepath=filepath)
+
+
+def _load_py(stream, filepath=None):
     scopes = ScopeContext()
 
     g = dict(scope=scopes,
              early=early,
              late=late,
              include=include,
+             ModifyList=ModifyList,
              InvalidPackageError=InvalidPackageError)
 
     try:
-        exec stream in g
+        with open(filepath, "rb") as f:
+            exec(compile(f.read(), filepath, 'exec'), g)
     except Exception as e:
         import traceback
         frames = traceback.extract_tb(sys.exc_info()[2])
@@ -158,9 +245,9 @@ def load_py(stream, filepath=None):
 
     result = {}
     excludes = set(('scope', 'InvalidPackageError', '__builtins__',
-                    'early', 'late', 'include'))
+                    'early', 'late', 'include', 'ModifyList'))
 
-    for k, v in g.iteritems():
+    for k, v in g.items():
         if k not in excludes and \
                 (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
@@ -171,7 +258,10 @@ def load_py(stream, filepath=None):
 
 
 class EarlyThis(object):
-    """The 'this' object for @early bound functions."""
+    """The 'this' object for @early bound functions.
+
+    Just exposes raw package data as object attributes.
+    """
     def __init__(self, data):
         self._data = data
 
@@ -217,28 +307,29 @@ def process_python_objects(data, filepath=None):
 
                 # make a copy of the func with its own globals, and add 'this'
                 import types
-                fn = types.FunctionType(func.func_code,
-                                        func.func_globals.copy(),
-                                        name=func.func_name,
-                                        argdefs=func.func_defaults,
-                                        closure=func.func_closure)
+                fn = types.FunctionType(func.__code__,
+                                        func.__globals__.copy(),
+                                        name=func.__name__,
+                                        argdefs=func.__defaults__,
+                                        closure=func.__closure__)
 
-                this = EarlyThis(data)
-                fn.func_globals.update({"this": this})
+                # apply globals
+                fn.__globals__["this"] = EarlyThis(data)
+                fn.__globals__.update(get_objects())
 
-                with add_sys_paths(config.package_definition_build_python_paths):
+                # execute the function
+                args = py23.get_function_arg_names(func)
+
+                if len(args) not in (0, 1):
+                    raise ResourceError("@early decorated function must "
+                                        "take zero or one args only")
+                if args:
                     # this 'data' arg support isn't needed anymore, but I'm
                     # supporting it til I know nobody is using it...
                     #
-                    spec = getargspec(func)
-                    args = spec.args or []
-                    if len(args) not in (0, 1):
-                        raise ResourceError("@early decorated function must "
-                                            "take zero or one args only")
-                    if args:
-                        value_ = fn(data)
-                    else:
-                        value_ = fn()
+                    value_ = fn(data)
+                else:
+                    value_ = fn()
 
                 # process again in case this is a function returning a function
                 return _process(value_)
@@ -269,7 +360,7 @@ def process_python_objects(data, filepath=None):
 
     def _trim(value):
         if isinstance(value, dict):
-            for k, v in value.items():
+            for k, v in list(value.items()):
                 if isfunction(v):
                     if v.__name__ == "preprocess":
                         # preprocess is a special case. It has to stay intact
@@ -308,8 +399,8 @@ def load_yaml(stream, **kwargs):
     # "<string>" with the filename if there's an error...
     content = stream.read()
     try:
-        return yaml.load(content) or {}
-    except Exception, e:
+        return yaml.load(content, Loader=yaml.FullLoader) or {}
+    except Exception as e:
         if stream.name and stream.name != '<string>':
             for mark_name in 'context_mark', 'problem_mark':
                 mark = getattr(e, mark_name, None)

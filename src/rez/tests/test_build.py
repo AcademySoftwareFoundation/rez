@@ -6,16 +6,14 @@ from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildError, BuildContextResolveError,\
     PackageFamilyNotFoundError
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
-    shell_dependent, install_dependent, program_dependent
+    per_available_shell, install_dependent, program_dependent
 import shutil
 import os.path
 
-# TODO: variant-based test
 
 class TestBuild(TestBase, TempdirMixin):
-
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
@@ -26,9 +24,13 @@ class TestBuild(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
         shutil.copytree(packages_path, cls.src_root)
 
+        # include modules
+        pypath = os.path.join(path, "data", "python", "late_bind")
+
         cls.settings = dict(
             packages_path=[cls.install_root],
             package_filter=None,
+            package_definition_python_path=pypath,
             resolve_caching=False,
             warn_untimestamped=False,
             warn_old_commands=False,
@@ -80,7 +82,14 @@ class TestBuild(TestBase, TempdirMixin):
         self._create_context("foo==1.0.0")
 
         self._test_build("foo", "1.1.0")
-        self._create_context("foo==1.1.0")
+        rxt = self._create_context("foo==1.1.0")
+
+        # test that expected env-var is set by foo's commands
+        environ = rxt.get_environ(parent_environ={})
+        self.assertEqual(environ.get("FOO_IN_DA_HOUSE"), "1")
+
+        # test that include modules are working
+        self.assertEqual(environ.get("EEK"), "2")
 
     def _test_build_loco(self):
         """Test that a package with conflicting requirements fails correctly.
@@ -100,7 +109,6 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build("anti", "1.0.0")
         self._create_context("anti==1.0.0")
 
-
     def _test_build_translate_lib(self):
         """Build, install, test the translate_lib package."""
         self._test_build("translate_lib", "2.2.0")
@@ -116,18 +124,18 @@ class TestBuild(TestBase, TempdirMixin):
         proc = context.execute_command(['test_ghetto'], stdout=PIPE)
         stdout = proc.communicate()[0]
         self.assertEqual('sup dogg - how is dis shizzle doin today?',
-                         stdout.strip())
+                         stdout.decode("utf-8").strip())
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_build_whack(self):
         """Test that a broken build fails correctly."""
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
         self.assertRaises(BuildError, builder.build, clean=True)
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_builds(self):
         """Test an interdependent set of builds."""
         self._test_build_build_util()
@@ -136,8 +144,8 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_loco()
         self._test_build_bah()
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_builds_anti(self):
         """Test we can build packages that contain anti packages"""
         self._test_build_build_util()
@@ -162,7 +170,7 @@ class TestBuild(TestBase, TempdirMixin):
 
         proc = context.execute_command(['hai'], stdout=PIPE)
         stdout = proc.communicate()[0]
-        self.assertEqual('Oh hai!', stdout.strip())
+        self.assertEqual('Oh hai!', stdout.decode("utf-8").strip())
 
 
 if __name__ == '__main__':

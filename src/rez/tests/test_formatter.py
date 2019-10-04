@@ -1,9 +1,10 @@
 """
 test rex string formatting
 """
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
+from rez.vendor.six import six
 import sys
 
 
@@ -49,34 +50,34 @@ class TestFormatter(TestBase):
         self.assert_formatter_equal("The year is {0.year}", "The year is 2007", d)
 
         # classes we'll use for testing
-        class C:
+        class C(object):
             def __init__(self, x=100):
                 self._x = x
             def __format__(self, spec):
                 return spec
 
-        class D:
+        class D(object):
             def __init__(self, x):
                 self.x = x
             def __format__(self, spec):
                 return str(self.x)
 
         # class with __str__, but no __format__
-        class E:
+        class E(object):
             def __init__(self, x):
                 self.x = x
             def __str__(self):
                 return 'E(' + self.x + ')'
 
         # class with __repr__, but no __format__ or __str__
-        class F:
+        class F(object):
             def __init__(self, x):
                 self.x = x
             def __repr__(self):
                 return 'F(' + self.x + ')'
 
         # class with __format__ that forwards to string, for some format_spec's
-        class G:
+        class G(object):
             def __init__(self, x):
                 self.x = x
             def __str__(self):
@@ -87,7 +88,7 @@ class TestFormatter(TestBase):
                 return object.__format__(self, format_spec)
 
         # class that returns a bad type from __format__
-        class H:
+        class H(object):
             def __format__(self, format_spec):
                 return 1.0
 
@@ -176,11 +177,15 @@ class TestFormatter(TestBase):
         self.assert_formatter_equal('{0}', '{}', {})
         self.assert_formatter_equal('{0}', '[]', [])
         self.assert_formatter_equal('{0}', '[1]', [1])
-        self.assert_formatter_equal('{0}', 'E(data)', E('data'))
-        self.assert_formatter_equal('{0:^10}', ' E(data)  ', E('data'))
-        self.assert_formatter_equal('{0:^10s}', ' E(data)  ', E('data'))
+
+        if six.PY2:
+            # Classes without __format__ are not supported in Python 3
+            self.assert_formatter_equal('{0}', 'E(data)', E('data'))
+            self.assert_formatter_equal('{0:^10}', ' E(data)  ', E('data'))
+            self.assert_formatter_equal('{0:^10s}', ' E(data)  ', E('data'))
+            self.assert_formatter_equal('{0:>15s}', ' string is data', G('data'))
+
         self.assert_formatter_equal('{0:d}', 'G(data)', G('data'))
-        self.assert_formatter_equal('{0:>15s}', ' string is data', G('data'))
         self.assert_formatter_equal('{0!s}', 'string is data', G('data'))
 
         self.assert_formatter_equal("{0:date: %Y-%m-%d}", "date: 2007-08-27",
@@ -215,11 +220,16 @@ class TestFormatter(TestBase):
         self.assert_formatter_raises("}{", ValueError)
         self.assert_formatter_raises("{", ValueError)
         self.assert_formatter_raises("}", ValueError)
-        self.assert_formatter_raises("abc{0:{}", ValueError)
+        self.assert_formatter_raises(r"abc{0:{}", ValueError)
         self.assert_formatter_raises("{0", ValueError)
         self.assert_formatter_raises("{0.}", IndexError)
         self.assert_formatter_raises("{0.}", ValueError, 0)
-        self.assert_formatter_raises("{0[}", IndexError)
+
+        if six.PY2:
+            self.assert_formatter_raises("{0[}", IndexError)
+        else:
+            self.assert_formatter_raises("{0[}", ValueError)
+
         self.assert_formatter_raises("{0[}", ValueError, [])
         self.assert_formatter_raises("{0]}", KeyError)
         self.assert_formatter_raises("{0.[]}", ValueError, 0)
@@ -238,9 +248,14 @@ class TestFormatter(TestBase):
         # in python 2.7 onwards, string.Formatter raises KeyError here, rather
         # than ValueError. In rex we keep this as ValueError (the change is due
         # to implicit positional arguments, not applicable in rex).
-        self.assert_formatter_raises("{:}", ValueError)
-        self.assert_formatter_raises("{:s}", ValueError)
-        self.assert_formatter_raises("{}", ValueError)
+        if six.PY2:
+            self.assert_formatter_raises("{:}", ValueError)
+            self.assert_formatter_raises("{:s}", ValueError)
+            self.assert_formatter_raises("{}", ValueError)
+        else:
+            self.assert_formatter_raises("{:}", IndexError)
+            self.assert_formatter_raises("{:s}", IndexError)
+            self.assert_formatter_raises("{}", IndexError)
 
         # issue 6089
         self.assert_formatter_raises("{0[0]x}", ValueError, [None])

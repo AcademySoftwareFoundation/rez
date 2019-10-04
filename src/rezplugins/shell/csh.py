@@ -16,13 +16,6 @@ class CSH(UnixShell):
     last_command_status = '$status'
     histfile = "~/.history"
     histvar = "histfile"
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('csh')
-        return cls._executable
 
     @classmethod
     def name(cls):
@@ -34,23 +27,31 @@ class CSH(UnixShell):
 
     @classmethod
     def get_syspaths(cls):
-        if not cls.syspaths:
-            cmd = "cmd=`which %s`; unset PATH; $cmd %s 'echo __PATHS_ $PATH'" \
-                  % (cls.name(), cls.command_arg)
-            p = popen(cmd, stdout=subprocess.PIPE,
-                      stderr=subprocess.PIPE, shell=True)
-            out_, err_ = p.communicate()
-            if p.returncode:
-                paths = []
-            else:
-                lines = out_.split('\n')
-                line = [x for x in lines if "__PATHS_" in x.split()][0]
-                paths = line.strip().split()[-1].split(os.pathsep)
+        if cls.syspaths is not None:
+            return cls.syspaths
 
-            for path in os.defpath.split(os.path.pathsep):
-                if path not in paths:
-                    paths.append(path)
-            cls.syspaths = [x for x in paths if x]
+        if config.standard_system_paths:
+            cls.syspaths = config.standard_system_paths
+            return cls.syspaths
+
+        # detect system paths using registry
+        cmd = "cmd=`which %s`; unset PATH; $cmd %s 'echo __PATHS_ $PATH'" \
+              % (cls.name(), cls.command_arg)
+        p = popen(cmd, stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE, shell=True)
+        out_, err_ = p.communicate()
+        if p.returncode:
+            paths = []
+        else:
+            lines = out_.split('\n')
+            line = [x for x in lines if "__PATHS_" in x.split()][0]
+            paths = line.strip().split()[-1].split(os.pathsep)
+
+        for path in os.defpath.split(os.path.pathsep):
+            if path not in paths:
+                paths.append(path)
+
+        cls.syspaths = [x for x in paths if x]
         return cls.syspaths
 
     @classmethod

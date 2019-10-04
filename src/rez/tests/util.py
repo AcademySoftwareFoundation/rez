@@ -1,16 +1,24 @@
-import rez.vendor.unittest2 as unittest
+from __future__ import print_function
+
+import unittest
 from rez.config import config, _create_locked_config
-from rez.shells import get_shell_types
+from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
 import tempfile
 import shutil
 import os.path
 import os
 import functools
+import sys
+from contextlib import contextmanager
 
 
 class TestBase(unittest.TestCase):
     """Unit test base class."""
+    def __init__(self, *nargs, **kwargs):
+        super(TestBase, self).__init__(*nargs, **kwargs)
+        self.setup_once_called = False
+
     @classmethod
     def setUpClass(cls):
         cls.settings = {}
@@ -21,6 +29,15 @@ class TestBase(unittest.TestCase):
 
         # shield unit tests from any user config overrides
         self.setup_config()
+
+        # hook to run code once before all tests, but after the config has
+        # been overridden.
+        if not self.setup_once_called:
+            self.setup_once()
+            self.setup_once_called = True
+
+    def setup_once(self):
+        pass
 
     def tearDown(self):
         self.teardown_config()
@@ -59,7 +76,7 @@ class TestBase(unittest.TestCase):
             new_settings will be the only configuration settings applied
         """
         # restore the "normal" config...
-        from rez.util import deep_update
+        from rez.utils.data_utils import deep_update
 
         self.teardown_config()
 
@@ -103,19 +120,18 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
     return None
 
 
-program_tests = {
-    "cmake": ['cmake', '-h'],
-    "make": ['make', '-h'],
-    "g++": ["g++", "--help"]
-}
-
-
 def program_dependent(program_name, *program_names):
-
-    # test if program exists
+    """Function decorator that skips the function if not all given programs are
+    visible."""
     import subprocess
-    import errno
 
+    program_tests = {
+        "cmake": ['cmake', '-h'],
+        "make": ['make', '-h'],
+        "g++": ["g++", "--help"]
+    }
+
+    # test if programs all exist
     def _test(name):
         command = program_tests[name]
 
@@ -128,121 +144,126 @@ def program_dependent(program_name, *program_names):
                 return True
 
     names = [program_name] + list(program_names)
-    exists = all(_test(x) for x in names)
+    all_exist = all(_test(x) for x in names)
 
-    if exists:
-        def wrapper(fn):
-            return fn
-
-    else:
-        def wrapper(fn):
-            return unittest.skip("Program(s) not available: %s" % names)(fn)
-
-    return wrapper
-
-
-def shell_dependent(exclude=None):
-    """Function decorator that runs the function over all shell types."""
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            shells = get_shell_types()
-            only_shell = os.getenv("__REZ_SELFTEST_SHELL")
-            if only_shell:
-                shells = [only_shell]
+            if not all_exist:
+                self.skipTest(
+                    "Requires all programs to be present and functioning: %s"
+                    % names
+                )
 
-            for shell in shells:
-                if exclude and shell in exclude:
-                    self.skipTest("This test does not run on %s shell." % shell)
-                print "\ntesting in shell: %s..." % shell
-                config.override("default_shell", shell)
-                func(self, *args, **kwargs)
+            return func(self, *args, **kwargs)
         return wrapper
     return decorator
 
 
-def install_dependent(fn):
+def per_available_shell():
+    """Function decorator that runs the function over all available shell types."""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            shells = get_shell_types()
+
+            only_shell = os.getenv("__REZ_SELFTEST_SHELL")
+            if only_shell:
+                shells = [only_shell]
+
+            # filter to only those shells available
+            shells = [
+                x for x in shells
+                if get_shell_class(x).is_available()
+            ]
+
+            for shell in shells:
+                print("\ntesting in shell: %s..." % shell)
+                config.override("default_shell", shell)
+
+                try:
+                    func(self, *args, **kwargs)
+                except Exception as e:
+                    # Add the shell to the exception message, if possible.
+                    # In some IDEs the args do not exist at all.
+                    if hasattr(e, "args") and e.args:
+                        try:
+                            args = list(e.args)
+                            args[0] += " (in shell '{}')".format(shell)
+                            e.args = tuple(args)
+                        except:
+                            raise e
+                    raise
+        return wrapper
+    return decorator
+
+
+def install_dependent():
     """Function decorator that skips tests if not run via 'rez-selftest' tool,
     from a production install"""
-    @functools.wraps(fn)
-    def _fn(self, *args, **kwargs):
-        if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
-            fn(self, *args, **kwargs)
-        else:
-            print ("\nskipping test, must be run via 'rez-selftest' tool, from "
-                   "a PRODUCTION rez installation.")
-    return _fn
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
+                return func(self, *args, **kwargs)
+            else:
+                self.skipTest(
+                    "Must be run via 'rez-selftest' tool, see "
+                    "https://github.com/nerdvegas/rez/wiki/Installation#installation-script"
+                )
+        return wrapper
+    return decorator
 
 
-def get_cli_output(args):
-    """Invoke the named command-line rez command, with the given string
-    command line args
+@contextmanager
+def restore_sys_path():
+    """Encapsulate changes to sys.path and return to the original state.
 
-    Note that it does this by calling rez.cli._main.run within the same
-    python process, for efficiency; if for some reason this is not sufficient
-    encapsulation / etc, you can use subprocess to invoke the rez as a
-    separate process
+    This context manager lets you wrap modifications of sys.path and not worry
+    about reverting back to the original.
 
-    Returns
-    -------
-    stdout : basestring
-        the captured output to sys.stdout
-    exitcode : int
-        the returncode from the command
+    Examples:
+        >>> path = '/arbitrary/path'
+        >>> with sys_path():
+        >>>     sys.path.insert(0, '/arbitrary/path')
+        >>>     assert path in sys.path
+        True
+
+        >>> assert path in sys.path
+        False
+
+    Yields:
+        list: The original sys.path.
     """
+    original = sys.path[:]
+    yield sys.path
+    sys.path = original
 
-    import sys
-    from StringIO import StringIO
 
-    command = args[0]
-    other_args = list(args[1:])
-    if command.startswith('rez-'):
-        command = command[4:]
-    exitcode = None
+@contextmanager
+def restore_os_environ():
+    """Encapsulate changes to os.environ and return to the original state.
 
-    # first swap sys.argv...
-    old_argv = sys.argv
-    new_argv = ['rez-%s' % command] + other_args
-    sys.argv = new_argv
-    try:
+    This context manager lets you wrap modifications of os.environ and not
+    worry about reverting back to the original.
 
-        # then redirect stdout using os.dup2
+    Examples:
+        >>> key = 'ARBITRARY_KEY'
+        >>> value = 'arbitrary_value'
+        >>> with os_environ():
+        >>>     os.environ[key] = value
+        >>>     assert key in os.environ
+        True
 
-        # we can't just ye' ol sys.stdout swap trick, because some places may
-        # still be holding onto references to the "real" sys.stdout - ie, if
-        # a function has a kwarg default (as in rez.status.Status.print_info)
-        # So, instead we swap at a file-descriptor level... potentially less
-        # portable, but has been tested to work on linux, osx, and windows...
-        with tempfile.TemporaryFile(bufsize=0, prefix='rez_cliout') as tf:
-            new_fileno = tf.fileno()
-            old_fileno = sys.stdout.fileno()
-            old_fileno_dupe = os.dup(old_fileno)
+        >>> assert key in os.environ
+        False
 
-            # make sure we flush before any switches...
-            sys.stdout.flush()
-            # ...then redirect stdout to our temp file...
-            os.dup2(new_fileno, old_fileno)
-            try:
-                try:
-                    # and finally invoke the "command-line" rez-COMMAND
-                    from rez.cli._main import run
-                    run(command)
-                except SystemExit as e:
-                    exitcode = e.args[0]
-            finally:
-                # restore stdout
-                sys.stdout.flush()
-                tf.flush()
-                os.dup2(old_fileno_dupe, old_fileno)
-
-            # ok, now read the output we redirected to the file...
-            tf.seek(0, os.SEEK_SET)
-            output = tf.read()
-    finally:
-        # restore argv...
-        sys.argv = old_argv
-
-    return output, exitcode
+    Yields:
+        dict: The original os.environ.
+    """
+    original = os.environ.copy()
+    yield os.environ
+    os.environ = original
 
 
 # Copyright 2013-2016 Allan Johns.

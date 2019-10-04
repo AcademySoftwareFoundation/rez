@@ -1,11 +1,17 @@
+from __future__ import print_function
+
 from rez.config import config
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
+from rez.utils import py23
 from threading import local
 from contextlib import contextmanager
 from functools import update_wrapper
-from inspect import getargspec, isgeneratorfunction
+from inspect import isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
+from rez.vendor.six import six
+
+basestring = six.string_types[0]
 
 
 # this version should be changed if and when the caching interface changes
@@ -152,7 +158,7 @@ class Client(object):
         """Disconnect from server(s). Behaviour is undefined after this call."""
         if self.servers and self._client:
             self._client.disconnect_all()
-        #print "Disconnected memcached client %s" % str(self)
+        # print("Disconnected memcached client %s" % str(self))
 
     def _qualified_key(self, key):
         return "%s:%s:%s" % (cache_interface_version, self.current, key)
@@ -162,7 +168,7 @@ class Client(object):
 
     @classmethod
     def _key_hash(cls, key):
-        return md5(key).hexdigest()
+        return md5(key.encode("utf-8")).hexdigest()
 
     @classmethod
     def _debug_key_hash(cls, key):
@@ -297,8 +303,8 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
     """
     def default_key(func, *nargs, **kwargs):
         parts = [func.__module__]
+        argnames =  py23.get_function_arg_names(func)
 
-        argnames = getargspec(func).args
         if argnames:
             if argnames[0] == "cls":
                 cls_ = nargs[0]

@@ -1,13 +1,16 @@
+from __future__ import print_function
+
 from rez import __version__, module_root_path
 from rez.package_repository import package_repository_manager
 from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.util import shlex_join, dedup
+from rez.util import shlex_join, dedup, is_non_string_iterable
 from rez.utils.sourcecode import SourceCodeError
 from rez.utils.colorize import critical, heading, local, implicit, Printer
-from rez.utils.formatting import columnise, PackageRequest
+from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX
+from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs
 from rez.utils.memcached import pool_memcached_connections
 from rez.backport.shutilwhich import which
@@ -20,13 +23,18 @@ from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
+from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
+from rez.utils import json
 from rez.utils.yaml import dump_yaml
+
 from tempfile import mkdtemp
 from functools import wraps
 import getpass
+import socket
+import threading
 import traceback
 import inspect
 import time
@@ -34,8 +42,8 @@ import sys
 import os
 import os.path
 
-# specifically so that str's are not converted to unicode on load
-from rez.vendor import simplejson
+
+basestring = six.string_types[0]
 
 
 class RezToolsVisibility(Enum):
@@ -113,6 +121,9 @@ class ResolvedContext(object):
     """
     serialize_version = (4, 3)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
+
+    context_tracking_payload = None
+    context_tracking_lock = threading.Lock()
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
@@ -213,7 +224,7 @@ class ResolvedContext(object):
         self.rez_version = __version__
         self.rez_path = module_root_path
         self.user = getpass.getuser()
-        self.host = system.fqdn
+        self.host = system.hostname
         self.platform = system.platform
         self.arch = system.arch
         self.os = system.os
@@ -284,6 +295,11 @@ class ResolvedContext(object):
             for variant in resolver.resolved_packages:
                 variant.set_context(self)
                 self._resolved_packages.append(variant)
+
+        # track context usage
+        if config.context_tracking_host:
+            data = self.to_dict(fields=config.context_tracking_context_fields)
+            self._track_context(data, action="created")
 
     def __str__(self):
         request = self.requested_packages(include_implicit=True)
@@ -477,7 +493,7 @@ class ResolvedContext(object):
                 if variant.name not in overrides:
                     if len(variant.version) >= rank:
                         version = variant.version.trim(rank - 1)
-                        version = version.next()
+                        version = next(version)
                         req = "~%s<%s" % (variant.name, str(version))
                         rank_limiters.append(req)
             request += rank_limiters
@@ -527,7 +543,7 @@ class ResolvedContext(object):
         if config.rxt_as_yaml:
             content = dump_yaml(doc)
         else:
-            content = simplejson.dumps(doc, indent=4, separators=(",", ": "))
+            content = json.dumps(doc, indent=4, separators=(",", ": "))
 
         buf.write(content)
 
@@ -827,7 +843,7 @@ class ResolvedContext(object):
         removed_packages = d.get("removed_packages", set())
 
         if newer_packages:
-            for name, pkgs in newer_packages.iteritems():
+            for name, pkgs in newer_packages.items():
                 this_pkg = pkgs[0]
                 other_pkg = pkgs[-1]
                 diff_str = "(+%d versions)" % (len(pkgs) - 1)
@@ -836,7 +852,7 @@ class ResolvedContext(object):
                             diff_str))
 
         if older_packages:
-            for name, pkgs in older_packages.iteritems():
+            for name, pkgs in older_packages.items():
                 this_pkg = pkgs[0]
                 other_pkg = pkgs[-1]
                 diff_str = "(-%d versions)" % (len(pkgs) - 1)
@@ -852,7 +868,7 @@ class ResolvedContext(object):
             for pkg in sorted(removed_packages, key=lambda x: x.name):
                 rows.append((pkg.qualified_name, "-", ""))
 
-        print '\n'.join(columnise(rows))
+        print('\n'.join(columnise(rows)))
 
     def _on_success(fn):
         @wraps(fn)
@@ -893,7 +909,7 @@ class ResolvedContext(object):
                  ("fillcolor", node_color),
                  ("style", "filled")]
 
-        for name, qname in nodes.iteritems():
+        for name, qname in nodes.items():
             g.add_node(name, attrs=attrs + [("label", qname)])
         for edge in edges:
             g.add_edge(edge)
@@ -975,7 +991,7 @@ class ResolvedContext(object):
         """
         variants = set()
         tools_dict = self.get_tools(request_only=False)
-        for variant, tools in tools_dict.itervalues():
+        for variant, tools in tools_dict.values():
             if tool_name in tools:
                 variants.add(variant)
         return variants
@@ -995,11 +1011,11 @@ class ResolvedContext(object):
 
         tool_sets = defaultdict(set)
         tools_dict = self.get_tools(request_only=request_only)
-        for variant, tools in tools_dict.itervalues():
+        for variant, tools in tools_dict.values():
             for tool in tools:
                 tool_sets[tool].add(variant)
 
-        conflicts = dict((k, v) for k, v in tool_sets.iteritems() if len(v) > 1)
+        conflicts = dict((k, v) for k, v in tool_sets.items() if len(v) > 1)
         return conflicts
 
     @_on_success
@@ -1193,7 +1209,7 @@ class ResolvedContext(object):
         """
         sh = create_shell(shell)
 
-        if hasattr(command, "__iter__"):
+        if is_non_string_iterable(command):
             command = sh.join(command)
 
         # start a new session if specified
@@ -1241,8 +1257,8 @@ class ResolvedContext(object):
         with open(context_file, 'w') as f:
             f.write(context_code)
 
-        quiet = quiet or (RezToolsVisibility[config.rez_tools_visibility]
-                          == RezToolsVisibility.never)
+        quiet = quiet or \
+            (RezToolsVisibility[config.rez_tools_visibility] == RezToolsVisibility.never)
 
         # spawn the shell subprocess
         p = sh.spawn_shell(context_file,
@@ -1261,38 +1277,62 @@ class ResolvedContext(object):
         else:
             return p
 
-    def to_dict(self):
-        resolved_packages = []
-        for pkg in (self._resolved_packages or []):
-            resolved_packages.append(pkg.handle.to_dict())
+    def to_dict(self, fields=None):
+        """Convert context to dict containing only builtin types.
 
-        serialize_version = '.'.join(str(x) for x in ResolvedContext.serialize_version)
-        patch_locks = dict((k, v.name) for k, v in self.patch_locks)
+        Args:
+            fields (list of str): If present, only write these fields into the
+                dict. This can be used to avoid constructing expensive fields
+                (such as 'graph') for some cases.
 
-        package_orderers_list = [package_order.to_pod(x)
-                                 for x in (self.package_orderers or [])]
+        Returns:
+            dict: Dictified context.
+        """
+        data = {}
 
-        if self.graph_string and self.graph_string.startswith('{'):
-            graph_str = self.graph_string  # already in compact format
-        else:
-            g = self.graph()
-            graph_str = write_compacted(g)
+        def _add(field):
+            return (fields is None or field in fields)
 
-        return dict(
-            serialize_version=serialize_version,
+        if _add("resolved_packages"):
+            resolved_packages = []
+            for pkg in (self._resolved_packages or []):
+                resolved_packages.append(pkg.handle.to_dict())
+            data["resolved_packages"] = resolved_packages
 
+        if _add("serialize_version"):
+            data["serialize_version"] = \
+                '.'.join(map(str, ResolvedContext.serialize_version))
+
+        if _add("patch_locks"):
+            data["patch_locks"] = dict((k, v.name) for k, v in self.patch_locks)
+
+        if _add("package_orderers"):
+            package_orderers = [package_order.to_pod(x)
+                                for x in (self.package_orderers or [])]
+            data["package_orderers"] = package_orderers or None
+
+        if _add("package_filter"):
+            data["package_filter"] = self.package_filter.to_pod()
+
+        if _add("graph"):
+            if self.graph_string and self.graph_string.startswith('{'):
+                graph_str = self.graph_string  # already in compact format
+            else:
+                g = self.graph()
+                graph_str = write_compacted(g)
+
+            data["graph"] = graph_str
+
+        data.update(dict(
             timestamp=self.timestamp,
             requested_timestamp=self.requested_timestamp,
             building=self.building,
             caching=self.caching,
-            implicit_packages=[str(x) for x in self.implicit_packages],
-            package_requests=[str(x) for x in self._package_requests],
+            implicit_packages=list(map(str, self.implicit_packages)),
+            package_requests=list(map(str, self._package_requests)),
             package_paths=self.package_paths,
-            package_filter=self.package_filter.to_pod(),
-            package_orderers=package_orderers_list or None,
 
             default_patch_lock=self.default_patch_lock.name,
-            patch_locks=patch_locks,
 
             rez_version=self.rez_version,
             rez_path=self.rez_path,
@@ -1307,14 +1347,18 @@ class ResolvedContext(object):
             suite_context_name=self.suite_context_name,
 
             status=self.status_.name,
-            resolved_packages=resolved_packages,
             failure_description=self.failure_description,
-            graph=graph_str,
 
             from_cache=self.from_cache,
             solve_time=self.solve_time,
             load_time=self.load_time,
-            num_loaded_packages=self.num_loaded_packages)
+            num_loaded_packages=self.num_loaded_packages
+        ))
+
+        if fields:
+            data = dict((k, v) for k, v in data.items() if k in fields)
+
+        return data
 
     @classmethod
     def from_dict(cls, d, identifier_str=None):
@@ -1344,7 +1388,7 @@ class ResolvedContext(object):
             msg.append("was written by a newer version of Rez. The load may "
                        "fail (serialize version %d > %d)"
                        % (_print_version(load_ver), _print_version(curr_ver)))
-            print >> sys.stderr, ' '.join(msg)
+            print(' '.join(msg), file=sys.stderr)
 
         # create and init the context
         r = ResolvedContext.__new__(ResolvedContext)
@@ -1425,16 +1469,72 @@ class ResolvedContext(object):
 
         r.num_loaded_packages = d.get("num_loaded_packages", -1)
 
+        # track context usage
+        if config.context_tracking_host:
+            data = dict((k, v) for k, v in d.items()
+                        if k in config.context_tracking_context_fields)
+
+            r._track_context(data, action="sourced")
+
         return r
+
+    @classmethod
+    def _init_context_tracking_payload_base(cls):
+        if cls.context_tracking_payload is not None:
+            return
+
+        data = {
+            "host": socket.gethostname(),
+            "user": getpass.getuser()
+        }
+
+        data.update(config.context_tracking_extra_fields or {})
+
+        # remove fields with unexpanded env-vars, or empty string
+        def _del(value):
+            return (
+                isinstance(value, basestring) and
+                (not value or ENV_VAR_REGEX.search(value))
+            )
+
+        data = deep_del(data, _del)
+
+        with cls.context_tracking_lock:
+            if cls.context_tracking_payload is None:
+                cls.context_tracking_payload = data
+
+    def _track_context(self, context_data, action):
+        from rez.utils.amqp import publish_message
+
+        # create message payload
+        data = {
+            "action": action,
+            "context": context_data
+        }
+
+        self._init_context_tracking_payload_base()
+        data.update(self.context_tracking_payload)
+
+        # publish message
+        routing_key = (config.context_tracking_amqp["exchange_routing_key"] +
+                       '.' + action.upper())
+
+        publish_message(
+            host=config.context_tracking_host,
+            amqp_settings=config.context_tracking_amqp,
+            routing_key=routing_key,
+            data=data,
+            block=False
+        )
 
     @classmethod
     def _read_from_buffer(cls, buf, identifier_str=None):
         content = buf.read()
 
         if content.startswith('{'):  # assume json content
-            doc = simplejson.loads(content)
+            doc = json.loads(content)
         else:
-            doc = yaml.load(content)
+            doc = yaml.load(content, Loader=yaml.FullLoader)
 
         context = cls.from_dict(doc, identifier_str)
         return context
@@ -1521,7 +1621,7 @@ class ResolvedContext(object):
 
         # binds objects such as 'request', which are accessible before a resolve
         bindings = self._get_pre_resolve_bindings()
-        for k, v in bindings.iteritems():
+        for k, v in bindings.items():
             executor.bind(k, v)
 
         executor.bind('resolve', VariantsBinding(resolved_pkgs))

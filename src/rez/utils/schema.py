@@ -1,7 +1,11 @@
 """
 Utilities for working with dict-based schemas.
 """
+from rez.vendor.six import six
 from rez.vendor.schema.schema import Schema, Optional, Use, And
+
+
+basestring = six.string_types[0]
 
 
 # an alias which just so happens to be the same number of characters as
@@ -29,7 +33,7 @@ def schema_keys(schema):
     dict_ = schema._schema
     assert isinstance(dict_, dict)
 
-    for key in dict_.iterkeys():
+    for key in dict_.keys():
         key_ = _get_leaf(key)
         if isinstance(key_, basestring):
             keys.add(key_)
@@ -56,7 +60,7 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
     def _to(value):
         if isinstance(value, dict):
             d = {}
-            for k, v in value.iteritems():
+            for k, v in value.items():
                 if isinstance(k, basestring):
                     k = Required(k) if required else Optional(k)
                 d[k] = _to(v)

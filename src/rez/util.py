@@ -3,6 +3,7 @@ Misc useful stuff.
 """
 import stat
 import sys
+import collections
 import atexit
 import os
 import os.path
@@ -10,15 +11,34 @@ import copy
 from rez.exceptions import RezError
 from rez.utils.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
-
+from rez.vendor.enum import Enum
+from rez.vendor.six import six
 
 DEV_NULL = open(os.devnull, 'w')
 
-"""
-class _Missing:
-    pass
-_missing = _Missing()
-"""
+
+class ExecutableScriptMode(Enum):
+    """
+    Which scripts to create with util.create_executable_script.
+    """
+    # Start with 1 to not collide with None checks
+
+    # Requested script only. Usually extension-less.
+    single = 1
+
+    # Create .py script that will allow launching scripts on
+    # windows without extension, but may require extension on
+    # other systems.
+    py = 2
+
+    # Will create py script on windows and requested on
+    # other platforms
+    platform_specific = 3
+
+    # Creates the requested script and an .py script so that scripts
+    # can be launched without extension from windows and other
+    # systems.
+    both = 4
 
 
 class ProgressBar(Bar):
@@ -31,19 +51,31 @@ class ProgressBar(Bar):
         super(Bar, self).__init__(label, max=max, bar_prefix=' [', bar_suffix='] ')
 
 
-# TODO: use distlib.ScriptMaker
-# TODO: or, do the work ourselves to make this cross platform
-# FIXME: *nix only
-def create_executable_script(filepath, body, program=None):
-    """Create an executable script.
+# TODO: Maybe also allow distlib.ScriptMaker instead of the .py + PATHEXT.
+def create_executable_script(filepath, body, program=None, py_script_mode=None):
+    """
+    Create an executable script. In case a py_script_mode has been set to create
+    a .py script the shell is expected to have the PATHEXT environment
+    variable to include ".PY" in order to properly launch the command without
+    the .py extension.
 
     Args:
         filepath (str): File to create.
         body (str or callable): Contents of the script. If a callable, its code
             is used as the script body.
-        program (str): Name of program to launch the script, 'python' if None
+        program (str): Name of program to launch the script. Default is 'python'
+        py_script_mode(ExecutableScriptMode): What kind of script to create.
+            Defaults to rezconfig.create_executable_script_mode.
+    Returns:
+        List of filepaths of created scripts. This may differ from the supplied
+        filepath depending on the py_script_mode
+
     """
+    from rez.config import config
+    from rez.utils.platform_ import platform_
     program = program or "python"
+    py_script_mode = py_script_mode or config.create_executable_script_mode
+
     if callable(body):
         from rez.utils.sourcecode import SourceCode
         code = SourceCode(func=body)
@@ -52,18 +84,73 @@ def create_executable_script(filepath, body, program=None):
     if not body.endswith('\n'):
         body += '\n'
 
-    with open(filepath, 'w') as f:
-        # TODO: make cross platform
-        f.write("#!/usr/bin/env %s\n" % program)
-        f.write(body)
+    # Windows does not support shebang, but it will run with
+    # default python, or in case of later python versions 'py' that should
+    # try to use sensible python interpreters depending on the shebang line.
+    # Compare PEP-397.
+    # In order for execution to work in windows we need to create a .py
+    # file and set the PATHEXT to include .py (as done by the shell plugins)
+    # So depending on the py_script_mode we might need to create more then
+    # one script
 
-    # TODO: Although Windows supports os.chmod you can only set the readonly
-    # flag. Setting the file readonly breaks the unit tests that expect to
-    # clean up the files once the test has run.  Temporarily we don't bother
-    # setting the permissions, but this will need to change.
-    if os.name == "posix":
-    	os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    script_filepaths = [filepath]
+    if program == "python":
+        script_filepaths = _get_python_script_files(filepath, py_script_mode,
+                                                    platform_.name)
+
+    for current_filepath in script_filepaths:
+        with open(current_filepath, 'w') as f:
+            # TODO: make cross platform
+            f.write("#!/usr/bin/env %s\n" % program)
+            f.write(body)
+
+        # TODO: Although Windows supports os.chmod you can only set the readonly
+        # flag. Setting the file readonly breaks the unit tests that expect to
+        # clean up the files once the test has run.  Temporarily we don't bother
+        # setting the permissions, but this will need to change.
+        if os.name == "posix":
+            os.chmod(current_filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+                     | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    return script_filepaths
+
+
+def _get_python_script_files(filepath, py_script_mode, platform):
+    """
+    Evaluates the py_script_mode for the requested filepath on the given
+    platform.
+
+    Args:
+        filepath: requested filepath
+        py_script_mode (ExecutableScriptMode):
+        platform (str): Platform to evaluate the script files for
+
+    Returns:
+        list of str: filepaths of scripts to create based on inputs
+
+    """
+    script_filepaths = []
+    base_filepath, extension = os.path.splitext(filepath)
+    has_py_ext = extension == ".py"
+    is_windows = platform == "windows"
+
+    if py_script_mode == ExecutableScriptMode.single or \
+            py_script_mode == ExecutableScriptMode.both or \
+            (py_script_mode == ExecutableScriptMode.py and has_py_ext) or \
+            (py_script_mode == ExecutableScriptMode.platform_specific and
+             not is_windows) or \
+            (py_script_mode == ExecutableScriptMode.platform_specific and
+             is_windows and has_py_ext):
+        script_filepaths.append(filepath)
+
+    if not has_py_ext and \
+            ((py_script_mode == ExecutableScriptMode.both) or
+             (py_script_mode == ExecutableScriptMode.py) or
+             (py_script_mode == ExecutableScriptMode.platform_specific and
+              is_windows)):
+        script_filepaths.append(base_filepath + ".py")
+
+    return script_filepaths
 
 
 def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
@@ -101,7 +188,7 @@ def shlex_join(value):
     def quote(s):
         return pipes.quote(s) if '$' not in s else s
 
-    if hasattr(value, '__iter__'):
+    if is_non_string_iterable(value):
         return ' '.join(quote(x) for x in value)
     else:
         return str(value)
@@ -156,7 +243,7 @@ def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
     for pkg_, r in (matches + fam_matches):
         d[pkg_] = d.get(pkg_, 0.0) + r
 
-    combined = [(k, v * 0.5) for k, v in d.iteritems()]
+    combined = [(k, v * 0.5) for k, v in d.items()]
     return sorted(combined, key=lambda x: -x[1])
 
 
@@ -172,18 +259,6 @@ def find_last_sublist(list_, sublist):
     return None
 
 
-def deep_update(dict1, dict2):
-    """Perform a deep merge of `dict2` into `dict1`.
-
-    Note that `dict2` and any nested dicts are unchanged.
-    """
-    for k, v in dict2.iteritems():
-        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
-            deep_update(dict1[k], v)
-        else:
-            dict1[k] = copy.deepcopy(v)
-
-
 @atexit.register
 def _atexit():
     try:
@@ -192,6 +267,19 @@ def _atexit():
     except RezError:
         pass
 
+
+def is_non_string_iterable(arg):
+    """Python 2 and 3 compatible non-string iterable identifier"""
+
+    if six.PY2:
+        iterable_class = collections.Iterable
+    else:
+        iterable_class = collections.abc.Iterable
+
+    return (
+        isinstance(arg, iterable_class)
+        and not isinstance(arg, six.string_types)
+    )
 
 # Copyright 2013-2016 Allan Johns.
 #

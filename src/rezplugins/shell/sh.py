@@ -16,13 +16,6 @@ class SH(UnixShell):
     norc_arg = '--noprofile'
     histfile = "~/.bash_history"
     histvar = "HISTFILE"
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('sh')
-        return cls._executable
 
     @classmethod
     def name(cls):
@@ -34,23 +27,30 @@ class SH(UnixShell):
 
     @classmethod
     def get_syspaths(cls):
-        if not cls.syspaths:
-            cmd = "cmd=`which %s`; unset PATH; $cmd %s %s 'echo __PATHS_ $PATH'" \
-                  % (cls.name(), cls.norc_arg, cls.command_arg)
-            p = popen(cmd, stdout=subprocess.PIPE,
-                      stderr=subprocess.PIPE, shell=True)
-            out_, err_ = p.communicate()
-            if p.returncode:
-                paths = []
-            else:
-                lines = out_.split('\n')
-                line = [x for x in lines if "__PATHS_" in x.split()][0]
-                paths = line.strip().split()[-1].split(os.pathsep)
+        if cls.syspaths is not None:
+            return cls.syspaths
 
-            for path in os.defpath.split(os.path.pathsep):
-                if path not in paths:
-                    paths.append(path)
-            cls.syspaths = [x for x in paths if x]
+        if config.standard_system_paths:
+            cls.syspaths = config.standard_system_paths
+            return cls.syspaths
+
+        # detect system paths using registry
+        cmd = "cmd=`which %s`; unset PATH; $cmd %s %s 'echo __PATHS_ $PATH'" \
+              % (cls.name(), cls.norc_arg, cls.command_arg)
+        p = popen(cmd, stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE, shell=True)
+        out_, err_ = p.communicate()
+        if p.returncode:
+            paths = []
+        else:
+            lines = out_.decode("utf-8").split('\n')
+            line = [x for x in lines if "__PATHS_" in x.split()][0]
+            paths = line.strip().split()[-1].split(os.pathsep)
+
+        for path in os.defpath.split(os.path.pathsep):
+            if path not in paths:
+                paths.append(path)
+        cls.syspaths = [x for x in paths if x]
         return cls.syspaths
 
     @classmethod
@@ -92,12 +92,12 @@ class SH(UnixShell):
 
     def _bind_interactive_rez(self):
         if config.set_prompt and self.settings.prompt:
-            self._addline('if [ -z "$REZ_STORED_PROMPT" ]; then export REZ_STORED_PROMPT=$PS1; fi')
+            self._addline(r'if [ -z "$REZ_STORED_PROMPT" ]; then export REZ_STORED_PROMPT="$PS1"; fi')
             if config.prefix_prompt:
                 cmd = 'export PS1="%s $REZ_STORED_PROMPT"'
             else:
                 cmd = 'export PS1="$REZ_STORED_PROMPT%s "'
-            self._addline(cmd % "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
+            self._addline(cmd % r"\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
         value = self.escape_string(value)
@@ -108,7 +108,7 @@ class SH(UnixShell):
 
     def alias(self, key, value):
         value = EscapedString.disallow(value)
-        cmd = 'function {key}() {{ {value} "$@"; }};export -f {key};'
+        cmd = '{key}() {{ {value} "$@"; }};'
         self._addline(cmd.format(key=key, value=value))
 
     def source(self, value):

@@ -5,11 +5,12 @@ Note: Even though this is a python-based package, it does not list python as a
 requirement. This is not typical! This package is intended as a very simple test
 case, and for that reason we do not want any dependencies.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
+
 from rez.package_maker__ import make_package
 from rez.vendor.version.version import Version
 from rez.utils.lint_helper import env
-from rez.util import create_executable_script
+from rez.util import create_executable_script, ExecutableScriptMode
 from rez.bind._utils import make_dirs, check_version
 import os.path
 
@@ -25,13 +26,13 @@ def hello_world_source():
 
     p = OptionParser()
     p.add_option("-q", dest="quiet", action="store_true",
-        help="quiet mode")
+                 help="quiet mode")
     p.add_option("-r", dest="retcode", type="int", default=0,
-        help="exit with a non-zero return code")
-    opts,args = p.parse_args()
+                 help="exit with a non-zero return code")
+    opts, args = p.parse_args()
 
     if not opts.quiet:
-        print "Hello Rez World!"
+        print("Hello Rez World!")
     sys.exit(opts.retcode)
 
 
@@ -42,7 +43,12 @@ def bind(path, version_range=None, opts=None, parser=None):
     def make_root(variant, root):
         binpath = make_dirs(root, "bin")
         filepath = os.path.join(binpath, "hello_world")
-        create_executable_script(filepath, hello_world_source)
+
+        create_executable_script(
+            filepath,
+            hello_world_source,
+            py_script_mode=ExecutableScriptMode.platform_specific
+        )
 
     with make_package("hello_world", path, make_root=make_root) as pkg:
         pkg.version = version
@@ -50,7 +56,6 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.commands = commands
 
     return pkg.installed_variants
-
 
 # Copyright 2013-2016 Allan Johns.
 #

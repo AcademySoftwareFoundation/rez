@@ -2,6 +2,8 @@
 Adds LGPL and Copyright notice to the end of each .py file. You need to run
 this script from the src/ subdirectory of the rez source.
 """
+from __future__ import print_function
+
 import os
 import os.path
 from datetime import datetime
@@ -72,7 +74,7 @@ if __name__ == "__main__":
         for name in names:
             if name.endswith(".py"):
                 filepath = os.path.join(root, name)
-                print "found: %s" % filepath
+                print("found: %s" % filepath)
                 filepaths.append(filepath)
 
         for dirname in skip_dirs:
@@ -110,6 +112,6 @@ if __name__ == "__main__":
 
         new_txt = '\n'.join(lines)
 
-        print "Writing updated %s..." % filepath
+        print("Writing updated %s..." % filepath)
         with open(filepath, 'w') as f:
             f.write(new_txt)

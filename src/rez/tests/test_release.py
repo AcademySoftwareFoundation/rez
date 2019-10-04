@@ -8,20 +8,15 @@ from rez.release_vcs import create_release_vcs
 from rez.packages_ import iter_packages
 from rez.vendor import yaml
 from rez.system import system
-from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
-import rez.vendor.unittest2 as unittest
-from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
+from rez.exceptions import ReleaseError, ReleaseVCSError
+import unittest
+from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
-import rez.bind.platform
-import rez.bind.arch
-import rez.bind.os
-import rez.bind.python
 import shutil
 import os.path
 
-# TODO: variant-based test
 
 class TestRelease(TestBase, TempdirMixin):
     @classmethod
@@ -50,7 +45,7 @@ class TestRelease(TestBase, TempdirMixin):
         return ResolvedContext(pkgs)
 
     def _setup_release(self):
-       # start fresh
+        # start fresh
         system.clear_caches()
         if os.path.exists(self.install_root):
             shutil.rmtree(self.install_root)
@@ -60,11 +55,11 @@ class TestRelease(TestBase, TempdirMixin):
 
         self.packagefile = os.path.join(self.src_root, "package.yaml")
         with open(self.packagefile) as f:
-            self.package_data = yaml.load(f.read())
+            self.package_data = yaml.load(f.read(), Loader=yaml.FullLoader)
 
-        # create the build system
-        self.buildsys = create_build_system(self.src_root, verbose=True)
-        self.assertEqual(self.buildsys.name(), "bez")
+        # check build system type
+        buildsys = create_build_system(self.src_root, verbose=True)
+        self.assertEqual(buildsys.name(), "bez")
 
         # create the vcs - should error because stub file doesn't exist yet
         with self.assertRaises(ReleaseVCSError):
@@ -84,9 +79,11 @@ class TestRelease(TestBase, TempdirMixin):
             dump_package_data(self.package_data, f, format_=FileFormat.yaml)
 
     def _create_builder(self, ensure_latest=True):
+        buildsys = create_build_system(self.src_root, verbose=True)
+
         return create_build_process(process_type="local",
                                     working_dir=self.src_root,
-                                    build_system=self.buildsys,
+                                    build_system=buildsys,
                                     vcs=self.vcs,
                                     ensure_latest=ensure_latest,
                                     ignore_existing_tag=True,
@@ -96,16 +93,14 @@ class TestRelease(TestBase, TempdirMixin):
         """Utility function to compare string-variants with formal lists of
         "PackageRequest" objects
         """
-        from rez.utils.formatting import PackageRequest
-
         def _standardize_variants(variants):
             return [list(str(req) for req in variant) for variant in variants]
 
         self.assertEqual(_standardize_variants(vars1),
                          _standardize_variants(vars2))
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_1(self):
         """Basic release."""
         # release should fail because release path does not exist
@@ -156,7 +151,7 @@ class TestRelease(TestBase, TempdirMixin):
         # check the vcs contains the tags we expect
         expected_value = set(["foo-1.0", "foo-1.0.1", "foo-1.1"])
         with open(self.stubfile) as f:
-            stub_data = yaml.load(f.read())
+            stub_data = yaml.load(f.read(), Loader=yaml.FullLoader)
         tags = set(stub_data.get("tags", {}).keys())
         self.assertEqual(tags, expected_value)
 
@@ -165,8 +160,8 @@ class TestRelease(TestBase, TempdirMixin):
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 
-    @shell_dependent()
-    @install_dependent
+    @per_available_shell()
+    @install_dependent()
     def test_2_variant_add(self):
         """Test variant installation on release
         """
@@ -175,7 +170,7 @@ class TestRelease(TestBase, TempdirMixin):
         try:
             self._setup_release()
         finally:
-            # due to shell_dependent, this will run multiple times, don't
+            # due to per_available_shell, this will run multiple times, don't
             # want to add src_path/variants/variants
             self.src_path = orig_src_path
 

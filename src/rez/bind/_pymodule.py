@@ -5,7 +5,8 @@ Note that we subproc out to python at various points here because we can't use
 the current python interpreter - this is rez's, inside its installation
 virtualenv.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
+
 from rez.bind._utils import check_version, find_exe, make_dirs, \
     get_version_in_python, run_python_command, log
 from rez.package_maker__ import make_package
@@ -30,7 +31,7 @@ def commands_with_bin():
 def copy_module(name, destpath):
     success, out, err = run_python_command(
         ["import %s" % name,
-         "print %s.__path__[0] if hasattr(%s, '__path__') else ''" % (name, name)])
+         "print(%s.__path__[0] if hasattr(%s, '__path__') else '')" % (name, name)])
 
     if out:
         srcpath = out
@@ -38,7 +39,7 @@ def copy_module(name, destpath):
     else:
         success, out, err = run_python_command(
             ["import %s" % name,
-             "print %s.__file__" % name])
+             "print(%s.__file__)" % name])
         if not success:
             raise RezBindError("Couldn't locate module %s: %s" % (name, err))
 
@@ -63,7 +64,7 @@ def bind(name, path, import_name=None, version_range=None, version=None,
         version = get_version_in_python(
             name,
             ["import %s" % import_name,
-             "print %s.__version__" % import_name])
+             "print(%s.__version__)" % import_name])
 
     check_version(version, version_range)
 
@@ -112,7 +113,7 @@ def bind(name, path, import_name=None, version_range=None, version=None,
         else:
             pkg.commands = commands
 
-        for key, value in extra_attrs.iteritems():
+        for key, value in extra_attrs.items():
             pkg[key] = value
 
     return pkg.installed_variants

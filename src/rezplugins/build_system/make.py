@@ -11,7 +11,7 @@ class MakeBuildSystem(BuildSystem):
         return "make"
 
     @classmethod
-    def is_valid_root(cls, path):
+    def is_valid_root(cls, path, package=None):
         return os.path.isfile(os.path.join(path, "Makefile"))
 
     def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,

@@ -1,6 +1,7 @@
 '''
 Manage a suite or print information about an existing suite.
 '''
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -95,7 +96,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     def _pr(s):
         if opts.verbose:
-            print s
+            print(s)
 
     def _option(name):
         value = getattr(opts, name)
@@ -108,9 +109,9 @@ def command(opts, parser, extra_arg_groups=None):
         suites = status.suites
         if suites:
             for suite in suites:
-                print suite.load_path
+                print(suite.load_path)
         else:
-            print "No visible suites."
+            print("No visible suites.")
         sys.exit(0)
 
     if not opts.DIR:
@@ -132,14 +133,14 @@ def command(opts, parser, extra_arg_groups=None):
         try:
             suite.validate()
         except SuiteError as e:
-            print >> sys.stderr, "The suite is invalid:\n%s" % str(e)
+            print("The suite is invalid:\n%s" % str(e), file=sys.stderr)
             sys.exit(1)
-        print "The suite is valid."
+        print("The suite is valid.")
     elif _option("find_request") or _option("find_resolve"):
         context_names = suite.find_contexts(in_request=opts.find_request,
                                             in_resolve=opts.find_resolve)
         if context_names:
-            print '\n'.join(context_names)
+            print('\n'.join(context_names))
     elif _option("print_tools"):
         suite.print_tools(verbose=opts.verbose, context_name=opts.context)
     elif _option("add"):
@@ -178,7 +179,7 @@ def command(opts, parser, extra_arg_groups=None):
     elif _option("which"):
         filepath = suite.get_tool_filepath(opts.which)
         if filepath:
-            print filepath
+            print(filepath)
             sys.exit(0)
         else:
             sys.exit(1)

@@ -9,7 +9,7 @@ from rez.package_py_utils import expand_requirement
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.sourcecode import SourceCode
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.vendor.version.version import Version
 from rez.vendor.version.util import VersionError
 import os.path
@@ -71,7 +71,8 @@ class TestPackages(TestBase, TempdirMixin):
         cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
         cls.package_definition_build_python_paths = [
-            os.path.join(path, "data", "python", "early_bind")
+            os.path.join(path, "data", "python", "early_bind"),
+            os.path.join(path, "data", "python", "preprocess")
         ]
 
         cls.settings = dict(
@@ -185,7 +186,7 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(len(packages), 1)
         self.assertEqual(package, packages[0])
 
-    def test_5(self):
+    def test_developer(self):
         """test developer package."""
         path = os.path.join(self.packages_base_path, "developer")
         package = get_developer_package(path)
@@ -201,14 +202,110 @@ class TestPackages(TestBase, TempdirMixin):
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
+    def test_developer_dynamic_local_preprocess(self):
+        """test developer package with a local preprocess function"""
         # a developer package with features such as expanding requirements,
         # early-binding attribute functions, and preprocessing
-        path = os.path.join(self.packages_base_path, "developer_dynamic")
+
+        # Here we will also verifies that the local preprocess function wins over
+        # the global one.
+        self.update_settings(
+            {
+                "package_preprocess_function": "global_preprocess.inject_data"
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_local_preprocess")
         package = get_developer_package(path)
 
         self.assertEqual(package.description, "This.")
         self.assertEqual(package.requires, [PackageRequest('versioned-3')])
         self.assertEqual(package.authors, ["tweedle-dee", "tweedle-dum"])
+        self.assertFalse(hasattr(package, "added_by_global_preprocess"))
+        self.assertEqual(package.added_by_local_preprocess, True)
+
+    def test_developer_dynamic_global_preprocess_string(self):
+        """test developer package with a global preprocess function as string"""
+        # a developer package with features such as expanding requirements,
+        # global preprocessing
+        self.update_settings(
+            {
+                "package_preprocess_function": "global_preprocess.inject_data"
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_global_preprocess")
+        package = get_developer_package(path)
+
+        self.assertEqual(package.description, "This.")
+        self.assertEqual(package.added_by_global_preprocess, True)
+
+    def test_developer_dynamic_global_preprocess_func(self):
+        """test developer package with a global preprocess function as function"""
+        # a developer package with features such as expanding requirements,
+        # global preprocessing
+        def preprocess(this, data):
+            data["dynamic_attribute_added"] = {'test': True}
+
+        self.update_settings(
+            {
+                "package_preprocess_function": preprocess
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_global_preprocess")
+        package = get_developer_package(path)
+
+        self.assertEqual(package.description, "This.")
+        self.assertEqual(package.dynamic_attribute_added, {'test': True})
+
+    def test_developer_dynamic_before(self):
+        """test developer package with both global and local preprocess in before mode"""
+        # a developer package with features such as expanding requirements,
+        # global preprocessing
+        def preprocess(this, data):
+            data["dynamic_attribute_added"] = {'value_set_by': 'global'}
+            data["added_by_global_preprocess"] = True
+
+        self.update_settings(
+            {
+                "package_preprocess_function": preprocess,
+                "package_preprocess_mode": "before"
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_local_preprocess_additive")
+        package = get_developer_package(path)
+
+        self.assertEqual(package.description, "This.")
+        self.assertEqual(package.authors, ["tweedle-dee", "tweedle-dum"])
+        self.assertEqual(package.dynamic_attribute_added, {'value_set_by': 'global'})
+        self.assertEqual(package.added_by_global_preprocess, True)
+        self.assertEqual(package.added_by_local_preprocess, True)
+
+    def test_developer_dynamic_after(self):
+        """test developer package with both global and local preprocess in after mode"""
+        # a developer package with features such as expanding requirements,
+        # global preprocessing
+        def preprocess(this, data):
+            data["dynamic_attribute_added"] = {'value_set_by': 'global'}
+            data["added_by_global_preprocess"] = True
+
+        self.update_settings(
+            {
+                "package_preprocess_function": preprocess,
+                "package_preprocess_mode": "after"
+            }
+        )
+
+        path = os.path.join(self.packages_base_path, "developer_dynamic_local_preprocess_additive")
+        package = get_developer_package(path)
+
+        self.assertEqual(package.description, "This.")
+        self.assertEqual(package.authors, ["tweedle-dee", "tweedle-dum"])
+        self.assertEqual(package.dynamic_attribute_added, {'value_set_by': 'local'})
+        self.assertEqual(package.added_by_global_preprocess, True)
+        self.assertEqual(package.added_by_local_preprocess, True)
 
     def test_6(self):
         """test variant iteration."""
@@ -251,14 +348,14 @@ class TestPackages(TestBase, TempdirMixin):
             package = get_developer_package(path)
 
             # install variants of the developer package into new repo
-            variant = package.iter_variants().next()
+            variant = next(package.iter_variants())
             result = variant.install(repo_path, dry_run=True)
             self.assertEqual(result, None)
 
             for variant in package.iter_variants():
                 variant.install(repo_path)
 
-            variant = package.iter_variants().next()
+            variant = next(package.iter_variants())
             result = variant.install(repo_path, dry_run=True)
             self.assertNotEqual(result, None)
 
@@ -274,7 +371,7 @@ class TestPackages(TestBase, TempdirMixin):
 
             # install a variant again. Even though the variant is already installed,
             # this should update the package, because data outside the variant changed.
-            variant = package.iter_variants().next()
+            variant = next(package.iter_variants())
             result = variant.install(repo_path, dry_run=True)
             self.assertEqual(result, None)
             variant.install(repo_path)
@@ -380,7 +477,7 @@ class TestMemoryPackages(TestBase):
         desc = 'the foo package'
         package = create_package('foo', {'description': desc})
         self.assertEqual(package.description, desc)
-        variant = package.iter_variants().next()
+        variant = next(package.iter_variants())
         parent_package = variant.parent
         self.assertEqual(package.description, desc)
 

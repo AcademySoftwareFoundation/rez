@@ -56,7 +56,15 @@ package_repo_stats = PackageRepositoryGlobalStats()
 class PackageRepository(object):
     """Base class for package repositories implemented in the package_repository
     plugin type.
+
+    Note that, even though a package repository does determine where package
+    payloads should go, it is not responsible for creating or copying these
+    payloads.
     """
+
+    # see `install_variant`.
+    remove = object()
+
     @classmethod
     def name(cls):
         """Return the name of the package repository type."""
@@ -73,6 +81,9 @@ class PackageRepository(object):
         """
         self.location = location
         self.pool = resource_pool
+
+    def __str__(self):
+        return "%s@%s" % (self.name(), self.location)
 
     def register_resource(self, resource_class):
         """Register a resource with the repository.
@@ -97,6 +108,25 @@ class PackageRepository(object):
             hashable value: Value that uniquely identifies this repository.
         """
         return self._uid()
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, PackageRepository) and
+            other.name() == self.name() and
+            other.uid == self.uid
+        )
+
+    def is_empty(self):
+        """Determine if the repository contains any packages.
+
+        Returns:
+            True if there are no packages, False if there are at least one.
+        """
+        for family in self.iter_package_families():
+            for pkg in self.iter_packages(family):
+                return False
+
+        return True
 
     def get_package_family(self, name):
         """Get a package family.
@@ -162,7 +192,8 @@ class PackageRepository(object):
                 variant already exists in this repository; otherwise, None is
                 returned.
             overrides (dict): Use this to change or add attributes to the
-                installed variant.
+                installed variant. To remove attributes, set values to
+                `PackageRepository.remove`.
 
         Returns:
             `VariantResource` object, which is the newly created variant in this
@@ -291,6 +322,18 @@ class PackageRepository(object):
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
+
+    def get_package_payload_path(self, package_name, package_version=None):
+        """Defines where a package's payload should be installed to.
+
+        Args:
+            package_name (str): Nmae of package.
+            package_version (str or `Version`): Package version.
+
+        Returns:
+            str: Path where package's payload should be installed to.
+        """
+        raise NotImplementedError
 
     def _uid(self):
         """Unique identifier implementation.

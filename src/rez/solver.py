@@ -7,6 +7,8 @@ with a faster resolve.
 
 See SOLVER.md for an in-depth description of how this module works.
 """
+from __future__ import print_function
+
 from rez.config import config
 from rez.packages_ import iter_packages
 from rez.package_repository import package_repo_stats
@@ -110,7 +112,7 @@ class _Printer(object):
         self.pending_br = True
 
     def pr(self, txt='', *args):
-        print >> self.buf, txt % args
+        print(txt % args, file=self.buf)
 
     def __nonzero__(self):
         return self.verbosity
@@ -502,18 +504,18 @@ class _PackageVariantList(_Common):
         return result or None
 
     def dump(self):
-        print self.package_name
+        print(self.package_name)
 
         for package, value in self.entries:
-            print str(package.version)
+            print(str(package.version))
             if value is None:
-                print "    [FILTERED]"
+                print("    [FILTERED]")
             elif isinstance(value, list):
                 variants = value
                 for variant in variants:
-                    print "    %s" % str(variant)
+                    print("    %s" % str(variant))
             else:
-                print "    %s" % str(package)
+                print("    %s" % str(package))
 
     def __str__(self):
         strs = []
@@ -759,7 +761,7 @@ class _PackageVariantSlice(_Common):
             if self.pr:
                 if common_fams:
                     if len(common_fams) == 1:
-                        reason_str = iter(common_fams).next()
+                        reason_str = next(iter(common_fams))
                     else:
                         reason_str = ", ".join(common_fams)
                 else:
@@ -827,8 +829,8 @@ class _PackageVariantSlice(_Common):
             self.pr("sorted: %s packages: version descending", self.package_name)
 
     def dump(self):
-        print self.package_name
-        print '\n'.join(map(str, self.iter_variants()))
+        print(self.package_name)
+        print('\n'.join(map(str, self.iter_variants())))
 
     def _copy(self, new_entries):
         slice_ = _PackageVariantSlice(package_name=self.package_name,
@@ -1111,7 +1113,7 @@ def _get_dependency_order(g, node_list):
     """Return list of nodes as close as possible to the ordering in node_list,
     but with child nodes earlier in the list than parents."""
     access_ = accessibility(g)
-    deps = dict((k, set(v) - set([k])) for k, v in access_.iteritems())
+    deps = dict((k, set(v) - set([k])) for k, v in access_.items())
     nodes = node_list + list(set(g.nodes()) - set(node_list))
     ordered_nodes = []
 
@@ -1613,16 +1615,16 @@ class _ResolvePhase(_Common):
                     _add_edge(id1, id2)
 
         # add extractions
-        for (src_fam, _), dest_req in self.extractions.iteritems():
+        for (src_fam, _), dest_req in self.extractions.items():
             id1 = scope_nodes.get(src_fam)
             if id1 is not None:
                 id2 = _add_request_node(dest_req)
                 _add_edge(id1, id2)
 
         # add extraction intersections
-        extracted_fams = set(x[1] for x in self.extractions.iterkeys())
+        extracted_fams = set(x[1] for x in self.extractions.keys())
         for fam in extracted_fams:
-            requests = [v for k, v in self.extractions.iteritems() if k[1] == fam]
+            requests = [v for k, v in self.extractions.items() if k[1] == fam]
             if len(requests) > 1:
                 reqlist = RequirementList(requests)
                 if not reqlist.conflict:
@@ -1679,7 +1681,7 @@ class _ResolvePhase(_Common):
                     _add_cycle_edge(id1, id2)
 
         # connect leaf-node requests to a matching scope, if any
-        for request, id1 in request_nodes.iteritems():
+        for request, id1 in request_nodes.items():
             if not g.neighbors(id1):  # leaf node
                 id2 = scope_nodes.get(request.name)
                 if id2 is not None:
@@ -1692,7 +1694,7 @@ class _ResolvePhase(_Common):
             access_dict = accessibility(g)
             del_nodes = set()
 
-            for n, access_nodes in access_dict.iteritems():
+            for n, access_nodes in access_dict.items():
                 if not (set(access_nodes) & failure_nodes):
                     del_nodes.add(n)
 
@@ -1709,7 +1711,7 @@ class _ResolvePhase(_Common):
         edges = set()
         scopes = dict((x.package_name, x) for x in self.scopes)
 
-        for scope in scopes.itervalues():
+        for scope in scopes.values():
             variant = scope._get_solved_variant()
             if variant:
                 nodes.add(variant.name)
@@ -1971,7 +1973,7 @@ class Solver(_Common):
         elif self.print_stats:
             from pprint import pformat
             data = {"solve_stats": self.solve_stats}
-            print >> (self.buf or sys.stdout), pformat(data)
+            print(pformat(data), file=(self.buf or sys.stdout))
 
     @property
     def solve_stats(self):
@@ -2142,19 +2144,19 @@ class Solver(_Common):
         for i, phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))
 
-        print "status: %s (%s)" % (self.status.name, self.status.description)
-        print "initial request: %s" % str(self.request_list)
-        print
-        print "solve stack:"
-        print '\n'.join(columnise(rows))
+        print("status: %s (%s)" % (self.status.name, self.status.description))
+        print("initial request: %s" % str(self.request_list))
+        print()
+        print("solve stack:")
+        print('\n'.join(columnise(rows)))
 
         if self.failed_phase_list:
             rows = []
             for i, phase in enumerate(self.failed_phase_list):
                 rows.append(("#%d" % i, phase.status, str(phase)))
-            print
-            print "previous failures:"
-            print '\n'.join(columnise(rows))
+            print()
+            print("previous failures:")
+            print('\n'.join(columnise(rows)))
 
     def _init(self):
         self.phase_stack = []

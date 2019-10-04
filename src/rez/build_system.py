@@ -1,9 +1,8 @@
-from multiprocessing import cpu_count
+import os.path
 
 from rez.build_process_ import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages_ import get_developer_package
-import os.path
 
 
 def get_buildsys_types():
@@ -12,19 +11,53 @@ def get_buildsys_types():
     return plugin_manager.get_plugins('build_system')
 
 
-def get_valid_build_systems(working_dir):
-    """Returns the build system classes that could build the source in given dir."""
-    from rez.plugin_managers import plugin_manager
+def get_valid_build_systems(working_dir, package=None):
+    """Returns the build system classes that could build the source in given dir.
 
+    Args:
+        working_dir (str): Dir containing the package definition and potentially
+            build files.
+        package (`Package`): Package to be built. This may or may not be needed
+            to determine the build system. For eg, cmake just has to look for
+            a CMakeLists.txt file, whereas the 'build_command' package field
+            must be present for the 'custom' build system type.
+
+    Returns:
+        List of class: Valid build system class types.
+    """
+    from rez.plugin_managers import plugin_manager
+    from rez.exceptions import PackageMetadataError
+
+    try:
+        package = package or get_developer_package(working_dir)
+    except PackageMetadataError:
+        # no package, or bad package
+        pass
+
+    if package:
+        if getattr(package, "build_command", None) is not None:
+            buildsys_name = "custom"
+        else:
+            buildsys_name = getattr(package, "build_system", None)
+
+        # package explicitly specifies build system
+        if buildsys_name:
+            cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
+            return [cls]
+
+    # detect valid build systems
     clss = []
     for buildsys_name in get_buildsys_types():
         cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
-        if cls.is_valid_root(working_dir):
+        if cls.is_valid_root(working_dir, package=package):
             clss.append(cls)
 
-    # explicit build command in package.py takes precedence
-    if "custom" in [x.name() for x in clss]:
-        clss = [x for x in clss if x.name() == "custom"]
+    # Sometimes files for multiple build systems can be present, because one
+    # build system uses another (a 'child' build system) - eg, cmake uses
+    # make. Detect this case and ignore files from the child build system.
+    #
+    child_clss = set(x.child_build_system() for x in clss)
+    clss = list(set(clss) - child_clss)
 
     return clss
 
@@ -35,33 +68,31 @@ def create_build_system(working_dir, buildsys_type=None, package=None, opts=None
     """Return a new build system that can build the source in working_dir."""
     from rez.plugin_managers import plugin_manager
 
-    if buildsys_type:
-        cls = plugin_manager.get_plugin_class('build_system', buildsys_type)
-        clss = [cls]
-    else:
-        clss = get_valid_build_systems(working_dir)
+    # detect build system if necessary
+    if not buildsys_type:
+        clss = get_valid_build_systems(working_dir, package=package)
 
-    if clss:
-        # deal with leftover tempfiles from child buildsys in working dir
-        child_clss = set(x.child_build_system() for x in clss)
-        clss = set(clss) - child_clss
+        if not clss:
+            raise BuildSystemError(
+                "No build system is associated with the path %s" % working_dir)
 
-        if len(clss) > 1:
+        if len(clss) != 1:
             s = ', '.join(x.name() for x in clss)
             raise BuildSystemError(("Source could be built with one of: %s; "
                                    "Please specify a build system") % s)
-        else:
-            cls = iter(clss).next()
-            return cls(working_dir,
-                       opts=opts,
-                       package=package,
-                       write_build_scripts=write_build_scripts,
-                       verbose=verbose,
-                       build_args=build_args,
-                       child_build_args=child_build_args)
-    else:
-        raise BuildSystemError("No build system is associated with the path %s"
-                               % working_dir)
+
+        buildsys_type = next(iter(clss)).name()
+
+    # create instance of build system
+    cls_ = plugin_manager.get_plugin_class('build_system', buildsys_type)
+
+    return cls_(working_dir,
+                opts=opts,
+                package=package,
+                write_build_scripts=write_build_scripts,
+                verbose=verbose,
+                build_args=build_args,
+                child_build_args=child_build_args)
 
 
 class BuildSystem(object):
@@ -81,6 +112,8 @@ class BuildSystem(object):
             working_dir: Directory to build source from.
             opts: argparse.Namespace object which may contain constructor
                 params, as set by our bind_cli() classmethod.
+            package (`DeveloperPackage`): Package to build. If None, defaults to
+                the package in the working directory.
             write_build_scripts: If True, create build scripts rather than
                 perform the full build. The user can then run these scripts to
                 place themselves into a build environment and invoke the build
@@ -91,8 +124,9 @@ class BuildSystem(object):
         """
         self.working_dir = working_dir
         if not self.is_valid_root(working_dir):
-            raise BuildSystemError("Not a valid %s working directory: %s"
-                                   % (self.name(), working_dir))
+            raise BuildSystemError(
+                "Not a valid working directory for build system %r: %s"
+                % (self.name(), working_dir))
 
         self.package = package or get_developer_package(working_dir)
 
@@ -124,9 +158,14 @@ class BuildSystem(object):
         return None
 
     @classmethod
-    def bind_cli(cls, parser):
+    def bind_cli(cls, parser, group):
         """Expose parameters to an argparse.ArgumentParser that are specific
         to this build system.
+
+        Args:
+            parser (`ArgumentParser`): Arg parser.
+            group (`ArgumentGroup`): Arg parser group - you should add args to
+                this, NOT to `parser`.
         """
         pass
 
@@ -140,7 +179,9 @@ class BuildSystem(object):
             variant (`Variant`): The variant being built.
             build_path: Where to write temporary build files. May be relative
                 to working_dir.
-            install_path: Where to install the build, if the build is installed.
+            install_path (str): The package repository path to install the
+                package to, if installing. If None, defaults to
+                `config.local_packages_path`.
             install: If True, install the build.
             build_type: A BuildType (i.e local or central).
 
@@ -167,22 +208,31 @@ class BuildSystem(object):
         from rez.config import config
 
         package = variant.parent
+        variant_requires = map(str, variant.variant_requires)
+
+        if variant.index is None:
+            variant_subpath = ''
+        else:
+            variant_subpath = variant._non_shortlinked_subpath
 
         vars_ = {
             'REZ_BUILD_ENV': 1,
             'REZ_BUILD_PATH': build_path,
             'REZ_BUILD_THREAD_COUNT': package.config.build_thread_count,
             'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
+            'REZ_BUILD_VARIANT_REQUIRES': ' '.join(variant_requires),
+            'REZ_BUILD_VARIANT_SUBPATH': variant_subpath,
             'REZ_BUILD_PROJECT_VERSION': str(package.version),
             'REZ_BUILD_PROJECT_NAME': package.name,
-            'REZ_BUILD_PROJECT_DESCRIPTION': \
-                (package.description or '').strip(),
+            'REZ_BUILD_PROJECT_DESCRIPTION': (package.description or '').strip(),
             'REZ_BUILD_PROJECT_FILE': package.filepath,
             'REZ_BUILD_SOURCE_PATH': os.path.dirname(package.filepath),
-            'REZ_BUILD_REQUIRES': \
-                ' '.join(str(x) for x in context.requested_packages(True)),
-            'REZ_BUILD_REQUIRES_UNVERSIONED': \
-                ' '.join(x.name for x in context.requested_packages(True)),
+            'REZ_BUILD_REQUIRES': ' '.join(
+                str(x) for x in context.requested_packages(True)
+            ),
+            'REZ_BUILD_REQUIRES_UNVERSIONED': ' '.join(
+                x.name for x in context.requested_packages(True)
+            ),
             'REZ_BUILD_TYPE': build_type.name,
             'REZ_BUILD_INSTALL': 1 if install else 0,
         }
@@ -210,7 +260,7 @@ class BuildSystem(object):
                                      build_path=build_path,
                                      install_path=install_path)
 
-        for var, value in vars.iteritems():
+        for var, value in vars.items():
             executor.env[var] = value
 
 

@@ -11,13 +11,6 @@ import pipes
 
 
 class TCSH(CSH):
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('tcsh')
-        return cls._executable
 
     @classmethod
     def name(cls):
@@ -34,7 +27,6 @@ class TCSH(CSH):
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
-                txt = txt.replace('\\', '\\\\')
                 txt = txt.replace('"', '"\\""')
                 txt = txt.replace('!', '\\!')
                 txt = '"%s"' % txt

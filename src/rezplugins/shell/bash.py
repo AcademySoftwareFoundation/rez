@@ -7,18 +7,12 @@ from rez.shells import Shell
 from rez.utils.platform_ import platform_
 from rezplugins.shell.sh import SH
 from rez import module_root_path
+from rez.rex import EscapedString
 
 
 class Bash(SH):
     rcfile_arg = '--rcfile'
     norc_arg = '--norc'
-    _executable = None
-
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('bash')
-        return cls._executable
 
     @classmethod
     def name(cls):
@@ -81,6 +75,11 @@ class Bash(SH):
             bind_files=bind_files,
             source_bind_files=True
         )
+
+    def alias(self, key, value):
+        value = EscapedString.disallow(value)
+        cmd = 'function {key}() {{ {value} "$@"; }};export -f {key};'
+        self._addline(cmd.format(key=key, value=value))
 
     def _bind_interactive_rez(self):
         super(Bash, self)._bind_interactive_rez()

@@ -1,12 +1,12 @@
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug
+from rez.utils import py23
 from inspect import getsourcelines
 from textwrap import dedent
 from glob import glob
 import traceback
 import os.path
-import imp
 
 
 def early():
@@ -212,7 +212,7 @@ class SourceCode(object):
         pyc = self.compiled
 
         try:
-            exec pyc in globals_
+            exec(pyc, globals_)
         except Exception as e:
             stack = traceback.format_exc()
             raise SourceCodeExecError(
@@ -335,9 +335,7 @@ class IncludeModuleManager(object):
         if config.debug("file_loads"):
             print_debug("Loading include sourcefile: %s" % filepath)
 
-        with open(filepath) as f:
-            module = imp.load_source(name, filepath, f)
-
+        module = py23.load_module_from_file(name, filepath)
         self.modules[hash_str] = module
         return module
 

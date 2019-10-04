@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 import shutil
 import os
@@ -6,7 +8,7 @@ from fnmatch import fnmatch
 
 
 def copytree(src, dest):
-    print "copying %s -> %s..." % (src, dest)
+    print("copying %s -> %s..." % (src, dest))
     if os.path.exists(dest):
         shutil.rmtree(dest)
     shutil.copytree(src, dest)

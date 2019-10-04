@@ -8,10 +8,16 @@ from rez.config import config
 from rez.util import which
 from rez.utils.system import popen
 from rez.utils.logging_ import print_debug
+from rez.vendor.six import six
 from pipes import quote
 import subprocess
 import os.path
 import os
+import platform
+import sys
+
+
+basestring = six.string_types[0]
 
 
 def log(msg):
@@ -28,7 +34,7 @@ def make_dirs(*dirs):
 
 def run_python_command(commands, exe=None):
     py_cmd = "; ".join(commands)
-    args = [exe or "python", "-c", py_cmd]
+    args = [exe or sys.executable, "-c", py_cmd]
     stdout, stderr, returncode = _run_command(args)
     return (returncode == 0), stdout.strip(), stderr.strip()
 
@@ -66,7 +72,8 @@ def find_exe(name, filepath=None):
     """
     if filepath:
         if not os.path.exists(filepath):
-            open(filepath)  # raise IOError
+            with open(filepath):
+                pass  # raise IOError
         elif not os.path.isfile(filepath):
             raise RezBindError("not a file: %s" % filepath)
     else:
@@ -118,7 +125,17 @@ def _run_command(args):
     cmd_str = ' '.join(quote(x) for x in args)
     log("running: %s" % cmd_str)
 
-    p = popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # https://github.com/nerdvegas/rez/pull/659
+    use_shell = ("Windows" in platform.system())
+
+    p = popen(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=use_shell,
+        universal_newlines=True
+    )
+
     stdout, stderr = p.communicate()
     return stdout, stderr, p.returncode
 

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rez.resolved_context import ResolvedContext
 from rez.utils.colorize import heading, local, critical, Printer
 from rez.utils.data_utils import cached_property
@@ -31,7 +33,7 @@ class Wrapper(object):
         with open(filepath) as f:
             content = f.read()
         try:
-            doc = yaml.load(content)
+            doc = yaml.load(content, Loader=yaml.FullLoader)
             doc = doc["kwargs"]
             context_name = doc["context_name"]
             tool_name = doc["tool_name"]
@@ -86,7 +88,7 @@ class Wrapper(object):
         return retcode
 
     def _run(self, prefix_char, args):
-        from rez.vendor import argparse
+        import argparse
 
         parser = argparse.ArgumentParser(prog=self.tool_name,
                                          prefix_chars=prefix_char)
@@ -173,8 +175,12 @@ class Wrapper(object):
             # generally shells will behave as though the '-s' flag was not present
             # when no stdin is available. So here we replicate this behaviour.
             import select
-            if not select.select([sys.stdin], [], [], 0.0)[0]:
-                opts.stdin = False
+
+            try:
+                if not select.select([sys.stdin], [], [], 0.0)[0]:
+                    opts.stdin = False
+            except select.error:
+                pass  # because windows
 
         # construct command
         cmd = None
@@ -198,20 +204,20 @@ class Wrapper(object):
     def print_about(self):
         """Print an info message about the tool."""
         filepath = os.path.join(self.suite_path, "bin", self.tool_name)
-        print "Tool:     %s" % self.tool_name
-        print "Path:     %s" % filepath
-        print "Suite:    %s" % self.suite_path
+        print("Tool:     %s" % self.tool_name)
+        print("Path:     %s" % filepath)
+        print("Suite:    %s" % self.suite_path)
 
         msg = "%s (%r)" % (self.context.load_path, self.context_name)
-        print "Context:  %s" % msg
+        print("Context:  %s" % msg)
 
         variants = self.context.get_tool_variants(self.tool_name)
         if variants:
             if len(variants) > 1:
                 self._print_conflicting(variants)
             else:
-                variant = iter(variants).next()
-                print "Package:  %s" % variant.qualified_package_name
+                variant = next(iter(variants))
+                print("Package:  %s" % variant.qualified_package_name)
         return 0
 
     def print_package_versions(self):
@@ -224,7 +230,7 @@ class Wrapper(object):
                 return 1
             else:
                 from rez.packages_ import iter_packages
-                variant = iter(variants).next()
+                variant = next(iter(variants))
                 it = iter_packages(name=variant.name)
                 rows = []
                 colors = []

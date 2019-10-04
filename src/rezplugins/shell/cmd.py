@@ -2,15 +2,19 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal, OutputStyle
+from rez.rex import RexExecutor, expandable, literal, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.system import popen
 from rez.utils.platform_ import platform_
-from rez.util import shlex_join
+from rez.vendor.six import six
+from functools import partial
 import os
 import re
 import subprocess
+
+
+basestring = six.string_types[0]
 
 
 class CMD(Shell):
@@ -18,13 +22,15 @@ class CMD(Shell):
     # commands for the Windows Command Prompt (cmd).  It can be found here :
     # http://ss64.com/nt/cmd.html
     syspaths = None
-    _executable = None
+    _doskey = None
+    expand_env_vars = True
 
-    @property
-    def executable(cls):
-        if cls._executable is None:
-            cls._executable = Shell.find_executable('cmd')
-        return cls._executable
+    _env_var_regex = re.compile("%([A-Za-z0-9_]+)%")    # %ENVVAR%
+
+    # Regex to aid with escaping of Windows-specific special chars:
+    # http://ss64.com/nt/syntax-esc.html
+    _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])|(\|)')
+    _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
     @classmethod
     def name(cls):
@@ -65,6 +71,11 @@ class CMD(Shell):
         if cls.syspaths is not None:
             return cls.syspaths
 
+        if config.standard_system_paths:
+            cls.syspaths = config.standard_system_paths
+            return cls.syspaths
+
+        # detect system paths using registry
         def gen_expected_regex(parts):
             whitespace = "[\s]+"
             return whitespace.join(parts)
@@ -89,7 +100,7 @@ class CMD(Shell):
         p = popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True)
         out_, _ = p.communicate()
-        out_ = out_.strip()
+        out_ = out_.decode('utf-8').strip()
 
         if p.returncode == 0:
             match = re.match(expected, out_)
@@ -114,7 +125,7 @@ class CMD(Shell):
         p = popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True)
         out_, _ = p.communicate()
-        out_ = out_.strip()
+        out_ = out_.decode('utf-8').strip()
 
         if p.returncode == 0:
             match = re.match(expected, out_)
@@ -166,9 +177,19 @@ class CMD(Shell):
         executor = _create_ex()
 
         if self.settings.prompt:
-            newprompt = '%%REZ_ENV_PROMPT%%%s' % self.settings.prompt
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
-            executor.env.REZ_ENV_PROMPT = literal(newprompt)
+            executor.env.REZ_ENV_PROMPT = \
+                expandable("%REZ_ENV_PROMPT%").literal(self.settings.prompt)
+
+        # Make .py launch within cmd without extension.
+        if self.settings.additional_pathext:
+            # Ensure that the PATHEXT does not append duplicates.
+            for pathext in self.settings.additional_pathext:
+                executor.command('echo %PATHEXT%|C:\\Windows\\System32\\findstr.exe /i /c:"{0}">nul || set PATHEXT=%PATHEXT%;{0}'.format(
+                    pathext
+                ))
+            # This resets the errorcode, which is tainted by the code above
+            executor.command("(call )")
 
         if startup_sequence["command"] is not None:
             _record_shell(executor, files=startup_sequence["files"])
@@ -177,8 +198,20 @@ class CMD(Shell):
             _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
 
         if shell_command:
+            # Launch the provided command in the configured shell and wait
+            # until it exits.
             executor.command(shell_command)
-            executor.command('exit %errorlevel%')
+
+        # Test for None specifically because resolved_context.execute_rex_code
+        # passes '' and we do NOT want to keep a shell open during a rex code
+        # exec operation.
+        elif shell_command is None:
+            # Launch the configured shell itself and wait for user interaction
+            # to exit.
+            executor.command('cmd /Q /K')
+
+        # Exit the configured shell.
+        executor.command('exit %errorlevel%')
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir, "rez-shell.%s"
@@ -197,12 +230,17 @@ class CMD(Shell):
             else:
                 cmd = pre_command
 
-        if shell_command:
-            cmd_flags = ['/Q', '/C']
-        else:
+        # Test for None specifically because resolved_context.execute_rex_code
+        # passes '' and we do NOT want to keep a shell open during a rex code
+        # exec operation.
+        if shell_command is None:
             cmd_flags = ['/Q', '/K']
+        else:
+            cmd_flags = ['/Q', '/C']
 
-        cmd = cmd + [self.executable] + cmd_flags + ['call {}'.format(target_file)]
+        cmd += [self.executable]
+        cmd += cmd_flags
+        cmd += ['call {}'.format(target_file)]
         is_detached = (cmd[0] == 'START')
 
         p = popen(cmd, env=env, shell=is_detached, **Popen_args)
@@ -221,7 +259,28 @@ class CMD(Shell):
         return script
 
     def escape_string(self, value):
-        return value
+        """Escape the <, >, ^, and & special characters reserved by Windows.
+
+        Args:
+            value (str/EscapedString): String or already escaped string.
+
+        Returns:
+            str: The value escaped for Windows.
+
+        """
+        value = EscapedString.promote(value)
+        value = value.expanduser()
+        result = ''
+
+        for is_literal, txt in value.strings:
+            if is_literal:
+                txt = self._escaper(txt)
+                # Note that cmd uses ^% while batch files use %% to escape %
+                txt = self._env_var_regex.sub(r"%%\1%%", txt)
+            else:
+                txt = self._escaper(txt)
+            result += txt
+        return result
 
     def _saferefenv(self, key):
         pass
@@ -240,7 +299,16 @@ class CMD(Shell):
         self._addline(self.setenv(key, value))
 
     def alias(self, key, value):
-        self._addline("doskey %s=%s" % (key, value))
+        # find doskey, falling back to system paths if not in $PATH. Fall back
+        # to unqualified 'doskey' if all else fails
+        if self._doskey is None:
+            try:
+                self.__class__._doskey = \
+                    self.find_executable("doskey", check_syspaths=True)
+            except:
+                self._doskey = "doskey"
+
+        self._addline("%s %s=%s $*" % (self._doskey, key, value))
 
     def comment(self, value):
         for line in value.split('\n'):
@@ -248,10 +316,14 @@ class CMD(Shell):
 
     def info(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
+            line = self.convert_tokens(line)
             self._addline('echo %s' % line)
 
     def error(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
+            line = self.convert_tokens(line)
             self._addline('echo "%s" 1>&2' % line)
 
     def source(self, value):
@@ -260,11 +332,19 @@ class CMD(Shell):
     def command(self, value):
         self._addline(value)
 
-    def get_key_token(self, key):
-        return "%%%s%%" % key
+    @classmethod
+    def get_all_key_tokens(cls, key):
+        return ["%{}%".format(key)]
 
-    def join(self, command):
-        return shlex_join(command).replace("'", '"')
+    @classmethod
+    def join(cls, command):
+        # TODO: This may disappear in future [1]
+        # [1] https://bugs.python.org/issue10838
+        return subprocess.list2cmdline(command)
+
+    @classmethod
+    def line_terminator(cls):
+        return "\r\n"
 
 
 def register_plugin():

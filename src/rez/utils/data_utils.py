@@ -3,12 +3,103 @@ Utilities related to managing data types.
 """
 from rez.vendor.schema.schema import Schema, Optional
 from rez.exceptions import RexError
-from collections import MutableMapping
 from threading import Lock
+from rez.vendor.six import six
+
+if six.PY2:
+    from collections import MutableMapping
+else:
+    from collections.abc import MutableMapping
 
 
-class _Missing: pass
-_missing = _Missing()
+basestring = six.string_types[0]
+
+
+class ModifyList(object):
+    """List modifier, used in `deep_update`.
+
+    This can be used in configs to add to list-based settings, rather than
+    overwriting them.
+    """
+    def __init__(self, append=None, prepend=None):
+        for v in (prepend, append):
+            if v is not None and not isinstance(v, list):
+                raise ValueError("Expected list in ModifyList, not %r" % v)
+
+        self.prepend = prepend
+        self.append = append
+
+    def apply(self, v):
+        if v is None:
+            v = []
+        elif not isinstance(v, list):
+            raise ValueError("Attempted to apply ModifyList to non-list: %r" % v)
+
+        return (self.prepend or []) + v + (self.append or [])
+
+
+def remove_nones(**kwargs):
+    """Return diict copy with nones removed.
+    """
+    return dict((k, v) for k, v in kwargs.items() if v is not None)
+
+
+def deep_update(dict1, dict2):
+    """Perform a deep merge of `dict2` into `dict1`.
+
+    Note that `dict2` and any nested dicts are unchanged.
+
+    Supports `ModifyList` instances.
+    """
+    def flatten(v):
+        if isinstance(v, ModifyList):
+            return v.apply([])
+        elif isinstance(v, dict):
+            return dict((k, flatten(v_)) for k, v_ in v.items())
+        else:
+            return v
+
+    def merge(v1, v2):
+        if isinstance(v1, dict) and isinstance(v2, dict):
+            deep_update(v1, v2)
+            return v1
+        elif isinstance(v2, ModifyList):
+            v1 = flatten(v1)
+            return v2.apply(v1)
+        else:
+            return flatten(v2)
+
+    for k1, v1 in dict1.items():
+        if k1 not in dict2:
+            dict1[k1] = flatten(v1)
+
+    for k2, v2 in dict2.items():
+        v1 = dict1.get(k2)
+
+        if v1 is KeyError:
+            dict1[k2] = flatten(v2)
+        else:
+            dict1[k2] = merge(v1, v2)
+
+
+def deep_del(data, fn):
+    """Create dict copy with removed items.
+
+    Recursively remove items where fn(value) is True.
+
+    Returns:
+        dict: New dict with matching items removed.
+    """
+    result = {}
+
+    for k, v in data.items():
+        if not fn(v):
+            if isinstance(v, dict):
+                result[k] = deep_del(v, fn)
+            else:
+                result[k] = v
+
+    return result
 
 
 def get_dict_diff(d1, d2):
@@ -28,7 +119,7 @@ def get_dict_diff(d1, d2):
         removed = []
         changed = []
 
-        for k1, v1 in d1_.iteritems():
+        for k1, v1 in d1_.items():
             if k1 not in d2_:
                 removed.append(namespace + [k1])
             else:
@@ -43,13 +134,32 @@ def get_dict_diff(d1, d2):
                     else:
                         changed.append(namespace + [k1])
 
-        for k2 in d2_.iterkeys():
+        for k2 in d2_.keys():
             if k2 not in d1_:
                 added.append(namespace + [k2])
 
         return added, removed, changed
 
     return _diff(d1, d2, [])
+
+
+def get_dict_diff_str(d1, d2, title):
+    """Returns same as `get_dict_diff`, but as a readable string.
+    """
+    added, removed, changed = get_dict_diff(d1, d2)
+    lines = [title]
+
+    if added:
+        lines.append("Added attributes: %s"
+                     % ['.'.join(x) for x in added])
+    if removed:
+        lines.append("Removed attributes: %s"
+                     % ['.'.join(x) for x in removed])
+    if changed:
+        lines.append("Changed attributes: %s"
+                     % ['.'.join(x) for x in changed])
+
+    return '\n'.join(lines)
 
 
 class cached_property(object):
@@ -60,7 +170,7 @@ class cached_property(object):
         >>> class Foo(object):
         >>>     @cached_property
         >>>     def bah(self):
-        >>>         print 'bah'
+        >>>         print('bah')
         >>>         return 1
         >>>
         >>> f = Foo()
@@ -100,7 +210,7 @@ class cached_class_property(object):
         >>> class Foo(object):
         >>>     @cached_class_property
         >>>     def bah(cls):
-        >>>         print 'bah'
+        >>>         print('bah')
         >>>         return 1
         >>>
         >>> Foo.bah
@@ -115,8 +225,9 @@ class cached_class_property(object):
     def __get__(self, instance, owner=None):
         assert owner
         name = "_class_property_" + self.func.__name__
-        result = getattr(owner, name, _missing)
-        if result is _missing:
+        result = getattr(owner, name, KeyError)
+
+        if result is KeyError:
             result = self.func(owner)
             setattr(owner, name, result)
         return result
@@ -228,7 +339,7 @@ def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
         Converted data as `to_class` instance.
     """
     d_ = to_class()
-    for key, value in d.iteritems():
+    for key, value in d.items():
         if isinstance(value, from_class):
             d_[key] = convert_dicts(value, to_class=to_class,
                                     from_class=from_class)
@@ -316,13 +427,14 @@ class AttributeForwardMeta(type):
 
     Example:
 
+        >>> import six
+        >>>
         >>> class Foo(object):
         >>>     def __init__(self):
         >>>         self.a = "a_from_foo"
         >>>         self.b = "b_from_foo"
         >>>
-        >>> class Bah(object):
-        >>>     __metaclass__ = AttributeForwardMeta
+        >>> class Bah(six.with_metaclass(AttributeForwardMeta, object)):
         >>>     keys = ["a", "b", "c"]
         >>>
         >>>     @property
@@ -334,11 +446,11 @@ class AttributeForwardMeta(type):
         >>>
         >>> x = Foo()
         >>> y = Bah(x)
-        >>> print y.a
+        >>> print(y.a)
         a_from_bah
-        >>> print y.b
+        >>> print(y.b)
         b_from_foo
-        >>> print y.c
+        >>> print(y.c)
         None
     """
     def __new__(cls, name, parents, members):
@@ -400,7 +512,7 @@ class LazyAttributeMeta(type):
 
         if schema:
             schema_dict = schema._schema
-            for key, key_schema in schema_dict.iteritems():
+            for key, key_schema in schema_dict.items():
                 optional = isinstance(key, Optional)
                 while isinstance(key, Schema):
                     key = key._schema

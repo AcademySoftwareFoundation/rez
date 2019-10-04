@@ -1,7 +1,8 @@
-"""
+r"""
 Rez configuration settings. Do not change this file.
 
-Settings are determined in the following way:
+Settings are determined in the following way (higher number means higher
+precedence):
 
 1) The setting is first read from this file;
 2) The setting is then overridden if it is present in another settings file
@@ -10,13 +11,16 @@ Settings are determined in the following way:
 4) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
-   separated either with "," or blank space.
-5) This is a special case applied only during a package build or release. In
+   separated either with "," or blank space. Dict values are in the form
+   "k1:v1,k2:v2,kn:vn";
+5) The setting can also be overriden by the environment variable $REZ_XXX_JSON,
+   and in this case the string is expected to be a JSON-encoded value;
+6) This is a special case applied only during a package build or release. In
    this case, if the package definition file contains a "config" section,
    settings in this section will override all others.
 
 Note that in the case of plugin settings (anything under the "plugins" section
-of the config), (4) does not apply.
+of the config), (4) and (5) do not apply.
 
 Variable expansion can be used in configuration settings. The following
 expansions are supported:
@@ -31,7 +35,7 @@ Paths should use the path separator appropriate for the operating system
 Windows \ (unescaped) should be used.
 
 Note: The comments in this file are extracted and turned into Wiki content. Pay
-attention to the comment formatting and follow the existing syle closely.
+attention to the comment formatting and follow the existing style closely.
 """
 import os
 
@@ -362,10 +366,28 @@ rez_tools_visibility = "append"
 # scripts (such as .bashrc). If False, package commands are sourced after.
 package_commands_sourced_first = True
 
-# If you define this function, it will be called as the *preprocess function*
-# on every package that does not provide its own, as part of the build process.
-# The given function must be made available by setting the value of
-# [package_definition_build_python_paths](#package_definition_build_python_paths)
+# Defines paths to initially set $PATH to, if a resolve appends/prepends $PATH.
+# If this is an empty list, then this initial value is determined automatically
+# depending on the shell (for example, *nix shells create a temp clean shell and
+# get $PATH from there; Windows inspects its registry).
+standard_system_paths = []
+
+# If you define this function, by default it will be called as the
+# *preprocess function* on every package that does not provide its own,
+# as part of the build process. This behavior can be changed by using the
+# [package_preprocess_mode](#package_preprocess_mode) setting so that
+# it gets executed even if a package define its own preprocess function.
+#
+# The setting can be a function defined in your rezconfig.py, or a string.
+#
+# Example of a function to define the setting:
+#
+#     # in your rezconfig.py
+#     def package_preprocess_function(this, data):
+#         # some custom code...
+#
+# In the case where the function is a string, it must be made available by setting
+# the value of [package_definition_build_python_paths](#package_definition_build_python_paths)
 # appropriately.
 #
 # For example, consider the settings:
@@ -396,6 +418,78 @@ package_commands_sourced_first = True
 #
 package_preprocess_function = None
 
+# Defines in which order the [package_preprocess_function](#package_preprocess_function)
+# and the `preprocess` function inside a `package.py` are executed.
+#
+# Note that "global preprocess" means the preprocess defined by
+# [package_preprocess_function](#package_preprocess_function).
+#
+# Possible values are:
+# - "before": Package's preprocess function is executed before the global preprocess;
+# - "after": Package's preprocess function is executed after the global preprocess;
+# - "override": Package's preprocess function completely overrides the global preprocess.
+package_preprocess_mode = "override"
+
+
+###############################################################################
+# Tracking
+###############################################################################
+
+# Send data to AMQP whenever a context is created or sourced.
+# The payload is like so:
+#
+#     {
+#         "action": "created",
+#         "host": "some_fqdn",
+#         "user": "${USER}",
+#         "context": {
+#             ...
+#         }
+#     }
+#
+# Action is one of ("created", "sourced"). Routing key is set to
+# '{exchange_routing_key}.{action|upper}', eg 'REZ.CONTEXT.SOURCED'. "Created"
+# is when a new context is constructed, which will either cause a resolve to
+# occur, or fetches a resolve from the cache. "Sourced" is when an existing
+# context is recreated (eg loading an rxt file).
+#
+# The "context" field contains the context itself (the same as what is present
+# in an rxt file), filtered by the fields listed in 'context_tracking_context_fields'.
+#
+# Tracking is enabled if 'context_tracking_host' is non-empty. Set to "stdout"
+# to just print the message to standard out instead, for testing purposes.
+# Otherwise, '{host}[:{port}]' is expected.
+#
+# If any items are present in 'context_tracking_extra_fields', they are added
+# to the payload. If any extra field contains references to unknown env-vars, or
+# is set to an empty string (possibly due to var expansion), it is removed from
+# the message payload.
+#
+
+context_tracking_host = ''
+
+context_tracking_amqp = {
+    "userid": '',
+    "password": '',
+    "connect_timeout": 10,
+    "exchange_name": '',
+    "exchange_routing_key": 'REZ.CONTEXT',
+    "message_delivery_mode": 1
+}
+
+context_tracking_context_fields = [
+    "status",
+    "timestamp",
+    "solve_time",
+    "load_time",
+    "from_cache",
+    "package_requests",
+    "implicit_packages",
+    "resolved_packages"
+]
+
+context_tracking_extra_fields = {}
+
 
 ###############################################################################
 # Debugging
@@ -416,7 +510,7 @@ warn_all = False
 # Turn off all warnings. This overrides warn_all.
 warn_none = False
 
-# Print info whenever a file is loaded from disk.
+# Print info whenever a file is loaded from disk, or saved to disk.
 debug_file_loads = False
 
 # Print debugging info when loading plugins
@@ -430,7 +524,7 @@ debug_package_release = False
 # the bind_utils.log() function - it is controlled with this setting
 debug_bind_modules = False
 
-# Print debugging info when searching and loading resources.
+# Print debugging info when searching, loading and copying resources.
 debug_resources = False
 
 # Print packages that are excluded from the resolve, and the filter rule responsible.
@@ -462,13 +556,16 @@ shell_error_truncate_cap = 750
 
 
 ###############################################################################
-# Build
+# Build/Release/Copy
 ###############################################################################
+
+# Whether a package is relocatable or not, if it does not explicitly state with
+# the 'relocatable' attribute in its package definition file.
+default_relocatable = True
 
 # The default working directory for a package build, relative to the package
 # source directory (this is typically where temporary build files are written).
 build_directory = "build"
-
 
 # The number of threads a build system should use, eg the make '-j' option.
 # If the string values "logical_cores" or "physical_cores", it is set to the
@@ -480,11 +577,6 @@ build_directory = "build"
 # during builds.
 build_thread_count = "physical_cores"
 
-
-###############################################################################
-# Release
-###############################################################################
-
 # The release hooks to run when a release occurs. Release hooks are plugins - if
 # a plugin listed here is not present, a warning message is printed. Note that a
 # release hook plugin being loaded does not mean it will run - it needs to be
@@ -495,6 +587,26 @@ release_hooks = []
 # Prompt for release message using an editor. If set to False, there will be
 # no editor prompt.
 prompt_release_message = False
+
+# Sometimes a studio will run a post-release process to set a package and its
+# payload to read-only. If you set this option to True, processes that mutate an
+# existing package (such as releasing a variant into an existing package, or
+# copying a package) will, if possible, temporarily make a package writable
+# during these processes. The mode will be set back to original afterwards.
+#
+make_package_temporarily_writable = True
+
+# The subdirectory where hashed variant symlinks (known as variant shortlinks)
+# are created. This is only relevant for packages whose 'hashed_variants' is
+# set to True. To disable variant shortlinks, set this to None.
+#
+variant_shortlinks_dirname = "_v"
+
+# Whether or not to use variant shortlinks when resolving variant root paths.
+# You might want to disable this for testing purposes, but typically you would
+# leave this True.
+#
+use_variant_shortlinks = True
 
 
 ###############################################################################
@@ -564,6 +676,25 @@ max_package_changelog_chars = 65536
 # If not zero, truncates all package changelogs to only show the last N commits
 max_package_changelog_revisions = 0
 
+# Default option on how to create scripts with util.create_executable_script.
+# In order to support both windows and other OS it is recommended to set this
+# to 'both'.
+#
+# Possible modes:
+# - single:
+#       Creates the requested script only.
+# - py:
+#       Create .py script that will allow launching scripts on windows,
+#       if the shell adds .py to PATHEXT. Make sure to use PEP-397 py.exe
+#       as default application for .py files.
+# - platform_specific:
+#       Will create py script on windows and requested on other platforms
+# - both:
+#       Creates the requested file and a .py script so that scripts can be
+#       launched without extension from windows and other systems.
+create_executable_script_mode = "single"
+
+
 ###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
@@ -573,25 +704,6 @@ max_package_changelog_revisions = 0
 # backwards compatibility reasons. Note that rez will detect either format on
 # rxt file load.
 rxt_as_yaml = False
-
-# Warn or disallow when a package contains a package name that does not match
-# the name specified in the directory structure. When this occurs, the
-# directory package name is used in preference.
-warn_package_name_mismatch = True
-error_package_name_mismatch = False
-
-# Warn or disallow when a package contains a version number that does not match
-# the version specified in the directory structure. When this occurs, the
-# directory version number is used in preference.
-warn_version_mismatch = True
-error_version_mismatch = False
-
-# Warn or disallow when a package is found to contain a non-string version. This
-# was possible in Rez-1 but was an oversight - versions could be integer or
-# float, as well as string. When this occurs, the directory version number is
-# used in preference.
-warn_nonstring_version = True
-error_nonstring_version = False
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 warn_old_commands = True
@@ -780,7 +892,6 @@ plugins = {
         "check_tag": False
     }
 }
-
 
 
 ###############################################################################

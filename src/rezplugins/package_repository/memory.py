@@ -39,7 +39,7 @@ class MemoryPackageFamilyResource(PackageFamilyResource):
             return
 
         # versioned packages
-        for version_str in data.iterkeys():
+        for version_str in data.keys():
             package = self._repository.get_resource(
                 MemoryPackageResource.key,
                 location=self.location,
@@ -145,7 +145,7 @@ class MemoryPackageRepository(PackageRepository):
         Returns:
             `MemoryPackageRepository` object.
         """
-        location = "<dict at %s>" % hex(id(repository_data))
+        location = "memory{%s}" % hex(id(repository_data))
         resource_pool = ResourcePool(cache_size=None)
         repo = MemoryPackageRepository(location, resource_pool)
         repo.data = repository_data
@@ -174,7 +174,7 @@ class MemoryPackageRepository(PackageRepository):
         return None
 
     def iter_package_families(self):
-        for name in self.data.iterkeys():
+        for name in self.data.keys():
             family = self.get_package_family(name)
             yield family
 

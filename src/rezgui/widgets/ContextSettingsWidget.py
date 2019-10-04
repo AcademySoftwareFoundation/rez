@@ -4,9 +4,13 @@ from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rez.config import config
 from rez.vendor import yaml
+from rez.vendor.six import six
 from rez.vendor.yaml.error import YAMLError
 from rez.vendor.schema.schema import Schema, SchemaError, Or, And, Use
 from functools import partial
+
+
+basestring = six.string_types[0]
 
 
 class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
@@ -14,7 +18,8 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
     titles = {
         "packages_path":        "Search path for Rez packages",
         "implicit_packages":    "Packages that are implicitly added to the request",
-        "package_filter":       "Package exclusion/inclusion rules"
+        "package_filter":       "Package exclusion/inclusion rules",
+        "caching":              "Enables resolve caching"
     }
 
     schema_dict = {
@@ -22,7 +27,8 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         "implicit_packages":    [basestring],
         "package_filter":       Or(And(None, Use(lambda x: [])),
                                    And(dict, Use(lambda x: [x])),
-                                   [dict])
+                                   [dict]),
+        "caching":              bool
     }
 
     def __init__(self, context_model=None, attributes=None, parent=None):
@@ -34,12 +40,12 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         super(ContextSettingsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
-        self.schema_keys = set(self.schema_dict.iterkeys())
+        self.schema_keys = set(self.schema_dict.keys())
         if attributes:
             self.schema_keys &= set(attributes)
             assert self.schema_keys
 
-        schema_dict = dict((k, v) for k, v in self.schema_dict.iteritems()
+        schema_dict = dict((k, v) for k, v in self.schema_dict.items()
                            if k in self.schema_keys)
         self.schema = Schema(schema_dict)
 
@@ -81,7 +87,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         # load new content
         try:
             txt = self.edit.toPlainText()
-            data = yaml.load(str(txt))
+            data = yaml.load(str(txt), Loader=yaml.FullLoader)
         except YAMLError as e:
             _content_error("Invalid syntax", str(e))
             return
@@ -97,6 +103,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         # apply to context model
         self.context_model.set_packages_path(data["packages_path"])
         self.context_model.set_package_filter(data["package_filter"])
+        self.context_model.set_caching(data["caching"])
         self._update_text()
 
     def discard_changes(self, prompt=False):
@@ -114,13 +121,15 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
 
     def set_defaults(self):
         packages_path = config.packages_path
+        caching = config.caching
         implicits = [str(x) for x in config.implicit_packages]
         package_filter = config.package_filter
 
         data = {"packages_path": packages_path,
                 "implicit_packages": implicits,
-                "package_filter": package_filter}
-        data = dict((k, v) for k, v in data.iteritems()
+                "package_filter": package_filter,
+                "caching": caching}
+        data = dict((k, v) for k, v in data.items()
                     if k in self.schema_keys)
 
         self._set_text(data)
@@ -132,8 +141,9 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         implicits = [str(x) for x in model.implicit_packages]
         data = {"packages_path": model.packages_path,
                 "implicit_packages": implicits,
-                "package_filter": model.package_filter}
-        data = dict((k, v) for k, v in data.iteritems()
+                "package_filter": model.package_filter,
+                "caching": model.caching}
+        data = dict((k, v) for k, v in data.items()
                     if k in self.schema_keys)
 
         self._set_text(data)
@@ -142,7 +152,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
 
     def _set_text(self, data):
         lines = []
-        for key, value in data.iteritems():
+        for key, value in data.items():
             lines.append('')
             txt = yaml.dump({key: value}, default_flow_style=False)
             title = self.titles.get(key)

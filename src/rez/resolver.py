@@ -251,7 +251,7 @@ class Resolver(object):
 
         def _releases_since_solve(key, data):
             _, release_times_dict, _ = data
-            for package_name, release_time in release_times_dict.iteritems():
+            for package_name, release_time in release_times_dict.items():
                 time_ = last_release_times.get(package_name)
                 if time_ is None:
                     time_ = get_last_release_time(package_name, self.package_paths)
@@ -267,7 +267,7 @@ class Resolver(object):
 
         def _timestamp_is_earlier(key, data):
             _, release_times_dict, _ = data
-            for package_name, release_time in release_times_dict.iteritems():
+            for package_name, release_time in release_times_dict.items():
                 if self.timestamp < release_time:
                     self._print("Resolve timestamp (%d) is earlier than %r in "
                                 "solve (%d) (entry: %r)", self.timestamp,

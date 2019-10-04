@@ -1,6 +1,7 @@
 """
 Manage and query memcache server(s).
 """
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -19,6 +20,9 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--interval", type=float, metavar="SECS", default=1.0,
         help="interval (in seconds) used when polling (default: %(default)s)")
+    parser.add_argument(
+        "--warm", action="store_true",
+        help="warm the cache server with visible packages")
 
 
 def poll(client, interval):
@@ -26,8 +30,8 @@ def poll(client, interval):
     import time
 
     prev_entry = None
-    print "%-64s %-16s %-16s %-16s %-16s %-16s" \
-        % ("SERVER", "CONNS", "GET/s", "SET/s", "TEST_GET", "TEST_SET")
+    print("%-64s %-16s %-16s %-16s %-16s %-16s"
+          % ("SERVER", "CONNS", "GET/s", "SET/s", "TEST_GET", "TEST_SET"))
 
     while True:
         stats = dict(client.get_stats())
@@ -38,7 +42,7 @@ def poll(client, interval):
             t, stats = entry
 
             dt = t - prev_t
-            for instance, payload in stats.iteritems():
+            for instance, payload in stats.items():
                 prev_payload = prev_stats.get(instance)
                 if payload and prev_payload:
                     # stats
@@ -59,9 +63,9 @@ def poll(client, interval):
 
                     nconns = int(payload["curr_connections"])
 
-                    print "%-64s %-16d %-16g %-16g %-16g %-16g" \
-                        % (instance, nconns, gets_per_sec, sets_per_sec,
-                           test_get, test_set)
+                    print("%-64s %-16d %-16g %-16g %-16g %-16g"
+                          % (instance, nconns, gets_per_sec, sets_per_sec,
+                             test_get, test_set))
 
         prev_entry = entry
         time.sleep(interval)
@@ -69,6 +73,7 @@ def poll(client, interval):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
+    from rez.packages_ import iter_package_families, iter_packages
     from rez.utils.yaml import dump_yaml
     from rez.utils.memcached import Client
     from rez.utils.formatting import columnise, readable_time_duration, \
@@ -79,7 +84,7 @@ def command(opts, parser, extra_arg_groups=None):
                              debug=config.debug_memcache)
 
     if not memcache_client:
-        print >> sys.stderr, "memcaching is not enabled."
+        print("memcaching is not enabled.", file=sys.stderr)
         sys.exit(1)
 
     if opts.poll:
@@ -88,23 +93,43 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.flush:
         memcache_client.flush(hard=True)
-        print "memcached servers are flushed."
+        print("memcached servers are flushed.")
+        return
+
+    if opts.warm:
+        seen = set()
+        paths = config.nonlocal_packages_path
+
+        for family in iter_package_families(paths=paths):
+            if family.name in seen:
+                continue
+
+            for package in iter_packages(family.name, paths=paths):
+                if opts.verbose:
+                    print("warming: %s" % package.qualified_name)
+
+                # forces package definition load, which puts in memcache
+                _ = package.data  # noqa
+
+            seen.add(family.name)
+
+        print("memcached servers are warmed.")
         return
 
     if opts.reset_stats:
         memcache_client.reset_stats()
-        print "memcached servers are stat reset."
+        print("memcached servers are stat reset.")
         return
 
     def _fail():
-        print >> sys.stderr, "memcached servers are not responding."
+        print("memcached servers are not responding.", file=sys.stderr)
         sys.exit(1)
 
     stats = memcache_client.get_stats()
     if opts.stats:
         if stats:
             txt = dump_yaml(stats)
-            print txt
+            print(txt)
         else:
             _fail()
         return
@@ -138,7 +163,7 @@ def command(opts, parser, extra_arg_groups=None):
                "%s (%d%%)" % (readable_memory_size(used), used_percent))
 
         rows.append(row)
-    print '\n'.join(columnise(rows))
+    print('\n'.join(columnise(rows)))
 
 
 # Copyright 2013-2016 Allan Johns.

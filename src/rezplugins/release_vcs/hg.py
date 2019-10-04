@@ -1,6 +1,8 @@
 """
 Mercurial version control
 """
+from __future__ import print_function
+
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSError
 from rez.utils.logging_ import print_debug, print_error
@@ -29,7 +31,7 @@ class HgReleaseVCS(ReleaseVCS):
         except AssertionError:
             raise HgReleaseVCSError(
                 "'%s' is not the root of a mercurial working copy" % self.vcs_root)
-        except Exception, err:
+        except Exception as err:
             raise HgReleaseVCSError("failed to call hg binary: " + str(err))
 
         self.patch_path = os.path.join(hgdir, 'patches')
@@ -147,7 +149,7 @@ class HgReleaseVCS(ReleaseVCS):
         # rsplit, once, since we KNOW how the right side should be formatted
         tags = dict(line.rstrip().rsplit(None, 1) for line in lines
                     if line.strip())
-        for tag_name, tag_info in tags.iteritems():
+        for tag_name, tag_info in tags.items():
             rev, shortnode = tag_info.split(':')
             tags[tag_name] = {'rev': rev, 'shortnode': shortnode}
         return tags
@@ -252,7 +254,7 @@ class HgReleaseVCS(ReleaseVCS):
         # commit that created the 2nd tag.
 
         # create tag
-        print "Creating tag '%s'..." % tag_name
+        print("Creating tag '%s'..." % tag_name)
         created_tags = self._create_tag_highlevel(tag_name, message=message)
 
         # push tags / bookmarks

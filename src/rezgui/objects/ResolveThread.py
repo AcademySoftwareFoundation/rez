@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from rezgui.qt import QtCore
 from rez.exceptions import RezError
 
@@ -47,12 +49,12 @@ class ResolveThread(QtCore.QObject):
 
     def _callback(self, solver_state):
         if self.buf and self.verbosity == 0:
-            print >> self.buf, "solve step %d..." % solver_state.num_solves
+            print("solve step %d..." % solver_state.num_solves, file=self.buf)
         return (not self.stopped), self.abort_reason
 
     def _package_load_callback(self, package):
         if self.buf:
-            print >> self.buf, "loading %s..." % str(package)
+            print("loading %s..." % str(package), file=self.buf)
 
 
 # Copyright 2013-2016 Allan Johns.

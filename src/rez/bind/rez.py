@@ -31,7 +31,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     with make_package("rez", path, make_root=make_root) as pkg:
         pkg.version = version
         pkg.commands = commands
-        pkg.requires = ["python-2.6+<3"]
+        pkg.requires = ["python-2.7+<4"]
         pkg.variants = [system.variant]
 
     return pkg.installed_variants

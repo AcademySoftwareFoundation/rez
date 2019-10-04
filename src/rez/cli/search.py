@@ -1,27 +1,20 @@
 """
-Search for packages.
+Search for packages
 """
+from __future__ import print_function
 
-
-# these are package fields that can be printed using the --format option.
-# It's a hardcoded list because some fields, even though they can be printed,
-# aren't very useful to see here.
-fields = sorted((
-    'pre_commands', 'tools', 'uuid', 'build_requires', 'version', 'timestamp',
-    'release_message', 'private_build_requires', 'revision', 'description',
-    'base', 'authors', 'variants', 'commands', 'name', 'changelog',
-    'post_commands', 'requires', 'root', 'index', 'uri', 'num_variants',
-    'qualified_name'))
+import os
+import sys
 
 
 def setup_parser(parser, completions=False):
-    types_ = ("package", "family", "variant", "auto")
+    from rez.package_search import ResourceSearchResultFormatter
+
+    type_choices = ("package", "family", "variant", "auto")
+    format_choices = ", ".join(sorted(ResourceSearchResultFormatter.fields))
 
     parser.add_argument(
-        "-s", "--sort", action="store_true",
-        help="print results in sorted order")
-    parser.add_argument(
-        "-t", "--type", default="auto", choices=types_,
+        "-t", "--type", default="auto", choices=type_choices,
         help="type of resource to search for. If 'auto', either packages or "
         "package families are searched, depending on the value of PKG")
     parser.add_argument(
@@ -31,12 +24,12 @@ def setup_parser(parser, completions=False):
         "--validate", action="store_true",
         help="validate each resource that is found")
     parser.add_argument(
-        "--paths", type=str, default=None,
-        help="set package search path")
+        "--paths", type=str,
+        help="set package search path (ignores --no-local if set)")
     parser.add_argument(
-        "-f", "--format", type=str, default=None,
+        "-f", "--format", type=str,
         help="format package output, eg --format='{qualified_name} | "
-        "{description}'. Valid fields include: %s" % ", ".join(fields))
+        "{description}'. Valid fields include: %s" % format_choices)
     parser.add_argument(
         "--no-newlines", action="store_true",
         help="print newlines as '\\n' rather than actual newlines")
@@ -46,20 +39,23 @@ def setup_parser(parser, completions=False):
         "package")
     parser.add_argument(
         "-e", "--errors", action="store_true",
-        help="search for packages containing errors")
+        help="only print packages containing errors (implies --validate)")
     parser.add_argument(
         "--nw", "--no-warnings", dest="no_warnings", action="store_true",
         help="suppress warnings")
     parser.add_argument(
-        "--before", type=str,
+        "--before", type=str, default='0',
         help="only show packages released before the given time. Supported "
         "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
         "-5m, -0.5h, -10d)")
     parser.add_argument(
-        "--after", type=str,
+        "--after", type=str, default='0',
         help="only show packages released after the given time. Supported "
         "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
         "-5m, -0.5h, -10d)")
+    parser.add_argument(
+        "-s", "--sort", action="store_true",
+        help="print results in sorted order (deprecated)")
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='?',
         help="packages to search, glob-style patterns are supported")
@@ -70,144 +66,59 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.package_search import ResourceSearcher, ResourceSearchResultFormatter
+    from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config
-    from rez.exceptions import RezError
-    from rez.utils.formatting import get_epoch_time_from_str, expand_abbreviations
-    from rez.utils.logging_ import print_error
-    from rez.packages_ import iter_package_families, iter_packages
-    from rez.vendor.version.requirement import Requirement
-    import os.path
-    import fnmatch
-    import sys
 
-    error_class = None if opts.debug else RezError
+    before_time = get_epoch_time_from_str(opts.before)
+    after_time = get_epoch_time_from_str(opts.after)
 
-    before_time = 0
-    after_time = 0
-    if opts.before:
-        before_time = get_epoch_time_from_str(opts.before)
-    if opts.after:
-        after_time = get_epoch_time_from_str(opts.after)
     if after_time and before_time and (after_time >= before_time):
         parser.error("non-overlapping --before and --after")
-
-    if opts.paths is None:
-        pkg_paths = config.nonlocal_packages_path if opts.no_local else None
-    else:
-        pkg_paths = (opts.paths or "").split(os.pathsep)
-        pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
-
-    name_pattern = opts.PKG or '*'
-    version_range = None
-    if opts.PKG:
-        try:
-            req = Requirement(opts.PKG)
-            name_pattern = req.name
-            if not req.range.is_any():
-                version_range = req.range
-        except:
-            pass
-
-    type_ = opts.type
-    if opts.errors or (type_ == "auto" and version_range):
-        type_ = "package"
-        # turn some of the nastier rez-1 warnings into errors
-        config.override("error_package_name_mismatch", True)
-        config.override("error_version_mismatch", True)
-        config.override("error_nonstring_version", True)
 
     if opts.no_warnings:
         config.override("warn_none", True)
 
-    # families
-    found = False
-    family_names = []
-    families = iter_package_families(paths=pkg_paths)
-    if opts.sort:
-        families = sorted(families, key=lambda x: x.name)
-    for family in families:
-        if family.name not in family_names and \
-                fnmatch.fnmatch(family.name, name_pattern):
-            family_names.append(family.name)
-            if type_ == "auto":
-                type_ = "package" if family.name == name_pattern else "family"
-            if type_ == "family":
-                print family.name
-                found = True
+    if opts.paths:
+        paths = opts.paths.split(os.pathsep)
+        paths = [x for x in paths if x]
+    else:
+        paths = None
 
-    def _handle(e):
-        print_error(str(e))
+    if opts.type == "auto":
+        type_ = None
+    else:
+        type_ = opts.type
 
-    def _print_resource(r):
-        if opts.validate:
-            try:
-                r.validate_data()
-            except error_class as e:
-                _handle(e)
-                return
+    searcher = ResourceSearcher(
+        package_paths=paths,
+        resource_type=type_,
+        no_local=opts.no_local,
+        latest=opts.latest,
+        after_time=after_time,
+        before_time=before_time,
+        validate=(opts.validate or opts.errors)
+    )
 
-        if opts.format:
-            txt = expand_abbreviations(opts.format, fields)
-            lines = txt.split("\\n")
-            for line in lines:
-                try:
-                    line_ = r.format(line)
-                except error_class as e:
-                    _handle(e)
-                    break
-                if opts.no_newlines:
-                    line_ = line_.replace('\n', "\\n")
+    resource_type, search_results = searcher.search(opts.PKG)
 
-                print line_
-        else:
-            print r.qualified_name
+    if opts.errors:
+        search_results = [x for x in search_results if x.validation_error]
 
-    # packages/variants
-    if type_ in ("package", "variant"):
-        for name in family_names:
-            packages = iter_packages(name, version_range, paths=pkg_paths)
-            if opts.sort or opts.latest:
-                packages = sorted(packages, key=lambda x: x.version)
-                if opts.latest and packages:
-                    packages = [packages[-1]]
-
-            for package in packages:
-                if ((before_time or after_time)
-                    and package.timestamp
-                    and (before_time and package.timestamp >= before_time
-                         or after_time and package.timestamp <= after_time)):
-                    continue
-
-                if opts.errors:
-                    try:
-                        package.validate_data()
-                    except error_class as e:
-                        _handle(e)
-                        found = True
-                elif type_ == "package":
-                    _print_resource(package)
-                    found = True
-                elif type_ == "variant":
-                    try:
-                        package.validate_data()
-                    except error_class as e:
-                        _handle(e)
-                        continue
-
-                    try:
-                        for variant in package.iter_variants():
-                            _print_resource(variant)
-                            found = True
-                    except error_class as e:
-                        _handle(e)
-                        continue
-
-    if not found:
-        if opts.errors:
-            print "no erroneous packages found"
-        else:
-            print "no matches found"
+        if not search_results:
+            print("No matching erroneous %s found." % resource_type, file=sys.stderr)
             sys.exit(1)
+
+    elif not search_results:
+        print("No matching %s found." % resource_type, file=sys.stderr)
+        sys.exit(1)
+
+    formatter = ResourceSearchResultFormatter(
+        output_format=opts.format,
+        suppress_newlines=opts.no_newlines
+    )
+
+    formatter.print_search_results(search_results)
 
 
 # Copyright 2013-2016 Allan Johns.

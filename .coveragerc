@@ -1,0 +1,6 @@
+[run]
+branch = True
+omit =
+    src/rez/tests/*,
+    src/rez/completion/*,
+    src/rez/vendor/*

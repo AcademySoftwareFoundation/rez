@@ -21,10 +21,18 @@ def popen(args, **kwargs):
 
     Avoids python bug described here: https://bugs.python.org/issue3905. This
     can arise when apps (maya) install a non-standard stdin handler.
-    """
 
-    # avoid non-standard stdin handler
-    if "stdin" not in kwargs and sys.stdin.fileno() not in (0, 1, 2):
-        kwargs["stdin"] = subprocess.PIPE
+    In newer version of maya and katana, the sys.stdin object can also become
+    replaced by an object with no 'fileno' attribute, this is also taken into
+    account.
+    """
+    if "stdin" not in kwargs:
+        try:
+            file_no = sys.stdin.fileno()
+        except AttributeError:
+            file_no = sys.__stdin__.fileno()
+
+        if file_no not in (0, 1, 2):
+            kwargs["stdin"] = subprocess.PIPE
 
     return subprocess.Popen(args, **kwargs)

@@ -1,7 +1,11 @@
 """See util.create_forwarding_script()."""
-from rez.vendor import argparse
+import argparse
+from rez.vendor.six import six
 
 __doc__ = argparse.SUPPRESS
+
+
+basestring = six.string_types[0]
 
 
 def setup_parser(parser, completions=False):
@@ -14,7 +18,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import RezSystemError
     from rez.vendor import yaml
     from rez.vendor.yaml.error import YAMLError
-    import inspect
+    from rez.utils import py23
     import os.path
 
     # we don't usually want warnings printed in a wrapped tool. But in cases
@@ -27,13 +31,12 @@ def command(opts, parser, extra_arg_groups=None):
 
     cli_args = opts.ARG
     for arg_group in (extra_arg_groups or []):
-        cli_args.append("--")
         cli_args.extend(arg_group)
 
     with open(yaml_file) as f:
         content = f.read()
     try:
-        doc = yaml.load(content)
+        doc = yaml.load(content, Loader=yaml.FullLoader)
     except YAMLError as e:
         raise RezSystemError("Invalid executable file %s: %s"
                              % (yaml_file, str(e)))
@@ -54,7 +57,8 @@ def command(opts, parser, extra_arg_groups=None):
         module = plugin_manager.get_plugin_module(plugin_type, plugin_name)
 
     target_func = getattr(module, func_name)
-    func_args = inspect.getargspec(target_func).args
+    func_args = py23.get_function_arg_names(target_func)
+
     if "_script" in func_args:
         kwargs["_script"] = yaml_file
     if "_cli_args" in func_args:

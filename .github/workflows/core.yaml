@@ -1,0 +1,44 @@
+# Test core parts of the package, that are not:
+# * Shell dependent;
+# * Build-system dependent;
+# * Platform dependent.
+#
+name: Core
+on: [push]
+
+jobs:
+  main:
+    name: main
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version:
+          - '2.7'
+          - '3.6'
+          - '3.7'
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Rez
+        run: |
+          mkdir ./build
+          python ./install.py ./build
+
+      # TODO: Add a --core rez-selftest option. Some test suites (eg test_context)
+      # have some 'core' parts (eg not reliant on a shell). It would be good to just
+      # run those parts when --core is present, rather than skipping the entire
+      # test class. This will be easier once ported to pytest.
+      - name: Run Rez Tests
+        run: |
+          ./build/bin/rez/rez-selftest --config --copy_package --formatter --imports --packages --resources_ --rex --schema --solver --version

@@ -7,7 +7,7 @@ from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
 from rez.rex_bindings import VersionBinding
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
-import rez.vendor.unittest2 as unittest
+import unittest
 from rez.vendor.version.version import Version
 from rez.tests.util import TestBase
 from rez.utils.backcompat import convert_old_commands

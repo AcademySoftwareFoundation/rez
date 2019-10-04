@@ -1,7 +1,32 @@
 '''
 Build a package from source.
 '''
+from __future__ import print_function
+
 import os
+
+
+# Cache the developer package loaded from cwd. This is so the package is only
+# loaded once, even though it's required once at arg parsing time (to determine
+# valid build system types), and once at command run time.
+#
+_package = None
+
+
+def get_current_developer_package():
+    from rez.packages_ import get_developer_package
+    from rez.exceptions import PackageMetadataError
+
+    global _package
+
+    if _package is None:
+        try:
+            _package = get_developer_package(os.getcwd())
+        except PackageMetadataError:
+            # no package, or bad package
+            pass
+
+    return _package
 
 
 def setup_parser_common(parser):
@@ -14,29 +39,36 @@ def setup_parser_common(parser):
         "--process", type=str, choices=process_types, default="local",
         help="the build process to use (default: %(default)s).")
 
-    # add build system option only if one build system is associated with cwd
-    clss = get_valid_build_systems(os.getcwd())
+    # add build system choices valid for this package
+    package = get_current_developer_package()
+    clss = get_valid_build_systems(os.getcwd(), package=package)
 
     if clss:
         if len(clss) == 1:
-            cls = clss[0]
-            cls.bind_cli(parser)
-        else:
-            types = [x.name() for x in clss]
-            parser.add_argument(
-                "-b", "--build-system", dest="buildsys", type=str, choices=types,
-                help="the build system to use.")
+            cls_ = clss[0]
+            title = "%s build system arguments" % cls_.name()
+            group = parser.add_argument_group(title)
+            cls_.bind_cli(parser, group)
+
+        types = [x.name() for x in clss]
+    else:
+        types = None
+
+    parser.add_argument(
+        "-b", "--build-system", dest="buildsys", choices=types,
+        help="the build system to use. If not specified, it is detected. Set "
+        "'build_system' or 'build_command' to specify the build system in the "
+        "package itself.")
 
     parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",
         help="select variants to build (zero-indexed).")
     parser.add_argument(
-        "--ba", "--build-args", dest="build_args", type=str, metavar="ARGS",
+        "--ba", "--build-args", dest="build_args", metavar="ARGS",
         help="arguments to pass to the build system. Alternatively, list these "
-        "after a '--'")
+        "after a '--'.")
     parser.add_argument(
-        "--cba", "--child-build-args", dest="child_build_args", type=str,
-        metavar="ARGS",
+        "--cba", "--child-build-args", dest="child_build_args", metavar="ARGS",
         help="arguments to pass to the child build system, if any. "
         "Alternatively, list these after a second '--'.")
 
@@ -51,7 +83,7 @@ def setup_parser(parser, completions=False):
         "choose a custom install path.")
     parser.add_argument(
         "-p", "--prefix", type=str, metavar='PATH',
-        help="install to a custom path.")
+        help="install to a custom package repository path.")
     parser.add_argument(
         "--fail-graph", action="store_true",
         help="if the build environment fails to resolve due to a conflict, "
@@ -87,7 +119,6 @@ def get_build_args(opts, parser, extra_arg_groups):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import BuildContextResolveError
-    from rez.packages_ import get_developer_package
     from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
     from rez.serialise import FileFormat
@@ -95,7 +126,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     # load package
     working_dir = os.getcwd()
-    package = get_developer_package(working_dir)
+    package = get_current_developer_package()
 
     if opts.view_pre:
         package.print_info(format_=FileFormat.py, skip_attributes=["preprocess"])
@@ -103,11 +134,10 @@ def command(opts, parser, extra_arg_groups=None):
 
     # create build system
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
-    buildsys_type = opts.buildsys if ("buildsys" in opts) else None
 
     buildsys = create_build_system(working_dir,
                                    package=package,
-                                   buildsys_type=buildsys_type,
+                                   buildsys_type=opts.buildsys,
                                    opts=opts,
                                    write_build_scripts=opts.scripts,
                                    verbose=True,
@@ -117,7 +147,6 @@ def command(opts, parser, extra_arg_groups=None):
     # create and execute build process
     builder = create_build_process(opts.process,
                                    working_dir,
-                                   package=package,
                                    build_system=buildsys,
                                    verbose=True)
 
@@ -127,7 +156,7 @@ def command(opts, parser, extra_arg_groups=None):
                       install=opts.install,
                       variants=opts.variants)
     except BuildContextResolveError as e:
-        print >> sys.stderr, str(e)
+        print(str(e), file=sys.stderr)
 
         if opts.fail_graph:
             if e.context.graph:
@@ -135,8 +164,8 @@ def command(opts, parser, extra_arg_groups=None):
                 g = e.context.graph(as_dot=True)
                 view_graph(g)
             else:
-                print >> sys.stderr, \
-                    "the failed resolve context did not generate a graph."
+                print("the failed resolve context did not generate a graph.",
+                      file=sys.stderr)
         sys.exit(1)
 
 

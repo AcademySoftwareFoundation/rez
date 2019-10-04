@@ -50,7 +50,7 @@ PKG_INFO_ENCODING = 'utf-8'
 # to 1.2 once PEP 345 is supported everywhere
 PKG_INFO_PREFERRED_VERSION = '1.1'
 
-_LINE_PREFIX_1_2 = re.compile('\n       \|')
+_LINE_PREFIX_1_2 = re.compile('\n       \\|')
 _LINE_PREFIX_PRE_1_2 = re.compile('\n        ')
 _241_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
                'Summary', 'Description',
@@ -91,11 +91,20 @@ _426_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
 _426_MARKERS = ('Private-Version', 'Provides-Extra', 'Obsoleted-By',
                 'Setup-Requires-Dist', 'Extension')
 
+# See issue #106: Sometimes 'Requires' and 'Provides' occur wrongly in
+# the metadata. Include them in the tuple literal below to allow them
+# (for now).
+_566_FIELDS = _426_FIELDS + ('Description-Content-Type',
+                             'Requires', 'Provides')
+
+_566_MARKERS = ('Description-Content-Type',)
+
 _ALL_FIELDS = set()
 _ALL_FIELDS.update(_241_FIELDS)
 _ALL_FIELDS.update(_314_FIELDS)
 _ALL_FIELDS.update(_345_FIELDS)
 _ALL_FIELDS.update(_426_FIELDS)
+_ALL_FIELDS.update(_566_FIELDS)
 
 EXTRA_RE = re.compile(r'''extra\s*==\s*("([^"]+)"|'([^']+)')''')
 
@@ -107,6 +116,8 @@ def _version2fieldlist(version):
         return _314_FIELDS
     elif version == '1.2':
         return _345_FIELDS
+    elif version in ('1.3', '2.1'):
+        return _345_FIELDS + _566_FIELDS
     elif version == '2.0':
         return _426_FIELDS
     raise MetadataUnrecognizedVersionError(version)
@@ -126,38 +137,51 @@ def _best_version(fields):
             continue
         keys.append(key)
 
-    possible_versions = ['1.0', '1.1', '1.2', '2.0']
+    possible_versions = ['1.0', '1.1', '1.2', '1.3', '2.0', '2.1']
 
     # first let's try to see if a field is not part of one of the version
     for key in keys:
         if key not in _241_FIELDS and '1.0' in possible_versions:
             possible_versions.remove('1.0')
+            logger.debug('Removed 1.0 due to %s', key)
         if key not in _314_FIELDS and '1.1' in possible_versions:
             possible_versions.remove('1.1')
+            logger.debug('Removed 1.1 due to %s', key)
         if key not in _345_FIELDS and '1.2' in possible_versions:
             possible_versions.remove('1.2')
+            logger.debug('Removed 1.2 due to %s', key)
+        if key not in _566_FIELDS and '1.3' in possible_versions:
+            possible_versions.remove('1.3')
+            logger.debug('Removed 1.3 due to %s', key)
+        if key not in _566_FIELDS and '2.1' in possible_versions:
+            if key != 'Description':  # In 2.1, description allowed after headers
+                possible_versions.remove('2.1')
+                logger.debug('Removed 2.1 due to %s', key)
         if key not in _426_FIELDS and '2.0' in possible_versions:
             possible_versions.remove('2.0')
+            logger.debug('Removed 2.0 due to %s', key)
 
     # possible_version contains qualified versions
     if len(possible_versions) == 1:
         return possible_versions[0]   # found !
     elif len(possible_versions) == 0:
+        logger.debug('Out of options - unknown metadata set: %s', fields)
         raise MetadataConflictError('Unknown metadata set')
 
     # let's see if one unique marker is found
     is_1_1 = '1.1' in possible_versions and _has_marker(keys, _314_MARKERS)
     is_1_2 = '1.2' in possible_versions and _has_marker(keys, _345_MARKERS)
+    is_2_1 = '2.1' in possible_versions and _has_marker(keys, _566_MARKERS)
     is_2_0 = '2.0' in possible_versions and _has_marker(keys, _426_MARKERS)
-    if int(is_1_1) + int(is_1_2) + int(is_2_0) > 1:
-        raise MetadataConflictError('You used incompatible 1.1/1.2/2.0 fields')
+    if int(is_1_1) + int(is_1_2) + int(is_2_1) + int(is_2_0) > 1:
+        raise MetadataConflictError('You used incompatible 1.1/1.2/2.0/2.1 fields')
 
     # we have the choice, 1.0, or 1.2, or 2.0
     #   - 1.0 has a broken Summary field but works with all tools
     #   - 1.1 is to avoid
     #   - 1.2 fixes Summary but has little adoption
     #   - 2.0 adds more features and is very new
-    if not is_1_1 and not is_1_2 and not is_2_0:
+    if not is_1_1 and not is_1_2 and not is_2_1 and not is_2_0:
         # we couldn't find any specific marker
         if PKG_INFO_PREFERRED_VERSION in possible_versions:
             return PKG_INFO_PREFERRED_VERSION
@@ -165,6 +189,8 @@ def _best_version(fields):
         return '1.1'
     if is_1_2:
         return '1.2'
+    if is_2_1:
+        return '2.1'
 
     return '2.0'
 
@@ -355,7 +381,8 @@ class LegacyMetadata(object):
                 value = msg[field]
                 if value is not None and value != 'UNKNOWN':
                     self.set(field, value)
-        self.set_metadata_version()
+        # logger.debug('Attempting to set metadata for %s', self)
+        # self.set_metadata_version()
 
     def write(self, filepath, skip_unknown=False):
         """Write the metadata fields to filepath."""
@@ -444,16 +471,16 @@ class LegacyMetadata(object):
                     # check that the values are valid
                     if not scheme.is_valid_matcher(v.split(';')[0]):
                         logger.warning(
-                            '%r: %r is not valid (field %r)',
+                            "'%s': '%s' is not valid (field '%s')",
                             project_name, v, name)
             # FIXME this rejects UNKNOWN, is that right?
             elif name in _VERSIONS_FIELDS and value is not None:
                 if not scheme.is_valid_constraint_list(value):
-                    logger.warning('%r: %r is not a valid version (field %r)',
+                    logger.warning("'%s': '%s' is not a valid version (field '%s')",
                                    project_name, value, name)
             elif name in _VERSION_FIELDS and value is not None:
                 if not scheme.is_valid_version(value):
-                    logger.warning('%r: %r is not a valid version (field %r)',
+                    logger.warning("'%s': '%s' is not a valid version (field '%s')",
                                    project_name, value, name)
 
         if name in _UNICODEFIELDS:
@@ -531,7 +558,7 @@ class LegacyMetadata(object):
             for field in fields:
                 value = self.get(field, None)
                 if value is not None and not controller(value):
-                    warnings.append('Wrong value for %r: %s' % (field, value))
+                    warnings.append("Wrong value for '%s': %s" % (field, value))
 
         return missing, warnings
 
@@ -625,6 +652,7 @@ class LegacyMetadata(object):
 
 METADATA_FILENAME = 'pydist.json'
 WHEEL_METADATA_FILENAME = 'metadata.json'
+LEGACY_METADATA_FILENAME = 'METADATA'
 
 
 class Metadata(object):
@@ -634,7 +662,7 @@ class Metadata(object):
     instance which handles the key-value metadata format.
     """
 
-    METADATA_VERSION_MATCHER = re.compile('^\d+(\.\d+)*$')
+    METADATA_VERSION_MATCHER = re.compile(r'^\d+(\.\d+)*$')
 
     NAME_MATCHER = re.compile('^[0-9A-Z]([0-9A-Z_.-]*[0-9A-Z])?$', re.I)
 
@@ -766,6 +794,8 @@ class Metadata(object):
                                 result = d.get(key, value)
                         else:
                             d = d.get('python.exports')
+                            if not d:
+                                d = self._data.get('python.exports')
                             if d:
                                 result = d.get(key, value)
                     if result is sentinel:
@@ -784,8 +814,8 @@ class Metadata(object):
             if (scheme or self.scheme) not in exclusions:
                 m = pattern.match(value)
                 if not m:
-                    raise MetadataInvalidError('%r is an invalid value for '
-                                               'the %r property' % (value,
+                    raise MetadataInvalidError("'%s' is an invalid value for "
+                                               "the '%s' property" % (value,
                                                                     key))
 
     def __setattr__(self, key, value):

@@ -1,6 +1,7 @@
 '''
 Run tests listed in a package's definition file.
 '''
+from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
@@ -49,11 +50,11 @@ def command(opts, parser, extra_arg_groups=None):
     test_names = runner.get_test_names()
     if not test_names:
         uri = runner.get_package().uri
-        print >> sys.stderr, "No tests found in %s" % uri
+        print("No tests found in %s" % uri, file=sys.stderr)
         sys.exit(0)
 
     if opts.list:
-        print '\n'.join(test_names)
+        print('\n'.join(test_names))
         sys.exit(0)
 
     if opts.TEST:

@@ -1,4 +1,8 @@
-[![Build Status](https://travis-ci.org/nerdvegas/rez.svg?branch=master)](https://travis-ci.org/nerdvegas/rez)
+![](https://github.com/nerdvegas/rez/workflows/Core/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/Ubuntu/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/MacOS/badge.svg)
+![](https://github.com/nerdvegas/rez/workflows/Windows/badge.svg)
+
 
 ![logo](media/rez_banner_256.png)
 
@@ -115,7 +119,7 @@ Resolved environments can also be created via the API:
     >>> p = r.execute_shell(command='which hescape', stdout=subprocess.PIPE)
     >>> out, err = p.communicate()
     >>>
-    >>> print out
+    >>> print(out)
     '/software/ext/houdini/12.5.562/bin/hescape'
 
 

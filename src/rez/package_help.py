@@ -1,14 +1,20 @@
+from __future__ import print_function
+
 from rez.packages_ import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding
 from rez.utils.system import popen
 from rez.utils.backcompat import convert_old_command_expansions
 from rez.utils.scope import scoped_formatter
+from rez.vendor.six import six
 from rez.system import system
 import subprocess
 import webbrowser
 import os.path
 import sys
+
+
+basestring = six.string_types[0]
 
 
 class PackageHelp(object):
@@ -34,7 +40,7 @@ class PackageHelp(object):
         packages = sorted(it, key=lambda x: x.version, reverse=True)
         for package_ in packages:
             if self._verbose:
-                print "searching for help in %s..." % package_.uri
+                print("searching for help in %s..." % package_.uri)
             if package_.help:
                 package = package_
                 break
@@ -46,7 +52,7 @@ class PackageHelp(object):
             elif isinstance(help_, list):
                 sections = help_
             if self._verbose:
-                print "found %d help entries in %s." % (len(sections), package.uri)
+                print("found %d help entries in %s." % (len(sections), package.uri))
 
             # create string formatter for help entries
             if package.num_variants == 0:
@@ -92,16 +98,16 @@ class PackageHelp(object):
             self._open_url(uri)
         else:
             if self._verbose:
-                print "running command: %s" % uri
+                print("running command: %s" % uri)
             p = popen(uri, shell=True)
             p.wait()
 
     def print_info(self, buf=None):
         """Print help sections."""
         buf = buf or sys.stdout
-        print >> buf, "Sections:"
+        print("Sections:", file=buf)
         for i, section in enumerate(self._sections):
-            print >> buf, "  %s:\t%s (%s)" % (i + 1, section[0], section[1])
+            print("  %s:\t%s (%s)" % (i + 1, section[0], section[1]), file=buf)
 
     @classmethod
     def open_rez_manual(cls):
@@ -113,12 +119,12 @@ class PackageHelp(object):
         if config.browser:
             cmd = [config.browser, url]
             if not config.quiet:
-                print "running command: %s" % " ".join(cmd)
+                print("running command: %s" % " ".join(cmd))
             p = popen(cmd)
             p.communicate()
         else:
             if not config.quiet:
-                print "opening URL in browser: %s" % url
+                print("opening URL in browser: %s" % url)
             webbrowser.open_new(url)
 
 

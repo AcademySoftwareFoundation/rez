@@ -1,9 +1,12 @@
 """
 Filesystem-related utilities.
 """
+from __future__ import print_function
+
 from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
+from uuid import uuid4
 import weakref
 import atexit
 import posixpath
@@ -13,6 +16,9 @@ import shutil
 import os
 import re
 import stat
+import platform
+
+from rez.vendor.six import six
 
 
 class TempDirs(object):
@@ -72,6 +78,46 @@ atexit.register(TempDirs.clear_all)
 
 
 @contextmanager
+def make_path_writable(path):
+    """Temporarily make `path` writable, if possible.
+
+    Does nothing if:
+        - config setting 'make_package_temporarily_writable' is False;
+        - this can't be done (eg we don't own `path`).
+
+    Args:
+        path (str): Path to make temporarily writable
+    """
+    from rez.config import config
+
+    try:
+        orig_mode = os.stat(path).st_mode
+        new_mode = orig_mode
+
+        if config.make_package_temporarily_writable and \
+                not os.access(path, os.W_OK):
+            new_mode = orig_mode | stat.S_IWUSR
+
+        # make writable
+        if new_mode != orig_mode:
+            os.chmod(path, new_mode)
+
+    except OSError:
+        # ignore access errors here, and just do nothing. It will be more
+        # intuitive for the calling code to fail on access instead.
+        #
+        orig_mode = None
+        new_mode = None
+
+    # yield, then reset mode back to original
+    try:
+        yield
+    finally:
+        if new_mode != orig_mode:
+            os.chmod(path, orig_mode)
+
+
+@contextmanager
 def retain_cwd():
     """Context manager that keeps cwd unchanged afterwards.
     """
@@ -82,15 +128,161 @@ def retain_cwd():
         os.chdir(cwd)
 
 
+def get_existing_path(path, topmost_path=None):
+    """Get the longest parent path in `path` that exists.
+
+    If `path` exists, it is returned.
+
+    Args:
+        path (str): Path to test
+        topmost_path (str): Do not test this path or above
+
+    Returns:
+        str: Existing path, or None if no path was found.
+    """
+    prev_path = None
+
+    if topmost_path:
+        topmost_path = os.path.normpath(topmost_path)
+
+    while True:
+        if os.path.exists(path):
+            return path
+
+        path = os.path.dirname(path)
+        if path == prev_path:
+            return None
+
+        if topmost_path and os.path.normpath(path) == topmost_path:
+            return None
+
+        prev_path = path
+
+
 def safe_makedirs(path):
-    # makedirs that takes into account that multiple threads may try to make
-    # the same dir at the same time
+    """Safe makedirs.
+
+    Works in a multithreaded scenario.
+    """
     if not os.path.exists(path):
         try:
             os.makedirs(path)
         except OSError:
             if not os.path.exists(path):
                 raise
+
+
+def safe_remove(path):
+    """Safely remove the given file or directory.
+
+    Works in a multithreaded scenario.
+    """
+    if not os.path.exists(path):
+        return
+
+    try:
+        if os.path.isdir(path) and not os.path.islink(path):
+            shutil.rmtree(path)
+        else:
+            os.remove(path)
+    except OSError:
+        if os.path.exists(path):
+            raise
+
+
+def replacing_symlink(source, link_name):
+    """Create symlink that overwrites any existing target.
+    """
+    with make_tmp_name(link_name) as tmp_link_name:
+        os.symlink(source, tmp_link_name)
+        replace_file_or_dir(link_name, tmp_link_name)
+
+
+def replacing_copy(src, dest, follow_symlinks=False):
+    """Perform copy that overwrites any existing target.
+
+    Will copy/copytree `src` to `dest`, and will remove `dest` if it exists,
+    regardless of what it is.
+
+    If `follow_symlinks` is False, symlinks are preserved, otherwise their
+    contents are copied.
+
+    Note that this behavior is different to `shutil.copy`, which copies src
+    into dest if dest is an existing dir.
+    """
+    with make_tmp_name(dest) as tmp_dest:
+        if os.path.islink(src) and not follow_symlinks:
+            # special case - copy just a symlink
+            src_ = os.readlink(src)
+            os.symlink(src_, tmp_dest)
+        elif os.path.isdir(src):
+            # copy a dir
+            shutil.copytree(src, tmp_dest, symlinks=(not follow_symlinks))
+        else:
+            # copy a file
+            shutil.copy2(src, tmp_dest)
+
+        replace_file_or_dir(dest, tmp_dest)
+
+
+def replace_file_or_dir(dest, source):
+    """Replace `dest` with `source`.
+
+    Acts like an `os.rename` if `dest` does not exist. Otherwise, `dest` is
+    deleted and `src` is renamed to `dest`.
+    """
+    from rez.vendor.atomicwrites import replace_atomic
+
+    if not os.path.exists(dest):
+        try:
+            os.rename(source, dest)
+            return
+        except:
+            if not os.path.exists(dest):
+                raise
+
+    try:
+        replace_atomic(source, dest)
+        return
+    except:
+        pass
+
+    with make_tmp_name(dest) as tmp_dest:
+        os.rename(dest, tmp_dest)
+        os.rename(source, dest)
+
+
+def additive_copytree(src, dst, symlinks=False, ignore=None):
+    """Version of `copytree` that merges into an existing directory.
+    """
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+
+        if os.path.isdir(s):
+            additive_copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)
+
+
+@contextmanager
+def make_tmp_name(name):
+    """Generates a tmp name for a file or dir.
+
+    This is a tempname that sits in the same dir as `name`. If it exists on
+    disk at context exit time, it is deleted.
+    """
+    path, base = os.path.split(name)
+    tmp_base = ".tmp-%s-%s" % (base, uuid4().hex)
+    tmp_name = os.path.join(path, tmp_base)
+
+    try:
+        yield tmp_name
+    finally:
+        safe_remove(tmp_name)
 
 
 def is_subdirectory(path_a, path_b):
@@ -101,12 +293,38 @@ def is_subdirectory(path_a, path_b):
     return (not relative.startswith(os.pardir + os.sep))
 
 
+def find_matching_symlink(path, source):
+    """Find a symlink under `path` that points at `source`.
+
+    If source is relative, it is considered relative to `path`.
+
+    Returns:
+        str: Name of symlink found, or None.
+    """
+    def to_abs(target):
+        if os.path.isabs(target):
+            return target
+        else:
+            return os.path.normpath(os.path.join(path, target))
+
+    abs_source = to_abs(source)
+
+    for name in os.listdir(path):
+        linkpath = os.path.join(path, name)
+        if os.path.islink:
+            source_ = os.readlink(linkpath)
+            if to_abs(source_) == abs_source:
+                return name
+
+    return None
+
+
 def copy_or_replace(src, dst):
     '''try to copy with mode, and if it fails, try replacing
     '''
     try:
         shutil.copy(src, dst)
-    except (OSError, IOError), e:
+    except (OSError, IOError) as e:
         # It's possible that the file existed, but was owned by someone
         # else - in that situation, shutil.copy might then fail when it
         # tries to copy perms.
@@ -171,18 +389,18 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
             else:
                 copy(srcname, dstname)
         # XXX What about devices, sockets etc.?
-        except (IOError, os.error), why:
+        except (IOError, os.error) as why:
             errors.append((srcname, dstname, str(why)))
         # catch the Error from the recursive copytree so that we can
         # continue with other files
-        except shutil.Error, err:
+        except shutil.Error as err:
             errors.extend(err.args[0])
     try:
         shutil.copystat(src, dst)
     except shutil.WindowsError:
         # can't copy file access times on Windows
         pass
-    except OSError, why:
+    except OSError as why:
         errors.extend((src, dst, str(why)))
     if errors:
         raise shutil.Error(errors)
@@ -261,10 +479,10 @@ def encode_filesystem_name(input_str):
     As an example, the string "Foo_Bar (fun).txt" would get encoded as:
         _foo___bar_020_028fun_029.txt
     """
-    if isinstance(input_str, str):
+    if isinstance(input_str, six.string_types):
         input_str = unicode(input_str)
     elif not isinstance(input_str, unicode):
-        raise TypeError("input_str must be a basestring")
+        raise TypeError("input_str must be a %s" % six.string_types[0].__name__)
 
     as_is = u'abcdefghijklmnopqrstuvwxyz0123456789.-'
     uppercase = u'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -344,19 +562,20 @@ def decode_filesystem_name(filename):
 
 def test_encode_decode():
     def do_test(orig, expected_encoded):
-        print '=' * 80
-        print orig
+        print('=' * 80)
+        print(orig)
         encoded = encode_filesystem_name(orig)
-        print encoded
+        print(encoded)
         assert encoded == expected_encoded
         decoded = decode_filesystem_name(encoded)
-        print decoded
+        print(decoded)
         assert decoded == orig
 
     do_test("Foo_Bar (fun).txt", '_foo___bar_020_028fun_029.txt')
 
     # u'\u20ac' == Euro symbol
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
+
 
 def walk_up_dirs(path):
     """Yields absolute directories starting with the given path, and iterating

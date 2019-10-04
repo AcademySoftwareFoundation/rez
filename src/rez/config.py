@@ -1,22 +1,27 @@
+from __future__ import absolute_import
 from rez import __version__
-from rez.util import deep_update
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
-    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta
+    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \
+    deep_update, ModifyList
 from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
-from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
-from rez.vendor.enum import Enum
+from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 from rez.vendor import yaml
+from rez.vendor.six import six
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
+from contextlib import contextmanager
 from inspect import ismodule
 import os
 import os.path
 import copy
+
+
+basestring = six.string_types[0]
 
 
 # -----------------------------------------------------------------------------
@@ -53,15 +58,30 @@ class Setting(object):
         return data
 
     def _validate(self, data):
-        # overriden settings take precedence.
+        # overridden settings take precedence. Note that `data` has already
+        # taken override into account at this point
         if self.key in self.config.overrides:
-            return self.config.overrides[self.key]
+            return data
 
-        # next, env-var
-        if self._env_var_name and not self.config.locked:
+        if not self.config.locked:
+
+            # next, env-var
             value = os.getenv(self._env_var_name)
             if value is not None:
                 return self._parse_env_var(value)
+
+            # next, JSON-encoded env-var
+            varname = self._env_var_name + "_JSON"
+            value = os.getenv(varname)
+            if value is not None:
+                from rez.utils import json
+
+                try:
+                    return json.loads(value)
+                except ValueError:
+                    raise ConfigurationError(
+                        "Expected $%s to be JSON-encoded string." % varname
+                    )
 
         # next, data unchanged
         if data is not None:
@@ -111,6 +131,10 @@ class OptionalStrList(StrList):
 class PathList(StrList):
     sep = os.pathsep
 
+    def _parse_env_var(self, value):
+        value = value.split(self.sep)
+        return [x for x in value if x]
+
 
 class Int(Setting):
     schema = Schema(int)
@@ -119,8 +143,9 @@ class Int(Setting):
         try:
             return int(value)
         except ValueError:
-            raise ConfigurationError("expected %s to be an integer"
+            raise ConfigurationError("Expected %s to be an integer"
                                      % self._env_var_name)
+
 
 class Bool(Setting):
     schema = Schema(bool)
@@ -136,7 +161,7 @@ class Bool(Setting):
             return False
         else:
             raise ConfigurationError(
-                "expected $%s to be one of: %s"
+                "Expected $%s to be one of: %s"
                 % (self._env_var_name, ", ".join(self.all_words)))
 
 
@@ -158,12 +183,28 @@ class Dict(Setting):
 
     def _parse_env_var(self, value):
         items = value.split(",")
-        try:
-            return dict([item.split(":") for item in items])
-        except ValueError:
-            raise ConfigurationError(
-                "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
-                % value)
+        result = {}
+
+        for item in items:
+            if ':' not in item:
+                raise ConfigurationError(
+                    "Expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
+                    % value
+                )
+
+            k, v = item.split(':', 1)
+
+            try:
+                v = int(v)
+            except ValueError:
+                try:
+                    v = float(v)
+                except ValueError:
+                    pass
+
+            result[k] = v
+
+        return result
 
 
 class OptionalDict(Dict):
@@ -175,7 +216,6 @@ class OptionalDictOrDictList(Setting):
     schema = Or(And(None, Use(lambda x: [])),
                 And(dict, Use(lambda x: [x])),
                 [dict])
-    _env_var_name = None
 
 
 class SuiteVisibility_(Str):
@@ -197,6 +237,28 @@ class RezToolsVisibility_(Str):
     def schema(cls):
         from rez.resolved_context import RezToolsVisibility
         return Or(*(x.name for x in RezToolsVisibility))
+
+
+class ExecutableScriptMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.util import ExecutableScriptMode
+        return Or(*(x.name for x in ExecutableScriptMode))
+
+
+class OptionalStrOrFunction(Setting):
+    schema = Or(None, basestring, callable)
+
+    def _parse_env_var(self, value):
+        # note: env-var override only supports string, eg 'mymodule.preprocess_func'
+        return value
+
+
+class PreprocessMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.developer_package import PreprocessMode
+        return Or(*(x.name for x in PreprocessMode))
 
 
 class BuildThreadCount_(Setting):
@@ -227,12 +289,14 @@ config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
     "bind_module_path":                             PathList,
+    "standard_system_paths":                        PathList,
     "package_definition_build_python_paths":        PathList,
     "implicit_packages":                            StrList,
     "platform_map":                                 OptionalDict,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
+    "context_tracking_context_fields":              StrList,
     "prompt_release_message":                       Bool,
     "critical_styles":                              OptionalStrList,
     "error_styles":                                 OptionalStrList,
@@ -251,6 +315,7 @@ config_schema = Schema({
     "documentation_url":                            Str,
     "suite_visibility":                             SuiteVisibility_,
     "rez_tools_visibility":                         RezToolsVisibility_,
+    "create_executable_script_mode":                ExecutableScriptMode_,
     "suite_alias_prefix_char":                      Char,
     "package_definition_python_path":               OptionalStr,
     "tmpdir":                                       OptionalStr,
@@ -279,7 +344,10 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
-    "package_preprocess_function":                  OptionalStr,
+    "package_preprocess_function":                  OptionalStrOrFunction,
+    "package_preprocess_mode":                      PreprocessMode_,
+    "context_tracking_host":                        OptionalStr,
+    "variant_shortlinks_dirname":                   OptionalStr,
     "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
@@ -298,6 +366,7 @@ config_schema = Schema({
     "all_parent_variables":                         Bool,
     "all_resetting_variables":                      Bool,
     "package_commands_sourced_first":               Bool,
+    "use_variant_shortlinks":                       Bool,
     "warn_shell_startup":                           Bool,
     "warn_untimestamped":                           Bool,
     "warn_all":                                     Bool,
@@ -316,26 +385,24 @@ config_schema = Schema({
     "show_progress":                                Bool,
     "catch_rex_errors":                             Bool,
     "shell_error_truncate_cap":                     Int,
+    "default_relocatable":                          Bool,
     "set_prompt":                                   Bool,
     "prefix_prompt":                                Bool,
     "warn_old_commands":                            Bool,
     "error_old_commands":                           Bool,
     "debug_old_commands":                           Bool,
-    "warn_package_name_mismatch":                   Bool,
-    "error_package_name_mismatch":                  Bool,
-    "warn_version_mismatch":                        Bool,
-    "error_version_mismatch":                       Bool,
-    "warn_nonstring_version":                       Bool,
-    "error_nonstring_version":                      Bool,
     "warn_commands2":                               Bool,
     "error_commands2":                              Bool,
     "rez_1_environment_variables":                  Bool,
     "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
+    "make_package_temporarily_writable":            Bool,
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
     "new_session_popen_args":                       OptionalDict,
+    "context_tracking_amqp":                        OptionalDict,
+    "context_tracking_extra_fields":                OptionalDict,
 
     # GUI settings
     "use_pyside":                                   Bool,
@@ -358,7 +425,7 @@ _plugin_config_dict = {
 # Config
 # -----------------------------------------------------------------------------
 
-class Config(object):
+class Config(six.with_metaclass(LazyAttributeMeta, object)):
     """Rez configuration settings.
 
     You should call the `create_config` function, rather than constructing a
@@ -369,7 +436,6 @@ class Config(object):
     files update the master configuration to create the final config. See the
     comments at the top of 'rezconfig' for more details.
     """
-    __metaclass__ = LazyAttributeMeta
     schema = config_schema
     schema_error = ConfigurationError
 
@@ -391,6 +457,18 @@ class Config(object):
     def get(self, key, default=None):
         """Get the value of a setting."""
         return getattr(self, key, default)
+
+    def copy(self, overrides=None, locked=False):
+        """Create a separate copy of this config."""
+        other = copy.copy(self)
+
+        if overrides is not None:
+            other.overrides = overrides
+
+        other.locked = locked
+
+        other._uncache()
+        return other
 
     def override(self, key, value):
         """Set a setting to the given value.
@@ -447,7 +525,7 @@ class Config(object):
         Returns:
             List of str: The sourced files.
         """
-        _ = self._data  # force a config load
+        _ = self._data  # noqa; force a config load
         return self._sourced_filepaths
 
     @cached_property
@@ -505,11 +583,19 @@ class Config(object):
                 keys += _get_plugin_completions('')
             return keys
 
-    def _uncache(self, key):
+    def _uncache(self, key=None):
         # deleting the attribute falls up back to the class attribute, which is
         # the cached_property descriptor
-        if hasattr(self, key):
+        if key and hasattr(self, key):
             delattr(self, key)
+
+        # have to uncache entire data/plugins dict also, since overrides may
+        # have been changed
+        if hasattr(self, "_data"):
+            delattr(self, "_data")
+
+        if hasattr(self, "plugins"):
+            delattr(self, "plugins")
 
     def _swap(self, other):
         """Swap this config with another.
@@ -528,9 +614,18 @@ class Config(object):
         return key_schema.validate(value)
 
     @cached_property
-    def _data(self):
+    def _data_without_overrides(self):
         data, self._sourced_filepaths = _load_config_from_filepaths(self.filepaths)
+        return data
+
+    @cached_property
+    def _data(self):
+        data = copy.deepcopy(self._data_without_overrides)
+
+        # need to do this regardless of overrides, in order to flatten
+        # ModifyList instances
         deep_update(data, self.overrides)
+
         return data
 
     @classmethod
@@ -541,7 +636,7 @@ class Config(object):
         filepaths.append(get_module_root_config())
         filepath = os.getenv("REZ_CONFIG_FILE")
         if filepath:
-            filepaths.append(filepath)
+            filepaths.extend(filepath.split(os.pathsep))
 
         filepath = os.path.expanduser("~/.rezconfig")
         filepaths.append(filepath)
@@ -682,19 +777,19 @@ def expand_system_vars(data):
         elif isinstance(value, (list, tuple, set)):
             return [_expanded(x) for x in value]
         elif isinstance(value, dict):
-            return dict((k, _expanded(v)) for k, v in value.iteritems())
+            return dict((k, _expanded(v)) for k, v in value.items())
         else:
             return value
     return _expanded(data)
 
 
 def create_config(overrides=None):
-    """Create a configuration that reads config files from standard locations.
+    """Create a configuration based on the global config.
     """
     if not overrides:
         return config
     else:
-        return Config._create_main_config(overrides=overrides)
+        return config.copy(overrides=overrides)
 
 
 def _create_locked_config(overrides=None):
@@ -711,24 +806,48 @@ def _create_locked_config(overrides=None):
     return Config([get_module_root_config()], overrides=overrides, locked=True)
 
 
+@contextmanager
+def _replace_config(other):
+    """Temporarily replace the global config.
+    """
+    config._swap(other)
+
+    try:
+        yield
+    finally:
+        config._swap(other)  # revert config
+
+
 @lru_cache()
 def _load_config_py(filepath):
-    from rez.vendor.six.six import exec_
+    reserved = dict(
+        # Standard Python module variables
+        # Made available from within the module,
+        # and later excluded from the `Config` class
+        __name__=os.path.splitext(os.path.basename(filepath))[0],
+        __file__=filepath,
 
-    globs = dict(rez_version=__version__)
+        rez_version=__version__,
+        ModifyList=ModifyList
+    )
+
+    g = reserved.copy()
     result = {}
 
     with open(filepath) as f:
         try:
             code = compile(f.read(), filepath, 'exec')
-            exec_(code, _globs_=globs)
-        except Exception, e:
+            exec(code, g)
+        except Exception as e:
             raise ConfigurationError("Error loading configuration from %s: %s"
                                      % (filepath, str(e)))
 
-    for k, v in globs.iteritems():
-        if k != '__builtins__' and not ismodule(v):
+    for k, v in g.items():
+        if k != '__builtins__' \
+                and not ismodule(v) \
+                and k not in reserved:
             result[k] = v
+
     return result
 
 
@@ -737,7 +856,7 @@ def _load_config_yaml(filepath):
     with open(filepath) as f:
         content = f.read()
     try:
-        doc = yaml.load(content) or {}
+        doc = yaml.load(content, Loader=yaml.FullLoader) or {}
     except YAMLError as e:
         raise ConfigurationError("Error loading configuration from %s: %s"
                                  % (filepath, str(e)))

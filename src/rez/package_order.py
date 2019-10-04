@@ -119,7 +119,7 @@ class PerFamilyOrder(PackageOrder):
 
     def reorder(self, iterable, key=None):
         try:
-            item = iter(iterable).next()
+            item = next(iter(iterable))
         except:
             return None
 
@@ -158,13 +158,13 @@ class PerFamilyOrder(PackageOrder):
         packages = {}
 
         # group package fams by orderer they use
-        for fam, orderer in self.order_dict.iteritems():
+        for fam, orderer in self.order_dict.items():
             k = id(orderer)
             orderers[k] = orderer
             packages.setdefault(k, set()).add(fam)
 
         orderlist = []
-        for k, fams in packages.iteritems():
+        for k, fams in packages.items():
             orderer = orderers[k]
             data = to_pod(orderer)
             data["packages"] = sorted(fams)
@@ -421,7 +421,7 @@ def register_orderer(cls):
 
 # registration of builtin orderers
 _orderers = {}
-for o in globals().values():
+for o in list(globals().values()):
     register_orderer(o)
 
 

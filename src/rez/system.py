@@ -124,7 +124,7 @@ class System(object):
             elif (shell not in shells) and ("bash" in shells):
                 shell = "bash"  # failed detection, fall back on 'bash'
             elif shell not in shells:
-                shell = iter(shells).next()  # give up - just choose a shell
+                shell = next(iter(shells))  # give up - just choose a shell
 
             # sh has to be handled as a special case
             if shell == "sh":
@@ -146,7 +146,7 @@ class System(object):
                             if "bash" in shells:
                                 shell = "bash"  # fall back on bash
                             else:
-                                shell = iter(shells).next()  # give up - just choose a shell
+                                shell = next(iter(shells))  # give up - just choose a shell
 
             # TODO: remove this when/if dash support added
             if shell == "dash":
@@ -178,14 +178,18 @@ class System(object):
         """
         @returns The machine hostname, eg 'somesvr'
         """
-        return self.fqdn.split('.', 1)[0]
+        import socket
+        return socket.gethostname()
 
     @cached_property
     def domain(self):
         """
         @returns The domain, eg 'somestudio.com'
         """
-        return self.fqdn.split('.', 1)[1]
+        try:
+            return self.fqdn.split('.', 1)[1]
+        except IndexError:
+            return ""
 
     @cached_property
     def rez_bin_path(self):

@@ -1,4 +1,4 @@
-from rez.utils._version import _rez_Version
+from rez.utils._version import _rez_version
 from rez.utils.schema import Required, schema_keys
 from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
@@ -11,9 +11,13 @@ from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
 from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
+from rez.vendor.six import six
 from rez.vendor.version.version import Version
 from contextlib import contextmanager
 import os
+
+
+basestring = six.string_types[0]
 
 
 # this schema will automatically harden request strings like 'python-*'; see
@@ -50,6 +54,9 @@ package_schema = Schema({
     # deliberately not possible to late bind
     Optional('variants'):               [[package_request_schema]],
 
+    Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('hashed_variants'):        bool,
+
     Optional('uuid'):                   basestring,
     Optional('config'):                 dict,
     Optional('tools'):                  late_bound([basestring]),
@@ -62,6 +69,7 @@ package_schema = Schema({
     Optional('post_commands'):          _commands_schema,
 
     # attributes specific to pre-built packages
+    Optional("build_system"):           basestring,
     Optional("build_command"):          Or([basestring], basestring, False),
     Optional("preprocess"):             _function_schema,
 
@@ -100,10 +108,11 @@ class PackageMaker(AttrDictWrapper):
         if "requires_rez_version" in package_data:
             ver = package_data.pop("requires_rez_version")
 
-            if _rez_Version < ver:
+            if Version(_rez_version) < ver:
                 raise PackageMetadataError(
                     "Failed reading package definition file: rez version >= %s "
-                    "needed (current version is %s)" % (ver, _rez_Version))
+                    "needed (current version is %s)" % (ver, _rez_version)
+                )
 
         # create a 'memory' package repository containing just this package
         version_str = package_data.get("version") or "_NO_VERSION"
@@ -113,7 +122,7 @@ class PackageMaker(AttrDictWrapper):
         # retrieve the package from the new repository
         family_resource = repo.get_package_family(self.name)
         it = repo.iter_packages(family_resource)
-        package_resource = it.next()
+        package_resource = next(it)
 
         package = self.package_cls(package_resource)
 
@@ -128,7 +137,7 @@ class PackageMaker(AttrDictWrapper):
         data.pop("skipped_variants", None)
         data.pop("package_cls", None)
 
-        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        data = dict((k, v) for k, v in data.items() if v is not None)
         return data
 
 

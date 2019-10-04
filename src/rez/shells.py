@@ -2,27 +2,57 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
-from rez.util import which, shlex_join
+from rez.util import shlex_join, is_non_string_iterable
+from rez.backport.shutilwhich import which
 from rez.utils.logging_ import print_warning
 from rez.utils.system import popen
 from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
+from rez.vendor.six import six
 import subprocess
+import os
 import os.path
 import pipes
+import re
+
+
+basestring = six.string_types[0]
 
 
 def get_shell_types():
-    """Returns the available shell types: bash, tcsh etc."""
+    """Returns the available shell types: bash, tcsh etc.
+
+    Returns:
+    List of str: Shells.
+    """
     from rez.plugin_managers import plugin_manager
-    return plugin_manager.get_plugins('shell')
+    return list(plugin_manager.get_plugins('shell'))
+
+
+def get_shell_class(shell=None):
+    """Get the plugin class associated with the given or current shell.
+
+    Returns:
+        class: Plugin class for shell.
+    """
+    if not shell:
+        shell = config.default_shell
+        if not shell:
+            from rez.system import system
+            shell = system.shell
+
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.get_plugin_class("shell", shell)
 
 
 def create_shell(shell=None, **kwargs):
-    """Returns a Shell of the given type, or the current shell type if shell
-    is None."""
+    """Returns a Shell of the given or current type.
+
+    Returns:
+        `Shell`: Instance of given shell.
+    """
     if not shell:
         shell = config.default_shell
         if not shell:
@@ -36,16 +66,50 @@ def create_shell(shell=None, **kwargs):
 class Shell(ActionInterpreter):
     """Class representing a shell, such as bash or tcsh.
     """
-
     schema_dict = {
         "prompt": basestring}
 
     @classmethod
     def name(cls):
+        """Plugin name.
+        """
         raise NotImplementedError
 
     @classmethod
+    def executable_name(cls):
+        """Name of executable to create shell instance.
+        """
+        return cls.name()
+
+    @classmethod
+    def executable_filepath(cls):
+        """Get full filepath to executable, or raise if not found.
+        """
+        return cls.find_executable(cls.executable_name())
+
+    @property
+    def executable(self):
+        return self.__class__.executable_filepath()
+
+    @classmethod
+    def is_available(cls):
+        """Determine if the shell is available to instantiate.
+
+        Returns:
+            bool: True if the shell can be created.
+        """
+        try:
+            return cls.executable_filepath() is not None
+        except RuntimeError:
+            return False
+
+    @classmethod
     def file_extension(cls):
+        """Get the file extension associated with the shell.
+
+        Returns:
+            str: Shell file extension.
+        """
         raise NotImplementedError
 
     @classmethod
@@ -57,14 +121,6 @@ class Shell(ActionInterpreter):
         @returns 4-tuple representing applied value of each option.
         """
         raise NotImplementedError
-
-    #@cached_class_property
-    #def executable(cls):
-    #    name = cls.name()
-    #    exe = which(name)
-    #    if not exe:
-    #        raise RuntimeError("Couldn't find executable '%s'." % name)
-    #    return exe
 
     @classmethod
     def get_syspaths(cls):
@@ -107,8 +163,25 @@ class Shell(ActionInterpreter):
                           % (option, cls.name(), overruling_option))
 
     @classmethod
-    def find_executable(cls, name):
+    def find_executable(cls, name, check_syspaths=False):
+        """Find an executable.
+
+        Args:
+            name (str): Program name.
+            check_syspaths (bool): If True, check the standard system paths as
+                well, if program was not found on current $PATH.
+
+        Returns:
+            str: Full filepath of executable.
+        """
         exe = which(name)
+
+        if not exe and check_syspaths:
+            paths = cls.get_syspaths()
+            env = os.environ.copy()
+            env["PATH"] = os.pathsep.join(paths)
+            exe = which(name, env=env)
+
         if not exe:
             raise RuntimeError("Couldn't find executable '%s'." % name)
         return exe
@@ -149,7 +222,63 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
-    def join(self, command):
+    @classmethod
+    def convert_tokens(cls, value):
+        """
+        Converts any token like ${VAR} and $VAR to shell specific form.
+        Uses the ENV_VAR_REGEX to correctly parse tokens.
+
+        Args:
+            value: str to convert
+
+        Returns:
+            str with shell specific variables
+        """
+        return cls.ENV_VAR_REGEX.sub(
+            lambda m: "".join(cls.get_key_token(g) for g in m.groups() if g),
+            value
+        )
+
+    @classmethod
+    def get_key_token(cls, key):
+        """
+        Encodes the environment variable into the shell specific form.
+        Shells might implement multiple forms, but the most common/safest
+        should be returned here.
+
+        Args:
+            key: Variable name to encode
+
+        Returns:
+            str of encoded token form
+        """
+        return cls.get_all_key_tokens(key)[0]
+
+    @classmethod
+    def get_all_key_tokens(cls, key):
+        """
+        Encodes the environment variable into the shell specific forms.
+        Shells might implement multiple forms, but the most common/safest
+        should be always returned at index 0.
+
+        Args:
+            key: Variable name to encode
+
+        Returns:
+            list of str with encoded token forms
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def line_terminator(cls):
+        """
+        Returns:
+            str: default line terminator
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def join(cls, command):
         """
         Args:
             command:
@@ -160,11 +289,11 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
+
 class UnixShell(Shell):
     """
     A base class for common *nix shells, such as bash and tcsh.
     """
-    executable = None
     rcfile_arg = None
     norc_arg = None
     histfile = None
@@ -368,9 +497,9 @@ class UnixShell(Shell):
 
     # escaping is allowed in args, but not in program string
     def command(self, value):
-        if hasattr(value, '__iter__'):
+        if is_non_string_iterable(value):
             it = iter(value)
-            cmd = EscapedString.disallow(it.next())
+            cmd = EscapedString.disallow(next(it))
             args_str = ' '.join(self.escape_string(x) for x in it)
             value = "%s %s" % (cmd, args_str)
         else:
@@ -385,12 +514,17 @@ class UnixShell(Shell):
     def shebang(self):
         self._addline("#!%s" % self.executable)
 
-    def get_key_token(self, key):
-        return "${%s}" % key
+    @classmethod
+    def get_all_key_tokens(cls, key):
+        return ["${%s}" % key, "$%s" % key]
 
-    def join(self, command):
+    @classmethod
+    def join(cls, command):
         return shlex_join(command)
 
+    @classmethod
+    def line_terminator(cls):
+        return "\n"
 
 # Copyright 2013-2016 Allan Johns.
 #

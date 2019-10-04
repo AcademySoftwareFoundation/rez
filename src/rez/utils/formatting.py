@@ -1,6 +1,8 @@
 """
 Utilities related to formatting output or translating input.
 """
+from __future__ import absolute_import
+
 from string import Formatter
 from rez.vendor.enum import Enum
 from rez.vendor.version.requirement import Requirement
@@ -21,6 +23,13 @@ ENV_VAR_REGEX = re.compile(ENV_VAR_REGSTR)
 FORMAT_VAR_REGSTR = "{(?P<var>.+?)}"
 FORMAT_VAR_REGEX = re.compile(FORMAT_VAR_REGSTR)
 
+# package names that are invalid because they may clash with reserved dir
+# names in some package repos (eg filesystem)
+#
+invalid_package_names = (
+    "__pycache__",
+)
+
 
 def is_valid_package_name(name, raise_error=False):
     """Test the validity of a package name string.
@@ -32,7 +41,11 @@ def is_valid_package_name(name, raise_error=False):
     Returns:
         bool.
     """
-    is_valid = PACKAGE_NAME_REGEX.match(name)
+    is_valid = (
+        PACKAGE_NAME_REGEX.match(name) and
+        name not in invalid_package_names
+    )
+
     if raise_error and not is_valid:
         raise PackageRequestError("Not a valid package name: %r" % name)
     return is_valid
@@ -44,7 +57,7 @@ class PackageRequest(Requirement):
     Example:
 
         >>> pr = PackageRequest("foo-1.3+")
-        >>> print pr.name, pr.range
+        >>> print(pr.name, pr.range)
         foo 1.3+
     """
     def __init__(self, s):
@@ -247,7 +260,7 @@ def dict_to_attributes_code(dict_):
 
     Example:
         >>> d = {'foo': 'bah', 'colors': {'red': 1, 'blue': 2}}
-        >>> print dict_to_attributes_code(d)
+        >>> print(dict_to_attributes_code(d))
         foo = 'bah'
         colors.red = 1
         colors.blue = 2
@@ -256,7 +269,7 @@ def dict_to_attributes_code(dict_):
         str.
     """
     lines = []
-    for key, value in dict_.iteritems():
+    for key, value in dict_.items():
         if isinstance(value, dict):
             txt = dict_to_attributes_code(value)
             lines_ = txt.split('\n')

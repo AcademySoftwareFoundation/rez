@@ -1,8 +1,11 @@
 """
 The main command-line entry point.
 """
+from __future__ import print_function
+
 import sys
-from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
+import importlib
+from argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.utils.logging_ import print_error
 from rez.exceptions import RezError, RezSystemError
@@ -10,7 +13,8 @@ from rez import __version__
 
 
 class SetupRezSubParser(object):
-    """Callback class for lazily setting up rez sub-parsers."""
+    """Callback class for lazily setting up rez sub-parsers.
+    """
     def __init__(self, module_name):
         self.module_name = module_name
 
@@ -28,7 +32,7 @@ class SetupRezSubParser(object):
             error_msg = "command module %s  must provide a setup_parser() " \
                 "function" % self.module_name
         if error_msg:
-            print >> sys.stderr, error_msg
+            print(error_msg, file=sys.stderr)
             return SUPPRESS
 
         mod.setup_parser(parser)
@@ -43,7 +47,7 @@ class SetupRezSubParser(object):
 
     def get_module(self):
         if self.module_name not in sys.modules:
-            __import__(self.module_name, globals(), locals(), [], -1)
+            importlib.import_module(self.module_name)
         return sys.modules[self.module_name]
 
 
@@ -60,13 +64,16 @@ class InfoAction(_StoreTrueAction):
     def __call__(self, parser, args, values, option_string=None):
         from rez.system import system
         txt = system.get_summary_string()
-        print
-        print txt
-        print
+        print()
+        print(txt)
+        print()
         sys.exit(0)
 
 
 def run(command=None):
+
+    sys.dont_write_bytecode = True
+
     parser = LazyArgumentParser("rez")
 
     parser.add_argument("-i", "--info", action=InfoAction,
@@ -86,20 +93,47 @@ def run(command=None):
     subparser = parser.add_subparsers(dest='cmd', metavar='COMMAND')
     for subcommand in subcommands:
         module_name = "rez.cli.%s" % subcommand
+
         subparser.add_parser(
             subcommand,
             help='',  # required so that it can be setup later
             setup_subparser=SetupRezSubParser(module_name))
 
-    # parse args, but split extras into groups separated by "--"
-    all_args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
-    arg_groups = [[]]
-    for arg in all_args:
-        if arg == '--':
-            arg_groups.append([])
-            continue
-        arg_groups[-1].append(arg)
-    opts = parser.parse_args(arg_groups[0])
+    # construct args list. Note that commands like 'rez-env foo' and
+    # 'rez env foo' are equivalent
+    if command:
+        args = [command] + sys.argv[1:]
+    elif len(sys.argv) > 1 and sys.argv[1] in subcommands:
+        command = sys.argv[1]
+        args = sys.argv[1:]
+    else:
+        args = sys.argv[1:]
+
+    # parse args depending on subcommand behaviour
+    if command:
+        arg_mode = subcommands[command].get("arg_mode")
+    else:
+        arg_mode = None
+
+    if arg_mode == "grouped":
+        # args split into groups by '--'
+        arg_groups = [[]]
+        for arg in args:
+            if arg == '--':
+                arg_groups.append([])
+                continue
+            arg_groups[-1].append(arg)
+
+        opts = parser.parse_args(arg_groups[0])
+        extra_arg_groups = arg_groups[1:]
+    elif arg_mode == "passthrough":
+        # unknown args passed in first extra_arg_group
+        opts, extra_args = parser.parse_known_args(args)
+        extra_arg_groups = [extra_args]
+    else:
+        # native arg parsing
+        opts = parser.parse_args(args)
+        extra_arg_groups = []
 
     if opts.debug or _env_var_true("REZ_DEBUG"):
         exc_type = None
@@ -107,7 +141,7 @@ def run(command=None):
         exc_type = RezError
 
     def run_cmd():
-        return opts.func(opts, opts.parser, arg_groups[1:])
+        return opts.func(opts, opts.parser, extra_arg_groups)
 
     if opts.profile:
         import cProfile
@@ -120,7 +154,6 @@ def run(command=None):
             raise
         except exc_type as e:
             print_error("%s: %s" % (e.__class__.__name__, str(e)))
-            #print >> sys.stderr, "rez: %s: %s" % (e.__class__.__name__, str(e))
             sys.exit(1)
 
     sys.exit(returncode or 0)
