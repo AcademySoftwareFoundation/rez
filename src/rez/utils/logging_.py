@@ -59,6 +59,8 @@ class _Printer(object):
     def __nonzero__(self):
         return bool(self.printer_function)
 
+    __bool__ = __nonzero__  # py3 compat
+
 
 @contextmanager
 def log_duration(printer, msg):

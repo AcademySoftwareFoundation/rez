@@ -149,6 +149,8 @@ class PackageFilter(PackageFilterBase):
     def __nonzero__(self):
         return bool(self._excludes)
 
+    __bool__ = __nonzero__  # py3 compat
+
     @cached_property
     def cost(self):
         """Get the approximate cost of this filter.
@@ -270,6 +272,8 @@ class PackageFilterList(PackageFilterBase):
 
     def __nonzero__(self):
         return any(self.filters)
+
+    __bool__ = __nonzero__  # py3 compat
 
     def __str__(self):
         filters = sorted(self.filters, key=lambda x: (x.cost, str(x)))

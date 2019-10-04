@@ -117,6 +117,8 @@ class _Printer(object):
     def __nonzero__(self):
         return self.verbosity
 
+    __bool__ = __nonzero__  # py3 compat
+
 
 class SolverState(object):
     """Represent the current state of the solver instance for use with a

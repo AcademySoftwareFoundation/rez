@@ -1050,6 +1050,8 @@ class EnvironmentVariable(object):
     def __nonzero__(self):
         return bool(self.value())
 
+    __bool__ = __nonzero__  # py3 compat
+
     def __eq__(self, value):
         if isinstance(value, EnvironmentVariable):
             value = value.value()
