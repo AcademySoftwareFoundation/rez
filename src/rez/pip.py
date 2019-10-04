@@ -36,17 +36,6 @@ class InstallMode(Enum):
     # only install dependencies that we have to. If an existing rez package
     # satisfies a dependency already, it will be used instead. The default.
     min_deps = 1
-    # install dependencies even if an existing rez package satisfies the
-    # dependency, if the dependency is newer.
-    new_deps = 2
-    # install dependencies even if a rez package of the same version is already
-    # available, if possible. For example, if you are performing a local install,
-    # a released (central) package may match a dependency; but with this mode
-    # enabled, a new local package of the same version will be installed as well.
-    #
-    # Typically, if performing a central install with the rez-pip --release flag,
-    # max_deps is equivalent to new_deps.
-    max_deps = 3
 
 
 def is_exe(fpath):
