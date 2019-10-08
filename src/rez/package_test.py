@@ -1,11 +1,15 @@
+import shutil
+
 from rez.config import config
 from rez.resolved_context import ResolvedContext
-from rez.packages_ import get_latest_package_from_string, Variant
+from rez.packages_ import get_latest_package_from_string, get_package_from_string, Variant
 from rez.exceptions import PackageNotFoundError, PackageTestError
 from rez.utils.colorize import heading, Printer
 from rez.vendor.six import six
+from rez.utils.system import change_dir
 from pipes import quote
 import subprocess
+import os
 import time
 import sys
 
@@ -53,7 +57,7 @@ class PackageTestRunner(object):
     """
     def __init__(self, package_request, use_current_env=False,
                  extra_package_requests=None, package_paths=None, stdout=None,
-                 stderr=None, verbose=False, **context_kwargs):
+                 stderr=None, verbose=False, clean=False, **context_kwargs):
         """Create a package tester.
 
         Args:
@@ -68,6 +72,7 @@ class PackageTestRunner(object):
             stdout (file-like object): Defaults to sys.stdout.
             stderr (file-like object): Defaults to sys.stderr.
             verbose (bool): Verbose mode.
+            clean (bool): States whether clean test artifacts before rerunning
             context_kwargs: Extra arguments which are passed to the
                 `ResolvedContext` instances used to run the tests within.
                 Ignored if `use_current_env` is True.
@@ -78,12 +83,13 @@ class PackageTestRunner(object):
         self.stdout = stdout or sys.stdout
         self.stderr = stderr or sys.stderr
         self.verbose = verbose
+        self.clean = clean
         self.context_kwargs = context_kwargs
 
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
 
-        self.package = None
+        self._package = None
         self.contexts = {}
 
         # use a common timestamp across all tests - this ensures that tests
@@ -93,26 +99,29 @@ class PackageTestRunner(object):
         if use_current_env:
             raise NotImplementedError
 
-    def get_package(self):
+    @property
+    def package(self):
         """Get the target package.
 
         Returns:
             `Package`: Package to run tests on.
         """
-        if self.package is not None:
-            return self.package
+        if self._package:
+            return self._package
 
         if self.use_current_env:
             pass
         else:
-            package = get_latest_package_from_string(str(self.package_request),
-                                                     self.package_paths)
-            if package is None:
-                raise PackageNotFoundError("Could not find package to test: %s"
-                                           % str(self.package_request))
+            package = get_package_from_string(str(self.package_request), self.package_paths)
 
-        self.package = package
-        return self.package
+            if not package:
+                package = get_latest_package_from_string(str(self.package_request), self.package_paths)
+
+            if not package:
+                raise PackageNotFoundError("Could not find package to test: %s" % str(self.package_request))
+
+            self._package = package
+            return package
 
     def get_test_names(self):
         """Get the names of tests in this package.
@@ -120,8 +129,7 @@ class PackageTestRunner(object):
         Returns:
             List of str: Test names.
         """
-        package = self.get_package()
-        return sorted((package.tests or {}).keys())
+        return sorted((self.package.tests or {}).keys())
 
     def run_test(self, test_name):
         """Run a test.
@@ -140,16 +148,14 @@ class PackageTestRunner(object):
             pr = Printer(sys.stdout)
             pr(txt % nargs, heading)
 
-        package = self.get_package()
-
         if test_name not in self.get_test_names():
             raise PackageTestError("Test '%s' not found in package %s"
-                                   % (test_name, package.uri))
+                                   % (test_name, self.package.uri))
 
         if self.use_current_env:
             return self._run_test_in_current_env(test_name)
 
-        for variant in package.iter_variants():
+        for variant in self.package.iter_variants():
 
             # get test info for this variant. If None, that just means that this
             # variant doesn't provide this test. That's ok - 'tests' might be
@@ -209,11 +215,20 @@ class PackageTestRunner(object):
 
                 print_header("\nRunning test command: %s\n", cmd_str)
 
-            retcode, _, _ = context.execute_shell(
-                command=command,
-                stdout=self.stdout,
-                stderr=self.stderr,
-                block=True)
+            test_result_dir = os.path.abspath('build/rez_test_result' if not test_info["run_in_root"] else '.')
+
+            if self.clean and os.path.exists(test_result_dir):
+                shutil.rmtree(test_result_dir)
+
+            if not os.path.exists(test_result_dir):
+                os.makedirs(test_result_dir)
+
+            with change_dir(test_result_dir):
+                retcode, _, _ = context.execute_shell(
+                    command=command,
+                    stdout=self.stdout,
+                    stderr=self.stderr,
+                    block=True)
 
             if retcode:
                 return retcode
@@ -223,6 +238,52 @@ class PackageTestRunner(object):
             break
 
         return 0  # success
+
+    def run_test_env(self, variant_index, test_name):
+        """
+        Runs test env which contains all packages required for any test
+        Args:
+            variant_index (int): chosen variant index
+            test_name (string): name of test 
+        """
+        variant = self.package.get_variant(variant_index)
+
+        if not variant:
+            variant = self.package
+
+        test_info = self._get_test_info(test_name, variant)
+
+        requires = test_info['requires']
+        context_name = tuple(requires)
+        context = self.contexts.get(context_name, self._get_test_context(requires))
+
+        return_code, _, _ = context.execute_shell()
+
+        sys.exit(return_code)
+
+    def _get_test_context(self, requires):
+        """
+        Resolves context of test environment basing on required packages
+        Args:
+            requires (list): list of required packages
+
+        Returns:
+            Resolved context (ResolvedContext object)
+        """
+        if self.verbose:
+            self._print_header("Resolving test environment: %s\n", ' '.join(map(quote, requires)))
+
+        context = ResolvedContext(package_requests=requires,
+                                  package_paths=self.package_paths,
+                                  buf=self.stdout,
+                                  timestamp=self.timestamp,
+                                  **self.context_kwargs)
+
+        return context
+
+    def _print_header(self, txt, *nargs):
+        pr = Printer(sys.stdout)
+        pr(txt % nargs, heading)
 
     def _get_test_info(self, test_name, variant):
         tests_dict = variant.tests or {}
@@ -254,5 +315,6 @@ class PackageTestRunner(object):
 
         return {
             "command": test_entry["command"],
-            "requires": requires
+            "requires": requires,
+            "run_in_root": test_entry.get("run_in_root", False)
         }

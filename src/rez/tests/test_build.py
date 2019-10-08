@@ -153,7 +153,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_anti()
 
     @program_dependent("cmake")
-    def test_build_cmake(self):
+    def test_builds_cmake(self):
         """Test a cmake-based package."""
         self.assertRaises(PackageFamilyNotFoundError, self._create_context,
                           "sup_world==3.8")

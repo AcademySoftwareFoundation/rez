@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import os
 import subprocess
 import sys
 
@@ -36,3 +37,18 @@ def popen(args, **kwargs):
             kwargs["stdin"] = subprocess.PIPE
 
     return subprocess.Popen(args, **kwargs)
+
+
+@contextmanager
+def change_dir(dir_path):
+    """
+    Contextmanager which allows to temporarily change the directory
+    Args:
+        dir_path: Path to the directory where context should be changed
+    """
+    old_path = os.getcwd()
+    os.chdir(dir_path)
+    try:
+        yield
+    finally:
+        os.chdir(old_path)

@@ -92,7 +92,8 @@ tests_schema = Schema({
             "command": Or(basestring, [basestring]),
             Optional("requires"): [
                 Or(PackageRequest, And(basestring, Use(PackageRequest)))
-            ]
+            ],
+            Optional("run_in_root"): bool
         }
     )
 })
