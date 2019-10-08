@@ -72,7 +72,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     test_names = runner.get_test_names()
     if not test_names:
-        uri = runneir.package.uri
+        uri = runner.package.uri
         print("No tests found in %s" % uri, file=sys.stderr)
         sys.exit(0)
 

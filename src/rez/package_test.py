@@ -148,8 +148,6 @@ class PackageTestRunner(object):
             pr = Printer(sys.stdout)
             pr(txt % nargs, heading)
 
-        package = self.get_package()
-
         if test_name not in self.get_test_names():
             raise PackageTestError("Test '%s' not found in package %s"
                                    % (test_name, self.package.uri))
@@ -188,7 +186,15 @@ class PackageTestRunner(object):
             context = self.contexts.get(key)
 
             if context is None:
-                context = self._get_test_context(requires)
+                if self.verbose:
+                    print_header("Resolving test environment: %s\n",
+                                 ' '.join(map(quote, requires)))
+
+                context = ResolvedContext(package_requests=requires,
+                                          package_paths=self.package_paths,
+                                          buf=self.stdout,
+                                          timestamp=self.timestamp,
+                                          **self.context_kwargs)
 
                 if not context.success:
                     context.print_info(buf=self.stderr)
@@ -207,7 +213,7 @@ class PackageTestRunner(object):
                 else:
                     cmd_str = ' '.join(map(quote, command))
 
-                self._print_header("\nRunning test command: %s\n" % cmd_str)
+                print_header("\nRunning test command: %s\n", cmd_str)
 
             test_result_dir = os.path.abspath('build/rez_test_result' if not test_info["run_in_root"] else '.')
 
