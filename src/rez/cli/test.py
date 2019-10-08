@@ -1,6 +1,7 @@
 '''
 Run tests listed in a package's definition file.
 '''
+from __future__ import print_function
 import sys
 
 import os
@@ -10,7 +11,6 @@ from rez.config import config
 from rez.exceptions import PackageMetadataError
 from rez.package_serialise import dump_package_data
 from rez.packages_ import get_developer_package
-from __future__ import print_function
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
@@ -26,13 +26,11 @@ def setup_parser(parser, completions=False):
         "--nl", "--no-local", dest="no_local", action="store_true",
         help="don't load local packages")
     parser.add_argument(
-        "--env", dest="env", default=None,
-        help="resolves the environment needed for running the tests and applies it in the current shell."
-    )
+        "--interactive", dest="interactive", default=None,
+        help="resolves an interactive environment for running the tests.")
     parser.add_argument(
         "--variant", dest="variant", default=0, type=int,
-        help="variant number which should be used to set env. Works only with --env option"
-    )
+        help="variant number which should be used to set the interactive env. Works only with --interactive option")
     PKG_action = parser.add_argument(
         "--extra-packages", nargs='+', metavar="PKG",
         help="extra packages to add to test environment")
@@ -80,11 +78,11 @@ def command(opts, parser, extra_arg_groups=None):
         print('\n'.join(test_names))
         sys.exit(0)
 
-    if opts.env and opts.env in test_names:
-        runner.run_test_env(opts.variant, opts.env)
+    if opts.interactive and opts.interactive in test_names:
+        runner.run_test_env(opts.variant, opts.interactive)
         sys.exit(0)
-    elif opts.env:
-        print >> sys.stderr, "Invalid ENV name. Possible choices: {choices}".format(choices=','.join(test_names))
+    elif opts.interactive:
+        print("Invalid interactive name. Possible choices: {choices}".format(choices=','.join(test_names), file=sys.stderr))
         sys.exit(1)
 
     if opts.TEST:
@@ -101,7 +99,7 @@ def command(opts, parser, extra_arg_groups=None):
 
 def is_dev_run(name):
     """
-    Decides if is dev_run, based on package name
+    Decides if is a dev_run, based on the package name
     Args:
         name: name of package
 
@@ -121,13 +119,13 @@ def get_package(path):
     try:
         return get_developer_package(path)
     except PackageMetadataError:
-        print >> sys.stderr, "Not a valid rez package. Make sure you are in package's root directory"
+        print("Not a valid rez package. Make sure you are in package's root directory", file=sys.stderr)
         return None
 
 
 def prepare_dev_env_package(package):
     """
-    Prepares dev environment for tests. If a package is not installed in in the local packages path
+    Prepares a dev environment for tests. If a package is not installed in the local packages path
     or the tests on the package[py/yaml] are outdated, it installs the package
     or updates the package file with the new test targets.
     Args:
