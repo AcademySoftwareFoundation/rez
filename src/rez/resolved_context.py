@@ -1092,7 +1092,7 @@ class ResolvedContext(object):
         return path
 
     @_on_success
-    def execute_command(self, args, parent_environ=None, **subprocess_kwargs):
+    def execute_command(self, args, parent_environ=None, **Popen_args):
         """Run a command within a resolved context.
 
         This applies the context to a python environ dict, then runs a
@@ -1109,7 +1109,7 @@ class ResolvedContext(object):
             args: Command arguments, can be a string.
             parent_environ: Environment to interpret the context within,
                 defaults to os.environ if None.
-            subprocess_kwargs: Args to pass to subprocess.Popen.
+            Popen_args: Args to pass to subprocess.Popen.
 
         Returns:
             A subprocess.Popen object.
@@ -1126,7 +1126,7 @@ class ResolvedContext(object):
 
         executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
-        return interpreter.subprocess(args, **subprocess_kwargs)
+        return interpreter.subprocess(args, **Popen_args)
 
     @_on_success
     def execute_rex_code(self, code, filename=None, shell=None,

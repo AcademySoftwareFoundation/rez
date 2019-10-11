@@ -1,3 +1,4 @@
+from rez.utils import py23
 from contextlib import contextmanager
 import subprocess
 import sys
@@ -35,4 +36,4 @@ def popen(args, **kwargs):
         if file_no not in (0, 1, 2):
             kwargs["stdin"] = subprocess.PIPE
 
-    return subprocess.Popen(args, **kwargs)
+    return py23.subprocess_Popen(args, **kwargs)

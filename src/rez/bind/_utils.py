@@ -133,7 +133,7 @@ def _run_command(args):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=use_shell,
-        universal_newlines=True
+        text=True
     )
 
     stdout, stderr = p.communicate()

@@ -98,9 +98,9 @@ class CMD(Shell):
         ])
 
         p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
+                  stderr=subprocess.PIPE, shell=True, text=True)
         out_, _ = p.communicate()
-        out_ = out_.decode('utf-8').strip()
+        out_ = out_.strip()
 
         if p.returncode == 0:
             match = re.match(expected, out_)
@@ -123,9 +123,9 @@ class CMD(Shell):
         ])
 
         p = popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True)
+                  stderr=subprocess.PIPE, shell=True, text=True)
         out_, _ = p.communicate()
-        out_ = out_.decode('utf-8').strip()
+        out_ = out_.strip()
 
         if p.returncode == 0:
             match = re.match(expected, out_)

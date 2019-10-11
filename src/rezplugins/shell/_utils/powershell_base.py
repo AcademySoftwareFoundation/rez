@@ -92,11 +92,8 @@ class PowerShellBase(Shell):
             "REG_(EXPAND_)?SZ", "(.*)"
         ])
 
-        p = popen(cmd,
-                  stdout=PIPE,
-                  stderr=PIPE,
-                  universal_newlines=True,
-                  shell=True)
+        p = popen(cmd, stdout=PIPE, stderr=PIPE,
+                  shell=True, text=True)
         out_, _ = p.communicate()
         out_ = out_.strip()
 
@@ -112,11 +109,8 @@ class PowerShellBase(Shell):
             "(.*)"
         ])
 
-        p = popen(cmd,
-                  stdout=PIPE,
-                  stderr=PIPE,
-                  universal_newlines=True,
-                  shell=True)
+        p = popen(cmd, stdout=PIPE, stderr=PIPE,
+                  shell=True, text=True)
         out_, _ = p.communicate()
         out_ = out_.strip()
 

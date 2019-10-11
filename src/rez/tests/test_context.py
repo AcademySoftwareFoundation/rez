@@ -58,9 +58,9 @@ class TestContext(TestBase, TempdirMixin):
                           " executable.")
 
         r = ResolvedContext(["hello_world"])
-        p = r.execute_command(["hello_world"], stdout=subprocess.PIPE)
+        p = r.execute_command(["hello_world"], stdout=subprocess.PIPE, text=True)
         stdout, _ = p.communicate()
-        stdout = stdout.decode("utf-8").strip()
+        stdout = stdout.strip()
         self.assertEqual(stdout, "Hello Rez World!")
 
     def test_execute_command_environ(self):
