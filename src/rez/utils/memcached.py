@@ -27,7 +27,10 @@ class Client(object):
     - ability to cache None.
     """
     class _Miss(object):
-        def __nonzero__(self): return False
+        def __nonzero__(self):
+            return False
+        __bool__ = __nonzero__  # py3 compat
+
     miss = _Miss()
 
     logger = config.debug_printer("memcache")
@@ -49,6 +52,8 @@ class Client(object):
 
     def __nonzero__(self):
         return bool(self.servers)
+
+    __bool__ = __nonzero__  # py3 compat
 
     @property
     def client(self):

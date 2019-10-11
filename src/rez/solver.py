@@ -115,7 +115,9 @@ class _Printer(object):
         print(txt % args, file=self.buf)
 
     def __nonzero__(self):
-        return self.verbosity
+        return self.verbosity > 0
+
+    __bool__ = __nonzero__  # py3 compat
 
 
 class SolverState(object):

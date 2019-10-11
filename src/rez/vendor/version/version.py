@@ -384,6 +384,8 @@ class Version(_Comparable):
         """The empty version equates to False."""
         return bool(self.tokens)
 
+    __bool__ = __nonzero__  # py3 compat
+
     def __eq__(self, other):
         return isinstance(other, Version) and self.tokens == other.tokens
 
