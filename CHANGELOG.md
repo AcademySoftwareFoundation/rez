@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.47.4 (2019-10-11)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.4) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.3...2.47.4)
+
+**Notes**
+
+More Python3 compatibility changes.
+
+**Merged pull requests:**
+
+- use subprocess in 'text' mode in most cases [\#753](https://github.com/nerdvegas/rez/pull/753) ([nerdvegas](https://github.com/nerdvegas))
+- add __bool__ operator [\#755](https://github.com/nerdvegas/rez/pull/755) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.47.3 (2019-09-28)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.3) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.2...2.47.3)
 
