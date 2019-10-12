@@ -135,9 +135,9 @@ class TestShells(TestBase, TempdirMixin):
             command = "hello_world -q -r 66"
             commands = (command, command.split())
             for cmd in commands:
-                p = r.execute_shell(command=cmd, stdout=subprocess.PIPE)
-                p.wait()
-                self.assertEqual(p.returncode, 66)
+                with r.execute_shell(command=cmd, stdout=subprocess.PIPE) as p:
+                    p.wait()
+                    self.assertEqual(p.returncode, 66)
 
     @per_available_shell()
     def test_norc(self):

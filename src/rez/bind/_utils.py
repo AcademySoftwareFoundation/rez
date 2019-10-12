@@ -6,7 +6,7 @@ from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
 from rez.util import which
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
 from rez.vendor.six import six
 from pipes import quote
@@ -128,7 +128,7 @@ def _run_command(args):
     # https://github.com/nerdvegas/rez/pull/659
     use_shell = ("Windows" in platform.system())
 
-    p = popen(
+    p = Popen(
         args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

@@ -13,7 +13,7 @@ from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, RezSystemError
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils import reraise
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.sourcecode import SourceCode, SourceCodeError
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
@@ -635,7 +635,7 @@ class Python(ActionInterpreter):
             self.target_environ.update(self.manager.environ)
 
         shell_mode = isinstance(args, basestring)
-        return popen(args,
+        return Popen(args,
                      shell=shell_mode,
                      env=self.target_environ,
                      **subproc_kwargs)

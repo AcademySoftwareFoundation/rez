@@ -5,7 +5,7 @@ from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join, is_non_string_iterable
 from rez.backport.shutilwhich import which
 from rez.utils.logging_ import print_warning
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
@@ -475,7 +475,7 @@ class UnixShell(Shell):
         cmd.extend([self.executable, target_file])
 
         try:
-            p = popen(cmd, env=env, **Popen_args)
+            p = Popen(cmd, env=env, **Popen_args)
         except Exception as e:
             cmd_str = ' '.join(map(pipes.quote, cmd))
             raise RezSystemError("Error running command:\n%s\n%s"
