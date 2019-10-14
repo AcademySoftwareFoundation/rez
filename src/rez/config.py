@@ -242,7 +242,7 @@ class RezToolsVisibility_(Str):
 class ExecutableScriptMode_(Str):
     @cached_class_property
     def schema(cls):
-        from rez.util import ExecutableScriptMode
+        from rez.utils.execution import ExecutableScriptMode
         return Or(*(x.name for x in ExecutableScriptMode))
 
 

@@ -7,8 +7,8 @@ from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
-from rez.util import create_executable_script, _get_python_script_files, \
-    ExecutableScriptMode
+from rez.utils.execution import create_executable_script, ExecutableScriptMode, \
+    _get_python_script_files
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.util import which
