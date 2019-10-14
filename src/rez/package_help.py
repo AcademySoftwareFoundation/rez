@@ -99,8 +99,9 @@ class PackageHelp(object):
         else:
             if self._verbose:
                 print("running command: %s" % uri)
-            p = Popen(uri, shell=True)
-            p.wait()
+
+            with Popen(uri, shell=True) as p:
+                p.wait()
 
     def print_info(self, buf=None):
         """Print help sections."""

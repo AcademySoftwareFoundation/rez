@@ -137,7 +137,7 @@ class TestShells(TestBase, TempdirMixin):
             for cmd in commands:
                 with r.execute_shell(command=cmd, stdout=subprocess.PIPE) as p:
                     p.wait()
-                    self.assertEqual(p.returncode, 66)
+                self.assertEqual(p.returncode, 66)
 
     @per_available_shell()
     def test_norc(self):
@@ -207,12 +207,12 @@ class TestShells(TestBase, TempdirMixin):
 
         if command:
             r = self._create_context([])
-            p = r.execute_shell(command="rezolve -h")
-            p.wait()
+            with r.execute_shell(command="rezolve -h") as p:
+                p.wait()
             self.assertEqual(p.returncode, 0)
 
-            p = r.execute_shell(command="rez-env -h")
-            p.wait()
+            with r.execute_shell(command="rez-env -h") as p:
+                p.wait()
             self.assertEqual(p.returncode, 0)
 
     @per_available_shell()

@@ -26,7 +26,7 @@ if six.PY2:
         def __enter__(self):
             return self
         def __exit__(self, exc_type, value, traceback):
-            pass
+            self.wait()
 
 else:  # py3
     _PopenBase = subprocess.Popen

@@ -47,8 +47,9 @@ def diff_packages(pkg1, pkg2=None):
 
     difftool = config.difftool
     print("Opening diff viewer %s..." % difftool)
-    proc = Popen([difftool] + paths)
-    proc.wait()
+
+    with Popen([difftool] + paths) as p:
+        p.wait()
 
 
 # Copyright 2013-2016 Allan Johns.

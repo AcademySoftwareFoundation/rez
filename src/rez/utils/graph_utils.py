@@ -282,9 +282,9 @@ def view_graph(graph_str, dest_file=None):
     print("loading image viewer (%s)..." % prog)
 
     if config.image_viewer:
-        proc = Popen([config.image_viewer, dest_file])
-        proc.wait()
-        viewed = not bool(proc.returncode)
+        with Popen([config.image_viewer, dest_file]) as p:
+            p.wait()
+        viewed = not bool(p.returncode)
 
     if not viewed:
         import webbrowser

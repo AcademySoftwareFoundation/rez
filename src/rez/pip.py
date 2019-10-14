@@ -377,7 +377,8 @@ def _cmd(context, command):
     else:
         p = context.execute_shell(command=command, block=False)
 
-    p.wait()
+    with p:
+        p.wait()
 
     if p.returncode:
         raise BuildError("Failed to download source with pip: %s" % cmd_str)

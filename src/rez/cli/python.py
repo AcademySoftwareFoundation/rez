@@ -17,7 +17,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    import subprocess
+    from rez.utils.execution import Popen
     import sys
 
     cmd = [sys.executable, "-E"]
@@ -28,8 +28,8 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.FILE:
         cmd.append(opts.FILE)
 
-    p = subprocess.Popen(cmd)
-    sys.exit(p.wait())
+    with Popen(cmd) as p:
+        sys.exit(p.wait())
 
 
 # Copyright 2013-2016 Allan Johns.
