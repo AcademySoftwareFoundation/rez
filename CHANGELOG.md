@@ -16,6 +16,7 @@
 **Closed issues:**
 
 - rez-pip should assume python provided pip [\#706](https://github.com/nerdvegas/rez/issues/706)
+- rez-pip python 3 error [\#764](https://github.com/nerdvegas/rez/issues/764)
 
 
 ## 2.47.4 (2019-10-11)
