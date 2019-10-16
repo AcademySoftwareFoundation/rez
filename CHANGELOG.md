@@ -1,5 +1,23 @@
 # Change Log
 
+## 2.48.0 (yyyy-mm-dd)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.48.0) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.4...2.48.0)
+
+**Notes**
+
+* Rez-pip: Add a new logic to find which pip will be used to install pip packages.
+* Rez-pip: New deprecation warning when --pip-version is used.
+* See https://github.com/nerdvegas/rez/wiki/Pip for more details on rez-pip.
+
+**Merged pull requests:**
+
+- rez-pip: Assume pip provided by python package [\#757](https://github.com/nerdvegas/rez/pull/757) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+**Closed issues:**
+
+- rez-pip should assume python provided pip [\#706](https://github.com/nerdvegas/rez/issues/706)
+
+
 ## 2.47.4 (2019-10-11)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.4) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.3...2.47.4)
 
