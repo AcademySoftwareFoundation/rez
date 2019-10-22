@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.47.5 (2019-10-22)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.5) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.4...2.47.5)
+
+**Merged pull requests:**
+
+- revert progress iteration and update vendored [\#766](https://github.com/nerdvegas/rez/pull/766) ([maxnbk](https://github.com/maxnbk))
+
+**Closed issues:**
+
+- rez-depends -- 'ProgressBar' object is not an iterator (py-3, rez-2.47.4) [\#765](https://github.com/nerdvegas/rez/issues/765)
+
 ## 2.47.4 (2019-10-11)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.4) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.3...2.47.4)
 
