@@ -5,9 +5,9 @@
 
 **Notes**
 
- * Rez-pip: Add a new logic to find which pip will be used to install pip packages.
- * Rez-pip: New deprecation warning when --pip-version is used.
- * See https://github.com/nerdvegas/rez/wiki/Pip for more details on rez-pip.
+* Rez-pip: Add a new logic to find which pip will be used to install pip packages.
+* Rez-pip: New deprecation warning when --pip-version is used.
+* See https://github.com/nerdvegas/rez/wiki/Pip for more details on rez-pip.
 
 **Merged pull requests:**
 
