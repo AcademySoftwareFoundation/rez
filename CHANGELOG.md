@@ -1,5 +1,23 @@
 # Change Log
 
+## 2.47.7 (2019-10-22)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.7) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.6...2.47.7)
+
+**Notes**
+
+ * Rez-pip: Add a new logic to find which pip will be used to install pip packages.
+ * Rez-pip: New deprecation warning when --pip-version is used.
+ * See https://github.com/nerdvegas/rez/wiki/Pip for more details on rez-pip.
+
+**Merged pull requests:**
+
+- rez-pip: Assume pip provided by python package [\#757](https://github.com/nerdvegas/rez/pull/757) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+**Closed issues:**
+
+- rez-pip should assume python provided pip [\#706](https://github.com/nerdvegas/rez/issues/706)
+- rez-pip python 3 error [\#764](https://github.com/nerdvegas/rez/issues/764)
+
 ## 2.47.6 (2019-10-22)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.6) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.5...2.47.6)
 
