@@ -135,6 +135,17 @@ Note that the latest versions column is just to give us an idea of how far back 
 
 <!-- ######################################################### -->
 <tr><td>
+    progress
+</td><td>
+    1.5 (Mar 6, 2019)
+</td><td>
+    1.5 (Mar 6, 2019)
+</td><td>
+    Upgraded from 1.2 to 1.5 as of Oct 16 2019
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
     pydot
 </td><td>
     1.4.1 (Dec 12, 2018)
