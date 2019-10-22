@@ -8,7 +8,7 @@ from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
     pip_to_rez_version
 from rez.utils.logging_ import print_debug, print_info, print_warning
@@ -64,7 +64,7 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
     command = [py_exe, "-m", "pip"] + list(command_args)
 
     if context is None:
-        return popen(command)
+        return Popen(command)
     else:
         return context.execute_shell(command=command, block=False)
 
@@ -373,11 +373,12 @@ def _cmd(context, command):
     _log("running: %s" % cmd_str)
 
     if context is None:
-        p = popen(command)
+        p = Popen(command)
     else:
         p = context.execute_shell(command=command, block=False)
 
-    p.wait()
+    with p:
+        p.wait()
 
     if p.returncode:
         raise BuildError("Failed to download source with pip: %s" % cmd_str)

@@ -7,7 +7,7 @@ from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.utils.platform_ import platform_
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 
 
 class PowerShellBase(Shell):
@@ -92,7 +92,7 @@ class PowerShellBase(Shell):
             "REG_(EXPAND_)?SZ", "(.*)"
         ])
 
-        p = popen(cmd, stdout=PIPE, stderr=PIPE,
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
                   shell=True, text=True)
         out_, _ = p.communicate()
         out_ = out_.strip()
@@ -109,7 +109,7 @@ class PowerShellBase(Shell):
             "(.*)"
         ])
 
-        p = popen(cmd, stdout=PIPE, stderr=PIPE,
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
                   shell=True, text=True)
         out_, _ = p.communicate()
         out_ = out_.strip()
@@ -215,7 +215,7 @@ class PowerShellBase(Shell):
         if shell_command is None:
             cmd.insert(1, "-NoExit")
 
-        p = popen(cmd, env=env, **Popen_args)
+        p = Popen(cmd, env=env, **Popen_args)
         return p
 
     def get_output(self, style=OutputStyle.file):

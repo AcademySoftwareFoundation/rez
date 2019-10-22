@@ -7,6 +7,7 @@ import textwrap
 import subprocess
 import argparse
 from rez.vendor import yaml
+from rez.utils.execution import Popen
 from rez.utils.filesystem import TempDirs
 from rez.config import config
 
@@ -84,8 +85,10 @@ def run():
 
     print("executing rezbuild.py...")
     cmd = [sys.executable, bezfile]
-    p = subprocess.Popen(cmd)
-    p.wait()
+
+    with Popen(cmd) as p:
+        p.wait()
+
     tmpdir_manager.clear()
     sys.exit(p.returncode)
 

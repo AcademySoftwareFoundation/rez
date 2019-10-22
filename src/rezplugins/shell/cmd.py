@@ -5,7 +5,7 @@ from rez.config import config
 from rez.rex import RexExecutor, expandable, literal, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
 from functools import partial
@@ -97,7 +97,7 @@ class CMD(Shell):
             "(.*)"
         ])
 
-        p = popen(cmd, stdout=subprocess.PIPE,
+        p = Popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True, text=True)
         out_, _ = p.communicate()
         out_ = out_.strip()

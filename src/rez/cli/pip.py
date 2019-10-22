@@ -36,8 +36,8 @@ def command(opts, parser, extra_arg_groups=None):
         parser.error("Expected one of: --install, --search")
 
     if opts.search:
-        p = run_pip_command(["search", opts.PACKAGE])
-        p.wait()
+        with run_pip_command(["search", opts.PACKAGE]) as p:
+            p.wait()
         return
 
     installed_variants, skipped_variants = pip_install_package(

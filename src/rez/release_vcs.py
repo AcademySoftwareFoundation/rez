@@ -1,7 +1,7 @@
 from rez.exceptions import ReleaseVCSError
 from rez.packages_ import get_developer_package
 from rez.util import which
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import walk_up_dirs
 from pipes import quote
@@ -207,7 +207,7 @@ class ReleaseVCS(object):
         if self.package.config.debug("package_release"):
             print_debug("Running command: %s" % cmd_str)
 
-        p = popen(nargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        p = Popen(nargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                   cwd=self.pkg_root, text=True)
         out, err = p.communicate()
 

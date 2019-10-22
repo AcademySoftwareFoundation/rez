@@ -5,7 +5,7 @@ import os.path
 import re
 import subprocess
 from rez.util import which
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.data_utils import cached_property
 from rez.utils.platform_mapped import platform_mapped
 from rez.exceptions import RezSystemError
@@ -226,7 +226,7 @@ class LinuxPlatform(_UnixPlatform):
         # next, try getting the output of the lsb_release program
         import subprocess
 
-        p = popen(
+        p = Popen(
             ['/usr/bin/env', 'lsb_release', '-a'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
@@ -372,7 +372,7 @@ class LinuxPlatform(_UnixPlatform):
     def _physical_cores_from_lscpu(self):
         import subprocess
         try:
-            p = popen(
+            p = Popen(
                 ['lscpu'], stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, text=True
             )
@@ -442,7 +442,7 @@ class OSXPlatform(_UnixPlatform):
     def _physical_cores_from_osx_sysctl(self):
         import subprocess
         try:
-            p = popen(
+            p = Popen(
                 ['sysctl', '-n', 'hw.physicalcpu'],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True
@@ -534,7 +534,7 @@ class WindowsPlatform(Platform):
         # windows
         import subprocess
         try:
-            p = popen(
+            p = Popen(
                 'wmic cpu get NumberOfCores /value'.split(),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True

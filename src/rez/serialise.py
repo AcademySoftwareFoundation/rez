@@ -16,7 +16,7 @@ from rez.utils.filesystem import TempDirs
 from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
-from rez.utils.system import add_sys_paths
+from rez.utils.execution import add_sys_paths
 from rez.utils import py23
 from rez.config import config
 from rez.vendor.atomicwrites import atomic_write

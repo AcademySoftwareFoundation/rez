@@ -39,19 +39,3 @@ def load_module_from_file(name, filepath):
     else:
         from importlib.machinery import SourceFileLoader
         return SourceFileLoader(name, filepath).load_module()
-
-
-def subprocess_Popen(args, **kwargs):
-    """subprocess.Popen.
-    """
-    import subprocess
-
-    # Add support for the new py3 "text" arg, which is equivalent to
-    # "universal_newlines".
-    # https://docs.python.org/3/library/subprocess.html#frequently-used-arguments
-    #
-    if "text" in kwargs:
-        kwargs["universal_newlines"] = True
-        del kwargs["text"]
-
-    return subprocess.Popen(args, **kwargs)
