@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.47.6 (2019-10-22)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.6) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.5...2.47.6)
+
+**Merged pull requests:**
+
+- Subproc wrapper part2 [\#762](https://github.com/nerdvegas/rez/pull/762) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- ResourceWarning with ResolvedContext.execute_shell (py3) [\#761](https://github.com/nerdvegas/rez/issues/761)
+
 ## 2.47.5 (2019-10-22)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.5) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.4...2.47.5)
 
