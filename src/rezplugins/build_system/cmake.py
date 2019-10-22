@@ -7,7 +7,7 @@ from rez.build_system import BuildSystem
 from rez.build_process_ import BuildType
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError
-from rez.util import create_forwarding_script
+from rez.utils.execution import create_forwarding_script
 from rez.packages_ import get_developer_package
 from rez.utils.platform_ import platform_
 from rez.config import config

@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from rez.util import create_forwarding_script
+from rez.utils.execution import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
 from rez.utils.data_utils import cached_property

@@ -7,8 +7,8 @@ from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
-from rez.util import create_executable_script, _get_python_script_files, \
-    ExecutableScriptMode
+from rez.utils.execution import create_executable_script, ExecutableScriptMode, \
+    _get_python_script_files
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.util import which
@@ -135,8 +135,8 @@ class TestShells(TestBase, TempdirMixin):
             command = "hello_world -q -r 66"
             commands = (command, command.split())
             for cmd in commands:
-                p = r.execute_shell(command=cmd, stdout=subprocess.PIPE)
-                p.wait()
+                with r.execute_shell(command=cmd, stdout=subprocess.PIPE) as p:
+                    p.wait()
                 self.assertEqual(p.returncode, 66)
 
     @per_available_shell()
@@ -207,12 +207,12 @@ class TestShells(TestBase, TempdirMixin):
 
         if command:
             r = self._create_context([])
-            p = r.execute_shell(command="rezolve -h")
-            p.wait()
+            with r.execute_shell(command="rezolve -h") as p:
+                p.wait()
             self.assertEqual(p.returncode, 0)
 
-            p = r.execute_shell(command="rez-env -h")
-            p.wait()
+            with r.execute_shell(command="rez-env -h") as p:
+                p.wait()
             self.assertEqual(p.returncode, 0)
 
     @per_available_shell()

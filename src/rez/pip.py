@@ -7,8 +7,9 @@ from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
+from rez.vendor.six.six import StringIO
 from rez.resolved_context import ResolvedContext
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
     pip_to_rez_version
 from rez.utils.logging_ import print_debug, print_info, print_warning
@@ -19,7 +20,6 @@ from rez.config import config
 from rez.system import System
 
 from tempfile import mkdtemp
-from StringIO import StringIO
 from pipes import quote
 from pprint import pformat
 import subprocess
@@ -36,21 +36,10 @@ class InstallMode(Enum):
     # only install dependencies that we have to. If an existing rez package
     # satisfies a dependency already, it will be used instead. The default.
     min_deps = 1
-    # install dependencies even if an existing rez package satisfies the
-    # dependency, if the dependency is newer.
-    new_deps = 2
-    # install dependencies even if a rez package of the same version is already
-    # available, if possible. For example, if you are performing a local install,
-    # a released (central) package may match a dependency; but with this mode
-    # enabled, a new local package of the same version will be installed as well.
-    #
-    # Typically, if performing a central install with the rez-pip --release flag,
-    # max_deps is equivalent to new_deps.
-    max_deps = 3
 
 
 def is_exe(fpath):
-        return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+    return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
 def run_pip_command(command_args, pip_version=None, python_version=None):
@@ -64,7 +53,7 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
     command = [py_exe, "-m", "pip"] + list(command_args)
 
     if context is None:
-        return popen(command)
+        return Popen(command)
     else:
         return context.execute_shell(command=command, block=False)
 
@@ -72,8 +61,14 @@ def run_pip_command(command_args, pip_version=None, python_version=None):
 def find_pip(pip_version=None, python_version=None):
     """Find pip.
 
-    Will revert to native pip installed with rez, if a pip rez package cannot
-    be found. In this case, None is returned.
+    Pip is searched in the following order:
+
+        1. Search for rezified python matching python version request;
+        2. If found, test if pip is present;
+        3. If pip is present, use it;
+        4. If not present, search for rezified pip (this is for backwards compatibility);
+        5. If rezified pip is found, use it;
+        6. If not, fall back to rez's python installation.
 
     Args:
         pip_version (str or `Version`): Version of pip to use, or latest if None.
@@ -86,30 +81,29 @@ def find_pip(pip_version=None, python_version=None):
         - `ResolvedContext`: Context containing pip, or None if we fell back
           to system pip.
     """
-    py_exe = "python"
+    py_exe = None
     context = None
 
-    # find pip, fall back to system if rez pip package not found
-    try:
-        context = create_context(pip_version, python_version)
-        py_exe = context.which("python")
-    except BuildError:
-        # fall back on system pip
-        py_exe = sys.executable
-        print_info("Using %s -m pip", py_exe)
+    py_exe, pip_version, context = find_pip_from_context(
+        python_version,
+        pip_version=pip_version
+    )
 
-    # check version, must be >=19
-    if context:
-        proc = context.execute_command(
-            [py_exe, "-c", "import pip; print pip.__version__"],
-            stdout=subprocess.PIPE
+    if not py_exe:
+        py_exe, pip_version, context = find_pip_from_context(
+            python_version,
+            pip_version=pip_version or "latest"
         )
-        out, _ = proc.communicate()
-        pip_version = out.strip()
 
-    else:
+    if not py_exe:
         import pip
         pip_version = pip.__version__
+        py_exe = sys.executable
+        print_warning(
+            "Found no pip in python and pip package; "
+            "falling back to pip installed in rez own virtualenv (version %s)",
+            pip_version
+        )
 
     pip_major = pip_version.split('.')[0]
     if int(pip_major) < 19:
@@ -118,53 +112,83 @@ def find_pip(pip_version=None, python_version=None):
     return py_exe, context
 
 
-def create_context(pip_version=None, python_version=None):
-    """Create a context containing the specific pip and python.
+def find_pip_from_context(python_version, pip_version=None):
+    """Find pip from rez context.
 
     Args:
-        pip_version (str or `Version`): Version of pip to use, or latest if None.
-        python_version (str or `Version`): Python version to use, or latest if
-            None.
+        python_version (str or `Version`): Python version to use
+        pip_version (str or `Version`): Version of pip to use, or latest.
 
     Returns:
-        `ResolvedContext`: Context containing pip and python.
+        3-tuple:
+        - str: Python executable or None if we fell back to system pip.
+        - str: Pip version or None if we fell back to system pip.
+        - `ResolvedContext`: Context containing pip, or None if we fell back
+          to system pip.
     """
-    # determine pip pkg to use for install, and python variants to install on
-    if pip_version:
-        pip_req = "pip-%s" % str(pip_version)
-    else:
-        pip_req = "pip"
+    target = "python"
+    package_request = []
 
     if python_version:
         ver = Version(str(python_version))
-        major_minor_ver = ver.trim(2)
-        py_req = "python-%s" % str(major_minor_ver)
+        python_major_minor_ver = ver.trim(2)
     else:
         # use latest major.minor
         package = get_latest_package("python")
         if package:
-            major_minor_ver = package.version.trim(2)
+            python_major_minor_ver = package.version.trim(2)
         else:
-            # no python package. We're gonna fail, let's just choose current
-            # python version (and fail at context creation time)
-            major_minor_ver = '.'.join(map(str, sys.version_info[:2]))
+            raise BuildError("Found no python package.")
 
-        py_req = "python-%s" % str(major_minor_ver)
+    python_package = "python-%s" % str(python_major_minor_ver)
 
-    # use pip + latest python to perform pip download operations
-    request = [pip_req, py_req]
+    package_request.append(python_package)
 
-    with convert_errors(from_=(PackageFamilyNotFoundError, PackageNotFoundError),
-                        to=BuildError, msg="Cannot run - pip or python rez "
-                        "package is not present"):
-        context = ResolvedContext(request)
+    if pip_version:
+        target = "pip"
+        if pip_version == "latest":
+            package_request.append("pip")
+        else:
+            package_request.append("pip-%s" % str(pip_version))
 
-    # print pip package used to perform the install
-    pip_variant = context.get_resolved_package("pip")
-    pip_package = pip_variant.parent
-    print_info("Using %s (%s)" % (pip_package.qualified_name, pip_variant.uri))
+    print_info("Trying to use pip from %s package", target)
 
-    return context
+    try:
+        context = ResolvedContext(package_request)
+    except (PackageFamilyNotFoundError, PackageNotFoundError):
+        print_debug("No rez package called %s found", target)
+        return None, None, None
+
+    py_exe = context.which("python%s" % python_major_minor_ver.trim(1))
+
+    proc = context.execute_command(
+        # -E and -s are used to isolate the environment as much as possible.
+        # See python --help for more details. We absolutely don't want to get
+        # pip from the user home.
+        [py_exe, "-E", "-s", "-c", "import pip, sys; sys.stdout.write(pip.__version__)"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    out, err = proc.communicate()
+    if proc.returncode:
+        print_debug("Failed to get pip from package %s", target)
+        print_debug(out)
+        print_debug(err)
+        return None, None, None
+
+    pip_version = out.strip()
+
+    variant = context.get_resolved_package(target)
+    package = variant.parent
+    print_info(
+        "Found pip-%s inside %s. Will use it with %s",
+        pip_version,
+        package.uri,
+        py_exe
+    )
+
+    return py_exe, pip_version, context
 
 
 def pip_install_package(source_name, pip_version=None, python_version=None,
@@ -192,6 +216,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     skipped_variants = []
 
     py_exe, context = find_pip(pip_version, python_version)
+    print_info(
+        "Installing %r with pip taken from %r",
+        source_name, py_exe
+    )
 
     # TODO: should check if packages_path is writable before continuing with pip
     #
@@ -373,11 +401,12 @@ def _cmd(context, command):
     _log("running: %s" % cmd_str)
 
     if context is None:
-        p = popen(command)
+        p = Popen(command)
     else:
         p = context.execute_shell(command=command, block=False)
 
-    p.wait()
+    with p:
+        p.wait()
 
     if p.returncode:
         raise BuildError("Failed to download source with pip: %s" % cmd_str)

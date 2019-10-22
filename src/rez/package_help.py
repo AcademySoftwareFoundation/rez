@@ -3,7 +3,7 @@ from __future__ import print_function
 from rez.packages_ import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.backcompat import convert_old_command_expansions
 from rez.utils.scope import scoped_formatter
 from rez.vendor.six import six
@@ -99,8 +99,9 @@ class PackageHelp(object):
         else:
             if self._verbose:
                 print("running command: %s" % uri)
-            p = popen(uri, shell=True)
-            p.wait()
+
+            with Popen(uri, shell=True) as p:
+                p.wait()
 
     def print_info(self, buf=None):
         """Print help sections."""
@@ -120,7 +121,7 @@ class PackageHelp(object):
             cmd = [config.browser, url]
             if not config.quiet:
                 print("running command: %s" % " ".join(cmd))
-            p = popen(cmd)
+            p = Popen(cmd)
             p.communicate()
         else:
             if not config.quiet:

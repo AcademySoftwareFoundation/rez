@@ -6,7 +6,7 @@ import os.path
 import pipes
 import subprocess
 from rez.config import config
-from rez.utils.system import popen
+from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.shells import Shell, UnixShell
 from rez.rex import EscapedString
@@ -37,7 +37,7 @@ class SH(UnixShell):
         # detect system paths using registry
         cmd = "cmd=`which %s`; unset PATH; $cmd %s %s 'echo __PATHS_ $PATH'" \
               % (cls.name(), cls.norc_arg, cls.command_arg)
-        p = popen(cmd, stdout=subprocess.PIPE,
+        p = Popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True, text=True)
         out_, err_ = p.communicate()
         if p.returncode:
