@@ -62,7 +62,7 @@ class Platform(object):
         # The function name is used as primary key
         entry = platform_map.get(key)
         if entry:
-            for key, value in entry.iteritems():
+            for key, value in entry.items():
                 value, changes = re.subn(key, value, value)
                 if changes > 0:
                     break
