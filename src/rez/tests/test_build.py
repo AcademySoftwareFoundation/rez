@@ -9,6 +9,7 @@ from rez.exceptions import BuildError, BuildContextResolveError,\
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
     per_available_shell, install_dependent, program_dependent
+from rez.utils.platform_ import platform_
 import shutil
 import os.path
 
@@ -155,6 +156,11 @@ class TestBuild(TestBase, TempdirMixin):
     @program_dependent("cmake")
     def test_build_cmake(self):
         """Test a cmake-based package."""
+        if platform_.name == "windows":
+            self.skipTest("This test does not run on Windows due to temporary"
+                          "limitations of the cmake build_system plugin"
+                          " implementation.")
+
         self.assertRaises(PackageFamilyNotFoundError, self._create_context,
                           "sup_world==3.8")
         self._test_build_translate_lib()
