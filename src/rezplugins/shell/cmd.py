@@ -122,7 +122,7 @@ class CMD(Shell):
             "(.*)"
         ])
 
-        p = popen(cmd, stdout=subprocess.PIPE,
+        p = Popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True, text=True)
         out_, _ = p.communicate()
         out_ = out_.strip()
@@ -243,7 +243,7 @@ class CMD(Shell):
         cmd += ['call {}'.format(target_file)]
         is_detached = (cmd[0] == 'START')
 
-        p = popen(cmd, env=env, shell=is_detached, **Popen_args)
+        p = Popen(cmd, env=env, shell=is_detached, **Popen_args)
         return p
 
     def get_output(self, style=OutputStyle.file):
