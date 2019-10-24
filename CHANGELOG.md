@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.47.8 (2019-10-24)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.8) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.7...2.47.8)
+
+**Merged pull requests:**
+
+- Issue 763 prompt leak [\#767](https://github.com/nerdvegas/rez/pull/767) ([nerdvegas](https://github.com/nerdvegas))
+- Fixes cmd due to oversight in 9c8334a106de900964e52f1ed8ee4155acdfe142 [\#770](https://github.com/nerdvegas/rez/pull/770) ([bfloch](https://github.com/bfloch))
+- Skip `test_build_cmake` on Windows. [\#772](https://github.com/nerdvegas/rez/pull/772) ([bfloch](https://github.com/bfloch))
+
+**Closed issues:**
+
+- cross-shell prompt leakage can cause error [\#763](https://github.com/nerdvegas/rez/issues/763)
+
 ## 2.47.7 (2019-10-22)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.7) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.6...2.47.7)
 
