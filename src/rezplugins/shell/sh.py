@@ -92,11 +92,11 @@ class SH(UnixShell):
 
     def _bind_interactive_rez(self):
         if config.set_prompt and self.settings.prompt:
-            self._addline(r'if [ -z "$REZ_STORED_PROMPT" ]; then export REZ_STORED_PROMPT="$PS1"; fi')
+            self._addline(r'if [ -z "$REZ_STORED_PROMPT_SH" ]; then export REZ_STORED_PROMPT_SH="$PS1"; fi')
             if config.prefix_prompt:
-                cmd = 'export PS1="%s $REZ_STORED_PROMPT"'
+                cmd = 'export PS1="%s $REZ_STORED_PROMPT_SH"'
             else:
-                cmd = 'export PS1="$REZ_STORED_PROMPT%s "'
+                cmd = 'export PS1="$REZ_STORED_PROMPT_SH %s"'
             self._addline(cmd % r"\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
