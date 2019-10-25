@@ -9,14 +9,19 @@ To merge a PR to master and release a new version:
    is correct, and change if necessary. The version may have been correct at the
    time of PR submission, but may need an update due to releases that have occurred
    since;
-4. Update [the changelog](CHANGELOG.md) to include the PR itself, as per existing
-   entries. Also, make sure that the date and 'full changelog' link are correct;
+4. Update [the changelog](CHANGELOG.md). A handy utility is provided to help you do this.
+   To use it, run the following command, replacing X, Y, Z etc with all pull request
+   and issue numbers associated with the release:
+   ```
+   ]$ python ./release-rez.py -c X Y Z
+   ```
+   This command prints the changelog entry to stdout, which you can then paste in
+   to the top of CHANGELOG.md.
 5. Run the release-rez utility script. This performs the following actions:
    * Pushes codebase to master;
    * Creates tag on latest version, and pushes tag to master;
    * Generates the new GitHub release (https://github.com/nerdvegas/rez/releases).
-
-      ```
-      ]$ python ./release-rez.py
-      ```
+   ```
+   ]$ python ./release-rez.py
+   ```
 6. Relax.
