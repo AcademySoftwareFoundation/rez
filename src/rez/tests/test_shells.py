@@ -188,7 +188,6 @@ class TestShells(TestBase, TempdirMixin):
     def test_rez_env_output(self):
         # here we are making sure that running a command via rez-env prints
         # exactly what we expect.
-        sh = create_shell()
 
         # Assumes that the shell has an echo command, build-in or alias
         cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
@@ -196,8 +195,8 @@ class TestShells(TestBase, TempdirMixin):
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, universal_newlines=True
         )
-        sh_out = process.communicate()[0]
-        self.assertEqual(sh_out.strip(), "hey")
+        sh_out = process.communicate()
+        self.assertEqual(sh_out[0].strip(), "hey")
 
     @per_available_shell()
     @install_dependent()
