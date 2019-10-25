@@ -591,6 +591,7 @@ class Python(ActionInterpreter):
                                  "interpreter before using it.")
 
         self.target_environ.update(self.manager.environ)
+        self.target_environ = self.adjust_env_for_platform(self.target_environ)
 
     def get_output(self, style=OutputStyle.file):
         self.apply_environ()
@@ -633,6 +634,7 @@ class Python(ActionInterpreter):
     def subprocess(self, args, **subproc_kwargs):
         if self.manager:
             self.target_environ.update(self.manager.environ)
+        self.target_environ = self.adjust_env_for_platform(self.target_environ)
 
         shell_mode = isinstance(args, basestring)
         return Popen(args,
@@ -683,6 +685,57 @@ class Python(ActionInterpreter):
         # but the concept doesn't really feel applicable to Python.  It's just
         # here because the API requires it.
         return "${%s}" % key
+
+    def adjust_env_for_platform(self, env):
+        """ Make required platform-specific adjustments to env.
+        """
+        if sys.platform.startswith('win'):
+            env = self._add_systemroot_to_env_win32(env)
+        return env.copy()
+
+    def _add_systemroot_to_env_win32(self, env):
+        """ Sets ``%SYSTEMROOT%`` environment variable, if not present.
+
+        Args:
+            env (dict): desired environment variables
+
+        Notes:
+            on windows, python-3.6 startup fails within an environment
+            where it ``%PATH%`` includes python3, but ``%SYSTEMROOT%`` is not
+            present.
+
+            for example.
+
+            .. code-block:: python
+
+                from subprocess import Popen
+                cmds = ['python', '--version']
+
+                # successful
+                Popen(cmds)
+                Popen(cmds, env={'PATH': 'C:\\Python-3.6.5',
+                                 'SYSTEMROOT': 'C:\Windows'})
+
+                # failure
+                Popen(cmds, env={'PATH': 'C:\\Python-3.6.5'})
+
+                #> Fatal Python Error: failed to get random numbers to initialize Python
+
+        """
+        if not sys.platform.startswith('win'):
+            return env
+        if 'SYSTEMROOT' in env:
+            return env
+        if 'SYSTEMROOT' not in os.environ:
+            return env
+
+        if env is None:
+            env = {'SYSTEMROOT': os.environ['SYSTEMROOT']}
+            return env
+        else:
+            new_env = env.copy()
+            new_env['SYSTEMROOT'] = os.environ['SYSTEMROOT']
+            return new_env
 
 
 #===============================================================================
