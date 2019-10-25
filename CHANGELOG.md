@@ -1,5 +1,15 @@
 # Change Log
 
+
+## 2.47.10 (2019-10-26)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.10) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.9...2.47.10)
+
+Notes
+
+* corrects failing tests in `rez/tests/test_packages.py` on windows
+* adds %SYSTEMROOT% envvar to Python(ActionInterpreter) so `rez/tests/test_context.py` tests pass on windows
+
+
 ## 2.47.9 (2019-10-25)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.9) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.8...2.47.9)
 
