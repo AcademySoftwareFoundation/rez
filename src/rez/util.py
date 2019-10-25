@@ -29,7 +29,8 @@ class ProgressBar(Bar):
     def __del__(self):
         if self.close_file:
             self.file.close()
-        Bar.__del__(self)
+        if hasattr(Bar, '__del__'):
+            Bar.__del__(self)
 
 
 def dedup(seq):
