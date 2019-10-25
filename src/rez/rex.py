@@ -722,20 +722,22 @@ class Python(ActionInterpreter):
                 #> Fatal Python Error: failed to get random numbers to initialize Python
 
         """
+        # 'SYSTEMROOT' only relevant on windows
         if not sys.platform.startswith('win'):
             return env
+        # 'SYSTEMROOT' unecessary unless 'PATH' is set.
+        if env is None:
+            return env
+        # leave SYSTEMROOT alone if set by user
         if 'SYSTEMROOT' in env:
             return env
+        # not enough info to set SYSTEMROOT
         if 'SYSTEMROOT' not in os.environ:
             return env
 
-        if env is None:
-            env = {'SYSTEMROOT': os.environ['SYSTEMROOT']}
-            return env
-        else:
-            new_env = env.copy()
-            new_env['SYSTEMROOT'] = os.environ['SYSTEMROOT']
-            return new_env
+        new_env = env.copy()
+        new_env['SYSTEMROOT'] = os.environ['SYSTEMROOT']
+        return new_env
 
 
 #===============================================================================
