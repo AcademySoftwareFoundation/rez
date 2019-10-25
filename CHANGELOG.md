@@ -1,16 +1,15 @@
 # Change Log
 
-## 2.47.9 (2019-10-24)
-[Source](https://github.com/nerdvegas/rez/tree/2.47.9) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.8...2.47.9)
+## 2.47.9 (2019-10-25)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.9) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.8...2.47.9)
 
-**Notes**
+**Merged pull requests:**
 
-Fixes rez.util.ProgressBar - only calls `Bar.__del__` if hasattr.
+- rez.util.ProgressBar checks `Bar.__del__` exists before invocation #769 [\#774](https://github.com/nerdvegas/rez/pull/774) ([willjp](https://github.com/willjp))
 
 **Closed issues:**
 
-- rez-depends -- AttributeError: type object 'Bar' has no attribute '__del__' (win, py-3, rez-2.47.7) [\#YYY](https://github.com/nerdvegas/rez/issues/769)
-
+- rez-depends -- AttributeError: type object 'Bar' has no attribute '__del__' (win, py-3, rez-2.47.7) [\#769](https://github.com/nerdvegas/rez/issues/769)
 
 ## 2.47.8 (2019-10-24)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.8) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.7...2.47.8)
