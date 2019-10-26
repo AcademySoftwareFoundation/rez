@@ -13,6 +13,7 @@ from rez.utils.sourcecode import SourceCode
 import unittest
 from rez.vendor.version.version import Version
 from rez.vendor.version.util import VersionError
+from rez.utils.filesystem import canonical_path
 import os.path
 import os
 
@@ -120,26 +121,19 @@ class TestPackages(TestBase, TempdirMixin):
 
     def test_3(self):
         """check package contents."""
-        def _format_platformpath(path):
-            """ `FileSystemPackageRepository` lower-cases paths for case-insensitive filesystems.
-            """
-            if platform_.has_case_sensitive_filesystem:
-                return path
-            return path.lower()
-
         # a py-based package
         package = get_package("versioned", "3.0")
         expected_data = dict(
             name="versioned",
             version=Version("3.0"),
-            base=_format_platformpath(os.path.join(self.py_packages_path, "versioned", "3.0")),
+            base=canonical_path(os.path.join(self.py_packages_path, "versioned", "3.0")),
             commands=SourceCode('env.PATH.append("{root}/bin")'))
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
         # a yaml-based package
         package = get_package("versioned", "2.0")
-        expected_uri = _format_platformpath(os.path.join(self.yaml_packages_path,
+        expected_uri = canonical_path(os.path.join(self.yaml_packages_path,
                                             "versioned", "2.0", "package.yaml"))
         self.assertEqual(package.uri, expected_uri)
 
@@ -149,7 +143,7 @@ class TestPackages(TestBase, TempdirMixin):
 
         # a 'combined' type package
         package = get_package("multi", "1.0")
-        expected_uri = _format_platformpath(os.path.join(self.yaml_packages_path, "multi.yaml<1.0>"))
+        expected_uri = canonical_path(os.path.join(self.yaml_packages_path, "multi.yaml<1.0>"))
         self.assertEqual(package.uri, expected_uri)
         expected_data = dict(
             name="multi",
@@ -160,7 +154,7 @@ class TestPackages(TestBase, TempdirMixin):
 
         # a 'combined' type package, with version overrides
         package = get_package("multi", "1.1")
-        expected_uri = _format_platformpath(os.path.join(self.yaml_packages_path, "multi.yaml<1.1>"))
+        expected_uri = canonical_path(os.path.join(self.yaml_packages_path, "multi.yaml<1.1>"))
         self.assertEqual(package.uri, expected_uri)
         expected_data = dict(
             name="multi",
@@ -171,7 +165,7 @@ class TestPackages(TestBase, TempdirMixin):
 
         # check that visibility of 'combined' packages is correct
         package = get_package("multi", "2.0")
-        expected_uri = _format_platformpath(os.path.join(self.py_packages_path, "multi.py<2.0>"))
+        expected_uri = canonical_path(os.path.join(self.py_packages_path, "multi.py<2.0>"))
         self.assertEqual(package.uri, expected_uri)
 
     def test_4(self):
@@ -316,12 +310,7 @@ class TestPackages(TestBase, TempdirMixin):
 
     def test_6(self):
         """test variant iteration."""
-        # ensure that differing case doesn't get interpreted as different repos
-        # on case-insensitive platforms (eg windows)
-        base = os.path.join(self.py_packages_path, "variants_py", "2.0")
-        if not platform_.has_case_sensitive_filesystem:
-            base = base.lower()
-
+        base = canonical_path(os.path.join(self.py_packages_path, "variants_py", "2.0"))
         expected_data = dict(
             name="variants_py",
             version=Version("2.0"),
