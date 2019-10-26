@@ -19,6 +19,7 @@ import stat
 import platform
 
 from rez.vendor.six import six
+from rez.utils.platform_ import platform_
 
 
 class TempDirs(object):
@@ -424,7 +425,8 @@ def safe_chmod(path, mode):
 
 
 def to_nativepath(path):
-    return os.path.join(path.split('/'))
+    path = path.replace('\\', '/')
+    return os.path.join(*path.split('/'))
 
 
 def to_ntpath(path):
@@ -453,7 +455,7 @@ def canonical_path(path, platform=None):
         str: provided path, formatted for platform.
     """
     if platform is None:
-        platform = platform_.platform_
+        platform = platform_
 
     path = os.path.normpath(os.path.realpath(path))
 
