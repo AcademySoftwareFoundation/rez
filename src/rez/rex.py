@@ -591,7 +591,7 @@ class Python(ActionInterpreter):
                                  "interpreter before using it.")
 
         self.target_environ.update(self.manager.environ)
-        self.target_environ = self.adjust_env_for_platform(self.target_environ)
+        self.adjust_env_for_platform(self.target_environ)
 
     def get_output(self, style=OutputStyle.file):
         self.apply_environ()
@@ -634,7 +634,7 @@ class Python(ActionInterpreter):
     def subprocess(self, args, **subproc_kwargs):
         if self.manager:
             self.target_environ.update(self.manager.environ)
-        self.target_environ = self.adjust_env_for_platform(self.target_environ)
+        self.adjust_env_for_platform(self.target_environ)
 
         shell_mode = isinstance(args, basestring)
         return Popen(args,
@@ -690,11 +690,11 @@ class Python(ActionInterpreter):
         """ Make required platform-specific adjustments to env.
         """
         if sys.platform.startswith('win'):
-            env = self._add_systemroot_to_env_win32(env)
-        return env.copy()
+            self._add_systemroot_to_env_win32(env)
 
     def _add_systemroot_to_env_win32(self, env):
-        """ Sets ``%SYSTEMROOT%`` environment variable, if not present.
+        """ Sets ``%SYSTEMROOT%`` environment variable, if not present
+        in :py:attr:`target_environ` .
 
         Args:
             env (dict): desired environment variables
@@ -722,22 +722,17 @@ class Python(ActionInterpreter):
                 #> Fatal Python Error: failed to get random numbers to initialize Python
 
         """
-        # 'SYSTEMROOT' only relevant on windows
-        if not sys.platform.startswith('win'):
-            return env
         # 'SYSTEMROOT' unecessary unless 'PATH' is set.
         if env is None:
-            return env
+            return
         # leave SYSTEMROOT alone if set by user
         if 'SYSTEMROOT' in env:
-            return env
+            return
         # not enough info to set SYSTEMROOT
         if 'SYSTEMROOT' not in os.environ:
-            return env
+            return
 
-        new_env = env.copy()
-        new_env['SYSTEMROOT'] = os.environ['SYSTEMROOT']
-        return new_env
+        env['SYSTEMROOT'] = os.environ['SYSTEMROOT']
 
 
 #===============================================================================
