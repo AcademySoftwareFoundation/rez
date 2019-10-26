@@ -435,6 +435,33 @@ def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
 
 
+def canonical_path(path, platform=None):
+    """ Resolves symlinks, and formats filepath.
+
+    Resolves symlinks, lowercases if filesystem is case-insensitive,
+    formats filepath using slashes appropriate for platform.
+
+    Args:
+        path (str):
+            filepath being formatted
+
+        platform (rez.utils.platform_.Platform, NoneType):
+            indicates platform path is being formatted for.
+            Defaults to current platform.
+
+    Returns:
+        str: provided path, formatted for platform.
+    """
+    if platform is None:
+        platform = platform_.platform_
+
+    path = os.path.normpath(os.path.realpath(path))
+
+    if not platform.has_case_sensitive_filesystem:
+        return path.lower()
+    return path
+
+
 def encode_filesystem_name(input_str):
     """Encodes an arbitrary unicode string to a generic filesystem-compatible
     non-unicode filename.
