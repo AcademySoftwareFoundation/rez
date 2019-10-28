@@ -63,93 +63,11 @@ class Popen(_PopenBase):
         # "universal_newlines".
         # https://docs.python.org/3/library/subprocess.html#frequently-used-arguments
         #
-        self._universal_newlines = False
-        if any([
-            kwargs.get('text', False),
-            kwargs.get('universal_newlines', False),
-        ]):
-            kwargs.pop('text', None)
-            kwargs.pop('universal_newlines', None)
-            self._universal_newlines = True
+        if "text" in kwargs:
+            kwargs["universal_newlines"] = True
+            del kwargs["text"]
 
         super(Popen, self).__init__(args, **kwargs)
-
-    def communicate(self, *args, **kwargs):
-        r""" Wraps :py:meth:`subprocess.Popen.communicate` to workaround windows decode-error.
-
-        Args:
-            *args/**kwargs: passed to :py:meth:`subprocess.Popen.communicate`
-
-        Returns:
-            tuple: 2-tuple of ``(stdout, stderr)``
-        """
-        # in python-(3.6.5...3.7.4) on windows, `(univeral_newlines/text)=True` fails to decode
-        # some characters (ex: b'\x8d'). Temporary Workaround.
-        #
-        # see: https://github.com/nerdvegas/rez/issues/776
-        (stdout, stderr) = super(Popen, self).communicate(*args, **kwargs)
-        if self._universal_newlines:
-            stdout = self._convert_console_output_to_native_str(stdout)
-            stderr = self._convert_console_output_to_native_str(stderr)
-
-            stdout = self._convert_universal_newlines(stdout)
-            stderr = self._convert_universal_newlines(stderr)
-
-        return (stdout, stderr)
-
-    def _convert_console_output_to_native_str(self, text):
-        """ Converts bytestring/unicode to native string.
-
-        Args:
-            text (Nonetype, str, unicode, bytes):
-                text to conver to native str. None is ignored.
-
-        Returns:
-            str:      unicode or bytes. whichever is native to your python version.
-            Nonetype: if provided `text` is None.
-        """
-        # ignore if (stdout/stderr)!=subprocess.PIPE
-        if text is None:
-            return text
-
-        if isinstance(text, str):
-            return text
-
-        # python3 does not have type 'unicode'
-        if sys.version_info[0] >= 3:
-            unicode = str
-
-        # python2 uses bytestrings as str
-        # python3 uses unicode as str
-        if sys.version_info[0] < 3:
-            if isinstance(text, unicode):
-                return text.encode('utf-8')
-        else:
-            if isinstance(text, bytes):
-                return text.decode('utf-8')
-
-        text_type = str(type(text))
-        raise NotImplementedError('Unexpected text type: {}'.format(text_type))
-
-    def _convert_universal_newlines(self, text):
-        """ Replaces `\r\n` and `\r` with `\n` .
-
-        Args:
-            text (str): text to make newlines universal in.
-
-        Returns:
-            str: text with universal_newlines.
-        """
-        if text is None:
-            return text
-
-        # approximating text=True/universal_newlines=True
-        # https://docs.python.org/3/library/subprocess.html?#frequently-used-arguments
-        # https://docs.python.org/3/library/io.html#io.TextIOWrapper
-        text = text.replace('\r\n', '\n')
-        text = text.replace('\r', '\n')
-        return text
-
 
 
 class ExecutableScriptMode(Enum):
