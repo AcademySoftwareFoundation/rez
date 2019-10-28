@@ -65,6 +65,7 @@ class Popen(_PopenBase):
         #
         if "text" in kwargs:
             kwargs["universal_newlines"] = True
+            kwargs['encoding'] = 'utf-8'
             del kwargs["text"]
 
         super(Popen, self).__init__(args, **kwargs)
