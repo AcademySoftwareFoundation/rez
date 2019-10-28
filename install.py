@@ -39,8 +39,7 @@ def get_py_venv_executable(dest_dir):
 def run_command(args, cwd=source_path):
     if opts.verbose:
         print("running in %s: %s" % (cwd, " ".join(args)))
-    p = subprocess.Popen(args, cwd=source_path)
-    p.wait()
+    p = subprocess.check_output(args, cwd=source_path)
 
 
 def patch_rez_binaries(dest_dir):
