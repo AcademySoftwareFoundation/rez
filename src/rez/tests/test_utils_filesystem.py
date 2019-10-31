@@ -20,9 +20,8 @@ class TestCanonicalPath(TestBase):
 
     def test_win32_case_insensitive(self):
         if platform_.name != 'windows':
-            self.skipTest('os.path.realpath() treats ntpath as relpath, '
-                          'and prepends os.getcwd '
-                          '(py-3.6 only, corrected in py-3.7)')
+            self.skipTest('on linux/macos, `os.path.realpath()` treats windows '
+                          'abspaths as relpaths, and prepends `os.getcwd()`')
         platform = self.CaseInsensitivePlatform()
         path = filesystem.canonical_path('C:\\dir\\File.txt', platform)
         expects = 'c:\\dir\\file.txt'.replace('\\', os.sep)
@@ -30,8 +29,8 @@ class TestCanonicalPath(TestBase):
 
     def test_unix_case_sensistive_platform(self):
         if platform_.name == 'windows':
-            self.skipTest('os.path.realpath() treats unixpath as relpath, and '
-                          'prepends C:\\ (py-3.6 only, corrected in py-3.7)')
+            self.skipTest('on windows, `os.path.realpath()` treats unix abspaths '
+                          'as relpaths, and prepends `os.getcwd()`')
         platform = self.CaseSensitivePlatform()
         path = filesystem.canonical_path('/a/b/File.txt', platform)
         expects = '/a/b/File.txt'.replace('\\', os.sep)
@@ -39,8 +38,8 @@ class TestCanonicalPath(TestBase):
 
     def test_unix_case_insensistive_platform(self):
         if platform_.name == 'windows':
-            self.skipTest('os.path.realpath() treats unixpath as relpath, and '
-                          'prepends C:\\ (py-3.6 only, corrected in py-3.7)')
+            self.skipTest('on windows, `os.path.realpath()` treats unix abspaths '
+                          'as relpaths, and prepends `os.getcwd()`')
         platform = self.CaseInsensitivePlatform()
         path = filesystem.canonical_path('/a/b/File.txt', platform)
         expects = '/a/b/file.txt'.replace('\\', os.sep)
