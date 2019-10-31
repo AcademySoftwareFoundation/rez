@@ -33,8 +33,8 @@ class TestCanonicalPath(TestBase):
             self.skipTest('os.path.realpath() treats unixpath as relpath, and '
                           'prepends C:\\ (py-3.6 only, corrected in py-3.7)')
         platform = self.CaseSensitivePlatform()
-        path = filesystem.canonical_path('/var/tmp/File.txt', platform)
-        expects = '/var/tmp/File.txt'.replace('\\', os.sep)
+        path = filesystem.canonical_path('/a/b/File.txt', platform)
+        expects = '/a/b/File.txt'.replace('\\', os.sep)
         self.assertEqual(path, expects)
 
     def test_unix_case_insensistive_platform(self):
@@ -42,8 +42,8 @@ class TestCanonicalPath(TestBase):
             self.skipTest('os.path.realpath() treats unixpath as relpath, and '
                           'prepends C:\\ (py-3.6 only, corrected in py-3.7)')
         platform = self.CaseInsensitivePlatform()
-        path = filesystem.canonical_path('/var/tmp/File.txt', platform)
-        expects = '/var/tmp/file.txt'.replace('\\', os.sep)
+        path = filesystem.canonical_path('/a/b/File.txt', platform)
+        expects = '/a/b/file.txt'.replace('\\', os.sep)
         self.assertEqual(path, expects)
 
 
