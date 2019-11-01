@@ -31,6 +31,7 @@ jobs:
   # ----------------------------------------------------------------------------
   # Create base image if necessary
   #
+  # State depends on .github\docker\rez-win-base\** and this file
   base:
     runs-on: windows-2019
 
@@ -50,12 +51,15 @@ jobs:
         run: |
           ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          docker pull ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
+          docker manifest inspect ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} | Out-Null
           if (-not $?) {
             cd .github\docker\rez-win-base
             docker build --tag ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} .
             docker push ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
           }
+
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
 
   # ----------------------------------------------------------------------------
   # Create python images off base image
