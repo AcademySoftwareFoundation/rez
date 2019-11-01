@@ -58,11 +58,10 @@ class Popen(_PopenBase):
             if file_no not in (0, 1, 2):
                 kwargs["stdin"] = subprocess.PIPE
 
-        kwargs = self._set_text_encoding_kwargs(kwargs)
-
+        self._set_text_encoding_kwargs(kwargs)
         super(Popen, self).__init__(args, **kwargs)
 
-    def _set_text_encoding_kwargs(self, kwargs)
+    def _set_text_encoding_kwargs(self, kwargs):
         """ Adds support for py3 :py:obj:`subprocess.Popen`
         keywords `text`, `encoding` for more consistent handling of stdout/stderr.
 
