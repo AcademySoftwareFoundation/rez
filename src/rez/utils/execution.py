@@ -42,7 +42,6 @@ class Popen(_PopenBase):
     Allows for Popen to be used as a context in both py2 and py3.
     """
     def __init__(self, args, **kwargs):
-
         # Avoids python bug described here: https://bugs.python.org/issue3905.
         # This can arise when apps (maya) install a non-standard stdin handler.
         #
@@ -59,16 +58,35 @@ class Popen(_PopenBase):
             if file_no not in (0, 1, 2):
                 kwargs["stdin"] = subprocess.PIPE
 
+        kwargs = self._set_text_encoding_kwargs(kwargs)
+
+        super(Popen, self).__init__(args, **kwargs)
+
+    def _set_text_encoding_kwargs(self, kwargs)
+        """ Adds support for py3 :py:obj:`subprocess.Popen`
+        keywords `text`, `encoding` for more consistent handling of stdout/stderr.
+
+        Args:
+            kwargs (dict): keyword arguments for :py:obj:`subprocess.Popen`
+        """
         # Add support for the new py3 "text" arg, which is equivalent to
         # "universal_newlines".
         # https://docs.python.org/3/library/subprocess.html#frequently-used-arguments
         #
-        if "text" in kwargs:
-            kwargs["universal_newlines"] = True
-            kwargs['encoding'] = 'utf-8'
-            del kwargs["text"]
+        text = kwargs.pop('text', None)
+        universal_newlines = kwargs.pop('universal_newlines', None)
+        if not any((text, universal_newlines)):
+            return
+        kwargs["universal_newlines"] = True
 
-        super(Popen, self).__init__(args, **kwargs)
+        # fixes py3/cmd.exe UnicodeDecodeError() with some characters.
+        #    UnicodeDecodeError: 'charmap' codec can't decode byte
+        #    0x8d in position 1023172: character maps to <undefined>
+
+        # NOTE: currently no solution for `python3+<3.6`
+        #
+        if sys.version_info[:2] >= (3, 6):
+            kwargs['encoding'] = 'utf-8'
 
 
 class ExecutableScriptMode(Enum):
