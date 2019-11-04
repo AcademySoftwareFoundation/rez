@@ -2,7 +2,7 @@ from rez.utils.platform_ import platform_
 
 platform_map = {
     "arch": {
-        ".*": "IMPOSSIBLE_ARCH",
+        "^.*$": "IMPOSSIBLE_ARCH",
     },
 }
 

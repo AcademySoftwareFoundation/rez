@@ -72,7 +72,7 @@ class TestConfig(TestBase):
 
         c = Config([self.root_config_file], locked=True)
         c.override("platform_map", {
-            "os": {".*": "IMPOSSIBLE_OS"},
+            "os": {"^.*$": "IMPOSSIBLE_OS"},
         })
 
         c.validate_data()
