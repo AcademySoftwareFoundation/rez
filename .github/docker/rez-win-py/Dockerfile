@@ -21,6 +21,7 @@ ARG PYTHON_VERSION
 #
 # Installs given Python version to C:\Python
 # Python 2.x uses msi while 3.x has an exe with separate arguments
+# Verifies the installation by running python explicitly and via `python`
 #
 RUN ${PYTHON_INSTALL_PATH} = 'C:\Python';                                                                                            `
     ${PYTHON_MAJOR_VERSION} = ${ENV:PYTHON_VERSION}.Split('.')[0];                                                                   `
@@ -36,6 +37,9 @@ RUN ${PYTHON_INSTALL_PATH} = 'C:\Python';                                       
 # Verify Python
 #
 RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1];                                       `
+    $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1];                         `
+    if (-not $?) {exit 1};                                                                                                  `
+    $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1];                                       `
     $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1];                         `
     if (-not ($python_explicit_ver -eq $python_relative_ver -and $python_explicit_ver -eq ${ENV:PYTHON_VERSION})) {exit 1};
 

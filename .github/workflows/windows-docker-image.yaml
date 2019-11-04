@@ -39,7 +39,7 @@ jobs:
       - name: Login to docker repository
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          docker login -u ${gh_user} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
       # TODO: Represent the conditional build as steps?
       # https://github.community/t5/GitHub-Actions/Fallback-via-if-failure-without-failing-the-job/m-p/36596#M2636
@@ -82,7 +82,7 @@ jobs:
       - name: Login to docker repository
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          docker login -u ${gh_user} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
       - uses: actions/checkout@v1
       - name: Pull base docker image

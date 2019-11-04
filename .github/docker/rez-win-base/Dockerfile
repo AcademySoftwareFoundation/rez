@@ -11,26 +11,22 @@ FROM mcr.microsoft.com/windows/servercore:$WINDOWS_VERSION
 
 SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "ByPass"]
 
+ARG GIT_VERSION=2.23.0
+ARG CMAKE_VERSION=3.15.4
+ARG PWSH_VERSION=6.2.2
+
 # ------------------------------------------------------------------------------------------------------------
-# Chocolatey
+# Install:
+# - Chocolatey
+# - Git
+# - Cmake
+# - PowerShellCore
 #
 ENV chocolateyUseWindowsCompression false
-RUN iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
-RUN choco feature disable --name showDownloadProgress
-
-# ------------------------------------------------------------------------------------------------------------
-# Git
-#
-RUN choco install git.install --yes --version=2.23.0
-
-# ------------------------------------------------------------------------------------------------------------
-# Cmake
-#
-RUN choco install cmake --yes --version=3.15.4 --installargs 'ADD_CMAKE_TO_PATH=System'
-
-# ------------------------------------------------------------------------------------------------------------
-# pwsh (PowerShellCore)
-#
-RUN choco install pwsh --yes --version=6.2.2
+RUN iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'));             `
+    choco feature disable --name showDownloadProgress;                                                 `
+    choco install git.install --yes --version=${ENV:GIT_VERSION};                                      `
+    choco install cmake --yes --version=${ENV:CMAKE_VERSION} --installargs 'ADD_CMAKE_TO_PATH=System'; `
+    choco install pwsh --yes --version=${PWSH_VERSION};
 
 ENTRYPOINT ["powershell.exe", "-NoLogo", "-ExecutionPolicy", "ByPass"]

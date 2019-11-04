@@ -40,7 +40,7 @@ jobs:
     - name: Login to docker repository
       run: |
         ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-        docker login -u ${gh_user} -p ${{ secrets.DOCKERHUB_TOKEN }}
+        '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
     - name: Pull docker image
       run: |
