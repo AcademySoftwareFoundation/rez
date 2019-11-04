@@ -77,13 +77,6 @@ class TestConfig(TestBase):
 
         c.validate_data()
 
-        # Schema validation still works?
-        c.override("debug_none", PlatformDependent({
-            platform_name: "Wrong Type",
-        }))
-        with self.assertRaises(ConfigurationError):
-            c.validate_data()
-
         # Missing valid key or fallback
         with self.assertRaises(ConfigurationError):
             c.override("debug_none", PlatformDependent({
@@ -128,6 +121,14 @@ class TestConfig(TestBase):
         self.assertEqual(c.plugins.release_vcs.tag_name, "bah")
         self.assertEqual(c.plugins.release_hook.emailer.sender, "joe.bloggs")
         self.assertListEqual(c.implicit_packages, ["a list", "of values"])
+
+        with self.assertRaises(ConfigurationError):
+            # Schema validation still works?
+            c.override("debug_none", PlatformDependent({
+                platform_name: "Wrong Type",
+            }))
+            c.validate_data()
+
 
     def test_conditional_in_file(self):
         """Test package config overrides."""
