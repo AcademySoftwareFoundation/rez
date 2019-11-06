@@ -36,12 +36,12 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v1
     - name: Login to docker repository
       run: |
         ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-        '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
+        docker login -u ${gh_user} -p ${{ secrets.DOCKERHUB_TOKEN }}
 
+    - uses: actions/checkout@v1
     - name: Pull docker image
       run: |
         ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
