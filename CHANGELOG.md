@@ -1,5 +1,19 @@
 # Change Log
 
+## 2.47.10 (2019-11-06)
+[Source](https://github.com/repos/nerdvegas/rez/tree/2.47.10) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.9...2.47.10)
+
+**Merged pull requests:**
+
+- Replace Popen with check_output to catch errors in installation [\#778](https://github.com/nerdvegas/rez/pull/778) ([instinct-vfx](https://github.com/instinct-vfx))
+- Popen UnicodeDecodeError partial fix [\#779](https://github.com/nerdvegas/rez/pull/779) ([willjp](https://github.com/willjp))
+- Unwanted debug printing [\#780](https://github.com/nerdvegas/rez/pull/780) ([predat](https://github.com/predat))
+
+**Closed issues:**
+
+- rez-release UnicodeDecodeError (windows) [\#776](https://github.com/nerdvegas/rez/issues/776)
+- Errors in pip installation part go unnoticed by rez install.py [\#777](https://github.com/nerdvegas/rez/issues/777)
+
 ## 2.47.9 (2019-10-25)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.9) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.8...2.47.9)
 
