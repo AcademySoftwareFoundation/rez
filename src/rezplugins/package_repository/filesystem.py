@@ -21,7 +21,7 @@ from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning
 from rez.utils.memcached import memcached, pool_memcached_connections
-from rez.utils.filesystem import make_path_writable
+from rez.utils.filesystem import make_path_writable, canonical_path
 from rez.utils.platform_ import platform_
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
@@ -470,8 +470,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # ensure that differing case doesn't get interpreted as different repos
         # on case-insensitive platforms (eg windows)
-        if not platform_.has_case_sensitive_filesystem:
-            location = location.lower()
+        location = canonical_path(location, platform_)
 
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
 
