@@ -17,6 +17,7 @@ from rez.utils.execution import Popen
 from rez.utils.sourcecode import SourceCode, SourceCodeError
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
+from rez.utils.platform_ import platform_
 from rez.vendor.enum import Enum
 from rez.vendor.six import six
 
@@ -689,7 +690,7 @@ class Python(ActionInterpreter):
     def adjust_env_for_platform(self, env):
         """ Make required platform-specific adjustments to env.
         """
-        if sys.platform.startswith('win'):
+        if platform_.name == "windows":
             self._add_systemroot_to_env_win32(env)
 
     def _add_systemroot_to_env_win32(self, env):

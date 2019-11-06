@@ -444,15 +444,12 @@ def canonical_path(path, platform=None):
     formats filepath using slashes appropriate for platform.
 
     Args:
-        path (str):
-            filepath being formatted
-
-        platform (rez.utils.platform_.Platform, NoneType):
-            indicates platform path is being formatted for.
-            Defaults to current platform.
+        path (str): Filepath being formatted
+        platform (rez.utils.platform_.Platform): Indicates platform path is being
+            formatted for. Defaults to current platform.
 
     Returns:
-        str: provided path, formatted for platform.
+        str: Provided path, formatted for platform.
     """
     if platform is None:
         platform = platform_
@@ -461,6 +458,7 @@ def canonical_path(path, platform=None):
 
     if not platform.has_case_sensitive_filesystem:
         return path.lower()
+
     return path
 
 
