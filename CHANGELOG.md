@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.47.12 (2019-11-06)
+[Source](https://github.com/nerdvegas/rez/tree/2.47.12) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.11...2.47.12)
+
+**Notes**
+
+This release adds a docker-based workflow for the Github Actions Windows test. This was done specifically
+because Github's available Windows runtimes come with an already long %PATH%. Rez adds to PATH and hits
+a limit, causing the `cmd` shell to fail in several tests.
+
+**Merged pull requests:**
+
+- Windows Tests via Docker [\#781](https://github.com/nerdvegas/rez/pull/781) ([bfloch](https://github.com/bfloch))
+
 ## 2.47.11 (2019-11-06)
 [Source](https://github.com/nerdvegas/rez/tree/2.47.11) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.10...2.47.11)
 
