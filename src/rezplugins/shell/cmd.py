@@ -150,7 +150,7 @@ class CMD(Shell):
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, **Popen_args):
+                    pre_command=None, add_rez=True, **Popen_args):
 
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         shell_command = None
@@ -159,9 +159,12 @@ class CMD(Shell):
             ex.source(context_file)
             if startup_sequence["envvar"]:
                 ex.unsetenv(startup_sequence["envvar"])
-            if bind_rez:
+            if add_rez and bind_rez:
                 ex.interpreter._bind_interactive_rez()
-            if print_msg and not quiet:
+            if print_msg and add_rez and not quiet:
+                ex.info('')
+                ex.info('You are now in a rez-configured environment.')
+                ex.info('')
                 if system.is_production_rez_install:
                     # previously this was called with the /K flag, however
                     # that would leave spawn_shell hung on a blocked call

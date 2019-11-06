@@ -21,6 +21,18 @@ sending a pull request. Please follow these guidelines:
     document the setting. The comments in this file are extracted and turned into Wiki content. Pay
     attention to the comment formatting and follow the existing style closely.
 
+## Windows Docker Workflow
+
+The Windows tests currently build a Python image for each version to test. Each is based on a common
+base image. Any changes to the following Docker images sources should be a separate commit:
+
+- `.github/docker/rez-win-base/**`
+- `.github/docker/rez-win-py/**`
+- `.github/workflows/windows-docker-image.yaml`
+
+The base and Python images will be automatically rebuild.
+Any future commits will pickup the correct image via `windows-docker.yaml`
+
 ## Reporting Bugs
 
 If you report a bug, please ensure to specify the following:

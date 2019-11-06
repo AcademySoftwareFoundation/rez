@@ -57,6 +57,8 @@ def which(cmd, mode=os.F_OK | os.X_OK, env=None):
             seen.add(dir)
             for thefile in files:
                 name = os.path.join(dir, thefile)
+                # On windows the system paths might have %systemroot%
+                name = os.path.expandvars(name)
                 if _access_check(name, mode):
                     return name
     return None
