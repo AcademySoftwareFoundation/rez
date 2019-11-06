@@ -1,7 +1,6 @@
 [![Core](https://github.com/nerdvegas/rez/workflows/Core/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3ACore+branch%3Amaster)
 [![Ubuntu](https://github.com/nerdvegas/rez/workflows/Ubuntu/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AUbuntu+branch%3Amaster)
 [![MacOS](https://github.com/nerdvegas/rez/workflows/MacOS/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AMacOS+branch%3Amaster)
-[![Compose Windows Docker Image](https://github.com/nerdvegas/rez/workflows/Compose%20Windows%20Docker%20Image/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3A%22Compose+Windows+Docker+Image%22+branch%3Amaster)
 [![Windows Docker](https://github.com/nerdvegas/rez/workflows/Windows%20Docker/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3A%22Compose+Windows+Docker+Image%22+branch%3Amaster)
 
 
