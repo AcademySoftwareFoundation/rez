@@ -26,6 +26,7 @@ from rez.utils._version import _rez_version
 
 
 github_baseurl = "github.com/repos/nerdvegas/rez"
+github_baseurl2 = "github.com/nerdvegas/rez"
 github_username = os.getenv("GITHUB_USERNAME")
 github_password = os.getenv("GITHUB_PASSWORD")
 verbose = False
@@ -211,7 +212,7 @@ def generate_changelog_entry(issue_nums):
 
     print(
         "[Source](https://%s/tree/%s) | [Diff](https://%s/compare/%s...%s)" %
-        (github_baseurl, _rez_version, github_baseurl, previous_version, _rez_version)
+        (github_baseurl2, _rez_version, github_baseurl2, previous_version, _rez_version)
     )
 
     print("")
