@@ -116,7 +116,8 @@ class RezPluginType(object):
         paths = reversed(paths)
 
         for path in paths:
-            print_debug("searching plugin path %s...", path)
+            if config.debug("plugins"):
+                print_debug("searching plugin path %s...", path)
 
             for loader, modname, ispkg in pkgutil.iter_modules(
                     [path], package.__name__ + '.'):
