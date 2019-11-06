@@ -6,6 +6,7 @@ from rez.backport.shutilwhich import which
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
+from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 
@@ -121,12 +122,6 @@ class PowerShellBase(Shell):
 
         cls.syspaths = list(set([x for x in paths if x]))
 
-        # add Rez binaries
-        exe = which("rez-env")
-        assert exe, "Could not find rez binary, this is a bug"
-        rez_bin_dir = os.path.dirname(exe)
-        cls.syspaths.insert(0, rez_bin_dir)
-
         return cls.syspaths
 
     def _bind_interactive_rez(self):
@@ -154,6 +149,7 @@ class PowerShellBase(Shell):
                     env=None,
                     quiet=False,
                     pre_command=None,
+                    add_rez=True,
                     **Popen_args):
 
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin),
@@ -164,11 +160,14 @@ class PowerShellBase(Shell):
             ex.source(context_file)
             if startup_sequence["envvar"]:
                 ex.unsetenv(startup_sequence["envvar"])
-            if bind_rez:
+            if add_rez and bind_rez:
                 ex.interpreter._bind_interactive_rez()
-            if print_msg and not quiet:
-                # Rez may not be available
-                ex.command("Try { rez context } Catch { }")
+            if print_msg and add_rez and not quiet:
+                ex.info('')
+                ex.info('You are now in a rez-configured environment.')
+                ex.info('')
+                if system.is_production_rez_install:
+                    ex.command("rezolve context")
 
         executor = RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},

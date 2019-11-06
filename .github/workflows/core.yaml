@@ -4,7 +4,16 @@
 # * Platform dependent.
 #
 name: Core
-on: [push, pull_request]
+on:
+  # Do not run if Docker image has been updated
+  pull_request:
+    paths-ignore:
+      - '.github/docker/**'
+      - '.github/workflows/windows-docker-image.yaml'
+  push:
+    paths-ignore:
+      - '.github/docker/**'
+      - '.github/workflows/windows-docker-image.yaml'
 
 jobs:
   main:
