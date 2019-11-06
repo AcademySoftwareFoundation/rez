@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.47.11 (2019-11-06)
+[Source](https://github.com/nerdvegas/rez/tree/2.47.11) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.10...2.47.11)
+
+**Merged pull requests:**
+
+- Fixes some failing tests on windows [\#775](https://github.com/nerdvegas/rez/pull/775) ([willjp](https://github.com/willjp))
+
 ## 2.47.10 (2019-11-06)
 [Source](https://github.com/repos/nerdvegas/rez/tree/2.47.10) | [Diff](https://github.com/repos/nerdvegas/rez/compare/2.47.9...2.47.10)
 
