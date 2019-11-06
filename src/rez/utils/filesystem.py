@@ -19,6 +19,7 @@ import stat
 import platform
 
 from rez.vendor.six import six
+from rez.utils.platform_ import platform_
 
 
 class TempDirs(object):
@@ -424,7 +425,8 @@ def safe_chmod(path, mode):
 
 
 def to_nativepath(path):
-    return os.path.join(path.split('/'))
+    path = path.replace('\\', '/')
+    return os.path.join(*path.split('/'))
 
 
 def to_ntpath(path):
@@ -433,6 +435,33 @@ def to_ntpath(path):
 
 def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
+
+
+def canonical_path(path, platform=None):
+    """ Resolves symlinks, and formats filepath.
+
+    Resolves symlinks, lowercases if filesystem is case-insensitive,
+    formats filepath using slashes appropriate for platform.
+
+    Args:
+        path (str):
+            filepath being formatted
+
+        platform (rez.utils.platform_.Platform, NoneType):
+            indicates platform path is being formatted for.
+            Defaults to current platform.
+
+    Returns:
+        str: provided path, formatted for platform.
+    """
+    if platform is None:
+        platform = platform_
+
+    path = os.path.normpath(os.path.realpath(path))
+
+    if not platform.has_case_sensitive_filesystem:
+        return path.lower()
+    return path
 
 
 def encode_filesystem_name(input_str):
