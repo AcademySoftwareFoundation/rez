@@ -22,9 +22,9 @@ on:
   push:
     # Will only trigger building a docker image if any of these changed
     paths:
-    - '.github/docker/rez-win-base/**'
-    - '.github/docker/rez-win-py/**'
-    - '.github/workflows/windows-docker-image.yaml'
+      - '.github/docker/rez-win-base/**'
+      - '.github/docker/rez-win-py/**'
+      - '.github/workflows/windows-docker-image.yaml'
 
 jobs:
 
