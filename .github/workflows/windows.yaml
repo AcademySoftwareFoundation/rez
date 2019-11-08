@@ -26,6 +26,17 @@ jobs:
   main:
     runs-on: windows-2019
 
+    # Test will not succeed for forked PRs, so skip these (user will not have
+    # access to secrets). This is a bit of a hack since that user could have an
+    # unrelated DOCKERHUB_TOKEN secret, but it will do for now. There's a good
+    # chance this will have to change anyway (with possible move to github pkg
+    # registry).
+    #
+    # Note that github actions doesn't currently have a 'user' context to test
+    # a user's repo access, so we can't do it that way.
+    #
+    if: secrets.DOCKERHUB_TOKEN != ''
+
     strategy:
       matrix:
         # Needs to match python version of images (see windows-docker-image.yaml)
