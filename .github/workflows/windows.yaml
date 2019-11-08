@@ -1,8 +1,9 @@
 #
 # Picks up docker image from hub.docker.com as repository.
 #
-# Requires a DOCKERHUB_TOKEN secret and username/repository to match the github
-# repository. For example: nerdvegas/rez -> User/Repository: nerdvegas
+# Pulls without login (public repository only).
+# Requires username/repository to match the github repository.
+# For example: nerdvegas/rez -> User/Repository: nerdvegas
 #
 # Uses image tagged as **latest** commit revision of any file within:
 #  .github/docker/windows/**
@@ -38,11 +39,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
-
-      - name: Login to docker repository
-        run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
       - name: Pull docker image
         run: |
