@@ -96,7 +96,7 @@ jobs:
       - name: Build Docker image if needed
         run: |
           ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          ${Env:LAST_DOCKER_PY_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${Env:LAST_DOCKER_PY_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${Env:DOCKER_TAG} = "${{ matrix.python-version }}-${ENV:LAST_DOCKER_PY_REVISION}"
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           $ErrorActionPreference = "Continue"
