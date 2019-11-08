@@ -1,5 +1,25 @@
 # Change Log
 
+## 2.47.13 (2019-11-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.47.13) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.12...2.47.13)
+
+**Notes**
+
+This release just makes some minor changes related to the CI tests. As well as the changes in the PR shown
+below, the following changes were also made:
+
+* 'Windows Docks' workflow was renamed 'Windows'
+* MacOS version used in workflow was changed from 10.14 to 'latest', as per Github's instructions (which were
+  emailed to me).
+
+**Merged pull requests:**
+
+- Updated actions badges in README [\#786](https://github.com/nerdvegas/rez/pull/786) ([j0yu](https://github.com/j0yu))
+
+**Closed issues:**
+
+- Fix README actions badges not showing current master status [\#785](https://github.com/nerdvegas/rez/issues/785)
+
 ## 2.47.12 (2019-11-06)
 [Source](https://github.com/nerdvegas/rez/tree/2.47.12) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.11...2.47.12)
 
