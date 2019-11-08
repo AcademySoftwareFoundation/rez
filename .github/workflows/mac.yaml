@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os-version:
-          - '10.14'
+          - 'latest'
         python-version:
           - '2.7'
           - '3.6'
