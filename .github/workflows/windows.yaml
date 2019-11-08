@@ -43,7 +43,7 @@ jobs:
         run: |
           if(${Env:DOCKERHUB_TOKEN} -ne '') {
             ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-            '${Env:DOCKERHUB_TOKEN}' | docker login -u ${gh_user} --password-stdin
+            "${Env:DOCKERHUB_TOKEN}" | docker login -u ${gh_user} --password-stdin
           }
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
