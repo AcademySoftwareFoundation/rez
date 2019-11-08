@@ -41,7 +41,7 @@ jobs:
 
       - name: Login to docker repository
         run: |
-          if(${Env:DOCKERHUB_TOKEN} != '') {
+          if(${Env:DOCKERHUB_TOKEN} -ne '') {
             ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
             '${Env:DOCKERHUB_TOKEN}' | docker login -u ${gh_user} --password-stdin
           }
