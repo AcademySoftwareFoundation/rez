@@ -47,12 +47,12 @@ jobs:
       - name: Pull docker image
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           echo "Pulling rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}"
           docker pull ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}
 
       - name: Run Docker image (installs and tests rez)
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           docker run ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION} ${{ github.repository }} ${{ github.sha }}
