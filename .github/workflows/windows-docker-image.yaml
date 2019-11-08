@@ -53,7 +53,8 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           $ErrorActionPreference = "Continue"
           docker manifest inspect ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} | Out-Null
-          if (-not $?) {
+          $ErrorActionPreference = "Stop"
+          if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-base
             docker build --tag ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} .
             docker push ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
@@ -100,10 +101,12 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           $ErrorActionPreference = "Continue"
           docker manifest inspect ${gh_user}/rez-win-py:${ENV:DOCKER_TAG} | Out-Null
-          if (-not $?) {
+          $ErrorActionPreference = "Stop"
+          if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-py
             docker build --tag ${gh_user}/rez-win-py:${ENV:DOCKER_TAG} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${ENV:LAST_DOCKER_BASE_REVISION} .
             docker push ${gh_user}/rez-win-py:${ENV:DOCKER_TAG}
           }
+          $ErrorActionPreference = "Stop"
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled
