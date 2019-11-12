@@ -1,9 +1,6 @@
 #
 # Entrypoint that installs given python version and runs tests from commit.
 #
-# $repo is the repository like 'nerdvegas/rez'
-# $commit is the revision to test
-param( $repo, $commit )
 
 # Stop on errors; .exe has to be checked manually
 Set-StrictMode -Version latest
@@ -33,16 +30,10 @@ if (-not $?) {exit 1}
 git --version
 if (-not $?) {exit 1}
 
-# Clone repo
-git clone https://github.com/$repo rez
-if (-not $?) {exit 1}
-cd rez
-git checkout $commit
-if (-not $?) {exit 1}
-
 # Install rez
+# Note that the workflow's checkout has been bind mounted to /checkout
 mkdir build
-python install.py build
+python /checkout/install.py build
 if (-not $?) {exit 1}
 
 # Run Rez Tests
