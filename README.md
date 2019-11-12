@@ -203,4 +203,3 @@ like any other package:
   CMake with Rez under Windows, but the goal is to provide a seamless experience
   on any platform in the future. For details checkout
   https://github.com/nerdvegas/rez/issues/703
-
