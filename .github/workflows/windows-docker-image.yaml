@@ -44,9 +44,9 @@ jobs:
       # TODO: Represent the conditional build as steps?
       # https://github.community/t5/GitHub-Actions/Fallback-via-if-failure-without-failing-the-job/m-p/36596#M2636
       #
-      # By using dockers experimental CLI features we don't need to pull an
-      # image to check if it exists.
-      - uses: actions/checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v1
+
       - name: Build docker image if needed
         run: |
           ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
@@ -60,6 +60,8 @@ jobs:
             docker push ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
           }
         env:
+          # By using dockers experimental CLI features we don't need to pull an
+          # image to check if it exists.
           DOCKER_CLI_EXPERIMENTAL: enabled
 
   # ----------------------------------------------------------------------------
@@ -85,7 +87,9 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
-      - uses: actions/checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v1
+
       - name: Pull base docker image
         run: |
           ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)

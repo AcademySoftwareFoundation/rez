@@ -51,4 +51,4 @@ jobs:
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          docker run --mount type=bind,src=$pwd,dst=/checkout,readonly ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}
+          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}
