@@ -1,12 +1,10 @@
 #
-# Entrypoint that installs given python version and runs tests from commit.
+# Entrypoint that installs given python version and runs tests.
 #
 
 # Stop on errors; .exe has to be checked manually
 Set-StrictMode -Version latest
 $ErrorActionPreference = "Stop"
-
-echo "Testing $repo at $commit"
 
 # Fixes encoding issue on Windows 10 local docker run.
 #
