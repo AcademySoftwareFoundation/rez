@@ -31,7 +31,7 @@ if (-not $?) {exit 1}
 # Install rez
 # Note that the workflow's checkout has been bind mounted to /checkout
 mkdir build
-python /checkout/install.py build
+python .\checkout\install.py build
 if (-not $?) {exit 1}
 
 # Run Rez Tests
