@@ -18,6 +18,7 @@ from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
 from rez.package_maker__ import make_package
 from rez.config import config
 from rez.system import System
+from rez.utils.platform_ import platform_
 
 from tempfile import mkdtemp
 from pipes import quote
@@ -159,7 +160,12 @@ def find_pip_from_context(python_version, pip_version=None):
         print_debug("No rez package called %s found", target)
         return None, None, None
 
-    py_exe = context.which("python%s" % python_major_minor_ver.trim(1))
+    py_exe_name = "python"
+    if platform_.name != "windows":
+        # Python < 2 on Windows doesn't have versionned executable.
+        py_exe_name += str(python_major_minor_ver.trim(1))
+
+    py_exe = context.which(py_exe_name)
 
     proc = context.execute_command(
         # -E and -s are used to isolate the environment as much as possible.
