@@ -192,7 +192,7 @@ def find_pip_from_context(python_version, pip_version=None):
 
 
 def pip_install_package(source_name, pip_version=None, python_version=None,
-                        mode=InstallMode.min_deps, release=False, install_path=None):
+                        mode=InstallMode.min_deps, release=False, prefix=None):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -223,8 +223,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     # TODO: should check if packages_path is writable before continuing with pip
     #
-    if install_path is not None:
-        packages_path = install_path
+    if prefix is not None:
+        packages_path = prefix
     else:
         packages_path = (config.release_packages_path if release
                          else config.local_packages_path)

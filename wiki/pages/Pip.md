@@ -35,8 +35,8 @@ optional arguments:
   -s, --search          search for the package on PyPi
   -r, --release         install as released package; if not set, package is
                         installed locally only
-  -p PATH, --install_path PATH
-                        install package to a custom location
+  -p PATH, --prefix PATH
+                        install to a custom package repository path.
   -v, --verbose         verbose mode, repeat for more verbosity
 ```
 
@@ -110,7 +110,7 @@ You have two options when you want to convert a pip package to a rez package. Yo
 install it, or release it. Install means that it will install in your
 [local_packages_path](Configuring-Rez#local_packages_path), while
 release means it will be installed in your [release_packages_path](Configuring-Rez#release_packages_path).
-You can also specify a custom installation location using `--install_path` (or `-p`).
+You can also specify a custom installation location using `--prefix` (or `-p`).
 
 
 You can (and we recommend) use the `--python-version` to choose for which python
