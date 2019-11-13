@@ -22,9 +22,9 @@ on:
   push:
     # Will only trigger building a docker image if any of these changed
     paths:
-    - '.github/docker/rez-win-base/**'
-    - '.github/docker/rez-win-py/**'
-    - '.github/workflows/windows-docker-image.yaml'
+      - '.github/docker/rez-win-base/**'
+      - '.github/docker/rez-win-py/**'
+      - '.github/workflows/windows-docker-image.yaml'
 
 jobs:
 
@@ -44,21 +44,24 @@ jobs:
       # TODO: Represent the conditional build as steps?
       # https://github.community/t5/GitHub-Actions/Fallback-via-if-failure-without-failing-the-job/m-p/36596#M2636
       #
-      # By using dockers experimental CLI features we don't need to pull an
-      # image to check if it exists.
-      - uses: actions/checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v1
+
       - name: Build docker image if needed
         run: |
           ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          $ErrorActionPreference = "Continue"
           docker manifest inspect ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} | Out-Null
-          if (-not $?) {
+          $ErrorActionPreference = "Stop"
+          if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-base
             docker build --tag ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} .
             docker push ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
           }
-
         env:
+          # By using dockers experimental CLI features we don't need to pull an
+          # image to check if it exists.
           DOCKER_CLI_EXPERIMENTAL: enabled
 
   # ----------------------------------------------------------------------------
@@ -84,7 +87,9 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
-      - uses: actions/checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v1
+
       - name: Pull base docker image
         run: |
           ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
@@ -92,12 +97,20 @@ jobs:
           docker pull ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
           docker tag ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
 
-      - name: Build and push Docker image
+      - name: Build Docker image if needed
         run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${ENV:DOCKER_TAG} = "${{ github.sha }}".Substring(0, 8)
           ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          cd .github\docker\rez-win-py
-          docker build --tag ${gh_user}/rez-win-py:${{ matrix.python-version }}-${ENV:DOCKER_TAG} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${ENV:LAST_DOCKER_BASE_REVISION} .
-          docker push ${gh_user}/rez-win-py:${{ matrix.python-version }}-${ENV:DOCKER_TAG}
-
+          ${Env:LAST_DOCKER_PY_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${Env:DOCKER_TAG} = "${{ matrix.python-version }}-${ENV:LAST_DOCKER_PY_REVISION}"
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          $ErrorActionPreference = "Continue"
+          docker manifest inspect ${gh_user}/rez-win-py:${ENV:DOCKER_TAG} | Out-Null
+          $ErrorActionPreference = "Stop"
+          if ($LastExitCode -ne 0) {
+            cd .github\docker\rez-win-py
+            docker build --tag ${gh_user}/rez-win-py:${ENV:DOCKER_TAG} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${ENV:LAST_DOCKER_BASE_REVISION} .
+            docker push ${gh_user}/rez-win-py:${ENV:DOCKER_TAG}
+          }
+          $ErrorActionPreference = "Stop"
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled

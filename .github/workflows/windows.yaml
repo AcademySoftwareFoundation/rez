@@ -1,8 +1,9 @@
 #
 # Picks up docker image from hub.docker.com as repository.
 #
-# Requires a DOCKERHUB_TOKEN secret and username/repository to match the github
-# repository. For example: nerdvegas/rez -> User/Repository: nerdvegas
+# Pulls without login (public repository only).
+# Requires username/repository to match the github repository.
+# For example: nerdvegas/rez -> User/Repository: nerdvegas
 #
 # Uses image tagged as **latest** commit revision of any file within:
 #  .github/docker/windows/**
@@ -39,20 +40,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
-      - name: Login to docker repository
-        run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
-
       - name: Pull docker image
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           echo "Pulling rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}"
           docker pull ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}
 
       - name: Run Docker image (installs and tests rez)
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          docker run ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION} ${{ github.repository }} ${{ github.sha }}
+          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}
