@@ -13,6 +13,12 @@ Several Windows CI improvements:
 
 With these updates, tests are now passing on all platforms.
 
+**Known Issues**
+
+If the image is changed, there is a delay in the new image becoming available on docker hub (5-10 mins).
+If a separate push is made in this time, it can fail, as the Windows test expects to see the new image
+(which is tagged by commit).
+
 **Merged pull requests:**
 
 - Windows docker enhancements [\#794](https://github.com/nerdvegas/rez/pull/794) ([bfloch](https://github.com/bfloch))
