@@ -1,5 +1,28 @@
 # Change Log
 
+## 2.47.14 (2019-11-13)
+[Source](https://github.com/nerdvegas/rez/tree/2.47.14) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.13...2.47.14)
+
+**Notes**
+
+Several Windows CI improvements:
+* Base and Py docker images are only rebuilt if necessary;
+* Docker hub no longer requires a login to pull the image (meaning that tests now pass on forked PRs);
+* Rather than checking out the rez github repo in the image entrypoint, the existing checkout (done
+  by the workflow) is bind mounted instead.
+
+With these updates, tests are now passing on all platforms.
+
+**Merged pull requests:**
+
+- Windows docker enhancements [\#794](https://github.com/nerdvegas/rez/pull/794) ([bfloch](https://github.com/bfloch))
+- Remove the login so that PR work at least for the non-image workflows. [\#795](https://github.com/nerdvegas/rez/pull/795) ([bfloch](https://github.com/bfloch))
+- Issue 800 windows ci use checkout [\#801](https://github.com/nerdvegas/rez/pull/801) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- windows ci: Use Actions checkout [\#800](https://github.com/nerdvegas/rez/issues/800)
+
 ## 2.47.13 (2019-11-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.47.13) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.12...2.47.13)
 
@@ -8,7 +31,7 @@
 This release just makes some minor changes related to the CI tests. As well as the changes in the PR shown
 below, the following changes were also made:
 
-* 'Windows Docks' workflow was renamed 'Windows'
+* 'Windows Docker' workflow was renamed 'Windows'
 * MacOS version used in workflow was changed from 10.14 to 'latest', as per Github's instructions (which were
   emailed to me).
 
