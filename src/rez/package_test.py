@@ -8,6 +8,7 @@ from pipes import quote
 import subprocess
 import time
 import sys
+import os
 
 
 basestring = six.string_types[0]
@@ -53,7 +54,8 @@ class PackageTestRunner(object):
     """
     def __init__(self, package_request, use_current_env=False,
                  extra_package_requests=None, package_paths=None, stdout=None,
-                 stderr=None, verbose=False, dry_run=False, **context_kwargs):
+                 stderr=None, verbose=False, dry_run=False, stop_on_fail=False,
+                 **context_kwargs):
         """Create a package tester.
 
         Args:
@@ -80,6 +82,7 @@ class PackageTestRunner(object):
         self.stderr = stderr or sys.stderr
         self.verbose = verbose
         self.dry_run = dry_run
+        self.stop_on_fail = stop_on_fail
         self.context_kwargs = context_kwargs
 
         self.package_paths = (config.packages_path if package_paths is None
@@ -87,6 +90,8 @@ class PackageTestRunner(object):
 
         self.package = None
         self.contexts = {}
+        self.stopped_on_fail = False
+        self.summary = []
 
         # use a common timestamp across all tests - this ensures that tests
         # don't pick up new packages halfway through (ie from one test to another)
@@ -131,17 +136,9 @@ class PackageTestRunner(object):
         Runs the test in its correct environment. Note that if tests share the
         same requirements, the contexts will be reused.
 
-        TODO: If the package had variants, the test will be run for each
-        variant.
-
-        Returns:
-            int: Returncode - zero if all test(s) passed, otherwise the return
-                code of the failed test.
+        Args:
+            test_name (str): Name of test to run.
         """
-        def print_header(txt, *nargs):
-            pr = Printer(sys.stdout)
-            pr(txt % nargs, heading)
-
         package = self.get_package()
 
         if test_name not in self.get_test_names():
@@ -149,9 +146,9 @@ class PackageTestRunner(object):
                                    % (test_name, package.uri))
 
         if self.use_current_env:
-            return self._run_test_in_current_env(test_name)
+            return self._run_test_in_current_env(package, test_name)
 
-        for variant in package.iter_variants():
+        for variant in self._get_target_variants(test_name):
 
             # get test info for this variant. If None, that just means that this
             # variant doesn't provide this test. That's ok - 'tests' might be
@@ -160,45 +157,42 @@ class PackageTestRunner(object):
             #
             test_info = self._get_test_info(test_name, variant)
             if not test_info:
+                self.summary.append((
+                    variant,
+                    test_name,
+                    "skipped",
+                    "Not declared in this variant"
+                ))
                 continue
 
             command = test_info["command"]
             requires = test_info["requires"]
+            on_variants = test_info["on_variants"]
+
+            # show progress
+            if self.verbose:
+                self._print_header(
+                    "\nTest: %s\nPackage: %s\n%s\n",
+                    test_name, variant.uri, '-' * 80
+                )
+
+            # create test runtime env
+            context = self._get_context(requires)
+
+            if not context.success:
+                self.summary.append((
+                    variant,
+                    test_name,
+                    "skipped",
+                    "The test environment failed to resolve"
+                ))
+                continue
 
             # expand refs like {root} in commands
             if isinstance(command, basestring):
                 command = variant.format(command)
             else:
                 command = map(variant.format, command)
-
-            # show progress
-            if self.verbose:
-                print_header(
-                    "\nTest: %s\nPackage: %s\n%s\n",
-                    test_name, variant.uri, '-' * 80)
-
-            # create test env
-            key = tuple(requires)
-            context = self.contexts.get(key)
-
-            if context is None:
-                if self.verbose:
-                    print_header("Resolving test environment: %s\n",
-                                 ' '.join(map(quote, requires)))
-
-                context = ResolvedContext(package_requests=requires,
-                                          package_paths=self.package_paths,
-                                          buf=self.stdout,
-                                          timestamp=self.timestamp,
-                                          **self.context_kwargs)
-
-                if not context.success:
-                    context.print_info(buf=self.stderr)
-                    raise PackageTestError(
-                        "Cannot run test '%s' of package %s: the environment "
-                        "failed to resolve" % (test_name, variant.uri))
-
-                self.contexts[key] = context
 
             # run the test in the context
             if self.verbose:
@@ -209,27 +203,88 @@ class PackageTestRunner(object):
                 else:
                     cmd_str = ' '.join(map(quote, command))
 
-                print_header("\nRunning test command: %s\n", cmd_str)
+                self._print_header("\nRunning test command: %s\n", cmd_str)
 
             if self.dry_run:
-                print("(Skipped - dry-run mode is enabled)")
-                #continue
-                break
+                self.summary.append((
+                    variant,
+                    test_name,
+                    "skipped",
+                    "Dry run mode"
+                ))
+                continue
 
             retcode, _, _ = context.execute_shell(
                 command=command,
                 stdout=self.stdout,
                 stderr=self.stderr,
-                block=True)
+                block=True
+            )
 
             if retcode:
-                return retcode
+                self.summary.append((
+                    variant,
+                    test_name,
+                    "failed",
+                    "Test failed with exit code %d" % retcode
+                ))
 
-            # TODO FIXME we don't iterate over all variants yet, because we
-            # can't reliably do that (see class docstring)
-            break
+                if self.stop_on_fail:
+                    self.stopped_on_fail = True
+                    return
 
-        return 0  # success
+                continue
+
+            # test passed
+            self.summary.append((
+                variant,
+                test_name,
+                "success",
+                "Test succeeded"
+            ))
+
+            # just test against one variant in this case
+            if on_variants is False:
+                break
+
+    def print_summary(self):
+        from rez.utils.formatting import columnise
+
+        self._print_header(
+            "\n\nResults:\n%s",
+            '-' * 80
+        )
+
+        num_success = len([x for x in self.summary if x[2] == "success"])
+        num_failed = len([x for x in self.summary if x[2] == "failed"])
+        num_skipped = len([x for x in self.summary if x[2] == "skipped"])
+
+        print(
+            "%d succeeded, %d failed, %d skipped\n"
+            % (num_success, num_failed, num_skipped)
+        )
+
+        rows = [
+            ("Test", "Status", "Variant", "Description"),
+            ("----", "------", "-------", "-----------")
+        ]
+
+        for entry in self.summary:
+            rows.append((
+                entry[1],
+                entry[2],
+                entry[0].uri,
+                entry[3]
+            ))
+
+        strs = columnise(rows)
+        print('\n'.join(strs))
+        print('\n')
+
+    @classmethod
+    def _print_header(cls, txt, *nargs):
+        pr = Printer(sys.stdout)
+        pr(txt % nargs, heading)
 
     def _get_test_info(self, test_name, variant):
         tests_dict = variant.tests or {}
@@ -261,5 +316,70 @@ class PackageTestRunner(object):
 
         return {
             "command": test_entry["command"],
-            "requires": requires
+            "requires": requires,
+            # TODO
+            "on_variants": False
         }
+
+    def _get_context(self, requires, quiet=False):
+        key = tuple(requires)
+        context = self.contexts.get(key)
+
+        if context is not None:
+            if not context.success and not quiet:
+                context.print_info(buf=self.stderr)
+            return context
+
+        if self.verbose and not quiet:
+            self._print_header(
+                "Resolving test environment: %s\n",
+                ' '.join(map(quote, requires))
+            )
+
+        with open(os.devnull, 'w') as f:
+            context = ResolvedContext(
+                package_requests=requires,
+                package_paths=self.package_paths,
+                buf=(f if quiet else None),
+                timestamp=self.timestamp,
+                **self.context_kwargs
+            )
+
+        self.contexts[key] = context
+        return context
+
+    def _get_target_variants(self, test_name):
+        """
+        If the test is not variant-specific, then attempt to find the 'preferred'
+        variant (as per setting 'variant_select_mode'). Otherwise, just run tests
+        over all variants.
+        """
+        package = self.get_package()
+
+        for variant in package.iter_variants():
+            test_info = self._get_test_info(test_name, variant)
+
+            if not test_info:
+                continue
+
+            on_variants = test_info["on_variants"]
+            requires = test_info["requires"]
+
+            if on_variants is False:
+                # test should be run on one variant, so if the current is also
+                # the preferred, then use that. Note that we print to dev/null
+                # otherwise the initial stream of (potentially failing) context
+                # output would be confusing to the user.
+                #
+                context = self._get_context(requires, quiet=True)
+                if not context.success:
+                    continue
+
+                preferred_variant = context.get_resolved_package(package.name)
+                assert preferred_variant
+
+                if variant == preferred_variant:
+                    return [variant]
+
+        # just iterate over all variants
+        return list(package.iter_variants())
