@@ -14,6 +14,10 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--nl", "--no-local", dest="no_local", action="store_true",
         help="don't load local packages")
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="dry-run mode: show what tests would have been run, but do not "
+        "run them")
     PKG_action = parser.add_argument(
         "--extra-packages", nargs='+', metavar="PKG",
         help="extra packages to add to test environment")
@@ -42,10 +46,13 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
-    runner = PackageTestRunner(package_request=opts.PKG,
-                               package_paths=pkg_paths,
-                               extra_package_requests=opts.extra_packages,
-                               verbose=True)
+    runner = PackageTestRunner(
+        package_request=opts.PKG,
+        package_paths=pkg_paths,
+        extra_package_requests=opts.extra_packages,
+        dry_run=opts.dry_run,
+        verbose=True
+    )
 
     test_names = runner.get_test_names()
     if not test_names:

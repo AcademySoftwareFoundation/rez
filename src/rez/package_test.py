@@ -53,7 +53,7 @@ class PackageTestRunner(object):
     """
     def __init__(self, package_request, use_current_env=False,
                  extra_package_requests=None, package_paths=None, stdout=None,
-                 stderr=None, verbose=False, **context_kwargs):
+                 stderr=None, verbose=False, dry_run=False, **context_kwargs):
         """Create a package tester.
 
         Args:
@@ -68,6 +68,7 @@ class PackageTestRunner(object):
             stdout (file-like object): Defaults to sys.stdout.
             stderr (file-like object): Defaults to sys.stderr.
             verbose (bool): Verbose mode.
+            dry_run (bool): If True, do everything except actually run tests.
             context_kwargs: Extra arguments which are passed to the
                 `ResolvedContext` instances used to run the tests within.
                 Ignored if `use_current_env` is True.
@@ -78,6 +79,7 @@ class PackageTestRunner(object):
         self.stdout = stdout or sys.stdout
         self.stderr = stderr or sys.stderr
         self.verbose = verbose
+        self.dry_run = dry_run
         self.context_kwargs = context_kwargs
 
         self.package_paths = (config.packages_path if package_paths is None
@@ -208,6 +210,11 @@ class PackageTestRunner(object):
                     cmd_str = ' '.join(map(quote, command))
 
                 print_header("\nRunning test command: %s\n", cmd_str)
+
+            if self.dry_run:
+                print("(Skipped - dry-run mode is enabled)")
+                #continue
+                break
 
             retcode, _, _ = context.execute_shell(
                 command=command,
