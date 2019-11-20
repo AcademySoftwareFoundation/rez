@@ -93,7 +93,7 @@ class PackageTestRunner(object):
         self.package = None
         self.contexts = {}
         self.stopped_on_fail = False
-        self.summary = []
+        self.test_results = []
 
         # use a common timestamp across all tests - this ensures that tests
         # don't pick up new packages halfway through (ie from one test to another)
@@ -164,12 +164,12 @@ class PackageTestRunner(object):
             #
             test_info = self._get_test_info(test_name, variant)
             if not test_info:
-                self.summary.append((
-                    variant,
+                self._set_test_result(
                     test_name,
+                    variant,
                     "skipped",
                     "Not declared in this variant"
-                ))
+                )
                 continue
 
             command = test_info["command"]
@@ -221,12 +221,12 @@ class PackageTestRunner(object):
             context = self._get_context(requires)
 
             if not context.success:
-                self.summary.append((
-                    variant,
+                self._set_test_result(
                     test_name,
+                    variant,
                     "skipped",
                     "The test environment failed to resolve"
-                ))
+                )
                 continue
 
             # check that this has actually resolved the variant we want. If not,
@@ -242,12 +242,12 @@ class PackageTestRunner(object):
                     "selection' is added to rez."
                 )
 
-                self.summary.append((
-                    variant,
+                self._set_test_result(
                     test_name,
+                    variant,
                     "skipped",
                     "Could not resolve to variant, see earlier warning"
-                ))
+                )
                 continue
 
             variant = resolved_variant
@@ -271,12 +271,12 @@ class PackageTestRunner(object):
                 self._print_header("\nRunning test command: %s\n", cmd_str)
 
             if self.dry_run:
-                self.summary.append((
-                    variant,
+                self._set_test_result(
                     test_name,
+                    variant,
                     "skipped",
                     "Dry run mode"
-                ))
+                )
                 continue
 
             retcode, _, _ = context.execute_shell(
@@ -287,12 +287,12 @@ class PackageTestRunner(object):
             )
 
             if retcode:
-                self.summary.append((
-                    variant,
+                self._set_test_result(
                     test_name,
+                    variant,
                     "failed",
                     "Test failed with exit code %d" % retcode
-                ))
+                )
 
                 if self.stop_on_fail:
                     self.stopped_on_fail = True
@@ -301,12 +301,12 @@ class PackageTestRunner(object):
                 continue
 
             # test passed
-            self.summary.append((
-                variant,
+            self._set_test_result(
                 test_name,
+                variant,
                 "success",
                 "Test succeeded"
-            ))
+            )
 
             # just test against one variant in this case
             if on_variants is False:
@@ -320,9 +320,9 @@ class PackageTestRunner(object):
             '-' * 80
         )
 
-        num_success = len([x for x in self.summary if x[2] == "success"])
-        num_failed = len([x for x in self.summary if x[2] == "failed"])
-        num_skipped = len([x for x in self.summary if x[2] == "skipped"])
+        num_success = len([x for x in self.test_results if x["status"] == "success"])
+        num_failed = len([x for x in self.test_results if x["status"] == "failed"])
+        num_skipped = len([x for x in self.test_results if x["status"] == "skipped"])
 
         print(
             "%d succeeded, %d failed, %d skipped\n"
@@ -334,17 +334,25 @@ class PackageTestRunner(object):
             ("----", "------", "-------", "-----------")
         ]
 
-        for entry in self.summary:
+        for test_result in self.test_results:
             rows.append((
-                entry[1],
-                entry[2],
-                entry[0].uri,
-                entry[3]
+                test_result["test_name"],
+                test_result["status"],
+                test_result["variant"].uri,
+                test_result["description"]
             ))
 
         strs = columnise(rows)
         print('\n'.join(strs))
         print('\n')
+
+    def _set_test_result(self, test_name, variant, status, description):
+        self.test_results.append({
+            "test_name": test_name,
+            "variant": variant,
+            "status": status,
+            "description": description
+        })
 
     @classmethod
     def _print_header(cls, txt, *nargs):
