@@ -15,6 +15,10 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-s", "--stop-on-fail", action="store_true",
         help="stop on first test failure")
+    parser.add_argument(
+        "--inplace", action="store_true",
+        help="run tests in the current environment. Any test whose requirements "
+        "are not met by the current environment is skipped")
     PKG_action = parser.add_argument(
         "--extra-packages", nargs='+', metavar="PKG",
         help="extra packages to add to test environment")
@@ -55,6 +59,7 @@ def command(opts, parser, extra_arg_groups=None):
         extra_package_requests=opts.extra_packages,
         dry_run=opts.dry_run,
         stop_on_fail=opts.stop_on_fail,
+        use_current_env=opts.inplace,
         verbose=True
     )
 

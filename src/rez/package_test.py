@@ -99,9 +99,6 @@ class PackageTestRunner(object):
         # don't pick up new packages halfway through (ie from one test to another)
         self.timestamp = int(time.time())
 
-        if use_current_env:
-            raise NotImplementedError
-
     def get_package(self):
         """Get the target package.
 
@@ -112,8 +109,23 @@ class PackageTestRunner(object):
             return self.package
 
         if self.use_current_env:
-            pass
+            # get package from current context, or return None
+            current_context = ResolvedContext.get_current()
+            if current_context is None:
+                return None
+
+            req = Requirement(self.package_request)
+            variant = current_context.get_resolved_package(req.name)
+            if variant is None:
+                return None
+
+            package = variant.parent
+
+            if not req.range.contains_version(package.version):
+                return None
+
         else:
+            # find latest package within request
             package = get_latest_package_from_string(str(self.package_request),
                                                      self.package_paths)
             if package is None:
@@ -130,7 +142,29 @@ class PackageTestRunner(object):
             List of str: Test names.
         """
         package = self.get_package()
+
+        if package is None:
+            return []
+
         return sorted((package.tests or {}).keys())
+
+    @property
+    def num_success(self):
+        """Get the number of successful test runs.
+        """
+        return len([x for x in self.test_results if x["status"] == "success"])
+
+    @property
+    def num_failed(self):
+        """Get the number of failed test runs.
+        """
+        return len([x for x in self.test_results if x["status"] == "failed"])
+
+    @property
+    def num_skipped(self):
+        """Get the number of skipped test runs.
+        """
+        return len([x for x in self.test_results if x["status"] == "skipped"])
 
     def run_test(self, test_name):
         """Run a test.
@@ -143,17 +177,27 @@ class PackageTestRunner(object):
         """
         package = self.get_package()
 
-        # TODO remove when explicit variant selection feature is added
-        seen_variants = set()
-
         if test_name not in self.get_test_names():
             raise PackageTestError("Test '%s' not found in package %s"
                                    % (test_name, package.uri))
 
         if self.use_current_env:
-            return self._run_test_in_current_env(package, test_name)
+            if package is None:
+                self._set_test_result(
+                    test_name,
+                    None,
+                    "skipped",
+                    "The current environment does not contain a package "
+                    "matching the request"
+                )
+                return
 
-        target_variants = self._get_target_variants(test_name)
+            current_context = ResolvedContext.get_current()
+            current_variant = current_context.get_resolved_package(package.name)
+            target_variants = [current_variant]
+
+        else:
+            target_variants = self._get_target_variants(test_name)
 
         for variant in target_variants:
 
@@ -168,7 +212,7 @@ class PackageTestRunner(object):
                     test_name,
                     variant,
                     "skipped",
-                    "Not declared in this variant"
+                    "The test is not declared in this variant"
                 )
                 continue
 
@@ -220,6 +264,17 @@ class PackageTestRunner(object):
             # create test runtime env
             context = self._get_context(requires)
 
+            if context is None:
+                self._set_test_result(
+                    test_name,
+                    variant,
+                    "skipped",
+                    "The current environment does not meet test requirements"
+                )
+
+                print("(Skipped)")
+                continue
+
             if not context.success:
                 self._set_test_result(
                     test_name,
@@ -229,13 +284,11 @@ class PackageTestRunner(object):
                 )
                 continue
 
-            # check that this has actually resolved the variant we want. If not,
-            # we can't do much beyond using what we were given, and skipping if
-            # we've already seen it.
-            #
+            # check that this has actually resolved the variant we want
             resolved_variant = context.get_resolved_package(package.name)
             assert resolved_variant
-            if resolved_variant in seen_variants:
+
+            if resolved_variant.handle != variant.handle:
                 print_warning(
                     "Could not resolve environment for this variant. This is a "
                     "known issue and will be fixed once 'explicit variant "
@@ -246,12 +299,9 @@ class PackageTestRunner(object):
                     test_name,
                     variant,
                     "skipped",
-                    "Could not resolve to variant, see earlier warning"
+                    "Could not resolve to variant (known issue)"
                 )
                 continue
-
-            variant = resolved_variant
-            seen_variants.add(variant)
 
             # expand refs like {root} in commands
             if isinstance(command, basestring):
@@ -320,13 +370,9 @@ class PackageTestRunner(object):
             '-' * 80
         )
 
-        num_success = len([x for x in self.test_results if x["status"] == "success"])
-        num_failed = len([x for x in self.test_results if x["status"] == "failed"])
-        num_skipped = len([x for x in self.test_results if x["status"] == "skipped"])
-
         print(
             "%d succeeded, %d failed, %d skipped\n"
-            % (num_success, num_failed, num_skipped)
+            % (self.num_success, self.num_failed, self.num_skipped)
         )
 
         rows = [
@@ -394,6 +440,28 @@ class PackageTestRunner(object):
         }
 
     def _get_context(self, requires, quiet=False):
+
+        # if using current env, only return current context if it meets
+        # requirements, otherwise return None
+        if self.use_current_env:
+            current_context = ResolvedContext.get_current()
+            if current_context is None:
+                return None
+
+            reqs = map(Requirement, requires)
+            current_reqs = current_context.get_resolve_as_exact_requests()
+
+            meets_requirements = (
+                RequirementList(current_reqs) ==
+                RequirementList(current_reqs + reqs)
+            )
+
+            if meets_requirements:
+                return current_context
+            else:
+                return None
+
+        # create context or use cached context
         key = tuple(requires)
         context = self.contexts.get(key)
 
