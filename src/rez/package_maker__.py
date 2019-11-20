@@ -31,7 +31,13 @@ tests_schema = Schema({
         Or(basestring, [basestring]),
         {
             "command": Or(basestring, [basestring]),
-            Optional("requires"): [package_request_schema]
+            Optional("requires"): [package_request_schema],
+            Optional("on_variants"): Or(
+                bool,
+                {
+                    "requires": [package_request_schema]
+                }
+            )
         }
     )
 })

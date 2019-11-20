@@ -3,7 +3,9 @@ from rez.resolved_context import ResolvedContext
 from rez.packages_ import get_latest_package_from_string, Variant
 from rez.exceptions import PackageNotFoundError, PackageTestError
 from rez.utils.colorize import heading, Printer
+from rez.utils.logging_ import print_warning
 from rez.vendor.six import six
+from rez.vendor.version.requirement import Requirement, RequirementList
 from pipes import quote
 import subprocess
 import time
@@ -141,6 +143,9 @@ class PackageTestRunner(object):
         """
         package = self.get_package()
 
+        # TODO remove when explicit variant selection feature is added
+        seen_variants = set()
+
         if test_name not in self.get_test_names():
             raise PackageTestError("Test '%s' not found in package %s"
                                    % (test_name, package.uri))
@@ -148,7 +153,9 @@ class PackageTestRunner(object):
         if self.use_current_env:
             return self._run_test_in_current_env(package, test_name)
 
-        for variant in self._get_target_variants(test_name):
+        target_variants = self._get_target_variants(test_name)
+
+        for variant in target_variants:
 
             # get test info for this variant. If None, that just means that this
             # variant doesn't provide this test. That's ok - 'tests' might be
@@ -169,12 +176,46 @@ class PackageTestRunner(object):
             requires = test_info["requires"]
             on_variants = test_info["on_variants"]
 
+            # if on_variants is a dict containing "requires", then only run the
+            # test on variants whose direct requirements are a subset of, and do
+            # not conflict with, this requires list. Variants are silently skipped
+            # on mismatch in this case. For example, if on_variants.requires is
+            # ['foo', 'bah'] then only variants containing both these requirements
+            # will be selected; ['!foo', 'bah'] would select those variants with
+            # bah present and not foo.
+            #
+            # This is different to the test's "requires" - in this case,
+            # requires=['foo'] would add this requirement to every test env.
+            # This is a requirement addition, whereas on_variants.requires is a
+            # variant selection mechanism.
+            #
+            if isinstance(on_variants, dict) and "requires" in on_variants:
+                reqlist = RequirementList(
+                    variant.variant_requires + on_variants["requires"])
+
+                if reqlist.conflict:
+                    continue
+
+                # test if variant requires is a subset of on_variants.requires.
+                # This works because RequirementList merges requirements.
+                #
+                if RequirementList(variant.variant_requires) != reqlist:
+                    continue
+
             # show progress
             if self.verbose:
                 self._print_header(
                     "\nTest: %s\nPackage: %s\n%s\n",
                     test_name, variant.uri, '-' * 80
                 )
+
+            # add requirements to force the current variant to be resolved.
+            # TODO this is not perfect, and will need to be updated when
+            # explicit variant selection is added to rez (this is a new
+            # feature). Until then, there's no guarantee that we'll resolve to
+            # the variant we want, so we take that into account here.
+            #
+            requires.extend(map(str, variant.variant_requires))
 
             # create test runtime env
             context = self._get_context(requires)
@@ -187,6 +228,30 @@ class PackageTestRunner(object):
                     "The test environment failed to resolve"
                 ))
                 continue
+
+            # check that this has actually resolved the variant we want. If not,
+            # we can't do much beyond using what we were given, and skipping if
+            # we've already seen it.
+            #
+            resolved_variant = context.get_resolved_package(package.name)
+            assert resolved_variant
+            if resolved_variant in seen_variants:
+                print_warning(
+                    "Could not resolve environment for this variant. This is a "
+                    "known issue and will be fixed once 'explicit variant "
+                    "selection' is added to rez."
+                )
+
+                self.summary.append((
+                    variant,
+                    test_name,
+                    "skipped",
+                    "Could not resolve to variant, see earlier warning"
+                ))
+                continue
+
+            variant = resolved_variant
+            seen_variants.add(variant)
 
             # expand refs like {root} in commands
             if isinstance(command, basestring):
@@ -317,35 +382,34 @@ class PackageTestRunner(object):
         return {
             "command": test_entry["command"],
             "requires": requires,
-            # TODO
-            "on_variants": False
+            "on_variants": test_entry.get("on_variants", False)
         }
 
     def _get_context(self, requires, quiet=False):
         key = tuple(requires)
         context = self.contexts.get(key)
 
-        if context is not None:
-            if not context.success and not quiet:
-                context.print_info(buf=self.stderr)
-            return context
+        if context is None:
+            if self.verbose and not quiet:
+                self._print_header(
+                    "Resolving test environment: %s\n",
+                    ' '.join(map(quote, requires))
+                )
 
-        if self.verbose and not quiet:
-            self._print_header(
-                "Resolving test environment: %s\n",
-                ' '.join(map(quote, requires))
-            )
+            with open(os.devnull, 'w') as f:
+                context = ResolvedContext(
+                    package_requests=requires,
+                    package_paths=self.package_paths,
+                    buf=(f if quiet else None),
+                    timestamp=self.timestamp,
+                    **self.context_kwargs
+                )
 
-        with open(os.devnull, 'w') as f:
-            context = ResolvedContext(
-                package_requests=requires,
-                package_paths=self.package_paths,
-                buf=(f if quiet else None),
-                timestamp=self.timestamp,
-                **self.context_kwargs
-            )
+            self.contexts[key] = context
 
-        self.contexts[key] = context
+        if not context.success and not quiet:
+            context.print_info(buf=self.stderr)
+
         return context
 
     def _get_target_variants(self, test_name):
