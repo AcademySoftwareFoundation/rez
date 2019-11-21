@@ -9,14 +9,25 @@ def setup_parser(parser, completions=False):
         "-l", "--list", action="store_true",
         help="list package's tests and exit")
     parser.add_argument(
+        "--dry-run", action="store_true",
+        help="dry-run mode: show what tests would have been run, but do not "
+        "run them")
+    parser.add_argument(
+        "-s", "--stop-on-fail", action="store_true",
+        help="stop on first test failure")
+    parser.add_argument(
+        "--inplace", action="store_true",
+        help="run tests in the current environment. Any test whose requirements "
+        "are not met by the current environment is skipped")
+    PKG_action = parser.add_argument(
+        "--extra-packages", nargs='+', metavar="PKG",
+        help="extra packages to add to test environment")
+    parser.add_argument(
         "--paths", type=str, default=None,
         help="set package search path")
     parser.add_argument(
         "--nl", "--no-local", dest="no_local", action="store_true",
         help="don't load local packages")
-    PKG_action = parser.add_argument(
-        "--extra-packages", nargs='+', metavar="PKG",
-        help="extra packages to add to test environment")
     PKG_action = parser.add_argument(
         "PKG",
         help="package run tests on")
@@ -42,14 +53,20 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
-    runner = PackageTestRunner(package_request=opts.PKG,
-                               package_paths=pkg_paths,
-                               extra_package_requests=opts.extra_packages,
-                               verbose=True)
+    runner = PackageTestRunner(
+        package_request=opts.PKG,
+        package_paths=pkg_paths,
+        extra_package_requests=opts.extra_packages,
+        dry_run=opts.dry_run,
+        stop_on_fail=opts.stop_on_fail,
+        use_current_env=opts.inplace,
+        verbose=True
+    )
 
     test_names = runner.get_test_names()
+    uri = runner.get_package().uri
+
     if not test_names:
-        uri = runner.get_package().uri
         print("No tests found in %s" % uri, file=sys.stderr)
         sys.exit(0)
 
@@ -60,10 +77,19 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.TEST:
         run_test_names = opts.TEST
     else:
-        run_test_names = test_names
+        # if no tests are explicitly specified, then run only those with a
+        # 'default' run_on tag
+        run_test_names = runner.get_test_names(run_on=["default"])
+
+        if not run_test_names:
+            print(
+                "No tests with 'default' run_on tag found in %s" % uri,
+                file=sys.stderr
+            )
+            sys.exit(0)
 
     for test_name in run_test_names:
-        returncode = runner.run_test(test_name)
+        if not runner.stopped_on_fail:
+            runner.run_test(test_name)
 
-        if returncode:
-            sys.exit(returncode)
+    runner.print_summary()

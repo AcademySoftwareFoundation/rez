@@ -1277,6 +1277,25 @@ class ResolvedContext(object):
         else:
             return p
 
+    @_on_success
+    def get_resolve_as_exact_requests(self):
+        """Convert to a package request list of exact resolved package versions.
+
+            >>> r = ResolvedContext(['foo']
+            >>> r.get_resolve_as_exact_requests()
+            ['foo==1.2.3', 'bah==1.0.1', 'python==2.7.12']
+
+        Returns:
+            `RequirementList`: Context as a list of exact version requirements.
+        """
+        def to_req(pkg):
+            if pkg.version:
+                return PackageRequest(pkg.name + "==" + str(pkg.version))
+            else:
+                return PackageRequest(pkg.name)
+
+        return map(to_req, self.resolved_packages)
+
     def to_dict(self, fields=None):
         """Convert context to dict containing only builtin types.
 
