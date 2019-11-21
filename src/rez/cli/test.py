@@ -64,8 +64,9 @@ def command(opts, parser, extra_arg_groups=None):
     )
 
     test_names = runner.get_test_names()
+    uri = runner.get_package().uri
+
     if not test_names:
-        uri = runner.get_package().uri
         print("No tests found in %s" % uri, file=sys.stderr)
         sys.exit(0)
 
@@ -76,7 +77,16 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.TEST:
         run_test_names = opts.TEST
     else:
-        run_test_names = test_names
+        # if no tests are explicitly specified, then run only those with a
+        # 'default' run_on tag
+        run_test_names = runner.get_test_names(run_on=["default"])
+
+        if not run_test_names:
+            print(
+                "No tests with 'default' run_on tag found in %s" % uri,
+                file=sys.stderr
+            )
+            sys.exit(0)
 
     for test_name in run_test_names:
         if not runner.stopped_on_fail:

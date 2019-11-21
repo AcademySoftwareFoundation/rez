@@ -135,8 +135,12 @@ class PackageTestRunner(object):
         self.package = package
         return self.package
 
-    def get_test_names(self):
+    def get_test_names(self, run_on=None):
         """Get the names of tests in this package.
+
+        Args:
+            run_on (list of str): If provided, only include tests with run_on
+                tags within this list.
 
         Returns:
             List of str: Test names.
@@ -146,7 +150,15 @@ class PackageTestRunner(object):
         if package is None:
             return []
 
-        return sorted((package.tests or {}).keys())
+        if run_on:
+            tests_dict = dict(
+                (k, v) for k, v in package.tests.items()
+                if set(v.get("run_on", ["default"])) & set(run_on)
+            )
+        else:
+            tests_dict = package.tests
+
+        return sorted((tests_dict or {}).keys())
 
     @property
     def num_success(self):
@@ -433,9 +445,19 @@ class PackageTestRunner(object):
             reqs = map(str, self.extra_package_requests)
             requires.extend(reqs)
 
+        # construct run_on
+        run_on = test_entry.get("run_on")
+        if run_on:
+            if isinstance(run_on, basestring):
+                run_on = [run_on]
+        else:
+            run_on = ["default"]
+
+        # finish
         return {
             "command": test_entry["command"],
             "requires": requires,
+            "run_on": run_on,
             "on_variants": test_entry.get("on_variants", False)
         }
 
