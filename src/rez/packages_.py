@@ -227,6 +227,15 @@ class Package(PackageBaseResourceWrapper):
         o = VersionedObject.construct(self.name, self.version)
         return str(o)
 
+    def as_exact_requirement(self):
+        """Get the package, as an exact requirement string.
+
+        Returns:
+            Equivalent requirement string, eg "maya==2016.1"
+        """
+        o = VersionedObject.construct(self.name, self.version)
+        return o.as_exact_requirement()
+
     @cached_property
     def parent(self):
         """Get the parent package family.

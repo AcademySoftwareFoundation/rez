@@ -1,5 +1,5 @@
 from rez.solver import Solver, SolverStatus, PackageVariantCache
-from rez.package_repository import package_repository_manager
+from rez.package_repository import PackageRepositoryManager, package_repository_manager
 from rez.packages_ import get_variant, get_last_release_time
 from rez.package_filter import PackageFilterList, TimestampRule
 from rez.utils.memcached import memcached_client, pool_memcached_connections
@@ -32,9 +32,10 @@ class Resolver(object):
     package request as quickly as possible.
     """
     def __init__(self, context, package_requests, package_paths, package_filter=None,
-                 package_orderers=None, timestamp=0, callback=None, building=False,
-                 verbosity=False, buf=None, package_load_callback=None, caching=True,
-                 suppress_passive=False, print_stats=False):
+                 resource_pool=None, package_orderers=None, timestamp=0,
+                 callback=None, building=False, verbosity=False, buf=None,
+                 package_load_callback=None, caching=True, suppress_passive=False,
+                 print_stats=False):
         """Create a Resolver.
 
         Args:
@@ -42,6 +43,9 @@ class Resolver(object):
                 request.
             package_paths: List of paths to search for pkgs.
             package_filter (`PackageFilterList`): Package filter.
+            resource_pool (`ResourcePool`): Provide this
+                if you need to perform a resolve that does not alter the global
+                resource cache.
             package_orderers (list of `PackageOrder`): Custom package ordering.
             callback: See `Solver`.
             package_load_callback: If not None, this callable will be called
@@ -65,6 +69,14 @@ class Resolver(object):
         self.buf = buf
         self.suppress_passive = suppress_passive
         self.print_stats = print_stats
+
+        if resource_pool:
+            # use a local repo manager
+            self.package_repository_manager = \
+                PackageRepositoryManager(resource_pool=resource_pool)
+        else:
+            # use global resource pool + repo manager
+            self.package_repository_manager = package_repository_manager
 
         # store hash of package orderers. This is used in the memcached key
         if package_orderers:
@@ -360,7 +372,7 @@ class Resolver(object):
         request = tuple(map(str, self.package_requests))
         repo_ids = []
         for path in self.package_paths:
-            repo = package_repository_manager.get_repository(path)
+            repo = self.package_repository_manager.get_repository(path)
             repo_ids.append(repo.uid)
 
         t = ["resolve",

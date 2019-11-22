@@ -2,7 +2,6 @@ from rez.utils.resources import ResourcePool, ResourceHandle
 from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
 from rez.config import config
-from rez.backport.lru_cache import lru_cache
 from rez.exceptions import ResourceError
 from contextlib import contextmanager
 import threading
@@ -353,18 +352,26 @@ class PackageRepository(object):
 class PackageRepositoryManager(object):
     """Package repository manager.
 
-    Contains instances of `PackageRepository` for each repository pointed to
-    by the 'packages_path' config setting (also commonly set using the
-    environment variable REZ_PACKAGES_PATH).
+    Manages retrieval of resources (packages and variants) from `PackageRepository`
+    instances, and caches these resources in a resource pool.
     """
-    def __init__(self):
-        cache_size = config.resource_caching_maxsize
-        if cache_size < 0:
-            cache_size = None
-        self.cache_size = cache_size
-        self.pool = ResourcePool(cache_size=cache_size)
+    def __init__(self, resource_pool=None):
+        """Create a package repo manager.
 
-    @lru_cache(maxsize=None)
+        Args:
+            resource_pool (`ResourcePool`): Provide your own resource pool. If
+                None, a default pool is created based on config settings.
+        """
+        if resource_pool is None:
+            cache_size = config.resource_caching_maxsize
+            if cache_size < 0:  # -1 == disable caching
+                cache_size = None
+
+            resource_pool = ResourcePool(cache_size=cache_size)
+
+        self.pool = resource_pool
+        self.repositories = {}
+
     def get_repository(self, path):
         """Get a package repository.
 
@@ -377,7 +384,8 @@ class PackageRepositoryManager(object):
         Returns:
             `PackageRepository` instance.
         """
-        # normalise
+
+        # normalise repo path
         parts = path.split('@', 1)
         if len(parts) == 1:
             parts = ("filesystem", parts[0])
@@ -388,10 +396,19 @@ class PackageRepositoryManager(object):
             # canonical path, which can be a problem if two studios are sharing
             # packages, and have mirrored package paths, but some are actually
             # different paths, symlinked to look the same. It happened!
+            #
             location = os.path.abspath(location)
 
         normalised_path = "%s@%s" % (repo_type, location)
-        return self._get_repository(normalised_path)
+
+        # get possibly cached repo
+        repository = self.repositories.get(normalised_path)
+
+        if repository is None:
+            repository = self._get_repository(normalised_path)
+            self.repositories[normalised_path] = repository
+
+        return repository
 
     def are_same(self, path_1, path_2):
         """Test that `path_1` and `path_2` refer to the same repository.
@@ -454,11 +471,9 @@ class PackageRepositoryManager(object):
 
     def clear_caches(self):
         """Clear all cached data."""
-        self.get_repository.cache_clear()
-        self._get_repository.cache_clear()
+        self.repositories.clear()
         self.pool.clear_caches()
 
-    @lru_cache(maxsize=None)
     def _get_repository(self, path):
         repo_type, location = path.split('@', 1)
         cls = plugin_manager.get_plugin_class('package_repository', repo_type)

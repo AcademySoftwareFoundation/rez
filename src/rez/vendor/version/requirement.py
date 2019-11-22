@@ -56,6 +56,19 @@ class VersionedObject(_Common):
         """Version of the object."""
         return self.version_
 
+    def as_exact_requirement(self):
+        """Get the versioned object, as an exact requirement string.
+
+        Returns:
+            Equivalent requirement string, eg "maya==2016.1"
+        """
+        sep_str = ''
+        ver_str = ''
+        if self.version_:
+            sep_str = "=="
+            ver_str = str(self.version_)
+        return self.name_ + sep_str + ver_str
+
     def __eq__(self, other):
         return (isinstance(other, VersionedObject)
                 and (self.name_ == other.name_)

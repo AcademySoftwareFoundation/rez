@@ -56,7 +56,7 @@ class PackageTestRunner(object):
     """
     def __init__(self, package_request, use_current_env=False,
                  extra_package_requests=None, package_paths=None, stdout=None,
-                 stderr=None, verbose=False, dry_run=False, stop_on_fail=False,
+                 stderr=None, verbose=0, dry_run=False, stop_on_fail=False,
                  **context_kwargs):
         """Create a package tester.
 
@@ -71,7 +71,7 @@ class PackageTestRunner(object):
                 config.packages_path.
             stdout (file-like object): Defaults to sys.stdout.
             stderr (file-like object): Defaults to sys.stderr.
-            verbose (bool): Verbose mode.
+            verbose (int): Verbose mode (valid values: 0, 1, 2)
             dry_run (bool): If True, do everything except actually run tests.
             context_kwargs: Extra arguments which are passed to the
                 `ResolvedContext` instances used to run the tests within.
@@ -82,10 +82,14 @@ class PackageTestRunner(object):
         self.extra_package_requests = extra_package_requests
         self.stdout = stdout or sys.stdout
         self.stderr = stderr or sys.stderr
-        self.verbose = verbose
         self.dry_run = dry_run
         self.stop_on_fail = stop_on_fail
         self.context_kwargs = context_kwargs
+
+        if isinstance(verbose, bool):
+            self.verbose = 2 if verbose else 0
+        else:
+            self.verbose = verbose
 
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
@@ -135,12 +139,46 @@ class PackageTestRunner(object):
         self.package = package
         return self.package
 
+    @classmethod
+    def get_package_test_names(cls, package, run_on=None):
+        """Get the names of tests in the given package.
+
+        Args:
+            run_on (list of str): If provided, only include tests with run_on
+                tags that overlap with the given list.
+
+        Returns:
+            List of str: Test names.
+        """
+        tests_dict = package.tests or {}
+
+        def _select(value):
+            if isinstance(value, dict):
+                value = value.get("run_on")
+            else:
+                value = None
+
+            if value is None:
+                return ("default" in run_on)
+            elif isinstance(value, basestring):
+                return (value in run_on)
+            else:
+                return bool(set(value) & set(run_on))
+
+        if run_on:
+            tests_dict = dict(
+                (k, v) for k, v in tests_dict.items()
+                if _select(v)
+            )
+
+        return sorted(tests_dict.keys())
+
     def get_test_names(self, run_on=None):
         """Get the names of tests in this package.
 
         Args:
             run_on (list of str): If provided, only include tests with run_on
-                tags within this list.
+                tags that overlap with the given list.
 
         Returns:
             List of str: Test names.
@@ -150,15 +188,7 @@ class PackageTestRunner(object):
         if package is None:
             return []
 
-        if run_on:
-            tests_dict = dict(
-                (k, v) for k, v in package.tests.items()
-                if set(v.get("run_on", ["default"])) & set(run_on)
-            )
-        else:
-            tests_dict = package.tests
-
-        return sorted((tests_dict or {}).keys())
+        return self.get_package_test_names(package)
 
     @property
     def num_success(self):
@@ -259,10 +289,15 @@ class PackageTestRunner(object):
                     continue
 
             # show progress
-            if self.verbose:
+            if self.verbose > 1:
                 self._print_header(
-                    "\nTest: %s\nPackage: %s\n%s\n",
+                    "\nRunning test: %s\nPackage: %s\n%s\n",
                     test_name, variant.uri, '-' * 80
+                )
+            elif self.verbose:
+                self._print_header(
+                    "\nRunning test: %s\n%s\n",
+                    test_name, '-' * 80
                 )
 
             # add requirements to force the current variant to be resolved.
@@ -323,14 +358,16 @@ class PackageTestRunner(object):
 
             # run the test in the context
             if self.verbose:
-                context.print_info(self.stdout)
+                if self.verbose > 1:
+                    context.print_info(self.stdout)
+                    print()
 
                 if isinstance(command, basestring):
                     cmd_str = command
                 else:
                     cmd_str = ' '.join(map(quote, command))
 
-                self._print_header("\nRunning test command: %s\n", cmd_str)
+                self._print_header("Running test command: %s\n", cmd_str)
 
             if self.dry_run:
                 self._set_test_result(
@@ -396,13 +433,12 @@ class PackageTestRunner(object):
             rows.append((
                 test_result["test_name"],
                 test_result["status"],
-                test_result["variant"].uri,
+                test_result["variant"].root,
                 test_result["description"]
             ))
 
         strs = columnise(rows)
         print('\n'.join(strs))
-        print('\n')
 
     def _set_test_result(self, test_name, variant, status, description):
         self.test_results.append({

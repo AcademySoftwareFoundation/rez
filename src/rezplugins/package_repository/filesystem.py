@@ -153,7 +153,13 @@ class FileSystemPackageResource(PackageResourceHelper):
 
     @property
     def base(self):
-        return self.path
+        # Note: '_redirected_base' is a special attribute set by the build
+        # process in order to perform pre-install/release package testing. See
+        # `LocalBuildProcess._run_tests()`
+        #
+        redirected_base = self._data.get("_redirected_base")
+
+        return redirected_base or self.path
 
     @cached_property
     def path(self):
