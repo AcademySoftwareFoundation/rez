@@ -92,5 +92,6 @@ def command(opts, parser, extra_arg_groups=None):
         if not runner.stopped_on_fail:
             runner.run_test(test_name)
 
+    print("\n")
     runner.print_summary()
-    print()
+    print('')

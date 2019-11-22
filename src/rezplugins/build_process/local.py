@@ -15,7 +15,6 @@ from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
 from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.filesystem import TempDirs
 
-from contextlib import contextmanager
 from hashlib import sha1
 import json
 import shutil
@@ -47,12 +46,15 @@ class LocalBuildProcess(BuildProcessHelper):
             clean=clean,
             install=install)
 
+        self._print_header("Build Summary")
+
+        self._print("\nAll %d build(s) were successful.\n", num_visited)
+
         if None not in build_env_scripts:
             self._print("\nThe following executable script(s) have been created:")
             self._print('\n'.join(build_env_scripts))
             self._print('')
-        else:
-            self._print("\nAll %d build(s) were successful.\n", num_visited)
+
         return num_visited
 
     def release(self, release_message=None, variants=None):
@@ -82,6 +84,7 @@ class LocalBuildProcess(BuildProcessHelper):
             variants=variants,
             release_message=release_message)
 
+        # ignore skipped variants
         released_variants = [x for x in released_variants if x is not None]
         num_released = len(released_variants)
 
@@ -98,12 +101,13 @@ class LocalBuildProcess(BuildProcessHelper):
         if released_variants:
             self.post_release(release_message=release_message)
 
-        if self.verbose:
-            msg = "\n%d of %d releases were successful" % (num_released, num_visited)
-            if num_released < num_visited:
-                Printer()(msg, warning)
-            else:
-                self._print(msg)
+        self._print_header("Release Summary")
+
+        msg = "\n%d of %d releases were successful" % (num_released, num_visited)
+        if num_released < num_visited:
+            Printer()(msg, warning)
+        else:
+            self._print(msg)
 
         return num_released
 
@@ -281,17 +285,11 @@ class LocalBuildProcess(BuildProcessHelper):
             if not os.path.exists(dest_filepath):
                 shutil.copy(filepath, dest_filepath)
 
-    @contextmanager
-    def _rmtree_on_raise(self, path, exc_class):
+    def _rmtree(self, path):
         try:
-            yield
-        except exc_class:
-            try:
-                shutil.rmtree(path)
-            except e:
-                print_warning("Failed to delete %s", path)
-
-            raise
+            shutil.rmtree(path)
+        except e:
+            print_warning("Failed to delete %s", path)
 
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):
@@ -311,13 +309,15 @@ class LocalBuildProcess(BuildProcessHelper):
 
         if install:
             # run any tests that are configured to run pre-install
-            with self._rmtree_on_raise(build_result["variant_install_path"],
-                                       PackageTestError):
+            try:
                 self._run_tests(
                     variant,
                     run_on=["pre_install"],
                     package_install_path=build_result["package_install_path"]
                 )
+            except PackageTestError:
+                self._rmtree(build_result["variant_install_path"])
+                raise
 
             # install variant into package repository (ie update target package.py)
             variant.install(install_path)
@@ -330,8 +330,10 @@ class LocalBuildProcess(BuildProcessHelper):
         # test if variant has already been released
         variant_ = variant.install(release_path, dry_run=True)
         if variant_ is not None:
-            self._print_header("Skipping %s: destination variant already exists (%r)"
-                               % (self._n_of_m(variant), variant_.uri))
+            print_warning(
+                "Skipping %s: destination variant already exists (%r)",
+                self._n_of_m(variant), variant_.uri
+            )
             return None
 
         if variant.index is not None:
@@ -346,13 +348,15 @@ class LocalBuildProcess(BuildProcessHelper):
             install=True)
 
         # run any tests that are configured to run pre-install
-        with self._rmtree_on_raise(build_result["variant_install_path"],
-                                   PackageTestError):
+        try:
             self._run_tests(
                 variant,
                 run_on=["pre_release"],
                 package_install_path=build_result["package_install_path"]
             )
+        except PackageTestError:
+            self._rmtree(build_result["variant_install_path"])
+            raise
 
         # add release info to variant, and install it into package repository
         release_data = self.get_release_data()
@@ -410,12 +414,15 @@ class LocalBuildProcess(BuildProcessHelper):
         runner = PackageTestRunner(
             package_request=variant.parent.as_exact_requirement(),
             package_paths=package_paths,
+            stop_on_fail=True,
             verbose=1
         )
 
         for test_name in test_names:
-            runner.run_test(test_name)
+            if not runner.stopped_on_fail:
+                runner.run_test(test_name)
 
+        print('')
         runner.print_summary()
 
         if runner.num_failed:

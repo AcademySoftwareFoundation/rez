@@ -360,14 +360,14 @@ class PackageTestRunner(object):
             if self.verbose:
                 if self.verbose > 1:
                     context.print_info(self.stdout)
-                    print()
+                    print('')
 
                 if isinstance(command, basestring):
                     cmd_str = command
                 else:
                     cmd_str = ' '.join(map(quote, command))
 
-                self._print_header("Running test command: %s\n", cmd_str)
+                self._print_header("Running test command: %s", cmd_str)
 
             if self.dry_run:
                 self._set_test_result(
@@ -415,7 +415,7 @@ class PackageTestRunner(object):
         from rez.utils.formatting import columnise
 
         self._print_header(
-            "\n\nResults:\n%s",
+            "Test results:\n%s",
             '-' * 80
         )
 
