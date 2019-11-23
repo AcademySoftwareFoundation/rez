@@ -588,6 +588,8 @@ class FileSystemPackageRepository(PackageRepository):
             Work has to be done to change the way that new variant dirs and the
             .building file are created, so that we can safely delete cancelled
             variant dirs in the presence of multiple rez procs.
+
+            See https://github.com/nerdvegas/rez/issues/810
         """
         family_path = os.path.join(self.location, variant_resource.name)
         self._delete_stale_build_tagfiles(family_path)
