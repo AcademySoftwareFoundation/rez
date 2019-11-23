@@ -249,6 +249,10 @@ class LocalBuildProcess(BuildProcessHelper):
                 build_type=build_type)
 
             if not build_result.get("success"):
+                # delete the possibly partially installed variant payload
+                if install:
+                    self._rmtree(build_result["variant_install_path"])
+
                 raise BuildError("The %s build system failed." % build_system_name)
 
             if install:
@@ -315,12 +319,24 @@ class LocalBuildProcess(BuildProcessHelper):
 
         # build and possibly install variant (ie the payload, not package.py)
         install_path = install_path or self.package.config.local_packages_path
-        build_result = self._build_variant_base(
-            build_type=BuildType.local,
-            variant=variant,
-            install_path=install_path,
-            clean=clean,
-            install=install)
+
+        def cancel_variant_install():
+            if install:
+                pkg_repo = package_repository_manager.get_repository(install_path)
+                pkg_repo.on_variant_install_cancelled(variant.resource)
+
+        try:
+            build_result = self._build_variant_base(
+                build_type=BuildType.local,
+                variant=variant,
+                install_path=install_path,
+                clean=clean,
+                install=install)
+        except BuildError:
+            # indicate to repo that the variant install is cancelled
+            cancel_variant_install()
+
+            raise
 
         if install:
             # run any tests that are configured to run pre-install
@@ -331,7 +347,12 @@ class LocalBuildProcess(BuildProcessHelper):
                     package_install_path=build_result["package_install_path"]
                 )
             except PackageTestError:
+                # delete the installed variant payload
                 self._rmtree(build_result["variant_install_path"])
+
+                # indicate to repo that the variant install is cancelled
+                cancel_variant_install()
+
                 raise
 
             # install variant into package repository (ie update target package.py)
@@ -351,16 +372,26 @@ class LocalBuildProcess(BuildProcessHelper):
             )
             return None
 
+        def cancel_variant_install():
+            pkg_repo = package_repository_manager.get_repository(release_path)
+            pkg_repo.on_variant_install_cancelled(variant.resource)
+
         if variant.index is not None:
             self._print_header("Releasing variant %s..." % self._n_of_m(variant))
 
         # build and install variant
-        build_result = self._build_variant_base(
-            build_type=BuildType.central,
-            variant=variant,
-            install_path=release_path,
-            clean=True,
-            install=True)
+        try:
+            build_result = self._build_variant_base(
+                build_type=BuildType.central,
+                variant=variant,
+                install_path=release_path,
+                clean=True,
+                install=True)
+        except BuildError:
+            # indicate to repo that the variant install is cancelled
+            cancel_variant_install()
+
+            raise
 
         # run any tests that are configured to run pre-install
         try:
@@ -370,7 +401,12 @@ class LocalBuildProcess(BuildProcessHelper):
                 package_install_path=build_result["package_install_path"]
             )
         except PackageTestError:
+            # delete the installed variant payload
             self._rmtree(build_result["variant_install_path"])
+
+            # indicate to repo that the variant install is cancelled
+            cancel_variant_install()
+
             raise
 
         # add release info to variant, and install it into package repository

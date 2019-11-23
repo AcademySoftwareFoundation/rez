@@ -175,6 +175,24 @@ class PackageRepository(object):
 
         If any directories are created on disk for the variant to install into,
         this is called before that happens.
+
+        Note that it is the responsibility of the `BuildProcess` to call this
+        function at the appropriate time.
+        """
+        pass
+
+    def on_variant_install_cancelled(self, variant_resource):
+        """Called when a variant installation is cancelled.
+
+        This is called after `pre_variant_install`, but before `install_variant`,
+        which is not expected to be called.
+
+        Variant install cancellation usually happens for one of two reasons -
+        either the variant installation failed (ie a build error occurred), or
+        one or more of the package tests failed, aborting the installation.
+
+        Note that it is the responsibility of the `BuildProcess` to call this
+        function at the appropriate time.
         """
         pass
 
