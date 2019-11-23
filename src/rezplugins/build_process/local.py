@@ -14,6 +14,7 @@ from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
     make_path_writable, get_existing_path
 from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.filesystem import TempDirs
+from rez.package_test import PackageTestRunner, PackageTestResults
 
 from hashlib import sha1
 import json
@@ -35,6 +36,11 @@ class LocalBuildProcess(BuildProcessHelper):
     def name(cls):
         return "local"
 
+    def __init__(self, *nargs, **kwargs):
+        super(LocalBuildProcess, self).__init__(*nargs, **kwargs)
+        self.ran_test_names = set()
+        self.all_test_results = PackageTestResults()
+
     def build(self, install_path=None, clean=False, install=False, variants=None):
         self._print_header("Building %s..." % self.package.qualified_name)
 
@@ -54,6 +60,10 @@ class LocalBuildProcess(BuildProcessHelper):
             self._print("\nThe following executable script(s) have been created:")
             self._print('\n'.join(build_env_scripts))
             self._print('')
+
+        if self.all_test_results.num_tests:
+            self.all_test_results.print_summary()
+            print('')
 
         return num_visited
 
@@ -108,6 +118,11 @@ class LocalBuildProcess(BuildProcessHelper):
             Printer()(msg, warning)
         else:
             self._print(msg)
+
+        if self.all_test_results.num_tests:
+            print('')
+            self.all_test_results.print_summary()
+            print('')
 
         return num_released
 
@@ -377,13 +392,15 @@ class LocalBuildProcess(BuildProcessHelper):
            package.py is updated appropriately
         5. On failure, the release is aborted.
         """
-        from rez.package_test import PackageTestRunner
-
         package = variant.parent
 
         # see if there are tests to run, noop if not
         test_names = PackageTestRunner.get_package_test_names(
-            package=package, run_on=run_on)
+            package=package,
+            run_on=run_on,
+            ran_once=self.ran_test_names
+        )
+
         if not test_names:
             return
 
@@ -414,6 +431,7 @@ class LocalBuildProcess(BuildProcessHelper):
         runner = PackageTestRunner(
             package_request=variant.parent.as_exact_requirement(),
             package_paths=package_paths,
+            cumulative_test_results=self.all_test_results,
             stop_on_fail=True,
             verbose=1
         )
@@ -421,9 +439,11 @@ class LocalBuildProcess(BuildProcessHelper):
         for test_name in test_names:
             if not runner.stopped_on_fail:
                 runner.run_test(test_name)
+                self.ran_test_names.add(test_name)
 
-        print('')
-        runner.print_summary()
+        if runner.num_tests:
+            print('')
+            runner.print_summary()
 
         if runner.num_failed:
             raise PackageTestError("%d tests failed" % runner.num_failed)
