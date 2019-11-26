@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.48.0 (2019-11-26)
+[Source](https://github.com/nerdvegas/rez/tree/2.48.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.14...2.48.0)
+
+**Merged pull requests:**
+
+- rez.pip: Support python 2 executable on Windows (796) [\#798](https://github.com/nerdvegas/rez/pull/798) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Feature/add 'prefix' argument to rez-pip [\#802](https://github.com/nerdvegas/rez/pull/802) ([predat](https://github.com/predat))
+
+**Closed issues:**
+
+- find_pip_from_context failing on Windows platform [\#796](https://github.com/nerdvegas/rez/issues/796)
+
 ## 2.47.14 (2019-11-13)
 [Source](https://github.com/nerdvegas/rez/tree/2.47.14) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.13...2.47.14)
 
