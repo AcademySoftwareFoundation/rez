@@ -198,7 +198,7 @@ def find_pip_from_context(python_version, pip_version=None):
 
 
 def pip_install_package(source_name, pip_version=None, python_version=None,
-                        mode=InstallMode.min_deps, release=False):
+                        mode=InstallMode.min_deps, release=False, prefix=None):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -229,8 +229,11 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     # TODO: should check if packages_path is writable before continuing with pip
     #
-    packages_path = (config.release_packages_path if release
-                     else config.local_packages_path)
+    if prefix is not None:
+        packages_path = prefix
+    else:
+        packages_path = (config.release_packages_path if release
+                         else config.local_packages_path)
 
     tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
     stagingdir = os.path.join(tmpdir, "rez_staging")
