@@ -211,7 +211,7 @@ class PackageTestRunner(object):
         if package is None:
             return []
 
-        return self.get_package_test_names(package)
+        return self.get_package_test_names(package, run_on=run_on)
 
     @property
     def num_tests(self):
