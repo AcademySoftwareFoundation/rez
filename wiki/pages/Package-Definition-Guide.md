@@ -688,7 +688,7 @@ If you provide a nested dict, you can specify extra fields per test, as follows:
 * **requires**: Extra package requirements to include in the test's runtime env.
 * **run_on**: When to run this test. Valid values are:
   * `default` (the default): Run when `rez-test` is run with no `TEST` args specified.
-  # `pre_install`: Run before an install (ie `rez-build -i`), and abort the install on fail.
+  * `pre_install`: Run before an install (ie `rez-build -i`), and abort the install on fail.
   * `pre_release`: Run before a release, and abort the release on fail.
   * `explicit`: Only run if specified as `TEST` when `rez-test` is run.
 * **on_variants**: Which variants the test should be run on. Valid values are:
