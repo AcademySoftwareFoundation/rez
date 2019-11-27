@@ -2,7 +2,7 @@
 Utilities for working with dict-based schemas.
 """
 from rez.vendor.six import six
-from rez.vendor.schema.schema import Schema, Optional, Use, And
+from rez.vendor.schema.schema import Schema, Optional, Use, And, Optional
 
 
 basestring = six.string_types[0]
@@ -74,6 +74,20 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
         return schema
 
     return _to(schema_dict)
+
+
+def extensible_schema_dict(schema_dict):
+    """Create schema dict that allows arbitrary extra keys.
+
+    This helps to keep newer configs or package definitions compatible with
+    older rez versions, that may not support newer schema fields.
+    """
+    result = {
+        Optional(basestring): object
+    }
+
+    result.update(schema_dict)
+    return result
 
 
 # Copyright 2013-2016 Allan Johns.
