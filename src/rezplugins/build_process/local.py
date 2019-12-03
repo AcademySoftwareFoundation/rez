@@ -251,7 +251,7 @@ class LocalBuildProcess(BuildProcessHelper):
             if not build_result.get("success"):
                 # delete the possibly partially installed variant payload
                 if install:
-                    self._rmtree(build_result["variant_install_path"])
+                    self._rmtree(variant_install_path)
 
                 raise BuildError("The %s build system failed." % build_system_name)
 
