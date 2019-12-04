@@ -90,7 +90,8 @@ class PackageTestRunner(object):
         self.context_kwargs = context_kwargs
 
         if isinstance(verbose, bool):
-            self.verbose = 2 if verbose else 0
+            # backwards compat, verbose used to be bool
+            self.verbose = 3 if verbose else 0
         else:
             self.verbose = verbose
 
@@ -309,12 +310,26 @@ class PackageTestRunner(object):
                     variant.variant_requires + on_variants["requires"])
 
                 if reqlist.conflict:
+                    if self.verbose > 2:
+                        self._add_test_result(
+                            test_name,
+                            variant,
+                            "skipped",
+                            "Test skipped as specified by on_variants.requires"
+                        )
                     continue
 
                 # test if variant requires is a subset of on_variants.requires.
                 # This works because RequirementList merges requirements.
                 #
                 if RequirementList(variant.variant_requires) != reqlist:
+                    if self.verbose > 2:
+                        self._add_test_result(
+                            test_name,
+                            variant,
+                            "skipped",
+                            "Test skipped as specified by on_variants.requires"
+                        )
                     continue
 
             # show progress
@@ -366,9 +381,9 @@ class PackageTestRunner(object):
 
             if resolved_variant.handle != variant.handle:
                 print_warning(
-                    "Could not resolve environment for this variant. This is a "
-                    "known issue and will be fixed once 'explicit variant "
-                    "selection' is added to rez."
+                    "Could not resolve environment for this variant (%s). This "
+                    "is a known issue and will be fixed once 'explicit variant "
+                    "selection' is added to rez.", variant.uri
                 )
 
                 self._add_test_result(
@@ -571,7 +586,7 @@ class PackageTestRunner(object):
                 # output would be confusing to the user.
                 #
                 context = self._get_context(requires, quiet=True)
-                if not context.success:
+                if context is None or not context.success:
                     continue
 
                 preferred_variant = context.get_resolved_package(package.name)

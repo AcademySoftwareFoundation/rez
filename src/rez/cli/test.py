@@ -60,7 +60,7 @@ def command(opts, parser, extra_arg_groups=None):
         dry_run=opts.dry_run,
         stop_on_fail=opts.stop_on_fail,
         use_current_env=opts.inplace,
-        verbose=2
+        verbose=(3 if opts.verbose else 2)
     )
 
     test_names = runner.get_test_names()
