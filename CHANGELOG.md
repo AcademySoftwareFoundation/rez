@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.48.1 (2019-12-05)
+[Source](https://github.com/nerdvegas/rez/tree/2.48.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.48.0...2.48.1)
+
+**Merged pull requests:**
+
+- Fixes #792 cmd empty echo [\#793](https://github.com/nerdvegas/rez/pull/793) ([bfloch](https://github.com/bfloch))
+
+**Closed issues:**
+
+- cmd handles empty echo incorrectly [\#792](https://github.com/nerdvegas/rez/issues/792)
+
 ## 2.48.0 (2019-11-26)
 [Source](https://github.com/nerdvegas/rez/tree/2.48.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.47.14...2.48.0)
 
