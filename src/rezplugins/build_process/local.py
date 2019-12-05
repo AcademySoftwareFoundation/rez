@@ -307,8 +307,8 @@ class LocalBuildProcess(BuildProcessHelper):
     def _rmtree(self, path):
         try:
             shutil.rmtree(path)
-        except e:
-            print_warning("Failed to delete %s", path)
+        except Exception as e:
+            print_warning("Failed to delete %s - %s", path, e)
 
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):
