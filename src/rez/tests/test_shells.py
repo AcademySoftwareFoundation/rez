@@ -250,6 +250,7 @@ class TestShells(TestBase, TempdirMixin):
             _print("ello")
             _print(literal("ello"))
             _print(expandable("ello"))
+            info('')
             _print("\\")
             _print("\\'")
             _print("\\\"")
@@ -291,6 +292,7 @@ class TestShells(TestBase, TempdirMixin):
             "ello",
             "ello",
             "ello",
+            "",
             "\\",
             "\\'",
             "\\\"",
@@ -331,8 +333,9 @@ class TestShells(TestBase, TempdirMixin):
 
         # We are wrapping all variable outputs in quotes in order to make sure
         # our shell isn't interpreting our output as instructions when echoing
-        # it but this means we need to wrap our expected output as well.
-        expected_output = ['"{}"'.format(o) for o in expected_output]
+        # it but this means we need to wrap our expected output as well. Only
+        # exception is empty string, which is just passed through.
+        expected_output = ['"{}"'.format(o) if o else o for o in expected_output]
 
         _execute_code(_rex_assigning, expected_output)
 
