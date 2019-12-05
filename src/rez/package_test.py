@@ -1,9 +1,9 @@
 from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.packages_ import get_latest_package_from_string, Variant
-from rez.exceptions import PackageNotFoundError, PackageTestError
+from rez.exceptions import RezError, PackageNotFoundError, PackageTestError
 from rez.utils.colorize import heading, Printer
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_info, print_warning, print_error
 from rez.vendor.six import six
 from rez.vendor.version.requirement import Requirement, RequirementList
 from pipes import quote
@@ -43,16 +43,6 @@ class PackageTestRunner(object):
 
     Commands can also be a list - in this case, the test process is launched
     directly, rather than interpreted via a shell.
-
-    TODO FIXME: Currently a test will not be run over the variants of a
-    package. This is because there is no reliable way to resolve to a specific
-    variant's env - we can influence the variant chosen, knowing how the
-    variant selection mode works, but this is not a guarantee and it would
-    be error-prone and complicated to do it this way. For reasons beyond
-    package testing, we want to be able to explicitly specify a variant to
-    resolve to anyway, so this will be fixed in a separate feature. Once that
-    is available, this code will be updated to iterate over a package's
-    variants and run tests in each.
     """
     def __init__(self, package_request, use_current_env=False,
                  extra_package_requests=None, package_paths=None, stdout=None,
@@ -91,7 +81,7 @@ class PackageTestRunner(object):
 
         if isinstance(verbose, bool):
             # backwards compat, verbose used to be bool
-            self.verbose = 3 if verbose else 0
+            self.verbose = 2 if verbose else 0
         else:
             self.verbose = verbose
 
@@ -246,8 +236,14 @@ class PackageTestRunner(object):
 
         Args:
             test_name (str): Name of test to run.
+
+        Returns:
+            int: Exit code of first failed test, or 0 if none failed. If the first
+                test to fail did so because it was not able to run (eg its
+                environment could not be configured), -1 is returned.
         """
         package = self.get_package()
+        exitcode = 0
 
         if test_name not in self.get_test_names():
             raise PackageTestError("Test '%s' not found in package %s"
@@ -292,44 +288,27 @@ class PackageTestRunner(object):
             requires = test_info["requires"]
             on_variants = test_info["on_variants"]
 
-            # if on_variants is a dict containing "requires", then only run the
-            # test on variants whose direct requirements are a subset of, and do
-            # not conflict with, this requires list. Variants are silently skipped
-            # on mismatch in this case. For example, if on_variants.requires is
-            # ['foo', 'bah'] then only variants containing both these requirements
-            # will be selected; ['!foo', 'bah'] would select those variants with
-            # bah present and not foo.
-            #
-            # This is different to the test's "requires" - in this case,
-            # requires=['foo'] would add this requirement to every test env.
-            # This is a requirement addition, whereas on_variants.requires is a
-            # variant selection mechanism.
-            #
-            if isinstance(on_variants, dict) and "requires" in on_variants:
-                reqlist = RequirementList(
-                    variant.variant_requires + on_variants["requires"])
+            # apply variant selection filter if specified
+            if isinstance(on_variants, dict):
+                filter_type = on_variants["type"]
+                func = getattr(self, "_on_variant_" + filter_type)
+                do_test = func(variant, on_variants)
 
-                if reqlist.conflict:
-                    if self.verbose > 2:
-                        self._add_test_result(
-                            test_name,
-                            variant,
-                            "skipped",
-                            "Test skipped as specified by on_variants.requires"
-                        )
-                    continue
+                if not do_test:
+                    reason = (
+                        "Test skipped as specified by on_variants '%s' filter"
+                        % filter_type
+                    )
 
-                # test if variant requires is a subset of on_variants.requires.
-                # This works because RequirementList merges requirements.
-                #
-                if RequirementList(variant.variant_requires) != reqlist:
-                    if self.verbose > 2:
-                        self._add_test_result(
-                            test_name,
-                            variant,
-                            "skipped",
-                            "Test skipped as specified by on_variants.requires"
-                        )
+                    print_info(reason)
+
+                    self._add_test_result(
+                        test_name,
+                        variant,
+                        "skipped",
+                        reason
+                    )
+
                     continue
 
             # show progress
@@ -353,26 +332,37 @@ class PackageTestRunner(object):
             requires.extend(map(str, variant.variant_requires))
 
             # create test runtime env
-            context = self._get_context(requires)
+            exc = None
+            try:
+                context = self._get_context(requires)
+            except RezError as e:
+                exc = e
 
-            if context is None:
+            fail_reason = None
+            if exc is not None:
+                fail_reason = "The test environment failed to resolve: %s" % exc
+            elif context is None:
+                fail_reason = "The current environment does not meet test requirements"
+            elif not context.success:
+                fail_reason = "The test environment failed to resolve"
+
+            if fail_reason:
                 self._add_test_result(
                     test_name,
                     variant,
-                    "skipped",
-                    "The current environment does not meet test requirements"
+                    "failed",
+                    fail_reason
                 )
 
-                print("(Skipped)")
-                continue
+                print_error(fail_reason)
 
-            if not context.success:
-                self._add_test_result(
-                    test_name,
-                    variant,
-                    "skipped",
-                    "The test environment failed to resolve"
-                )
+                if not exitcode:
+                    exitcode = -1
+
+                if self.stop_on_fail:
+                    self.stopped_on_fail = True
+                    return exitcode
+
                 continue
 
             # check that this has actually resolved the variant we want
@@ -437,9 +427,12 @@ class PackageTestRunner(object):
                     "Test failed with exit code %d" % retcode
                 )
 
+                if not exitcode:
+                    exitcode = retcode
+
                 if self.stop_on_fail:
                     self.stopped_on_fail = True
-                    return
+                    return exitcode
 
                 continue
 
@@ -455,6 +448,8 @@ class PackageTestRunner(object):
             if on_variants is False:
                 break
 
+        return exitcode
+
     def print_summary(self):
         self.test_results.print_summary()
 
@@ -468,6 +463,30 @@ class PackageTestRunner(object):
     def _print_header(cls, txt, *nargs):
         pr = Printer(sys.stdout)
         pr(txt % nargs, heading)
+
+    def _on_variant_requires(self, variant, params):
+        """
+        Only run test on variants whose direct requirements are a subset of, and
+        do not conflict with, the list given in 'value' param.
+
+        For example, if on_variants.requires is ['foo', 'bah'] then only variants
+        containing both these requirements will be selected; ['!foo', 'bah'] would
+        select those variants with bah present and not foo.
+        """
+        requires_filter = params["value"]
+
+        reqlist = RequirementList(variant.variant_requires + requires_filter)
+
+        if reqlist.conflict:
+            return False
+
+        # test if variant requires is a subset of given requires filter.
+        # This works because RequirementList merges requirements.
+        #
+        if RequirementList(variant.variant_requires) != reqlist:
+            return False
+
+        return True
 
     def _get_test_info(self, test_name, variant):
         tests_dict = variant.tests or {}
@@ -585,7 +604,11 @@ class PackageTestRunner(object):
                 # otherwise the initial stream of (potentially failing) context
                 # output would be confusing to the user.
                 #
-                context = self._get_context(requires, quiet=True)
+                try:
+                    context = self._get_context(requires, quiet=True)
+                except RezError:
+                    continue
+
                 if context is None or not context.success:
                     continue
 

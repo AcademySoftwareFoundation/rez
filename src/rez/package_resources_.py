@@ -97,7 +97,8 @@ tests_schema = Schema({
             Optional("on_variants"): Or(
                 bool,
                 {
-                    "requires": [
+                    "type": "requires",
+                    "value": [
                         Or(PackageRequest, And(basestring, Use(PackageRequest)))
                     ]
                 }

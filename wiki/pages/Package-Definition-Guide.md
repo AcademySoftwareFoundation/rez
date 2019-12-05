@@ -669,7 +669,8 @@ give you the latest possible version.
         "maya_CI": {
             "command": "python {root}/ci_tests/maya.py",
             "on_variants": {
-                "requires": ["maya"]
+                "type": "requires",
+                "value": ["maya"]
             },
             "run_on": "explicit"
         }
@@ -696,10 +697,9 @@ If you provide a nested dict, you can specify extra fields per test, as follows:
   * False (the default): Run the test only on one variant (ie the variant you get by
     default when the test env is resolved). This is useful for tests like linting,
     where variants may be irrelevant.
-  * A dict containing a "requires" field. This is a variant selection mechanism. In the example
-    above, the "maya_CI" test will run only on those variants that directly require `maya` (or a
-    package within this range, eg `maya-2019`). (TODO add a "testing" page to the wiki, and link
-    to it from here).
+  * A dict. This is a variant selection mechanism. In the example above, the "maya_CI" test will
+    run only on those variants that directly require `maya` (or a package within this range, eg
+    `maya-2019`). Note that "requires" is the only filter type currently available.
 
 ### tools
 *List of string*

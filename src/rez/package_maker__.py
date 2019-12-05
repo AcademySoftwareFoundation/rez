@@ -36,7 +36,8 @@ tests_schema = Schema({
             Optional("on_variants"): Or(
                 bool,
                 {
-                    "requires": [package_request_schema]
+                    "type": "requires",
+                    "value": [package_request_schema]
                 }
             )
         })

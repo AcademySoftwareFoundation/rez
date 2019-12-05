@@ -482,7 +482,11 @@ class LocalBuildProcess(BuildProcessHelper):
             runner.print_summary()
 
         if runner.num_failed:
-            raise PackageTestError("%d tests failed" % runner.num_failed)
+            print('')
+            raise PackageTestError(
+                "%d tests failed; the installation has been cancelled"
+                % runner.num_failed
+            )
 
 
 def register_plugin():
