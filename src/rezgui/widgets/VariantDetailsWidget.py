@@ -1,11 +1,11 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.widgets.ViewGraphButton import ViewGraphButton
 from rezgui.util import create_pane
 
 
-class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
+class VariantDetailsWidget(QtWidgets.QWidget, ContextViewMixin):
     def __init__(self, context_model=None, parent=None):
         super(VariantDetailsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)

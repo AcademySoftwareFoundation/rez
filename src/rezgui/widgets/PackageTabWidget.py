@@ -1,4 +1,4 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets
 from rezgui.util import get_icon
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.VariantHelpWidget import VariantHelpWidget
@@ -12,7 +12,7 @@ from rezgui.widgets.VariantsList import VariantsList
 from rez.packages_ import Package, Variant
 
 
-class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
+class PackageTabWidget(QtWidgets.QTabWidget, ContextViewMixin):
     def __init__(self, context_model=None, versions_tab=False, parent=None):
         super(PackageTabWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)

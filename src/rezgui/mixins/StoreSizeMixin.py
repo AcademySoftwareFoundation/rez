@@ -1,11 +1,11 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 
 
 class StoreSizeMixin(object):
     """A mixing for persisting a top-level widget's dimensions.
     """
     def __init__(self, config, config_key):
-        assert isinstance(self, QtGui.QWidget)
+        assert isinstance(self, QtWidgets.QWidget)
         self.config = config
         self.config_key = config_key
 

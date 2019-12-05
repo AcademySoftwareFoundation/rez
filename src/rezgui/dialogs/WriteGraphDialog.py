@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 from rezgui.util import create_pane
 from rez.utils.graph_utils import save_graph, prune_graph
 import tempfile
@@ -36,7 +36,7 @@ class Writer(QtCore.QObject):
         self.graph_written.emit(self.filepath, error_msg)
 
 
-class WriteGraphDialog(QtGui.QDialog):
+class WriteGraphDialog(QtWidgets.QDialog):
     def __init__(self, graph_str, filepath, parent=None, prune_to=None):
         super(WriteGraphDialog, self).__init__(parent)
         self.setWindowTitle("Rendering graph...")
@@ -46,10 +46,10 @@ class WriteGraphDialog(QtGui.QDialog):
         self.success = False
 
         self.busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
-        self.bar = QtGui.QProgressBar()
+        self.bar = QtWidgets.QProgressBar()
         self.bar.setRange(0, 0)
 
-        self.cancel_btn = QtGui.QPushButton("Cancel")
+        self.cancel_btn = QtWidgets.QPushButton("Cancel")
         pane = create_pane([None, self.cancel_btn], True)
         create_pane([self.bar, pane], False, parent_widget=self)
 
@@ -60,7 +60,7 @@ class WriteGraphDialog(QtGui.QDialog):
         return QtCore.QSize(300, 100)
 
     def write_graph(self):
-        QtGui.QApplication.setOverrideCursor(self.busy_cursor)
+        QtWidgets.QApplication.setOverrideCursor(self.busy_cursor)
         self.thread = threading.Thread(target=self.writer.write_graph)
         self.thread.daemon = True
         self.thread.start()
@@ -92,11 +92,11 @@ class WriteGraphDialog(QtGui.QDialog):
         self._finished = True
         self.bar.setMaximum(10)
         self.bar.setValue(10)
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
         self.setWindowTitle("Rendered graph")
 
         if error_message:
-            QtGui.QMessageBox.critical(self, "Failed rendering resolve graph",
+            QtWidgets.QMessageBox.critical(self, "Failed rendering resolve graph",
                                        error_message)
         elif filepath:
             self.success = True

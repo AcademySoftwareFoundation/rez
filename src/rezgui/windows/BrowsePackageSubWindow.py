@@ -1,10 +1,10 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.objects.App import app
 from rezgui.widgets.BrowsePackagePane import BrowsePackagePane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 
 
-class BrowsePackageSubWindow(QtGui.QMdiSubWindow, StoreSizeMixin):
+class BrowsePackageSubWindow(QtWidgets.QMdiSubWindow, StoreSizeMixin):
     def __init__(self, parent=None):
         super(BrowsePackageSubWindow, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)

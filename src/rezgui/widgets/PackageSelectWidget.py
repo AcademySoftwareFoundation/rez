@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.util import update_font, create_pane
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
@@ -6,7 +6,7 @@ from rezgui.widgets.PackageLineEdit import PackageLineEdit
 from rezgui.widgets.IconButton import IconButton
 
 
-class PackageSelectWidget(QtGui.QWidget, ContextViewMixin):
+class PackageSelectWidget(QtWidgets.QWidget, ContextViewMixin):
 
     focusOutViaKeyPress = QtCore.Signal(str)
     focusOut = QtCore.Signal(str)

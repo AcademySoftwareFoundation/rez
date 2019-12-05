@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.util import create_pane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
@@ -8,7 +8,7 @@ from rezgui.objects.App import app
 from threading import Thread, Lock
 
 
-class ProcessDialog(QtGui.QDialog, StoreSizeMixin):
+class ProcessDialog(QtWidgets.QDialog, StoreSizeMixin):
     """A dialog that monitors a process and captures its output.
 
     Note that in order to capture the process's output, you need to have piped
@@ -26,10 +26,10 @@ class ProcessDialog(QtGui.QDialog, StoreSizeMixin):
         self.capture_output = True
         self.buffer = []
 
-        self.bar = QtGui.QProgressBar()
+        self.bar = QtWidgets.QProgressBar()
         self.bar.setRange(0, 0)
         self.edit = StreamableTextEdit()
-        close_btn = QtGui.QPushButton("Close")
+        close_btn = QtWidgets.QPushButton("Close")
         btn_pane = create_pane([None, close_btn], True)
         create_pane([self.bar, self.edit, btn_pane], False, parent_widget=self)
 

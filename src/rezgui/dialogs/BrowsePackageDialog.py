@@ -1,11 +1,11 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets
 from rezgui.util import create_pane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.BrowsePackageWidget import BrowsePackageWidget
 from rezgui.objects.App import app
 
 
-class BrowsePackageDialog(QtGui.QDialog, StoreSizeMixin):
+class BrowsePackageDialog(QtWidgets.QDialog, StoreSizeMixin):
     def __init__(self, context_model, package_text=None, parent=None,
                  close_only=False, lock_package=False,
                  package_selectable_callback=None):
@@ -20,23 +20,23 @@ class BrowsePackageDialog(QtGui.QDialog, StoreSizeMixin):
             context_model, self, lock_package=lock_package,
             package_selectable_callback=package_selectable_callback)
 
-        self.ok_btn = QtGui.QPushButton("Ok")
+        self.ok_btn = QtWidgets.QPushButton("Ok")
         buttons = [self.ok_btn]
 
         if close_only:
-            close_btn = QtGui.QPushButton("Close")
+            close_btn = QtWidgets.QPushButton("Close")
             buttons.insert(0, close_btn)
             close_btn.clicked.connect(self.close)
             self.ok_btn.hide()
         else:
-            cancel_btn = QtGui.QPushButton("Cancel")
+            cancel_btn = QtWidgets.QPushButton("Cancel")
             cancel_btn.clicked.connect(self.close)
             buttons.insert(0, cancel_btn)
             self.ok_btn.setEnabled(False)
 
         btn_pane = create_pane([None] + buttons, True)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.widget)
         layout.addWidget(btn_pane)
         self.setLayout(layout)

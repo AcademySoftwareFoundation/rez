@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.util import create_pane, get_icon_widget
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.PackageLoadingWidget import PackageLoadingWidget
@@ -7,7 +7,7 @@ from rez.package_help import PackageHelp
 from functools import partial
 
 
-class HelpEntryWidget(QtGui.QWidget):
+class HelpEntryWidget(QtWidgets.QWidget):
 
     clicked = QtCore.Signal()
 
@@ -18,7 +18,7 @@ class HelpEntryWidget(QtGui.QWidget):
 
         icon = get_icon_widget("help")
         label = self.help_.sections[self.index][0]
-        label_widget = QtGui.QLabel(label)
+        label_widget = QtWidgets.QLabel(label)
         self.setCursor(QtCore.Qt.PointingHandCursor)
 
         create_pane([icon, label_widget, None], True, compact=True,
@@ -42,11 +42,11 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
         self.table_1 = self._create_table()
         self.table_2 = self._create_table()
 
-        self.tab = QtGui.QTabWidget()
+        self.tab = QtWidgets.QTabWidget()
         self.tab.addTab(self.table_1, "latest help")
         self.tab.addTab(self.table_2, "help")
 
-        self.no_help_label = QtGui.QLabel("No help found.")
+        self.no_help_label = QtWidgets.QLabel("No help found.")
         self.no_help_label.setAlignment(QtCore.Qt.AlignCenter)
         pane = create_pane([self.no_help_label, self.tab], False, compact=True)
 
@@ -104,11 +104,11 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
             self.no_help_label.show()
 
     def _create_table(self):
-        table = QtGui.QTableWidget(0, 1)
+        table = QtWidgets.QTableWidget(0, 1)
         table.setGridStyle(QtCore.Qt.DotLine)
         table.setFocusPolicy(QtCore.Qt.NoFocus)
-        table.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         hh = table.horizontalHeader()
         hh.setStretchLastSection(True)

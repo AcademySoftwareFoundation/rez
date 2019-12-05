@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from rezgui.qt import QtCore
+from Qt import QtCore
 from rez.exceptions import RezError
 
 

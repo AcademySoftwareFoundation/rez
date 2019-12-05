@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from functools import partial
 
 
@@ -65,9 +65,9 @@ class Config(QtCore.QSettings):
         self.endArray()
 
     def attach(self, widget, key):
-        if isinstance(widget, QtGui.QComboBox):
+        if isinstance(widget, QtWidgets.QComboBox):
             self._attach_combobox(widget, key)
-        elif isinstance(widget, QtGui.QCheckBox):
+        elif isinstance(widget, QtWidgets.QCheckBox):
             self._attach_checkbox(widget, key)
         else:
             raise NotImplementedError
