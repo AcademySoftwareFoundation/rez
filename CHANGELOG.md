@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.49.0 (2019-12-05)
+[Source](https://github.com/nerdvegas/rez/tree/2.49.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.48.1...2.49.0)
+
+**Merged pull requests:**
+
+- Migrate rezgui.qt imports to Qt.py [\#804](https://github.com/nerdvegas/rez/pull/804) ([douglaslassance](https://github.com/douglaslassance))
+
 ## 2.48.1 (2019-12-05)
 [Source](https://github.com/nerdvegas/rez/tree/2.48.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.48.0...2.48.1)
 
