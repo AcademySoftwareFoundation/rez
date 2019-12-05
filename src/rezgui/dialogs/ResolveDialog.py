@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 from rezgui.util import create_pane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
@@ -11,7 +11,7 @@ from rez.config import config
 import StringIO
 
 
-class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
+class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
     def __init__(self, context_model, parent=None, advanced=False):
         config_key = ("layout/window/advanced_resolve" if advanced
                       else "layout/window/resolve")
@@ -33,15 +33,15 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         self.edit = StreamableTextEdit()
         self.edit.setStyleSheet("font: 9pt 'Courier'")
 
-        self.bar = QtGui.QProgressBar()
+        self.bar = QtWidgets.QProgressBar()
         self.bar.setRange(0, 10)
 
-        self.save_context_btn = QtGui.QPushButton("Save Context As...")
-        self.graph_btn = QtGui.QPushButton("View Graph...")
-        self.ok_btn = QtGui.QPushButton("Ok")
-        self.start_again_btn = QtGui.QPushButton("Start Again")
-        self.cancel_btn = QtGui.QPushButton("Cancel")
-        self.resolve_btn = QtGui.QPushButton("Resolve")
+        self.save_context_btn = QtWidgets.QPushButton("Save Context As...")
+        self.graph_btn = QtWidgets.QPushButton("View Graph...")
+        self.ok_btn = QtWidgets.QPushButton("Ok")
+        self.start_again_btn = QtWidgets.QPushButton("Start Again")
+        self.cancel_btn = QtWidgets.QPushButton("Cancel")
+        self.resolve_btn = QtWidgets.QPushButton("Resolve")
         self.ok_btn.hide()
         self.graph_btn.hide()
         self.start_again_btn.hide()
@@ -56,7 +56,7 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
                                self.resolve_btn],
                                not self.advanced)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.bar)
         layout.addWidget(self.edit, 1)
 
@@ -72,10 +72,10 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         self.timer.timeout.connect(self._on_dialog_open)
 
         if self.advanced:
-            self.resolve_group = QtGui.QGroupBox("resolve settings")
+            self.resolve_group = QtWidgets.QGroupBox("resolve settings")
 
-            label = QtGui.QLabel("maximum fails:")
-            self.max_fails_combo = QtGui.QComboBox()
+            label = QtWidgets.QLabel("maximum fails:")
+            self.max_fails_combo = QtWidgets.QComboBox()
             self.max_fails_combo.setEditable(True)
             self.max_fails_combo.addItem("-")
             self.max_fails_combo.addItem("1")
@@ -84,15 +84,15 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             app.config.attach(self.max_fails_combo, "resolve/max_fails")
             max_fails_pane = create_pane([None, label, self.max_fails_combo], True)
 
-            label = QtGui.QLabel("verbosity:")
-            self.verbosity_combo = QtGui.QComboBox()
+            label = QtWidgets.QLabel("verbosity:")
+            self.verbosity_combo = QtWidgets.QComboBox()
             self.verbosity_combo.addItem("0")
             self.verbosity_combo.addItem("1")
             self.verbosity_combo.addItem("2")
             app.config.attach(self.verbosity_combo, "resolve/verbosity")
             verbosity_pane = create_pane([None, label, self.verbosity_combo], True)
 
-            self.show_package_loads_checkbox = QtGui.QCheckBox("show package loads")
+            self.show_package_loads_checkbox = QtWidgets.QCheckBox("show package loads")
             self.show_package_loads_checkbox.setLayoutDirection(QtCore.Qt.RightToLeft)
             app.config.attach(self.show_package_loads_checkbox, "resolve/show_package_loads")
             show_loads_pane = create_pane([None, self.show_package_loads_checkbox], True)
@@ -137,7 +137,7 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
                 Requirement(req_str)
             except Exception as e:
                 title = "Invalid package request - %r" % req_str
-                QtGui.QMessageBox.critical(self, title, str(e))
+                QtWidgets.QMessageBox.critical(self, title, str(e))
                 return
 
         self._reset()
@@ -301,13 +301,13 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         if i < 0:
             title = "Invalid max fails value"
             body = "Must be a positive integer."
-            QtGui.QMessageBox.critical(self, title, body)
+            QtWidgets.QMessageBox.critical(self, title, body)
             self.max_fails_combo.setCurrentIndex(0)
             return None
         return i
 
     def _save_context(self):
-        filepath = QtGui.QFileDialog.getSaveFileName(
+        filepath = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save Context", filter="Context files (*.rxt)")
         if filepath:
             self.resolver.context.save(filepath)

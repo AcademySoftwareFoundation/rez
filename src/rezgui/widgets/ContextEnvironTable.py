@@ -1,7 +1,7 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 
 
-class ContextEnvironTable(QtGui.QTableWidget):
+class ContextEnvironTable(QtWidgets.QTableWidget):
     def __init__(self, parent=None):
         super(ContextEnvironTable, self).__init__(0, 2, parent)
         self.context = None
@@ -9,8 +9,8 @@ class ContextEnvironTable(QtGui.QTableWidget):
 
         self.setGridStyle(QtCore.Qt.DotLine)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.setAlternatingRowColors(True)
         self.setStyleSheet("font: 12pt 'Courier'")
 
@@ -19,7 +19,7 @@ class ContextEnvironTable(QtGui.QTableWidget):
         hh.setVisible(False)
         vh = self.verticalHeader()
         vh.setVisible(False)
-        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.setEnabled(False)
 
     def clear(self):
@@ -54,13 +54,13 @@ class ContextEnvironTable(QtGui.QTableWidget):
         self.setRowCount(len(environ))
 
         for i, (name, value) in enumerate(sorted(environ.items())):
-            item = QtGui.QTableWidgetItem(name)
+            item = QtWidgets.QTableWidgetItem(name)
             self.setItem(i, 0, item)
             if self.split_char == ' ':
                 value = '\n'.join(value.strip().split())
             elif self.split_char is not None:
                 value = value.strip(self.split_char).replace(self.split_char, '\n')
-            item = QtGui.QTableWidgetItem(value)
+            item = QtWidgets.QTableWidgetItem(value)
             self.setItem(i, 1, item)
 
         self.setHorizontalHeaderLabels(["variable", "value"])

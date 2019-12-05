@@ -1,8 +1,8 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rez.packages_ import Package
 
 
-class VariantsList(QtGui.QTableWidget):
+class VariantsList(QtWidgets.QTableWidget):
     def __init__(self, parent=None):
         super(VariantsList, self).__init__(0, 1, parent)
 
@@ -12,15 +12,15 @@ class VariantsList(QtGui.QTableWidget):
 
         self.setGridStyle(QtCore.Qt.DotLine)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
-        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
-        self.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
 
         hh = self.horizontalHeader()
         hh.setStretchLastSection(True)
         hh.setVisible(False)
         vh = self.verticalHeader()
-        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         vh.setVisible(False)
 
     def set_package(self, package):
@@ -29,7 +29,7 @@ class VariantsList(QtGui.QTableWidget):
             self.setRowCount(package.num_variants)
             for i, variant_ in enumerate(package.iter_variants()):
                 txt = "; ".join(str(x) for x in variant_.requires)
-                item = QtGui.QTableWidgetItem(txt)
+                item = QtWidgets.QTableWidgetItem(txt)
                 self.setItem(i, 0, item)
 
         self.package = package
@@ -51,8 +51,8 @@ class VariantsList(QtGui.QTableWidget):
         self.variant = variant
 
     def selectionCommand(self, index, event=None):
-        return QtGui.QItemSelectionModel.ClearAndSelect if self.allow_selection \
-            else QtGui.QItemSelectionModel.NoUpdate
+        return QtCore.QItemSelectionModel.ClearAndSelect if self.allow_selection \
+            else QtCore.QItemSelectionModel.NoUpdate
 
 
 # Copyright 2013-2016 Allan Johns.

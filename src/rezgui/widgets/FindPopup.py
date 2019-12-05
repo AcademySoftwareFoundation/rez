@@ -1,20 +1,20 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtGui
 from rezgui.util import create_pane
 
 
-class FindPopup(QtGui.QFrame):
+class FindPopup(QtWidgets.QFrame):
 
     find = QtCore.Signal(str)
 
     def __init__(self, pivot_widget, pivot_position=None, words=None,
                  initial_word=None, close_on_find=True, parent=None):
         super(FindPopup, self).__init__(parent)
-        self.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Raised)
+        self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
         self.setWindowFlags(QtCore.Qt.Popup)
         self.close_on_find = close_on_find
 
-        self.edit = QtGui.QLineEdit()
-        self.btn = QtGui.QPushButton("Find")
+        self.edit = QtWidgets.QLineEdit()
+        self.btn = QtWidgets.QPushButton("Find")
         create_pane([self.edit, self.btn], True, compact=True,
                     compact_spacing=0, parent_widget=self)
         self.edit.setFocus()
@@ -25,9 +25,9 @@ class FindPopup(QtGui.QFrame):
 
         self.completer = None
         if words:
-            self.completer = QtGui.QCompleter(self)
-            self.completer.setCompletionMode(QtGui.QCompleter.PopupCompletion)
-            self.completions = QtGui.QStringListModel(words, self.completer)
+            self.completer = QtWidgets.QCompleter(self)
+            self.completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+            self.completions = QtCore.QStringListModel(words, self.completer)
             self.completer.setModel(self.completions)
             self.edit.setCompleter(self.completer)
 
@@ -38,7 +38,7 @@ class FindPopup(QtGui.QFrame):
         self.btn.clicked.connect(self._find)
         self.edit.returnPressed.connect(self._find)
 
-        find_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+F"), self)
+        find_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+F"), self)
         find_shortcut.activated.connect(self._find_again)
 
     def _find(self):

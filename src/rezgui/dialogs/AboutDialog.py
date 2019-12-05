@@ -1,10 +1,10 @@
-from rezgui.qt import QtCore, QtGui
+from Qt import QtCore, QtWidgets
 from rezgui.util import create_pane, get_icon
 from rez import __version__
 from rez.vendor.version.version import Version
 
 
-class AboutDialog(QtGui.QDialog):
+class AboutDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(AboutDialog, self).__init__(parent)
         self.setWindowTitle("About Rez")
@@ -12,13 +12,13 @@ class AboutDialog(QtGui.QDialog):
         version = Version(__version__)
         public_version = version.trim(2)
 
-        label = QtGui.QLabel(
+        label = QtWidgets.QLabel(
             "<font size='+2'><b>Rez version %s</b></font><br><br>"
             "Build version %s."
             % (str(public_version), str(version)))
 
-        close_btn = QtGui.QPushButton("Close")
-        github_btn = QtGui.QPushButton("Github")
+        close_btn = QtWidgets.QPushButton("Close")
+        github_btn = QtWidgets.QPushButton("Github")
         github_icon = get_icon("github_32", as_qicon=True)
         github_btn.setIcon(github_icon)
 

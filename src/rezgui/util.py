@@ -1,4 +1,4 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets, QtGui
 from rez.utils.formatting import readable_time_duration
 import os.path
 import time
@@ -20,8 +20,8 @@ def create_pane(widgets, horizontal, parent_widget=None, compact=False,
     Returns:
         `QWidget`
     """
-    pane = parent_widget or QtGui.QWidget()
-    type_ = QtGui.QHBoxLayout if horizontal else QtGui.QVBoxLayout
+    pane = parent_widget or QtWidgets.QWidget()
+    type_ = QtWidgets.QHBoxLayout if horizontal else QtWidgets.QVBoxLayout
     layout = type_()
     if compact:
         layout.setSpacing(compact_spacing)
@@ -67,7 +67,7 @@ def get_icon(name, as_qicon=False):
 
 def get_icon_widget(filename, tooltip=None):
     icon = get_icon(filename)
-    icon_label = QtGui.QLabel()
+    icon_label = QtWidgets.QLabel()
     icon_label.setPixmap(icon)
     if tooltip:
         icon_label.setToolTip(tooltip)
@@ -92,7 +92,7 @@ def add_menu_action(menu, label, slot=None, icon_name=None, group=None,
     if parent:
         nargs.append(parent)
 
-    action = QtGui.QAction(*nargs)
+    action = QtWidgets.QAction(*nargs)
     if slot:
         action.triggered.connect(slot)
     if group:
@@ -123,17 +123,17 @@ def create_toolbutton(entries, parent=None):
         entries: List of (label, slot) tuples.
 
     Returns:
-        `QtGui.QToolBar`.
+        `QtWidgets.QToolBar`.
     """
-    btn = QtGui.QToolButton(parent)
-    menu = QtGui.QMenu()
+    btn = QtWidgets.QToolButton(parent)
+    menu = QtWidgets.QMenu()
     actions = []
 
     for label, slot in entries:
         action = add_menu_action(menu, label, slot)
         actions.append(action)
 
-    btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
+    btn.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
     btn.setDefaultAction(actions[0])
     btn.setMenu(menu)
     return btn, actions

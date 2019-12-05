@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore
+from Qt import QtCore
 from rez.packages_ import iter_packages
 
 

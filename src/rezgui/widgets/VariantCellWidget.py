@@ -1,4 +1,4 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets
 from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
@@ -11,7 +11,7 @@ from functools import partial
 
 
 # TODO deal with variant missing from disk
-class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
+class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
     def __init__(self, context_model, variant, reference_variant=None,
                  hide_locks=False, read_only=False, parent=None):
         super(VariantCellWidget, self).__init__(parent)
@@ -27,7 +27,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         self.icons = []  # 3-tuples: widget, name, tooltip
 
         qname = self.variant.qualified_package_name
-        self.label = QtGui.QLabel(qname)
+        self.label = QtWidgets.QLabel(qname)
         desc = "%s@%s" % (qname, self.variant.wrapped.location)
         self.label.setToolTip(desc)
 
@@ -46,7 +46,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
             return
 
         current_lock = self.context_model.get_patch_lock(self.variant.name)
-        menu = QtGui.QMenu(self)
+        menu = QtWidgets.QMenu(self)
         consumed_reqs = set()
 
         for lock_type in PatchLock:

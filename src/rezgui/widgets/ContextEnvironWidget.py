@@ -1,10 +1,10 @@
-from rezgui.qt import QtGui
+from Qt import QtWidgets
 from rezgui.widgets.ContextEnvironTable import ContextEnvironTable
 from rezgui.util import create_pane
 from rezgui.objects.App import app
 
 
-class ContextEnvironWidget(QtGui.QWidget):
+class ContextEnvironWidget(QtWidgets.QWidget):
 
     split_entries = [("None", None),
                      ("Colon (:)", ':'),
@@ -16,14 +16,14 @@ class ContextEnvironWidget(QtGui.QWidget):
         super(ContextEnvironWidget, self).__init__(parent)
 
         self.table = ContextEnvironTable()
-        self.split_combo = QtGui.QComboBox()
+        self.split_combo = QtWidgets.QComboBox()
         for label, _ in self.split_entries:
             self.split_combo.addItem(label)
 
-        label = QtGui.QLabel("split values by:")
+        label = QtWidgets.QLabel("split values by:")
         btn_pane = create_pane([None, label, self.split_combo], True)
 
-        self.layout = QtGui.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         self.layout.addWidget(self.table)
         self.layout.addWidget(btn_pane)
         self.setLayout(self.layout)
