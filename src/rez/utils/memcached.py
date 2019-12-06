@@ -1,7 +1,8 @@
 from __future__ import print_function
 
 from rez.config import config
-from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
+from rez.vendor.memcache.memcache import Client as Client_, \
+    SERVER_MAX_KEY_LENGTH, __version__ as memcache_client_version
 from rez.utils import py23
 from threading import local
 from contextlib import contextmanager
@@ -166,7 +167,18 @@ class Client(object):
         # print("Disconnected memcached client %s" % str(self))
 
     def _qualified_key(self, key):
-        return "%s:%s:%s" % (cache_interface_version, self.current, key)
+        """
+        Qualify cache key so that:
+        * changes to schemas don't break compatibility (cache_interface_version)
+        * we're shielded from potential compatibility bugs in newer versions of
+          python-memcached
+        """
+        return "%s:%s:%s:%s" % (
+            memcache_client_version,
+            cache_interface_version,
+            self.current,
+            key
+        )
 
     def _get_stats(self, stat_args=None):
         return self.client.get_stats(stat_args=stat_args)
