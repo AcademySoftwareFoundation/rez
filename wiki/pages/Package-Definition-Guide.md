@@ -663,11 +663,16 @@ give you the latest possible version.
         "unit": "python -m unittest discover -s {root}/python/tests",
         "lint": {
             "command": "pylint mymodule",
-            "requires": ["pylint"]
+            "requires": ["pylint"],
+            "run_on": ["default", "pre_release"]
         },
-        "CI": {
+        "maya_CI": {
             "command": "python {root}/ci_tests/maya.py",
-            "requires": ["maya-2017"]
+            "on_variants": {
+                "type": "requires",
+                "value": ["maya"]
+            },
+            "run_on": "explicit"
         }
     }
 
@@ -676,11 +681,25 @@ run a linter on the package *maya_utils* with the *test* attribute above, you wo
 
     ]$ rez-test maya_utils lint
 
-If a test entry is a string or list of strings, this is interpreted as the command to run. If you
-provide a nested dict, you can specify extra package requirements as well (in the *requires* key),
-and the command itself under *command*.
+If a test entry is a string or list of strings, this is interpreted as the command to run. Command
+strings will expand any references to package attributes, such as *{root}*.
 
-Command strings will expand any references to package attributes, such as *{root}*.
+If you provide a nested dict, you can specify extra fields per test, as follows:
+
+* **requires**: Extra package requirements to include in the test's runtime env.
+* **run_on**: When to run this test. Valid values are:
+  * `default` (the default): Run when `rez-test` is run with no `TEST` args specified.
+  * `pre_install`: Run before an install (ie `rez-build -i`), and abort the install on fail.
+  * `pre_release`: Run before a release, and abort the release on fail.
+  * `explicit`: Only run if specified as `TEST` when `rez-test` is run.
+* **on_variants**: Which variants the test should be run on. Valid values are:
+  * True: Run the test on all variants.
+  * False (the default): Run the test only on one variant (ie the variant you get by
+    default when the test env is resolved). This is useful for tests like linting,
+    where variants may be irrelevant.
+  * A dict. This is a variant selection mechanism. In the example above, the "maya_CI" test will
+    run only on those variants that directly require `maya` (or a package within this range, eg
+    `maya-2019`). Note that "requires" is the only filter type currently available.
 
 ### tools
 *List of string*

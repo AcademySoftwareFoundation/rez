@@ -5,6 +5,7 @@ from rez.serialise import FileFormat
 from rez.package_resources_ import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
+from rez.utils.schema import extensible_schema_dict
 from rez.utils.sourcecode import SourceCode
 from rez.utils.formatting import PackageRequest, indent, \
     dict_to_attributes_code, as_block_string
@@ -54,10 +55,18 @@ source_code_schema = Or(SourceCode, And(basestring, Use(SourceCode)))
 tests_schema = Schema({
     Optional(basestring): Or(
         Or(basestring, [basestring]),
-        {
+        extensible_schema_dict({
             "command": Or(basestring, [basestring]),
-            Optional("requires"): [package_request_schema]
-        }
+            Optional("requires"): [package_request_schema],
+            Optional("run_on"): Or(basestring, [basestring]),
+            Optional("on_variants"): Or(
+                bool,
+                {
+                    "type": "requires",
+                    "value": [package_request_schema]
+                }
+            )
+        })
     )
 })
 

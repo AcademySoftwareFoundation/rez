@@ -5,6 +5,7 @@ from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
     ReleaseVCSError
 from rez.utils.logging_ import print_warning
+from rez.utils.colorize import heading, Printer
 from rez.resolved_context import ResolvedContext
 from rez.release_hook import create_release_hooks
 from rez.resolver import ResolverStatus
@@ -14,6 +15,7 @@ from contextlib import contextmanager
 from pipes import quote
 import getpass
 import os.path
+import sys
 
 
 debug_print = config.debug_printer("package_release")
@@ -415,12 +417,13 @@ class BuildProcessHelper(BuildProcess):
 
         self._print('')
         if n <= 1:
-            self._print('-' * 80)
-            self._print(txt)
-            self._print('-' * 80)
+            br = '=' * 80
+            title = "%s\n%s\n%s" % (br, txt, br)
         else:
-            self._print(txt)
-            self._print('-' * len(txt))
+            title = "%s\n%s" % (txt, '-' * len(txt))
+
+        pr = Printer(sys.stdout)
+        pr(title, heading)
 
     def _n_of_m(self, variant):
         num_variants = max(self.package.num_variants, 1)

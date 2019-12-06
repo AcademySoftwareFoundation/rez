@@ -1,5 +1,5 @@
 from rez.utils.resources import Resource
-from rez.utils.schema import Required, schema_keys
+from rez.utils.schema import Required, schema_keys, extensible_schema_dict
 from rez.utils.logging_ import print_warning
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
@@ -88,12 +88,22 @@ package_family_schema_dict = base_resource_schema_dict.copy()
 tests_schema = Schema({
     Optional(basestring): Or(
         Or(basestring, [basestring]),
-        {
+        extensible_schema_dict({
             "command": Or(basestring, [basestring]),
             Optional("requires"): [
                 Or(PackageRequest, And(basestring, Use(PackageRequest)))
-            ]
-        }
+            ],
+            Optional("run_on"): Or(basestring, [basestring]),
+            Optional("on_variants"): Or(
+                bool,
+                {
+                    "type": "requires",
+                    "value": [
+                        Or(PackageRequest, And(basestring, Use(PackageRequest)))
+                    ]
+                }
+            )
+        })
     )
 })
 

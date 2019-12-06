@@ -153,7 +153,13 @@ class FileSystemPackageResource(PackageResourceHelper):
 
     @property
     def base(self):
-        return self.path
+        # Note: '_redirected_base' is a special attribute set by the build
+        # process in order to perform pre-install/release package testing. See
+        # `LocalBuildProcess._run_tests()`
+        #
+        redirected_base = self._data.get("_redirected_base")
+
+        return redirected_base or self.path
 
     @cached_property
     def path(self):
@@ -564,6 +570,29 @@ class FileSystemPackageRepository(PackageRepository):
 
         with open(filepath, 'w'):  # create empty file
             pass
+
+    def on_variant_install_cancelled(self, variant_resource):
+        """
+        TODO:
+            Currently this will not delete a newly created package version
+            directory. The reason is because behaviour with multiple rez procs
+            installing variants of the same package in parallel is not well
+            tested and hasn't been fully designed for yet. Currently, if this
+            did delete the version directory, it could delete it while another
+            proc is performing a successful variant install into the same dir.
+
+            Note though that this does do useful work, if the cancelled variant
+            was getting installed into an existing package. In this case, the
+            .building file is deleted, because the existing package.py is valid.
+
+            Work has to be done to change the way that new variant dirs and the
+            .building file are created, so that we can safely delete cancelled
+            variant dirs in the presence of multiple rez procs.
+
+            See https://github.com/nerdvegas/rez/issues/810
+        """
+        family_path = os.path.join(self.location, variant_resource.name)
+        self._delete_stale_build_tagfiles(family_path)
 
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
         overrides = overrides or {}
