@@ -793,6 +793,13 @@ documentation_url = " http://nerdvegas.github.io/rez/"
 # When force is used, will generally be set through an environment variable, eg:
 #
 #     echo $(REZ_COLOR_ENABLED=force python -c "from rez.utils.colorize import Printer, local; Printer()('foo', local)")
+
+# TODO: Colorama is documented to work on Windows and trivial test case
+# proves this to be the case, but it doesn't work in Rez (with cmd.exe).
+# If the initialise is called in sec/rez/__init__.py then it does work,
+# however this is not always desirable.
+# As it does with with some Windows shells it can be enabled in rezconfig
+
 color_enabled = (os.name == "posix")
 
 ### Do not move or delete this comment (__DOC_END__)
