@@ -8,7 +8,7 @@ from rez.system import system
 from rez.config import config
 from rez.util import shlex_join, dedup, is_non_string_iterable
 from rez.utils.sourcecode import SourceCodeError
-from rez.utils.colorize import critical, heading, local, implicit, Printer
+from rez.utils.colorize import warning, critical, heading, local, implicit, Printer
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX
 from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs
@@ -18,7 +18,7 @@ from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez import package_order
-from rez.packages_ import get_variant, iter_packages
+from rez.packages_ import get_variant, iter_packages, get_latest_package
 from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
@@ -763,6 +763,10 @@ class ResolvedContext(object):
             if pkg.is_local:
                 t.append('local')
                 col = local
+
+            if get_latest_package(pkg.name).version > pkg.version:
+                t.append('not latest')
+                col = warning
 
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, location, t))
