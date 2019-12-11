@@ -1,75 +1,144 @@
-"""
-App Launch Hook - Rez
+"""App Launch Hook - Rez
 
 This hook is executed to launch applications, potentially in a Rez context.
 
 https://github.com/nerdvegas/rez
 
-Rez packages can be requested via app_launchers.yml,
-as part of the "extras" section and in a key called "rez_packages". Also be sure
-to override the default "hook_app_launch" with this hook, "rez_app_launch".
+Rez packages can be requested via ``tk-multi-launchapp.yml``, as part of the
+"extras" section and in a sub-section called "rez". Also, be sure to override
+the default "hook_app_launch" with this hook: "rez_app_launch".
 
-An example snippet from app_launchers.yml for Maya...
+An example snippet from ``tk-multi-launchapp.yml`` for Maya...
+
+.. code-block:: yaml
+
     launch_maya:
       engine: tk-maya
       extra:
-        rez_packages:
+        rez:
+          packages:
           - cool_rez_package
           - sweet_rez_package-1.2
+          parent_variables:
+          - PYTHONPATH
+          - MAYA_MODULE_PATH
+          - MAYA_SCRIPT_PATH
       hook_app_launch: rez_app_launch
 
 Please note that this requires Rez to be installed as a package,
-which exposes the Rez Python API. With a proper Rez installation, you can do this
-by running "rez-bind rez".
+which exposes the Rez Python API. With a proper Rez installation, you can do
+this by running ``rez-bind rez``.
 """
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
-
+from __future__ import unicode_literals
 import os
+from pprint import pformat
 import sys
 import subprocess
-import tank
+from tempfile import NamedTemporaryFile, TemporaryFile
+
+import sgtk
+
+HookBaseClass = sgtk.get_hook_baseclass()
 
 
-class AppLaunch(tank.Hook):
-    """
-    Hook to run an application.
-    """
+class AppLaunch(HookBaseClass):
+    """Hook to run an application."""
 
     def execute(self, app_path, app_args, version, **kwargs):
+        """Start the required application using rez if required.
+
+        Notes:
+            - Define variables used to bootstrap tank from overwrite on
+              first reference
+            - Define others within ``tk-multi-launchapp.yml`` file in the
+              ``extra:rez:parent_variables`` list.
+
+        Args:
+            app_path (str):
+                The path of the application executable
+            app_args (str):
+                Any arguments the application may require
+            version (str):
+                version of the application being run if set in the "versions"
+                settings of the Launcher instance, otherwise ``None``
+
+        Returns:
+            dict[str]:
+                Execute results mapped to 'command' (str) and
+                'return_code' (int).
         """
-        The execute functon of the hook will be called to start the required application
-
-        :param app_path: (str) The path of the application executable
-        :param app_args: (str) Any arguments the application may require
-        :param version: (str) version of the application being run if set in the "versions" settings
-                              of the Launcher instance, otherwise None
-
-        :returns: (dict) The two valid keys are 'command' (str) and 'return_code' (int).
-        """
-
         multi_launchapp = self.parent
-        extra = multi_launchapp.get_setting("extra")
+        rez_info = multi_launchapp.get_setting("extra", {}).get("rez", {})
+        cmd, shell_type = self.background_cmd_shell_type(app_args, app_path)
 
-        use_rez = False
-        if self.check_rez():
+        # Execute App in a Rez context
+        rez_py_path = self.get_rez_path()
+        if rez_py_path:
+            self.logger.debug('Appending to system path: "%s"', rez_py_path)
+            sys.path.append(rez_py_path)
+
             from rez.resolved_context import ResolvedContext
             from rez.config import config
+            rez_parent_variables = rez_info.get("parent_variables", [])
+            rez_packages = rez_info.get("packages", [])
+            self.logger.debug("rez parent variables: %s", rez_parent_variables)
+            self.logger.debug("rez packages: %s", rez_packages)
 
-            # Define variables used to bootstrap tank from overwrite on first reference
-            # PYTHONPATH is used by tk-maya
-            # NUKE_PATH is used by tk-nuke
-            # HIERO_PLUGIN_PATH is used by tk-nuke (nukestudio)
-            # KATANA_RESOURCES is used by tk-katana
-            config.parent_variables = ["PYTHONPATH", "HOUDINI_PATH", "NUKE_PATH", "HIERO_PLUGIN_PATH", "KATANA_RESOURCES"]
-
-            rez_packages = extra["rez_packages"]
+            config.parent_variables = rez_parent_variables
             context = ResolvedContext(rez_packages)
+            current_env = os.environ.copy()
 
-            use_rez = True
+            with NamedTemporaryFile(mode='w+', delete=False) as env_file:
+                env_file.write(pformat(current_env))
+                self.logger.debug(
+                    'Copied existing env for rez. See: "%s"',
+                    env_file.name
+                    )
 
+            with TemporaryFile(mode='w+') as info_buffer:
+                context.print_info(buf=info_buffer)
+                info_buffer.seek(0)
+                self.logger.debug(
+                    "Executing in rez context [%s]: %s\n%s",
+                    shell_type,
+                    cmd,
+                    info_buffer.read(),
+                    )
+
+            launcher_process = context.execute_shell(
+                command=cmd,
+                parent_environ=current_env,
+                shell=shell_type,
+                stdin=False,
+                block=False
+                )
+            exit_code = launcher_process.wait()
+        else:
+            # run the command to launch the app
+            exit_code = subprocess.check_call(cmd)
+
+        return {
+            "command": cmd,
+            "return_code": exit_code
+            }
+
+    def background_cmd_shell_type(self, app_args, app_path):
+        """Make command string and shell type name for current environment.
+
+        Args:
+            app_path (str): The path of the application executable.
+            app_args (str): Any arguments the application may require.
+
+        Returns:
+            str, str: Command to run and (rez) shell type to run in.
+        """
         system = sys.platform
         shell_type = 'bash'
-        if system == "linux2":
+
+        if system.startswith("linux"):
             # on linux, we just run the executable directly
             cmd = "%s %s &" % (app_path, app_args)
 
@@ -85,76 +154,59 @@ class AppLaunch(tank.Hook):
             # to the application bundle and not to the binary file
             # embedded in the bundle, meaning that we should use the
             # built-in mac open command to execute it
-            cmd = "open -n \"%s\"" % (app_path)
+            cmd = 'open -n "%s"' % app_path
             if app_args:
-                cmd += " --args \"%s\"" % app_args.replace("\"", "\\\"")
+                cmd += ' --args "%s"' % app_args.replace('"', r'\"')
 
         elif system == "win32":
             # on windows, we run the start command in order to avoid
             # any command shells popping up as part of the application launch.
-            cmd = "start /B \"App\" \"%s\" %s" % (app_path, app_args)
-            shell_type = 'cmd'
+            cmd = 'start /B "App" "%s" %s' % (app_path, app_args)
 
-        # Execute App in a Rez context
-        if use_rez:
-            n_env = os.environ.copy()
-            proc = context.execute_shell(
-                command=cmd,
-                parent_environ=n_env,
-                shell=shell_type,
-                stdin=False,
-                block=False
+        else:
+            error = (
+                'No cmd (formatting) and shell_type implemented for "%s":\n'
+                '- app_args:"%s"\n'
+                '- app_path:"%s"'
             )
-            exit_code = proc.wait()
-            context.print_info(verbosity=True)
+            raise NotImplementedError(error % (system, app_args, app_path))
 
-        else:
-            # run the command to launch the app
-            exit_code = os.system(cmd)
+        return cmd, shell_type
 
-        return {
-            "command": cmd,
-            "return_code": exit_code
-        }
+    def get_rez_path(self, strict=True):
+        """Get ``rez`` python package path from the current environment.
 
-    def check_rez(self, strict=True):
+        Args:
+            strict (bool):
+                Whether to raise an error if Rez is not available as a package.
+                This will prevent the app from being launched.
+
+        Returns:
+            str: A path to the Rez package, can be empty if ``strict=False``..
         """
-        Checks to see if a Rez package is available in the current environment.
-        If it is available, add it to the system path, exposing the Rez Python API
-
-        :param strict: (bool) If True, raise an error if Rez is not available as a package.
-                              This will prevent the app from being launched.
-
-        :returns: A path to the Rez package.
-        """
-
-        system = sys.platform
-
-        if system == "win32":
-            rez_cmd = 'rez-env rez -- echo %REZ_REZ_ROOT%'
-        else:
-            rez_cmd = 'rez-env rez -- printenv REZ_REZ_ROOT'
-
+        rez_cmd = "rez-python -c 'import rez; print(rez.__path__[0])'"
         process = subprocess.Popen(rez_cmd, stdout=subprocess.PIPE, shell=True)
-        rez_path, err = process.communicate()
+        rez_python_path, err = process.communicate()
 
-        if err or not rez_path:
+        if err or not rez_python_path:
             if strict:
-                raise ImportError("Failed to find Rez as a package in the current "
-                                  "environment! Try 'rez-bind rez'!")
+                raise ImportError(
+                    "Failed to find Rez as a package in the current "
+                    "environment! Try 'rez-bind rez'!"
+                    )
             else:
-                print("WARNING: Failed to find a Rez package in the current "
-                      "environment. Unable to request Rez packages.",
-                      file=sys.stderr)
+                self.logger.warn(
+                    "Failed to find a Rez package in the current "
+                    "environment. Unable to request Rez packages."
+                    )
 
-            rez_path = ""
+            rez_python_path = ""
         else:
-            rez_path = rez_path.strip()
-            print("Found Rez:", rez_path)
-            print("Adding Rez to system path...")
-            sys.path.append(rez_path)
+            absolute_path = os.path.abspath(rez_python_path.strip())
+            rez_python_path = os.path.dirname(absolute_path)
+            self.logger.debug("Found Rez in: %s", rez_python_path)
 
-        return rez_path
+        return rez_python_path
 
 
 # Copyright 2013-2016 Allan Johns, Shotgun Software Inc.
