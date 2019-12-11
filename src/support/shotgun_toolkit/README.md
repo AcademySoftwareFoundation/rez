@@ -32,6 +32,21 @@ Latest supported by Shotgun, this will be the main focus.
 1. Create `<config>/hooks/tk-multi-launchapp` folder if it does not exist.
 1. Copy `tk-config-default2/hooks/tk-multi-launchapp/rez_app_launch.py`
    into that folder.
+
+1. If you are using [tk-config-default2 v1.2.11][] and have the [patch][]
+   program available, you can perform the remaining steps by running
+
+   ```bash
+   patch --strip=0 < tk-config-default2/example-configs.patch
+   ```
+
+   It might work with other versions/permutations of pipeline configurations
+   but not guaranteed.
+
+   ----
+
+   Otherwise, manually...
+
 1. Create new `settings.tk-tk-multi-launchapp.*` application configurations
    inside `<config>/env/includes/settings/tk-multi-launchapp.yml`.
 
@@ -39,6 +54,7 @@ Latest supported by Shotgun, this will be the main focus.
    built, installed and available i.e. `rez env maya`.
 
    ```yaml
+   # rez Maya 2019
    settings.tk-multi-launchapp.maya:
      engine: tk-maya
      extra:
@@ -52,9 +68,15 @@ Latest supported by Shotgun, this will be the main focus.
          - PYTHONPATH
          - MAYA_MODULE_PATH
          - MAYA_SCRIPT_PATH
-     hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"  # IMPORTANT!
      menu_name: "Maya 2019"
      location: "@apps.tk-multi-launchapp.location"
+     # --- IMPORTANT ---
+     # Point to rez_app_launch.py hook location
+     hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"
+     # What to run after entering "rez env maya" to launch Maya, e.g.
+     linux_path: "maya"
+     mac_path: "Maya.app"
+     windows_path: "maya.exe"
    ```
 
 1. Expose those `settings.tk-tk-multi-launchapp.*` application configurations
@@ -122,6 +144,7 @@ Latest supported by Shotgun, this will be the main focus.
 Older, less supported by Shotgun and the original `rez_app_launch.py`.
 
 
-
+[patch]: https://www.gnu.org/software/diffutils/manual/html_mono/diff.html#Invoking%20patch
 [tk-config-default]: https://github.com/shotgunsoftware/tk-config-default
 [tk-config-default2]: https://github.com/shotgunsoftware/tk-config-default2
+[tk-config-default2 v1.2.11]: https://github.com/shotgunsoftware/tk-config-default2/releases/tag/v1.2.11

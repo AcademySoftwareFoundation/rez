@@ -1,0 +1,170 @@
+--- env/includes/settings/tk-multi-launchapp.yml	(revision ef7bba91d177407b0487816a696316cf4dafd6c2)
++++ env/includes/settings/tk-multi-launchapp.yml	(date 1576085431495)
+@@ -61,3 +61,26 @@
+   menu_name: MotionBuilder
+   location: "@apps.tk-multi-launchapp.location"
+
++# rez Maya 2019
++settings.tk-multi-launchapp.maya:
++  engine: tk-maya
++  extra:
++    rez:
++      packages:
++      - maya-2019
++      # # Optional, additional rez packages
++      # - studio_maya_tools-1.2
++      # - show_maya_tools-dev
++      parent_variables:
++      - PYTHONPATH
++      - MAYA_MODULE_PATH
++      - MAYA_SCRIPT_PATH
++  menu_name: "Maya 2019"
++  location: "@apps.tk-multi-launchapp.location"
++  # --- IMPORTANT ---
++  # Point to rez_app_launch.py hook location
++  hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"
++  # What to run after entering "rez env maya" to launch Maya, e.g.
++  linux_path: "maya"
++  mac_path: "Maya.app"
++  windows_path: "maya.exe"
+Index: env/includes/settings/tk-shell.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- env/includes/settings/tk-shell.yml	(revision ef7bba91d177407b0487816a696316cf4dafd6c2)
++++ env/includes/settings/tk-shell.yml	(date 1576084718102)
+@@ -24,6 +24,7 @@
+ settings.tk-shell.asset:
+   apps:
+     tk-multi-launchapp: '@settings.tk-multi-launchapp'
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmari: '@settings.tk-multi-launchapp.mari'
+     tk-multi-launchmotionbuilder: '@settings.tk-multi-launchapp.motionbuilder'
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+@@ -34,6 +35,7 @@
+ settings.tk-shell.asset_step:
+   apps:
+     tk-multi-launchapp: '@settings.tk-multi-launchapp'
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmari: '@settings.tk-multi-launchapp.mari'
+     tk-multi-launchmotionbuilder: '@settings.tk-multi-launchapp.motionbuilder'
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+@@ -47,6 +49,7 @@
+       location: "@apps.tk-multi-demo.location"
+     tk-multi-launchapp: '@settings.tk-multi-launchapp'
+     tk-multi-launchhiero: '@settings.tk-multi-launchapp.hiero'
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmari: '@settings.tk-multi-launchapp.mari'
+     tk-multi-launchmotionbuilder: '@settings.tk-multi-launchapp.motionbuilder'
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+@@ -58,6 +61,7 @@
+   apps:
+     tk-multi-launchapp: '@settings.tk-multi-launchapp'
+     tk-multi-launchmotionbuilder: '@settings.tk-multi-launchapp.motionbuilder'
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: '@settings.tk-multi-screeningroom.rv'
+   location: '@engines.tk-shell.location'
+@@ -67,6 +71,7 @@
+   apps:
+     tk-multi-launchapp: '@settings.tk-multi-launchapp'
+     tk-multi-launchmotionbuilder: '@settings.tk-multi-launchapp.motionbuilder'
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: '@settings.tk-multi-screeningroom.rv'
+   location: '@engines.tk-shell.location'
+@@ -76,6 +81,7 @@
+   apps:
+     tk-multi-launchapp: '@settings.tk-multi-launchapp'
+     tk-multi-launchmotionbuilder: '@settings.tk-multi-launchapp.motionbuilder'
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: '@settings.tk-multi-screeningroom.rv'
+   location: '@engines.tk-shell.location'
+Index: env/includes/settings/tk-shotgun.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- env/includes/settings/tk-shotgun.yml	(revision ef7bba91d177407b0487816a696316cf4dafd6c2)
++++ env/includes/settings/tk-shotgun.yml	(date 1576084718104)
+@@ -27,6 +27,7 @@
+   apps:
+     tk-multi-launchapp: "@settings.tk-multi-launchapp"
+     tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+@@ -39,6 +40,7 @@
+   apps:
+     tk-multi-launchapp: "@settings.tk-multi-launchapp.shotgun"
+     tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+@@ -51,6 +53,7 @@
+     tk-multi-launchapp: "@settings.tk-multi-launchapp"
+     tk-multi-launchhiero: "@settings.tk-multi-launchapp.hiero"
+     tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+@@ -75,6 +78,7 @@
+ settings.tk-shotgun.sequence:
+   apps:
+     tk-multi-launchapp: "@settings.tk-multi-launchapp"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+@@ -86,6 +90,7 @@
+ settings.tk-shotgun.shot:
+   apps:
+     tk-multi-launchapp: "@settings.tk-multi-launchapp"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+@@ -98,6 +103,7 @@
+   apps:
+     tk-multi-launchapp: "@settings.tk-multi-launchapp.shotgun"
+     tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+Index: env/includes/settings/tk-desktop.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- env/includes/settings/tk-desktop.yml	(revision ef7bba91d177407b0487816a696316cf4dafd6c2)
++++ env/includes/settings/tk-desktop.yml	(date 1576084718097)
+@@ -36,6 +36,7 @@
+     tk-multi-launchapp: "@settings.tk-multi-launchapp"
+     tk-multi-launchhiero: "@settings.tk-multi-launchapp.hiero"
+     tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+     tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+Index: env/includes/settings/tk-desktop2.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- env/includes/settings/tk-desktop2.yml	(revision ef7bba91d177407b0487816a696316cf4dafd6c2)
++++ env/includes/settings/tk-desktop2.yml	(date 1576084718094)
+@@ -31,6 +31,7 @@
+     tk-multi-launchapp: "@settings.tk-multi-launchapp"
+     tk-multi-launchhiero: "@settings.tk-multi-launchapp.hiero"
+     tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
++    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+     tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+     tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+   location: "@engines.tk-desktop2.location"
+\ No newline at end of file

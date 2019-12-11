@@ -75,7 +75,13 @@ settings.tk-multi-launchapp.maya:
       - PYTHONPATH
       - MAYA_MODULE_PATH
       - MAYA_SCRIPT_PATH
-  hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"  # IMPORTANT!
   menu_name: "Maya 2019"
   location: "@apps.tk-multi-launchapp.location"
+  # --- IMPORTANT ---
+  # Point to rez_app_launch.py hook location
+  hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"
+  # What to run after entering "rez env maya" to launch Maya, e.g.
+  linux_path: "maya"
+  mac_path: "Maya.app"
+  windows_path: "maya.exe"
 
