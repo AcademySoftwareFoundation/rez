@@ -5,6 +5,11 @@ This hook is executed to launch applications, potentially in a Rez context.
 It is **NOT** official/supported by Shotgun Software, but by
 [third-party contributors](/AUTHORS.md)
 
+Please note that this requires Rez to be installed as a package, i.e.
+able to `rez env rez`, which exposes the Rez Python API.
+
+With a proper Rez installation, you can do this by running `rez-bind rez`.
+
 
 ## Installation
 
@@ -33,19 +38,46 @@ Latest supported by Shotgun, this will be the main focus.
 1. Copy `tk-config-default2/hooks/tk-multi-launchapp/rez_app_launch.py`
    into that folder.
 
-1. If you are using [tk-config-default2 v1.2.11][] and have the [patch][]
-   program available, you can perform the remaining steps by running
 
-   ```bash
-   patch --strip=0 < tk-config-default2/example-configs.patch
-   ```
+### tk-config-default (legacy)
 
-   It might work with other versions/permutations of pipeline configurations
-   but not guaranteed.
+Older, less supported by Shotgun and the original `rez_app_launch.py`.
 
-   ----
+1. Create `<config>/hooks` folder if it does not exist (highly unlikely).
+1. Copy `tk-config-default2/hooks/rez_app_launch.py` into that folder.
 
-   Otherwise, manually...
+
+## Usage
+
+After setting up the advanced pipeline configurations and copying in the
+Python hook file, setting up applications to be launched from Rez are done by:
+
+1. Defining applications to be launched
+1. Exposing those applications to be launched in various Shotgun *apps*
+
+Then, you should be able to see and launch applications in rez context in:
+
+- **Shotgun Create** app: setup by [tk-desktop2][]
+- **Shotgun Desktop** app: setup by [tk-desktop][]
+- Menus in the **Shotgun Website**: setup by [tk-shotgun][]
+- **Shotgun Shell**: setup by [tk-shell][]
+
+### tk-config-default2
+
+Latest supported by Shotgun, this will be the main focus.
+
+If you are using [tk-config-default2 v1.2.11][] and have the [patch][]
+program available, you can do these remaining steps by simply running
+in the terminal (tested on Linux):
+
+```bash
+patch --strip=0 < tk-config-default2/example-configs.patch
+```
+
+It might work with other versions/permutations of pipeline configurations
+but not guaranteed.
+
+Otherwise, manually...
 
 1. Create new `settings.tk-tk-multi-launchapp.*` application configurations
    inside `<config>/env/includes/settings/tk-multi-launchapp.yml`.
@@ -145,6 +177,10 @@ Older, less supported by Shotgun and the original `rez_app_launch.py`.
 
 
 [patch]: https://www.gnu.org/software/diffutils/manual/html_mono/diff.html#Invoking%20patch
+[tk-desktop2]: https://github.com/shotgunsoftware/tk-desktop2
+[tk-desktop]: https://github.com/shotgunsoftware/tk-desktop
+[tk-shotgun]: https://github.com/shotgunsoftware/tk-shotgun
+[tk-shell]: https://github.com/shotgunsoftware/tk-shell
 [tk-config-default]: https://github.com/shotgunsoftware/tk-config-default
 [tk-config-default2]: https://github.com/shotgunsoftware/tk-config-default2
 [tk-config-default2 v1.2.11]: https://github.com/shotgunsoftware/tk-config-default2/releases/tag/v1.2.11
