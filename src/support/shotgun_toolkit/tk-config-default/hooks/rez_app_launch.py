@@ -1,26 +1,8 @@
-"""
-App Launch Hook - Rez
-
-This hook is executed to launch applications, potentially in a Rez context.
-
-https://github.com/nerdvegas/rez
-
-Rez packages can be requested via app_launchers.yml,
-as part of the "extras" section and in a key called "rez_packages". Also be sure
-to override the default "hook_app_launch" with this hook, "rez_app_launch".
-
-An example snippet from app_launchers.yml for Maya...
-    launch_maya:
-      engine: tk-maya
-      extra:
-        rez_packages:
-          - cool_rez_package
-          - sweet_rez_package-1.2
-      hook_app_launch: rez_app_launch
+"""tk-config-default hook to run applications, potentially in a Rez context.
 
 Please note that this requires Rez to be installed as a package,
-which exposes the Rez Python API. With a proper Rez installation, you can do this
-by running "rez-bind rez".
+which exposes the Rez Python API. With a proper Rez installation, you can do
+this by running ``rez-bind rez``.
 """
 from __future__ import print_function
 
@@ -127,14 +109,8 @@ class AppLaunch(tank.Hook):
 
         :returns: A path to the Rez package.
         """
-
         system = sys.platform
-
-        if system == "win32":
-            rez_cmd = 'rez-env rez -- echo %REZ_REZ_ROOT%'
-        else:
-            rez_cmd = 'rez-env rez -- printenv REZ_REZ_ROOT'
-
+        rez_cmd = "rez-python -c 'import rez; print(rez.__path__[0])'"
         process = subprocess.Popen(rez_cmd, stdout=subprocess.PIPE, shell=True)
         rez_path, err = process.communicate()
 
@@ -150,6 +126,7 @@ class AppLaunch(tank.Hook):
             rez_path = ""
         else:
             rez_path = rez_path.strip()
+            rez_path = os.path.dirname(rez_path)
             print("Found Rez:", rez_path)
             print("Adding Rez to system path...")
             sys.path.append(rez_path)

@@ -11,6 +11,24 @@ able to `rez env rez`, which exposes the Rez Python API.
 With a proper Rez installation, you can do this by running `rez-bind rez`.
 
 
+To keep a copy of the original `rez_app_launch.py`, there are 2 variants
+available:
+
+- [tk-config-default2][] is the latest pipeline configuration style
+
+  - Currently supported by Shotgun Software
+  - Will be targeting this going forward for `rez_app_launch.py`
+
+- [tk-config-default][] is the legacy pipeline configuration style
+
+  - Less supported by Shotgun Software
+  - The original `rez_app_launch.py`, only updated to keep it functional
+
+> As of writing, the 2 `rez_app_launch.py` was tested at [WWFX UK][]
+> using [rez 2.28.0][]. Newer `rez` versions may be tested in the future.
+
+
+
 ## Installation
 
 1. Setup custom pipeline configuration for your Shotgun project
@@ -32,16 +50,12 @@ See [this point in this video](https://youtu.be/7qZfy7KXXX0?t=2434)
 
 ### tk-config-default2
 
-Latest supported by Shotgun, this will be the main focus.
-
 1. Create `<config>/hooks/tk-multi-launchapp` folder if it does not exist.
 1. Copy `tk-config-default2/hooks/tk-multi-launchapp/rez_app_launch.py`
    into that folder.
 
 
 ### tk-config-default (legacy)
-
-Older, less supported by Shotgun and the original `rez_app_launch.py`.
 
 1. Create `<config>/hooks` folder if it does not exist (highly unlikely).
 1. Copy `tk-config-default2/hooks/rez_app_launch.py` into that folder.
@@ -63,8 +77,6 @@ Then, you should be able to see and launch applications in rez context in:
 - **Shotgun Shell**: setup by [tk-shell][]
 
 ### tk-config-default2
-
-Latest supported by Shotgun, this will be the main focus.
 
 If you are using [tk-config-default2 v1.2.11][] and have the [patch][]
 program available, you can do these remaining steps by simply running
@@ -172,15 +184,68 @@ Otherwise, manually...
 
 ### tk-config-default (legacy)
 
+If you are using [tk-config-default v0.18.2][] and have the [patch][]
+program available, you can do these remaining steps by simply running
+in the terminal (tested on Linux):
 
-Older, less supported by Shotgun and the original `rez_app_launch.py`.
+```bash
+patch --strip=0 < tk-config-default/example-configs.patch
+```
 
+It might work with other versions/permutations of pipeline configurations
+but not guaranteed.
+
+Otherwise, manually...
+
+1. Create new application configurations inside, e.g. "launch_rez_maya_2019"
+   `<config>/env/includes/app_launchers.yml`.
+
+   Here is an **example** for Maya. This assumes you have a `maya` rez package
+   built, installed and available i.e. `rez env maya`.
+
+   ```yaml
+   #
+   # -------------------------------------------------
+   # rez Maya 2019
+   # -------------------------------------------------
+   launch_rez_maya_2019:
+     engine: tk-maya
+     extra:
+       rez_packages:
+       - maya-2019
+       # # Optional, additional rez packages
+       # - studio_maya_tools-1.2
+       # - show_maya_tools-dev
+     hook_app_launch: rez_app_launch
+     hook_before_app_launch: default
+     icon: '{target_engine}/icon_256.png'
+     linux_path: "maya"
+     location:
+       version: v0.9.15
+       type: app_store
+       name: tk-multi-launchapp
+     mac_path: "Maya.app"
+     menu_name: Rez Maya 2019
+     windows_path: "maya.exe"
+   ```
+
+1. Expose those application configurations for Shotgun environment/*apps*
+   which launches applications.
+
+   i.e. inside `<config>/env/`, look for usages of "launch_maya" and create
+   a copy of it but for "launch_rez_maya_2019"
+
+   Check out the `tk-config-default/env/*.yml` example configuration files for
+   more info.
 
 [patch]: https://www.gnu.org/software/diffutils/manual/html_mono/diff.html#Invoking%20patch
+[rez 2.28.0]: https://github.com/nerdvegas/rez/releases/tag/2.28.0
 [tk-desktop2]: https://github.com/shotgunsoftware/tk-desktop2
 [tk-desktop]: https://github.com/shotgunsoftware/tk-desktop
 [tk-shotgun]: https://github.com/shotgunsoftware/tk-shotgun
 [tk-shell]: https://github.com/shotgunsoftware/tk-shell
 [tk-config-default]: https://github.com/shotgunsoftware/tk-config-default
+[tk-config-default v0.18.2]: https://github.com/shotgunsoftware/tk-config-default/releases/tag/v0.18.2
 [tk-config-default2]: https://github.com/shotgunsoftware/tk-config-default2
 [tk-config-default2 v1.2.11]: https://github.com/shotgunsoftware/tk-config-default2/releases/tag/v1.2.11
+[WWFX UK]: https://github.com/wwfxuk

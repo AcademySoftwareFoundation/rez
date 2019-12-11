@@ -1,0 +1,363 @@
+# Copyright (c) 2015 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+#
+
+#################################################################################################
+# include paths to all our applications
+includes:
+# first include the configuration's global settings for application paths
+- ./paths.yml
+- ./common_apps.yml
+
+# now include overrides - these will be loaded if they are found
+- sequences/{Sequence}/{Shot}/sgtk_overrides.yml
+- assets/{sg_asset_type}/{Asset}/sgtk_overrides.yml
+
+
+################################################################################################
+# app definitions for all the Sgtk app launchers.
+
+#
+# -------------------------------------------------
+# 3dsmax
+# -------------------------------------------------
+launch_3dsmax:
+  defer_keyword: ''
+  engine: tk-3dsmaxplus
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: ''
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: ''
+  menu_name: Launch 3dsmax # note: desktop app means we cannot have spaces in app name
+  versions: []
+  windows_args: ''
+  windows_path: '@3dsmax_windows'
+#
+# -------------------------------------------------
+# Flame
+# -------------------------------------------------
+launch_flame:
+  defer_keyword: ''
+  engine: tk-flame
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/flame_icon_256.png'
+  linux_args: ''
+  linux_path: '@flame_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@flame_mac'
+  menu_name: Launch Flame
+  versions: []
+  windows_args: ''
+  windows_path: ''
+#
+# -------------------------------------------------
+# Flame Assist
+# -------------------------------------------------
+launch_flame_assist:
+  defer_keyword: ''
+  engine: tk-flame
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/flame_assist_icon_256.png'
+  linux_args: ''
+  linux_path: '@flame_assist_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@flame_assist_mac'
+  menu_name: Launch FlameAssist
+  versions: []
+  windows_args: ''
+  windows_path: ''
+#
+# -------------------------------------------------
+# Flare
+# -------------------------------------------------
+launch_flare:
+  defer_keyword: ''
+  engine: tk-flare
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/flare_icon_256.png'
+  linux_args: ''
+  linux_path: '@flare_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@flare_mac'
+  menu_name: Launch Flare
+  versions: []
+  windows_args: ''
+  windows_path: ''
+#
+# -------------------------------------------------
+# Hiero
+# -------------------------------------------------
+launch_hiero:
+  defer_keyword: ''
+  engine: tk-hiero
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_hiero_256.png'
+  linux_args: --hiero
+  linux_path: '@hiero_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@hiero_mac'
+  menu_name: Launch Hiero
+  versions: []
+  windows_args: --hiero
+  windows_path: '@hiero_win'
+#
+# -------------------------------------------------
+# Houdini
+# -------------------------------------------------
+launch_houdini:
+  defer_keyword: ''
+  engine: tk-houdini
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: '@houdini_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@houdini_mac'
+  menu_name: Launch Houdini
+  versions: []
+  windows_args: ''
+  windows_path: '@houdini_windows'
+#
+# -------------------------------------------------
+# Mari
+# -------------------------------------------------
+launch_mari:
+  defer_keyword: ''
+  engine: tk-mari
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: '@mari_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@mari_mac'
+  menu_name: Launch Mari
+  versions: []
+  windows_args: ''
+  windows_path: '@mari_windows'
+#
+# -------------------------------------------------
+# Maya
+# -------------------------------------------------
+launch_maya:
+  defer_keyword: ''
+  engine: tk-maya
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: '@maya_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@maya_mac'
+  menu_name: Launch Maya
+  versions: []
+  windows_args: ''
+  windows_path: '@maya_windows'
+#
+# -------------------------------------------------
+# Motionbuilder
+# -------------------------------------------------
+launch_motionbuilder:
+  defer_keyword: ''
+  engine: tk-motionbuilder
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: ''
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: ''
+  menu_name: Launch MotionBuilder
+  versions: []
+  windows_args: ''
+  windows_path: '@motionbuilder_windows'
+#
+# -------------------------------------------------
+# Nuke
+# -------------------------------------------------
+launch_nuke:
+  defer_keyword: ''
+  engine: tk-nuke
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: '@nuke_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@nuke_mac'
+  menu_name: Launch Nuke
+  versions: []
+  windows_args: ''
+  windows_path: '@nuke_windows'
+#
+# -------------------------------------------------
+# Nuke Studio
+# -------------------------------------------------
+launch_nukestudio:
+  defer_keyword: ''
+  engine: tk-nukestudio
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_nukestudio_256.png'
+  linux_args: --studio
+  linux_path: '@nukestudio_linux'
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@nukestudio_mac'
+  menu_name: Launch NukeStudio
+  versions: []
+  windows_args: --studio
+  windows_path: '@nukestudio_windows'
+#
+# -------------------------------------------------
+# Photoshop CC
+# -------------------------------------------------
+launch_photoshopcc:
+  defer_keyword: ''
+  engine: tk-photoshopcc
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: ''
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: '@photoshop_mac'
+  menu_name: Launch Photoshop
+  versions: []
+  windows_args: ''
+  windows_path: '@photoshop_win'
+#
+# -------------------------------------------------
+# Screening Room
+# -------------------------------------------------
+launch_screeningroom:
+  enable_rv_mode: true
+  enable_web_mode: true
+  location:
+    version: v0.3.3
+    type: app_store
+    name: tk-multi-screeningroom
+  rv_path_linux: '@rv_linux'
+  rv_path_mac: '@rv_mac'
+  rv_path_windows: '@rv_win'
+  init_hook: '{self}/init.py'
+#
+# -------------------------------------------------
+# Softimage
+# -------------------------------------------------
+launch_softimage:
+  defer_keyword: ''
+  engine: tk-softimage
+  extra: {}
+  hook_app_launch: default
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_args: ''
+  linux_path: ''
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_args: ''
+  mac_path: ''
+  menu_name: Launch Softimage
+  versions: []
+  windows_args: ''
+  windows_path: '@softimage_windows'
+#
+# -------------------------------------------------
+# rez Maya 2019
+# -------------------------------------------------
+launch_rez_maya_2019:
+  engine: tk-maya
+  extra:
+    rez_packages:
+    - maya-2019
+    # # Optional, additional rez packages
+    # - studio_maya_tools-1.2
+    # - show_maya_tools-dev
+  hook_app_launch: rez_app_launch
+  hook_before_app_launch: default
+  icon: '{target_engine}/icon_256.png'
+  linux_path: "maya"
+  location:
+    version: v0.9.15
+    type: app_store
+    name: tk-multi-launchapp
+  mac_path: "Maya.app"
+  menu_name: Rez Maya 2019
+  windows_path: "maya.exe"

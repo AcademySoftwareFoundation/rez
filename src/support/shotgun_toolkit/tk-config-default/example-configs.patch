@@ -1,0 +1,204 @@
+Index: env/shotgun_version.yml
+===================================================================
+--- env/shotgun_version.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_version.yml	(date 1576093040371)
+@@ -34,6 +34,7 @@
+       tk-multi-launchhiero: '@launch_hiero'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/shot_step.yml
+===================================================================
+--- env/shot_step.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shot_step.yml	(date 1576093040369)
+@@ -1301,6 +1301,7 @@
+       tk-multi-launch3dsmax: '@launch_3dsmax'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/shotgun_publishedfile.yml
+===================================================================
+--- env/shotgun_publishedfile.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_publishedfile.yml	(date 1576093040368)
+@@ -34,6 +34,7 @@
+       tk-multi-launchhiero: '@launch_hiero'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/sequence.yml
+===================================================================
+--- env/sequence.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/sequence.yml	(date 1576093040371)
+@@ -141,6 +141,7 @@
+       tk-multi-launch3dsmax: '@launch_3dsmax'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/asset_step.yml
+===================================================================
+--- env/asset_step.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/asset_step.yml	(date 1576093040371)
+@@ -1396,6 +1396,7 @@
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmari: '@launch_mari'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/shot.yml
+===================================================================
+--- env/shot.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shot.yml	(date 1576093040371)
+@@ -169,6 +169,7 @@
+       tk-multi-launch3dsmax: '@launch_3dsmax'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchflare: '@launch_flare'
+Index: env/project.yml
+===================================================================
+--- env/project.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/project.yml	(date 1576093040367)
+@@ -59,6 +59,7 @@
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmari: '@launch_mari'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchnukestudio: '@launch_nukestudio'
+@@ -530,6 +531,7 @@
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmari: '@launch_mari'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchnukestudio: '@launch_nukestudio'
+Index: env/includes/app_launchers.yml
+===================================================================
+--- env/includes/app_launchers.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/includes/app_launchers.yml	(date 1576092678162)
+@@ -338,3 +338,23 @@
+   versions: []
+   windows_args: ''
+   windows_path: '@softimage_windows'
++#
++# -------------------------------------------------
++# rez Maya 2019
++# -------------------------------------------------
++launch_rez_maya_2019:
++  engine: tk-maya
++  extra:
++    rez_packages:
++    - maya-2019
++  hook_app_launch: rez_app_launch
++  hook_before_app_launch: default
++  icon: '{target_engine}/icon_256.png'
++  linux_path: "maya"
++  location:
++    version: v0.9.15
++    type: app_store
++    name: tk-multi-launchapp
++  mac_path: "Maya.app"
++  menu_name: Rez Maya 2019
++  windows_path: "maya.exe"
+Index: env/shotgun_tankpublishedfile.yml
+===================================================================
+--- env/shotgun_tankpublishedfile.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_tankpublishedfile.yml	(date 1576093040368)
+@@ -35,6 +35,7 @@
+       tk-multi-launchhiero: '@launch_hiero'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/shotgun_asset.yml
+===================================================================
+--- env/shotgun_asset.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_asset.yml	(date 1576093040370)
+@@ -33,6 +33,7 @@
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmari: '@launch_mari'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/shotgun_project.yml
+===================================================================
+--- env/shotgun_project.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_project.yml	(date 1576093040370)
+@@ -38,6 +38,7 @@
+       tk-multi-launchflare: '@launch_flare'
+       tk-multi-launchflameassist: '@launch_flame_assist'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchnukestudio: '@launch_nukestudio'
+Index: env/shotgun_shot.yml
+===================================================================
+--- env/shotgun_shot.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_shot.yml	(date 1576093040367)
+@@ -33,6 +33,7 @@
+       tk-multi-launch3dsmax: '@launch_3dsmax'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchflare: '@launch_flare'
+Index: env/shotgun_task.yml
+===================================================================
+--- env/shotgun_task.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_task.yml	(date 1576093040368)
+@@ -34,6 +34,7 @@
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmari: '@launch_mari'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/asset.yml
+===================================================================
+--- env/asset.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/asset.yml	(date 1576093040367)
+@@ -196,6 +196,7 @@
+       tk-multi-launch3dsmax: '@launch_3dsmax'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+Index: env/shotgun_sequence.yml
+===================================================================
+--- env/shotgun_sequence.yml	(revision e3a5455d90c7e0c5c576a720a4bd689ee4cbf776)
++++ env/shotgun_sequence.yml	(date 1576093040372)
+@@ -33,6 +33,7 @@
+       tk-multi-launch3dsmax: '@launch_3dsmax'
+       tk-multi-launchhoudini: '@launch_houdini'
+       tk-multi-launchmaya: '@launch_maya'
++      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+       tk-multi-launchnuke: '@launch_nuke'
+       tk-multi-launchphotoshopcc: '@launch_photoshopcc'

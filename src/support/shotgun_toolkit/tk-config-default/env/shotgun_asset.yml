@@ -1,0 +1,70 @@
+# Copyright (c) 2015 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+#
+
+description: This environment controls what items should be shown on the menu in Shotgun
+  for assets.
+
+#################################################################################################
+# include common definitions for all the launchers that are used to start maya, nuke etc.
+
+includes:
+- ./includes/app_launchers.yml
+- ./includes/paths.yml
+
+#################################################################################################
+# Define all the items that should appear in this environment
+#
+# Note! This environment is special and is only used by the Shotgun action
+# menu integration. It can only contain a Shotgun engine and the file name
+# reflects the entity type for which a menu will be generated in Shotgun.
+#
+engines:
+  tk-shotgun:
+    apps:
+      tk-multi-launch3dsmax: '@launch_3dsmax'
+      tk-multi-launchhoudini: '@launch_houdini'
+      tk-multi-launchmari: '@launch_mari'
+      tk-multi-launchmaya: '@launch_maya'
+      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+      tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+      tk-multi-launchnuke: '@launch_nuke'
+      tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+      tk-multi-launchsoftimage: '@launch_softimage'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-shotgun-folders:
+        deny_permissions: []
+        deny_platforms: []
+        location:
+          version: v0.1.6
+          type: app_store
+          name: tk-shotgun-folders
+      tk-shotgun-launchfolder:
+        deny_permissions: []
+        deny_platforms: []
+        location:
+          name: tk-shotgun-launchfolder
+          type: app_store
+          version: v0.1.5
+    debug_logging: false
+    location:
+      version: v0.7.0
+      type: app_store
+      name: tk-shotgun
+#
+###############################################################################
+#
+# Framework includes.
+#
+# Frameworks are libraries that are shared between apps and that contain
+# common functionality for building UIs and communicating with Shotgun.
+# Frameworks are automatically installed when apps are installed and udpated.
+#
+frameworks: null

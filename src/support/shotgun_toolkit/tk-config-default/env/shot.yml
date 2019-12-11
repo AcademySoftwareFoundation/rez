@@ -1,0 +1,216 @@
+# Copyright (c) 2015 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+#
+
+description: Apps and engines loaded when a Shot is loaded. Since std VFX config template
+  has a file system structure which is centered around pipeline steps, this environment
+  is largely empty. Most of the work takes place on a level in the file system where
+  both a shot and a pipeline step is available - e.g Shot ABC, modeling, so all apps
+  for loading, publishing etc. are located in the shot_step environment. This environment
+  mostly contains utility apps and the tank work files app, which lets you choose
+  a task to work on and load associated content into an application.
+
+#################################################################################################
+# include common files
+
+includes:
+# launchers for launching DCCs such as Maya, Nuke etc.
+- ./includes/app_launchers.yml
+# common app configurations that are reused across environments
+- ./includes/common_apps.yml
+# include flame launchers
+- ./includes/flame.yml
+
+#################################################################################################
+# define all the items that should appear in this environment
+
+
+engines:
+  #
+  # -------------------------------------------------
+  # 3dsmax plus
+  # -------------------------------------------------
+  tk-3dsmaxplus:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    compatibility_dialog_min_version: 2017
+    debug_logging: false
+    location:
+      version: v0.5.1
+      type: app_store
+      name: tk-3dsmaxplus
+    menu_favourites: []
+  #
+  # -------------------------------------------------
+  # Houdini
+  # -------------------------------------------------
+  tk-houdini:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    location:
+      version: v1.3.0
+      type: app_store
+      name: tk-houdini
+    enable_sg_shelf: true
+    debug_logging: false
+    enable_sg_menu: true
+    menu_favourites: []
+  #
+  # -------------------------------------------------
+  # maya
+  # -------------------------------------------------
+  tk-maya:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2-launch-at-startup'
+    compatibility_dialog_min_version: 2015
+    debug_logging: false
+    location:
+      version: v0.9.1
+      type: app_store
+      name: tk-maya
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    template_project:
+    use_sgtk_as_menu_name: false
+
+  #
+  # -------------------------------------------------
+  # motionbuilder
+  # -------------------------------------------------
+  tk-motionbuilder:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    debug_logging: false
+    location:
+      version: v0.4.0
+      type: app_store
+      name: tk-motionbuilder
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    use_sgtk_as_menu_name: false
+
+  #
+  # -------------------------------------------------
+  # nuke
+  # -------------------------------------------------
+  tk-nuke:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    compatibility_dialog_min_version: 10
+    debug_logging: false
+    favourite_directories: []
+    location:
+      version: v0.9.4
+      type: app_store
+      name: tk-nuke
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    project_favourite_name: Shotgun Current Project
+    use_sgtk_as_menu_name: false
+    bin_context_menu: []
+    spreadsheet_context_menu: []
+    timeline_context_menu: []
+  #
+  # -------------------------------------------------
+  # Photoshop CC
+  # -------------------------------------------------
+  tk-photoshopcc:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    shelf_favorites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    - {app_instance: tk-multi-workfiles2, name: File Save...}
+    debug_logging: false
+    location:
+      version: v1.2.1
+      type: app_store
+      name: tk-photoshopcc
+  #
+  # -------------------------------------------------
+  # Flame
+  # -------------------------------------------------
+  tk-flame: '@std_flame_flare'
+  #
+  # -------------------------------------------------
+  # Flare
+  # -------------------------------------------------
+  tk-flare: '@std_flame_flare'
+  #
+  # -------------------------------------------------
+  # Shell (tank command)
+  # -------------------------------------------------
+  tk-shell:
+    apps:
+      tk-multi-launch3dsmax: '@launch_3dsmax'
+      tk-multi-launchhoudini: '@launch_houdini'
+      tk-multi-launchmaya: '@launch_maya'
+      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+      tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+      tk-multi-launchnuke: '@launch_nuke'
+      tk-multi-launchflare: '@launch_flare'
+      tk-multi-launchflame: '@launch_flame'
+      tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+      tk-multi-launchsoftimage: '@launch_softimage'
+      tk-multi-screeningroom: '@launch_screeningroom'
+    location:
+      version: v0.6.0
+      type: app_store
+      name: tk-shell
+  #
+  # -------------------------------------------------
+  # Softimage
+  # -------------------------------------------------
+  tk-softimage:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    debug_logging: false
+    location:
+      version: v0.3.4
+      type: app_store
+      name: tk-softimage
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    template_project:
+#
+###############################################################################
+#
+# Framework includes.
+#
+# Frameworks are libraries that are shared between apps and that contain
+# common functionality for building UIs and communicating with Shotgun.
+# Frameworks are automatically installed when apps are installed and udpated.
+#
+frameworks:
+  tk-framework-softimageqt_v1.0.1:
+    location:
+      name: tk-framework-softimageqt
+      type: app_store
+      version: v1.0.1

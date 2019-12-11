@@ -1,0 +1,590 @@
+# Copyright (c) 2015 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+#
+
+description: Apps and Engines when launching with a project only context.
+
+#################################################################################################
+# include common files
+
+includes:
+# launchers for launching DCCs such as Maya, Nuke etc.
+- ./includes/app_launchers.yml
+# common app configurations that are reused across environments
+- ./includes/common_apps.yml
+# include flame launchers
+- ./includes/flame.yml
+
+#################################################################################################
+# define all the items that should appear in this environment
+
+
+
+engines:
+  #
+  # -------------------------------------------------
+  # 3dsmax plus
+  # -------------------------------------------------
+  tk-3dsmaxplus:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    compatibility_dialog_min_version: 2017
+    debug_logging: false
+    location:
+      version: v0.5.1
+      type: app_store
+      name: tk-3dsmaxplus
+    menu_favourites: []
+  #
+  # -------------------------------------------------
+  # Shotgun Desktop
+  # -------------------------------------------------
+  tk-desktop:
+    apps:
+      tk-multi-launch3dsmax: '@launch_3dsmax'
+      tk-multi-launchflame: '@launch_flame'
+      tk-multi-launchflare: '@launch_flare'
+      tk-multi-launchflameassist: '@launch_flame_assist'
+      tk-multi-launchhiero: '@launch_hiero'
+      tk-multi-launchhoudini: '@launch_houdini'
+      tk-multi-launchmari: '@launch_mari'
+      tk-multi-launchmaya: '@launch_maya'
+      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+      tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+      tk-multi-launchnuke: '@launch_nuke'
+      tk-multi-launchnukestudio: '@launch_nukestudio'
+      tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+      tk-multi-launchsoftimage: '@launch_softimage'
+      tk-multi-screeningroom: '@launch_screeningroom'
+    collapse_rules:
+    - {button_label: $app, match: Launch $app, menu_label: None}
+    debug_logging: false
+    default_group: Studio
+    groups:
+    - matches: ['*Houdini*', '*Mari*', '*Max*', '*Maya*', '*Motion*', '*Nuke*', '*Photoshop*',
+        '*Softimage*']
+      name: Creative Tools
+    - matches: ['*Hiero*']
+      name: Editorial Tools
+    - matches: ['*Fla*']
+      name: Finishing Tools
+    hook_launch_python: default
+    location:
+      version: v2.4.2
+      type: app_store
+      name: tk-desktop
+    show_recents: true
+
+  #
+  # -------------------------------------------------
+  # Flame
+  # -------------------------------------------------
+  tk-flame: '@std_flame_flare'
+  #
+  # -------------------------------------------------
+  # Flare
+  # -------------------------------------------------
+  tk-flare: '@std_flame_flare'
+  #
+  # -------------------------------------------------
+  # Hiero
+  # -------------------------------------------------
+  tk-hiero:
+    apps:
+      tk-hiero-export:
+        audio_published_file_type: Hiero Audio
+        custom_template_fields: []
+        default_task_filter: '[[''step.Step.code'', ''is'', ''Comp'']]'
+        default_task_template: Basic shot template
+        hook_get_extra_publish_data: default
+        hook_get_quicktime_settings: default
+        hook_get_shot: default
+        hook_pre_export: default
+        hook_resolve_custom_strings: default
+        hook_translate_template: default
+        hook_update_version_data: default
+        hook_upload_thumbnail: default
+        location:
+          version: v0.4.3
+          type: app_store
+          name: tk-hiero-export
+        nuke_script_published_file_type: Nuke Script
+        nuke_script_toolkit_write_nodes:
+        - {channel: stereoexr32, name: 'Stereo Exr, 32 bit'}
+        - {channel: stereoexr16, name: 'Stereo Exr, 16 bit'}
+        - {channel: monodpx, name: Mono Dpx}
+        plate_published_file_type: Hiero Plate
+        template_nuke_script_path: nuke_shot_work
+        template_plate_path: hiero_plate_path
+        template_render_path: hiero_render_path
+        template_version: hiero_version
+        hook_post_version_creation: default
+      tk-hiero-openinshotgun:
+        location:
+          version: v0.3.4
+          type: app_store
+          name: tk-hiero-openinshotgun
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-publish:
+        allow_taskless_publishes: true
+        display_name: Publish Project
+        expand_single_items: false
+        hook_copy_file: default
+        hook_post_publish: default
+        hook_primary_pre_publish: default
+        hook_primary_publish: default
+        hook_scan_scene: default
+        hook_secondary_pre_publish: default
+        hook_secondary_publish: default
+        hook_thumbnail: default
+        location:
+          version: v0.10.9
+          type: app_store
+          name: tk-multi-publish
+        primary_description: Publish and version up the selected Hiero project
+        primary_display_name: Hiero Publish
+        primary_icon: icons/publish_hiero_main.png
+        primary_publish_template: hiero_project_publish
+        primary_scene_item_type: work_file
+        primary_tank_type: Hiero Project
+        secondary_outputs: []
+        template_work: hiero_project_work
+      tk-multi-snapshot:
+        hook_copy_file: default
+        hook_scene_operation: default
+        hook_thumbnail: default
+        location:
+          version: v0.7.3
+          type: app_store
+          name: tk-multi-snapshot
+        template_snapshot: hiero_project_snapshot
+        template_work: hiero_project_work
+      tk-multi-workfiles2:
+        allow_task_creation: true
+        create_new_task_hook: default
+        custom_actions_hook: default
+        entities:
+        - caption: Projects
+          entity_type: Project
+          filters: []
+          hierarchy: [name]
+        file_extensions: []
+        hook_copy_file: default
+        hook_filter_publishes: default
+        hook_filter_work_files: default
+        hook_scene_operation: default
+        launch_at_startup: false
+        location:
+          version: v0.9.9
+          type: app_store
+          name: tk-multi-workfiles2
+        my_tasks_extra_display_fields: []
+        saveas_default_name: scene
+        saveas_prefer_version_up: false
+        show_my_tasks: false
+        template_publish: hiero_project_publish
+        template_publish_area: hiero_project_publish_area
+        template_work: hiero_project_work
+        template_work_area: hiero_project_work_area
+        version_compare_ignore_fields: []
+    bin_context_menu:
+    - {app_instance: tk-multi-workfiles2, keep_in_menu: false, name: File Save...,
+      requires_selection: true}
+    - {app_instance: tk-multi-snapshot, keep_in_menu: false, name: Snapshot..., requires_selection: true}
+    - {app_instance: tk-multi-snapshot, keep_in_menu: false, name: Snapshot History...,
+      requires_selection: true}
+    - {app_instance: tk-multi-publish, keep_in_menu: false, name: Publish Project...,
+      requires_selection: true}
+    project_favourite_name: Shotgun Current Project
+    use_sgtk_as_menu_name: false
+    favourite_directories: []
+    compatibility_dialog_min_version: 10
+    debug_logging: false
+    location:
+      version: v0.9.4
+      type: app_store
+      name: tk-nuke
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    spreadsheet_context_menu:
+    - {app_instance: tk-hiero-openinshotgun, keep_in_menu: false, name: Open in Shotgun,
+      requires_selection: true}
+    timeline_context_menu:
+    - {app_instance: tk-hiero-openinshotgun, keep_in_menu: false, name: Open in Shotgun,
+      requires_selection: true}
+  #
+  # -------------------------------------------------
+  # Houdini
+  # -------------------------------------------------
+  tk-houdini:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    location:
+      version: v1.3.0
+      type: app_store
+      name: tk-houdini
+    enable_sg_shelf: true
+    debug_logging: false
+    enable_sg_menu: true
+    menu_favourites: []
+  #
+  # -------------------------------------------------
+  # Mari
+  # -------------------------------------------------
+  tk-mari:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-workfiles:
+        allow_task_creation: true
+        file_extensions: []
+        hook_copy_file: default
+        hook_filter_publishes: default
+        hook_filter_work_files: default
+        hook_scene_operation: default
+        launch_at_startup: false
+        launch_change_work_area_at_startup: false
+        location:
+          version: v0.7.4
+          type: app_store
+          name: tk-multi-workfiles
+        saveas_default_name: scene
+        saveas_prefer_version_up: false
+        sg_entity_type_extra_display_fields: {}
+        sg_entity_type_filters: {}
+        sg_entity_types: [Asset]
+        sg_task_filters: []
+        task_extra_display_fields: []
+        template_publish:
+        template_publish_area:
+        template_work:
+        template_work_area:
+        version_compare_ignore_fields: []
+    compatibility_dialog_min_version: 2
+    debug_logging: false
+    location:
+      version: v1.2.0
+      type: app_store
+      name: tk-mari
+  #
+  # -------------------------------------------------
+  # Maya
+  # -------------------------------------------------
+  tk-maya:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2-launch-at-startup'
+    compatibility_dialog_min_version: 2015
+    debug_logging: false
+    location:
+      version: v0.9.1
+      type: app_store
+      name: tk-maya
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    template_project:
+    use_sgtk_as_menu_name: false
+
+  #
+  # -------------------------------------------------
+  # Motionbuilder
+  # -------------------------------------------------
+  tk-motionbuilder:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    debug_logging: false
+    location:
+      version: v0.4.0
+      type: app_store
+      name: tk-motionbuilder
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    template_project:
+    use_sgtk_as_menu_name: false
+
+  #
+  # -------------------------------------------------
+  # Nuke
+  # -------------------------------------------------
+  tk-nuke:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    compatibility_dialog_min_version: 10
+    debug_logging: false
+    favourite_directories: []
+    location:
+      version: v0.9.4
+      type: app_store
+      name: tk-nuke
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    project_favourite_name: Shotgun Current Project
+    use_sgtk_as_menu_name: false
+    bin_context_menu: []
+    spreadsheet_context_menu: []
+    timeline_context_menu: []
+  #
+  # -------------------------------------------------
+  # Nuke Studio
+  # -------------------------------------------------
+  tk-nukestudio:
+    apps:
+      tk-hiero-export:
+        audio_published_file_type: Hiero Audio
+        custom_template_fields: []
+        default_task_filter: '[[''step.Step.code'', ''is'', ''Comp'']]'
+        default_task_template: Basic shot template
+        hook_get_extra_publish_data: default
+        hook_get_quicktime_settings: default
+        hook_get_shot: default
+        hook_pre_export: default
+        hook_resolve_custom_strings: default
+        hook_translate_template: default
+        hook_update_version_data: default
+        hook_upload_thumbnail: default
+        location:
+          version: v0.4.3
+          type: app_store
+          name: tk-hiero-export
+        nuke_script_published_file_type: Nuke Script
+        nuke_script_toolkit_write_nodes:
+        - {channel: stereoexr32, name: 'Stereo Exr, 32 bit'}
+        - {channel: stereoexr16, name: 'Stereo Exr, 16 bit'}
+        - {channel: monodpx, name: Mono Dpx}
+        plate_published_file_type: Hiero Plate
+        template_nuke_script_path: nuke_shot_work
+        template_plate_path: hiero_plate_path
+        template_render_path: hiero_render_path
+        template_version: hiero_version
+        hook_post_version_creation: default
+      tk-hiero-openinshotgun:
+        location:
+          version: v0.3.4
+          type: app_store
+          name: tk-hiero-openinshotgun
+      tk-multi-about: '@about'
+      tk-multi-publish:
+        allow_taskless_publishes: true
+        display_name: Publish Project
+        expand_single_items: false
+        hook_copy_file: default
+        hook_post_publish: default
+        hook_primary_pre_publish: default
+        hook_primary_publish: default
+        hook_scan_scene: default
+        hook_secondary_pre_publish: default
+        hook_secondary_publish: default
+        hook_thumbnail: default
+        location:
+          version: v0.10.9
+          type: app_store
+          name: tk-multi-publish
+        primary_description: Publish and version up the selected Hiero project
+        primary_display_name: Hiero Publish
+        primary_icon: icons/publish_hiero_main.png
+        primary_publish_template: hiero_project_publish
+        primary_scene_item_type: work_file
+        primary_tank_type: Hiero Project
+        secondary_outputs: []
+        template_work: hiero_project_work
+      tk-multi-snapshot:
+        hook_copy_file: default
+        hook_scene_operation: default
+        hook_thumbnail: default
+        location:
+          version: v0.7.3
+          type: app_store
+          name: tk-multi-snapshot
+        template_snapshot: hiero_project_snapshot
+        template_work: hiero_project_work
+      tk-multi-workfiles2:
+        allow_task_creation: true
+        create_new_task_hook: default
+        custom_actions_hook: default
+        entities:
+        - caption: Projects
+          entity_type: Project
+          filters: []
+          hierarchy: [name]
+        file_extensions: []
+        hook_copy_file: default
+        hook_filter_publishes: default
+        hook_filter_work_files: default
+        hook_scene_operation: default
+        launch_at_startup: false
+        location:
+          version: v0.9.9
+          type: app_store
+          name: tk-multi-workfiles2
+        my_tasks_extra_display_fields: []
+        saveas_default_name: scene
+        saveas_prefer_version_up: false
+        show_my_tasks: false
+        template_publish: hiero_project_publish
+        template_publish_area: hiero_project_publish_area
+        template_work: hiero_project_work
+        template_work_area: hiero_project_work_area
+        version_compare_ignore_fields: []
+      tk-multi-shotgunpanel:
+        location:
+          version: v1.4.9
+          type: app_store
+          name: tk-multi-shotgunpanel
+        shotgun_fields_hook: '{self}/shotgun_fields.py'
+        actions_hook: '{self}/general_actions.py'
+        action_mappings:
+          PublishedFile:
+          - actions:
+            - publish_clipboard
+            filters: {}
+          - actions:
+            - read_node
+            filters:
+              published_file_type: Rendered Image
+          - actions:
+            - script_import
+            filters:
+              published_file_type: Nuke Script
+          Task:
+          - actions:
+            - assign_task
+            - task_to_ip
+            filters: {}
+          Version:
+          - actions:
+            - quicktime_clipboard
+            - sequence_clipboard
+            filters: {}
+    bin_context_menu:
+    - {app_instance: tk-multi-workfiles2, keep_in_menu: false, name: File Save...,
+      requires_selection: true}
+    - {app_instance: tk-multi-snapshot, keep_in_menu: false, name: Snapshot..., requires_selection: true}
+    - {app_instance: tk-multi-snapshot, keep_in_menu: false, name: Snapshot History...,
+      requires_selection: true}
+    - {app_instance: tk-multi-publish, keep_in_menu: false, name: Publish Project...,
+      requires_selection: true}
+    project_favourite_name: Shotgun Current Project
+    use_sgtk_as_menu_name: false
+    favourite_directories: []
+    compatibility_dialog_min_version: 10
+    debug_logging: false
+    location:
+      version: v0.9.4
+      type: app_store
+      name: tk-nuke
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    spreadsheet_context_menu:
+    - {app_instance: tk-hiero-openinshotgun, keep_in_menu: false, name: Open in Shotgun,
+      requires_selection: true}
+    timeline_context_menu:
+    - {app_instance: tk-hiero-openinshotgun, keep_in_menu: false, name: Open in Shotgun,
+      requires_selection: true}
+  #
+  # -------------------------------------------------
+  # Photoshop CC
+  # -------------------------------------------------
+  tk-photoshopcc:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    shelf_favorites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    - {app_instance: tk-multi-workfiles2, name: File Save...}
+    debug_logging: false
+    location:
+      version: v1.2.1
+      type: app_store
+      name: tk-photoshopcc
+  #
+  # -------------------------------------------------
+  # Shell Engine (tank command)
+  # -------------------------------------------------
+  tk-shell:
+    apps:
+      tk-multi-launch3dsmax: '@launch_3dsmax'
+      tk-multi-launchhiero: '@launch_hiero'
+      tk-multi-launchhoudini: '@launch_houdini'
+      tk-multi-launchmari: '@launch_mari'
+      tk-multi-launchmaya: '@launch_maya'
+      tk-multi-launchrez_maya_2019: '@launch_rez_maya_2019'  # Added this for rez Maya 2019!
+      tk-multi-launchmotionbuilder: '@launch_motionbuilder'
+      tk-multi-launchnuke: '@launch_nuke'
+      tk-multi-launchnukestudio: '@launch_nukestudio'
+      tk-multi-launchphotoshopcc: '@launch_photoshopcc'
+      tk-multi-launchsoftimage: '@launch_softimage'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-launchflame: '@launch_flame'
+      tk-multi-launchflare: '@launch_flare'
+      tk-multi-launchflameassist: '@launch_flame_assist'
+    location:
+      version: v0.6.0
+      type: app_store
+      name: tk-shell
+  #
+  # -------------------------------------------------
+  # Softimage
+  # -------------------------------------------------
+  tk-softimage:
+    apps:
+      tk-multi-about: '@about'
+      tk-multi-shotgunpanel: '@shotgunpanel'
+      tk-multi-screeningroom: '@launch_screeningroom'
+      tk-multi-workfiles2: '@workfiles2'
+    debug_logging: false
+    location:
+      version: v0.3.4
+      type: app_store
+      name: tk-softimage
+    menu_favourites:
+    - {app_instance: tk-multi-workfiles2, name: File Open...}
+    template_project:
+#
+###############################################################################
+#
+# Framework includes.
+#
+# Frameworks are libraries that are shared between apps and that contain
+# common functionality for building UIs and communicating with Shotgun.
+# Frameworks are automatically installed when apps are installed and udpated.
+#
+frameworks:
+  tk-framework-adminui_v0.x.x:
+    location:
+      version: v0.2.1
+      type: app_store
+      name: tk-framework-adminui
+  tk-framework-softimageqt_v1.0.1:
+    location:
+      name: tk-framework-softimageqt
+      type: app_store
+      version: v1.0.1
+  tk-framework-desktopserver_v1.x.x:
+    location:
+      version: v1.3.1
+      type: app_store
+      name: tk-framework-desktopserver
