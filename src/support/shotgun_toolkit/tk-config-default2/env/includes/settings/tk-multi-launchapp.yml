@@ -1,0 +1,81 @@
+# Copyright (c) 2017 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+
+################################################################################
+
+includes:
+- ../app_locations.yml
+- ../software_paths.yml
+
+################################################################################
+
+# auto discover DCCs for launch
+settings.tk-multi-launchapp:
+  use_software_entity: true
+  hook_before_register_command: "{config}/tk-multi-launchapp/before_register_command.py"
+  location: "@apps.tk-multi-launchapp.location"
+
+# shotgun
+settings.tk-multi-launchapp.shotgun:
+  use_software_entity: true
+  skip_engine_instances: ["tk-nukestudio"]
+  hook_before_register_command: "{config}/tk-multi-launchapp/before_register_command.py"
+  location: "@apps.tk-multi-launchapp.location"
+
+################################################################################
+
+# app-specific launchapp configurations
+
+# hiero
+settings.tk-multi-launchapp.hiero:
+  engine: tk-hiero
+  icon: "{target_engine}/icon_hiero_256.png"
+  linux_path: "@path.linux.hiero"
+  linux_args: --hiero
+  mac_path: "@path.mac.hiero"
+  windows_path: "@path.windows.hiero"
+  windows_args: --hiero
+  menu_name: Hiero
+  location: "@apps.tk-multi-launchapp.location"
+
+# mari
+settings.tk-multi-launchapp.mari:
+  engine: tk-mari
+  linux_path: "@path.linux.mari"
+  mac_path: "@path.mac.mari"
+  windows_path: "@path.windows.mari"
+  menu_name: Mari
+  location: "@apps.tk-multi-launchapp.location"
+
+# motionbuilder
+settings.tk-multi-launchapp.motionbuilder:
+  engine: tk-motionbuilder
+  windows_path: "@path.windows.motionbuilder"
+  menu_name: MotionBuilder
+  location: "@apps.tk-multi-launchapp.location"
+
+# rez Maya 2019
+settings.tk-multi-launchapp.maya:
+  engine: tk-maya
+  extra:
+    rez:
+      packages:
+      - maya-2019
+      # # Optional, additional rez packages
+      # - studio_maya_tools-1.2
+      # - show_maya_tools-dev
+      parent_variables:
+      - PYTHONPATH
+      - MAYA_MODULE_PATH
+      - MAYA_SCRIPT_PATH
+  hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"  # IMPORTANT!
+  menu_name: "Maya 2019"
+  location: "@apps.tk-multi-launchapp.location"
+

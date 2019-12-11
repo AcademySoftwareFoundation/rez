@@ -1,9 +1,9 @@
 # App Launch Hook - Rez
 
 This hook is executed to launch applications, potentially in a Rez context.
-It is **NOT** official/supported by Shotgun Software, but by third-party
-contributors:
 
+It is **NOT** official/supported by Shotgun Software, but by
+[third-party contributors](/AUTHORS.md)
 
 
 ## Installation
@@ -35,7 +35,7 @@ Latest supported by Shotgun, this will be the main focus.
 1. Create new `settings.tk-tk-multi-launchapp.*` application configurations
    inside `<config>/env/includes/settings/tk-multi-launchapp.yml`.
 
-   Here is an example for Maya. This assumes you have a `maya` rez package
+   Here is an **example** for Maya. This assumes you have a `maya` rez package
    built, installed and available i.e. `rez env maya`.
 
    ```yaml
@@ -58,8 +58,63 @@ Latest supported by Shotgun, this will be the main focus.
    ```
 
 1. Expose those `settings.tk-tk-multi-launchapp.*` application configurations
-   for _apps_ which launches applications e.g.
+   for Shotgun *apps* which launches applications
 
+   i.e. inside `<config>/env/includes/settings/`:
+
+   <details><summary>tk-desktop.yml</summary>
+
+   ```yaml
+   settings.tk-desktop.project:
+     apps:
+       tk-multi-pythonconsole:
+         location: "@apps.tk-multi-pythonconsole.location"
+       tk-multi-devutils:
+         location: "@apps.tk-multi-devutils.location"
+       tk-multi-launchapp: "@settings.tk-multi-launchapp"
+       tk-multi-launchhiero: "@settings.tk-multi-launchapp.hiero"
+       tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
+       tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+   ```
+   </details>
+
+   <details><summary>tk-desktop2.yml</summary>
+
+   ```yaml
+   # project
+   settings.tk-desktop2.all:
+     apps:
+       tk-multi-launchapp: "@settings.tk-multi-launchapp"
+       tk-multi-launchhiero: "@settings.tk-multi-launchapp.hiero"
+       tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
+       tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+   ```
+   </details>
+
+   <details><summary>tk-shell.yml</summary>
+
+   ```yaml
+   # Same for other settings.tk-shell.*
+   settings.tk-shell.asset:
+     apps:
+       tk-multi-launchapp: '@settings.tk-multi-launchapp'
+       tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+       tk-multi-launchmari: '@settings.tk-multi-launchapp.mari'
+   ```
+   </details>
+
+   <details><summary>tk-shotgun.yml</summary>
+
+   ```yaml
+   # Same for other settings.tk-shotgun.*
+   settings.tk-shotgun.asset:
+     apps:
+       tk-multi-launchapp: "@settings.tk-multi-launchapp"
+       tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
+       tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+       tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+   ```
+   </details>
 
 ### tk-config-default (legacy)
 

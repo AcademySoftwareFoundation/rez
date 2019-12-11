@@ -1,0 +1,59 @@
+# Copyright (c) 2018 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+#
+
+################################################################################
+
+includes:
+- ../app_locations.yml
+- ../engine_locations.yml
+- ./tk-multi-launchapp.yml
+- ./tk-multi-publish2.yml
+- ./tk-multi-screeningroom.yml
+
+################################################################################
+
+# site
+settings.tk-desktop.site:
+  apps:
+  location: "@engines.tk-desktop.location"
+
+
+# project
+settings.tk-desktop.project:
+  apps:
+    tk-multi-pythonconsole:
+      location: "@apps.tk-multi-pythonconsole.location"
+    tk-multi-devutils:
+      location: "@apps.tk-multi-devutils.location"
+    tk-multi-launchapp: "@settings.tk-multi-launchapp"
+    tk-multi-launchhiero: "@settings.tk-multi-launchapp.hiero"
+    tk-multi-launchmari: "@settings.tk-multi-launchapp.mari"
+    tk-multi-launchmaya: "@settings.tk-multi-launchapp.maya"  # Added this for rez Maya 2019!
+    tk-multi-launchmotionbuilder: "@settings.tk-multi-launchapp.motionbuilder"
+    tk-multi-publish2: "@settings.tk-multi-publish2.standalone"
+    tk-multi-screeningroom: "@settings.tk-multi-screeningroom.rv"
+  groups:
+  - matches:
+    - "*Fla*"
+    - "*Houdini*"
+    - "*Mari*"
+    - "*Max*"
+    - "*Maya*"
+    - "*Motion*"
+    - "*Nuke*"
+    - "*Photoshop*"
+    - "*After*"
+    - "*Effects*"
+    name: Creative Tools
+  - matches:
+    - "*Hiero*"
+    name: Editorial Tools
+  location: "@engines.tk-desktop.location"
