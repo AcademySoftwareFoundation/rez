@@ -1,6 +1,6 @@
-"""App Launch Hook - Rez
+"""App Launch Hook - Rez.
 
-This hook is executed to launch applications, potentially in a Rez context.
+Shotgun 8 hook to launch applications, potentially in a Rez context.
 
 https://github.com/nerdvegas/rez
 
@@ -17,13 +17,13 @@ An example snippet from ``tk-multi-launchapp.yml`` for Maya...
       extra:
         rez:
           packages:
-          - cool_rez_package
-          - sweet_rez_package-1.2
+          - maya_rez_package
+          - studio_maya_tools-1.2
           parent_variables:
           - PYTHONPATH
           - MAYA_MODULE_PATH
           - MAYA_SCRIPT_PATH
-      hook_app_launch: rez_app_launch
+      hook_app_launch: rez_app_launch   # THIS LINE IS IMPORTANT!
 
 Please note that this requires Rez to be installed as a package,
 which exposes the Rez Python API. With a proper Rez installation, you can do
@@ -35,8 +35,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 import os
 from pprint import pformat
-import sys
 import subprocess
+import sys
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import sgtk
@@ -72,14 +72,16 @@ class AppLaunch(HookBaseClass):
         """
         multi_launchapp = self.parent
         rez_info = multi_launchapp.get_setting("extra", {}).get("rez", {})
-        cmd, shell_type = self.background_cmd_shell_type(app_args, app_path)
+        cmd, shell_type = self.background_cmd_shell_type(app_path, app_args)
 
         # Execute App in a Rez context
         rez_py_path = self.get_rez_path()
         if rez_py_path:
-            self.logger.debug('Appending to system path: "%s"', rez_py_path)
-            sys.path.append(rez_py_path)
+            if rez_py_path not in sys.path:
+                self.logger.debug('Appending to sys.path: "%s"', rez_py_path)
+                sys.path.append(rez_py_path)
 
+            # Only import after rez_py_path is inside sys.path
             from rez.resolved_context import ResolvedContext
             from rez.config import config
             rez_parent_variables = rez_info.get("parent_variables", [])
@@ -91,7 +93,8 @@ class AppLaunch(HookBaseClass):
             context = ResolvedContext(rez_packages)
             current_env = os.environ.copy()
 
-            with NamedTemporaryFile(mode='w+', delete=False) as env_file:
+            env_kwargs = {'suffix': '-prev-env.py', 'delete': False}
+            with NamedTemporaryFile(mode='w+', **env_kwargs) as env_file:
                 env_file.write(pformat(current_env))
                 self.logger.debug(
                     'Copied existing env for rez. See: "%s"',
@@ -120,12 +123,9 @@ class AppLaunch(HookBaseClass):
             # run the command to launch the app
             exit_code = subprocess.check_call(cmd)
 
-        return {
-            "command": cmd,
-            "return_code": exit_code
-            }
+        return {"command": cmd, "return_code": exit_code}
 
-    def background_cmd_shell_type(self, app_args, app_path):
+    def background_cmd_shell_type(self, app_path, app_args):
         """Make command string and shell type name for current environment.
 
         Args:
@@ -140,37 +140,39 @@ class AppLaunch(HookBaseClass):
 
         if system.startswith("linux"):
             # on linux, we just run the executable directly
-            cmd = "%s %s &" % (app_path, app_args)
+            cmd_template = "{path} {flattened_args} &"
 
         elif self.parent.get_setting("engine") in ["tk-flame", "tk-flare"]:
             # flame and flare works in a different way from other DCCs
             # on both linux and mac, they run unix-style command line
             # and on the mac the more standardized "open" command cannot
             # be utilized.
-            cmd = "%s %s &" % (app_path, app_args)
+            cmd_template = "{path} {flattened_args} &"
 
         elif system == "darwin":
             # on the mac, the executable paths are normally pointing
             # to the application bundle and not to the binary file
             # embedded in the bundle, meaning that we should use the
             # built-in mac open command to execute it
-            cmd = 'open -n "%s"' % app_path
+            cmd_template = 'open -n "{path}"'
             if app_args:
-                cmd += ' --args "%s"' % app_args.replace('"', r'\"')
+                app_args = app_args.replace('"', r'\"')
+                cmd_template += ' --args "{flattened_args}"'
 
         elif system == "win32":
             # on windows, we run the start command in order to avoid
             # any command shells popping up as part of the application launch.
-            cmd = 'start /B "App" "%s" %s' % (app_path, app_args)
+            cmd_template = 'start /B "App" "{path}" {flattened_args}'
 
         else:
             error = (
                 'No cmd (formatting) and shell_type implemented for "%s":\n'
-                '- app_args:"%s"\n'
-                '- app_path:"%s"'
+                '- app_path:"%s"\n'
+                '- app_args:"%s"'
             )
-            raise NotImplementedError(error % (system, app_args, app_path))
+            raise NotImplementedError(error % (system, app_path, app_args))
 
+        cmd = cmd_template.format(path=app_path, flattened_args=app_args)
         return cmd, shell_type
 
     def get_rez_path(self, strict=True):
