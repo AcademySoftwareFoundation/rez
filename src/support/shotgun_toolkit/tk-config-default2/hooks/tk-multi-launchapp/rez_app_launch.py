@@ -12,18 +12,55 @@ An example snippet from ``tk-multi-launchapp.yml`` for Maya...
 
 .. code-block:: yaml
 
-    launch_maya:
+    settings.tk-multi-launchapp.maya:
       engine: tk-maya
       extra:
         rez:
           packages:
-          - maya_rez_package
+          - maya-2019
           - studio_maya_tools-1.2
+          - show_maya_tools-dev
           parent_variables:
           - PYTHONPATH
           - MAYA_MODULE_PATH
           - MAYA_SCRIPT_PATH
-      hook_app_launch: rez_app_launch   # THIS LINE IS IMPORTANT!
+      hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"
+      location: "@apps.tk-multi-launchapp.location"
+
+    # maya
+    settings.tk-multi-launchapp.maya:
+      engine: tk-maya
+      extra:
+        rez:
+          packages:
+          - in_terminal
+          - modremove
+          - deadline
+          - maya-2019
+          - mtoa
+          - maya_usd
+          # -- Vendor Plugins/scripts --
+          # CG
+          - bifrost
+          - pw_mGeoExporter-1.2
+          # Python Modules
+          - pyblish_base
+          - pyblish_maya
+          # -- WWFX packages (Always pick latest for new shells) --
+          - animlembic_exporter
+          - cometRename
+          - image_resolutions
+          parent_variables:
+          - PYTHONPATH
+          - MAYA_MODULE_PATH
+          - MAYA_SCRIPT_PATH
+      hook_app_launch: "{config}/tk-multi-launchapp/rez_app_launch.py"
+      linux_path: "in-terminal --title 'Maya 2019 (Arnold LATEST)' maya"
+      menu_name: "Maya 2019 (Arnold LATEST)"
+      group: "Maya"
+      group_default: true
+      location: "@apps.tk-multi-launchapp.location"
+
 
 Please note that this requires Rez to be installed as a package,
 which exposes the Rez Python API. With a proper Rez installation, you can do
