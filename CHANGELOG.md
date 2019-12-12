@@ -1,5 +1,19 @@
 # Change Log
 
+## 2.50.0 (2019-12-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.50.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.49.0...2.50.0)
+
+**Merged pull requests:**
+
+- removed odd case of _Bound instantiation with Version [\#815](https://github.com/nerdvegas/rez/pull/815) ([nerdvegas](https://github.com/nerdvegas))
+- memcached incompatibility fix [\#818](https://github.com/nerdvegas/rez/pull/818) ([nerdvegas](https://github.com/nerdvegas))
+- Bug/819 enable colorization on windows [\#820](https://github.com/nerdvegas/rez/pull/820) ([instinct-vfx](https://github.com/instinct-vfx))
+
+**Closed issues:**
+
+- potential memcached client incompatibility [\#817](https://github.com/nerdvegas/rez/issues/817)
+- Remove hard prevention of colorization on windows [\#819](https://github.com/nerdvegas/rez/issues/819)
+
 ## 2.49.0 (2019-12-05)
 [Source](https://github.com/nerdvegas/rez/tree/2.49.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.48.1...2.49.0)
 
