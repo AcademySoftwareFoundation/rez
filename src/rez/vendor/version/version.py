@@ -567,62 +567,76 @@ class _VersionRangeParser(object):
     # The regular expression for a version - one or more version tokens
     # followed by a non-capturing group of version separator followed by
     # one or more version tokens.
-    version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"  # A Version Number
+    #
+    # Note that this assumes AlphanumericVersionToken-based versions!
+    #
+    # TODO - Would be better to have `VersionRange` keep a static dict of
+    # parser instances, per token class type. We would add a 'regex' static
+    # string to each token class, and that could be used to construct
+    # `version_group` as below. We need to keep a dict of these parser instances,
+    # to avoid recompiling the large regex every time a version range is
+    # instantiated. In the cpp port this would be simpler - VersionRange could
+    # just have a static parser that is instantiated when the version range
+    # template class is instantiated.
+    #
+    version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"
 
-    version_range_regex = \
-        (r"   ^(?P<version>{version_group})$"
-         "|"
-         # Or match an exact version number (e.g. ==1.0.0)
-         "    ^(?P<exact_version>"
-         "        =="  # Required == operator
-         "        (?P<exact_version_group>{version_group})?"
-         "    )$"
-         "|"
-         # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
-         "    ^(?P<inclusive_bound>"
-         "        (?P<inclusive_lower_version>{version_group})?"
-         "        \.\."  # Required .. operator
-         "        (?P<inclusive_upper_version>{version_group})?"
-         "    )$"
-         "|"
-         # Or match a lower bound (e.g. 1.0.0+)
-         "    ^(?P<lower_bound>"
-         "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
-         "        (?P<lower_version>{version_group})?"
-         "        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
-         "    )$"
-         "|"
-         # Or match an upper bound (e.g. <=1.0.0)
-         "    ^(?P<upper_bound>"
-         "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
-         "        (?P<upper_version>{version_group})?"
-         "    )$"
-         "|"
-         # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
-         "    ^(?P<range_asc>"
-         "        (?P<range_lower_asc>"
-         "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
-         "           (?P<range_lower_asc_version>{version_group})?"
-         "           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
-         "       )(?P<range_upper_asc>"
-         "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
-         "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
-         "           (?P<range_upper_asc_version>{version_group})?"
-         "       )"
-         "    )$"
-         "|"
-         # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
-         "    ^(?P<range_desc>"
-         "        (?P<range_upper_desc>"
-         "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
-         "           (?P<range_upper_desc_version>{version_group})?"
-         "           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
-         "       )(?P<range_lower_desc>"
-         "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want to recognize something like "<4>3"
-         "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed by a version group
-         "           (?P<range_lower_desc_version>{version_group})?"
-         "       )"
-         "    )$").format(version_group=version_group)
+    version_range_regex = (
+        # Match a version number (e.g. 1.0.0)
+        r"   ^(?P<version>{version_group})$"
+        "|"
+        # Or match an exact version number (e.g. ==1.0.0)
+        "    ^(?P<exact_version>"
+        "        =="  # Required == operator
+        "        (?P<exact_version_group>{version_group})?"
+        "    )$"
+        "|"
+        # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
+        "    ^(?P<inclusive_bound>"
+        "        (?P<inclusive_lower_version>{version_group})?"
+        "        \.\."  # Required .. operator
+        "        (?P<inclusive_upper_version>{version_group})?"
+        "    )$"
+        "|"
+        # Or match a lower bound (e.g. 1.0.0+)
+        "    ^(?P<lower_bound>"
+        "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
+        "        (?P<lower_version>{version_group})?"
+        "        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
+        "    )$"
+        "|"
+        # Or match an upper bound (e.g. <=1.0.0)
+        "    ^(?P<upper_bound>"
+        "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
+        "        (?P<upper_version>{version_group})?"
+        "    )$"
+        "|"
+        # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
+        "    ^(?P<range_asc>"
+        "        (?P<range_lower_asc>"
+        "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
+        "           (?P<range_lower_asc_version>{version_group})?"
+        "           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
+        "       )(?P<range_upper_asc>"
+        "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
+        "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
+        "           (?P<range_upper_asc_version>{version_group})?"
+        "       )"
+        "    )$"
+        "|"
+        # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
+        "    ^(?P<range_desc>"
+        "        (?P<range_upper_desc>"
+        "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
+        "           (?P<range_upper_desc_version>{version_group})?"
+        "           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
+        "       )(?P<range_lower_desc>"
+        "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want to recognize something like "<4>3"
+        "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed by a version group
+        "           (?P<range_lower_desc_version>{version_group})?"
+        "       )"
+        "    )$"
+    ).format(version_group=version_group)
 
     regex = re.compile(version_range_regex, re_flags)
 
@@ -633,44 +647,57 @@ class _VersionRangeParser(object):
         self.bounds = []
         self.invalid_bound_error = invalid_bound_error
 
+        is_any = False
+
         for part in input_string.split("|"):
             if part == '':
-                version = self._create_version_from_token(part)
-                self.bounds.append(_Bound(version, None))
+                # OR'ing anthing with the 'any' version range ('') will also
+                # give the any range. Note that we can't early out here, as we
+                # need to validate that the rest of the string is syntactically
+                # correct
+                #
+                is_any = True
+                self.bounds = []
                 continue
 
             match = re.search(self.regex, part)
-
             if not match:
                 raise ParseException("Syntax error in version range '%s'" % part)
 
+            if is_any:
+                # we're already the 'any' range regardless, so avoid more work
+                continue
+
             self._groups = match.groupdict()
-            if self._groups['version']:
-                self._act_version()
 
-            if self._groups['exact_version']:
-                self._act_exact_version()
-
-            if self._groups['inclusive_bound']:
-                self._act_bound()
-
-            if self._groups['lower_bound']:
-                self._act_lower_bound()
-
-            if self._groups['upper_bound']:
-                self._act_upper_bound()
+            # Note: the following is ordered by approx likelihood of use
 
             if self._groups['range_asc']:
                 self._act_lower_and_upper_bound_asc()
 
-            if self._groups['range_desc']:
+            elif self._groups['version']:
+                self._act_version()
+
+            elif self._groups['lower_bound']:
+                self._act_lower_bound()
+
+            elif self._groups['exact_version']:
+                self._act_exact_version()
+
+            elif self._groups['range_desc']:
                 self._act_lower_and_upper_bound_desc()
 
+            elif self._groups['inclusive_bound']:
+                self._act_bound()
+
+            elif self._groups['upper_bound']:
+                self._act_upper_bound()
+
     def _is_lower_bound_exclusive(self, token):
-        return True if token == ">" else False
+        return (token == ">")
 
     def _is_upper_bound_exclusive(self, token):
-        return True if token == "<" else False
+        return (token == "<")
 
     def _create_version_from_token(self, token):
         return Version(token, make_token=self.make_token)
