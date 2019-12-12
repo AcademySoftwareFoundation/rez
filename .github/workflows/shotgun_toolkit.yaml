@@ -1,0 +1,56 @@
+name: Shotgun Toolkit
+on:
+  # Do not run if Docker image has been updated
+  pull_request:
+    paths:
+      - 'src/support/shotgun_toolkit/**'
+  push:
+    paths:
+      - 'src/support/shotgun_toolkit/**'
+
+jobs:
+  app-launch-hook:
+    name: App Launch Hook - ${{ matrix.tk-config }}
+    runs-on: ubuntu-latest
+    env:
+      EXAMPLE_PATCH_PATH: "src/support/shotgun_toolkit/${{ matrix.tk-config }}/example-configs.patch"
+      SRC_HOOK_PATH: "src/support/shotgun_toolkit/${{ matrix.tk-config }}/${{ matrix.hook-path }}/rez_app_launch.py"
+      SRC_URL: "https://github.com/shotgunsoftware/${{ matrix.tk-config }}/archive/${{ matrix.config-release }}.tar.gz"
+
+    strategy:
+      matrix:
+        tk-config:
+          - 'tk-config-default'
+          - 'tk-config-default2'
+        include:
+          - tk-config: 'tk-config-default'
+            hook-path: 'hooks'
+            config-release: 'v0.18.2'
+          - tk-config: 'tk-config-default2'
+            hook-path: 'hooks/tk-multi-launchapp'
+            config-release: 'v1.2.11'
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Download ${{matrix.tk-config}}
+        run: |
+          mkdir -vp "${{ runner.temp }}"
+          curl -sSL "$SRC_URL" \
+            | tar -C "${{ runner.temp }}" --strip-components=1 -xz
+
+      - name: Install Hook
+        run: |
+          set -x
+          test -f "$GITHUB_WORKSPACE/$SRC_HOOK_PATH"
+          cp -v "$GITHUB_WORKSPACE/$SRC_HOOK_PATH" "${{ runner.temp }}/${{ matrix.hook-path }}/rez_app_launch.py"
+
+      - name: Check .patch works
+        run: |
+          set -x -o pipefail
+          cd "${{ runner.temp }}"
+          test -f "$GITHUB_WORKSPACE/$EXAMPLE_PATCH_PATH"
+          patch --strip=0 --verbose < "$GITHUB_WORKSPACE/$EXAMPLE_PATCH_PATH"
