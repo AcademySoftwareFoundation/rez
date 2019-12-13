@@ -162,7 +162,7 @@ class CMakeBuildSystem(BuildSystem):
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
-                                              actions_callback=callback)
+                                              post_actions_callback=callback)
         ret = {}
         if retcode:
             ret["success"] = False
@@ -208,7 +208,7 @@ class CMakeBuildSystem(BuildSystem):
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
-                                              actions_callback=callback)
+                                              post_actions_callback=callback)
 
         if not retcode and install and "install" not in cmd:
             cmd.append("install")
@@ -218,7 +218,7 @@ class CMakeBuildSystem(BuildSystem):
             retcode, _, _ = context.execute_shell(command=cmd,
                                                   block=True,
                                                   cwd=build_path,
-                                                  actions_callback=callback)
+                                                  post_actions_callback=callback)
 
         ret["success"] = (not retcode)
         return ret
@@ -230,13 +230,15 @@ class CMakeBuildSystem(BuildSystem):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
 
-        cls.set_standard_vars(executor=executor,
-                              context=context,
-                              variant=variant,
-                              build_type=build_type,
-                              install=install,
-                              build_path=build_path,
-                              install_path=install_path)
+        cls.add_standard_build_actions(
+            executor=executor,
+            context=context,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
 
         executor.env.CMAKE_MODULE_PATH.append(cmake_path.replace('\\', '/'))
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
@@ -262,7 +264,7 @@ def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
 
     retcode, _, _ = context.execute_shell(block=True,
                                           cwd=build_path,
-                                          actions_callback=callback)
+                                          post_actions_callback=callback)
     sys.exit(retcode)
 
 

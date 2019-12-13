@@ -248,20 +248,34 @@ class BuildSystem(object):
         return vars_
 
     @classmethod
-    def set_standard_vars(cls, executor, context, variant, build_type,
-                          install, build_path, install_path=None):
-        """Sets a standard set of environment variables for the build system to
-        use
-        """
-        vars = cls.get_standard_vars(context=context,
-                                     variant=variant,
-                                     build_type=build_type,
-                                     install=install,
-                                     build_path=build_path,
-                                     install_path=install_path)
+    def add_standard_build_actions(cls, executor, context, variant, build_type,
+                                   install, build_path, install_path=None):
+        """Perform build actions common to every build system.
 
-        for var, value in vars.items():
+        This includes:
+        - Setting a standard list on env-vars;
+        - Executing pre_build_commands(), if the package has one.
+        """
+
+        # set env vars
+        env_vars = cls.get_standard_vars(
+            context=context,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
+
+        for var, value in env_vars.items():
             executor.env[var] = value
+
+        # execute pre_build_commands()
+        pre_build_commands = getattr(variant, "pre_build_commands")
+
+        if pre_build_commands:
+            executor.bind("this", variant)
+            executor.execute_code(pre_build_commands, isolate=True)
 
 
 # Copyright 2013-2016 Allan Johns.

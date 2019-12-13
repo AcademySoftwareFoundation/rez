@@ -36,13 +36,15 @@ package_build_only_keys = (
     "build_system",
     "build_command",
     "preprocess",
+    "pre_build_commands"
 )
 
 # package attributes that are rex-based functions
 package_rex_keys = (
     "pre_commands",
     "commands",
-    "post_commands"
+    "post_commands",
+    "pre_build_commands"
 )
 
 
@@ -131,6 +133,7 @@ package_base_schema_dict.update({
     Optional('pre_commands'):           SourceCode,
     Optional('commands'):               SourceCode,
     Optional('post_commands'):          SourceCode,
+    Optional('pre_build_commands'):     SourceCode,
 
     # release info
     Optional("timestamp"):              int,
@@ -219,6 +222,7 @@ package_pod_schema_dict.update({
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
+    Optional('pre_build_commands'):     _commands_schema,
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,

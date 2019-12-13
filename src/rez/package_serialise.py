@@ -82,6 +82,7 @@ package_serialise_schema = Schema({
     Optional('pre_commands'):           source_code_schema,
     Optional('commands'):               source_code_schema,
     Optional('post_commands'):          source_code_schema,
+    Optional('pre_build_commands'):     source_code_schema,
 
     Optional("help"):                   late_bound(help_schema),
     Optional("uuid"):                   basestring,
