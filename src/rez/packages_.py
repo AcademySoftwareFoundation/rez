@@ -6,7 +6,8 @@ from rez.package_serialise import dump_package_data
 from rez.utils import reraise
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property
-from rez.utils.formatting import StringFormatMixin, StringFormatType
+from rez.utils.formatting import StringFormatMixin, StringFormatType, expandvars
+from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
@@ -99,11 +100,52 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         return self.resource.config or config
 
     @cached_property
+    def target_packages_path(self):
+        """Returns the target_packages_path if available, else None"""
+
+        # Check both the local and release packages_paths
+        all_packages_paths = []
+        if "local_packages_path" in config._data:
+            all_packages_paths.append(config._data['local_packages_path'])
+        if "release_packages_path" in config._data:
+            all_packages_paths.append(config._data['release_packages_path'])
+
+        for current_packages_path in all_packages_paths:
+            if isinstance(current_packages_path, basestring):
+                packages_paths = { None: current_packages_path }
+            else:
+                # Assuming dict version of local_packages_path
+                packages_paths = current_packages_path
+
+            for target, local_packages_path in packages_paths.items():
+                local_packages_path = expandvars(local_packages_path)
+                local_repo = package_repository_manager.get_repository(
+                    local_packages_path)
+                if self.resource._repository.uid == local_repo.uid:
+                    return target
+        return None
+
+    @cached_property
     def is_local(self):
         """Returns True if the package is in the local package repository"""
-        local_repo = package_repository_manager.get_repository(
-            self.config.local_packages_path)
-        return (self.resource._repository.uid == local_repo.uid)
+
+        # Use the original config data, not the property
+        original_local_packages_path = config._data['local_packages_path']
+
+        if isinstance(original_local_packages_path, basestring):
+            local_packages_paths = [original_local_packages_path]
+        else:
+            # Assuming dict version of local_packages_path
+            local_packages_paths = original_local_packages_path.values()
+
+        for local_packages_path in local_packages_paths:
+            local_packages_path = expandvars(local_packages_path)
+            local_repo = package_repository_manager.get_repository(
+                local_packages_path)
+            if self.resource._repository.uid == local_repo.uid:
+                return True
+
+        return False
 
     def print_info(self, buf=None, format_=FileFormat.yaml,
                    skip_attributes=None, include_release=False):
@@ -120,7 +162,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
         # config is a special case. We only really want to show any config settings
         # that were in the package.py, not the entire Config contents that get
-        # grafted onto the Package/Variant instance. However Variant has an empy
+        # grafted onto the Package/Variant instance. However Variant has an empty
         # 'data' dict property, since it forwards data from its parent package.
         data.pop("config", None)
         if self.config:

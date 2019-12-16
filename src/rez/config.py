@@ -218,6 +218,11 @@ class OptionalDictOrDictList(Setting):
                 [dict])
 
 
+class StrOrDict(Setting):
+    schema = Or(basestring,
+                dict)
+
+
 class SuiteVisibility_(Str):
     @cached_class_property
     def schema(cls):
@@ -308,8 +313,9 @@ config_schema = Schema({
     "implicit_styles":                              OptionalStrList,
     "alias_styles":                                 OptionalStrList,
     "memcached_uri":                                OptionalStrList,
-    "local_packages_path":                          Str,
-    "release_packages_path":                        Str,
+    "local_packages_path":                          StrOrDict,
+    "release_packages_path":                        StrOrDict,
+    "target_packages_path":                         StrOrDict,
     "dot_image_format":                             Str,
     "build_directory":                              Str,
     "documentation_url":                            Str,
@@ -552,12 +558,42 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
                     pass  # unknown key, just leave it unchanged
         return d
 
+
+    @property
+    def local_packages_path(self):
+        """Returns local_packages_path based on the package_paths_index"""
+        return self._packages_path('local')
+
+    @property
+    def release_packages_path(self):
+        """Returns release_packages_path based on the package_paths_index"""
+        return self._packages_path('release')
+
+    @property
+    def local_target_packages_path(self):
+        """Returns target_packages_path for local"""
+        return self._target_packages_path('local')
+
+    @property
+    def release_target_packages_path(self):
+        """Returns target_packages_path for release"""
+        return self._target_packages_path('release')
+
     @property
     def nonlocal_packages_path(self):
         """Returns package search paths with local path removed."""
         paths = self.packages_path[:]
-        if self.local_packages_path in paths:
-            paths.remove(self.local_packages_path)
+        local_packages_paths = config._data['local_packages_path']
+
+        if isinstance(local_packages_paths, basestring):
+            local_packages_paths = [local_packages_paths]
+        else:
+            local_packages_paths = local_packages_paths.values()
+
+        for local_packages_path in local_packages_paths:
+            local_packages_path = expand_system_vars(local_packages_path)
+            if local_packages_path in paths:
+                paths.remove(local_packages_path)
         return paths
 
     def get_completions(self, prefix):
@@ -582,6 +618,33 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
             if keys == ["plugins"]:
                 keys += _get_plugin_completions('')
             return keys
+
+    def _packages_path(self, local_mode):
+        if isinstance(self._data[local_mode + '_packages_path'], basestring):
+            result = self._data[local_mode + '_packages_path']
+        else:
+            try:
+                result = self._data[local_mode + '_packages_path'][self._target_packages_path(local_mode)]
+            except KeyError as e:
+                raise ConfigurationError('Invalid target_packages_path "%s" for %s' % (e.message, local_mode))
+
+        return expand_system_vars(result)
+
+    def _target_packages_path(self, local_mode):
+        """Returns the target_packages_path for the local_mode (local or release)"""
+        # Ignore _target_packages_path if non dict package path.
+        # Else an unnecessary exception might be raised.
+        if isinstance(self._data[local_mode + '_packages_path'], basestring):
+            return None
+
+        if isinstance(self.target_packages_path, basestring):
+            return self.target_packages_path
+
+        try:
+            result = self.target_packages_path[local_mode]
+        except KeyError as e:
+            raise ConfigurationError('target_packages_path missing %s' % e.message)
+        return result
 
     def _uncache(self, key=None):
         # deleting the attribute falls up back to the class attribute, which is
