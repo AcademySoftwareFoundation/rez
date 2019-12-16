@@ -274,8 +274,9 @@ class BuildSystem(object):
         pre_build_commands = getattr(variant, "pre_build_commands")
 
         if pre_build_commands:
-            executor.bind("this", variant)
-            executor.execute_code(pre_build_commands, isolate=True)
+            with executor.reset_globals():
+                executor.bind("this", variant)
+                executor.execute_code(pre_build_commands)
 
 
 # Copyright 2013-2016 Allan Johns.

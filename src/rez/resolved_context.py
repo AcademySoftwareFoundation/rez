@@ -1678,6 +1678,13 @@ class ResolvedContext(object):
 
                     raise PackageCommandError(msg)
 
+        # clear bindings from last variant. Note that we could've used
+        # executor.reset_globals to do this, however manually clearing the last
+        # bindings avoid lots of dict copies and updates.
+        #
+        for name in ("this", "version", "root", "base"):
+            executor.unbind(name)
+
         header_comment(executor, "post system setup")
 
         # append suite paths based on suite visibility setting

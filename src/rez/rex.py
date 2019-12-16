@@ -7,7 +7,9 @@ import pipes
 import re
 import inspect
 import traceback
+from contextlib import contextmanager
 from string import Formatter
+
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, RezSystemError
@@ -1191,8 +1193,46 @@ class RexExecutor(object):
             else getattr(super(RexExecutor, self), attr)
 
     def bind(self, name, obj):
-        """Binds an object to the execution context."""
+        """Binds an object to the execution context.
+
+        Args:
+            name (str) Variable name to bind to.
+            obj (object): Object to bind.
+        """
         self.globals[name] = obj
+
+    def unbind(self, name):
+        """Unbind an object from the execution context.
+
+        Has no effect if the binding does not exist.
+
+        Args:
+            name (str) Variable name to bind to.
+        """
+        self.globals.pop(name, None)
+
+    @contextmanager
+    def reset_globals(self):
+        """Remove changes to globals dict post-context.
+
+        Any bindings (self.bind) will only be visible during this context.
+        """
+
+        # we want to execute the code using self.globals - if for no other
+        # reason that self.formatter is pointing at self.globals, so if we
+        # passed in a copy, we would also need to make self.formatter "look" at
+        # the same copy - but we don't want to "pollute" our namespace, because
+        # the same executor may be used to run multiple packages. Therefore,
+        # we save a copy of self.globals before execution, and restore it after
+        #
+        saved_globals = dict(self.globals)
+
+        try:
+            yield
+
+        finally:
+            self.globals.clear()
+            self.globals.update(saved_globals)
 
     def append_system_paths(self):
         """Append system paths to $PATH."""
@@ -1272,28 +1312,16 @@ class RexExecutor(object):
             code (str or SourceCode): Rex code to execute.
             filename (str): Filename to report if there are syntax errors.
             isolate (bool): If True, do not affect `self.globals` by executing
-                this code.
+                this code. DEPRECATED - use `self.reset_globals` instead.
         """
         def _apply():
             self.compile_code(code=code,
                               filename=filename,
                               exec_namespace=self.globals)
 
-        # we want to execute the code using self.globals - if for no other
-        # reason that self.formatter is pointing at self.globals, so if we
-        # passed in a copy, we would also need to make self.formatter "look" at
-        # the same copy - but we don't want to "pollute" our namespace, because
-        # the same executor may be used to run multiple packages. Therefore,
-        # we save a copy of self.globals before execution, and restore it after
-        #
         if isolate:
-            saved_globals = dict(self.globals)
-
-            try:
+            with self.reset_globals():
                 _apply()
-            finally:
-                self.globals.clear()
-                self.globals.update(saved_globals)
         else:
             _apply()
 
