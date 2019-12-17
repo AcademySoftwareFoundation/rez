@@ -762,6 +762,15 @@ variable.
 Specify the build system used to build this package. If not set, it is detected automatically when
 a build occurs (or the user specifies it using the `--build-system` option).
 
+### pre_build_commands
+*Function*
+
+    def pre_build_commands():
+        env.FOO_BUILT_BY_REZ = 1
+
+This is similar to *commands*, except that it is run _prior to the current package being built_.
+See [here](Package-Commands#pre-build-commands) for more details.
+
 ### preprocess
 *Function*
 

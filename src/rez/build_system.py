@@ -256,6 +256,7 @@ class BuildSystem(object):
         - Setting a standard list on env-vars;
         - Executing pre_build_commands(), if the package has one.
         """
+        from rez.utils.data_utils import RO_AttrDictWrapper
 
         # set env vars
         env_vars = cls.get_standard_vars(
@@ -270,12 +271,22 @@ class BuildSystem(object):
         for var, value in env_vars.items():
             executor.env[var] = value
 
+        # bind build-related values into a 'build' namespace
+        build_ns = {
+            "build_type": build_type.name,
+            "install": install,
+            "build_path": build_path,
+            "install_path": install_path
+        }
+
         # execute pre_build_commands()
         pre_build_commands = getattr(variant, "pre_build_commands")
 
         if pre_build_commands:
             with executor.reset_globals():
                 executor.bind("this", variant)
+                executor.bind("build", RO_AttrDictWrapper(build_ns))
+
                 executor.execute_code(pre_build_commands)
 
 
