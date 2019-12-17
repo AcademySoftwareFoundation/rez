@@ -233,6 +233,12 @@ class BuildProcessHelper(BuildProcess):
         else:
             packages_path = self.package.config.nonlocal_packages_path
 
+        # It is uncommon, but possible, to define the package filters in the
+        # developer package. Example scenario: you may want to enable visiblity
+        # of *.dev packages if the current package is *.dev also, for example
+        # (assuming you have a production-time package filter which filters out
+        # *.dev packages by default).
+        #
         if self.package.config.is_overridden("package_filter"):
             from rez.package_filter import PackageFilterList
 
@@ -241,6 +247,7 @@ class BuildProcessHelper(BuildProcess):
         else:
             package_filter = None
 
+        # create the build context
         context = ResolvedContext(request,
                                   package_paths=packages_path,
                                   package_filter=package_filter,

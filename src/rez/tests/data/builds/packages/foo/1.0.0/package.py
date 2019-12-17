@@ -8,6 +8,9 @@ build_requires = ["floob"]
 
 private_build_requires = ["build_util"]
 
+def pre_build_commands():
+    env.FOO_TEST_VAR = "hello"
+
 def commands():
     env.PYTHONPATH.append('{root}/python')
 

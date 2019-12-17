@@ -9,7 +9,8 @@ from rez.config import config
 from rez.util import shlex_join, dedup, is_non_string_iterable
 from rez.utils.sourcecode import SourceCodeError
 from rez.utils.colorize import critical, heading, local, implicit, Printer
-from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX
+from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
+    header_comment, minor_header_comment
 from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs
 from rez.utils.memcached import pool_memcached_connections
@@ -1240,7 +1241,7 @@ class ResolvedContext(object):
         context_file = context_filepath or \
             os.path.join(tmpdir, "context.%s" % sh.file_extension())
 
-        # interpret this context and write out the native context file
+        # interpret this context and write out the native context (shell script) file
         executor = self._create_executor(sh, parent_environ)
         executor.env.REZ_RXT_FILE = rxt_file
         executor.env.REZ_CONTEXT_FILE = context_file
@@ -1589,21 +1590,6 @@ class ResolvedContext(object):
 
     @pool_memcached_connections
     def _execute(self, executor):
-        br = '#' * 80
-        br_minor = '-' * 80
-
-        def _heading(txt):
-            executor.comment("")
-            executor.comment("")
-            executor.comment(br)
-            executor.comment(txt)
-            executor.comment(br)
-
-        def _minor_heading(txt):
-            executor.comment("")
-            executor.comment(txt)
-            executor.comment(br_minor)
-
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
         request_str = ' '.join(str(x) for x in self._package_requests)
@@ -1611,7 +1597,8 @@ class ResolvedContext(object):
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         package_paths_str = os.pathsep.join(self.package_paths)
 
-        _heading("system setup")
+        header_comment(executor, "system setup")
+
         executor.setenv("REZ_USED", self.rez_path)
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
@@ -1647,13 +1634,16 @@ class ResolvedContext(object):
         # -- apply each resolved package to the execution context
         #
 
-        _heading("package variables")
+        header_comment(executor, "package variables")
+
+        # TODO this is not having any effect. Below, a RexError is getting
+        # raised on bad commands code, not a SourceCodeError
         error_class = SourceCodeError if config.catch_rex_errors else None
 
         # set basic package variables and create per-package bindings
         bindings = {}
         for pkg in resolved_pkgs:
-            _minor_heading("variables for package %s" % pkg.qualified_name)
+            minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
 
             executor.setenv(prefix + "_VERSION", str(pkg.version))
@@ -1678,9 +1668,9 @@ class ResolvedContext(object):
                     continue
                 if not found:
                     found = True
-                    _heading(attr)
+                    header_comment(executor, attr)
 
-                _minor_heading("%s from package %s" % (attr, pkg.qualified_name))
+                minor_header_comment(executor, "%s from package %s" % (attr, pkg.qualified_name))
                 bindings_ = bindings[pkg.name]
                 executor.bind('this',       bindings_["variant"])
                 executor.bind("version",    bindings_["version"])
@@ -1705,7 +1695,14 @@ class ResolvedContext(object):
 
                     raise PackageCommandError(msg)
 
-        _heading("post system setup")
+        # clear bindings from last variant. Note that we could've used
+        # executor.reset_globals to do this, however manually clearing the last
+        # bindings avoid lots of dict copies and updates.
+        #
+        for name in ("this", "version", "root", "base"):
+            executor.unbind(name)
+
+        header_comment(executor, "post system setup")
 
         # append suite paths based on suite visibility setting
         self._append_suite_paths(executor)

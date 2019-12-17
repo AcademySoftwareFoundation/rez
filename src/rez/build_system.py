@@ -248,20 +248,46 @@ class BuildSystem(object):
         return vars_
 
     @classmethod
-    def set_standard_vars(cls, executor, context, variant, build_type,
-                          install, build_path, install_path=None):
-        """Sets a standard set of environment variables for the build system to
-        use
-        """
-        vars = cls.get_standard_vars(context=context,
-                                     variant=variant,
-                                     build_type=build_type,
-                                     install=install,
-                                     build_path=build_path,
-                                     install_path=install_path)
+    def add_standard_build_actions(cls, executor, context, variant, build_type,
+                                   install, build_path, install_path=None):
+        """Perform build actions common to every build system.
 
-        for var, value in vars.items():
+        This includes:
+        - Setting a standard list on env-vars;
+        - Executing pre_build_commands(), if the package has one.
+        """
+        from rez.utils.data_utils import RO_AttrDictWrapper
+
+        # set env vars
+        env_vars = cls.get_standard_vars(
+            context=context,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
+
+        for var, value in env_vars.items():
             executor.env[var] = value
+
+        # bind build-related values into a 'build' namespace
+        build_ns = {
+            "build_type": build_type.name,
+            "install": install,
+            "build_path": build_path,
+            "install_path": install_path
+        }
+
+        # execute pre_build_commands()
+        pre_build_commands = getattr(variant, "pre_build_commands")
+
+        if pre_build_commands:
+            with executor.reset_globals():
+                executor.bind("this", variant)
+                executor.bind("build", RO_AttrDictWrapper(build_ns))
+
+                executor.execute_code(pre_build_commands)
 
 
 # Copyright 2013-2016 Allan Johns.
