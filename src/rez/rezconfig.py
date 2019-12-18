@@ -694,6 +694,10 @@ max_package_changelog_revisions = 0
 #       launched without extension from windows and other systems.
 create_executable_script_mode = "single"
 
+# Configurable pip extra arguments passed to the rez-pip install command.
+# https://pip.pypa.io/en/stable/reference/pip_install/#options
+pip_extra_args = []
+
 
 ###############################################################################
 # Rez-1 Compatibility
