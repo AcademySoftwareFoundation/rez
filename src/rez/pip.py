@@ -198,7 +198,8 @@ def find_pip_from_context(python_version, pip_version=None):
 
 
 def pip_install_package(source_name, pip_version=None, python_version=None,
-                        mode=InstallMode.min_deps, release=False, prefix=None):
+                        mode=InstallMode.min_deps, release=False, prefix=None,
+                        extra_args=None):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -212,6 +213,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             managed.
         release (bool): If True, install as a released package; otherwise, it
             will be installed as a local package.
+        extra_args (List[str]): Additional options to the pip install command.
 
     Returns:
         2-tuple:
@@ -249,12 +251,17 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         context.print_info(buf)
         _log(buf.getvalue())
 
+    # gather additional pip install options
+    pip_extra_opts = extra_args if extra_args else config.pip_extra_args
+
     # Build pip commandline
     cmd = [
         py_exe, "-m", "pip", "install",
         "--use-pep517",
         "--target=%s" % destpath
     ]
+
+    cmd.extend(pip_extra_opts)
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
