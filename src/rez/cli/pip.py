@@ -2,6 +2,7 @@
 Install a pip-compatible python package, and its dependencies, as rez packages.
 """
 from __future__ import print_function
+from argparse import REMAINDER
 
 
 def setup_parser(parser, completions=False):
@@ -30,7 +31,10 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "PACKAGE",
         help="package to install or archive/url to install from")
-
+    parser.add_argument(
+        "-e", "--extra", nargs=REMAINDER,
+        help="extra args passthrough to pip install"
+    )
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.pip import pip_install_package, run_pip_command
@@ -59,7 +63,8 @@ def command(opts, parser, extra_arg_groups=None):
         pip_version=opts.pip_ver,
         python_version=opts.py_ver,
         release=opts.release,
-        prefix=opts.prefix)
+        prefix=opts.prefix,
+        extra_args=opts.extra)
 
     # print summary
     #
