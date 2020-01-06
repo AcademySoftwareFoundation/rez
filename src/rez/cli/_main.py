@@ -70,7 +70,13 @@ class InfoAction(_StoreTrueAction):
         sys.exit(0)
 
 
-def run(command=None):
+def setup_parser():
+    """Create and setup parser for given rez (sub) command.
+
+
+    Returns:
+        LazyArgumentParser: Argument parser for rez command.
+    """
 
     sys.dont_write_bytecode = True
 
@@ -99,6 +105,10 @@ def run(command=None):
             help='',  # required so that it can be setup later
             setup_subparser=SetupRezSubParser(module_name))
 
+    return parser
+
+
+def run(command=None):
     # construct args list. Note that commands like 'rez-env foo' and
     # 'rez env foo' are equivalent
     if command:
@@ -115,6 +125,7 @@ def run(command=None):
     else:
         arg_mode = None
 
+    parser = setup_parser()
     if arg_mode == "grouped":
         # args split into groups by '--'
         arg_groups = [[]]

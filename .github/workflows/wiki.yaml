@@ -1,0 +1,69 @@
+name: Wiki
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'wiki/**'
+  pull_request:
+    paths:
+      - 'wiki/**'
+env:
+  CLONE_URL: "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
+  TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
+
+
+jobs:
+  build:
+    name: Build Wiki Artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Set up Python 2.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 2.7
+
+      - name: Build Wiki
+        run: |
+          git config --global color.ui always
+          python wiki/update-wiki.py \
+            --keep-temp \
+            --no-push \
+            --wiki-dir="$(pwd)/$TEMP_WIKI_DIR"
+
+      - uses: actions/upload-artifact@v1.0.0
+        with:
+          name: wiki-markdown
+          path: wiki/.rez-gen-wiki-tmp
+
+
+  publish:
+    name: Publish to GitHub Wiki
+    runs-on: ubuntu-latest
+    # if: github.ref == 'refs/heads/master'
+    needs: build
+
+    steps:
+      - uses: actions/download-artifact@master
+        with:
+          name: wiki-markdown
+          path: .
+
+      - name: Setup git config
+        run: |
+          git config --global color.ui always
+          git config --global user.name "github.com/${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@${{ github.sha }}"
+
+      - name: Git commit and push
+        run: |
+          git commit \
+              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
+              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}" \
+              || exit 0
+          git remote set-url origin "$CLONE_URL"
+          git push origin master
