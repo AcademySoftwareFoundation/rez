@@ -37,7 +37,7 @@ jobs:
   publish:
     name: Publish to GitHub pages
     runs-on: ubuntu-latest
-    # if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master'
     needs: build
 
     steps:
