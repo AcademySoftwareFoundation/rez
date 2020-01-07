@@ -2,7 +2,7 @@
 
 Rez has a good number of configurable settings. The default settings, and
 documentation for every setting, can be found
-[here](https://github.com/nerdvegas/rez/blob/master/src/rez/rezconfig.py).
+[here](https://github.com/__GITHUB_REPO__/blob/master/src/rez/rezconfig.py).
 
 Settings are determined in the following way:
 
@@ -102,7 +102,7 @@ Here is an example showing how to override settings using your own configuration
 Following is an alphabetical list of rez settings.
 
 > [[media/icons/info.png]] Note that this list has been generated automatically
-> from the [rez-config.py](https://github.com/nerdvegas/rez/blob/master/src/rez/rezconfig.py)
+> from the [rez-config.py](https://github.com/__GITHUB_REPO__/blob/master/src/rez/rezconfig.py)
 > file in the rez source, so you can also refer to that file for the same information.
 
 __REZCONFIG_MD__

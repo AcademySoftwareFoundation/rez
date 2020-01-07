@@ -1,3 +1,8 @@
+[![][wiki-badge]][wiki-actions]
+
+[wiki-badge]: https://github.com/__GITHUB_REPO__/workflows/__WORKFLOW__/badge.svg?branch=__BRANCH__
+[wiki-actions]: https://github.com/__GITHUB_REPO__/actions?query=workflow%3A__WORKFLOW__+branch%3A__BRANCH__
+
 - [[Home]]
 
 :beginner: Introduction:
@@ -20,7 +25,7 @@
 - [[Building Packages]]
 - [[Environment Variables]]
 - [[Command Line Tools]]
-- [Python API](https://wwfxuk.github.io/rez/) :link:
+- [Python API](https://___GITHUB_USER___.github.io/__REPO_NAME__/) :link:
 
 :information_source: Others:
 

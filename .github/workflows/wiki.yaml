@@ -9,13 +9,14 @@ on:
     paths:
       - 'wiki/**'
 env:
-  TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
-
+  CLONE_URL: "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
 
 jobs:
   build:
     name: Build Wiki Artifact
     runs-on: ubuntu-latest
+    env:
+      TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
 
     steps:
       - name: Checkout
@@ -29,11 +30,19 @@ jobs:
       - name: Build Wiki
         run: |
           git config --global color.ui always
-          python wiki/update-wiki.py \
+          if [ "${{ github.event_name == 'pull_request' }}" == "true" ]
+          then
+            BRANCH="${{ github.head_ref }}"
+          else
+            BRANCH="${{ github.ref }}"
+          fi
+
+          python "$(readlink -f wiki/update-wiki.py)" \
             --keep-temp \
             --no-push \
-            --wiki-dir="$TEMP_WIKI_DIR" \
-            --wiki-url="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
+            --github-branch="$BRANCH" \
+            --wiki-dir="${{ env.TEMP_WIKI_DIR }}" \
+            --wiki-url="${{ env.CLONE_URL }}"
 
       - uses: actions/upload-artifact@v1.0.0
         with:
@@ -65,5 +74,5 @@ jobs:
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
               -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}" \
               || exit 0
-          git remote set-url origin "$CLONE_URL"
+          git remote set-url origin "${{ env.CLONE_URL }}"
           git push origin master

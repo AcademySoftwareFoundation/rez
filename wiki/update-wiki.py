@@ -1,13 +1,20 @@
 # -*- coding: utf-8 -*-
 """Python implementation of old ``update-wiki.sh`` merged with ``process.py``.
 
-This script:
+This script calls git heavily to:
 1. Takes the content from this repo;
 2. Then writes it into a local clone of https://github.com/nerdvegas/rez.wiki.git;
 3. Then follows the procedure outlined in README from 2.
 
 This process exists because GitHub does not support contributions to wiki
 repositories - this is a workaround.
+
+See Also:
+    Original wiki update script files:
+
+    - ``wiki/update-wiki.sh`` at rez 2.50.0, which calls
+    - ``utils/process.py`` at rez.wiki d632328, and
+    - ``utils/update.sh`` at rez.wiki d632328
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -17,6 +24,7 @@ from __future__ import unicode_literals
 import argparse
 from collections import defaultdict
 from io import open
+import inspect
 import os
 import re
 import subprocess
@@ -24,12 +32,29 @@ import shutil
 import sys
 
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+ORIGINAL_getsourcefile = inspect.getsourcefile
+THIS_FILE = os.path.abspath(__file__)
+THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
 TMP_NAME = ".rez-gen-wiki-tmp"  # See also: .gitignore
 TEMP_WIKI_DIR = os.getenv("TEMP_WIKI_DIR", os.path.join(THIS_DIR, TMP_NAME))
-CLONE_URL = os.getenv("CLONE_URL", "git@github.com:nerdvegas/rez.wiki.git")
+GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "nerdvegas/rez")
+GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "master")
+GITHUB_WORKFLOW = os.getenv("GITHUB_WORKFLOW", "Wiki")
+CLONE_URL = os.getenv(
+    "CLONE_URL",
+    "git@github.com:{0}.wiki.git".format(GITHUB_REPO)
+)
+
+
+def PATCHED_getsourcefile(obj):
+    """Patch to not return None if path from inspect.getfile is not absolute.
+
+    Returns:
+        str: Full path to source code file for an object, else this file path.
+    """
+    return ORIGINAL_getsourcefile(obj) or THIS_FILE
 
 
 ################################################################################
@@ -429,7 +454,7 @@ def process_markdown_files():
         )
         sys.exit(1)
 
-    def do_replace(filename, token, md):
+    def do_replace(filename, token_md):
         srcfile = os.path.join(pagespath, "_%s.md" % filename)
         destfile = os.path.join(TEMP_WIKI_DIR, "%s.md" % filename)
 
@@ -437,7 +462,8 @@ def process_markdown_files():
         with open(srcfile, encoding='utf-8') as f:
             txt = f.read()
 
-        txt = txt.replace(token, md)
+        for token, md in token_md.items():
+            txt = txt.replace(token, md)
 
         print("Writing ", destfile, "...", sep="")
         with open(destfile, 'w', encoding='utf-8') as f:
@@ -449,15 +475,44 @@ def process_markdown_files():
     with open(filepath) as f:
         txt = f.read()
 
-    md = convert_rezconfig_src_to_md(txt)
-    do_replace("Configuring-Rez", "__REZCONFIG_MD__", md)
+    do_replace(
+        "Configuring-Rez",
+        {
+            "__REZCONFIG_MD__": convert_rezconfig_src_to_md(txt),
+            "__GITHUB_REPO__": GITHUB_REPO,
+        }
+    )
 
     # generate markdown contributors list, add to _Credits.md and write out to
     # Credits.md
     md = create_contributors_md(src_path)
-    do_replace("Credits", "__CONTRIBUTORS_MD__", md)
+    do_replace("Credits", {"__CONTRIBUTORS_MD__": md})
 
-    setup_cli_markdown(src_path)
+    do_replace(
+        "Command-Line-Tools",
+        {
+            "__GENERATED_MD__": make_cli_markdown(src_path),
+            "__WIKI_PY_URL__": make_cli_source_link(),
+        }
+    )
+
+    do_replace("_Footer", {"__GITHUB_REPO__": GITHUB_REPO})
+
+    try:
+        from urllib import quote
+    except ImportError:
+        from urllib.parse import quote
+    user, repo_name = GITHUB_REPO.split('/')
+    do_replace(
+        "_Sidebar",
+        {
+            "__GITHUB_REPO__": GITHUB_REPO,
+            "___GITHUB_USER___": user,
+            "__REPO_NAME__": repo_name,
+            "__WORKFLOW__": quote(GITHUB_WORKFLOW, safe=""),
+            "__BRANCH__": quote(GITHUB_BRANCH, safe=""),
+        }
+    )
 
     # process each md file:
     # * adds TOC;
@@ -489,39 +544,59 @@ def process_markdown_files():
 # Command-Line-Tools.md functions and formatter classes
 ################################################################################
 
-def setup_cli_markdown(src_path):
-    """Generate the ``Command-Line-Tools.md`` directly to destination.
+def make_cli_source_link():
+    link = (
+        "[{path}:{func.__name__}]"
+        "(https://github.com/{repo}/blob/{branch}/{path}#L{start}-L{end})"
+    )
 
-    Hot-import rez cli library to get parsers
+    try:
+        # Patch inspect.getsourcefile which is called by inspect.getsourcelines
+        inspect.getsourcefile = PATCHED_getsourcefile
+        lines, start = inspect.getsourcelines(make_cli_markdown)
+    finally:
+        inspect.getsourcefile = ORIGINAL_getsourcefile
+
+    return link.format(
+        func=make_cli_markdown,
+        path=os.path.relpath(THIS_FILE, REZ_SOURCE_DIR),
+        repo=GITHUB_REPO,
+        branch=GITHUB_BRANCH,
+        start=start,
+        end=start + len(lines),
+    )
+
+
+def make_cli_markdown(src_path):
+    """Generate the formatted markdown for each rez cli tool.
+
+    Hot-import rez cli library to get parsers.
 
     Args:
         src_path (str): Full path to the rez source code repository.
 
     Returns:
-        str: Full path to the generated, destination markdown file.
+        str: Generated markdown text.
     """
     sys.path.insert(0, os.path.join(src_path, "src"))
     try:
         from rez.cli._main import setup_parser
         from rez.cli._util import LazySubParsersAction
 
-        md_path = os.path.join(TEMP_WIKI_DIR, "Command-Line-Tools.md")
         main_parser = setup_parser()
+        command_help = []
         parsers = [main_parser]
         for action in main_parser._actions:
             if isinstance(action, LazySubParsersAction):
                 parsers += action.choices.values()
 
-        print("Writing ", md_path, "...", sep="")
-        with open(md_path, 'w', encoding='utf-8') as md_file:
-            for arg_parser in parsers:
-                arg_parser.formatter_class = MarkdownHelpFormatter
-                help_text = arg_parser.format_help()
-                md_file.write("{0}\n\n\n".format(help_text))
+        for arg_parser in parsers:
+            arg_parser.formatter_class = MarkdownHelpFormatter
+            command_help.append(arg_parser.format_help())
     finally:
         sys.path.pop(0)
 
-    return md_path
+    return "\n\n\n".join(command_help)
 
 
 class MarkdownHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
@@ -626,6 +701,11 @@ class MarkdownHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 class UpdateWikiParser(argparse.ArgumentParser):
     """Parser flags, using global variables as defaults."""
+    INIT_DEFAULTS = (
+        ("prog", "update-wiki"),
+        ("description", "Update GitHub Wiki"),
+        ("formatter_class", argparse.ArgumentDefaultsHelpFormatter),
+    )
 
     def __init__(self, **kwargs):
         """Setup default arguments and parser description/program name.
@@ -638,8 +718,8 @@ class UpdateWikiParser(argparse.ArgumentParser):
                 Same key word arguments taken by
                 ``argparse.ArgumentParser.__init__()``
         """
-        kwargs.setdefault("prog", "update-wiki")
-        kwargs.setdefault("description", "Update GitHub Wiki")
+        for key, value in self.INIT_DEFAULTS:
+            kwargs.setdefault(key, value)
         super(UpdateWikiParser, self).__init__(**kwargs)
 
         self.add_argument(
@@ -653,6 +733,33 @@ class UpdateWikiParser(argparse.ArgumentParser):
             action="store_true",
             dest="keep",
             help="Don't remove temporary wiki repository directory.",
+        )
+        self.add_argument(
+            "--github-repo",
+            default=GITHUB_REPO,
+            dest="repo",
+            help=(
+                "Url to GitHub repository without leading github.com/. "
+                "Overrides environment variable GITHUB_REPOSITORY."
+            )
+        )
+        self.add_argument(
+            "--github-branch",
+            default=GITHUB_BRANCH,
+            dest="branch",
+            help=(
+                "Name of git branch that is generating the Wiki. "
+                "Overrides environment variable GITHUB_BRANCH."
+            )
+        )
+        self.add_argument(
+            "--github-workflow",
+            default=GITHUB_WORKFLOW,
+            dest="workflow",
+            help=(
+                "Name of GitHub workflow that is generating the Wiki. "
+                "Overrides environment variable GITHUB_WORKFLOW."
+            )
         )
         self.add_argument(
             "--wiki-url",
@@ -677,6 +784,9 @@ class UpdateWikiParser(argparse.ArgumentParser):
 if __name__ == "__main__":
     args = UpdateWikiParser().parse_args()
     CLONE_URL = args.url
+    GITHUB_REPO = args.repo
+    GITHUB_BRANCH = args.branch
+    GITHUB_WORKFLOW = args.workflow
     TEMP_WIKI_DIR = os.path.abspath(args.dir)
     if not os.path.exists(TEMP_WIKI_DIR):
         os.makedirs(TEMP_WIKI_DIR)

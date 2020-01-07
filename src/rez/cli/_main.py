@@ -77,9 +77,6 @@ def setup_parser():
     Returns:
         LazyArgumentParser: Argument parser for rez command.
     """
-
-    sys.dont_write_bytecode = True
-
     parser = LazyArgumentParser("rez")
 
     parser.add_argument("-i", "--info", action=InfoAction,
@@ -124,6 +121,8 @@ def run(command=None):
         arg_mode = subcommands[command].get("arg_mode")
     else:
         arg_mode = None
+
+    sys.dont_write_bytecode = True
 
     parser = setup_parser()
     if arg_mode == "grouped":
