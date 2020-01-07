@@ -545,8 +545,13 @@ def process_markdown_files():
 ################################################################################
 
 def make_cli_source_link():
+    """Create a markdown link to ``make_cli_markdown`` function on GitHub.
+
+    Returns:
+        str: Formatted link to ``make_cli_markdown`` function on GitHub.
+    """
     link = (
-        "[{path}:{func.__name__}]"
+        "[`{path}:{func.__name__}()`]"
         "(https://github.com/{repo}/blob/{branch}/{path}#L{start}-L{end})"
     )
 
