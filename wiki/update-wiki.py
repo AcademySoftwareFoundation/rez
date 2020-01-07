@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Python implementation of old ``update-wiki.sh`` merged with ``process.py``.
 
+*From ``update-wiki.sh``*
+
 This script calls git heavily to:
 1. Takes the content from this repo;
 2. Then writes it into a local clone of https://github.com/nerdvegas/rez.wiki.git;
@@ -13,8 +15,8 @@ See Also:
     Original wiki update script files:
 
     - ``wiki/update-wiki.sh`` at rez 2.50.0, which calls
-    - ``utils/process.py`` at rez.wiki d632328, and
-    - ``utils/update.sh`` at rez.wiki d632328
+    - ``utils/process.py`` from nerdvegas/rez.wiki at d632328, and
+    - ``utils/update.sh`` from nerdvegas/rez.wiki at d632328
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -706,11 +708,11 @@ class MarkdownHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 class UpdateWikiParser(argparse.ArgumentParser):
     """Parser flags, using global variables as defaults."""
-    INIT_DEFAULTS = (
-        ("prog", "update-wiki"),
-        ("description", "Update GitHub Wiki"),
-        ("formatter_class", argparse.ArgumentDefaultsHelpFormatter),
-    )
+    INIT_DEFAULTS = {
+        "prog": "update-wiki",
+        "description": "Update GitHub Wiki",
+        "formatter_class": argparse.ArgumentDefaultsHelpFormatter,
+    }
 
     def __init__(self, **kwargs):
         """Setup default arguments and parser description/program name.
@@ -723,7 +725,7 @@ class UpdateWikiParser(argparse.ArgumentParser):
                 Same key word arguments taken by
                 ``argparse.ArgumentParser.__init__()``
         """
-        for key, value in self.INIT_DEFAULTS:
+        for key, value in self.INIT_DEFAULTS.items():
             kwargs.setdefault(key, value)
         super(UpdateWikiParser, self).__init__(**kwargs)
 

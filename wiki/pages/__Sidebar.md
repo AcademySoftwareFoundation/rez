@@ -31,6 +31,7 @@
 
 - [[Glossary]]
 - [[FAQ]]
+- [[Notes]]
 - [[Credits]]
 
 <details><summary> :construction: Unwritten pages:</summary>
