@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Python implementation of the ``update-wiki.sh``.
+"""Python implementation of old ``update-wiki.sh`` merged with ``process.py``.
 
 This script:
 1. Takes the content from this repo;
@@ -625,8 +625,23 @@ class MarkdownHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 
 class UpdateWikiParser(argparse.ArgumentParser):
-    def __init__(self):
-        super(UpdateWikiParser, self).__init__(prog="Update GitHub Wiki")
+    """Parser flags, using global variables as defaults."""
+
+    def __init__(self, **kwargs):
+        """Setup default arguments and parser description/program name.
+
+        If no parser description/program name are given, default ones will
+        be assigned.
+
+        Args:
+            kwargs (dict[str]):
+                Same key word arguments taken by
+                ``argparse.ArgumentParser.__init__()``
+        """
+        kwargs.setdefault("prog", "update-wiki")
+        kwargs.setdefault("description", "Update GitHub Wiki")
+        super(UpdateWikiParser, self).__init__(**kwargs)
+
         self.add_argument(
             "--no-push",
             action="store_false",

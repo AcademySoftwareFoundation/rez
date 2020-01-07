@@ -9,7 +9,6 @@ on:
     paths:
       - 'wiki/**'
 env:
-  CLONE_URL: "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
   TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
 
 
@@ -33,12 +32,13 @@ jobs:
           python wiki/update-wiki.py \
             --keep-temp \
             --no-push \
-            --wiki-dir="$(pwd)/$TEMP_WIKI_DIR"
+            --wiki-dir="$TEMP_WIKI_DIR" \
+            --wiki-url="https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
 
       - uses: actions/upload-artifact@v1.0.0
         with:
           name: wiki-markdown
-          path: wiki/.rez-gen-wiki-tmp
+          path: ${{ env.TEMP_WIKI_DIR }}
 
 
   publish:
