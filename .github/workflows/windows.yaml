@@ -26,8 +26,11 @@ on:
 jobs:
   main:
     runs-on: windows-2019
+    env:
+      IMAGE_NAME_FILE: ImageNameFile.txt
 
     strategy:
+
       matrix:
         # Needs to match python version of images (see windows-docker-image.yaml)
         python-version:
@@ -37,6 +40,7 @@ jobs:
       fail-fast: false
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v1
 
@@ -44,11 +48,25 @@ jobs:
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          echo "Pulling rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}"
-          docker pull ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}
+          ${docker_image} = "${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}"
+          Write-Output "Pulling ${docker_image}"
+          
+          $ErrorActionPreference = "Continue"
+          docker pull ${docker_image}
+          
+          $ErrorActionPreference = "Stop"
+          if ($LastExitCode -ne 0) {
+            Write-Output "Trying with nerdvegas instead of ${gh_user}."
+            ${docker_image} = ${docker_image}.Replace(${gh_user}, "nerdvegas")
+            
+            Write-Output "Pulling ${docker_image}"
+            docker pull ${docker_image}
+          }
+          
+          ${docker_image} > '${{ env.IMAGE_NAME_FILE }}'
 
       - name: Run Docker image (installs and tests rez)
         run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}
+          ${docker_image} = Get-Content '${{ env.IMAGE_NAME_FILE }}'
+          Write-Output "Running ${docker_image}..."
+          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}
