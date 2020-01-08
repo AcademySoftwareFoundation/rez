@@ -13,6 +13,34 @@ on:
 
 
 jobs:
+  build-py:
+    name: Sphinx HTML Artifact (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - 2.7
+          - 3.6
+          - 3.7
+          - 3.8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Sphinx Build
+        run: python docs/entrypoint.py
+
+      - uses: actions/upload-artifact@master
+        with:
+          name: html-docs-${{ matrix.python-version }}
+          path: docs/_build
+
   build:
     name: Sphinx HTML Artifact
     runs-on: ubuntu-latest
@@ -31,7 +59,7 @@ jobs:
 
       - uses: actions/upload-artifact@master
         with:
-          name: html-docs
+          name: html-docs-sh
           path: docs/_build
 
   publish:
