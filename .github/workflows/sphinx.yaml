@@ -39,7 +39,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Sphinx Build
-        run: python docs/entrypoint.py
+        run: python docs/entrypoint.py --no-docker
 
       - uses: actions/upload-artifact@master
         with:
