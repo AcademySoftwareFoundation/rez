@@ -16,7 +16,7 @@ import tempfile
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
-REQUIREMENTS = ['sphinx-argparse', 'sphinx_rtd_theme', REZ_SOURCE_DIR]
+REQUIREMENTS = ['sphinx_rtd_theme', REZ_SOURCE_DIR]
 DEST_DIR = os.path.join("docs", "_build")
 PIP_PATH_REGEX = re.compile(r"'([^']+)' which is not on PATH.")
 
@@ -100,18 +100,25 @@ def setup_env(env=os.environ):
     return env
 
 
-def print_call(cmdline_args, **print_kwargs):
+def print_call(cmdline_args, *print_args, **print_kwargs):
     """Print command line call for given arguments.
 
 
     Args:
         cmdline_args (list): Command line arguments to print for.
+        print_args (dict): Additional arguments for print function.
         print_kwargs (dict): Keyword arguments for print function.
     """
-    print(
-        'Calling: {}'.format(subprocess.list2cmdline(cmdline_args)),
-        **print_kwargs
-    )
+    width = os.getenv('COLUMNS', 80)
+    out_file = print_kwargs.setdefault('file', os.sys.stdout)
+    message = '{:=^{width}}{nl}{}{nl:=<{width}}'.format(
+        " Calling ",
+        subprocess.list2cmdline(cmdline_args),
+        nl=os.linesep,
+        width=width
+    ),
+    print(message, *print_args, **print_kwargs)
+    out_file.flush()
 
 
 def path_with_pip_scripts(install_stderr, path_env=None):
@@ -158,7 +165,6 @@ def _cli():
             stderr = str(stderr_file.read())
 
         docs_env['PATH'] = path_with_pip_scripts(stderr)
-
         build_args = ('sphinx-build', 'docs', DEST_DIR)
         print_call(build_args)
         os.sys.exit(subprocess.call(build_args, env=docs_env))
