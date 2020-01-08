@@ -14,8 +14,8 @@ on:
 
 jobs:
   build-py:
-    name: Sphinx HTML Artifact (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    name: HTML Artifact - Py${{ matrix.python-version }}) on ${{ matrix.os-version }}
+    runs-on: ${{ matrix.os-version }}-latest
     strategy:
       matrix:
         python-version:
@@ -23,6 +23,10 @@ jobs:
           - 3.6
           - 3.7
           - 3.8
+        os-version:
+          - 'macOS'
+          - 'ubuntu'
+          - 'windows'
 
     steps:
       - name: Checkout
@@ -42,7 +46,7 @@ jobs:
           path: docs/_build
 
   build:
-    name: Sphinx HTML Artifact
+    name: HTML Artifact - sh
     runs-on: ubuntu-latest
 
     steps:
