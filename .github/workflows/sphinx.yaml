@@ -14,9 +14,10 @@ on:
 
 jobs:
   build-py:
-    name: HTML Artifact - Py${{ matrix.python-version }}) on ${{ matrix.os-version }}
+    name: HTML Artifact - ${{ matrix.os-version }} Py${{ matrix.python-version }}
     runs-on: ${{ matrix.os-version }}-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version:
           - 2.7

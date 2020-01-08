@@ -59,14 +59,16 @@ def construct_docker_run_args():
     Returns:
         list[str]: Arguments list for ``subprocess.call()``.
     """
-    user_group_ids = os.getuid(), os.getgid()
-
     docker_args = ["docker", "run", "--interactive", "--rm"]
+
     if os.sys.stdin.isatty() and os.sys.stdout.isatty():
         docker_args.append("--tty")
 
+    if os.name == "posix":
+        user_group_ids = os.getuid(), os.getgid()
+        docker_args += ["--user", ":".join(map(str, user_group_ids))]
+
     docker_args += [
-        "--user", ":".join(map(str, user_group_ids)),
         "--workdir", REZ_SOURCE_DIR,
         "--volume", ":".join([REZ_SOURCE_DIR, REZ_SOURCE_DIR]),
         "python:{v.major}.{v.minor}".format(v=os.sys.version_info),
