@@ -18,6 +18,7 @@ REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 REQUIREMENTS = ['sphinx-argparse', 'sphinx_rtd_theme', REZ_SOURCE_DIR]
 DEST_DIR = os.path.join("docs", "_build")
 
+
 class CliParser(argparse.ArgumentParser):
     """Parser flags, using global variables as defaults."""
     INIT_DEFAULTS = {
@@ -91,19 +92,13 @@ def setup_env(env=os.environ):
     home_dir = os.path.expanduser("~")
     user_base = site.getuserbase()
 
-    print("site.getuserbase()", user_base)
-    print("~", home_dir)
     if os.name == "posix" and os.path.expanduser("~") == "/":
         home_dir = tempfile.mkdtemp()
         user_base = os.path.join(home_dir, user_base.lstrip(os.sep))
         env['HOME'] = home_dir
 
     user_bin = os.path.join(user_base, 'bin')
-    print("home_dir", home_dir)
-    print("user_base", user_base)
-    print("user_bin", user_bin)
-
-    env['PATH'] += os.pathsep + user_bin
+    env['PATH'] += str(os.pathsep + user_bin)
     return env
 
 
@@ -117,6 +112,9 @@ def _cli():
         os.sys.exit(subprocess.call(docker_args))
     else:
         docs_env = setup_env()
+        for key, value in sorted(docs_env.items()):
+            print(key, type(value), value)
+
         build_commands = (
             ['pip', 'install', '--user'] + REQUIREMENTS + args.requirement,
             ('sphinx-build', 'docs', DEST_DIR),
