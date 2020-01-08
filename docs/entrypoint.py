@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 
 
 import argparse
+import errno
 import os
 import re
-import site
 import subprocess
 import tempfile
 
@@ -116,7 +116,7 @@ def print_call(cmdline_args, *print_args, **print_kwargs):
         subprocess.list2cmdline(cmdline_args),
         nl=os.linesep,
         width=width
-    ),
+    )
     print(message, *print_args, **print_kwargs)
     out_file.flush()
 
@@ -156,18 +156,34 @@ def _cli():
         os.sys.exit(subprocess.call(docker_args))
     else:
         docs_env = setup_env()
+
+        # Run pip install for required docs building packages
         pip_args = ['pip', 'install', '--user']
         pip_args += REQUIREMENTS + args.requirement
-
         with tempfile.TemporaryFile() as stderr_file:
             subprocess.check_call(pip_args, env=docs_env, stderr=stderr_file)
             stderr_file.seek(0)
             stderr = str(stderr_file.read())
-
         docs_env['PATH'] = path_with_pip_scripts(stderr)
-        build_args = ('sphinx-build', 'docs', DEST_DIR)
-        print_call(build_args)
-        os.sys.exit(subprocess.call(build_args, env=docs_env))
+
+        # Run sphinx-build docs, falling back to use sphinx-build.exe
+        sphinx_build = 'sphinx-build'
+        build_args = ['docs', DEST_DIR]
+        sphinx_build_args = [sphinx_build] + build_args
+        try:
+            print_call(sphinx_build_args)
+            os.sys.exit(subprocess.call(sphinx_build_args, env=docs_env))
+        except OSError as error:
+            print("errno", error.errno, error.errno == errno.ENOENT, errno.errorcode[error.errno])
+            if error.errno == errno.ENOENT:
+                # Try with .exe for Windows, see GitHub workflows run:
+                # https://github.com/wwfxuk/rez/runs/380329213
+                sphinx_build += '.exe'
+                sphinx_build_args = [sphinx_build] + build_args
+                print_call(sphinx_build_args)
+                os.sys.exit(subprocess.call(sphinx_build_args, env=docs_env))
+            else:
+                raise
 
 
 if __name__ == "__main__":

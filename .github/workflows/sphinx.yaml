@@ -13,7 +13,7 @@ on:
 
 
 jobs:
-  build-py:
+  build:
     name: "HTML Artifact: Py${{matrix.python-version}} ${{matrix.os-version}}"
     runs-on: ${{ matrix.os-version }}-latest
     strategy:
@@ -21,12 +21,12 @@ jobs:
       matrix:
         python-version:
           - 2.7
-          - 3.6
-          - 3.7
-          - 3.8
+          # - 3.6
+          # - 3.7
+          # - 3.8
         os-version:
-          - 'macOS'
-          - 'ubuntu'
+          # - 'macOS'
+          # - 'ubuntu'
           - 'windows'
 
     steps:
@@ -43,28 +43,7 @@ jobs:
 
       - uses: actions/upload-artifact@master
         with:
-          name: html-docs-${{ matrix.python-version }}
-          path: docs/_build
-
-  build:
-    name: HTML Artifact - sh
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-
-      - name: Sphinx Build (no Docker container)
-        run: HOSTNAME="rez-sphinx-build" bash docs/entrypoint.sh
-
-      - uses: actions/upload-artifact@master
-        with:
-          name: html-docs-sh
+          name: html-docs-${{ matrix.python-version }}-${{ matrix.os-version }}
           path: docs/_build
 
   publish:
@@ -76,7 +55,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@master
         with:
-          name: html-docs
+          name: html-docs-3.7-ubuntu
           path: .
 
       - name: Setup git repository
@@ -88,12 +67,11 @@ jobs:
           git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           git checkout -B gh-pages
 
-      - name: Git add and commit
+      - name: Git commit, force push gh-pages
         run: |
           git add .
           git commit \
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}"
-
-      - name: Git force push gh-pages
-        run: git push --force origin gh-pages
+              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}" \
+              && git push --force origin gh-pages \
+              || echo "Nothing new to commit and push"
