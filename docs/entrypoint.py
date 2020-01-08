@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import argparse
 import os
+import re
 import site
 import subprocess
 import tempfile
@@ -17,6 +18,7 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 REQUIREMENTS = ['sphinx-argparse', 'sphinx_rtd_theme', REZ_SOURCE_DIR]
 DEST_DIR = os.path.join("docs", "_build")
+PIP_PATH_REGEX = re.compile(r"'([^']+)' which is not on PATH.")
 
 
 class CliParser(argparse.ArgumentParser):
@@ -90,16 +92,51 @@ def setup_env(env=os.environ):
     """
     env = env.copy()
     home_dir = os.path.expanduser("~")
-    user_base = site.getuserbase()
 
     if os.name == "posix" and os.path.expanduser("~") == "/":
-        home_dir = tempfile.mkdtemp()
-        user_base = os.path.join(home_dir, user_base.lstrip(os.sep))
-        env['HOME'] = home_dir
+        # Fake user's $HOME in container to fix permission issues
+        env['HOME'] = tempfile.mkdtemp()
 
-    user_bin = os.path.join(user_base, 'bin')
-    env['PATH'] += str(os.pathsep + user_bin)
     return env
+
+
+def print_call(cmdline_args, **print_kwargs):
+    """Print command line call for given arguments.
+
+
+    Args:
+        cmdline_args (list): Command line arguments to print for.
+        print_kwargs (dict): Keyword arguments for print function.
+    """
+    print(
+        'Calling: {}'.format(subprocess.list2cmdline(cmdline_args)),
+        **print_kwargs
+    )
+
+
+def path_with_pip_scripts(install_stderr, path_env=None):
+    """Create new PATH variable with missing pip scripts paths added to it.
+
+    Args:
+        install_stderr (str): stderr output from pip install command.
+        path_env (str): Custom PATH env value to start off with.
+
+    Returns:
+        str: New PATH variable value.
+    """
+    if path_env is None:
+        path_env = os.getenv('PATH', '')
+    paths = path_env.split(os.pathsep)
+
+    for match in PIP_PATH_REGEX.finditer(install_stderr):
+        script_path = match.group(1)
+        if script_path not in paths:
+            print("script_path", type(script_path), script_path)
+            for element in os.listdir(script_path):
+                print('-', element)
+            paths.append(script_path)
+
+    return os.pathsep.join(paths)
 
 
 def _cli():
@@ -108,20 +145,23 @@ def _cli():
 
     if args.docker:
         docker_args = construct_docker_run_args() + args.requirement
-        print('Calling "{}"'.format(subprocess.list2cmdline(docker_args)))
+        print_call(docker_args)
         os.sys.exit(subprocess.call(docker_args))
     else:
         docs_env = setup_env()
-        for key, value in sorted(docs_env.items()):
-            print(key, type(value), value)
+        pip_args = ['pip', 'install', '--user']
+        pip_args += REQUIREMENTS + args.requirement
 
-        build_commands = (
-            ['pip', 'install', '--user'] + REQUIREMENTS + args.requirement,
-            ('sphinx-build', 'docs', DEST_DIR),
-        )
-        for command_args in build_commands:
-            print('Calling "{}"'.format(subprocess.list2cmdline(command_args)))
-            subprocess.check_call(command_args, env=docs_env)
+        with tempfile.TemporaryFile() as stderr_file:
+            subprocess.check_call(pip_args, env=docs_env, stderr=stderr_file)
+            stderr_file.seek(0)
+            stderr = str(stderr_file.read())
+
+        docs_env['PATH'] = path_with_pip_scripts(stderr)
+
+        build_args = ('sphinx-build', 'docs', DEST_DIR)
+        print_call(build_args)
+        os.sys.exit(subprocess.call(build_args, env=docs_env))
 
 
 if __name__ == "__main__":
