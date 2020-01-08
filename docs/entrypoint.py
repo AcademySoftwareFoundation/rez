@@ -81,25 +81,6 @@ def construct_docker_run_args():
     return docker_args
 
 
-def setup_env(env=os.environ):
-    """Setup environment dictionary for installing and building docs.
-
-    Args:
-        env (dict): Optional environment variables dictionary to start from.
-
-    Returns:
-        dict[str]: Copy of the modified environment variables mapping.
-    """
-    env = env.copy()
-    home_dir = os.path.expanduser("~")
-
-    if os.name == "posix" and os.path.expanduser("~") == "/":
-        # Fake user's $HOME in container to fix permission issues
-        env['HOME'] = tempfile.mkdtemp()
-
-    return env
-
-
 def print_call(cmdline_args, *print_args, **print_kwargs):
     """Print command line call for given arguments.
 
@@ -138,9 +119,6 @@ def path_with_pip_scripts(install_stderr, path_env=None):
     for match in PIP_PATH_REGEX.finditer(install_stderr):
         script_path = match.group(1)
         if script_path not in paths:
-            print("script_path", type(script_path), script_path)
-            for element in os.listdir(script_path):
-                print('-', element)
             paths.append(script_path)
 
     return os.pathsep.join(paths)
@@ -155,7 +133,11 @@ def _cli():
         print_call(docker_args)
         os.sys.exit(subprocess.call(docker_args))
     else:
-        docs_env = setup_env()
+        docs_env = os.environ.copy()
+
+        # Fake user's $HOME in container to fix permission issues
+        if os.name == "posix" and os.path.expanduser("~") == "/":
+            docs_env['HOME'] = tempfile.mkdtemp()
 
         # Run pip install for required docs building packages
         pip_args = ['pip', 'install', '--user']
@@ -174,11 +156,12 @@ def _cli():
             print_call(sphinx_build_args)
             os.sys.exit(subprocess.call(sphinx_build_args, env=docs_env))
         except OSError as error:
-            print("errno", error.errno, error.errno == errno.ENOENT, errno.errorcode[error.errno])
             if error.errno == errno.ENOENT:
-                # Try with .exe for Windows, see GitHub workflows run:
-                # https://github.com/wwfxuk/rez/runs/380329213
-                sphinx_build += '.exe'
+                # Windows Py2.7 needs full .exe path, see GitHub workflows run:
+                # https://github.com/wwfxuk/rez/runs/380399547
+                latest_path = docs_env['PATH'].split(os.pathsep)[-1]
+                sphinx_build = os.path.join(latest_path, sphinx_build + '.exe')
+
                 sphinx_build_args = [sphinx_build] + build_args
                 print_call(sphinx_build_args)
                 os.sys.exit(subprocess.call(sphinx_build_args, env=docs_env))

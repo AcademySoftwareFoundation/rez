@@ -21,12 +21,12 @@ jobs:
       matrix:
         python-version:
           - 2.7
-          # - 3.6
-          # - 3.7
-          # - 3.8
+          - 3.6
+          - 3.7
+          - 3.8
         os-version:
-          # - 'macOS'
-          # - 'ubuntu'
+          - 'macOS'
+          - 'ubuntu'
           - 'windows'
 
     steps:
