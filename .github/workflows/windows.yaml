@@ -27,7 +27,9 @@ jobs:
   main:
     runs-on: windows-2019
     env:
-      IMAGE_NAME_FILE: ImageNameFile.txt
+      # DockerHub base image name. May switch to GitHub Docker Packages
+      # in the future. See GitHub Issue #789 and PR #830
+      BASE_IMAGE_NAME: "nerdvegas/rez-win-py:${{ matrix.python-version }}"
 
     strategy:
 
@@ -44,29 +46,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
-      - name: Pull docker image
-        run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          ${docker_image} = "${gh_user}/rez-win-py:${{ matrix.python-version }}-${Env:LAST_DOCKER_REVISION}"
-          Write-Output "Pulling ${docker_image}"
-          
-          $ErrorActionPreference = "Continue"
-          docker pull ${docker_image}
-          
-          $ErrorActionPreference = "Stop"
-          if ($LastExitCode -ne 0) {
-            Write-Output "Trying with nerdvegas instead of ${gh_user}."
-            ${docker_image} = ${docker_image}.Replace(${gh_user}, "nerdvegas")
-            
-            Write-Output "Pulling ${docker_image}"
-            docker pull ${docker_image}
-          }
-          
-          ${docker_image} > '${{ env.IMAGE_NAME_FILE }}'
-
       - name: Run Docker image (installs and tests rez)
         run: |
-          ${docker_image} = Get-Content '${{ env.IMAGE_NAME_FILE }}'
-          Write-Output "Running ${docker_image}..."
+          ${Env:LAST_DOCKER_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${docker_image} = "${{ Env.BASE_IMAGE_NAME }}-${Env:LAST_DOCKER_REVISION}"
+
+          Write-Output "Running DockerHub ${docker_image}..."
           docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}
