@@ -251,17 +251,29 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         context.print_info(buf)
         _log(buf.getvalue())
 
+    # preconfigured options
+    pre_configured = ["--use-pep517", "--target=%s" % destpath]
+
     # gather additional pip install options
     pip_extra_opts = extra_args if extra_args else config.pip_extra_args
 
+    # make sure that the target option is overridden if supplied
+    if any("--target=" in opt for opt in pip_extra_opts):
+        # extra args redefines the target option so ignore pre-configured one
+        pre_configured = pre_configured[0:1]
+    # disable pep517 if forced
+    if "--no-use-pep517" in pip_extra_opts:
+        pre_configured = []
+
+    # keep unique opts
+    opts = list(set(pre_configured + pip_extra_opts))
+
     # Build pip commandline
     cmd = [
-        py_exe, "-m", "pip", "install",
-        "--use-pep517",
-        "--target=%s" % destpath
+        py_exe, "-m", "pip", "install"
     ]
 
-    cmd.extend(pip_extra_opts)
+    cmd.extend(opts)
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
