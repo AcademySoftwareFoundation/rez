@@ -695,6 +695,11 @@ max_package_changelog_revisions = 0
 create_executable_script_mode = "single"
 
 # Configurable pip extra arguments passed to the rez-pip install command.
+# Since the rez-pip install command already includes some pre-configured
+# arguments (target, use-pep517) this setting can potentially override the
+# default configuration in a way which can cause package installation issues.
+# It is recommended to refrain from overriding the default arguments and only
+# use this setting for additional arguments that might be needed.
 # https://pip.pypa.io/en/stable/reference/pip_install/#options
 pip_extra_args = []
 

@@ -33,7 +33,7 @@ def setup_parser(parser, completions=False):
         help="package to install or archive/url to install from")
     parser.add_argument(
         "-e", "--extra", nargs=REMAINDER,
-        help="extra args passthrough to pip install"
+        help="extra args passthrough to pip install (overrides pre-configured args if specified)"
     )
 
 def command(opts, parser, extra_arg_groups=None):
