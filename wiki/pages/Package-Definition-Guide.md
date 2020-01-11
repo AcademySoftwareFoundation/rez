@@ -587,12 +587,13 @@ requirements, or with requirements that do not translate well to directories on 
 (such as conflict requirements).
 
 ### help
-*String*
+*String or List of String*
 
     help = "https://github.com/nerdvegas/rez/wiki"
 
 URL for package webpage, or, if a string containing spaces, a command to run. You can show the help
-for a package using the *rez-help* command line tool.
+for a package using the *rez-help* command line tool. If this value is a list, then this represents
+multiple help entries, and you can specify the entry you want to see using the `SECTION` argument.
 
 ### name
 *String (mandatory)*

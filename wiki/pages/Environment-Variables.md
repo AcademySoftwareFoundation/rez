@@ -18,9 +18,13 @@ These are variables that rez generates within a resolved environment (a "context
 * **REZ_USED_TIMESTAMP** - The epoch time when this environment was resolved; OR,
   the value of *REZ_USED_REQUESTED_TIMESTAMP*, if non-zero.
 * **REZ_USED_VERSION** - The version of rez used to resolve this environment.
+* **REZ_SHELL_INIT_TIMESTAMP** - The epoch time when the current shell was instantiated.
+* **REZ_SHELL_INTERACTIVE** - Will be '1' if the shell is interactive, and '0' otherwise
+  (ie, when a command is specified, like `rez-env foo -- mycommand`).
 
 Specifically, per-package, the following variables are generated. Note that for a given
-package name, *"(PKG)"* in the variables below is the uppercased package name.
+package name, *"(PKG)"* in the variables below is the uppercased package name, with any
+dots replaced with underscore:
 
 * **REZ_(PKG)_BASE** - The base directory of the package installation, eg
   *"/packages/utils/1.0.0"*.

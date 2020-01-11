@@ -1,7 +1,7 @@
 
 
 # Update this value to version up Rez. Do not place anything else in this file.
-_rez_version = "2.50.0.method"
+_rez_version = "2.50.1.method"
 
 
 # Copyright 2013-2016 Allan Johns.
