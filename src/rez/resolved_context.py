@@ -1240,7 +1240,7 @@ class ResolvedContext(object):
         context_file = context_filepath or \
             os.path.join(tmpdir, "context.%s" % sh.file_extension())
 
-        # interpret this context and write out the native context file
+        # interpret this context
         executor = self._create_executor(sh, parent_environ)
         executor.env.REZ_RXT_FILE = rxt_file
         executor.env.REZ_CONTEXT_FILE = context_file
@@ -1253,6 +1253,10 @@ class ResolvedContext(object):
         if post_actions_callback:
             post_actions_callback(executor)
 
+        executor.env.REZ_SHELL_INIT_TIMESTAMP = str(int(time.time()))
+        executor.env.REZ_SHELL_INTERACTIVE = "1" if command is None else "0"
+
+        # write out the native context file
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
             f.write(context_code)
