@@ -177,8 +177,8 @@ class BuildSystem(object):
             context: A ResolvedContext object that the build process must be
                 executed within.
             variant (`Variant`): The variant being built.
-            build_path: Where to write temporary build files. May be relative
-                to working_dir.
+            build_path: Where to write temporary build files. May be absolute
+                or relative to working_dir.
             install_path (str): The package repository path to install the
                 package to, if installing. If None, defaults to
                 `config.local_packages_path`.
