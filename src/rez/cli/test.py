@@ -46,6 +46,13 @@ def command(opts, parser, extra_arg_groups=None):
     import os.path
     import sys
 
+    # note that argparse doesn't support mutually exclusive arg groups
+    if opts.inplace and (opts.extra_packages or opts.paths or opts.no_local):
+        parser.error(
+            "Cannot use --inplace in combination with "
+            "--extra-packages/--paths/--no-local"
+        )
+
     if opts.paths is None:
         pkg_paths = (config.nonlocal_packages_path
                      if opts.no_local else None)
@@ -53,6 +60,7 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
+    # run test(s)
     runner = PackageTestRunner(
         package_request=opts.PKG,
         package_paths=pkg_paths,
@@ -60,7 +68,7 @@ def command(opts, parser, extra_arg_groups=None):
         dry_run=opts.dry_run,
         stop_on_fail=opts.stop_on_fail,
         use_current_env=opts.inplace,
-        verbose=True
+        verbose=2
     )
 
     test_names = runner.get_test_names()
@@ -71,6 +79,9 @@ def command(opts, parser, extra_arg_groups=None):
         sys.exit(0)
 
     if opts.list:
+        if sys.stdout.isatty():
+            print("Tests defined in %s:" % uri)
+
         print('\n'.join(test_names))
         sys.exit(0)
 
@@ -88,8 +99,16 @@ def command(opts, parser, extra_arg_groups=None):
             )
             sys.exit(0)
 
+    exitcode = 0
+
     for test_name in run_test_names:
         if not runner.stopped_on_fail:
-            runner.run_test(test_name)
+            ret = runner.run_test(test_name)
+            if ret and not exitcode:
+                exitcode = ret
 
+    print("\n")
     runner.print_summary()
+    print('')
+
+    sys.exit(exitcode)

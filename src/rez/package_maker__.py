@@ -1,5 +1,5 @@
 from rez.utils._version import _rez_version
-from rez.utils.schema import Required, schema_keys
+from rez.utils.schema import Required, schema_keys, extensible_schema_dict
 from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
@@ -29,17 +29,18 @@ package_request_schema = Or(And(basestring, Use(expand_requirement)),
 tests_schema = Schema({
     Optional(basestring): Or(
         Or(basestring, [basestring]),
-        {
+        extensible_schema_dict({
             "command": Or(basestring, [basestring]),
             Optional("requires"): [package_request_schema],
             Optional("run_on"): Or(basestring, [basestring]),
             Optional("on_variants"): Or(
                 bool,
                 {
-                    "requires": [package_request_schema]
+                    "type": "requires",
+                    "value": [package_request_schema]
                 }
             )
-        }
+        })
     )
 })
 

@@ -1,10 +1,11 @@
 """
 Builds packages on local host
 """
+from rez.config import config
 from rez.package_repository import package_repository_manager
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
-from rez.exceptions import BuildError
+from rez.exceptions import BuildError, PackageTestError
 from rez.utils import with_noop
 from rez.utils.logging_ import print_warning
 from rez.utils.base26 import create_unique_base26_symlink
@@ -12,6 +13,8 @@ from rez.utils.colorize import Printer, warning
 from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
     make_path_writable, get_existing_path
 from rez.utils.sourcecode import IncludeModuleManager
+from rez.utils.filesystem import TempDirs
+from rez.package_test import PackageTestRunner, PackageTestResults
 
 from hashlib import sha1
 import json
@@ -25,9 +28,18 @@ class LocalBuildProcess(BuildProcessHelper):
 
     This process builds a package's variants sequentially and on localhost.
     """
+
+    # see `self._run_tests`
+    tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_testing_repo_")
+
     @classmethod
     def name(cls):
         return "local"
+
+    def __init__(self, *nargs, **kwargs):
+        super(LocalBuildProcess, self).__init__(*nargs, **kwargs)
+        self.ran_test_names = set()
+        self.all_test_results = PackageTestResults()
 
     def build(self, install_path=None, clean=False, install=False, variants=None):
         self._print_header("Building %s..." % self.package.qualified_name)
@@ -40,12 +52,19 @@ class LocalBuildProcess(BuildProcessHelper):
             clean=clean,
             install=install)
 
+        self._print_header("Build Summary")
+
+        self._print("\nAll %d build(s) were successful.\n", num_visited)
+
         if None not in build_env_scripts:
             self._print("\nThe following executable script(s) have been created:")
             self._print('\n'.join(build_env_scripts))
             self._print('')
-        else:
-            self._print("\nAll %d build(s) were successful.\n", num_visited)
+
+        if self.all_test_results.num_tests:
+            self.all_test_results.print_summary()
+            print('')
+
         return num_visited
 
     def release(self, release_message=None, variants=None):
@@ -75,6 +94,7 @@ class LocalBuildProcess(BuildProcessHelper):
             variants=variants,
             release_message=release_message)
 
+        # ignore skipped variants
         released_variants = [x for x in released_variants if x is not None]
         num_released = len(released_variants)
 
@@ -91,12 +111,18 @@ class LocalBuildProcess(BuildProcessHelper):
         if released_variants:
             self.post_release(release_message=release_message)
 
-        if self.verbose:
-            msg = "\n%d of %d releases were successful" % (num_released, num_visited)
-            if num_released < num_visited:
-                Printer()(msg, warning)
-            else:
-                self._print(msg)
+        self._print_header("Release Summary")
+
+        msg = "\n%d of %d releases were successful" % (num_released, num_visited)
+        if num_released < num_visited:
+            Printer()(msg, warning)
+        else:
+            self._print(msg)
+
+        if self.all_test_results.num_tests:
+            print('')
+            self.all_test_results.print_summary()
+            print('')
 
         return num_released
 
@@ -223,9 +249,19 @@ class LocalBuildProcess(BuildProcessHelper):
                 build_type=build_type)
 
             if not build_result.get("success"):
+                # delete the possibly partially installed variant payload
+                if install:
+                    self._rmtree(variant_install_path)
+
                 raise BuildError("The %s build system failed." % build_system_name)
 
             if install:
+                # add some installation details to build result
+                build_result.update({
+                    "package_install_path": package_install_path,
+                    "variant_install_path": variant_install_path
+                })
+
                 # the build system can also specify extra files that need to
                 # be installed
                 filepaths = build_result.get("extra_files")
@@ -268,6 +304,12 @@ class LocalBuildProcess(BuildProcessHelper):
             if not os.path.exists(dest_filepath):
                 shutil.copy(filepath, dest_filepath)
 
+    def _rmtree(self, path):
+        try:
+            shutil.rmtree(path)
+        except Exception as e:
+            print_warning("Failed to delete %s - %s", path, e)
+
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):
         if variant.index is not None:
@@ -275,17 +317,45 @@ class LocalBuildProcess(BuildProcessHelper):
                 "Building variant %s (%s)..."
                 % (variant.index, self._n_of_m(variant)))
 
-        # build and possibly install variant
+        # build and possibly install variant (ie the payload, not package.py)
         install_path = install_path or self.package.config.local_packages_path
-        build_result = self._build_variant_base(
-            build_type=BuildType.local,
-            variant=variant,
-            install_path=install_path,
-            clean=clean,
-            install=install)
 
-        # install variant into package repository
+        def cancel_variant_install():
+            if install:
+                pkg_repo = package_repository_manager.get_repository(install_path)
+                pkg_repo.on_variant_install_cancelled(variant.resource)
+
+        try:
+            build_result = self._build_variant_base(
+                build_type=BuildType.local,
+                variant=variant,
+                install_path=install_path,
+                clean=clean,
+                install=install)
+        except BuildError:
+            # indicate to repo that the variant install is cancelled
+            cancel_variant_install()
+
+            raise
+
         if install:
+            # run any tests that are configured to run pre-install
+            try:
+                self._run_tests(
+                    variant,
+                    run_on=["pre_install"],
+                    package_install_path=build_result["package_install_path"]
+                )
+            except PackageTestError:
+                # delete the installed variant payload
+                self._rmtree(build_result["variant_install_path"])
+
+                # indicate to repo that the variant install is cancelled
+                cancel_variant_install()
+
+                raise
+
+            # install variant into package repository (ie update target package.py)
             variant.install(install_path)
 
         return build_result.get("build_env_script")
@@ -296,26 +366,127 @@ class LocalBuildProcess(BuildProcessHelper):
         # test if variant has already been released
         variant_ = variant.install(release_path, dry_run=True)
         if variant_ is not None:
-            self._print_header("Skipping %s: destination variant already exists (%r)"
-                               % (self._n_of_m(variant), variant_.uri))
+            print_warning(
+                "Skipping %s: destination variant already exists (%r)",
+                self._n_of_m(variant), variant_.uri
+            )
             return None
+
+        def cancel_variant_install():
+            pkg_repo = package_repository_manager.get_repository(release_path)
+            pkg_repo.on_variant_install_cancelled(variant.resource)
 
         if variant.index is not None:
             self._print_header("Releasing variant %s..." % self._n_of_m(variant))
 
         # build and install variant
-        self._build_variant_base(
-            build_type=BuildType.central,
-            variant=variant,
-            install_path=release_path,
-            clean=True,
-            install=True)
+        try:
+            build_result = self._build_variant_base(
+                build_type=BuildType.central,
+                variant=variant,
+                install_path=release_path,
+                clean=True,
+                install=True)
+        except BuildError:
+            # indicate to repo that the variant install is cancelled
+            cancel_variant_install()
+
+            raise
+
+        # run any tests that are configured to run pre-install
+        try:
+            self._run_tests(
+                variant,
+                run_on=["pre_release"],
+                package_install_path=build_result["package_install_path"]
+            )
+        except PackageTestError:
+            # delete the installed variant payload
+            self._rmtree(build_result["variant_install_path"])
+
+            # indicate to repo that the variant install is cancelled
+            cancel_variant_install()
+
+            raise
 
         # add release info to variant, and install it into package repository
         release_data = self.get_release_data()
         release_data["release_message"] = release_message
         variant_ = variant.install(release_path, overrides=release_data)
         return variant_
+
+    def _run_tests(self, variant, run_on, package_install_path):
+        """Possibly run package tests on the given variant.
+
+        During an install/release, the following steps occur:
+        1. The variant's payload is installed, but package.py is not yet updated
+           (see `self._build_variant_base`)
+        2. The variant is installed on its own, into a temp package.py
+        3. Tests are run on this temp variant, whose root is patched to point
+           at the real variant payload installation
+        4. On success, the rest of the release process goes ahead, and the real
+           package.py is updated appropriately
+        5. On failure, the release is aborted.
+        """
+        package = variant.parent
+
+        # see if there are tests to run, noop if not
+        test_names = PackageTestRunner.get_package_test_names(
+            package=package,
+            run_on=run_on,
+            ran_once=self.ran_test_names
+        )
+
+        if not test_names:
+            return
+
+        testing_repo_path = self.tmpdir_manager.mkdtemp()
+
+        # install the variant into the temp repo. This just creates the package.py.
+        #
+        # Note: the special attribute '_redirected_base' is supported by the
+        # 'filesystem' package repo class, specifically for this case.
+        #
+        # Note: This adds the temp variant to the global resource cache, which is
+        # not really what we want. This doesn't cause problems however. See
+        # https://github.com/nerdvegas/rez/issues/809
+        #
+        variant.install(
+            path=testing_repo_path,
+            overrides={
+                "_redirected_base": package_install_path
+            }
+        )
+
+        # construct a packages path that guarantees the temp testing variant
+        # will be used
+        package_paths = [testing_repo_path] + config.packages_path
+
+        # run the tests, and raise an exception if any fail. This will abort
+        # the install/release
+        runner = PackageTestRunner(
+            package_request=variant.parent.as_exact_requirement(),
+            package_paths=package_paths,
+            cumulative_test_results=self.all_test_results,
+            stop_on_fail=True,
+            verbose=1
+        )
+
+        for test_name in test_names:
+            if not runner.stopped_on_fail:
+                runner.run_test(test_name)
+                self.ran_test_names.add(test_name)
+
+        if runner.num_tests:
+            print('')
+            runner.print_summary()
+
+        if runner.num_failed:
+            print('')
+            raise PackageTestError(
+                "%d tests failed; the installation has been cancelled"
+                % runner.num_failed
+            )
 
 
 def register_plugin():

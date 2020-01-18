@@ -1286,13 +1286,11 @@ class ResolvedContext(object):
             ['foo==1.2.3', 'bah==1.0.1', 'python==2.7.12']
 
         Returns:
-            `RequirementList`: Context as a list of exact version requirements.
+            List of `PackageRequest`: Context as a list of exact version
+            requests.
         """
-        def to_req(pkg):
-            if pkg.version:
-                return PackageRequest(pkg.name + "==" + str(pkg.version))
-            else:
-                return PackageRequest(pkg.name)
+        def to_req(variant):
+            return PackageRequest(variant.parent.as_exact_requirement())
 
         return map(to_req, self.resolved_packages)
 
