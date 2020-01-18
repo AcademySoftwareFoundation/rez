@@ -1,5 +1,26 @@
 # Change Log
 
+## 2.51.0 (2020-01-18)
+[Source](https://github.com/nerdvegas/rez/tree/2.51.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.50.0...2.51.0)
+
+**Notes**
+
+This release goes a large way to implementing [REP-001](https://github.com/nerdvegas/rez/issues/665)
+
+Includes:
+- Pre-install/release running of package tests;
+- New rez-test `--inplace` option;
+- Correct iteration of tests over variants (variant iteration did not previously exist)
+
+Still to do:
+- rez-test `--interactive` option;
+- rez-test 'development' mode.
+
+**Merged pull requests:**
+
+- Rep001 1 (rez-test improvements) [\#807](https://github.com/nerdvegas/rez/pull/807) ([nerdvegas](https://github.com/nerdvegas))
+- Rep001 2 hooks [\#811](https://github.com/nerdvegas/rez/pull/811) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.50.0 (2019-12-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.50.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.49.0...2.50.0)
 
