@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from build_util import build_directory_recurse, check_visible
 import os.path
+import os
 
 
 def build(source_path, build_path, install_path, targets):
@@ -10,6 +11,10 @@ def build(source_path, build_path, install_path, targets):
     check_visible("foo", "floob")
     import floob
     print(floob.hello())
+
+    # env var should have been set in pre_build_commands
+    if os.getenv("FOO_TEST_VAR") != "hello":
+        raise RuntimeError("Expected $FOO_TEST_VAR to be set")
 
     # do the build
     if "install" not in (targets or []):
