@@ -231,7 +231,7 @@ See [this.base](#thisbase).
     if build.install:
         info("An installation is taking place")
 
-This object is only available in the (pre_build_commands)[Package-Commands#pre-build-commands]
+This object is only available in the [pre_build_commands](Package-Commands#pre-build-commands)
 function. It has the following fields:
 
 #### build.build_type
