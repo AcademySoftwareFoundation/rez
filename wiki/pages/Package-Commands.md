@@ -160,7 +160,7 @@ variables to pass information along to the build system.
 
 The *pre_build_commands* function does just this. It is called prior to the build. Note that info
 about the current build (such as the installation path) is available in a
-(build)[Package-Commands#build] object (other commands functions do not have this object visible).
+[build](Package-Commands#build) object (other commands functions do not have this object visible).
 
 ## A Largish Example
 

@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.52.0 (2020-01-18)
+[Source](https://github.com/nerdvegas/rez/tree/2.52.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.51.0...2.52.0)
+
+**Notes**
+
+Adds a new [pre_build_commands](https://github.com/nerdvegas/rez/wiki/Package-Commands#pre-build-commands)
+package.py attribute, for adding runtime build configuration.
+
+**Merged pull requests:**
+
+- Rep002 pre build commands [\#825](https://github.com/nerdvegas/rez/pull/825) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.51.0 (2020-01-18)
 [Source](https://github.com/nerdvegas/rez/tree/2.51.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.50.0...2.51.0)
 
