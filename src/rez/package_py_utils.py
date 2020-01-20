@@ -54,7 +54,7 @@ def expand_requirement(request, paths=None):
 
     from rez.vendor.version.version import VersionRange
     from rez.vendor.version.requirement import Requirement
-    from rez.packages_ import get_latest_package
+    from rez.packages import get_latest_package
     from uuid import uuid4
 
     wildcard_map = {}
@@ -229,7 +229,7 @@ def find_site_python(module_name, paths=None):
     Returns:
         `Package`: Native python package containing the named module.
     """
-    from rez.packages_ import iter_packages
+    from rez.packages import iter_packages
     import subprocess
     import ast
     import os

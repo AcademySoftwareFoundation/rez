@@ -7,7 +7,7 @@ case, and for that reason we do not want any dependencies.
 """
 from __future__ import absolute_import, print_function
 
-from rez.package_maker__ import make_package
+from rez.package_maker import make_package
 from rez.vendor.version.version import Version
 from rez.utils.lint_helper import env
 from rez.utils.execution import create_executable_script, ExecutableScriptMode

@@ -1,4 +1,4 @@
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 from rez.exceptions import ConfigurationError
 from rez.config import config
 from rez.utils.data_utils import cached_property, cached_class_property

@@ -4,11 +4,11 @@ CMake-based build system
 from __future__ import print_function
 
 from rez.build_system import BuildSystem
-from rez.build_process_ import BuildType
+from rez.build_process import BuildType
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError
 from rez.utils.execution import create_forwarding_script
-from rez.packages_ import get_developer_package
+from rez.packages import get_developer_package
 from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.backport.shutilwhich import which

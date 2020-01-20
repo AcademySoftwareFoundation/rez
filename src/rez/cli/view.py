@@ -30,7 +30,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.utils.formatting import PackageRequest
     from rez.serialise import FileFormat
-    from rez.packages_ import iter_packages
+    from rez.packages import iter_packages
     from rez.status import status
     import sys
 

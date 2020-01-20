@@ -14,7 +14,7 @@ _package = None
 
 
 def get_current_developer_package():
-    from rez.packages_ import get_developer_package
+    from rez.packages import get_developer_package
     from rez.exceptions import PackageMetadataError
 
     global _package
@@ -31,7 +31,7 @@ def get_current_developer_package():
 
 def setup_parser_common(parser):
     """Parser setup common to both rez-build and rez-release."""
-    from rez.build_process_ import get_build_process_types
+    from rez.build_process import get_build_process_types
     from rez.build_system import get_valid_build_systems
 
     process_types = get_build_process_types()
@@ -119,7 +119,7 @@ def get_build_args(opts, parser, extra_arg_groups):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import BuildContextResolveError
-    from rez.build_process_ import create_build_process
+    from rez.build_process import create_build_process
     from rez.build_system import create_build_system
     from rez.serialise import FileFormat
     import sys

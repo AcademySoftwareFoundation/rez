@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 from rez.config import config
 from rez.plugin_managers import plugin_manager
 from rez.exceptions import RezError

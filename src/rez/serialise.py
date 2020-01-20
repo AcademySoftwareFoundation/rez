@@ -9,7 +9,7 @@ import os
 import os.path
 import threading
 
-from rez.package_resources_ import package_rex_keys
+from rez.package_resources import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
 from rez.utils.filesystem import TempDirs

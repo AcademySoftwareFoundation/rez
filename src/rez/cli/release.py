@@ -39,7 +39,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.build_process_ import create_build_process
+    from rez.build_process import create_build_process
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
     from rez.cli.build import get_build_args, get_current_developer_package

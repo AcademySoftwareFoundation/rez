@@ -229,7 +229,7 @@ class Wrapper(object):
                 self._print_conflicting(variants)
                 return 1
             else:
-                from rez.packages_ import iter_packages
+                from rez.packages import iter_packages
                 variant = next(iter(variants))
                 it = iter_packages(name=variant.name)
                 rows = []

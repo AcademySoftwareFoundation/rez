@@ -1,5 +1,5 @@
 from Qt import QtCore, QtWidgets
-from rez.packages_ import Package
+from rez.packages import Package
 
 
 class VariantsList(QtWidgets.QTableWidget):

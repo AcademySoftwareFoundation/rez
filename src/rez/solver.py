@@ -10,7 +10,7 @@ See SOLVER.md for an in-depth description of how this module works.
 from __future__ import print_function
 
 from rez.config import config
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 from rez.package_repository import package_repo_stats
 from rez.utils.logging_ import print_debug
 from rez.utils.data_utils import cached_property

@@ -34,12 +34,12 @@ def ConfigCompleter(prefix, **kwargs):
 
 
 def PackageCompleter(prefix, **kwargs):
-    from rez.packages_ import get_completions
+    from rez.packages import get_completions
     return get_completions(prefix)
 
 
 def PackageFamilyCompleter(prefix, **kwargs):
-    from rez.packages_ import get_completions
+    from rez.packages import get_completions
     return get_completions(prefix, family_only=True)
 
 

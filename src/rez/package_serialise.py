@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from rez.vendor import yaml
 from rez.serialise import FileFormat
-from rez.package_resources_ import help_schema, late_bound
+from rez.package_resources import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
 from rez.utils.schema import extensible_schema_dict

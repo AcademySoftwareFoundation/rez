@@ -1,7 +1,6 @@
 from rez.config import config
-from rez.packages_ import Package
+from rez.packages import Package, create_package
 from rez.serialise import load_from_file, FileFormat, set_objects
-from rez.packages_ import create_package
 from rez.exceptions import PackageMetadataError, InvalidPackageError
 from rez.utils.execution import add_sys_paths
 from rez.utils.sourcecode import SourceCode

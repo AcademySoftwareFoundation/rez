@@ -1,11 +1,11 @@
 """
 test the release system
 """
-from rez.build_process_ import create_build_process
+from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.release_vcs import create_release_vcs
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 from rez.vendor import yaml
 from rez.system import system
 from rez.exceptions import ReleaseError, ReleaseVCSError

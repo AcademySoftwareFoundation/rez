@@ -3,7 +3,7 @@ Builds packages on local host
 """
 from rez.config import config
 from rez.package_repository import package_repository_manager
-from rez.build_process_ import BuildProcessHelper, BuildType
+from rez.build_process import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError, PackageTestError
 from rez.utils import with_noop

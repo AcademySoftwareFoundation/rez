@@ -9,17 +9,17 @@ class TestImports(TestBase):
     def test_1(self):
         """import every file in rez."""
         import rez
-        import rez.build_process_
+        import rez.build_process
         import rez.build_system
         import rez.config
         import rez.exceptions
         import rez.package_help
-        import rez.package_maker__
+        import rez.package_maker
         import rez.package_repository
-        import rez.package_resources_
+        import rez.package_resources
         import rez.package_search
         import rez.package_serialise
-        import rez.packages_
+        import rez.packages
         import rez.plugin_managers
         import rez.release_hook
         import rez.release_vcs

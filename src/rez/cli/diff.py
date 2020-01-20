@@ -19,7 +19,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.packages_ import get_package_from_string
+    from rez.packages import get_package_from_string
     from rez.utils.diff_packages import diff_packages
 
     pkg1 = get_package_from_string(opts.PKG1)

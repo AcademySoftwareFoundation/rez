@@ -10,7 +10,7 @@ import fnmatch
 from collections import defaultdict
 import sys
 
-from rez.packages_ import iter_package_families, iter_packages, get_latest_package
+from rez.packages import iter_package_families, iter_packages, get_latest_package
 from rez.exceptions import PackageFamilyNotFoundError, ResourceContentError
 from rez.util import ProgressBar
 from rez.utils.colorize import critical, info, error, Printer

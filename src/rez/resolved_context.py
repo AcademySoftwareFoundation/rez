@@ -19,7 +19,7 @@ from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez import package_order
-from rez.packages_ import get_variant, iter_packages
+from rez.packages import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError

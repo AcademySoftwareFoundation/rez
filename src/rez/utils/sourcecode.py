@@ -32,7 +32,7 @@ def late():
     this decorator - otherwise it is understood that you want your attribute to
     be a function, not the return value of that function.
     """
-    from rez.package_resources_ import package_rex_keys
+    from rez.package_resources import package_rex_keys
 
     def decorated(fn):
 

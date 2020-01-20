@@ -1,11 +1,11 @@
 """
 test package iteration, serialization etc
 """
-from rez.packages_ import iter_package_families, iter_packages, get_package, \
+from rez.packages import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
 from rez.package_py_utils import expand_requirement
 from rez.package_repository import create_memory_package_repository
-from rez.package_resources_ import package_release_keys
+from rez.package_resources import package_release_keys
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.platform_ import platform_
