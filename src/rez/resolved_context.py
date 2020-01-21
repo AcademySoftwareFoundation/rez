@@ -1254,6 +1254,10 @@ class ResolvedContext(object):
         if post_actions_callback:
             post_actions_callback(executor)
 
+        executor.env.REZ_SHELL_INIT_TIMESTAMP = str(int(time.time()))
+        executor.env.REZ_SHELL_INTERACTIVE = "1" if command is None else "0"
+
+        # write out the native context file
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
             f.write(context_code)

@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.52.1 (2020-01-21)
+[Source](https://github.com/nerdvegas/rez/tree/2.52.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.52.0...2.52.1)
+
+**Merged pull requests:**
+
+- added new env vars - REZ_SHELL_INIT_TIMESTAMP, REZ_SHELL_INTERACTIVE [\#834](https://github.com/nerdvegas/rez/pull/834) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add env-var to record shell init time [\#833](https://github.com/nerdvegas/rez/issues/833)
+
 ## 2.52.0 (2020-01-18)
 [Source](https://github.com/nerdvegas/rez/tree/2.52.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.51.0...2.52.0)
 
