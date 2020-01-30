@@ -1300,8 +1300,8 @@ class Client(threading.local):
             key = key[1]
         if key is None:
             raise Client.MemcachedKeyNoneError("Key is None")
-        if key is '':
-            if key_extra_len is 0:
+        if key == '':
+            if key_extra_len == 0:
                 raise Client.MemcachedKeyNoneError("Key is empty")
 
             #  key is empty but there is some other component to key
