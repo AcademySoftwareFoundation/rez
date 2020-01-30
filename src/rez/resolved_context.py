@@ -22,7 +22,8 @@ from rez import package_order
 from rez.packages_ import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
-from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
+from rez.exceptions import ResolvedContextError, PackageCommandError, \
+    RezError, _NeverError
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
@@ -1642,7 +1643,7 @@ class ResolvedContext(object):
 
         # TODO this is not having any effect. Below, a RexError is getting
         # raised on bad commands code, not a SourceCodeError
-        error_class = SourceCodeError if config.catch_rex_errors else None
+        exc_type = SourceCodeError if config.catch_rex_errors else _NeverError
 
         # set basic package variables and create per-package bindings
         bindings = {}
@@ -1687,7 +1688,7 @@ class ResolvedContext(object):
 
                 try:
                     executor.execute_code(commands, isolate=True)
-                except error_class as e:
+                except exc_type as e:
                     exc = e
 
                 if exc:

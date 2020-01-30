@@ -12,7 +12,8 @@ from string import Formatter
 
 from rez.system import system
 from rez.config import config
-from rez.exceptions import RexError, RexUndefinedVariableError, RezSystemError
+from rez.exceptions import RexError, RexUndefinedVariableError, \
+    RezSystemError, _NeverError
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils import reraise
 from rez.utils.execution import Popen
@@ -1286,7 +1287,7 @@ class RexExecutor(object):
             stack = traceback.format_exc()
             raise RexError("Failed to compile %s:\n\n%s" % (filename, stack))
 
-        error_class = Exception if config.catch_rex_errors else None
+        exc_type = Exception if config.catch_rex_errors else _NeverError
 
         # execute
         if exec_namespace is not None:
@@ -1299,7 +1300,7 @@ class RexExecutor(object):
                 raise
             except SourceCodeError as e:
                 reraise(e, RexError)
-            except error_class as e:
+            except exc_type as e:
                 stack = traceback.format_exc()
                 raise RexError("Failed to exec %s:\n\n%s" % (filename, stack))
 
@@ -1339,13 +1340,13 @@ class RexExecutor(object):
                                 closure=func.__closure__)
         fn.__globals__.update(self.globals)
 
-        error_class = Exception if config.catch_rex_errors else None
+        exc_type = Exception if config.catch_rex_errors else _NeverError
 
         try:
             return fn(*nargs, **kwargs)
         except RexError:
             raise
-        except error_class as e:
+        except exc_type as e:
             from inspect import getfile
 
             stack = traceback.format_exc()
