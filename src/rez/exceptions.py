@@ -185,6 +185,14 @@ class RezGuiQTImportError(ImportError):
     pass
 
 
+class _NeverError(RezError):
+    """Exception that is never raised.
+
+    Used to toggle exception handling in some cases.
+    """
+    pass
+
+
 @contextmanager
 def convert_errors(from_, to, msg=None):
     exc = None

@@ -3,7 +3,7 @@ from __future__ import print_function
 from rez.packages import iter_packages
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
-    ReleaseVCSError
+    ReleaseVCSError, _NeverError
 from rez.utils.logging_ import print_warning
 from rez.utils.colorize import heading, Printer
 from rez.resolved_context import ResolvedContext
@@ -170,7 +170,7 @@ class BuildProcessHelper(BuildProcess):
     """
     @contextmanager
     def repo_operation(self):
-        exc_type = ReleaseVCSError if self.skip_repo_errors else None
+        exc_type = ReleaseVCSError if self.skip_repo_errors else _NeverError
         try:
             yield
         except exc_type as e:
