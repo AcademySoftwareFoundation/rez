@@ -288,6 +288,18 @@ class PackageTestRunner(object):
             requires = test_info["requires"]
             on_variants = test_info["on_variants"]
 
+            # show progress
+            if self.verbose > 1:
+                self._print_header(
+                    "\nRunning test: %s\nPackage: %s\n%s\n",
+                    test_name, variant.uri, '-' * 80
+                )
+            elif self.verbose:
+                self._print_header(
+                    "\nRunning test: %s\n%s\n",
+                    test_name, '-' * 80
+                )
+
             # apply variant selection filter if specified
             if isinstance(on_variants, dict):
                 filter_type = on_variants["type"]
@@ -310,18 +322,6 @@ class PackageTestRunner(object):
                     )
 
                     continue
-
-            # show progress
-            if self.verbose > 1:
-                self._print_header(
-                    "\nRunning test: %s\nPackage: %s\n%s\n",
-                    test_name, variant.uri, '-' * 80
-                )
-            elif self.verbose:
-                self._print_header(
-                    "\nRunning test: %s\n%s\n",
-                    test_name, '-' * 80
-                )
 
             # add requirements to force the current variant to be resolved.
             # TODO this is not perfect, and will need to be updated when
@@ -420,6 +420,8 @@ class PackageTestRunner(object):
             )
 
             if retcode:
+                print_warning("Test command exited with code %d", retcode)
+
                 self._add_test_result(
                     test_name,
                     variant,
@@ -469,9 +471,10 @@ class PackageTestRunner(object):
         Only run test on variants whose direct requirements are a subset of, and
         do not conflict with, the list given in 'value' param.
 
-        For example, if on_variants.requires is ['foo', 'bah'] then only variants
+        For example, if on_variants.value is ['foo', 'bah'] then only variants
         containing both these requirements will be selected; ['!foo', 'bah'] would
-        select those variants with bah present and not foo.
+        select those variants with bah present and not foo; ['!foo'] would
+        select all variants without foo present.
         """
         requires_filter = params["value"]
 
@@ -480,13 +483,12 @@ class PackageTestRunner(object):
         if reqlist.conflict:
             return False
 
-        # test if variant requires is a subset of given requires filter.
-        # This works because RequirementList merges requirements.
+        # If the combined requirements, minus conflict requests, is equal to the
+        # variant's requirements, then this variant is selected.
         #
-        if RequirementList(variant.variant_requires) != reqlist:
-            return False
-
-        return True
+        reqs1 = RequirementList(x for x in reqlist if not x.conflict)
+        reqs2 = RequirementList(x for x in variant.variant_requires if not x.conflict)
+        return (reqs1 == reqs2)
 
     def _get_test_info(self, test_name, variant):
         tests_dict = variant.tests or {}
