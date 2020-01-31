@@ -2,7 +2,7 @@
 In-memory package repository
 """
 from rez.package_repository import PackageRepository
-from rez.package_resources_ import PackageFamilyResource, PackageResource, \
+from rez.package_resources import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema
 from rez.exceptions import PackageMetadataError
 from rez.utils.formatting import is_valid_package_name, PackageRequest

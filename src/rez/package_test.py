@@ -1,6 +1,6 @@
 from rez.config import config
 from rez.resolved_context import ResolvedContext
-from rez.packages_ import get_latest_package_from_string, Variant
+from rez.packages import get_latest_package_from_string, Variant
 from rez.exceptions import RezError, PackageNotFoundError, PackageTestError
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_info, print_warning, print_error

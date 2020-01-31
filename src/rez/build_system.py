@@ -1,8 +1,8 @@
 import os.path
 
-from rez.build_process_ import BuildType
+from rez.build_process import BuildType
 from rez.exceptions import BuildSystemError
-from rez.packages_ import get_developer_package
+from rez.packages import get_developer_package
 
 
 def get_buildsys_types():

@@ -12,7 +12,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.packages_ import get_developer_package
+    from rez.packages import get_developer_package
     from rez.serialise import FileFormat
     from rez.exceptions import PackageMetadataError
     import os.path

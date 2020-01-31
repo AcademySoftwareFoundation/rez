@@ -7,10 +7,10 @@ import os.path
 import os
 
 from rez.system import system
-from rez.build_process_ import create_build_process
+from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
-from rez.packages_ import get_latest_package
+from rez.packages import get_latest_package
 from rez.package_copy import copy_package
 from rez.vendor.version.version import VersionRange
 from rez.tests.util import TestBase, TempdirMixin

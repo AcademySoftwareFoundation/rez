@@ -2,7 +2,7 @@ from Qt import QtWidgets
 from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rez.packages_ import PackageSearchPath
+from rez.packages import PackageSearchPath
 from rez.package_filter import PackageFilterList
 from rez.resolved_context import PatchLock, get_lock_request
 from rez.vendor.version.requirement import RequirementList

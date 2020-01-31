@@ -10,7 +10,7 @@ import time
 import platform
 
 from rez.package_repository import PackageRepository
-from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper, \
+from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
     PackageResourceHelper, package_pod_schema, \
     package_release_keys, package_build_only_keys
 from rez.serialise import clear_file_caches, open_file_for_write

@@ -1,7 +1,7 @@
 """
 test the build system
 """
-from rez.build_process_ import create_build_process
+from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildError, BuildContextResolveError,\

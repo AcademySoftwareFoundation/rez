@@ -7,7 +7,7 @@ from rez.exceptions import ConfigurationError
 from rez.config import Config, get_module_root_config, _replace_config
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
-from rez.packages_ import get_developer_package
+from rez.packages import get_developer_package
 import os
 import os.path
 

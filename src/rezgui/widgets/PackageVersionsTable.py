@@ -2,7 +2,7 @@ from Qt import QtCore, QtWidgets, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.util import get_timestamp_str
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 from rez.exceptions import RezError
 
 

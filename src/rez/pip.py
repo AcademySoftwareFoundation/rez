@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 
-from rez.packages_ import get_latest_package
+from rez.packages import get_latest_package
 from rez.vendor.version.version import Version, VersionError
 from rez.vendor.distlib import DistlibException
 from rez.vendor.distlib.database import DistributionPath
@@ -15,7 +15,7 @@ from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
 from rez.utils.logging_ import print_debug, print_info, print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, RezSystemError, convert_errors
-from rez.package_maker__ import make_package
+from rez.package_maker import make_package
 from rez.config import config
 from rez.system import System
 from rez.utils.platform_ import platform_

@@ -3,7 +3,7 @@ Binds rez-gui as a rez package.
 """
 from __future__ import absolute_import
 import rez
-from rez.package_maker__ import make_package
+from rez.package_maker import make_package
 from rez.bind._utils import check_version, make_dirs
 from rez.system import system
 from rez.vendor.version.version import Version

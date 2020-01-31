@@ -9,7 +9,7 @@ from __future__ import absolute_import, print_function
 
 from rez.bind._utils import check_version, find_exe, make_dirs, \
     get_version_in_python, run_python_command, log
-from rez.package_maker__ import make_package
+from rez.package_maker import make_package
 from rez.exceptions import RezBindError
 from rez.system import system
 from rez.utils.logging_ import print_warning

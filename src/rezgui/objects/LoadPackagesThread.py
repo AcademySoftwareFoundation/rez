@@ -1,5 +1,5 @@
 from Qt import QtCore
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 
 
 class LoadPackagesThread(QtCore.QObject):

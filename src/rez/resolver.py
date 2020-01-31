@@ -1,6 +1,6 @@
 from rez.solver import Solver, SolverStatus, PackageVariantCache
 from rez.package_repository import package_repository_manager
-from rez.packages_ import get_variant, get_last_release_time
+from rez.packages import get_variant, get_last_release_time
 from rez.package_filter import PackageFilterList, TimestampRule
 from rez.utils.memcached import memcached_client, pool_memcached_connections
 from rez.utils.logging_ import log_duration

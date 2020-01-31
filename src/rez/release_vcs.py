@@ -1,5 +1,5 @@
 from rez.exceptions import ReleaseVCSError
-from rez.packages_ import get_developer_package
+from rez.packages import get_developer_package
 from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug

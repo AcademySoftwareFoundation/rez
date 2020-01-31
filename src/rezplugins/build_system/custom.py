@@ -13,8 +13,8 @@ import sys
 import os
 
 from rez.build_system import BuildSystem
-from rez.build_process_ import BuildType
-from rez.packages_ import get_developer_package
+from rez.build_process import BuildType
+from rez.packages import get_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import PackageMetadataError
 from rez.utils.colorize import heading, Printer
