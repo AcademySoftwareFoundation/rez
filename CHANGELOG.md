@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.52.2 (2020-01-31)
+[Source](https://github.com/nerdvegas/rez/tree/2.52.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.52.1...2.52.2)
+
+**Merged pull requests:**
+
+- deprecate trailing underscored sourcefiles [\#839](https://github.com/nerdvegas/rez/pull/839) ([nerdvegas](https://github.com/nerdvegas))
+- Minor pr3 fixes [\#840](https://github.com/nerdvegas/rez/pull/840) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.52.1 (2020-01-21)
 [Source](https://github.com/nerdvegas/rez/tree/2.52.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.52.0...2.52.1)
 
