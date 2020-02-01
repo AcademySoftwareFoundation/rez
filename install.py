@@ -16,12 +16,13 @@ source_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
+# Note: The following imports are carefully selected, they will work even
+# though rez is not yet built.
+#
 from rez.utils._version import _rez_version
 from rez.cli._entry_points import get_specifications
 from rez.backport.shutilwhich import which
 from rez.vendor.distlib.scripts import ScriptMaker
-from rez.package_maker__ import make_package
-from rez.system import system
 
 from build_utils.virtualenv.virtualenv import create_environment, path_locations
 
@@ -100,12 +101,11 @@ def copy_completion_scripts(dest_dir):
     return None
 
 
-def install(dest_dir, verbosity=0):
+def install(dest_dir, print_welcome=False):
     """Install rez into the given directory.
 
     Args:
         dest_dir (str): Full path to the install directory.
-        verbosity (int): Level of verbosity (typically from args).
     """
     print("installing rez to %s..." % dest_dir)
 
@@ -129,25 +129,26 @@ def install(dest_dir, verbosity=0):
         f.write(_rez_version)
 
     # done
-    print()
-    print("SUCCESS! To activate Rez, add the following path to $PATH:")
-    print(dest_bin_dir)
+    if print_welcome:
+        print()
+        print("SUCCESS! To activate Rez, add the following path to $PATH:")
+        print(dest_bin_dir)
 
-    if completion_path:
+        if completion_path:
+            print('')
+            shell = os.getenv('SHELL')
+
+            if shell:
+                shell = os.path.basename(shell)
+                ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
+
+                print("You may also want to source the completion script (for %s):" % shell)
+                print("source {0}/complete.{1}".format(completion_path, ext))
+            else:
+                print("You may also want to source the relevant completion script from:")
+                print(completion_path)
+
         print('')
-        shell = os.getenv('SHELL')
-
-        if shell:
-            shell = os.path.basename(shell)
-            ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
-
-            print("You may also want to source the completion script (for %s):" % shell)
-            print("source {0}/complete.{1}".format(completion_path, ext))
-        else:
-            print("You may also want to source the relevant completion script from:")
-            print(completion_path)
-
-    print('')
 
 
 def install_rez_from_source(dest_dir):
@@ -157,69 +158,38 @@ def install_rez_from_source(dest_dir):
     run_command([py_executable, "-m", "pip", "install", "."])
 
 
-def install_as_package(pkgs_path, pkg_name='rez', verbosity=0):
-    """Installs rez as a production rez package (uses virtual environment).
+def install_as_rez_package(repo_path):
+    """Installs rez as a rez package.
 
-    Calls the ``install()`` function internally from the ``make_package``
-    context.
+    Note that this can be used to install new variants of rez into an existing
+    rez package (you may require multiple platform installations for example).
 
     Args:
-        pkgs_path (str): Full path to the install directory.
-        pkg_name (str): Custom name for the rez package to insall rez as.
-        verbosity (int): Level of verbosity (typically from args).
+        repo_path (str): Full path to the package repository to install into.
     """
+    from tempfile import mkdtemp
 
-    def make_root(variant, root):
-        """Performs install and copies rez python modules.
+    # do a temp production (venv-based) rez install
+    tmpdir = mkdtemp(prefix="rez-install-")
+    install(tmpdir)
 
-        This mimics the ``rez bind -i rez`` where only the rez Python modules
-        are exposed to ``PYTHONPATH``.
+    try:
+        # This extracts a rez package from the installation. See
+        # rez.utils.installer.install_as_rez_package for more details.
+        #
+        args = (
+            os.path.join(tmpdir, "bin", "python"), "-E", "-c",
+            r"from rez.utils.installer import install_as_rez_package;"
+            r"install_as_rez_package('%s')" % repo_path
+        )
+        print(subprocess.check_output(args))
 
-        Args:
-            variant (rez.packages_.Variant): Install/current package's variant.
-            root (str): Install folder (see also ``REZ_BUILD_INSTALL_PATH``).
-        """
-        install(root, verbosity=verbosity)
-
-        python_folder = os.path.join(root, 'python')
-        os.mkdir(python_folder)
-
-        rez_python = os.path.join(root, 'bin', 'python')
-        modules_args = [
-            rez_python, '-E', '-c',
-            r'import pkg_resources;'
-            r'rez = pkg_resources.working_set.by_key["rez"];'
-            r'print(rez.location);'  # venv Python site-packages
-            r'print("\n".join(rez._get_metadata("top_level.txt")))'
-        ]
-        modules_stdout = str(subprocess.check_output(modules_args))
-        location = None
-        for line in filter(None, modules_stdout.splitlines()):
-            if location is None:
-                location = line
-            else:
-                src = os.path.join(location, line)
-                dest = os.path.join(python_folder, line)
-                shutil.copytree(src, dest)
-
-    def commands():
-        """Setup PYTHONPATH (inspired by src/rez/bind/rez.py)."""
-        import os
-        env.PATH.append(os.path.join('{root}', 'bin', 'rez'))
-        env.PYTHONPATH.append(os.path.join('{root}', 'python'))
-
-        if defined('SHELL'):
-            is_csh = "csh" in str(env.SHELL)
-            ext = "csh" if is_csh else "sh"  # Basic selection logic
-            source(os.path.join('{root}', 'completion', 'complete.' + ext))
-
-    with make_package(pkg_name, pkgs_path, make_root=make_root) as pkg:
-        pkg.version = _rez_version
-        pkg.commands = commands
-        pkg.description = 'Standalone, production-ready Rez installation'
-        pkg.variants = [[
-            "platform-{0}".format(system.platform),
-            "python-{0.major}.{0.minor}".format(sys.version_info)]]
+    finally:
+        # cleanup temp install
+        try:
+            shutil.rmtree(tmpdir)
+        except:
+            pass
 
 
 if __name__ == "__main__":
@@ -233,20 +203,15 @@ if __name__ == "__main__":
         '-s', '--keep-symlinks', action="store_true", default=False,
         help="Don't run realpath on the passed DIR to resolve symlinks; "
              "ie, the baked script locations may still contain symlinks")
-    package_group = parser.add_mutually_exclusive_group()
-    package_group.add_argument(
-        '-p', '--as-rez-package', dest='package',
-        action="store_const", const="rez",
-        help="Install using rez package structure as 'rez'. "
-             "(DIR should be a rez packages directory)")
-    package_group.add_argument(
-        '-P', '--as-package', dest='package',
-        help="Given a package name, install using rez package structure. "
-             "(DIR should be a rez packages directory)")
     parser.add_argument(
-        "DIR", default="/opt/rez", nargs='?',
+        '-p', '--as-rez-package', action="store_true",
+        help="Install rez as a rez package. Note that this installs the API "
+        "only (no cli tools), and DIR is expected to be the path to a rez "
+        "package repository (and will default to ~/packages instead).")
+    parser.add_argument(
+        "DIR", nargs='?',
         help="Destination directory. If '{version}' is present, it will be "
-        "expanded to the rez version. Default: %(default)s")
+        "expanded to the rez version. Default: /opt/rez")
 
     opts = parser.parse_args()
 
@@ -257,13 +222,24 @@ if __name__ == "__main__":
         )
 
     # determine install path
-    dest_dir = opts.DIR.format(version=_rez_version)
+    if opts.DIR:
+        path = opts.DIR
+    elif opts.as_rez_package:
+        path = "~/packages"
+    else:
+        path = "/opt/rez"
+
+    if opts.as_rez_package:
+        dest_dir = path
+    else:
+        dest_dir = path.format(version=_rez_version)
+
     dest_dir = os.path.expanduser(dest_dir)
     if not opts.keep_symlinks:
         dest_dir = os.path.realpath(dest_dir)
 
-    if opts.package:
-        install_as_package(
-            dest_dir, opts.package, verbosity=opts.verbose)
+    # perform the installation
+    if opts.as_rez_package:
+        install_as_rez_package(dest_dir)
     else:
-        install(dest_dir, verbosity=opts.verbose)
+        install(dest_dir, print_welcome=True)
