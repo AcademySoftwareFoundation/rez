@@ -238,8 +238,19 @@ class ActionManager(object):
             return bool(self.verbose)
 
     def _format(self, value):
-        # note that the default formatter is just str()
-        return EscapedString.promote(value).formatted(self.formatter)
+        # It would be unexpected to get var expansion on the str repr of an
+        # object, so don't do that.
+        #
+        if not isinstance(value, (basestring, EscapedString)):
+            return str(value)
+
+        # Perform expansion on non-literal parts of the string. If any
+        # expansion fails, just return unformatted string.
+        #
+        try:
+            return EscapedString.promote(value).formatted(self.formatter)
+        except (KeyError, ValueError):
+            return value
 
     def _expand(self, value):
         def _fn(str_):
