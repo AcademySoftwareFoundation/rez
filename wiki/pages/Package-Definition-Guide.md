@@ -630,6 +630,17 @@ pass; then, all *commands* are run in a second; and lastly, *post_commands* are 
 phase. It is sometimes useful to ensure that some of a package's commands are run before, or after
 all others, and using pre/post_commands is a way of doing that.
 
+### pre_test_commands
+*Function*
+
+    def pre_test_commands():
+        if test.name == "unit":
+            env.IS_UNIT_TEST = 1
+
+This is similar to *commands*, except that it is run prior to each test defined in
+[tests](#tests)
+See [here](Package-Commands#pre-test-commands) for more details.
+
 ### relocatable
 *Boolean*
 
@@ -749,6 +760,7 @@ but with differing dependencies. See the [variants chapter](Variants) for furthe
 
 This is the version of the package. See [here](Basic-Concepts#versions) for further details on valid
 package versions.
+
 
 ## Build Time Package Attributes
 
