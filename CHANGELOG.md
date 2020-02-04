@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.53.0 (2020-02-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.53.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.52.2...2.53.0)
+
+**Merged pull requests:**
+
+- [Feature] Add rez-pip extra args passthrough [\#827](https://github.com/nerdvegas/rez/pull/827) ([lambdaclan](https://github.com/lambdaclan))
+
+**Closed issues:**
+
+- rez-pip creates .pyc files by default [\#816](https://github.com/nerdvegas/rez/issues/816)
+
 ## 2.52.2 (2020-01-31)
 [Source](https://github.com/nerdvegas/rez/tree/2.52.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.52.1...2.52.2)
 
