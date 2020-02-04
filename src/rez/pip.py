@@ -17,7 +17,6 @@ from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, RezSystemError, convert_errors
 from rez.package_maker import make_package
 from rez.config import config
-from rez.system import System
 from rez.utils.platform_ import platform_
 
 from tempfile import mkdtemp
@@ -251,36 +250,25 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         context.print_info(buf)
         _log(buf.getvalue())
 
-    # preconfigured options
-    pre_configured = ["--use-pep517", "--target=%s" % destpath]
-
-    # gather additional pip install options
-    pip_extra_opts = extra_args if extra_args else config.pip_extra_args
-
-    # make sure that the target option is overridden if supplied
-    if any("--target=" in opt for opt in pip_extra_opts):
-        # extra args redefines the target option so ignore pre-configured one
-        pre_configured = pre_configured[0:1]
-    # disable pep517 if forced
-    if "--no-use-pep517" in pip_extra_opts:
-        pre_configured = []
-
-    # keep unique opts
-    opts = list(set(pre_configured + pip_extra_opts))
-
     # Build pip commandline
-    cmd = [
-        py_exe, "-m", "pip", "install"
-    ]
+    cmd = [py_exe, "-m", "pip", "install"]
 
-    cmd.extend(opts)
+    _extra_args = extra_args or config.pip_extra_args or []
 
-    if mode == InstallMode.no_deps:
+    if "--no-use-pep517" not in _extra_args:
+        cmd.append("--use-pep517")
+
+    if not _option_present(_extra_args, "-t", "--target"):
+        cmd.append("--target=%s" % destpath)
+
+    if mode == InstallMode.no_deps and "--no-deps" not in _extra_args:
         cmd.append("--no-deps")
+
+    cmd.extend(_extra_args)
     cmd.append(source_name)
 
+    # run pip
     _cmd(context=context, command=cmd)
-    _system = System()
 
     # determine version of python in use
     if context is None:
@@ -422,6 +410,14 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     shutil.rmtree(tmpdir)
 
     return installed_variants, skipped_variants
+
+
+def _option_present(opts, *args):
+    for opt in opts:
+        for arg in args:
+            if opt == arg or opt.startswith(arg + '='):
+                return True
+    return False
 
 
 def _cmd(context, command):
