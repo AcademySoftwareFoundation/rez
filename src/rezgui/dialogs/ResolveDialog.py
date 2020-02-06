@@ -274,7 +274,7 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
 
         if self.resolver.success():
             if self.advanced:
-                sbuf = StringIO.StringIO()
+                sbuf = StringIO()
                 self.resolver.context.print_info(buf=sbuf)
                 msg = "\nTHE RESOLVE SUCCEEDED:\n\n"
                 msg += sbuf.getvalue()
