@@ -1,4 +1,4 @@
-from Qt import QtCore, QtWidgets
+from Qt import QtCompat, QtCore, QtWidgets
 
 
 class ContextEnvironTable(QtWidgets.QTableWidget):
@@ -19,7 +19,8 @@ class ContextEnvironTable(QtWidgets.QTableWidget):
         hh.setVisible(False)
         vh = self.verticalHeader()
         vh.setVisible(False)
-        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            vh, QtWidgets.QHeaderView.ResizeToContents)
         self.setEnabled(False)
 
     def clear(self):
