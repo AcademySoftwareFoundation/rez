@@ -1,5 +1,22 @@
 # Change Log
 
+## 2.53.1 (2020-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.53.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.53.0...2.53.1)
+
+**Notes**
+
+Misc Python-3 related issues.
+
+**Merged pull requests:**
+
+- PR: Fix "StringIO" imports and accesses. [\#850](https://github.com/nerdvegas/rez/pull/850) ([KelSolaar](https://github.com/KelSolaar))
+- PR: Use "QtCompat" to handle "QHeaderView" incompatibilities and fix broken "resolve" button in "rez-gui". [\#851](https://github.com/nerdvegas/rez/pull/851) ([KelSolaar](https://github.com/KelSolaar))
+
+**Closed issues:**
+
+- "ImportError" exception raised while using "rez-gui" in Python 3. [\#848](https://github.com/nerdvegas/rez/issues/848)
+- "AttributeError" exception raised when using "rez-gui" Package Browser with Pyside2 . [\#849](https://github.com/nerdvegas/rez/issues/849)
+
 ## 2.53.0 (2020-02-04)
 [Source](https://github.com/nerdvegas/rez/tree/2.53.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.52.2...2.53.0)
 
