@@ -1,4 +1,4 @@
-from Qt import QtCore, QtWidgets, QtGui
+from Qt import QtCompat, QtCore, QtWidgets, QtGui
 from rezgui.util import update_font, create_pane, interp_color
 from rezgui.widgets.EffectivePackageCellWidget import EffectivePackageCellWidget
 from rezgui.widgets.PackageSelectWidget import PackageSelectWidget
@@ -306,7 +306,8 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         hh.setDefaultSectionSize(12 * self.fontMetrics().height())
 
         vh = self.verticalHeader()
-        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            vh, QtWidgets.QHeaderView.ResizeToContents)
         vh.setVisible(False)
 
         self.delegate = CellDelegate(self)
@@ -432,7 +433,8 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
 
             if self.diff_mode:
                 hh = self.horizontalHeader()
-                hh.setResizeMode(2, QtWidgets.QHeaderView.Fixed)
+                QtCompat.QHeaderView.setSectionResizeMode(
+                    hh, 2, QtWidgets.QHeaderView.Fixed)
                 self.setColumnWidth(2, 50)
 
             if self.context():
