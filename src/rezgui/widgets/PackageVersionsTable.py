@@ -1,4 +1,4 @@
-from Qt import QtCore, QtWidgets, QtGui
+from Qt import QtCompat, QtCore, QtWidgets, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.util import get_timestamp_str
@@ -29,7 +29,8 @@ class PackageVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
         hh = self.horizontalHeader()
         hh.setStretchLastSection(True)
         vh = self.verticalHeader()
-        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            vh, QtWidgets.QHeaderView.ResizeToContents)
         self.clear()
 
     def clear(self):

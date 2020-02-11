@@ -100,14 +100,14 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
             self._revert_to_disk, "revert_to_disk")
         self.revert_tbtn.setMenu(self.revert_menu)
 
-        resolve_tbtn = QtWidgets.QToolButton()
-        resolve_tbtn.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
-        menu = QtWidgets.QMenu()
+        self.resolve_tbtn = QtWidgets.QToolButton()
+        self.resolve_tbtn.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
+        menu = QtWidgets.QMenu(self.resolve_tbtn)
         default_resolve_action = add_menu_action(menu, "Resolve", self._resolve, "resolve")
         add_menu_action(menu, "Advanced Resolve...",
                         partial(self._resolve, advanced=True), "advanced_resolve")
-        resolve_tbtn.setDefaultAction(default_resolve_action)
-        resolve_tbtn.setMenu(menu)
+        self.resolve_tbtn.setDefaultAction(default_resolve_action)
+        self.resolve_tbtn.setMenu(menu)
 
         toolbar = QtWidgets.QToolBar()
         toolbar.addWidget(resolve_time_label)
@@ -119,7 +119,7 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
         self.undiff_tbtn_action = toolbar.addWidget(self.undiff_tbtn)
         toolbar.addWidget(self.lock_tbtn)
         toolbar.addWidget(self.revert_tbtn)
-        toolbar.addWidget(resolve_tbtn)
+        toolbar.addWidget(self.resolve_tbtn)
         self.time_lock_tbtn_action.setVisible(False)
         self.undiff_tbtn_action.setVisible(False)
 
@@ -129,7 +129,7 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
         self.diff_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.lock_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.revert_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
-        resolve_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
+        self.resolve_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
 
         btn_pane = create_pane([self.show_effective_request_checkbox,
                                 None, toolbar],

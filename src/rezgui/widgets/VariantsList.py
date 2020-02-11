@@ -1,4 +1,4 @@
-from Qt import QtCore, QtWidgets
+from Qt import QtCompat, QtCore, QtWidgets
 from rez.packages import Package
 
 
@@ -20,7 +20,8 @@ class VariantsList(QtWidgets.QTableWidget):
         hh.setStretchLastSection(True)
         hh.setVisible(False)
         vh = self.verticalHeader()
-        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            vh, QtWidgets.QHeaderView.ResizeToContents)
         vh.setVisible(False)
 
     def set_package(self, package):

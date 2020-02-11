@@ -1,4 +1,4 @@
-from Qt import QtCore, QtWidgets, QtGui
+from Qt import QtCompat, QtCore, QtWidgets, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.package_filter import PackageFilterList
 from rezgui.util import get_timestamp_str, update_font, get_icon_widget, create_pane
@@ -28,7 +28,8 @@ class VariantVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
         hh = self.horizontalHeader()
         hh.setVisible(False)
         vh = self.verticalHeader()
-        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            vh, QtWidgets.QHeaderView.ResizeToContents)
 
         self.clear()
 
@@ -64,7 +65,8 @@ class VariantVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
 
         hh = self.horizontalHeader()
         self.setHorizontalHeaderLabels(["path", "released"])
-        hh.setResizeMode(0, QtWidgets.QHeaderView.Interactive)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            hh, 0, QtWidgets.QHeaderView.Interactive)
         hh.setStretchLastSection(True)
         hh.setVisible(True)
 

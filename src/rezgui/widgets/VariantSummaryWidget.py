@@ -1,4 +1,4 @@
-from Qt import QtCore, QtWidgets
+from Qt import QtCompat, QtCore, QtWidgets
 from rezgui.util import create_pane, get_timestamp_str
 from rez.packages import Package, Variant
 from rez.util import find_last_sublist
@@ -21,7 +21,8 @@ class VariantSummaryWidget(QtWidgets.QWidget):
         hh.setStretchLastSection(True)
         hh.setVisible(False)
         vh = self.table.verticalHeader()
-        vh.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            vh, QtWidgets.QHeaderView.ResizeToContents)
 
         create_pane([self.label, self.table], False, compact=True,
                     parent_widget=self)

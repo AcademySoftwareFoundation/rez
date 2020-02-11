@@ -1,4 +1,4 @@
-from Qt import QtCore, QtWidgets
+from Qt import QtCompat, QtCore, QtWidgets
 from rezgui.widgets.ToolWidget import ToolWidget
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
@@ -35,7 +35,8 @@ class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
 
         h = self.header()
         h.stretchLastSection()
-        h.setResizeMode(QtWidgets.QHeaderView.Fixed)
+        QtCompat.QHeaderView.setSectionResizeMode(
+            h, QtWidgets.QHeaderView.Fixed)
         h.setVisible(False)
 
         self.setColumnCount(2)
