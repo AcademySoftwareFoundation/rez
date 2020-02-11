@@ -6,9 +6,9 @@ from rezgui.widgets.TimestampWidget import TimestampWidget
 from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.ResolveThread import ResolveThread
 from rezgui.objects.App import app
+from rez.vendor.six.six import StringIO
 from rez.vendor.version.requirement import Requirement
 from rez.config import config
-import StringIO
 
 
 class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
@@ -274,7 +274,7 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
 
         if self.resolver.success():
             if self.advanced:
-                sbuf = StringIO.StringIO()
+                sbuf = StringIO()
                 self.resolver.context.print_info(buf=sbuf)
                 msg = "\nTHE RESOLVE SUCCEEDED:\n\n"
                 msg += sbuf.getvalue()
