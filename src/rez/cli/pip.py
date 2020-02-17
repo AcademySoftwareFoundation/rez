@@ -36,9 +36,12 @@ def setup_parser(parser, completions=False):
         help="extra args passthrough to pip install (overrides pre-configured args if specified)"
     )
 
+
 def command(opts, parser, extra_arg_groups=None):
+    from rez.config import config
+    config.debug_package_release = opts.verbose  # Used by rez.pip._verbose
+
     from rez.pip import pip_install_package, run_pip_command
-    import sys
     import warnings
 
     if not (opts.search or opts.install):
