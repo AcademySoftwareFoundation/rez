@@ -563,8 +563,9 @@ shell_error_truncate_cap = 750
 # the 'relocatable' attribute in its package definition file.
 default_relocatable = True
 
-# The default working directory for a package build, relative to the package
-# source directory (this is typically where temporary build files are written).
+# The default working directory for a package build, either absolute path or
+# relative to the package source directory (this is typically where temporary
+# build files are written).
 build_directory = "build"
 
 # The number of threads a build system should use, eg the make '-j' option.

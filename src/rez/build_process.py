@@ -104,8 +104,11 @@ class BuildProcess(object):
             raise BuildProcessError(
                 "Build process was instantiated with a mismatched VCS instance")
 
-        self.build_path = os.path.join(self.working_dir,
-                                       self.package.config.build_directory)
+        if os.path.isabs(self.package.config.build_directory):
+            self.build_path = self.package.config.build_directory
+        else:
+            self.build_path = os.path.join(self.working_dir,
+                                           self.package.config.build_directory)
 
     @property
     def package(self):
