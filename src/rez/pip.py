@@ -288,6 +288,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     distribution_path = DistributionPath([destpath])
     distributions = list(distribution_path.get_distributions())
     dist_names = [x.name for x in distributions]
+    bin_prefix = os.path.join('..', '..', 'bin') + os.sep
+    lib_py_prefix = os.path.join('..', '..', 'lib', 'python') + os.sep
 
     # get list of package and dependencies
     for distribution in distributions:
@@ -321,7 +323,6 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             # installation as such we need to point the bin files to the
             # expected location to match wheel RECORD files
             installed_filepath = os.path.normpath(installed_file[0])
-            bin_prefix = os.path.join('..', '..', 'bin') + os.sep
 
             if installed_filepath.startswith(bin_prefix):
                 # account for extra parentdir as explained above
@@ -330,6 +331,17 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 installed = os.path.join(destpath, installed_filepath)
 
             source_file = os.path.normpath(installed)
+
+            # Hotfix: Try again without ../../lib/python/ prefix (#821)
+            try_without_lib_python = (
+                installed_filepath.startswith(lib_py_prefix)
+                and not os.path.exists(source_file)
+            )
+            if try_without_lib_python:
+                installed_filepath = installed_filepath[len(lib_py_prefix):]
+                installed = os.path.join(destpath, installed_filepath)
+                source_file = os.path.normpath(installed)
+                _log("Trying with source file: {}".format(source_file))
 
             if os.path.exists(source_file):
                 destination_file = os.path.relpath(source_file, stagingdir)
@@ -343,6 +355,13 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 src_dst_lut[source_file] = [destination_file, exe]
             else:
                 _log("Source file does not exist: " + source_file + "!")
+
+        # Sanity warning to see if any python files will be copied
+        if not any(map(".py".__contains__, src_dst_lut)):
+            message = 'No *.py source files exist for {}!'
+            if not _verbose:
+                message += '\nTry again with rez-pip --verbose ...'
+            print_warning(message.format(distribution.name_and_version))
 
         def make_root(variant, path):
             """Using distlib to iterate over all installed files of the current
