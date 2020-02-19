@@ -16,6 +16,9 @@ source_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
+# Note: The following imports are carefully selected, they will work even
+# though rez is not yet built.
+#
 from rez.utils._version import _rez_version
 from rez.cli._entry_points import get_specifications
 from rez.backport.shutilwhich import which
@@ -98,41 +101,12 @@ def copy_completion_scripts(dest_dir):
     return None
 
 
-def install_rez_from_source(dest_dir):
-    _, py_executable = get_py_venv_executable(dest_dir)
+def install(dest_dir, print_welcome=False):
+    """Install rez into the given directory.
 
-    # install via pip
-    run_command([py_executable, "-m", "pip", "install", "."])
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Rez installer")
-    parser.add_argument(
-        '-v', '--verbose', action='count', dest='verbose', default=0,
-        help="Increase verbosity.")
-    parser.add_argument(
-        '-s', '--keep-symlinks', action="store_true", default=False,
-        help="Don't run realpath on the passed DEST_DIR to resolve symlinks; "
-             "ie, the baked script locations may still contain symlinks")
-    parser.add_argument(
-        "DIR", default="/opt/rez", nargs='?',
-        help="Destination directory. If '{version}' is present, it will be "
-        "expanded to the rez version. Default: %(default)s")
-
-    opts = parser.parse_args()
-
-    if " " in os.path.realpath(__file__):
-        parser.error(
-            "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n"
-            "Please move installation files to another location or rename offending folder(s).\n"
-        )
-
-    # determine install path
-    dest_dir = opts.DIR.format(version=_rez_version)
-    dest_dir = os.path.expanduser(dest_dir)
-    if not opts.keep_symlinks:
-        dest_dir = os.path.realpath(dest_dir)
-
+    Args:
+        dest_dir (str): Full path to the install directory.
+    """
     print("installing rez to %s..." % dest_dir)
 
     # create the virtualenv
@@ -155,22 +129,117 @@ if __name__ == "__main__":
         f.write(_rez_version)
 
     # done
-    print()
-    print("SUCCESS! To activate Rez, add the following path to $PATH:")
-    print(dest_bin_dir)
+    if print_welcome:
+        print()
+        print("SUCCESS! To activate Rez, add the following path to $PATH:")
+        print(dest_bin_dir)
 
-    if completion_path:
+        if completion_path:
+            print('')
+            shell = os.getenv('SHELL')
+
+            if shell:
+                shell = os.path.basename(shell)
+                ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
+
+                print("You may also want to source the completion script (for %s):" % shell)
+                print("source {0}/complete.{1}".format(completion_path, ext))
+            else:
+                print("You may also want to source the relevant completion script from:")
+                print(completion_path)
+
         print('')
-        shell = os.getenv('SHELL')
 
-        if shell:
-            shell = os.path.basename(shell)
-            ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
 
-            print("You may also want to source the completion script (for %s):" % shell)
-            print("source {0}/complete.{1}".format(completion_path, ext))
-        else:
-            print("You may also want to source the relevant completion script from:")
-            print(completion_path)
+def install_rez_from_source(dest_dir):
+    _, py_executable = get_py_venv_executable(dest_dir)
 
-    print('')
+    # install via pip
+    run_command([py_executable, "-m", "pip", "install", "."])
+
+
+def install_as_rez_package(repo_path):
+    """Installs rez as a rez package.
+
+    Note that this can be used to install new variants of rez into an existing
+    rez package (you may require multiple platform installations for example).
+
+    Args:
+        repo_path (str): Full path to the package repository to install into.
+    """
+    from tempfile import mkdtemp
+
+    # do a temp production (venv-based) rez install
+    tmpdir = mkdtemp(prefix="rez-install-")
+    install(tmpdir)
+
+    try:
+        # This extracts a rez package from the installation. See
+        # rez.utils.installer.install_as_rez_package for more details.
+        #
+        args = (
+            os.path.join(tmpdir, "bin", "python"), "-E", "-c",
+            r"from rez.utils.installer import install_as_rez_package;"
+            r"install_as_rez_package('%s')" % repo_path
+        )
+        print(subprocess.check_output(args))
+
+    finally:
+        # cleanup temp install
+        try:
+            shutil.rmtree(tmpdir)
+        except:
+            pass
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        "Rez installer", description="Install rez in a production ready, "
+                                     "standalone Python virtual environment.")
+    parser.add_argument(
+        '-v', '--verbose', action='count', dest='verbose', default=0,
+        help="Increase verbosity.")
+    parser.add_argument(
+        '-s', '--keep-symlinks', action="store_true", default=False,
+        help="Don't run realpath on the passed DIR to resolve symlinks; "
+             "ie, the baked script locations may still contain symlinks")
+    parser.add_argument(
+        '-p', '--as-rez-package', action="store_true",
+        help="Install rez as a rez package. Note that this installs the API "
+        "only (no cli tools), and DIR is expected to be the path to a rez "
+        "package repository (and will default to ~/packages instead).")
+    parser.add_argument(
+        "DIR", nargs='?',
+        help="Destination directory. If '{version}' is present, it will be "
+        "expanded to the rez version. Default: /opt/rez")
+
+    opts = parser.parse_args()
+
+    if " " in os.path.realpath(__file__):
+        parser.error(
+            "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n"
+            "Please move installation files to another location or rename offending folder(s).\n"
+        )
+
+    # determine install path
+    if opts.DIR:
+        path = opts.DIR
+    elif opts.as_rez_package:
+        path = "~/packages"
+    else:
+        path = "/opt/rez"
+
+    if opts.as_rez_package:
+        dest_dir = path
+    else:
+        dest_dir = path.format(version=_rez_version)
+
+    dest_dir = os.path.expanduser(dest_dir)
+    if not opts.keep_symlinks:
+        dest_dir = os.path.realpath(dest_dir)
+
+    # perform the installation
+    if opts.as_rez_package:
+        install_as_rez_package(dest_dir)
+    else:
+        install(dest_dir, print_welcome=True)
