@@ -38,10 +38,6 @@ class InstallMode(Enum):
     min_deps = 1
 
 
-def is_exe(fpath):
-    return os.path.exists(fpath) and os.access(fpath, os.X_OK)
-
-
 def run_pip_command(command_args, pip_version=None, python_version=None):
     """Run a pip command.
     Args:
@@ -236,13 +232,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         packages_path = (config.release_packages_path if release
                          else config.local_packages_path)
 
-    tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
-    stagingdir = os.path.join(tmpdir, "rez_staging")
-    stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
-
-    destpath = os.path.join(stagingdir, "python")
-    # TODO use binpath once https://github.com/pypa/pip/pull/3934 is approved
-    binpath = os.path.join(stagingdir, "bin")
+    targetpath = mkdtemp(suffix="-rez", prefix="pip-")
 
     if context and config.debug("package_release"):
         buf = StringIO()
@@ -259,7 +249,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         cmd.append("--use-pep517")
 
     if not _option_present(_extra_args, "-t", "--target"):
-        cmd.append("--target=%s" % destpath)
+        cmd.append("--target=%s" % targetpath)
 
     if mode == InstallMode.no_deps and "--no-deps" not in _extra_args:
         cmd.append("--no-deps")
@@ -268,6 +258,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     cmd.append(source_name)
 
     # run pip
+    #
+    # Note: https://github.com/pypa/pip/pull/3934. If/when this PR is merged,
+    # it will allow explicit control of where to put bin files.
+    #
     _cmd(context=context, command=cmd)
 
     # determine version of python in use
@@ -279,17 +273,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         python_variant = context.get_resolved_package("python")
         py_ver = python_variant.version
 
-    # moving bin folder to expected relative location as per wheel RECORD files
-    staged_binpath = os.path.join(destpath, "bin")
-    if os.path.isdir(staged_binpath):
-        shutil.move(os.path.join(destpath, "bin"), binpath)
-
     # Collect resulting python packages using distlib
-    distribution_path = DistributionPath([destpath])
+    distribution_path = DistributionPath([targetpath])
     distributions = list(distribution_path.get_distributions())
     dist_names = [x.name for x in distributions]
-    bin_prefix = os.path.join('..', '..', 'bin') + os.sep
-    lib_py_prefix = os.path.join('..', '..', 'lib', 'python') + os.sep
 
     # get list of package and dependencies
     for distribution in distributions:
@@ -300,9 +287,9 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             name_casings=dist_names
         )
 
-        # log the pip -> rez translation, for debugging
+        # log the pip -> rez requirements translation, for debugging
         _log(
-            "Pip to rez translation information for " +
+            "Pip to rez requirements translation information for " +
             distribution.name_and_version +
             ":\n" +
             pformat({
@@ -313,52 +300,19 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             }
         ))
 
-        # iterate over installed files and determine dest filepaths
+        # determine where pip files need to be copied into rez package
+        src_dst_lut = _get_distribution_files_mapping(distribution, targetpath)
+
+        # build tools list
         tools = []
-        src_dst_lut = {}
+        for relpath in src_dst_lut.values():
+            dir_, filename = os.path.split(relpath)
+            if dir_ == "bin":
+                tools.append(filename)
 
-        for installed_file in distribution.list_installed_files():
-            # distlib expects the script files to be located in ../../bin/
-            # when in fact ../bin seems to be the resulting path after the
-            # installation as such we need to point the bin files to the
-            # expected location to match wheel RECORD files
-            installed_filepath = os.path.normpath(installed_file[0])
-
-            if installed_filepath.startswith(bin_prefix):
-                # account for extra parentdir as explained above
-                installed = os.path.join(destpath, '_', installed_filepath)
-            else:
-                installed = os.path.join(destpath, installed_filepath)
-
-            source_file = os.path.normpath(installed)
-
-            # Hotfix: Try again without ../../lib/python/ prefix (#821)
-            try_without_lib_python = (
-                installed_filepath.startswith(lib_py_prefix)
-                and not os.path.exists(source_file)
-            )
-            if try_without_lib_python:
-                installed_filepath = installed_filepath[len(lib_py_prefix):]
-                installed = os.path.join(destpath, installed_filepath)
-                source_file = os.path.normpath(installed)
-                _log("Trying with source file: {}".format(source_file))
-
-            if os.path.exists(source_file):
-                destination_file = os.path.relpath(source_file, stagingdir)
-                exe = False
-
-                if is_exe(source_file) and destination_file.startswith("bin" + os.sep):
-                    _file = os.path.basename(destination_file)
-                    tools.append(_file)
-                    exe = True
-
-                src_dst_lut[source_file] = [destination_file, exe]
-            else:
-                _log("Source file does not exist: " + source_file + "!")
-
-        # Sanity warning to see if any python files will be copied
-        if not any(map(".py".__contains__, src_dst_lut)):
-            message = 'No *.py source files exist for {}!'
+        # Sanity warning to see if any files will be copied
+        if not src_dst_lut:
+            message = 'No source files exist for {}!'
             if not _verbose:
                 message += '\nTry again with rez-pip --verbose ...'
             print_warning(message.format(distribution.name_and_version))
@@ -368,16 +322,17 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             distribution to copy files to the target directory of the rez package
             variant
             """
-            for source_file, data in src_dst_lut.items():
-                destination_file, exe = data
-                destination_file = os.path.normpath(os.path.join(path, destination_file))
+            for rel_src, rel_dest in src_dst_lut.items():
+                src = os.path.join(targetpath, rel_src)
+                dest = os.path.join(path, rel_dest)
 
-                if not os.path.exists(os.path.dirname(destination_file)):
-                    os.makedirs(os.path.dirname(destination_file))
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest))
 
-                shutil.copyfile(source_file, destination_file)
-                if exe:
-                    shutil.copystat(source_file, destination_file)
+                shutil.copyfile(src, dest)
+
+                if _is_exe(src):
+                    shutil.copystat(src, dest)
 
         # create the rez package
         name = pip_to_rez_package_name(distribution.name)
@@ -426,9 +381,86 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         skipped_variants.extend(pkg.skipped_variants or [])
 
     # cleanup
-    shutil.rmtree(tmpdir)
+    shutil.rmtree(targetpath)
 
     return installed_variants, skipped_variants
+
+
+def _is_exe(fpath):
+    return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+
+
+def _get_distribution_files_mapping(distribution, targetdir):
+    """Get remapping of pip installation to rez package installation.
+
+    Args:
+        distribution (`distlib.database.InstalledDistribution`): The installed
+            distribution
+        targetdir (str): Where distribution was installed to (via pip --target)
+
+    Returns:
+        Dict of (str, str):
+        * key: Path of pip installed file, relative to `targetdir`;
+        * value: Relative path to install into rez package.
+    """
+    bin_prefix = os.path.join(os.pardir, os.pardir, 'bin') + os.sep
+    lib_py_prefix = os.path.join(os.pardir, os.pardir, 'lib', 'python') + os.sep
+
+    def get_mapping(rel_src):
+        topdir = rel_src.split(os.sep)[0]
+
+        # Special case - dist-info files. These are all in a '<pkgname>-<version>.dist-info'
+        # dir. We keep this dir and place it in the root dir of the rez package.
+        #
+        if topdir.endswith(".dist-info"):
+            return (rel_src, rel_src)
+
+        # RECORD lists bin files as being in ../../bin/, when in fact they are
+        # in ./bin. This also happens to match rez package structure, so here
+        # src and dest are same rel path.
+        #
+        if rel_src.startswith(bin_prefix):
+            adjusted_rel_src = os.path.join("bin", rel_src[len(bin_prefix):])
+            return (adjusted_rel_src, adjusted_rel_src)
+
+        # Rarely, some distributions report an installed file as being in
+        # ../../lib/python/<pkg-name>/...
+        #
+        if rel_src.startswith(lib_py_prefix):
+            adjusted_rel_src = rel_src[len(lib_py_prefix):]
+            rel_dest = os.path.join("python", adjusted_rel_src)
+            return (adjusted_rel_src, rel_dest)
+
+        # A case we don't know how to deal with yet
+        if topdir == os.pardir:
+            raise RuntimeError(
+                "Don't know what to do with source file %r, please file a ticket",
+                rel_src
+            )
+
+        # At this point the file should be <pkg-name>/..., so we put
+        # into 'python' subdir in rez package.
+        #
+        rel_dest = os.path.join("python", rel_src)
+        return (rel_src, rel_dest)
+
+    # iterate over pip installed files
+    result = {}
+    for installed_file in distribution.list_installed_files():
+        rel_src_orig = os.path.normpath(installed_file[0])
+        rel_src, rel_dest = get_mapping(rel_src_orig)
+
+        src_filepath = os.path.join(targetdir, rel_src)
+        if not os.path.exists(src_filepath):
+            print_warning(
+                "Skipping non-existent source file: %s (%s)",
+                src_filepath, rel_src_orig
+            )
+            continue
+
+        result[rel_src] = rel_dest
+
+    return result
 
 
 def _option_present(opts, *args):

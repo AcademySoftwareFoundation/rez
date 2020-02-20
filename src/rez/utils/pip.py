@@ -314,7 +314,7 @@ def is_pure_python_package(installed_dist):
     """Determine if a dist is pure python.
 
     Args:
-        installed_dist (`distlib.database.InstalledDistribution)`: Distribution
+        installed_dist (`distlib.database.InstalledDistribution`): Distribution
             to test.
 
     Returns:
