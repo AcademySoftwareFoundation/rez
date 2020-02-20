@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.54.0 (2020-02-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.54.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.53.1...2.54.0)
+
+**Merged pull requests:**
+
+- Install as package part2 [\#845](https://github.com/nerdvegas/rez/pull/845) ([nerdvegas](https://github.com/nerdvegas))
+- Allow absolute path for build directory [\#853](https://github.com/nerdvegas/rez/pull/853) ([joehigham-bss](https://github.com/joehigham-bss))
+- [rez-pip] Fix for ptvsd install [\#855](https://github.com/nerdvegas/rez/pull/855) ([j0yu](https://github.com/j0yu))
+
+**Closed issues:**
+
+- "rez-pip -i ptvsd" produces bad package [\#821](https://github.com/nerdvegas/rez/issues/821)
+
 ## 2.53.1 (2020-02-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.53.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.53.0...2.53.1)
 
