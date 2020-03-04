@@ -405,6 +405,7 @@ def _get_distribution_files_mapping(distribution, targetdir):
     """
     bin_prefix = os.path.join(os.pardir, os.pardir, 'bin') + os.sep
     lib_py_prefix = os.path.join(os.pardir, os.pardir, 'lib', 'python') + os.sep
+    include_py_prefix = os.path.join(os.pardir, os.pardir, 'include', 'python') + os.sep
 
     def get_mapping(rel_src):
         topdir = rel_src.split(os.sep)[0]
@@ -428,6 +429,14 @@ def _get_distribution_files_mapping(distribution, targetdir):
         #
         if rel_src.startswith(lib_py_prefix):
             adjusted_rel_src = rel_src[len(lib_py_prefix):]
+            rel_dest = os.path.join("python", adjusted_rel_src)
+            return (adjusted_rel_src, rel_dest)
+
+        # Rarely, some distributions report an installed file as being in
+        # ../../include/python/<pkg-name>/...
+        #
+        if rel_src.startswith(include_py_prefix):
+            adjusted_rel_src = rel_src[len(include_py_prefix):]
             rel_dest = os.path.join("python", adjusted_rel_src)
             return (adjusted_rel_src, rel_dest)
 
