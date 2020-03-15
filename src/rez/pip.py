@@ -433,9 +433,10 @@ def _get_distribution_files_mapping(distribution, targetdir):
 
         # A case we don't know how to deal with yet
         if topdir == os.pardir:
-            raise RuntimeError(
-                "Don't know what to do with source file %r, please file a ticket",
-                rel_src
+            raise IOError(
+                89,  # errno.EDESTADDRREQ : Destination address required
+                "Don't know what to do with source file, please file a ticket",
+                rel_src,
             )
 
         # At this point the file should be <pkg-name>/..., so we put
