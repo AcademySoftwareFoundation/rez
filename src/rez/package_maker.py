@@ -76,6 +76,7 @@ package_schema = Schema({
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
     Optional('pre_build_commands'):     _commands_schema,
+    Optional('pre_test_commands'):      _commands_schema,
 
     # attributes specific to pre-built packages
     Optional("build_system"):           basestring,

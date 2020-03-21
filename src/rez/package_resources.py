@@ -44,7 +44,8 @@ package_rex_keys = (
     "pre_commands",
     "commands",
     "post_commands",
-    "pre_build_commands"
+    "pre_build_commands",
+    "pre_test_commands",
 )
 
 
@@ -144,6 +145,7 @@ package_base_schema_dict.update({
     Optional('commands'):               SourceCode,
     Optional('post_commands'):          SourceCode,
     Optional('pre_build_commands'):     SourceCode,
+    Optional('pre_test_commands'):      SourceCode,
 
     # release info
     Optional("timestamp"):              int,
@@ -233,6 +235,7 @@ package_pod_schema_dict.update({
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
     Optional('pre_build_commands'):     _commands_schema,
+    Optional('pre_test_commands'):      _commands_schema,
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,

@@ -2,8 +2,9 @@ from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.packages import get_latest_package_from_string, Variant
 from rez.exceptions import RezError, PackageNotFoundError, PackageTestError
+from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.utils.colorize import heading, Printer
-from rez.utils.logging_ import print_info, print_warning, print_error
+from rez.utils.logging_ import print_info, print_warning, print_error, print_debug
 from rez.vendor.six import six
 from rez.vendor.version.requirement import Requirement, RequirementList
 from pipes import quote
@@ -412,8 +413,24 @@ class PackageTestRunner(object):
                 )
                 continue
 
+            def _pre_test_commands(executor):
+                # run package.py:pre_test_commands() if present
+                pre_test_commands = getattr(variant, "pre_test_commands")
+                if not pre_test_commands:
+                    return
+
+                test_ns = {
+                    "name": test_name
+                }
+
+                with executor.reset_globals():
+                    executor.bind("this", variant)
+                    executor.bind("test", RO_AttrDictWrapper(test_ns))
+                    executor.execute_code(pre_test_commands)
+
             retcode, _, _ = context.execute_shell(
                 command=command,
+                actions_callback=_pre_test_commands,
                 stdout=self.stdout,
                 stderr=self.stderr,
                 block=True
