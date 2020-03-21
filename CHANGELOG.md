@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.55.0 (2020-03-21)
+[Source](https://github.com/nerdvegas/rez/tree/2.55.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.54.0...2.55.0)
+
+**Merged pull requests:**
+
+- Fixed bug in test variant selection [\#842](https://github.com/nerdvegas/rez/pull/842) ([nerdvegas](https://github.com/nerdvegas))
+- pre_test_commands [\#844](https://github.com/nerdvegas/rez/pull/844) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- tests "on_variants" not working as expected in some cases [\#841](https://github.com/nerdvegas/rez/issues/841)
+- pre_test_commands [\#843](https://github.com/nerdvegas/rez/issues/843)
+
 ## 2.54.0 (2020-02-20)
 [Source](https://github.com/nerdvegas/rez/tree/2.54.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.53.1...2.54.0)
 
