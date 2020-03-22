@@ -12,7 +12,8 @@ from rez.resolved_context import ResolvedContext
 from rez.utils.execution import Popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
     pip_to_rez_version
-from rez.utils.logging_ import print_debug, print_info, print_warning
+from rez.utils.logging_ import print_debug, print_info, print_error, \
+    print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, RezSystemError, convert_errors
 from rez.package_maker import make_package
@@ -27,6 +28,7 @@ import shutil
 import subprocess
 import sys
 from tempfile import mkdtemp
+from textwrap import dedent
 
 
 class InstallMode(Enum):
@@ -421,10 +423,35 @@ def _get_distribution_files_mapping(distribution, targetdir):
                     rez_subpath = re.sub(path, remap['rez_install'], rel_src)
                     return (pip_subpath, rez_subpath)
 
+            tokenised_path = rel_src.replace(os.sep, '{pardir}')
+            tokenised_path = tokenised_path.replace(os.pardir, '{sep}')
+            info_dir = '{0.name}-{0.version}.dist-info{1}'.format(distribution)
+            try_this_message = r"""
+            Unknown source file in {0}RECORD! '{1}'
+            To resolve, try:
+            1. Manually install the pip package using 'pip install --target'
+               to a temporary location.
+            2. See where '{1}'
+               actually got installed to by pip, RELATIVE to --target location
+            3. Create a new rule to 'pip_install_remaps' configuration like:
+
+                {
+                    "record_path": "{2}",
+                    "pip_install": "<RELATIVE path pip installed to in 2.>",
+                    "rez_install": "<DESTINATION sub-path in rez package>",
+                }
+
+            4. Try rez-pip install again.
+
+            If path remapping is not enough, consider submitting a new issue
+            via https://github.com/nerdvegas/rez/issues/new
+            """.format(info_dir, rel_src, tokenised_path)
+
+            map(print_error, dedent(try_this_message).splitlines())
             raise IOError(
                 89,  # errno.EDESTADDRREQ : Destination address required
-                "Don't know what to do with source file, please add a custom "
-                "rule to 'pip_install_remaps' configuration for record_path",
+                "Don't know what to do with source file in {0}RECORD, see "
+                "above error message for path".format(info_dir),
                 rel_src,
             )
 
