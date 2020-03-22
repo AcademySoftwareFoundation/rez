@@ -309,6 +309,7 @@ config_schema = Schema({
     "alias_styles":                                 OptionalStrList,
     "memcached_uri":                                OptionalStrList,
     "pip_extra_args":                               OptionalStrList,
+    "pip_src_remaps":                               OptionalDict,
     "local_packages_path":                          Str,
     "release_packages_path":                        Str,
     "dot_image_format":                             Str,

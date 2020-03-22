@@ -704,6 +704,26 @@ create_executable_script_mode = "single"
 # https://pip.pypa.io/en/stable/reference/pip_install/#options
 pip_extra_args = []
 
+# Substitutions for rez.sub when relative/unknown paths are encountered for a
+# pip package distribution manifest.
+pip_src_remaps = {
+    # In manifest:       ../../bin/*
+    # pip installed to:  ./bin/*
+    # rez destination:   ./bin/*
+    r'^{pardir}{sep}{pardir}{sep}bin{sep}(.*)': [
+        r'bin\1',  # Copy from pip installed target...
+        r'bin\1',  # ...to destination in rez package
+    ],
+
+    # In manifest:       ../../lib/python/*
+    # pip installed to:  ./*
+    # rez destination:   ./python/*
+    r'^{pardir}{sep}{pardir}{sep}lib{sep}python{sep}(.*)': [
+        r'\1',             # Copy from pip installed target...
+        r'python{sep}\1',  # ...to destination in rez package
+    ],
+}
+
 
 ###############################################################################
 # Rez-1 Compatibility
