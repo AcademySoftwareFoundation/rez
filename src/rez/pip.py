@@ -278,7 +278,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     distributions = list(distribution_path.get_distributions())
     dist_names = [x.name for x in distributions]
 
-    def extend_variants(pkg_maker):
+    def log_append_pkg_variants(pkg_maker):
         template = '{action} [{package.qualified_name}] {package.uri}{suffix}'
         actions_variants = [
             (
@@ -396,7 +396,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             pkg.from_pip = True
             pkg.is_pure_python = metadata["is_pure_python"]
 
-        extend_variants(pkg)
+        log_append_pkg_variants(pkg)
 
     # cleanup
     shutil.rmtree(targetpath)

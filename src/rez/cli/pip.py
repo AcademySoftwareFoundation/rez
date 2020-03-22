@@ -40,8 +40,11 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    config.debug_package_release = opts.verbose  # Used by rez.pip._verbose
-    if not opts.verbose:  # To stop other loggers from printing debugs
+
+    # debug_package_release is used by rez.pip._verbose
+    config.debug_package_release = config.debug_package_release or opts.verbose
+    if not config.debug_package_release:
+        # Prevent other rez.* loggers from printing debugs
         logging.getLogger('rez').setLevel(logging.INFO)
 
     from rez.pip import pip_install_package, run_pip_command
