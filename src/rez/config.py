@@ -141,7 +141,7 @@ class PipInstallRemaps(Setting):
         """Extended to substitute regex-escaped path tokens."""
         return [
             {
-                key: expression.format(**tokens)
+                key: expression.format(**self.TOKENS)
                 for key, expression in remap.items()
             }
             for remap in super(PipInstallRemaps, self).validate(data)

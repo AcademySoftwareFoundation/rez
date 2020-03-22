@@ -423,35 +423,39 @@ def _get_distribution_files_mapping(distribution, targetdir):
                     rez_subpath = re.sub(path, remap['rez_install'], rel_src)
                     return (pip_subpath, rez_subpath)
 
-            tokenised_path = rel_src.replace(os.sep, '{pardir}')
-            tokenised_path = tokenised_path.replace(os.pardir, '{sep}')
-            info_dir = '{0.name}-{0.version}.dist-info{1}'.format(distribution)
+            tokenised_path = rel_src.replace(os.pardir, '{pardir}')
+            tokenised_path = tokenised_path.replace(os.sep, '{sep}')
+            dist_record = '{dist.name}-{dist.version}.dist-info{os.sep}RECORD'
+            dist_record = dist_record.format(dist=distribution, os=os)
+
             try_this_message = r"""
-            Unknown source file in {0}RECORD! '{1}'
+            Unknown source file in {0}! '{1}'
+
             To resolve, try:
+
             1. Manually install the pip package using 'pip install --target'
                to a temporary location.
             2. See where '{1}'
                actually got installed to by pip, RELATIVE to --target location
             3. Create a new rule to 'pip_install_remaps' configuration like:
 
-                {
+                {{
                     "record_path": "{2}",
                     "pip_install": "<RELATIVE path pip installed to in 2.>",
                     "rez_install": "<DESTINATION sub-path in rez package>",
-                }
+                }}
 
             4. Try rez-pip install again.
 
             If path remapping is not enough, consider submitting a new issue
             via https://github.com/nerdvegas/rez/issues/new
-            """.format(info_dir, rel_src, tokenised_path)
+            """.format(dist_record, rel_src, tokenised_path)
 
             map(print_error, dedent(try_this_message).splitlines())
             raise IOError(
                 89,  # errno.EDESTADDRREQ : Destination address required
-                "Don't know what to do with source file in {0}RECORD, see "
-                "above error message for path".format(info_dir),
+                "Don't know what to do with source file in {0}, see "
+                "above error message for path".format(dist_record),
                 rel_src,
             )
 
