@@ -19,14 +19,14 @@ from rez.package_maker import make_package
 from rez.config import config
 from rez.utils.platform_ import platform_
 
-from tempfile import mkdtemp
+import os
 from pipes import quote
 from pprint import pformat
-import subprocess
-import os.path
+import re
 import shutil
+import subprocess
 import sys
-import os
+from tempfile import mkdtemp
 
 
 class InstallMode(Enum):
@@ -403,9 +403,6 @@ def _get_distribution_files_mapping(distribution, targetdir):
         * key: Path of pip installed file, relative to `targetdir`;
         * value: Relative path to install into rez package.
     """
-    bin_prefix = os.path.join(os.pardir, os.pardir, 'bin') + os.sep
-    lib_py_prefix = os.path.join(os.pardir, os.pardir, 'lib', 'python') + os.sep
-
     def get_mapping(rel_src):
         topdir = rel_src.split(os.sep)[0]
 
@@ -415,27 +412,19 @@ def _get_distribution_files_mapping(distribution, targetdir):
         if topdir.endswith(".dist-info"):
             return (rel_src, rel_src)
 
-        # RECORD lists bin files as being in ../../bin/, when in fact they are
-        # in ./bin. This also happens to match rez package structure, so here
-        # src and dest are same rel path.
-        #
-        if rel_src.startswith(bin_prefix):
-            adjusted_rel_src = os.path.join("bin", rel_src[len(bin_prefix):])
-            return (adjusted_rel_src, adjusted_rel_src)
-
-        # Rarely, some distributions report an installed file as being in
-        # ../../lib/python/<pkg-name>/...
-        #
-        if rel_src.startswith(lib_py_prefix):
-            adjusted_rel_src = rel_src[len(lib_py_prefix):]
-            rel_dest = os.path.join("python", adjusted_rel_src)
-            return (adjusted_rel_src, rel_dest)
-
-        # A case we don't know how to deal with yet
+        # Remapping of other installed files according to manifest
         if topdir == os.pardir:
+            for remap in config.pip_install_remaps:
+                path = remap['record_path']
+                if re.search(path, rel_src):
+                    pip_subpath = re.sub(path, remap['pip_install'], rel_src)
+                    rez_subpath = re.sub(path, remap['rez_install'], rel_src)
+                    return (pip_subpath, rez_subpath)
+
             raise IOError(
                 89,  # errno.EDESTADDRREQ : Destination address required
-                "Don't know what to do with source file, please file a ticket",
+                "Don't know what to do with source file, please add a custom "
+                "rule to 'pip_install_remaps' configuration for record_path",
                 rel_src,
             )
 
