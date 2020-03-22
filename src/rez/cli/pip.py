@@ -61,40 +61,13 @@ def command(opts, parser, extra_arg_groups=None):
                 category=DeprecationWarning
             )
 
-    installed_variants, skipped_variants = pip_install_package(
+    pip_install_package(
         opts.PACKAGE,
         pip_version=opts.pip_ver,
         python_version=opts.py_ver,
         release=opts.release,
         prefix=opts.prefix,
         extra_args=opts.extra)
-
-    # print summary
-    #
-
-    def print_variant(v):
-        pkg = v.parent
-        txt = "%s: %s" % (pkg.qualified_name, pkg.uri)
-        if v.subpath:
-            txt += " (%s)" % v.subpath
-        print("  " + txt)
-
-    print()
-    if installed_variants:
-        print("%d packages were installed:" % len(installed_variants))
-        for variant in installed_variants:
-            print_variant(variant)
-    else:
-        print("NO packages were installed.")
-
-    if skipped_variants:
-        print()
-        print("%d packages were already installed:" % len(skipped_variants))
-        for variant in skipped_variants:
-            print_variant(variant)
-
-    print()
-
 
 # Copyright 2013-2016 Allan Johns.
 #

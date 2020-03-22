@@ -278,6 +278,25 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     distributions = list(distribution_path.get_distributions())
     dist_names = [x.name for x in distributions]
 
+    def extend_variants(pkg_maker):
+        template = '{action} [{package.qualified_name}] {package.uri}{suffix}'
+        actions_variants = [
+            (
+                print_info, 'Installed',
+                installed_variants, pkg_maker.installed_variants or [],
+            ),
+            (
+                print_debug, 'Skipped',
+                skipped_variants, pkg_maker.skipped_variants or [],
+            ),
+        ]
+        for print_, action, variants, pkg_variants in actions_variants:
+            for variant in pkg_variants:
+                variants.append(variant)
+                package = variant.parent
+                suffix = (' (%s)' % variant.subpath) if variant.subpath else ''
+                print_(template.format(**locals()))
+
     # get list of package and dependencies
     for distribution in distributions:
         # convert pip requirements into rez requirements
@@ -377,11 +396,22 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             pkg.from_pip = True
             pkg.is_pure_python = metadata["is_pure_python"]
 
-        installed_variants.extend(pkg.installed_variants or [])
-        skipped_variants.extend(pkg.skipped_variants or [])
+        extend_variants(pkg)
 
     # cleanup
     shutil.rmtree(targetpath)
+
+    # print summary
+    #
+    if installed_variants:
+        print_info("%d packages were installed.", len(installed_variants))
+    else:
+        print_warning("NO packages were installed.")
+    if skipped_variants:
+        print_warning(
+            "%d packages were already installed.",
+            len(skipped_variants),
+        )
 
     return installed_variants, skipped_variants
 
