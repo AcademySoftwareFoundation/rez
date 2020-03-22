@@ -440,9 +440,9 @@ def _get_distribution_files_mapping(distribution, targetdir):
             3. Create a new rule to 'pip_install_remaps' configuration like:
 
                 {{
-                    "record_path": "{2}",
-                    "pip_install": "<RELATIVE path pip installed to in 2.>",
-                    "rez_install": "<DESTINATION sub-path in rez package>",
+                    "record_path": r"{2}",
+                    "pip_install": r"<RELATIVE path pip installed to in 2.>",
+                    "rez_install": r"<DESTINATION sub-path in rez package>",
                 }}
 
             4. Try rez-pip install again.

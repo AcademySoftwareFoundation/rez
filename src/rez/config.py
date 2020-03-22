@@ -125,23 +125,19 @@ class StrList(Setting):
 class PipInstallRemaps(Setting):
     """Ordered, pip install remappings."""
     PARDIR, SEP = map(re.escape, (os.pardir, os.sep))
-    TOKENS = {'sep': SEP, 's': SEP, 'pardir': PARDIR, 'p': PARDIR}
+    RE_TOKENS = {'sep': SEP, 's': SEP, 'pardir': PARDIR, 'p': PARDIR}
+    TOKENS = {'sep': os.sep, 's': os.sep, 'pardir': os.pardir, 'p': os.pardir}
+    KEYS = ["record_path", "pip_install", "rez_install"]
 
-    schema = Schema(
-        [
-            {
-                "record_path": And(str, len),
-                "pip_install": And(str, len),
-                "rez_install": And(str, len),
-            }
-        ]
-    )
+    schema = Schema([{key: And(str, len) for key in KEYS}])
 
     def validate(self, data):
         """Extended to substitute regex-escaped path tokens."""
         return [
             {
-                key: expression.format(**self.TOKENS)
+                key: expression.format(
+                    **(self.RE_TOKENS if key == "record_path" else self.TOKENS)
+                )
                 for key, expression in remap.items()
             }
             for remap in super(PipInstallRemaps, self).validate(data)

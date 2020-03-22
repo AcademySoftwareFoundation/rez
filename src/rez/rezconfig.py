@@ -722,7 +722,7 @@ pip_extra_args = []
 # 3. re.sub expression from step 1 to make a relative path to the rez package
 #    to install the file path.
 #
-# Use these tokens to avoid regex issues:
+# Use these tokens to avoid regular expression and OS specific path issues:
 # - "{pardir}" or "{p}" for parent directory: os.pardir, i.e. ".." on Linux/Mac
 # - "{sep}" or "{s}" for folder separators: os.sep, i.e. "/" on Linux/Mac
 pip_install_remaps = [
@@ -731,9 +731,9 @@ pip_install_remaps = [
     # ------------------------|---------------------|--------------------------
     # ../../bin/*             | bin/*               | bin/*
     {
-        "record_path": "^{pardir}{sep}{pardir}{sep}(bin{sep}.*)",
-        "pip_install": "\1",
-        "rez_install": "\1",
+        "record_path": r"^{pardir}{sep}{pardir}{sep}(bin{sep}.*)",
+        "pip_install": r"\1",
+        "rez_install": r"\1",
     },
 
     # # Fix for https://github.com/nerdvegas/rez/issues/821
@@ -741,9 +741,9 @@ pip_install_remaps = [
     # ------------------------|---------------------|--------------------------
     # ../../lib/python/*      | *                   | python/*
     {
-        "record_path": "^{p}{s}{p}{s}lib{s}python{s}(.*)",
-        "pip_install": "\1",
-        "rez_install": "python{s}\1",
+        "record_path": r"^{p}{s}{p}{s}lib{s}python{s}(.*)",
+        "pip_install": r"\1",
+        "rez_install": r"python{s}\1",
     },
 ]
 
