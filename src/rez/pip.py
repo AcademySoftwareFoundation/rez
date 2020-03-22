@@ -450,12 +450,12 @@ def _get_distribution_files_mapping(distribution, targetdir):
             If path remapping is not enough, consider submitting a new issue
             via https://github.com/nerdvegas/rez/issues/new
             """.format(dist_record, rel_src, tokenised_path)
+            print_error(dedent(try_this_message).lstrip())
 
-            map(print_error, dedent(try_this_message).splitlines())
             raise IOError(
                 89,  # errno.EDESTADDRREQ : Destination address required
-                "Don't know what to do with source file in {0}, see "
-                "above error message for path".format(dist_record),
+                "Don't know what to do with relative path in {0}, see "
+                "above error message for".format(dist_record),
                 rel_src,
             )
 
