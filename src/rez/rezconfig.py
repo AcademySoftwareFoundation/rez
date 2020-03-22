@@ -704,26 +704,48 @@ create_executable_script_mode = "single"
 # https://pip.pypa.io/en/stable/reference/pip_install/#options
 pip_extra_args = []
 
-# Substitutions for rez.sub when relative/unknown paths are encountered for a
-# pip package distribution manifest.
-pip_src_remaps = {
-    # In manifest:       ../../bin/*
-    # pip installed to:  ./bin/*
-    # rez destination:   ./bin/*
-    r'^{pardir}{sep}{pardir}{sep}bin{sep}(.*)': [
-        r'bin\1',  # Copy from pip installed target...
-        r'bin\1',  # ...to destination in rez package
-    ],
+# Substitutions for re.sub when unknown parent paths are encountered in the
+# pip package distribution record: *.dist-info/RECORD
+#
+# Rez reads the distribution record to figure out where pip installed files
+# to, then copies them to their final sub-path in the rez package,
+# i.e. Python source files are hard coded to be moved under the "python"
+# sub-folder inside the rez package, which then gets added to PYTHONPATH
+# upon rez-env.
+#
+# When it can't find the file listed in the record AND the path starts
+# with a reference to the parent directory "..", the following remaps are
+# used to:
+# 1. Match a path listed in the record to perform the re-mapping, then both
+# 2. re.sub expression from step 1 to make a relative path of where pip
+#    actually installed the file path in the.
+# 3. re.sub expression from step 1 to make a relative path to the rez package
+#    to install the file path.
+#
+# Use these tokens to avoid regex issues:
+# - "{pardir}" or "{p}" for parent directory: os.pardir, i.e. ".." on Linux/Mac
+# - "{sep}" or "{s}" for folder separators: os.sep, i.e. "/" on Linux/Mac
+pip_install_remaps = [
+    # # Typical bin copy behaviour
+    # Path in record          | pip installed to    | copy to rez destination
+    # ------------------------|---------------------|--------------------------
+    # ../../bin/*             | bin/*               | bin/*
+    {
+        "record_path": "^{pardir}{sep}{pardir}{sep}(bin{sep}.*)",
+        "pip_install": "\1",
+        "rez_install": "\1",
+    },
 
-    # In manifest:       ../../lib/python/*
-    # pip installed to:  ./*
-    # rez destination:   ./python/*
-    r'^{pardir}{sep}{pardir}{sep}lib{sep}python{sep}(.*)': [
-        r'\1',             # Copy from pip installed target...
-        r'python{sep}\1',  # ...to destination in rez package
-    ],
-}
-
+    # # Fix for https://github.com/nerdvegas/rez/issues/821
+    # Path in record          | pip installed to    | copy to rez destination
+    # ------------------------|---------------------|--------------------------
+    # ../../lib/python/*      | *                   | python/*
+    {
+        "record_path": "^{p}{s}{p}{s}lib{s}python{s}(.*)",
+        "pip_install": "\1",
+        "rez_install": "python{s}\1",
+    },
+]
 
 ###############################################################################
 # Rez-1 Compatibility
