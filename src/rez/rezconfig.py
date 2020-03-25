@@ -289,6 +289,70 @@ variant_select_mode = "version_priority"
 # foo-5+              | Same as range(foo-5+)
 package_filter = None
 
+# Package order. One or more "orderers" can be listed.
+# This will affect the order of version resolution.
+# This can be used to ensure that specific version have priority over others.
+# Higher versions can still be accessed if required.
+#
+# A common use case is to ease migration from python-2 to python-3:
+#
+#     package_orderers = [
+#         {
+#            "type": "per_family",
+#            "orderers": [
+#                 {
+#                     "packages": ["python"],
+#                     "type": "version_split",
+#                     "first_version": "2.7.16"
+#                 }
+#             ]
+#         }
+#     ]
+#
+# This will ensure that for the "python" package, versions equals or lower than "2.7.16" will have priority.
+# Considering the following versions: "2.7.4", "2.7.16", "3.7.4":
+#
+# example             | result
+# --------------------|----------------------------------------------------
+# rez-env python      | python-2.7.16
+# rez-env python-3    | python-3.7.4
+#
+# Here's another example, using another orderer: "soft_timestamp".
+# This orderer will prefer packages released before a provided timestamp.
+# The following example will prefer package released before 2019-09-09.
+#
+#     package_orderers = [
+#         {
+#             "type": "soft_timestamp",
+#             "timestamp": 1568001600,  # 2019-09-09
+#             "rank": 3
+#         }
+#     ]
+#
+# A timestamp can be generated with python:
+#
+#     $ python -c "import datetime, time; print(int(time.mktime(datetime.date(2019, 9, 9).timetuple())))"
+#     1568001600
+#
+# The rank can be used to allow some versions released after the timestamp to still be considered.
+# When using semantic versionnng, a value of 3 is the most common.
+# This will let version with a different patch number to be accepted.
+#
+# Considering a package "foo" with the following versions:
+# - "1.0.0" was released at 2019-09-07
+# - "2.0.0" was released at 2019-09-08
+# - "2.0.1" was released at 2019-09-10
+# - "2.1.0" was released at 2019-09-11
+# - "3.0.0" was released at 2019-09-12
+#
+# example             | timestamp  | rank | result
+# --------------------|------------|---------------------------------------
+# rez-env foo         | 2019-09-09 | 0    | foo-2.0.0
+# rez-env foo         | 2019-09-09 | 3    | foo-2.0.1
+# rez-env foo         | 2019-09-09 | 2    | foo-2.1.0
+# rez-env foo         | 2019-09-09 | 1    | foo-3.0.0
+package_orderers = None
+
 # If True, unversioned packages are allowed. Solve times are slightly better if
 # this value is False.
 allow_unversioned_packages = True
