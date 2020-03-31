@@ -3,6 +3,7 @@ Install a pip-compatible python package, and its dependencies, as rez packages.
 """
 from __future__ import print_function
 from argparse import REMAINDER
+import logging
 
 
 def setup_parser(parser, completions=False):
@@ -39,7 +40,12 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    config.debug_package_release = opts.verbose  # Used by rez.pip._verbose
+
+    # debug_package_release is used by rez.pip._verbose
+    config.debug_package_release = config.debug_package_release or opts.verbose
+    if not config.debug_package_release:
+        # Prevent other rez.* loggers from printing debugs
+        logging.getLogger('rez').setLevel(logging.INFO)
 
     from rez.pip import pip_install_package, run_pip_command
     import warnings
@@ -61,40 +67,13 @@ def command(opts, parser, extra_arg_groups=None):
                 category=DeprecationWarning
             )
 
-    installed_variants, skipped_variants = pip_install_package(
+    pip_install_package(
         opts.PACKAGE,
         pip_version=opts.pip_ver,
         python_version=opts.py_ver,
         release=opts.release,
         prefix=opts.prefix,
         extra_args=opts.extra)
-
-    # print summary
-    #
-
-    def print_variant(v):
-        pkg = v.parent
-        txt = "%s: %s" % (pkg.qualified_name, pkg.uri)
-        if v.subpath:
-            txt += " (%s)" % v.subpath
-        print("  " + txt)
-
-    print()
-    if installed_variants:
-        print("%d packages were installed:" % len(installed_variants))
-        for variant in installed_variants:
-            print_variant(variant)
-    else:
-        print("NO packages were installed.")
-
-    if skipped_variants:
-        print()
-        print("%d packages were already installed:" % len(skipped_variants))
-        for variant in skipped_variants:
-            print_variant(variant)
-
-    print()
-
 
 # Copyright 2013-2016 Allan Johns.
 #
