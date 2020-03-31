@@ -465,9 +465,9 @@ package_preprocess_mode = "override"
 # is set to an empty string (possibly due to var expansion), it is removed from
 # the message payload.
 #
-
 context_tracking_host = ''
 
+# See [context_tracking_host](#context_tracking_host)
 context_tracking_amqp = {
     "userid": '',
     "password": '',
@@ -477,6 +477,7 @@ context_tracking_amqp = {
     "message_delivery_mode": 1
 }
 
+# See [context_tracking_host](#context_tracking_host)
 context_tracking_context_fields = [
     "status",
     "timestamp",
@@ -488,6 +489,7 @@ context_tracking_context_fields = [
     "resolved_packages"
 ]
 
+# See [context_tracking_host](#context_tracking_host)
 context_tracking_extra_fields = {}
 
 
@@ -708,30 +710,40 @@ pip_extra_args = []
 # pip package distribution record: *.dist-info/RECORD
 #
 # Rez reads the distribution record to figure out where pip installed files
-# to, then copies them to their final sub-path in the rez package,
-# i.e. Python source files are hard coded to be moved under the "python"
-# sub-folder inside the rez package, which then gets added to PYTHONPATH
-# upon rez-env.
+# to, then copies them to their final sub-path in the rez package. Ie, python
+# source files are hard coded to be moved under the "python" sub-folder inside
+# the rez package, which then gets added to PYTHONPATH upon rez-env.
 #
 # When it can't find the file listed in the record AND the path starts
 # with a reference to the parent directory "..", the following remaps are
 # used to:
-# 1. Match a path listed in the record to perform the re-mapping, then both
-# 2. re.sub expression from step 1 to make a relative path of where pip
-#    actually installed the file path in the.
-# 3. re.sub expression from step 1 to make a relative path to the rez package
-#    to install the file path.
+# 1. Match a path listed in the record to perform the filepath remapping;
+# 2. re.sub expression from step 1 to make the relative path of where pip
+#    actually installed the file to;
+# 3. re.sub expression from step 1 to make the destination filepath, relative
+#    to the rez variant root.
 #
-# Use these tokens to avoid regular expression and OS specific path issues:
+# Use these tokens to avoid regular expression and OS-specific path issues:
 # - "{pardir}" or "{p}" for parent directory: os.pardir, i.e. ".." on Linux/Mac
 # - "{sep}" or "{s}" for folder separators: os.sep, i.e. "/" on Linux/Mac
+#
+# For example, here is the remapping rule for '../../bin/*' files (as defined
+# in the dist RECORD file). In this case, the file is found in the pip install
+# in './bin/*', and in the rexz package it goes to the same relative directory:
+#
+#     pip_install_remaps = [{
+#         "record_path": r"^{p}{s}{p}{s}(bin{s}.*)",
+#         "pip_install": r"\1",
+#         "rez_install": r"\1",
+#     }]
+#
 pip_install_remaps = [
     # # Typical bin copy behaviour
     # Path in record          | pip installed to    | copy to rez destination
     # ------------------------|---------------------|--------------------------
     # ../../bin/*             | bin/*               | bin/*
     {
-        "record_path": r"^{pardir}{sep}{pardir}{sep}(bin{sep}.*)",
+        "record_path": r"^{p}{s}{p}{s}(bin{s}.*)",
         "pip_install": r"\1",
         "rez_install": r"\1",
     },

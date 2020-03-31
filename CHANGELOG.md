@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.56.0 (2020-03-31)
+[Source](https://github.com/nerdvegas/rez/tree/2.56.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.55.0...2.56.0)
+
+**Merged pull requests:**
+
+- pip install path remap [\#866](https://github.com/nerdvegas/rez/pull/866) ([j0yu](https://github.com/j0yu))
+
+**Closed issues:**
+
+- rez-pip - no case for ../../include/... file [\#861](https://github.com/nerdvegas/rez/issues/861)
+
 ## 2.55.0 (2020-03-21)
 [Source](https://github.com/nerdvegas/rez/tree/2.55.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.54.0...2.55.0)
 
