@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.56.1 (2020-03-31)
+[Source](https://github.com/nerdvegas/rez/tree/2.56.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.56.0...2.56.1)
+
+**Merged pull requests:**
+
+- Log during pip install [\#867](https://github.com/nerdvegas/rez/pull/867) ([j0yu](https://github.com/j0yu))
+
 ## 2.56.0 (2020-03-31)
 [Source](https://github.com/nerdvegas/rez/tree/2.56.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.55.0...2.56.0)
 
