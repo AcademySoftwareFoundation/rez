@@ -726,19 +726,8 @@ pip_extra_args = []
 # Use these tokens to avoid regular expression and OS-specific path issues:
 # - "{pardir}" or "{p}" for parent directory: os.pardir, i.e. ".." on Linux/Mac
 # - "{sep}" or "{s}" for folder separators: os.sep, i.e. "/" on Linux/Mac
-#
-# For example, here is the remapping rule for '../../bin/*' files (as defined
-# in the dist RECORD file). In this case, the file is found in the pip install
-# in './bin/*', and in the rexz package it goes to the same relative directory:
-#
-#     pip_install_remaps = [{
-#         "record_path": r"^{p}{s}{p}{s}(bin{s}.*)",
-#         "pip_install": r"\1",
-#         "rez_install": r"\1",
-#     }]
-#
 pip_install_remaps = [
-    # # Typical bin copy behaviour
+    # Typical bin copy behaviour
     # Path in record          | pip installed to    | copy to rez destination
     # ------------------------|---------------------|--------------------------
     # ../../bin/*             | bin/*               | bin/*
@@ -747,8 +736,7 @@ pip_install_remaps = [
         "pip_install": r"\1",
         "rez_install": r"\1",
     },
-
-    # # Fix for https://github.com/nerdvegas/rez/issues/821
+    # Fix for https://github.com/nerdvegas/rez/issues/821
     # Path in record          | pip installed to    | copy to rez destination
     # ------------------------|---------------------|--------------------------
     # ../../lib/python/*      | *                   | python/*
