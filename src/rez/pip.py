@@ -12,21 +12,23 @@ from rez.resolved_context import ResolvedContext
 from rez.utils.execution import Popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
     pip_to_rez_version
-from rez.utils.logging_ import print_debug, print_info, print_warning
+from rez.utils.logging_ import print_debug, print_info, print_error, \
+    print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, RezSystemError, convert_errors
 from rez.package_maker import make_package
 from rez.config import config
 from rez.utils.platform_ import platform_
 
-from tempfile import mkdtemp
+import os
 from pipes import quote
 from pprint import pformat
-import subprocess
-import os.path
+import re
 import shutil
+import subprocess
 import sys
-import os
+from tempfile import mkdtemp
+from textwrap import dedent
 
 
 class InstallMode(Enum):
@@ -403,9 +405,6 @@ def _get_distribution_files_mapping(distribution, targetdir):
         * key: Path of pip installed file, relative to `targetdir`;
         * value: Relative path to install into rez package.
     """
-    bin_prefix = os.path.join(os.pardir, os.pardir, 'bin') + os.sep
-    lib_py_prefix = os.path.join(os.pardir, os.pardir, 'lib', 'python') + os.sep
-
     def get_mapping(rel_src):
         topdir = rel_src.split(os.sep)[0]
 
@@ -415,27 +414,49 @@ def _get_distribution_files_mapping(distribution, targetdir):
         if topdir.endswith(".dist-info"):
             return (rel_src, rel_src)
 
-        # RECORD lists bin files as being in ../../bin/, when in fact they are
-        # in ./bin. This also happens to match rez package structure, so here
-        # src and dest are same rel path.
-        #
-        if rel_src.startswith(bin_prefix):
-            adjusted_rel_src = os.path.join("bin", rel_src[len(bin_prefix):])
-            return (adjusted_rel_src, adjusted_rel_src)
-
-        # Rarely, some distributions report an installed file as being in
-        # ../../lib/python/<pkg-name>/...
-        #
-        if rel_src.startswith(lib_py_prefix):
-            adjusted_rel_src = rel_src[len(lib_py_prefix):]
-            rel_dest = os.path.join("python", adjusted_rel_src)
-            return (adjusted_rel_src, rel_dest)
-
-        # A case we don't know how to deal with yet
+        # Remapping of other installed files according to manifest
         if topdir == os.pardir:
-            raise RuntimeError(
-                "Don't know what to do with source file %r, please file a ticket",
-                rel_src
+            for remap in config.pip_install_remaps:
+                path = remap['record_path']
+                if re.search(path, rel_src):
+                    pip_subpath = re.sub(path, remap['pip_install'], rel_src)
+                    rez_subpath = re.sub(path, remap['rez_install'], rel_src)
+                    return (pip_subpath, rez_subpath)
+
+            tokenised_path = rel_src.replace(os.pardir, '{pardir}')
+            tokenised_path = tokenised_path.replace(os.sep, '{sep}')
+            dist_record = '{dist.name}-{dist.version}.dist-info{os.sep}RECORD'
+            dist_record = dist_record.format(dist=distribution, os=os)
+
+            try_this_message = r"""
+            Unknown source file in {0}! '{1}'
+
+            To resolve, try:
+
+            1. Manually install the pip package using 'pip install --target'
+               to a temporary location.
+            2. See where '{1}'
+               actually got installed to by pip, RELATIVE to --target location
+            3. Create a new rule to 'pip_install_remaps' configuration like:
+
+                {{
+                    "record_path": r"{2}",
+                    "pip_install": r"<RELATIVE path pip installed to in 2.>",
+                    "rez_install": r"<DESTINATION sub-path in rez package>",
+                }}
+
+            4. Try rez-pip install again.
+
+            If path remapping is not enough, consider submitting a new issue
+            via https://github.com/nerdvegas/rez/issues/new
+            """.format(dist_record, rel_src, tokenised_path)
+            print_error(dedent(try_this_message).lstrip())
+
+            raise IOError(
+                89,  # errno.EDESTADDRREQ : Destination address required
+                "Don't know what to do with relative path in {0}, see "
+                "above error message for".format(dist_record),
+                rel_src,
             )
 
         # At this point the file should be <pkg-name>/..., so we put

@@ -17,7 +17,7 @@ from rez.backport.lru_cache import lru_cache
 from contextlib import contextmanager
 from inspect import ismodule
 import os
-import os.path
+import re
 import copy
 
 
@@ -122,6 +122,26 @@ class StrList(Setting):
         value = value.replace(self.sep, ' ').split()
         return [x for x in value if x]
 
+class PipInstallRemaps(Setting):
+    """Ordered, pip install remappings."""
+    PARDIR, SEP = map(re.escape, (os.pardir, os.sep))
+    RE_TOKENS = {'sep': SEP, 's': SEP, 'pardir': PARDIR, 'p': PARDIR}
+    TOKENS = {'sep': os.sep, 's': os.sep, 'pardir': os.pardir, 'p': os.pardir}
+    KEYS = ["record_path", "pip_install", "rez_install"]
+
+    schema = Schema([{key: And(str, len) for key in KEYS}])
+
+    def validate(self, data):
+        """Extended to substitute regex-escaped path tokens."""
+        return [
+            {
+                key: expression.format(
+                    **(self.RE_TOKENS if key == "record_path" else self.TOKENS)
+                )
+                for key, expression in remap.items()
+            }
+            for remap in super(PipInstallRemaps, self).validate(data)
+        ]
 
 class OptionalStrList(StrList):
     schema = Or(And(None, Use(lambda x: [])),
@@ -309,6 +329,7 @@ config_schema = Schema({
     "alias_styles":                                 OptionalStrList,
     "memcached_uri":                                OptionalStrList,
     "pip_extra_args":                               OptionalStrList,
+    "pip_install_remaps":                           PipInstallRemaps,
     "local_packages_path":                          Str,
     "release_packages_path":                        Str,
     "dot_image_format":                             Str,
