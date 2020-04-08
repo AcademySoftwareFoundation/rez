@@ -405,8 +405,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             if "home_page" in distribution_metadata:
                 help_.append(["Home Page", distribution_metadata["home_page"]])
 
-            if distribution.source_url:
-                help_.append(["Source Code", distribution.source_url])
+            if "download_url" in distribution_metadata:
+                help_.append(["Source Code", distribution_metadata["download_url"]])
 
             pkg.help = help_
 
