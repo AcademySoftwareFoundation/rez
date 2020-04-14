@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.57.0 (2020-04-14)
+[Source](https://github.com/nerdvegas/rez/tree/2.57.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.56.2...2.57.0)
+
+**Merged pull requests:**
+
+- Added distribution author and help information [\#873](https://github.com/nerdvegas/rez/pull/873) ([ColinKennedy](https://github.com/ColinKennedy))
+
+**Closed issues:**
+
+- rez-pip - Add help / authors attributes [\#838](https://github.com/nerdvegas/rez/issues/838)
+
 ## 2.56.2 (2020-04-14)
 [Source](https://github.com/nerdvegas/rez/tree/2.56.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.56.1...2.56.2)
 
