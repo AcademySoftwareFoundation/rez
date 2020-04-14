@@ -398,6 +398,27 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             pkg.from_pip = True
             pkg.is_pure_python = metadata["is_pure_python"]
 
+            distribution_metadata = distribution.metadata.todict()
+
+            help_ = []
+
+            if "home_page" in distribution_metadata:
+                help_.append(["Home Page", distribution_metadata["home_page"]])
+
+            if "download_url" in distribution_metadata:
+                help_.append(["Source Code", distribution_metadata["download_url"]])
+
+            if help_:
+                pkg.help = help_
+
+            if "author" in distribution_metadata:
+                author = distribution_metadata["author"]
+
+                if "author_email" in distribution_metadata:
+                    author += ' ' + distribution_metadata[author_email]
+
+                pkg.authors = [author]
+
         log_append_pkg_variants(pkg)
 
     # cleanup
