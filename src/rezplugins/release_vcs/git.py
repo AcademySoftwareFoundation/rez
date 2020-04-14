@@ -83,7 +83,8 @@ class GitReleaseVCS(ReleaseVCS):
             # and 2.12 - used to be "No upstream", now "no upstream"..
             errmsg = str(e).lower()
             if ("no upstream branch" not in errmsg
-                    and "no upstream configured" not in errmsg):
+                    and "no upstream configured" not in errmsg
+                    and "does not point to a branch" not in errmsg):
                 raise e
         return (None, None)
 
