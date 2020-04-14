@@ -415,7 +415,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 author = distribution_metadata["author"]
 
                 if "author_email" in distribution_metadata:
-                    author += ' ' + distribution_metadata[author_email]
+                    author += ' ' + distribution_metadata["author_email"]
 
                 pkg.authors = [author]
 
