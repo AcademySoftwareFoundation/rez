@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.56.2 (2020-04-14)
+[Source](https://github.com/nerdvegas/rez/tree/2.56.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.56.1...2.56.2)
+
+**Merged pull requests:**
+
+- Fix for git rev-parse error out before checking for allow_no_upstream [\#872](https://github.com/nerdvegas/rez/pull/872) ([alexxbb](https://github.com/alexxbb))
+
+**Closed issues:**
+
+- override git plugin config in package.py [\#871](https://github.com/nerdvegas/rez/issues/871)
+
 ## 2.56.1 (2020-03-31)
 [Source](https://github.com/nerdvegas/rez/tree/2.56.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.56.0...2.56.1)
 
