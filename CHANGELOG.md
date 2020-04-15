@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.58.0 (2020-04-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.58.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.57.0...2.58.0)
+
+**Merged pull requests:**
+
+- Expose package orderers in rez config [\#868](https://github.com/nerdvegas/rez/pull/868) ([rlessardrodeofx](https://github.com/rlessardrodeofx))
+
+**Closed issues:**
+
+- add configurability of package orderers [\#329](https://github.com/nerdvegas/rez/issues/329)
+
 ## 2.57.0 (2020-04-14)
 [Source](https://github.com/nerdvegas/rez/tree/2.57.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.56.2...2.57.0)
 
