@@ -21,6 +21,7 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
 from rez import package_order
 from rez.packages import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
+from rez.package_order import PackageOrderList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
     RezError, _NeverError
@@ -32,13 +33,10 @@ from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
 
-from tempfile import mkdtemp
 from functools import wraps
 import getpass
 import socket
 import threading
-import traceback
-import inspect
 import time
 import sys
 import os
@@ -172,6 +170,7 @@ class ResolvedContext(object):
                 packages. Defaults to settings from config.package_filter. Use
                 `package_filter.no_filter` to remove all filtering.
             package_orderers (list of `PackageOrder`): Custom package ordering.
+                Defaults to settings from config.package_orderers.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
             max_fails (int): Abort the resolve if the number of failed steps is
@@ -216,7 +215,10 @@ class ResolvedContext(object):
         self.package_filter = (PackageFilterList.singleton if package_filter is None
                                else package_filter)
 
-        self.package_orderers = package_orderers
+        self.package_orderers = (
+            PackageOrderList.singleton if package_orderers is None
+            else package_orders
+        )
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
