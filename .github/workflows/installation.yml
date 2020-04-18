@@ -33,7 +33,7 @@ jobs:
       run: |
         ${{ matrix.method }}
         find /opt/rez/ -maxdepth 2
-    
+
     - name: rez status
       run: |
         export ${{ matrix.exports }}
@@ -44,14 +44,14 @@ jobs:
         export ${{ matrix.exports }}
         rez-pip --install .
         rez view rez
-    
+
     - name: Import rez package in Python
       run: |
         export ${{ matrix.exports }}
 
         # Still needed as there's no fallback to use system's python
-        rez bind python  
-        
+        rez bind python
+
         echo "Checking rez as python package: ==========================================="
         rez env rez -- python -c 'import rez;print(rez.__file__)'
 
@@ -87,7 +87,7 @@ jobs:
       run: |
         ${{ matrix.method }}
         find /opt/rez/ -maxdepth 2
-    
+
     - name: rez status
       run: |
         export ${{ matrix.exports }}
@@ -98,13 +98,13 @@ jobs:
         export ${{ matrix.exports }}
         rez-pip --install .
         rez view rez
-    
+
     - name: Import rez package in Python
       run: |
         export ${{ matrix.exports }}
 
         # Still needed as there's no fallback to use system's python
-        rez bind python  
-        
+        rez bind python
+
         echo "Checking rez as python package: ==========================================="
         rez env rez -- python -c 'import rez;print(rez.__file__)'

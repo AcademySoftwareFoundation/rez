@@ -119,6 +119,34 @@ def find_pip(pip_version=None, python_version=None):
     return py_exe, context
 
 
+def find_python_from_package(package):
+    """Get Python executable for python package found.
+
+    See nerdvegas/rez#826. Initial ideas:
+
+    1. Get resolved python package from ResolvedContext
+    2. Figure out it's PATH from (pre_/post_/)commands()
+    3. Do a `which python` to get py_exe
+
+          For windows: just try "python"
+          For *NIX: try in order "python#.#", "python#", "python"
+
+    Args:
+        package: Python variant from resolved context packages.
+    """
+    # Just testing for now to ensure I'm on the right track
+    context = package
+    py_packages = (v for v in context.resolved_packages if v.name == "python")
+    package = next(py_packages)
+
+    py_exe_name = "python"
+
+    if platform_.name != "windows":
+        # Python < 2 on Windows doesn't have versionned executable.
+        py_exe_name += str(package.version.trim(1))
+    return context.which(py_exe_name)
+
+
 def find_pip_from_context(python_version, pip_version=None):
     """Find pip from rez context.
 
@@ -172,6 +200,7 @@ def find_pip_from_context(python_version, pip_version=None):
         py_exe_name += str(python_major_minor_ver.trim(1))
 
     py_exe = context.which(py_exe_name)
+    assert py_exe == find_python_from_package(context)
 
     proc = context.execute_command(
         # -E and -s are used to isolate the environment as much as possible.
