@@ -119,32 +119,71 @@ def find_pip(pip_version=None, python_version=None):
     return py_exe, context
 
 
-def find_python_from_package(package):
-    """Get Python executable for python package found.
+def find_python_from_package(context, name="python", default=None):
+    """Get Python executable for current resolved, python/pip context.
 
-    See nerdvegas/rez#826. Initial ideas:
+    See nerdvegas/rez#826.
 
     1. Get resolved python package from ResolvedContext
-    2. Figure out it's PATH from (pre_/post_/)commands()
+    2. Create a new context with just that python package, no system paths.
     3. Do a `which python` to get py_exe
 
           For windows: just try "python"
           For *NIX: try in order "python#.#", "python#", "python"
 
     Args:
-        package: Python variant from resolved context packages.
+        context (ResolvedContext): Current context with resolved Python.
+        name (str): Name of the package for Python instead of "python".
+        default (str): Force a particular fallback path for Python executable.
+
+    Returns:
+        str or None: Path to Python executable, if any.
     """
-    # Just testing for now to ensure I'm on the right track
-    context = package
-    py_packages = (v for v in context.resolved_packages if v.name == "python")
-    package = next(py_packages)
+    from rez.shells import create_shell
 
-    py_exe_name = "python"
+    py_exe_path = default
 
-    if platform_.name != "windows":
-        # Python < 2 on Windows doesn't have versionned executable.
-        py_exe_name += str(package.version.trim(1))
-    return context.which(py_exe_name)
+    # 1.
+    py_packages = (v for v in context.resolved_packages if v.name == name)
+    python_package = next(py_packages)
+
+    # Filthy hack to not have system paths added in ResovledContext._execute
+    # by RexExecutor.append_system_paths(), which calls Shell.get_syspaths()
+    shell_class = create_shell().__class__
+    current_syspaths = shell_class.syspaths
+    try:
+        shell_class.syspaths = []
+
+        # 2.
+        py_only_ctx = ResolvedContext(
+            [python_package.qualified_package_name],
+            **context.to_dict(
+                fields=[
+                    "building",
+                    "caching",
+                    "package_filter",
+                    "package_orderers",
+                    "package_paths",
+                    "timestamp",
+                ]
+            )
+        )
+
+        # 3.
+        if platform_.name != "windows":
+            # Python < 2 on Windows doesn't have versioned executable.
+            py_exe_path = context.which("python")
+        else:
+            name_template = "python{}"  # python3.7, python3, python
+            for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
+                exe_name = name_template.format(trimmed_version)
+                py_exe_path = py_only_ctx.which(exe_name)
+                if py_exe_path is not None:
+                    break
+    finally:
+        shell_class.syspaths = current_syspaths
+
+    return py_exe_path or default
 
 
 def find_pip_from_context(python_version, pip_version=None):
@@ -194,13 +233,7 @@ def find_pip_from_context(python_version, pip_version=None):
         print_debug("No rez package called %s found", target)
         return None, None, None
 
-    py_exe_name = "python"
-    if platform_.name != "windows":
-        # Python < 2 on Windows doesn't have versionned executable.
-        py_exe_name += str(python_major_minor_ver.trim(1))
-
-    py_exe = context.which(py_exe_name)
-    assert py_exe == find_python_from_package(context)
+    py_exe = find_python_from_package(context)
 
     proc = context.execute_command(
         # -E and -s are used to isolate the environment as much as possible.
