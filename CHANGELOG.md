@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.58.1 (2020-04-22)
+[Source](https://github.com/nerdvegas/rez/tree/2.58.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.58.0...2.58.1)
+
+**Merged pull requests:**
+
+- Fix ISSUE-879: AttributeError: 'Namespace' object has no attribute 'func' [\#880](https://github.com/nerdvegas/rez/pull/880) ([rfletchr](https://github.com/rfletchr))
+
+**Closed issues:**
+
+- AttributeError: 'Namespace' object has no attribute 'func' [\#879](https://github.com/nerdvegas/rez/issues/879)
+
 ## 2.58.0 (2020-04-15)
 [Source](https://github.com/nerdvegas/rez/tree/2.58.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.57.0...2.58.0)
 
