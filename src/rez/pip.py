@@ -141,35 +141,23 @@ def find_python_from_package(context, name="python", default=None):
     Returns:
         str or None: Path to Python executable, if any.
     """
-    from rez.shells import create_shell
-
     py_exe_path = default
+    context = context.copy()
+    context.append_sys_path = False
 
-    # 1.
-    py_packages = (v for v in context.resolved_packages if v.name == name)
-    python_package = next(py_packages)
+    if platform_.name == "windows":
+        # Python < 2 on Windows doesn't have versioned executable.
+        py_exe_path = context.which("python")
+    else:
+        name_template = "python{}"  # python3.7, python3, python
+        py_packages = (v for v in context.resolved_packages if v.name == name)
+        python_package = next(py_packages)
 
-    # Filthy hack to not have system paths added in ResovledContext._execute
-    # by RexExecutor.append_system_paths(), which calls Shell.get_syspaths()
-    shell_class = create_shell().__class__
-    current_syspaths = shell_class.syspaths
-    try:
-        # 2.
-        shell_class.syspaths = []
-
-        # 3.
-        if platform_.name == "windows":
-            # Python < 2 on Windows doesn't have versioned executable.
-            py_exe_path = context.which("python")
-        else:
-            name_template = "python{}"  # python3.7, python3, python
-            for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
-                exe_name = name_template.format(trimmed_version)
-                py_exe_path = context.which(exe_name)
-                if py_exe_path is not None:
-                    break
-    finally:
-        shell_class.syspaths = current_syspaths
+        for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
+            exe_name = name_template.format(trimmed_version)
+            py_exe_path = context.which(exe_name)
+            if py_exe_path is not None:
+                break
 
     return py_exe_path or default
 
