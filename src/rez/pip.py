@@ -87,18 +87,20 @@ def find_pip(pip_version=None, python_version=None):
     py_exe = None
     context = None
     found_pip_version = None
+    valid_found = False
 
     for version in [pip_version, "latest"]:
         try:
             py_exe, found_pip_version, context = find_pip_from_context(
                 python_version, pip_version=version
             )
-            if _check_found(py_exe, found_pip_version):
+            valid_found = _check_found(py_exe, found_pip_version)
+            if valid_found:
                 break
         except BuildError as error:
             print_warning(str(error))
 
-    else:  # No break from: for version in [pip_version,...]
+    if not valid_found:
         import pip
 
         found_pip_version = pip.__version__
