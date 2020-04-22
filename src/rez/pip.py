@@ -122,16 +122,7 @@ def find_pip(pip_version=None, python_version=None):
 
 
 def find_python_from_package(context, name="python", default=None):
-    """Get Python executable for current resolved, python/pip context.
-
-    See nerdvegas/rez#826.
-
-    1. Get resolved python package from ResolvedContext
-    2. Force no system paths.
-    3. Do a `which python` to get py_exe
-
-          For windows: just try "python"
-          For *NIX: try in order "python#.#", "python#", "python"
+    """Get Python executable from current resolved python/pip context.
 
     Args:
         context (ResolvedContext): Resolved context with Python and pip.
@@ -143,17 +134,17 @@ def find_python_from_package(context, name="python", default=None):
     """
     py_exe_path = default
     context = context.copy()
-    context.append_sys_path = False
+    context.append_sys_path = False  # GitHub nerdvegas/rez/pull/826
 
-    if platform_.name == "windows":
-        # Python < 2 on Windows doesn't have versioned executable.
-        py_exe_path = context.which("python")
+    py_packages = (v for v in context.resolved_packages if v.name == name)
+    python_package = next(py_packages)
+
+    if platform_.name == "windows" and python_package.version < Version("3"):
+        py_exe_path = context.which("python")  # GitHub nerdvegas/rez/pull/798
     else:
-        name_template = "python{}"  # python3.7, python3, python
-        py_packages = (v for v in context.resolved_packages if v.name == name)
-        python_package = next(py_packages)
-
+        name_template = "python{}"
         for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
+            # exe_name after trimmed: python3.7, python3, python
             exe_name = name_template.format(trimmed_version)
             py_exe_path = context.which(exe_name)
             if py_exe_path is not None:
