@@ -141,7 +141,15 @@ def run(command=None):
         exc_type = RezError
 
     def run_cmd():
-        return opts.func(opts, opts.parser, extra_arg_groups)
+        try:
+            # python3 will not automatically handle cases where no sub parser
+            # has been selected. In these cases func will not exist, and an
+            # AttributeError will be raised.
+            func = opts.func
+        except AttributeError:
+            parser.error("too few arguments.")
+        else:
+            return func(opts, opts.parser, extra_arg_groups)
 
     if opts.profile:
         import cProfile
