@@ -127,14 +127,14 @@ def find_python_from_package(context, name="python", default=None):
     See nerdvegas/rez#826.
 
     1. Get resolved python package from ResolvedContext
-    2. Create a new context with just that python package, no system paths.
+    2. Force no system paths.
     3. Do a `which python` to get py_exe
 
           For windows: just try "python"
           For *NIX: try in order "python#.#", "python#", "python"
 
     Args:
-        context (ResolvedContext): Current context with resolved Python.
+        context (ResolvedContext): Resolved context with Python and pip.
         name (str): Name of the package for Python instead of "python".
         default (str): Force a particular fallback path for Python executable.
 
@@ -154,32 +154,18 @@ def find_python_from_package(context, name="python", default=None):
     shell_class = create_shell().__class__
     current_syspaths = shell_class.syspaths
     try:
+        # 2.
         shell_class.syspaths = []
 
-        # 2.
-        py_only_ctx = ResolvedContext(
-            [python_package.qualified_package_name],
-            **context.to_dict(
-                fields=[
-                    "building",
-                    "caching",
-                    "package_filter",
-                    "package_orderers",
-                    "package_paths",
-                    "timestamp",
-                ]
-            )
-        )
-
         # 3.
-        if platform_.name != "windows":
+        if platform_.name == "windows":
             # Python < 2 on Windows doesn't have versioned executable.
             py_exe_path = context.which("python")
         else:
             name_template = "python{}"  # python3.7, python3, python
             for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
                 exe_name = name_template.format(trimmed_version)
-                py_exe_path = py_only_ctx.which(exe_name)
+                py_exe_path = context.which(exe_name)
                 if py_exe_path is not None:
                     break
     finally:
