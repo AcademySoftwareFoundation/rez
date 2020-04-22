@@ -88,7 +88,7 @@ def find_pip(pip_version=None, python_version=None):
     context = None
     found_pip_version = None
 
-    for version in [pip_version, pip_version or "latest"]:
+    for version in [pip_version, "latest"]:
         try:
             py_exe, found_pip_version, context = find_pip_from_context(
                 python_version, pip_version=version
