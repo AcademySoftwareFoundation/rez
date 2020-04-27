@@ -9,8 +9,8 @@ jobs:
       matrix:
         python-version:
           - '2.7'
-          - '3.6'
-          - '3.7'
+          # - '3.6'
+          # - '3.7'
         os:
           - windows
           - macos
@@ -19,7 +19,7 @@ jobs:
             method: 'python .\install.py "C:\Program Files\rez"'
             check-parent: 'dir "C:\Program Files"'
           - os: macos
-            method: 'python ./install.py /Applications/Utilities/rez'
+            method: 'sudo python ./install.py /Applications/Utilities/rez'
             check-parent: 'ls -lah /Applications/Utilities'
 
     steps:
@@ -33,6 +33,7 @@ jobs:
   linux-vm:
     name: ${{ matrix.python-version }} - ${{ matrix.method }}
     runs-on: ubuntu-latest
+    if: false == true  # Disable while we test above
     strategy:
       matrix:
         python-version:
