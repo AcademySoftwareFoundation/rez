@@ -2,6 +2,26 @@ name: Installation
 on: [push]
 
 jobs:
+  os-vm: 
+    name: ${{ matrix.python-version }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+    strategy: 
+      matrix:
+        python-version:
+          - '2.7'
+          - '3.6'
+          - '3.7'
+        os:
+          - windows
+          - macos
+
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python ./install.py
+
   linux-vm:
     name: ${{ matrix.python-version }} - ${{ matrix.method }}
     runs-on: ubuntu-latest
@@ -56,6 +76,8 @@ jobs:
         rez env rez -- python -c 'import rez;print(rez.__file__)'
 
   linux-containers:
+    # Quick check with systems that already has Python and Pip setup
+    # rather than through GitHub CI actions/setup-python
     name: python:${{ matrix.python-version }} - ${{ matrix.method }}
     runs-on: ubuntu-latest
     container: python:${{ matrix.python-version }}
@@ -77,11 +99,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@master
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: Install
       run: |
