@@ -134,7 +134,7 @@ def find_python_from_package(context, name="python", default=None):
     """
     py_exe_path = default
     context = context.copy()
-    context.append_sys_path = False  # GitHub nerdvegas/rez/pull/826
+    context.append_sys_path = False  # GitHub nerdvegas/rez/issue/826
 
     py_packages = (v for v in context.resolved_packages if v.name == name)
     python_package = next(py_packages)
