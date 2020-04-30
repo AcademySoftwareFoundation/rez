@@ -121,8 +121,8 @@ def find_pip(pip_version=None, python_version=None):
     return py_exe, context
 
 
-def find_python_from_package(context, name="python", default=None):
-    """Get Python executable from current resolved python/pip context.
+def find_python_in_context(context):
+    """Find Python executable within the given context.
 
     Args:
         context (ResolvedContext): Resolved context with Python and pip.
@@ -132,25 +132,25 @@ def find_python_from_package(context, name="python", default=None):
     Returns:
         str or None: Path to Python executable, if any.
     """
-    py_exe_path = default
+
+    # Create a copy of the context with systems paths removed, so we don't
+    # accidentally find a system python install.
+    #
     context = context.copy()
     context.append_sys_path = False  # GitHub nerdvegas/rez/issue/826
 
-    py_packages = (v for v in context.resolved_packages if v.name == name)
-    python_package = next(py_packages)
+    python_package = context.get_resolved_package("python")
+    assert python_package
 
-    if platform_.name == "windows" and python_package.version < Version("3"):
-        py_exe_path = context.which("python")  # GitHub nerdvegas/rez/pull/798
-    else:
-        name_template = "python{}"
-        for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
-            # exe_name after trimmed: python3.7, python3, python
-            exe_name = name_template.format(trimmed_version)
-            py_exe_path = context.which(exe_name)
-            if py_exe_path is not None:
-                break
+    # look for (eg) python3.7, then python3, then python
+    name_template = "python{}"
+    for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
+        exe_name = name_template.format(trimmed_version)
+        py_exe_path = context.which(exe_name)
+        if py_exe_path:
+            return py_exe_path
 
-    return py_exe_path or default
+    return None
 
 
 def find_pip_from_context(python_version, pip_version=None):
@@ -200,7 +200,7 @@ def find_pip_from_context(python_version, pip_version=None):
         print_debug("No rez package called %s found", target)
         return None, None, None
 
-    py_exe = find_python_from_package(context)
+    py_exe = find_python_in_context(context)
 
     proc = context.execute_command(
         # -E and -s are used to isolate the environment as much as possible.
@@ -223,7 +223,7 @@ def find_pip_from_context(python_version, pip_version=None):
     variant = context.get_resolved_package(target)
     package = variant.parent
     print_info(
-        "Found pip-%s inside %s. Will use it with %s",
+        "Found pip-%s inside %s. Will use it via %s",
         pip_version,
         package.uri,
         py_exe

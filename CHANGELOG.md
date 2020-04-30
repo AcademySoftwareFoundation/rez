@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.59.0 (2020-04-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.59.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.58.1...2.59.0)
+
+**Merged pull requests:**
+
+- Fix issue 826 - correct python and pip fallback [\#878](https://github.com/nerdvegas/rez/pull/878) ([j0yu](https://github.com/j0yu))
+
+**Closed issues:**
+
+- rez-pip issues finding pip executable [\#826](https://github.com/nerdvegas/rez/issues/826)
+
 ## 2.58.1 (2020-04-22)
 [Source](https://github.com/nerdvegas/rez/tree/2.58.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.58.0...2.58.1)
 
