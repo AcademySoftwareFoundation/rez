@@ -7,6 +7,8 @@ from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
+from rez.vendor.packaging.version import Version as PackagingVersion
+from rez.vendor.packaging.specifiers import Specifier
 from rez.vendor.six.six import StringIO
 from rez.resolved_context import ResolvedContext
 from rez.utils.execution import Popen
@@ -29,6 +31,9 @@ import subprocess
 import sys
 from tempfile import mkdtemp
 from textwrap import dedent
+
+
+PIP_SPECIFIER = Specifier(">=19")  # rez pip only compatible with pip>=19
 
 
 class InstallMode(Enum):
@@ -81,33 +86,71 @@ def find_pip(pip_version=None, python_version=None):
     """
     py_exe = None
     context = None
+    found_pip_version = None
+    valid_found = False
 
-    py_exe, pip_version, context = find_pip_from_context(
-        python_version,
-        pip_version=pip_version
-    )
+    for version in [pip_version, "latest"]:
+        try:
+            py_exe, found_pip_version, context = find_pip_from_context(
+                python_version, pip_version=version
+            )
+            valid_found = _check_found(py_exe, found_pip_version)
+            if valid_found:
+                break
+        except BuildError as error:
+            print_warning(str(error))
 
-    if not py_exe:
-        py_exe, pip_version, context = find_pip_from_context(
-            python_version,
-            pip_version=pip_version or "latest"
-        )
-
-    if not py_exe:
+    if not valid_found:
         import pip
-        pip_version = pip.__version__
-        py_exe = sys.executable
-        print_warning(
-            "Found no pip in python and pip package; "
-            "falling back to pip installed in rez own virtualenv (version %s)",
-            pip_version
-        )
 
-    pip_major = pip_version.split('.')[0]
-    if int(pip_major) < 19:
-        raise RezSystemError("pip >= 19 is required! Please update your pip.")
+        found_pip_version = pip.__version__
+        py_exe = sys.executable
+        print_warning("Found no pip in any python and/or pip packages!")
+        print_warning("Falling back to pip installed in rez own virtualenv:")
+        logging_arguments = (
+            ("pip", found_pip_version, pip.__file__),
+            ("python", ".".join(map(str, sys.version_info[:3])), py_exe),
+        )
+        for warn_args in logging_arguments:
+            print_warning("%10s: %s (%s)", *warn_args)
+
+    if not _check_found(py_exe, found_pip_version, log_invalid=False):
+        message = "pip{specifier} is required! Please update your pip."
+        raise RezSystemError(message.format(specifier=PIP_SPECIFIER))
 
     return py_exe, context
+
+
+def find_python_from_package(context, name="python", default=None):
+    """Get Python executable from current resolved python/pip context.
+
+    Args:
+        context (ResolvedContext): Resolved context with Python and pip.
+        name (str): Name of the package for Python instead of "python".
+        default (str): Force a particular fallback path for Python executable.
+
+    Returns:
+        str or None: Path to Python executable, if any.
+    """
+    py_exe_path = default
+    context = context.copy()
+    context.append_sys_path = False  # GitHub nerdvegas/rez/issue/826
+
+    py_packages = (v for v in context.resolved_packages if v.name == name)
+    python_package = next(py_packages)
+
+    if platform_.name == "windows" and python_package.version < Version("3"):
+        py_exe_path = context.which("python")  # GitHub nerdvegas/rez/pull/798
+    else:
+        name_template = "python{}"
+        for trimmed_version in map(python_package.version.trim, [2, 1, 0]):
+            # exe_name after trimmed: python3.7, python3, python
+            exe_name = name_template.format(trimmed_version)
+            py_exe_path = context.which(exe_name)
+            if py_exe_path is not None:
+                break
+
+    return py_exe_path or default
 
 
 def find_pip_from_context(python_version, pip_version=None):
@@ -157,12 +200,7 @@ def find_pip_from_context(python_version, pip_version=None):
         print_debug("No rez package called %s found", target)
         return None, None, None
 
-    py_exe_name = "python"
-    if platform_.name != "windows":
-        # Python < 2 on Windows doesn't have versionned executable.
-        py_exe_name += str(python_major_minor_ver.trim(1))
-
-    py_exe = context.which(py_exe_name)
+    py_exe = find_python_from_package(context)
 
     proc = context.execute_command(
         # -E and -s are used to isolate the environment as much as possible.
@@ -557,6 +595,33 @@ def _cmd(context, command):
 
     if p.returncode:
         raise BuildError("Failed to download source with pip: %s" % cmd_str)
+
+
+def _check_found(py_exe, version_text, log_invalid=True):
+    """Check the Python and pip version text found.
+
+    Args:
+        py_exe (str or None): Python executable path found, if any.
+        version_text (str or None): Pip version found, if any.
+        log_invalid (bool): Whether to log messages if found invalid.
+
+    Returns:
+        bool: Python is OK and pip version fits against ``PIP_SPECIFIER``.
+    """
+    is_valid = True
+    message = "Needs pip%s, but found '%s' for Python '%s'"
+
+    if version_text is None or not py_exe:
+        is_valid = False
+        if log_invalid:
+            print_debug(message, PIP_SPECIFIER, version_text, py_exe)
+
+    elif PackagingVersion(version_text) not in PIP_SPECIFIER:
+        is_valid = False
+        if log_invalid:
+            print_warning(message, PIP_SPECIFIER, version_text, py_exe)
+
+    return is_valid
 
 
 _verbose = config.debug("package_release")

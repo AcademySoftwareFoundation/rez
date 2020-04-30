@@ -188,6 +188,7 @@ class ResolvedContext(object):
                 effect if `verbosity` > 2.
             print_stats (bool): If true, print advanced solver stats at the end.
         """
+        self.append_sys_path = True
         self.load_path = None
 
         # resolving settings
@@ -1715,7 +1716,8 @@ class ResolvedContext(object):
         self._append_suite_paths(executor)
 
         # append system paths
-        executor.append_system_paths()
+        if self.append_sys_path:
+            executor.append_system_paths()
 
         # add rez path so that rez commandline tools are still available within
         # the resolved environment
