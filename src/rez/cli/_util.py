@@ -127,6 +127,19 @@ def _env_var_true(name):
     return (os.getenv(name, "").lower() in ("1", "true", "on", "yes"))
 
 
+def print_items(items, stream=sys.stdout):
+    try:
+        item_per_line = (not stream.isatty())
+    except:
+        item_per_line = True
+
+    if item_per_line:
+        for item in items:
+            print(item)
+    else:
+        print(' '.join(map(str, items)))
+
+
 def sigbase_handler(signum, frame):
     # show cursor - progress lib may have hidden it
     SHOW_CURSOR = '\x1b[?25h'
