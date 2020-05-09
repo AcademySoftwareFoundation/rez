@@ -637,11 +637,37 @@ def get_variant(variant_handle, context=None):
     return variant
 
 
+def get_variant_from_uri(uri, paths=None):
+    """Get a variant given its URI.
+
+    Args:
+        uri (str): Variant URI
+        paths (list of str): paths to search for variants, defaults to
+            `config.packages_path`.
+
+    Returns:
+        `VariantResource`, or None if the variant is not present in this
+        package repository.
+    """
+    for path in (paths or config.packages_path):
+        repo = package_repository_manager.get_repository(path)
+        variant_resource = repo.get_variant_from_uri(uri)
+        if variant_resource is not None:
+            return Variant(variant_resource)
+
+    return None
+
+
 def get_last_release_time(name, paths=None):
     """Returns the most recent time this package was released.
 
     Note that releasing a variant into an already-released package is also
     considered a package release.
+
+    Args:
+        name (str): Package family name.
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`.
 
     Returns:
         int: Epoch time of last package release, or zero if this cannot be

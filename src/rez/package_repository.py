@@ -170,6 +170,18 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_variant_from_uri(self, uri):
+        """Get a variant given its URI.
+
+        Args:
+            uri (str): Variant URI
+
+        Returns:
+            `VariantResource`, or None if the variant is not present in this
+            package repository.
+        """
+        return None
+
     def pre_variant_install(self, variant_resource):
         """Called before a variant is installed.
 
