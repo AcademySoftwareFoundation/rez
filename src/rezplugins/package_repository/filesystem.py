@@ -577,11 +577,14 @@ class FileSystemPackageRepository(PackageRepository):
             return None
 
         # find variant in package
-        try:
-            variant_index = int(part2)
-        except:
-            # future proof - we may move to hash-based indices for hashed variants
-            variant_index = part2
+        if part2 == '':
+            variant_index = None
+        else:
+            try:
+                variant_index = int(part2)
+            except:
+                # future proof - we may move to hash-based indices for hashed variants
+                variant_index = part2
 
         for variant in pkg.iter_variants():
             if variant.index == variant_index:
