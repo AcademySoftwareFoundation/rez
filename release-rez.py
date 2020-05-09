@@ -27,9 +27,12 @@ from rez.utils._version import _rez_version
 
 github_baseurl = "github.com/repos/nerdvegas/rez"
 github_baseurl2 = "github.com/nerdvegas/rez"
-github_username = os.getenv("GITHUB_USERNAME")
-github_password = os.getenv("GITHUB_PASSWORD")
 verbose = False
+
+# https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
+# requires 'public_repo' access
+#
+github_token = os.environ["GITHUB_RELEASE_REZ_TOKEN"]
 
 
 def run_command(*nargs):
@@ -46,20 +49,11 @@ def run_command(*nargs):
     return out.strip()
 
 
-def get_github_url(endpoint=None):
-    global github_username, github_password
-
-    github_url = "https://{username}:{password}@api.%s/" % github_baseurl
-
-    if github_username is None or github_password is None:
-        github_username = raw_input("Github username: ").strip()
-        github_password = getpass("Github password: ").strip()
-
-    url = github_url.format(username=github_username, password=github_password)
-
-    if endpoint:
-        url += endpoint
-    return url
+def github_request(method, endpoint, headers=None):
+    url = "https://api.%s/%s" % (github_baseurl, endpoint)
+    headers = (headers or {}).copy()
+    headers["Authorization"] = "token " + github_token
+    return requests.request(method, url, headers=headers)
 
 
 def parse_topmost_changelog():
@@ -119,7 +113,7 @@ def create_and_push_tag():
 
 def create_github_release_notes():
     # check if latest release notes already match current version
-    response = requests.get(get_github_url("releases/latest"))
+    response = github_request("get", "releases/latest")
     response.raise_for_status()
     latest_release_tag = response.json()["tag_name"]
 
@@ -145,8 +139,9 @@ def create_github_release_notes():
     )
 
     # create the release on github
-    response = requests.post(
-        get_github_url("releases"),
+    response = github_request(
+        "post",
+        "releases",
         json=data,
         headers={"Content-Type": "application/json"}
     )
@@ -174,8 +169,9 @@ def generate_changelog_entry(issue_nums):
 
     for issue_num in sorted(issue_nums):
         # note that 'issues' endpoint also returns PRs
-        response = requests.get(
-            get_github_url("issues/%d" % issue_num),
+        response = github_request(
+            "get",
+            "issues/%d" % issue_num,
             headers={"Content-Type": "application/json"}
         )
 
