@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.59.1 (2020-05-09)
+[Source](https://github.com/nerdvegas/rez/tree/2.59.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.59.0...2.59.1)
+
+**Merged pull requests:**
+
+- fixed - rez-context -g with prune-package fails [\#885](https://github.com/nerdvegas/rez/pull/885) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-context -g with prune-package fails [\#884](https://github.com/nerdvegas/rez/issues/884)
+
 ## 2.59.0 (2020-04-30)
 [Source](https://github.com/nerdvegas/rez/tree/2.59.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.58.1...2.59.0)
 
