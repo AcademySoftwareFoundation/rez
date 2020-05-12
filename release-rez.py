@@ -49,11 +49,11 @@ def run_command(*nargs):
     return out.strip()
 
 
-def github_request(method, endpoint, headers=None):
+def github_request(method, endpoint, headers=None, **kwargs):
     url = "https://api.%s/%s" % (github_baseurl, endpoint)
     headers = (headers or {}).copy()
     headers["Authorization"] = "token " + github_token
-    return requests.request(method, url, headers=headers)
+    return requests.request(method, url, headers=headers, **kwargs)
 
 
 def parse_topmost_changelog():
