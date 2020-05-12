@@ -1,5 +1,6 @@
 import os.path
 from hashlib import sha1
+import json
 
 from rez.exceptions import PackageCacheError
 from rez.utils.base26 import get_next_base26
@@ -57,4 +58,32 @@ class PackageCache(object):
         Returns:
             str: Cached variant root path, or None if not found.
         """
+        path = self._get_hash_path(variant)
+        if not os.path.exists(path):
+            return None
+
+        for name in os.listdir(path):
+            rootpath = os.path.join(path, name)
+            filepath = os.path.join(rootpath, "variant.json")
+
+            if os.path.exists(filepath):
+                with open(filepath) as f:
+                    handle = json.load(f)
+                if handle == variant.handle:
+                    return rootpath
+
+        return None
+
+    def _get_hash_path(self, variant):
+        dirs = [self.path, variant.name]
+
+        if variant.version:
+            dirs.append(str(variant.version))
+        else:
+            dirs.append("_NO_VERSION")
+
         h = sha1(str(variant.handle._hashable_repr()).encode('utf-8'))
+        hash_dirname = h.hexdigest()[:4]
+        dirs.append(hash_dirname)
+
+        return os.path.join(*dirs)
