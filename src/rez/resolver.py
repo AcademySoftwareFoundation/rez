@@ -69,7 +69,7 @@ class Resolver(object):
         # store hash of package orderers. This is used in the memcached key
         if package_orderers:
             sha1s = ''.join(x.sha1 for x in package_orderers)
-            self.package_orderers_hash = sha1(sha1s).hexdigest()
+            self.package_orderers_hash = sha1(sha1s.encode("utf8")).hexdigest()
         else:
             self.package_orderers_hash = ''
 

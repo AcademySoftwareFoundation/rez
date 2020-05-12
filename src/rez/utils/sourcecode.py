@@ -315,7 +315,7 @@ class IncludeModuleManager(object):
             with open(filepath) as f:
                 txt = f.read().strip()
 
-            hash_str = sha1(txt).hexdigest()
+            hash_str = sha1(txt.encode("utf8")).hexdigest()
         else:
             # load sourcefile that's been copied into package install payload
             path = os.path.join(package.base, self.include_modules_subpath)

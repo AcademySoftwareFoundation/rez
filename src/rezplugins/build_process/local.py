@@ -298,7 +298,7 @@ class LocalBuildProcess(BuildProcessHelper):
             with open(filepath, "rb") as f:
                 txt = f.read().strip()
 
-            uuid = sha1(txt).hexdigest()
+            uuid = sha1(txt.encode("utf8")).hexdigest()
             dest_filepath = os.path.join(path, "%s-%s.py" % (name, uuid))
 
             if not os.path.exists(dest_filepath):
