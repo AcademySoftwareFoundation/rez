@@ -534,6 +534,61 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
+    def get_variant_from_uri(self, uri):
+        """
+        Example URIs:
+        - /svr/packages/mypkg/1.0.0/package.py[1]
+        - /svr/packages/mypkg/1.0.0/package.py[]  ("null" variant)
+        - /svr/packages/mypkg/package.py[1]  (unversioned package - rare)
+        """
+        i = uri.rfind('[')
+        if i == -1:
+            return None
+
+        prefix = self.location + os.path.sep
+        if not uri.startswith(prefix):
+            return None
+
+        part1 = uri[len(prefix):i]  # 'mypkg/1.0.0/package.py'
+        part2 = uri[i:][1:-1]  # the '1' in '[1]'
+
+        # find package
+        parts = part1.split(os.path.sep)
+        if len(parts) == 3:  # versioned package
+            pkg_name, pkg_ver_str = parts[0], parts[1]
+        elif len(parts) == 2:  # unversioned package
+            pkg_name, pkg_ver_str = parts[0], ''
+        else:
+            return None
+
+        fam = self.get_package_family(pkg_name)
+        if fam is None:
+            return None
+
+        ver = Version(pkg_ver_str)
+        pkg = None
+
+        for package in fam.iter_packages():
+            if package.version == ver:
+                pkg = package
+                break
+
+        if pkg is None:
+            return None
+
+        # find variant in package
+        try:
+            variant_index = int(part2)
+        except:
+            # future proof - we may move to hash-based indices for hashed variants
+            variant_index = part2
+
+        for variant in pkg.iter_variants():
+            if variant.index == variant_index:
+                return variant
+
+        return None
+
     @cached_property
     def file_lock_dir(self):
         dirname = _settings.file_lock_dir
