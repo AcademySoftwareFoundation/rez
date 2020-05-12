@@ -312,10 +312,10 @@ class IncludeModuleManager(object):
             if not os.path.exists(filepath):
                 return None
 
-            with open(filepath) as f:
+            with open(filepath, "rb") as f:
                 txt = f.read().strip()
 
-            hash_str = sha1(txt.encode("utf8")).hexdigest()
+            hash_str = sha1(txt).hexdigest()
         else:
             # load sourcefile that's been copied into package install payload
             path = os.path.join(package.base, self.include_modules_subpath)
