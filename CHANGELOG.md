@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.60.0 (2020-05-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.60.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.59.1...2.60.0)
+
+**Backwards Compatibility Issues**
+
+Please note that #887 introduces a subtle change to CLI behaviour. Previously, `rez-context --resolve`
+would print a space-separated list of packages, even when piped to another process. Now however, if
+the output is piped, it will print one package per line. This is an improvement, as it means you can
+more easily chain `rez-context` with other utilities such as grep, xargs etc.
+
+**Merged pull requests:**
+
+- added get_variant_from_uri functionality [\#886](https://github.com/nerdvegas/rez/pull/886) ([nerdvegas](https://github.com/nerdvegas))
+- Cli variant uri [\#887](https://github.com/nerdvegas/rez/pull/887) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.59.1 (2020-05-09)
 [Source](https://github.com/nerdvegas/rez/tree/2.59.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.59.0...2.59.1)
 
