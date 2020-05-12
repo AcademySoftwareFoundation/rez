@@ -49,8 +49,12 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",
         help="select variants to copy (zero-indexed).")
+    parser.add_argument(
+        "--variant-uri", metavar="URI",
+        help="copy variant with the given URI. Ignores --variants."
+        )
     pkg_action = parser.add_argument(
-        "PKG",
+        "PKG", nargs='?',
         help="package to copy")
 
     if completions:
@@ -66,7 +70,13 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.package_repository import package_repository_manager
     from rez.package_copy import copy_package
     from rez.utils.formatting import PackageRequest
-    from rez.packages import iter_packages
+    from rez.packages import iter_packages, get_variant_from_uri
+
+    if opts.variant_uri:
+        if opts.PKG:
+            parser.error("Supply PKG or --variant-uri, not both.")
+    elif not opts.PKG:
+        parser.error("Expected PKG.")
 
     if (not opts.dest_path) and not (opts.rename or opts.reversion):
         parser.error("--dest-path must be specified unless --rename or "
@@ -75,34 +85,45 @@ def command(opts, parser, extra_arg_groups=None):
     # Load the source package.
     #
 
-    if opts.paths:
-        paths = opts.paths.split(os.pathsep)
-        paths = [x for x in paths if x]
-    elif opts.no_local:
-        paths = config.nonlocal_packages_path
+    if opts.variant_uri:
+        variant = get_variant_from_uri(opts.variant_uri)
+        if variant is None:
+            print("Unknown variant: %s" % opts.variant_uri, file=sys.stderr)
+            sys.exit(1)
+
+        src_pkg = variant.parent
+        variant_indexes = [variant.index]
+
     else:
-        paths = None
+        if opts.paths:
+            paths = opts.paths.split(os.pathsep)
+            paths = [x for x in paths if x]
+        elif opts.no_local:
+            paths = config.nonlocal_packages_path
+        else:
+            paths = None
 
-    req = PackageRequest(opts.PKG)
+        req = PackageRequest(opts.PKG)
 
-    it = iter_packages(
-        name=req.name,
-        range_=req.range_,
-        paths=paths
-    )
+        it = iter_packages(
+            name=req.name,
+            range_=req.range_,
+            paths=paths
+        )
 
-    src_pkgs = list(it)
-    if not src_pkgs:
-        print("No matching packages found.", file=sys.stderr)
-        sys.exit(1)
+        src_pkgs = list(it)
+        if not src_pkgs:
+            print("No matching packages found.", file=sys.stderr)
+            sys.exit(1)
 
-    if len(src_pkgs) > 1:
-        print("More than one package matches, please choose:", file=sys.stderr)
-        for pkg in sorted(src_pkgs, key=lambda x: x.version):
-            print(pkg.qualified_name, file=sys.stderr)
-        sys.exit(1)
+        if len(src_pkgs) > 1:
+            print("More than one package matches, please choose:", file=sys.stderr)
+            for pkg in sorted(src_pkgs, key=lambda x: x.version):
+                print(pkg.qualified_name, file=sys.stderr)
+            sys.exit(1)
 
-    src_pkg = src_pkgs[0]
+        src_pkg = src_pkgs[0]
+        variant_indexes = opts.variants or None
 
     # Determine repo and perform checks.
     #
@@ -129,14 +150,12 @@ def command(opts, parser, extra_arg_groups=None):
     # Perform the copy.
     #
 
-    variants = opts.variants or None
-
     result = copy_package(
         package=src_pkg,
         dest_repository=dest_pkg_repo,
         dest_name=opts.rename,
         dest_version=opts.reversion,
-        variants=variants,
+        variants=variant_indexes,
         overwrite=opts.overwrite,
         shallow=opts.shallow,
         follow_symlinks=opts.follow_symlinks,

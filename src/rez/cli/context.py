@@ -34,7 +34,7 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--res", "--print-resolve", dest="print_resolve",
         action="store_true",
-        help="print only the resolve list")
+        help="print only the resolve list. Use with --su to print package URIs")
     parser.add_argument(
         "--so", "--source-order", dest="source_order", action="store_true",
         help="print resolved packages in order they are sorted, rather than "
@@ -96,6 +96,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.cli._util import print_items
     from rez.status import status
     from rez.utils.formatting import columnise, PackageRequest
     from rez.resolved_context import ResolvedContext
@@ -123,9 +124,12 @@ def command(opts, parser, extra_arg_groups=None):
 
     if not opts.interpret:
         if opts.print_request:
-            print(" ".join(str(x) for x in rc.requested_packages(False)))
+            print_items(rc.requested_packages(False))
         elif opts.print_resolve:
-            print(' '.join(x.qualified_package_name for x in rc.resolved_packages))
+            if opts.show_uris:
+                print_items(x.uri for x in rc.resolved_packages)
+            else:
+                print_items(x.qualified_package_name for x in rc.resolved_packages)
         elif opts.tools:
             rc.print_tools()
         elif opts.diff:
