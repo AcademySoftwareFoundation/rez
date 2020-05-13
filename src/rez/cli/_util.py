@@ -21,6 +21,7 @@ subcommands = {
     "build": {
         "arg_mode": "grouped"
     },
+    "cache": {},
     "config": {},
     "context": {},
     "complete": {

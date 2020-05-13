@@ -110,6 +110,13 @@ def run_rez_build():
     return run("build")
 
 
+@scriptname("rez-cache")
+def run_rez_cache():
+    check_production_install()
+    from rez.cli._main import run
+    return run("cache")
+
+
 @scriptname("rez-config")
 def run_rez_config():
     check_production_install()

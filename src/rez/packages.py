@@ -15,6 +15,8 @@ from rez.vendor.version.requirement import VersionedObject
 from rez.vendor.six import six
 from rez.serialise import FileFormat
 from rez.config import config
+
+import os
 import sys
 
 
@@ -643,19 +645,53 @@ def get_variant_from_uri(uri, paths=None):
     Args:
         uri (str): Variant URI
         paths (list of str): paths to search for variants, defaults to
-            `config.packages_path`.
+            `config.packages_path`. If None, attempts to find a variant that
+            may have come from any package repo.
 
     Returns:
         `VariantResource`, or None if the variant is not present in this
         package repository.
     """
-    for path in (paths or config.packages_path):
+    def _find_in_path(path):
         repo = package_repository_manager.get_repository(path)
         variant_resource = repo.get_variant_from_uri(uri)
         if variant_resource is not None:
             return Variant(variant_resource)
+        else:
+            return None
 
-    return None
+    for path in (paths or config.packages_path):
+        variant = _find_in_path(path)
+        if variant is not None:
+            return variant
+
+    if paths:
+        return None
+
+    # If we got here, `uri` may be valid, but for a variant that is not in the
+    # current packages_path. Variant URIs are determined by package repos, and
+    # there is no guarantee that you can determine the repo from any given URI
+    # (ie, they are unidirectional). The following has to be considered a hack,
+    # as it will only work for filesystem-type package repos.
+    #
+    # TODO make variant URIs bidirectional (ie, package repo can be determined
+    # from URI).
+    #
+    parts = os.path.split(uri, os.path.sep)
+
+    # assume form /{pkg-repo-path}/{pkg-name}/{pkg-version}/package.py[{index}]
+    if '<' not in uri:
+        path = os.path.sep.join(parts[:-3])
+        variant = _find_in_path(path)
+        if variant is not None:
+            return variant
+
+    # assume unversioned / 'combined'-type package, ie:
+    # /{pkg-repo-path}/{pkg-name}/package.py[{index}] OR
+    # /{pkg-repo-path}/{pkg-name}/package.py<{version}>[{index}]
+    #
+    path = os.path.sep.join(parts[:-2])
+    return _find_in_path(path)
 
 
 def get_last_release_time(name, paths=None):

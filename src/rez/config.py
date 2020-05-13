@@ -339,6 +339,7 @@ config_schema = Schema({
     "rez_tools_visibility":                         RezToolsVisibility_,
     "create_executable_script_mode":                ExecutableScriptMode_,
     "suite_alias_prefix_char":                      Char,
+    "cache_packages_path":                          OptionalStr,
     "package_definition_python_path":               OptionalStr,
     "tmpdir":                                       OptionalStr,
     "context_tmpdir":                               OptionalStr,

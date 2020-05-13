@@ -61,6 +61,9 @@ local_packages_path = "~/packages"
 # production use, you will probably want to change this to a site-wide location.
 release_packages_path = "~/.rez/packages/int"
 
+# The path where rez locally caches variants.
+cache_packages_path = None
+
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to "/tmp". It
 # is highly recommended that this be set to local storage, such as /tmp.
