@@ -7,6 +7,24 @@ import json
 from rez.exceptions import PackageCacheError
 
 
+class PackageCacheSettings(object):
+    """Package cache settings
+    """
+    def __init__(self, cache_packages_path=None, read_package_cache=True,
+                 write_package_cache=True, package_cache_write_mode="daemon"):
+        self.cache_packages_path = cache_packages_path
+        self.read_package_cache = read_package_cache
+        self.write_package_cache = write_package_cache
+        self.package_cache_write_mode = package_cache_write_mode
+
+    def to_dict(self):
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**data)
+
+
 class PackageCache(object):
     """Package cache.
 

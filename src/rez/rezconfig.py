@@ -61,9 +61,6 @@ local_packages_path = "~/packages"
 # production use, you will probably want to change this to a site-wide location.
 release_packages_path = "~/.rez/packages/int"
 
-# The path where rez locally caches variants.
-cache_packages_path = None
-
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to "/tmp". It
 # is highly recommended that this be set to local storage, such as /tmp.
@@ -174,6 +171,36 @@ memcached_listdir_min_compress_len = 16384
 # Bytecount beyond which memcached entries are compressed, for resolves. Zero
 # means never compress.
 memcached_resolve_min_compress_len = 1
+
+
+###############################################################################
+# Package Caching
+#
+# Note: "package caching" refers to copying variant payloads to a path on local
+# disk, and using those payloads instead. It is a way to avoid fetching files
+# over shared storage, and is unrelated to memcachewd-based caching of resolves
+# and package definitions as seen in the "Caching" config section.
+#
+###############################################################################
+
+# The path where rez locally caches variants. If this is None, then package
+# caching is disabled.
+cache_packages_path = None
+
+# If True, variants in a resolve will use locally cached payloads if they are
+# present in the cache.
+read_package_cache = True
+
+# If True, creating or sourcing a context will cause variants to be cached
+# (unless they are not cachable for whatever reason).
+write_package_cache = True
+
+# How the package cache is written. One of:
+# - "daemon": Cache writes are done by a daemon process (rez-cache --daemon),
+#   which is started if not already running.
+# - "local": Cache writes are done sequentially, in the current process. This
+#   can delay resolves, and is provided for debugging purposes only.
+package_cache_write_mode = "daemon"
 
 
 ###############################################################################

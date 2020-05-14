@@ -22,6 +22,7 @@ from rez import package_order
 from rez.packages import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.package_order import PackageOrderList
+from rez.package_cache import PackageCacheSettings, PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
     RezError, _NeverError
@@ -151,7 +152,7 @@ class ResolvedContext(object):
                  package_filter=None, package_orderers=None, max_fails=-1,
                  add_implicit_packages=True, time_limit=-1, callback=None,
                  package_load_callback=None, buf=None, suppress_passive=False,
-                 print_stats=False):
+                 print_stats=False, package_caching=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -187,6 +188,10 @@ class ResolvedContext(object):
                 has had no effect on the solve. This argument only has an
                 effect if `verbosity` > 2.
             print_stats (bool): If true, print advanced solver stats at the end.
+            package_caching (`PackageCacheSettings`|bool): Determines package
+                caching behaviour. If False, caching is disabled. If None, the
+                default behaviour (as determined by config settings such as
+                'cache_packages_path') is used.
         """
         self.append_sys_path = True
         self.load_path = None
@@ -220,6 +225,21 @@ class ResolvedContext(object):
             PackageOrderList.singleton if package_orderers is None
             else package_orders
         )
+
+        # package cache settings
+        if package_caching is False:
+            self.package_caching = None
+        elif package_caching is None:
+            self.package_caching = PackageCacheSettings(
+                cache_packages_path=config.cache_packages_path,
+                read_package_cache=config.read_package_cache,
+                write_package_cache=config.write_package_cache,
+                package_cache_write_mode=config.package_cache_write_mode
+            )
+        elif not isinstance(package_caching, PackageCacheSettings)
+            raise ValueError("Expected PackageCacheSettings")
+        else:
+            self.package_caching = package_caching
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
@@ -1651,6 +1671,20 @@ class ResolvedContext(object):
         # set basic package variables and create per-package bindings
         bindings = {}
         for pkg in resolved_pkgs:
+            pkg_root = pkg.root
+
+            # apply package caching; ie, retarget a variant's root to the local
+            # cache directory, if applicable
+            if self.package_caching and \
+                    self.package_caching.cache_packages_path and \
+                    self.package_caching.read_package_cache:
+
+                pkgcache = PackageCache(self.package_caching.cache_packages_path)
+                cached_root = pkgcache.get_cached_root(pkg)
+                if cached_root:
+                    pkg_root = cached_root
+                    pass
+
             minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
 
@@ -1663,7 +1697,7 @@ class ResolvedContext(object):
             executor.setenv(prefix + "_PATCH_VERSION", patch_version)
 
             executor.setenv(prefix + "_BASE", pkg.base)
-            executor.setenv(prefix + "_ROOT", pkg.root)
+            executor.setenv(prefix + "_ROOT", pkg_root)
             bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
                                       variant=VariantBinding(pkg))
 
@@ -1682,7 +1716,7 @@ class ResolvedContext(object):
                 bindings_ = bindings[pkg.name]
                 executor.bind('this',       bindings_["variant"])
                 executor.bind("version",    bindings_["version"])
-                executor.bind('root',       pkg.root)
+                executor.bind('root',       pkg_root)
                 executor.bind('base',       pkg.base)
 
                 exc = None
