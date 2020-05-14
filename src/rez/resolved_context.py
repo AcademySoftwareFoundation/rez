@@ -22,7 +22,7 @@ from rez import package_order
 from rez.packages import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.package_order import PackageOrderList
-from rez.package_cache import PackageCacheSettings, PackageCache
+from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
     RezError, _NeverError
@@ -120,7 +120,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 4)
+    serialize_version = (4, 5)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     context_tracking_payload = None
@@ -152,7 +152,7 @@ class ResolvedContext(object):
                  package_filter=None, package_orderers=None, max_fails=-1,
                  add_implicit_packages=True, time_limit=-1, callback=None,
                  package_load_callback=None, buf=None, suppress_passive=False,
-                 print_stats=False, package_caching=None):
+                 print_stats=False, package_caching=True):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -188,10 +188,8 @@ class ResolvedContext(object):
                 has had no effect on the solve. This argument only has an
                 effect if `verbosity` > 2.
             print_stats (bool): If true, print advanced solver stats at the end.
-            package_caching (`PackageCacheSettings`|bool): Determines package
-                caching behaviour. If False, caching is disabled. If None, the
-                default behaviour (as determined by config settings such as
-                'cache_packages_path') is used.
+            package_caching (bool): If True, apply package caching settings as
+                per the config.
         """
         self.load_path = None
 
@@ -227,21 +225,7 @@ class ResolvedContext(object):
 
         # settings that affect context execution
         self.append_sys_path = True
-
-        # package cache settings
-        if package_caching is False:
-            self.package_caching = None
-        elif package_caching is None:
-            self.package_caching = PackageCacheSettings(
-                cache_packages_path=config.cache_packages_path,
-                read_package_cache=config.read_package_cache,
-                write_package_cache=config.write_package_cache,
-                package_cache_write_mode=config.package_cache_write_mode
-            )
-        elif not isinstance(package_caching, PackageCacheSettings):
-            raise ValueError("Expected PackageCacheSettings")
-        else:
-            self.package_caching = package_caching
+        self.package_caching = package_caching
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
@@ -587,6 +571,20 @@ class ResolvedContext(object):
 
         return cls.load(filepath)
 
+    def is_current(self):
+        """
+        Returns:
+            bool: True if this is the currently sourced context, False otherwise.
+        """
+        if not self.load_path:
+            return False
+
+        filepath = os.getenv("REZ_RXT_FILE")
+        if not filepath or not os.path.exists(filepath):
+            return None
+
+        return (self.load_path == filepath)
+
     @classmethod
     def load(cls, path):
         """Load a resolved context from file."""
@@ -773,6 +771,8 @@ class ResolvedContext(object):
         if not source_order:
             resolved_packages = sorted(resolved_packages, key=lambda x: x.name)
 
+        is_current = self.is_current()
+
         for pkg in resolved_packages:
             t = []
             col = None
@@ -790,6 +790,12 @@ class ResolvedContext(object):
             if pkg.is_local:
                 t.append('local')
                 col = local
+
+            # check for retargeted variant root (ie package caching)
+            if is_current:
+                prefix = "REZ_" + pkg.name.upper().replace('.', '_')
+                if os.getenv(prefix + "_ORIG_ROOT"):
+                    t.append("cached")
 
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, location, t))
@@ -1381,6 +1387,7 @@ class ResolvedContext(object):
             package_paths=self.package_paths,
 
             append_sys_path=self.append_sys_path,
+            package_caching=self.package_caching,
 
             default_patch_lock=self.default_patch_lock.name,
 
@@ -1522,6 +1529,10 @@ class ResolvedContext(object):
         # -- SINCE SERIALIZE VERSION 4.4
 
         r.append_sys_path = d.get("append_sys_path", True)
+
+        # -- SINCE SERIALIZE VERSION 4.5
+
+        r.package_caching = d.get("package_caching", True)
 
         # <END SERIALIZATION>
 
@@ -1678,23 +1689,22 @@ class ResolvedContext(object):
         # raised on bad commands code, not a SourceCodeError
         exc_type = SourceCodeError if config.catch_rex_errors else _NeverError
 
+        # retarget variant roots wrt package caching
+        pkg_roots = {}
+
+        if self.package_caching and \
+                config.cache_packages_path and \
+                config.read_package_cache:
+            pkgcache = PackageCache(config.cache_packages_path)
+
+            for pkg in resolved_pkgs:
+                cached_root = pkgcache.get_cached_root(pkg)
+                if cached_root:
+                    pkg_roots[pkg.name] = cached_root
+
         # set basic package variables and create per-package bindings
         bindings = {}
         for pkg in resolved_pkgs:
-            pkg_root = pkg.root
-
-            # apply package caching; ie, retarget a variant's root to the local
-            # cache directory, if applicable
-            if self.package_caching and \
-                    self.package_caching.cache_packages_path and \
-                    self.package_caching.read_package_cache:
-
-                pkgcache = PackageCache(self.package_caching.cache_packages_path)
-                cached_root = pkgcache.get_cached_root(pkg)
-                if cached_root:
-                    pkg_root = cached_root
-                    pass
-
             minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
 
@@ -1705,9 +1715,16 @@ class ResolvedContext(object):
             executor.setenv(prefix + "_MAJOR_VERSION", major_version)
             executor.setenv(prefix + "_MINOR_VERSION", minor_version)
             executor.setenv(prefix + "_PATCH_VERSION", patch_version)
-
             executor.setenv(prefix + "_BASE", pkg.base)
-            executor.setenv(prefix + "_ROOT", pkg_root)
+
+            pkg_root = pkg_roots.get(pkg.name)
+            if pkg_root:
+                executor.setenv(prefix + "_ROOT", pkg_root)
+                # store extra var to indicate that root retarget occurred
+                executor.setenv(prefix + "_ORIG_ROOT", pkg.root)
+            else:
+                executor.setenv(prefix + "_ROOT", pkg.root)
+
             bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
                                       variant=VariantBinding(pkg))
 
@@ -1726,7 +1743,7 @@ class ResolvedContext(object):
                 bindings_ = bindings[pkg.name]
                 executor.bind('this',       bindings_["variant"])
                 executor.bind("version",    bindings_["version"])
-                executor.bind('root',       pkg_root)
+                executor.bind('root',       pkg_roots.get(pkg.name, pkg.root))
                 executor.bind('base',       pkg.base)
 
                 exc = None

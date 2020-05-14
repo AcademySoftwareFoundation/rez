@@ -5,24 +5,7 @@ import shutil
 import json
 
 from rez.exceptions import PackageCacheError
-
-
-class PackageCacheSettings(object):
-    """Package cache settings
-    """
-    def __init__(self, cache_packages_path=None, read_package_cache=True,
-                 write_package_cache=True, package_cache_write_mode="daemon"):
-        self.cache_packages_path = cache_packages_path
-        self.read_package_cache = read_package_cache
-        self.write_package_cache = write_package_cache
-        self.package_cache_write_mode = package_cache_write_mode
-
-    def to_dict(self):
-        return self.__dict__
-
-    @classmethod
-    def from_dict(cls, data):
-        return cls(**data)
+from rez.utils.filesystem import safe_listdir
 
 
 class PackageCache(object):
@@ -90,9 +73,9 @@ class PackageCache(object):
         # touch the root path so we know when it was last used
         try:
             os.utime(rootpath, None)
-        except IOError as e:
+        except OSError as e:
             if e.errno == errno.ENOENT:
-                # maybe got cleaned up by 'rez-pkg-cache --clean' just now
+                # maybe got cleaned up by other process
                 return None
             else:
                 raise
@@ -224,27 +207,32 @@ class PackageCache(object):
     def iter_variants(self):
         """
         Yields:
-            `Variant`: Each variant present in the cache.
+            2-tuple:
+            - `Variant`: The cached variant
+            - str: Local cache path for variant
         """
         from rez.packages import get_variant
 
-        for pkg_name in os.listdir(self.path):
+        for pkg_name in safe_listdir(self.path):
             path1 = os.path.join(self.path, pkg_name)
 
-            for ver_str in os.listdir(path1):
+            for ver_str in safe_listdir(path1):
                 path2 = os.path.join(path1, ver_str)
 
-                for hash_str in os.listdir(path2):
+                for hash_str in safe_listdir(path2):
                     path3 = os.path.join(path2, hash_str)
 
-                    for name in os.listdir(path3):
+                    for name in safe_listdir(path3):
                         if name.endswith(".json"):
                             with open(os.path.join(path3, name)) as f:
                                 data = json.load(f)
 
                             handle = data["handle"]
                             variant = get_variant(handle)
-                            yield variant
+
+                            incname = os.path.splitext(name)[0]
+                            rootpath = os.path.join(path3, incname)
+                            yield (variant, rootpath)
 
     def _get_cached_root(self, variant):
         path = self._get_hash_path(variant)
@@ -265,7 +253,7 @@ class PackageCache(object):
                         data = json.load(f)
                 except IOError as e:
                     if e.errno == errno.ENOENT:
-                        # maybe got cleaned up by 'rez-pkg-cache --clean' just now
+                        # maybe got cleaned up by other process
                         continue
                     else:
                         raise

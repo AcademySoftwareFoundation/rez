@@ -7,6 +7,7 @@ from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
 from uuid import uuid4
+import errno
 import weakref
 import atexit
 import posixpath
@@ -158,6 +159,19 @@ def get_existing_path(path, topmost_path=None):
             return None
 
         prev_path = path
+
+
+def safe_listdir(path):
+    """Safe listdir.
+
+    Works in a multithread/proc scenario where dirs may be deleted at any time
+    """
+    try:
+        return os.listdir(path)
+    except OSError as e:
+        if e.errno in (errno.ENOENT, errno.ENOTDIR):
+            return []
+        raise
 
 
 def safe_makedirs(path):

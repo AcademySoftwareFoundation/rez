@@ -53,13 +53,13 @@ def command(opts, parser, extra_arg_groups=None):
             add_variant(pkgcache, uri, opts)
     else:
         # just print variants in the cache
-        variants = list(pkgcache.iter_variants())
+        entries = list(pkgcache.iter_variants())
 
         if sys.stdout.isatty():
-            print("%d variants in cache at %s:" % (len(variants), cachepath))
+            print("%d variants in cache at %s:" % (len(entries), cachepath))
 
-        for variant in variants:
-            print(variant.uri)
+        for variant, rootpath in entries:
+            print("%s -> %s" % (variant.uri, rootpath))
 
 
 # Copyright 2013-2016 Allan Johns.

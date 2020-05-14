@@ -202,6 +202,9 @@ write_package_cache = True
 #   can delay resolves, and is provided for debugging purposes only.
 package_cache_write_mode = "daemon"
 
+# port used by the package caching daemon
+package_cache_daemon_port = 4331
+
 
 ###############################################################################
 # Package Resolution

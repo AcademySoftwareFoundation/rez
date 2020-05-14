@@ -266,6 +266,12 @@ class ExecutableScriptMode_(Str):
         return Or(*(x.name for x in ExecutableScriptMode))
 
 
+class PackageCacheWriteMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        return Or("local", "daemon")
+
+
 class OptionalStrOrFunction(Setting):
     schema = Or(None, basestring, callable)
 
@@ -311,8 +317,8 @@ config_schema = Schema({
     "bind_module_path":                             PathList,
     "standard_system_paths":                        PathList,
     "package_definition_build_python_paths":        PathList,
-    "implicit_packages":                            StrList,
     "platform_map":                                 OptionalDict,
+    "implicit_packages":                            StrList,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
@@ -379,6 +385,8 @@ config_schema = Schema({
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
+    "shell_error_truncate_cap":                     Int,
+    "package_cache_daemon_port":                    Int,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
     "color_enabled":                                ForceOrBool,
@@ -407,7 +415,6 @@ config_schema = Schema({
     "quiet":                                        Bool,
     "show_progress":                                Bool,
     "catch_rex_errors":                             Bool,
-    "shell_error_truncate_cap":                     Int,
     "default_relocatable":                          Bool,
     "set_prompt":                                   Bool,
     "prefix_prompt":                                Bool,
@@ -420,7 +427,10 @@ config_schema = Schema({
     "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
     "make_package_temporarily_writable":            Bool,
+    "read_package_cache":                           Bool,
+    "write_package_cache":                          Bool,
     "env_var_separators":                           Dict,
+    "package_cache_write_mode":                     PackageCacheWriteMode_,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
     "package_orderers":                             OptionalDictOrDictList,
