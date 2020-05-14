@@ -120,7 +120,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 3)
+    serialize_version = (4, 4)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     context_tracking_payload = None
@@ -193,7 +193,6 @@ class ResolvedContext(object):
                 default behaviour (as determined by config settings such as
                 'cache_packages_path') is used.
         """
-        self.append_sys_path = True
         self.load_path = None
 
         # resolving settings
@@ -226,6 +225,9 @@ class ResolvedContext(object):
             else package_orders
         )
 
+        # settings that affect context execution
+        self.append_sys_path = True
+
         # package cache settings
         if package_caching is False:
             self.package_caching = None
@@ -236,7 +238,7 @@ class ResolvedContext(object):
                 write_package_cache=config.write_package_cache,
                 package_cache_write_mode=config.package_cache_write_mode
             )
-        elif not isinstance(package_caching, PackageCacheSettings)
+        elif not isinstance(package_caching, PackageCacheSettings):
             raise ValueError("Expected PackageCacheSettings")
         else:
             self.package_caching = package_caching
@@ -1378,6 +1380,8 @@ class ResolvedContext(object):
             package_requests=list(map(str, self._package_requests)),
             package_paths=self.package_paths,
 
+            append_sys_path=self.append_sys_path,
+
             default_patch_lock=self.default_patch_lock.name,
 
             rez_version=self.rez_version,
@@ -1514,6 +1518,12 @@ class ResolvedContext(object):
         # -- SINCE SERIALIZE VERSION 4.3
 
         r.num_loaded_packages = d.get("num_loaded_packages", -1)
+
+        # -- SINCE SERIALIZE VERSION 4.4
+
+        r.append_sys_path = d.get("append_sys_path", True)
+
+        # <END SERIALIZATION>
 
         # track context usage
         if config.context_tracking_host:
