@@ -256,10 +256,44 @@ class Package(PackageBaseResourceWrapper):
     def is_relocatable(self):
         """True if the package and its payload is safe to copy.
         """
-        if self.relocatable is None:
-            return config.default_relocatable
-        else:
+        if self.relocatable is not None:
             return self.relocatable
+
+        if config.default_relocatable_per_repository:
+            value = config.default_relocatable_per_repository.get(
+                self.repository.location)
+            if value is not None:
+                return value
+
+        if config.default_relocatable_per_package:
+            value = config.default_relocatable_per_package.get(self.name)
+            if value is not None:
+                return value
+
+        return config.default_relocatable
+
+    @property
+    def is_cachable(self):
+        """True if the package and its payload is safe to cache locally.
+        """
+        if self.cachable is not None:
+            return self.cachable
+
+        if config.default_cachable_per_repository:
+            value = config.default_cachable_per_repository.get(
+                self.repository.location)
+            if value is not None:
+                return value
+
+        if config.default_cachable_per_package:
+            value = config.default_cachable_per_package.get(self.name)
+            if value is not None:
+                return value
+
+        if config.default_cachable is not None:
+            return config.default_cachable
+
+        return self.is_relocatable
 
     def iter_variants(self):
         """Iterate over the variants within this package, in index order.

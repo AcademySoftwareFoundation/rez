@@ -10,6 +10,10 @@ def setup_parser(parser, completions=False):
         help="Add variants to the cache"
     )
     parser.add_argument(
+        "-f", "--force", action="store_true",
+        help="Force a package add, even if package is not cachable"
+    )
+    parser.add_argument(
         "DIR", nargs='?',
         help="Package cache directory; will use config setting "
         "'cache_packages_path' if not provided"
@@ -24,7 +28,7 @@ def add_variant(pkgcache, uri, opts):
     print_info("Adding variant %r to package cache at %s:", uri, pkgcache.path)
 
     variant = get_variant_from_uri(uri)
-    destpath, status = pkgcache.add_variant(variant)
+    destpath, status = pkgcache.add_variant(variant, force=opts.force)
 
     if status == PackageCache.VARIANT_FOUND:
         print_info("Already exists: %s", destpath)

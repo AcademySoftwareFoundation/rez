@@ -134,8 +134,11 @@ package_base_schema_dict.update({
     Optional('help'):                   late_bound(help_schema),
 
     # build related
-    Optional('relocatable'):            late_bound(Or(None, bool)),
     Optional('hashed_variants'):        bool,
+
+    # relocatability
+    Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('cachable'):               late_bound(Or(None, bool)),
 
     # testing
     Optional('tests'):                  late_bound(tests_schema),
@@ -226,8 +229,10 @@ package_pod_schema_dict.update({
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
 
-    Optional('relocatable'):            late_bound(Or(None, bool)),
     Optional('hashed_variants'):        bool,
+
+    Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('cachable'):               late_bound(Or(None, bool)),
 
     Optional('tests'):                  late_bound(tests_schema),
 

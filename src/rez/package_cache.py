@@ -121,6 +121,11 @@ class PackageCache(object):
         from rez.vendor.lockfile import LockFile, NotLocked
 
         # do some sanity checking on variant to cache
+        if not force and not variant.parent.is_cachable:
+            raise PackageCacheError(
+                "Package is not cachable: %s" % variant.parent.uri
+            )
+
         variant_root = getattr(variant, "root", None)
 
         if not variant_root:

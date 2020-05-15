@@ -85,8 +85,10 @@ package_serialise_schema = Schema({
 
     Optional('variants'):               [[package_request_schema]],
 
-    Optional('relocatable'):            late_bound(Or(None, bool)),
     Optional('hashed_variants'):        bool,
+
+    Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('cachable'):               late_bound(Or(None, bool)),
 
     Optional('pre_commands'):           source_code_schema,
     Optional('commands'):               source_code_schema,

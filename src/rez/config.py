@@ -169,8 +169,8 @@ class Int(Setting):
 
 class Bool(Setting):
     schema = Schema(bool)
-    true_words = frozenset(["1", "true", "yes", "y", "on"])
-    false_words = frozenset(["0", "false", "no", "n", "off"])
+    true_words = frozenset(["1", "true", "t", "yes", "y", "on"])
+    false_words = frozenset(["0", "false", "f", "no", "n", "off"])
     all_words = true_words | false_words
 
     def _parse_env_var(self, value):
@@ -185,6 +185,11 @@ class Bool(Setting):
                 % (self._env_var_name, ", ".join(self.all_words)))
 
 
+class OptionalBool(Bool):
+    # need None first, or Bool.schema will coerce None to False
+    schema = Or(None, Bool.schema)
+
+
 class ForceOrBool(Bool):
     FORCE_STR = "force"
 
@@ -195,7 +200,7 @@ class ForceOrBool(Bool):
     def _parse_env_var(self, value):
         if value == self.FORCE_STR:
             return value
-        super(ForceOrBool, self)._parse_env_var(value)
+        return super(ForceOrBool, self)._parse_env_var(value)
 
 
 class Dict(Setting):
@@ -318,6 +323,11 @@ config_schema = Schema({
     "standard_system_paths":                        PathList,
     "package_definition_build_python_paths":        PathList,
     "platform_map":                                 OptionalDict,
+    "default_relocatable_per_package":              OptionalDict,
+    "default_relocatable_per_repository":           OptionalDict,
+    "default_cachable_per_package":                 OptionalDict,
+    "default_cachable_per_repository":              OptionalDict,
+    "default_cachable":                             OptionalBool,
     "implicit_packages":                            StrList,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
