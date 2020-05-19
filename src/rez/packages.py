@@ -711,7 +711,7 @@ def get_variant_from_uri(uri, paths=None):
     # TODO make variant URIs bidirectional (ie, package repo can be determined
     # from URI).
     #
-    parts = os.path.split(uri, os.path.sep)
+    parts = os.path.split(uri)
 
     # assume form /{pkg-repo-path}/{pkg-name}/{pkg-version}/package.py[{index}]
     if '<' not in uri:

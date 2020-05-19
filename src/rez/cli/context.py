@@ -3,14 +3,19 @@ Print information about the current rez context, or a given context file.
 '''
 from __future__ import print_function
 
-# Disable context tracking. Use of rez-context doesn't really indicate usage of
-# the packages in the context; and tracking this causes doubling up, ie most
-# rez-env invocations do a rez-context immediately after. So turning this off
-# cuts down on the amount of data getting tracked, and is more indicative of
-# actual package use.
+# Disable the following:
+# - context tracking
+# - package caching
+#
+# Use of rez-context is't really 'using' the context, so much as inspecting it.
+# Since features such as context tracking are related to context use only, we
+# disable them in this tool.
 #
 import os
-os.environ["REZ_CONTEXT_TRACKING_HOST"] = ''
+os.environ.update({
+    "REZ_CONTEXT_TRACKING_HOST": '',
+    "REZ_WRITE_PACKAGE_CACHE": "False"
+})
 
 import json
 import sys

@@ -21,7 +21,6 @@ subcommands = {
     "build": {
         "arg_mode": "grouped"
     },
-    "cache": {},
     "config": {},
     "context": {},
     "complete": {
@@ -42,6 +41,7 @@ subcommands = {
     "interpret": {},
     "memcache": {},
     "pip": {},
+    "pkg-cache": {},
     "plugins": {},
     "python": {
         "arg_mode": "passthrough"

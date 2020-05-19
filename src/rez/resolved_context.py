@@ -312,6 +312,9 @@ class ResolvedContext(object):
             data = self.to_dict(fields=config.context_tracking_context_fields)
             self._track_context(data, action="created")
 
+        # update package cache
+        self._update_package_cache()
+
     def __str__(self):
         request = self.requested_packages(include_implicit=True)
         req_str = " ".join(str(x) for x in request)
@@ -1543,7 +1546,19 @@ class ResolvedContext(object):
 
             r._track_context(data, action="sourced")
 
+        # update package cache
+        r._update_package_cache()
+
         return r
+
+    def _update_package_cache(self):
+        if not self.package_caching or \
+                not config.cache_packages_path or \
+                not config.write_package_cache:
+            return
+
+        pkgcache = PackageCache(config.cache_packages_path)
+        pkgcache.add_variants_async(self.resolved_packages)
 
     @classmethod
     def _init_context_tracking_payload_base(cls):

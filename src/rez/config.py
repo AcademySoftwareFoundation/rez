@@ -271,12 +271,6 @@ class ExecutableScriptMode_(Str):
         return Or(*(x.name for x in ExecutableScriptMode))
 
 
-class PackageCacheWriteMode_(Str):
-    @cached_class_property
-    def schema(cls):
-        return Or("local", "daemon")
-
-
 class OptionalStrOrFunction(Setting):
     schema = Or(None, basestring, callable)
 
@@ -396,7 +390,7 @@ config_schema = Schema({
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
     "shell_error_truncate_cap":                     Int,
-    "package_cache_daemon_port":                    Int,
+    "package_cache_log_days":                       Int,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
     "color_enabled":                                ForceOrBool,
@@ -440,7 +434,6 @@ config_schema = Schema({
     "read_package_cache":                           Bool,
     "write_package_cache":                          Bool,
     "env_var_separators":                           Dict,
-    "package_cache_write_mode":                     PackageCacheWriteMode_,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
     "package_orderers":                             OptionalDictOrDictList,

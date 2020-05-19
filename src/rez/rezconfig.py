@@ -254,15 +254,9 @@ read_package_cache = True
 # (unless they are not cachable).
 write_package_cache = True
 
-# How the package cache is written. One of:
-# - "daemon": Cache writes are done by a daemon process (rez-cache --daemon),
-#   which is started if not already running.
-# - "local": Cache writes are done sequentially, in the current process. This
-#   can delay context creation, and is provided for debugging purposes only.
-package_cache_write_mode = "daemon"
-
-# port used by the package caching daemon
-package_cache_daemon_port = 4331
+# Number of days of package cache logs to keep.
+# Logs are written to {pkg-cache-root}/.sys/log/*.log
+package_cache_log_days = 7
 
 
 ###############################################################################
