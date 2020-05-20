@@ -182,7 +182,7 @@ memcached_resolve_min_compress_len = 1
 default_relocatable = True
 
 # Set relocatable on a per-package basis. This is here for migration purposes -
-# it's better for packages themselves to use their relocatable attribute.
+# it's better for packages themselves to set their relocatable attribute.
 # Overrides 'default_relocatable' if a package matches.
 #
 # Example:
@@ -221,7 +221,7 @@ default_relocatable_per_repository = None
 default_cachable = False
 
 # Set cachable on a per-package basis. This is here for migration purposes -
-# it's better for packages themselves to use their cachable attribute. Overrides
+# it's better for packages themselves to set their cachable attribute. Overrides
 # 'default_cachable' if a package matches.
 #
 # Example:
@@ -256,6 +256,13 @@ write_package_cache = True
 # Delete variants that haven't been used in N days (see `rez-pkg-cache --clean`).
 # To disable, set to zero.
 package_cache_max_variant_days = 30
+
+# Disallow package caching if the package is local.
+package_cache_no_local = True
+
+# Disallow package caching if the source package is on the same physical disk
+# as the package cache itself.
+package_cache_no_same_device = True
 
 # Number of days of package cache logs to keep.
 # Logs are written to {pkg-cache-root}/.sys/log/*.log

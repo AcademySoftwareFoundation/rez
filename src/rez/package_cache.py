@@ -124,11 +124,19 @@ class PackageCache(object):
         6. The variant payload is copied to '/<cache_dir>/foo/1.0.0/af8d/a';
         7. The '.copying-a' file is removed.
 
+        Note that the variant will not be cached in the following circumstances,
+        unless `force` is True:
+
+        - The variant is not cachable as determined by `Variant.is_cachable`;
+        - The variant is from a local package (if 'config.package_cache_no_local'
+          is True);
+        - The variant is stored on the same disk device as this cache (if
+          'config.package_cache_no_same_device' is True)
+
         Args:
             variant (`Variant`): The variant to copy into this cache
-            force (bool): Copy the variant regardless of its cachable attribute.
-                Use at your own risk (there is no guarantee the resulting variant
-                payload will be functional).
+            force (bool): Copy the variant regardless. Use at your own risk (there
+                is no guarantee the resulting variant payload will be functional).
 
         Returns:
             2-tuple:
@@ -143,24 +151,39 @@ class PackageCache(object):
         from rez.utils.filesystem import safe_makedirs
 
         # do some sanity checking on variant to cache
-        if not force and not variant.parent.is_cachable:
-            raise PackageCacheError(
-                "Package is not cachable: %s" % variant.parent.uri
-            )
-
         variant_root = getattr(variant, "root", None)
 
         if not variant_root:
             raise PackageCacheError(
-                "Cannot cache variant %s - it is a type of variant that "
-                "does not have a root." % variant.uri
+                "Not cached - variant is a type that does not have a root: %s"
+                % variant.uri
             )
 
         if not os.path.isdir(variant_root):
             raise PackageCacheError(
-                "Cannot cache variant %s - its root does not appear to "
-                "be present on disk (%s)." % variant.uri, variant_root
+                "Not cached - variant %s root does not appear on disk: %s"
+                % (variant.uri, variant_root)
             )
+
+        if not force:
+            if not variant.parent.is_cachable:
+                raise PackageCacheError(
+                    "Not cached - package is not cachable: %s" % variant.parent.uri
+                )
+
+            if config.package_cache_no_local and variant.is_local:
+                raise PackageCacheError(
+                    "Not cached - package is local: %s" % variant.parent.uri
+                )
+
+            if config.package_cache_no_same_device:
+                st_pkgcache = os.stat(self.path)
+                st_variant = os.stat(variant_root)
+                if st_pkgcache.st_dev == st_variant.st_dev:
+                    raise PackageCacheError(
+                        "Not cached - variant %s is on same device as cache: %s"
+                        % (variant.uri, variant_root)
+                    )
 
         no_op_statuses = (
             self.VARIANT_FOUND,
