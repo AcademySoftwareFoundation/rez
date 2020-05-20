@@ -391,6 +391,7 @@ config_schema = Schema({
     "memcached_resolve_min_compress_len":           Int,
     "shell_error_truncate_cap":                     Int,
     "package_cache_log_days":                       Int,
+    "package_cache_max_variant_days":               Int,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
     "color_enabled":                                ForceOrBool,

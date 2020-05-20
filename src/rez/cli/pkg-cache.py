@@ -18,6 +18,11 @@ def setup_parser(parser, completions=False):
         help="Remove variants from cache"
     )
     group.add_argument(
+        "--clean", action="store_true",
+        help="Remove unused variants and other cache files pending deletion"
+    )
+    # run as a daemon that adds pending variants to the cache, then exits
+    group.add_argument(
         "--daemon", action="store_true", help=SUPPRESS
     )
     parser.add_argument(
@@ -109,6 +114,9 @@ def command(opts, parser, extra_arg_groups=None):
     elif opts.remove_variants:
         for uri in opts.remove_variants:
             remove_variant(pkgcache, uri, opts)
+
+    elif opts.clean:
+        pkgcache.clean()
 
     else:
         # just print current state of package cache

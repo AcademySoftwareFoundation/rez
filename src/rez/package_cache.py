@@ -279,7 +279,7 @@ class PackageCache(object):
             except OSError as e:
                 if e.errno == errno.ENOENT:
                     # another proc may have just removed it
-                    return self.VARIANT_REMOVED
+                    return self.VARIANT_NOT_FOUND
                 raise
 
             # delete json file
@@ -470,7 +470,7 @@ class PackageCache(object):
             if pid > 0:
                 sys.exit(0)
 
-        logger = self._init_daemon_logging()
+        logger = self._init_logging()
         logger.info("Started daemon")
 
         try:
@@ -481,6 +481,66 @@ class PackageCache(object):
         except Exception:
             logger.exception("An error occurred")
             raise
+
+    def clean(self):
+        """Delete unused package cache files.
+
+        This should be run periodically via 'rez-pkg-cache --clean'.
+
+        This removes:
+        - Variants that have not been used in more than
+          'config.package_cache_max_variant_days' days;
+        - Variants that have stalled;
+        - Variants that are already pending deletion (remove_variant() was used).
+        """
+        logger = self._init_logging()
+        unused_variants = []
+        stalled_variants = []
+        now = time.time()
+
+        # find variants to delete
+        for variant, rootpath, status in self.get_variants():
+            if status == self.VARIANT_FOUND:
+                max_secs = config.package_cache_max_variant_days * 3600 * 24
+                if max_secs == 0:
+                    continue  # 0 means no age limit on unused variants
+
+                # determine how long since cached variant has been used
+                try:
+                    st = os.stat(rootpath)
+                except:
+                    # may have just been deleted
+                    continue
+
+                since = int(now - st.st_mtime)
+                if since > max_secs:
+                    unused_variants.append(variant)
+
+            elif status == self.VARIANT_COPY_STALLED:
+                stalled_variants.append(variant)
+
+        # remove variants. This puts them in our to_delete dir
+        for variant in unused_variants:
+            status = self.remove_variant(variant)
+            if status == self.VARIANT_REMOVED:
+                logger.info("Removed unused variant %s from cache", variant.uri)
+
+        for variant in stalled_variants:
+            status = self.remove_variant(variant)
+            if status == self.VARIANT_REMOVED:
+                logger.info("Removed stalled variant %s from cache", variant.uri)
+
+        # delete everything in to_delete dir
+        for name in os.listdir(self._remove_dir):
+            path = os.path.join(self._remove_dir, name)
+
+            try:
+                shutil.rmtree(path)
+            except Exception as e:
+                logger.warning("Could not delete %s: %s", path, e)
+                continue
+
+            logger.info("Deleted %s", path)
 
     @contextmanager
     def _lock(self):
@@ -555,21 +615,31 @@ class PackageCache(object):
 
         return True
 
-    def _init_daemon_logging(self):
-        # create logger
+    def _init_logging(self):
+        """
+        Creates logger that logs to file and stdout. Used for:
+        - adding variants in daemonized proc;
+        - clean(), which would typically be run as a cron, but can also be run
+          manually (hence the logging to stdout also)
+        """
         logger = logging.getLogger("rez-pkg-cache")
-        logfilepath = os.path.join(self._log_dir, time.strftime("%Y-%m-%d.log"))
-        handler = logging.FileHandler(logfilepath)
-        formatter = logging.Formatter("%(name)s %(asctime)s pid(%(process)d) %(levelname)s %(message)s")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         logger.propagate = False
 
-        # delete old logfiles
-        try:
-            now = int(time.time())
+        logfilepath = os.path.join(self._log_dir, time.strftime("%Y-%m-%d.log"))
+        handler1 = logging.FileHandler(logfilepath)
+        handler2 = logging.StreamHandler()
 
+        formatter = logging.Formatter(
+            "%(name)s %(asctime)s PID-%(process)d %(levelname)s %(message)s")
+
+        for h in (handler1, handler2):
+            h.setFormatter(formatter)
+            logger.addHandler(h)
+
+        # delete old logfiles
+        now = int(time.time())
+        try:
             for name in os.listdir(self._log_dir):
                 filepath = os.path.join(self._log_dir, name)
                 st = os.stat(filepath)
@@ -578,7 +648,7 @@ class PackageCache(object):
                 if age_days > config.package_cache_log_days:
                     safe_remove(filepath)
         except:
-            logger.exception("Failed to cleanup old logfiles")
+            logger.exception("Failed to delete old logfiles")
 
         return logger
 

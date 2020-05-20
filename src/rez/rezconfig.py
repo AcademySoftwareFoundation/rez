@@ -250,9 +250,12 @@ cache_packages_path = None
 # present in the cache.
 read_package_cache = True
 
-# If True, creating or sourcing a context will cause variants to be cached
-# (unless they are not cachable).
+# If True, creating or sourcing a context will cause variants to be cached.
 write_package_cache = True
+
+# Delete variants that haven't been used in N days (see `rez-pkg-cache --clean`).
+# To disable, set to zero.
+package_cache_max_variant_days = 30
 
 # Number of days of package cache logs to keep.
 # Logs are written to {pkg-cache-root}/.sys/log/*.log
