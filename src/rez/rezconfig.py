@@ -257,12 +257,14 @@ write_package_cache = True
 # To disable, set to zero.
 package_cache_max_variant_days = 30
 
-# Disallow package caching if the package is local.
-package_cache_no_local = True
+# Allow caching of local packages. You would only want to set this True for
+# testing purposes.
+package_cache_local = False
 
-# Disallow package caching if the source package is on the same physical disk
-# as the package cache itself.
-package_cache_no_same_device = True
+# Allow package caching if the source package is on the same physical disk
+# as the package cache itself. You would only want to set this True for testing
+# purposes.
+package_cache_same_device = False
 
 # Number of days of package cache logs to keep.
 # Logs are written to {pkg-cache-root}/.sys/log/*.log

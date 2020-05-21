@@ -129,10 +129,10 @@ class PackageCache(object):
         unless `force` is True:
 
         - The variant is not cachable as determined by `Variant.is_cachable`;
-        - The variant is from a local package (if 'config.package_cache_no_local'
-          is True);
-        - The variant is stored on the same disk device as this cache (if
-          'config.package_cache_no_same_device' is True)
+        - The variant is from a local package, and 'config.package_cache_local'
+          is False;
+        - The variant is stored on the same disk device as this cache, and
+          config.package_cache_same_device' is False.
 
         Args:
             variant (`Variant`): The variant to copy into this cache
@@ -172,12 +172,12 @@ class PackageCache(object):
                     "Not cached - package is not cachable: %s" % variant.parent.uri
                 )
 
-            if config.package_cache_no_local and variant.is_local:
+            if not config.package_cache_local and variant.is_local:
                 raise PackageCacheError(
                     "Not cached - package is local: %s" % variant.parent.uri
                 )
 
-            if config.package_cache_no_same_device:
+            if not config.package_cache_same_device:
                 st_pkgcache = os.stat(self.path)
                 st_variant = os.stat(variant_root)
                 if st_pkgcache.st_dev == st_variant.st_dev:
