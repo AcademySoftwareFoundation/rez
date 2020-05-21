@@ -18,8 +18,9 @@ from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
 from rez.utils import json
 from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove
-from rez.utils.logging_ import print_info, print_warning
+from rez.utils.logging_ import print_warning
 from rez.packages import get_variant
+from rez.system import system
 
 
 class PackageCache(object):
@@ -332,6 +333,18 @@ class PackageCache(object):
         This method is called when a context is created or sourced. Variants
         are then added to the cache in a separate process.
         """
+
+        # A prod install is necessary because add_variants_async works by
+        # starting a rez-pkg-cache proc, and this can only be done reliably in
+        # a prod install. On non-windows we could fork instead, but there would
+        # remain no good solution on windows.
+        #
+        if not system.is_production_rez_install:
+            raise PackageCacheError(
+                "PackageCache.add_variants_async is only supported in a "
+                "production rez installation."
+            )
+
         variants_ = []
 
         # trim down to those variants that are cachable, and not already cached
@@ -345,8 +358,6 @@ class PackageCache(object):
 
         if not variants_:
             return
-
-        print_info("Caching %d variants in daeminized proc...", len(variants_))
 
         # Write each variant out to a file in the 'pending' dir in the cache. A
         # separate proc reads these files and then performs the actual variant
@@ -382,7 +393,7 @@ class PackageCache(object):
             with open(filepath, 'w') as f:
                 f.write(json.dumps(handle_dict))
 
-        # start caching subproc
+        # configure executable
         if platform.system() == "Windows":
             kwargs = {
                 "creationflags": subprocess.CREATE_NEW_PROCESS_GROUP
@@ -392,16 +403,27 @@ class PackageCache(object):
                 "preexec_fn": os.setsid
             }
 
+        exe = os.path.join(system.rez_bin_path, "rez-pkg-cache")
+        if not exe:
+            # this should not happen
+            raise RuntimeError("Did not find rez-pkg-cache executable")
+
+        # start caching subproc
+        args = [exe, "--daemon", self.path]
+
         try:
             with open(os.devnull, 'w') as devnull:
                 _ = subprocess.Popen(
-                    ["rez-pkg-cache", "--daemon", self.path],
+                    [exe, "--daemon", self.path],
                     stdout=devnull,
                     stderr=devnull,
                     **kwargs
                 )
         except Exception as e:
-            print_warning("Failed to start package caching daemon: %s", e)
+            print_warning(
+                "Failed to start package caching daemon (command: %s): %s",
+                ' '.join(args), e
+            )
 
     def get_variants(self):
         """Get variants and their current statuses from the cache.

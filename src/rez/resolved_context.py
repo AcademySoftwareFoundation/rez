@@ -1557,6 +1557,10 @@ class ResolvedContext(object):
                 not config.write_package_cache:
             return
 
+        # see PackageCache.add_variants_async
+        if not system.is_production_rez_install:
+            return
+
         pkgcache = PackageCache(config.cache_packages_path)
         pkgcache.add_variants_async(self.resolved_packages)
 

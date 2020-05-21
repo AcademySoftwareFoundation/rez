@@ -196,24 +196,27 @@ class System(object):
         """Get path containing rez binaries, or None if no binaries are
         available, or Rez is not a production install.
         """
-        binpath = None
-        if sys.argv and sys.argv[0]:
-            executable = sys.argv[0]
-            path = which("rezolve", env={"PATH":os.path.dirname(executable),
-                                         "PATHEXT":os.environ.get("PATHEXT",
-                                                                  "")})
-            binpath = os.path.dirname(path) if path else None
 
-        # TODO: improve this, could still pick up non-production 'rezolve'
-        if not binpath:
-            path = which("rezolve")
-            if path:
-                binpath = os.path.dirname(path)
+        # Rez install layout will be like:
+        #
+        # /<install>/lib/python2.7/site-packages/rez  <- module path
+        # /<install>/bin/rez/rez  <- rez executable
+        #
+        import rez
+        module_path = rez.__path__[0]
 
-        if binpath:
-            validation_file = os.path.join(binpath, ".rez_production_install")
-            if os.path.exists(validation_file):
-                return os.path.realpath(binpath)
+        parts = module_path.split(os.path.sep)
+
+        try:
+            i = parts.index("lib")
+        except ValueError:
+            return None
+
+        binpath = os.path.sep.join(parts[:i] + ["bin", "rez"])
+
+        validation_file = os.path.join(binpath, ".rez_production_install")
+        if os.path.exists(validation_file):
+            return os.path.realpath(binpath)
 
         return None
 

@@ -7,6 +7,14 @@ import sys
 
 
 def setup_parser(parser, completions=False):
+    column_choices = (
+        "status",
+        "package",
+        "variant_uri",
+        "orig_path",
+        "cache_path"
+    )
+
     group = parser.add_mutually_exclusive_group()
 
     group.add_argument(
@@ -24,6 +32,11 @@ def setup_parser(parser, completions=False):
     # run as a daemon that adds pending variants to the cache, then exits
     group.add_argument(
         "--daemon", action="store_true", help=SUPPRESS
+    )
+    parser.add_argument(
+        "-c", "--columns", nargs='+', choices=column_choices,
+        default=["status", "package", "variant_uri", "cache_path"],
+        help="Columns to print, choose from: %s" % ", ".join(column_choices)
     )
     parser.add_argument(
         "-f", "--force", action="store_true",
@@ -119,7 +132,12 @@ def command(opts, parser, extra_arg_groups=None):
         pkgcache.clean()
 
     else:
+        tty = sys.stdout.isatty()
+
         # just print current state of package cache
+        if tty:
+            print("Package cache at %s:\n" % cachepath)
+
         def _sort(entry):
             variant, _, status = entry
             return (statuses[status][-1], variant.name)
@@ -130,21 +148,30 @@ def command(opts, parser, extra_arg_groups=None):
             print("No cached packages.", file=sys.stderr)
             sys.exit(0)
 
-        rows = [
-            ["status", "package", "variant uri", "cached root path", colorize.heading],
-            ["------", "-------", "-----------", "----------------", colorize.heading]
-        ]
+        rows = []
+
+        if tty:
+            rows.append([c.replace('_', ' ') for c in opts.columns] + [None])  # headers
+            rows.append([('-' * len(c)) for c in opts.columns] + [None])  # underlines
 
         for variant, rootpath, status in entries:
-            label, color, _ = statuses[status]
+            status_str, color, _ = statuses[status]
+            row = []
 
-            rows.append([
-                label,
-                variant.parent.qualified_name,
-                variant.uri,
-                rootpath or '-',
-                color
-            ])
+            for c in opts.columns:
+                if c == "status":
+                    row.append(status_str)
+                elif c == "package":
+                    row.append(variant.parent.qualified_name)
+                elif c == "variant_uri":
+                    row.append(variant.uri)
+                elif c == "orig_path":
+                    row.append(variant.root)
+                else:  # cached_path
+                    row.append(rootpath or '-')
+
+            row.append(color)
+            rows.append(row)
 
         pr = colorize.Printer()
         print_colored_columns(pr, rows)
