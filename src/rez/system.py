@@ -197,6 +197,34 @@ class System(object):
         available, or Rez is not a production install.
         """
 
+        # TODO on Windows CI, new code is causing:
+        # 'bez' is not recognized as an internal or external command,
+        # operable program or batch file.
+        import platform
+        if platform.system() == "Windows":
+            # <START OLD CODE>
+            binpath = None
+            if sys.argv and sys.argv[0]:
+                executable = sys.argv[0]
+                path = which("rezolve", env={"PATH":os.path.dirname(executable),
+                                             "PATHEXT":os.environ.get("PATHEXT",
+                                                                      "")})
+                binpath = os.path.dirname(path) if path else None
+
+            # TODO: improve this, could still pick up non-production 'rezolve'
+            if not binpath:
+                path = which("rezolve")
+                if path:
+                    binpath = os.path.dirname(path)
+
+            if binpath:
+                validation_file = os.path.join(binpath, ".rez_production_install")
+                if os.path.exists(validation_file):
+                    return os.path.realpath(binpath)
+
+            return None
+            # </END OLD CODE>
+
         # Rez install layout will be like:
         #
         # /<install>/lib/python2.7/site-packages/rez  <- module path
