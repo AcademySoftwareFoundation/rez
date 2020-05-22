@@ -4,6 +4,7 @@ import errno
 from hashlib import sha1
 from uuid import uuid4
 import shutil
+import stat
 import subprocess
 import sys
 import platform
@@ -63,6 +64,7 @@ class PackageCache(object):
     VARIANT_PENDING = 5  # Variant is pending caching
     VARIANT_REMOVED = 6  # Variant was deleted
 
+    _FILELOCK_TIMEOUT = 10
     _COPYING_TIME_INC = 0.2
     _COPYING_TIME_MAX = 5.0
 
@@ -95,9 +97,11 @@ class PackageCache(object):
         if status != self.VARIANT_FOUND:
             return None
 
-        # touch the root path so we know when it was last used
+        # touch the json file so we know when it was last used
+        json_filepath = rootpath + ".json"
+
         try:
-            os.utime(rootpath, None)
+            os.utime(json_filepath, None)
         except OSError as e:
             if e.errno == errno.ENOENT:
                 # maybe got cleaned up by other process
@@ -295,11 +299,18 @@ class PackageCache(object):
         #
         with self._lock():
             # move the payload
-            dest_filename = variant.qualified_name + '-' + uuid4().hex
+            dest_filename = variant.parent.qualified_name + '-' + uuid4().hex
             dest_rootpath = os.path.join(self._remove_dir, dest_filename)
 
             try:
+                # the following mv will fail unless dir is writable
+                if not os.access(rootpath, os.W_OK):
+                    st = os.stat(rootpath)
+                    os.chmod(rootpath, st.st_mode | stat.S_IWUSR)
+
+                # actually a mv
                 os.rename(rootpath, dest_rootpath)
+
             except OSError as e:
                 if e.errno == errno.ENOENT:
                     # another proc may have just removed it
@@ -551,8 +562,9 @@ class PackageCache(object):
                     continue  # 0 means no age limit on unused variants
 
                 # determine how long since cached variant has been used
+                json_filepath = rootpath + ".json"
                 try:
-                    st = os.stat(rootpath)
+                    st = os.stat(json_filepath)
                 except:
                     # may have just been deleted
                     continue
@@ -580,7 +592,7 @@ class PackageCache(object):
             path = os.path.join(self._remove_dir, name)
 
             try:
-                shutil.rmtree(path)
+                self._rmtree(path)
             except Exception as e:
                 logger.warning("Could not delete %s: %s", path, e)
                 continue
@@ -593,13 +605,33 @@ class PackageCache(object):
         lock = LockFile(lock_filepath)
 
         try:
-            lock.acquire(timeout=10)
+            lock.acquire(timeout=self._FILELOCK_TIMEOUT)
             yield
         finally:
             try:
                 lock.release()
             except NotLocked:
                 pass
+
+    def _rmtree(self, path):
+        """
+        Like shutil.rmtree, but makes writable what is needed to perform the
+        deletion.
+        """
+        def _on_error(func, path, exc_info):
+            try:
+                parent_path = os.path.dirname(path)
+
+                if parent_path != self.path and not os.access(parent_path, os.W_OK):
+                    st = os.stat(parent_path)
+                    os.chmod(parent_path, st.st_mode | stat.S_IWUSR)
+            except:
+                # avoid confusion by ensuring original exception is reraised
+                pass
+
+            func(path)
+
+        shutil.rmtree(path, onerror=_on_error)
 
     def _run_daemon_step(self, logger):
         # pick a random pending variant to copy

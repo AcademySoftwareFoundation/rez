@@ -187,21 +187,18 @@ def safe_makedirs(path):
                 raise
 
 
-def safe_remove(path):
-    """Safely remove the given file or directory.
+def safe_remove(filepath):
+    """Safely remove the given file.
 
     Works in a multithreaded scenario.
     """
-    if not os.path.exists(path):
+    if not os.path.exists(filepath):
         return
 
     try:
-        if os.path.isdir(path) and not os.path.islink(path):
-            shutil.rmtree(path)
-        else:
-            os.remove(path)
+        os.remove(filepath)
     except OSError:
-        if os.path.exists(path):
+        if os.path.exists(filepath):
             raise
 
 

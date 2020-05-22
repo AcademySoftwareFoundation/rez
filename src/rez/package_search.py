@@ -207,6 +207,21 @@ class ResourceSearcher(object):
         else:
             self.package_paths = None
 
+    def iter_resources(self, resources_request=None):
+        """Iterate over matching resources.
+
+        Args:
+            resources_request (str): Resource to search, glob-style patterns
+                are supported. If None, returns all matching resource types.
+
+        Returns:
+            2-tuple:
+            - str: resource type (family, package, variant);
+            - Iterator of `ResourceSearchResult`: Matching resources. Will be
+              in alphabetical order if families, and version ascending for
+              packages or variants.
+        """
+
     def search(self, resources_request=None):
         """Search for resources.
 
