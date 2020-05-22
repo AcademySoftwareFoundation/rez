@@ -3,6 +3,7 @@ Manipulate a package cache.
 '''
 from __future__ import print_function
 from argparse import SUPPRESS
+import os.path
 import sys
 
 
@@ -20,6 +21,10 @@ def setup_parser(parser, completions=False):
     group.add_argument(
         "-a", "--add-variants", metavar="URI", nargs='+',
         help="Add variants to the cache"
+    )
+    group.add_argument(
+        "--logs", action="store_true",
+        help="View logs"
     )
     group.add_argument(
         "-r", "--remove-variants", metavar="URI", nargs='+',
@@ -94,8 +99,16 @@ def remove_variant(pkgcache, uri, opts):
         print_info("Variant successfully removed")
 
 
+def view_logs(pkgcache, opts):
+    from rez.utils.logging_ import view_file_logs
+
+    view_file_logs(
+        os.path.join(pkgcache._log_dir, "*.log"),
+        loglevel_index=4
+    )
+
+
 def command(opts, parser, extra_arg_groups=None):
-    import sys
     from rez.config import config
     from rez.package_cache import PackageCache
     from rez.utils.formatting import print_colored_columns
@@ -130,6 +143,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     elif opts.clean:
         pkgcache.clean()
+
+    elif opts.logs:
+        view_logs(pkgcache, opts)
 
     else:
         tty = sys.stdout.isatty()

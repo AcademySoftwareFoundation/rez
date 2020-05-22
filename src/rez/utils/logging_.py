@@ -1,6 +1,9 @@
+from __future__ import print_function
 from contextlib import contextmanager
 import logging
 import time
+import sys
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -70,6 +73,58 @@ def log_duration(printer, msg):
     t2 = time.time()
     secs = t2 - t1
     printer(msg, str(secs))
+
+
+def view_file_logs(globbed_path, loglevel_index=None):
+    """View logs from one or more logfiles.
+
+    Prints to stdout.
+
+    Args:
+        globbed_path (str): Logfiles, eg '/foo/logs/*.log'
+        loglevel_index (int): Position on each log line where log level
+            (INFO etc) is expected. This is used for colorisation only, and if
+            None, no colors are applied.
+    """
+    from rez.utils import colorize
+    import glob
+
+    colors = {
+        "DEBUG": colorize.debug,
+        "INFO": colorize.info,
+        "WARNING": colorize.warning,
+        "ERROR": colorize.error
+    }
+
+    filepaths = glob.glob(globbed_path)
+    if not filepaths:
+        print("No logs.", file=sys.stderr)
+
+    # sort logfiles by ctime
+    filepaths = sorted(filepaths, key=lambda x: os.stat(x).st_ctime)
+
+    last_color = None
+
+    for filepath in filepaths:
+        with open(filepath) as f:
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+
+                line = line.rstrip()  # strip newline
+                color = last_color
+
+                if loglevel_index:
+                    parts = line.split()
+                    if len(parts) > loglevel_index:
+                        color = colors.get(parts[loglevel_index], last_color)
+                        last_color = color
+
+                if color:
+                    colorize.Printer()(line, color)
+                else:
+                    print(line)
 
 
 # Copyright 2013-2016 Allan Johns.
