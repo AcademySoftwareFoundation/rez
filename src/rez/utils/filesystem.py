@@ -187,19 +187,44 @@ def safe_makedirs(path):
                 raise
 
 
-def safe_remove(filepath):
-    """Safely remove the given file.
+def safe_remove(path):
+    """Safely remove the given file or directory.
 
     Works in a multithreaded scenario.
     """
-    if not os.path.exists(filepath):
+    if not os.path.exists(path):
         return
 
     try:
-        os.remove(filepath)
+        if os.path.isdir(path) and not os.path.islink(path):
+            shutil.rmtree(path)
+        else:
+            os.remove(path)
     except OSError:
-        if os.path.exists(filepath):
+        if os.path.exists(path):
             raise
+
+
+def forceful_rmtree(path):
+    """Like shutil.rmtree, but may change permissions.
+
+    Specifically, non-writable dirs within `path` can cause rmtree to fail. This
+    func chmod's to writable to avoid this issue, if possible.
+    """
+    def _on_error(func, path, exc_info):
+        try:
+            parent_path = os.path.dirname(path)
+
+            if parent_path != path and not os.access(parent_path, os.W_OK):
+                st = os.stat(parent_path)
+                os.chmod(parent_path, st.st_mode | stat.S_IWUSR)
+        except:
+            # avoid confusion by ensuring original exception is reraised
+            pass
+
+        func(path)
+
+    shutil.rmtree(path, onerror=_on_error)
 
 
 def replacing_symlink(source, link_name):

@@ -18,7 +18,8 @@ from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
 from rez.utils import json
-from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove
+from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
+    forceful_rmtree
 from rez.utils.logging_ import print_warning
 from rez.packages import get_variant
 from rez.system import system
@@ -592,7 +593,7 @@ class PackageCache(object):
             path = os.path.join(self._remove_dir, name)
 
             try:
-                self._rmtree(path)
+                forceful_rmtree(path)
             except Exception as e:
                 logger.warning("Could not delete %s: %s", path, e)
                 continue
@@ -612,26 +613,6 @@ class PackageCache(object):
                 lock.release()
             except NotLocked:
                 pass
-
-    def _rmtree(self, path):
-        """
-        Like shutil.rmtree, but makes writable what is needed to perform the
-        deletion.
-        """
-        def _on_error(func, path, exc_info):
-            try:
-                parent_path = os.path.dirname(path)
-
-                if parent_path != self.path and not os.access(parent_path, os.W_OK):
-                    st = os.stat(parent_path)
-                    os.chmod(parent_path, st.st_mode | stat.S_IWUSR)
-            except:
-                # avoid confusion by ensuring original exception is reraised
-                pass
-
-            func(path)
-
-        shutil.rmtree(path, onerror=_on_error)
 
     def _run_daemon_step(self, logger):
         # pick a random pending variant to copy
