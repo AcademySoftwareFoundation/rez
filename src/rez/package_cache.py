@@ -443,7 +443,7 @@ class PackageCache(object):
             with open(os.devnull, 'w') as devnull:
 
                 # don't suppress output if selftest running, easier to debug
-                if os.getenv("__REZ_SELFTEST_RUNNING") == "1":
+                if system.selftest_is_running:
                     out_target = None
                 else:
                     out_target = devnull

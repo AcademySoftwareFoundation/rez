@@ -1,7 +1,7 @@
 """
 Test package caching.
 """
-from rez.tests.util import TestBase, TempdirMixin
+from rez.tests.util import TestBase, TempdirMixin, restore_os_environ
 from rez.packages import get_package
 from rez.package_cache import PackageCache
 from rez.resolved_context import ResolvedContext
@@ -121,12 +121,16 @@ class TestPackageCache(TestBase, TempdirMixin):
         """Test that cache is updated as expected on resolved env."""
         pkgcache = self._pkgcache()
 
-        # creating the context will asynchronously add variants to the cache in
-        # a separate proc
-        c = ResolvedContext([
-            "timestamped-1.2.0",
-            "pyfoo-3.1.0"  # won't cache, see earlier test
-        ])
+        with restore_os_environ():
+            # set config settings into env so rez-pkg-cache proc sees them
+            os.environ.update(self.get_settings_env())
+
+            # creating the context will asynchronously add variants to the cache in
+            # a separate proc
+            c = ResolvedContext([
+                "timestamped-1.2.0",
+                "pyfoo-3.1.0"  # won't cache, see earlier test
+            ])
 
         variant = c.get_resolved_package("timestamped")
 

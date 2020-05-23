@@ -10,6 +10,7 @@ import os.path
 import os
 import functools
 import sys
+import json
 from contextlib import contextmanager
 
 
@@ -90,6 +91,17 @@ class TestBase(unittest.TestCase):
 
         # now swap the config back in...
         self.setup_config()
+
+    def get_settings_env(self):
+        """Get an environ dict that applies the current settings.
+
+        This is required for cases where a subproc has to pick up the same
+        config settings that the test case has set.
+        """
+        return dict(
+            ("REZ_%s_JSON" % k.upper(), json.dumps(v))
+            for k, v in self.settings.items()
+        )
 
 
 class TempdirMixin(object):

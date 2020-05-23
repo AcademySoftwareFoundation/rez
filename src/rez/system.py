@@ -253,6 +253,11 @@ class System(object):
         """Return True if this is a production rez install."""
         return bool(self.rez_bin_path)
 
+    @property
+    def selftest_is_running(self):
+        """Return True if tests are running via rez-selftest tool."""
+        return os.getenv("__REZ_SELFTEST_RUNNING") == "1"
+
     def get_summary_string(self):
         """Get a string summarising the state of Rez as a whole.
 
