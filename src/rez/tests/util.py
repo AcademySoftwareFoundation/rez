@@ -5,6 +5,7 @@ from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
 import tempfile
+import threading
 import shutil
 import os.path
 import os
@@ -227,6 +228,10 @@ def install_dependent():
     return decorator
 
 
+_restore_sys_path_lock = threading.Lock()
+_restore_os_environ_lock = threading.Lock()
+
+
 @contextmanager
 def restore_sys_path():
     """Encapsulate changes to sys.path and return to the original state.
@@ -247,9 +252,13 @@ def restore_sys_path():
     Yields:
         list: The original sys.path.
     """
-    original = sys.path[:]
-    yield sys.path
-    sys.path = original
+    with _restore_sys_path_lock:
+        original = sys.path[:]
+
+        yield sys.path
+
+        del sys.path[:]
+        sys.path.extend(original)
 
 
 @contextmanager
@@ -273,9 +282,13 @@ def restore_os_environ():
     Yields:
         dict: The original os.environ.
     """
-    original = os.environ.copy()
-    yield os.environ
-    os.environ = original
+    with _restore_os_environ_lock:
+        original = os.environ.copy()
+
+        yield os.environ
+
+        os.environ.clear()
+        os.environ.update(original)
 
 
 # Copyright 2013-2016 Allan Johns.
