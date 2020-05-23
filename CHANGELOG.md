@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.60.1 (2020-05-23)
+[Source](https://github.com/nerdvegas/rez/tree/2.60.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.60.0...2.60.1)
+
+**Merged pull requests:**
+
+- fix bug in py3 (hash of unicode) [\#888](https://github.com/nerdvegas/rez/pull/888) ([nerdvegas](https://github.com/nerdvegas))
+- fix context serilisation wrt append_sys_path [\#890](https://github.com/nerdvegas/rez/pull/890) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- context sourcing broken (ResolvedContext.append_sys_path not serialised) [\#889](https://github.com/nerdvegas/rez/issues/889)
+
 ## 2.60.0 (2020-05-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.60.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.59.1...2.60.0)
 

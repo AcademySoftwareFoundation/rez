@@ -312,7 +312,7 @@ class IncludeModuleManager(object):
             if not os.path.exists(filepath):
                 return None
 
-            with open(filepath) as f:
+            with open(filepath, "rb") as f:
                 txt = f.read().strip()
 
             hash_str = sha1(txt).hexdigest()
