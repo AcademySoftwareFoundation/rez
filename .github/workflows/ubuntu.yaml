@@ -68,4 +68,4 @@ jobs:
 
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest --package_cache
+          ./build/bin/rez/rez-selftest
