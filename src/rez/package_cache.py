@@ -158,6 +158,7 @@ class PackageCache(object):
         from rez.utils.filesystem import safe_makedirs
 
         # do some sanity checking on variant to cache
+        package = variant.parent
         variant_root = getattr(variant, "root", None)
 
         if not variant_root:
@@ -173,16 +174,19 @@ class PackageCache(object):
             )
 
         if not force:
-            if not variant.parent.is_cachable:
+            # package is configured to not be cachable
+            if not package.is_cachable:
                 raise PackageCacheError(
-                    "Not cached - package is not cachable: %s" % variant.parent.uri
+                    "Not cached - package is not cachable: %s" % package.uri
                 )
 
+            # package is local
             if not config.package_cache_local and variant.is_local:
                 raise PackageCacheError(
-                    "Not cached - package is local: %s" % variant.parent.uri
+                    "Not cached - package is local: %s" % package.uri
                 )
 
+            # package is already on same disk device as package cache
             if not config.package_cache_same_device:
                 st_pkgcache = os.stat(self.path)
                 st_variant = os.stat(variant_root)
@@ -191,6 +195,17 @@ class PackageCache(object):
                         "Not cached - variant %s is on same device as cache: %s"
                         % (variant.uri, variant_root)
                     )
+
+            # Package belongs to a temp repo (this occurs when a package is
+            # tested on pre_build/pre_release - see
+            # https://github.com/nerdvegas/rez/wiki/Package-Definition-Guide#tests)
+            #
+            if package.repository.name() == "filesystem" and \
+                    package.repository.location.startswith(config.tmpdir + os.sep):
+                raise PackageCacheError(
+                    "Not cached - package is in temp repository %s"
+                    % package.repository
+                )
 
         no_op_statuses = (
             self.VARIANT_FOUND,
@@ -214,7 +229,7 @@ class PackageCache(object):
 
         if variant.index is not None:
             # just added for debugging purposes
-            data["data"] = variant.parent.data["variants"][variant.index]
+            data["data"] = package.data["variants"][variant.index]
 
         # 2. + 5.
         with self._lock():
