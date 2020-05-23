@@ -162,7 +162,10 @@ class ResourceHandle(object):
         return cls(**d)
 
     def _hashable_repr(self):
-        return (self.key, frozenset(self.variables.items()))
+        return (
+            self.key,
+            tuple(sorted(self.variables.items()))
+        )
 
     def __str__(self):
         return str(self.to_dict())
