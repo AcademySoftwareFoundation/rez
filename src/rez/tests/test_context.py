@@ -83,14 +83,20 @@ class TestContext(TestBase, TempdirMixin):
         self.assertEqual(parts, ["covfefe", "hello"])
 
     def test_serialize(self):
-        """Test save/load of context."""
+        """Test context serlialzation."""
+
         # save
         file = os.path.join(self.root, "test.rxt")
         r = ResolvedContext(["hello_world"])
         r.save(file)
+
         # load
         r2 = ResolvedContext.load(file)
         self.assertEqual(r.resolved_packages, r2.resolved_packages)
+
+        # verify
+        env = r2.get_environ()
+        self.assertEqual(env.get("OH_HAI_WORLD"), "hello")
 
 
 if __name__ == '__main__':
