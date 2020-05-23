@@ -20,6 +20,7 @@ from rez.vendor.lockfile import LockFile, NotLocked
 from rez.utils import json
 from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
     forceful_rmtree
+from rez.utils.colorize import ColorizedStreamHandler
 from rez.utils.logging_ import print_warning
 from rez.packages import get_variant
 from rez.system import system
@@ -686,7 +687,7 @@ class PackageCache(object):
 
         logfilepath = os.path.join(self._log_dir, time.strftime("%Y-%m-%d.log"))
         handler1 = logging.FileHandler(logfilepath)
-        handler2 = logging.StreamHandler()
+        handler2 = ColorizedStreamHandler()
 
         formatter = logging.Formatter(
             "%(name)s %(asctime)s PID-%(process)d %(levelname)s %(message)s")
