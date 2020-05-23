@@ -441,10 +441,17 @@ class PackageCache(object):
 
         try:
             with open(os.devnull, 'w') as devnull:
+
+                # don't suppress output if selftest running, easier to debug
+                if os.getenv("__REZ_SELFTEST_RUNNING") == "1":
+                    out_target = None
+                else:
+                    out_target = devnull
+
                 _ = subprocess.Popen(
                     [exe, "--daemon", self.path],
-                    stdout=devnull,
-                    stderr=devnull,
+                    stdout=out_target,
+                    stderr=out_target,
                     **kwargs
                 )
         except Exception as e:
