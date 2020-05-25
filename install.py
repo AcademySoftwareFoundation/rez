@@ -131,7 +131,24 @@ def install(dest_dir, print_welcome=False):
     # done
     if print_welcome:
         print()
-        print("SUCCESS! To activate Rez, add the following path to $PATH:")
+        print("SUCCESS!")
+        rez_exe = os.path.realpath(os.path.join(dest_bin_dir, "rez"))
+        print("Rez executable installed to: %s" % rez_exe)
+
+        try:
+            out = subprocess.check_output([
+                rez_exe,
+                "python",
+                "-c",
+                "import rez; print(rez.__path__[0])"
+            ])
+            pkg_path = os.path.realpath(out.strip())
+            print("Rez python package installed to: %s" % pkg_path)
+        except:
+            pass  # just in case there's an issue with rez-python tool
+
+        print()
+        print("To activate Rez, add the following path to $PATH:")
         print(dest_bin_dir)
 
         if completion_path:
