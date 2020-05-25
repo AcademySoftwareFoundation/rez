@@ -6,6 +6,7 @@ from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
 import tempfile
 import threading
+import time
 import shutil
 import os.path
 import os
@@ -114,8 +115,21 @@ class TempdirMixin(object):
     @classmethod
     def tearDownClass(cls):
         if not os.getenv("REZ_KEEP_TMPDIRS"):
-            if os.path.exists(cls.root):
-                shutil.rmtree(cls.root)
+            # The retries are here because there is at least one case in the
+            # tests where a subproc can be writing to files in a tmpdir after
+            # the tests are completed (this is the rez-pkg-cache proc in the
+            # test_package_cache:test_caching_on_resolve test).
+            #
+            retries = 5
+
+            for _ in range(retries):
+                if os.path.exists(cls.root):
+                    try:
+                        time.sleep(0.2)
+                        shutil.rmtree(cls.root)
+                        break
+                    except:
+                        pass
 
 
 def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):

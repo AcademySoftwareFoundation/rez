@@ -125,8 +125,9 @@ class TestPackageCache(TestBase, TempdirMixin):
             # set config settings into env so rez-pkg-cache proc sees them
             os.environ.update(self.get_settings_env())
 
-            # creating the context will asynchronously add variants to the cache in
-            # a separate proc
+            # Creating the context will asynchronously add variants to the cache
+            # in a separate proc.
+            #
             c = ResolvedContext([
                 "timestamped-1.2.0",
                 "pyfoo-3.1.0"  # won't cache, see earlier test
@@ -134,8 +135,9 @@ class TestPackageCache(TestBase, TempdirMixin):
 
         variant = c.get_resolved_package("timestamped")
 
-        # retry 50 times with 0.1 sec interval, 5 secs is more than enough for
-        # the very small variant to be copied to cache
+        # Retry 50 times with 0.1 sec interval, 5 secs is more than enough for
+        # the very small variant to be copied to cache.
+        #
         path = None
         for _ in range(50):
             time.sleep(0.1)
