@@ -266,6 +266,11 @@ package_cache_local = False
 # purposes.
 package_cache_same_device = False
 
+# If > 0, spend up to this many seconds cleaning the cache every time the cache
+# is updated. This is a way to keep the cache size under control without having
+# to periodically run 'rez-pkg-cache --clean'. Set to -1 to disable.
+package_cache_clean_limit = 0.5
+
 # Number of days of package cache logs to keep.
 # Logs are written to {pkg-cache-root}/.sys/log/*.log
 package_cache_log_days = 7

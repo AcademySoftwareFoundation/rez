@@ -167,6 +167,17 @@ class Int(Setting):
                                      % self._env_var_name)
 
 
+class Float(Setting):
+    schema = Schema(float)
+
+    def _parse_env_var(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            raise ConfigurationError("Expected %s to be a float"
+                                     % self._env_var_name)
+
+
 class Bool(Setting):
     schema = Schema(bool)
     true_words = frozenset(["1", "true", "t", "yes", "y", "on"])
@@ -392,6 +403,7 @@ config_schema = Schema({
     "shell_error_truncate_cap":                     Int,
     "package_cache_log_days":                       Int,
     "package_cache_max_variant_days":               Int,
+    "package_cache_clean_limit":                    Float,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
     "package_cache_local":                          Bool,

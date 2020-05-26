@@ -384,7 +384,8 @@ class PackageCache(object):
             if status == self.VARIANT_NOT_FOUND:
                 variants_.append(variant)
 
-        if not variants_:
+        # if there are no variants to add, and no potential cleanup to do, then exit
+        if not variants_ and config.package_cache_clean_limit < 0:
             return
 
         # Write each variant out to a file in the 'pending' dir in the cache. A
@@ -551,18 +552,25 @@ class PackageCache(object):
                 sys.exit(0)
 
         logger = self._init_logging()
-        logger.info("Started daemon")
 
+        # copy variants into cache
         try:
             while True:
                 keep_running = self._run_daemon_step(logger)
                 if not keep_running:
                     break
         except Exception:
-            logger.exception("An error occurred")
+            logger.exception("An error occurred while adding variants to the cache")
             raise
 
-    def clean(self):
+        # do some cleanup
+        if config.package_cache_clean_limit > 0:
+            try:
+                self.clean(time_limit=config.package_cache_clean_limit)
+            except Exception:
+                logger.exception("An error occurred while cleaning the cache")
+
+    def clean(self, time_limit=None):
         """Delete unused package cache files.
 
         This should be run periodically via 'rez-pkg-cache --clean'.
@@ -572,11 +580,23 @@ class PackageCache(object):
           'config.package_cache_max_variant_days' days;
         - Variants that have stalled;
         - Variants that are already pending deletion (remove_variant() was used).
+
+        Args:
+            time_limit (float): Perform cleaning operations only up until this
+                limit, resulting in a possibly incomplete cleanup. This is used
+                to keep the cache size down without having to periodically
+                run 'rez-pkg-cache --clean'.
         """
         logger = self._init_logging()
         unused_variants = []
         stalled_variants = []
         now = time.time()
+
+        def should_exit():
+            return (
+                time_limit is not None and
+                (time.time() - now) > time_limit
+            )
 
         # find variants to delete
         for variant, rootpath, status in self.get_variants():
@@ -600,16 +620,27 @@ class PackageCache(object):
             elif status == self.VARIANT_COPY_STALLED:
                 stalled_variants.append(variant)
 
-        # remove variants. This puts them in our to_delete dir
+        # remove unused variants. This puts them in our to_delete dir
         for variant in unused_variants:
             status = self.remove_variant(variant)
             if status == self.VARIANT_REMOVED:
                 logger.info("Removed unused variant %s from cache", variant.uri)
 
-        for variant in stalled_variants:
-            status = self.remove_variant(variant)
-            if status == self.VARIANT_REMOVED:
-                logger.info("Removed stalled variant %s from cache", variant.uri)
+            if should_exit():
+                return
+
+        # Remove stalled variants. This puts them in our to_delete dir.
+        #
+        # Note that this is not done when cleaning up as part of cache updating.
+        # Doing so could result in the same problematic variant getting copied,
+        # then stalled, then deleted, then copied again, over and over.
+        #
+        if time_limit is None:
+            for variant in stalled_variants:
+                status = self.remove_variant(variant)
+                if status == self.VARIANT_REMOVED:
+                    logger.info(
+                        "Removed stalled variant %s from cache", variant.uri)
 
         # delete everything in to_delete dir
         for name in os.listdir(self._remove_dir):
@@ -622,6 +653,8 @@ class PackageCache(object):
                 continue
 
             logger.info("Deleted %s", path)
+            if should_exit():
+                return
 
     @contextmanager
     def _lock(self):
