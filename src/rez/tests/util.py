@@ -122,14 +122,14 @@ class TempdirMixin(object):
             #
             retries = 5
 
-            for _ in range(retries):
-                if os.path.exists(cls.root):
+            if os.path.exists(cls.root):
+                for i in range(retries):
                     try:
-                        time.sleep(0.2)
                         shutil.rmtree(cls.root)
                         break
                     except:
-                        pass
+                        if i < (retries - 1):
+                            time.sleep(0.2)
 
 
 def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
