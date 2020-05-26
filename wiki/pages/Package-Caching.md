@@ -27,7 +27,7 @@ and [default_cachable_per_repository](Configuring-Rez#default_cachable_per_repos
 Note that you can also disable package caching on the command line, using
 `rez-env --no-pkg-caching`.
 
-Verifying
+# Verifying
 
 When you resolve an environment, you can see which variants have been cached by
 noting the `cached` label in the righthand column of the `rez-context` output,
