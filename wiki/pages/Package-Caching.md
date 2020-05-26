@@ -6,7 +6,7 @@ reside on shared storage (which is common), then running say, a Python process,
 will fetch all source from the shared storage across your network. The point of
 the cache is to copy that content locally instead, and avoid the network cost.
 
-# Enabling Package Caching
+# Enabling
 
 Package caching is not enabled by default. To enable it, you need to configure
 [cache_packages_path](Configuring-Rez#cache_packages_path) to specify a path to
@@ -26,6 +26,43 @@ and [default_cachable_per_repository](Configuring-Rez#default_cachable_per_repos
 
 Note that you can also disable package caching on the command line, using
 `rez-env --no-pkg-caching`.
+
+Verifying
+
+When you resolve an environment, you can see which variants have been cached by
+noting the `cached` label in the righthand column of the `rez-context` output,
+as shown below:
+
+```
+]$ rez-env Flask
+
+You are now in a rez-configured environment.
+
+requested packages:
+Flask
+~platform==linux   (implicit)
+~arch==x86_64      (implicit)
+~os==Ubuntu-16.04  (implicit)
+
+resolved packages:
+Flask-1.1.2         /home/ajohns/package_cache/Flask/1.1.2/d998/a                                     (cached)
+Jinja2-2.11.2       /home/ajohns/package_cache/Jinja2/2.11.2/6087/a                                   (cached)
+MarkupSafe-1.1.1    /svr/packages/MarkupSafe/1.1.1/d9e9d80193dcd9578844ec4c2c22c9366ef0b88a
+Werkzeug-1.0.1      /home/ajohns/package_cache/Werkzeug/1.0.1/fe76/a                                  (cached)
+arch-x86_64         /home/ajohns/package_cache/arch/x86_64/6450/a                                     (cached)
+click-7.1.2         /home/ajohns/package_cache/click/7.1.2/0da2/a                                     (cached)
+itsdangerous-1.1.0  /home/ajohns/package_cache/itsdangerous/1.1.0/b23f/a                              (cached)
+platform-linux      /home/ajohns/package_cache/platform/linux/9d4d/a                                  (cached)
+python-3.7.4        /home/ajohns/package_cache/python/3.7.4/ce1c/a                                    (cached)
+```
+
+For reference, cached packages also have their original payload location stored to
+an environment variable like so:
+
+```
+]$ echo $REZ_FLASK_ORIG_ROOT
+/svr/packages/Flask/1.1.2/88a70aca30cb79a278872594adf043dc6c40af99
+```
 
 # How it Works
 
@@ -61,15 +98,15 @@ Package cache at /home/ajohns/package_cache:
 
 status   package             variant uri                                             cache path
 ------   -------             -----------                                             ----------
-cached   Flask-1.1.2         /home/ajohns/packages/Flask/1.1.2/package.py[0]         /home/ajohns/package_cache/Flask/1.1.2/d998/a
-cached   Jinja2-2.11.2       /home/ajohns/packages/Jinja2/2.11.2/package.py[0]       /home/ajohns/package_cache/Jinja2/2.11.2/6087/a
-cached   Werkzeug-1.0.1      /home/ajohns/packages/Werkzeug/1.0.1/package.py[0]      /home/ajohns/package_cache/Werkzeug/1.0.1/fe76/a
-cached   arch-x86_64         /home/ajohns/packages/arch/x86_64/package.py[]          /home/ajohns/package_cache/arch/x86_64/6450/a
-cached   click-7.1.2         /home/ajohns/packages/click/7.1.2/package.py[0]         /home/ajohns/package_cache/click/7.1.2/0da2/a
-cached   itsdangerous-1.1.0  /home/ajohns/packages/itsdangerous/1.1.0/package.py[0]  /home/ajohns/package_cache/itsdangerous/1.1.0/b23f/a
-cached   platform-linux      /home/ajohns/packages/platform/linux/package.py[]       /home/ajohns/package_cache/platform/linux/9d4d/a
-copying  python-3.7.4        /home/ajohns/packages/python/3.7.4/package.py[0]        /home/ajohns/package_cache/python/3.7.4/ce1c/a
-stalled  MarkupSafe-1.1.1    /home/ajohns/packages/MarkupSafe/1.1.1/package.py[1]    /home/ajohns/package_cache/MarkupSafe/1.1.1/724c/a
+cached   Flask-1.1.2         /svr/packages/Flask/1.1.2/package.py[0]         /home/ajohns/package_cache/Flask/1.1.2/d998/a
+cached   Jinja2-2.11.2       /svr/packages/Jinja2/2.11.2/package.py[0]       /home/ajohns/package_cache/Jinja2/2.11.2/6087/a
+cached   Werkzeug-1.0.1      /svr/packages/Werkzeug/1.0.1/package.py[0]      /home/ajohns/package_cache/Werkzeug/1.0.1/fe76/a
+cached   arch-x86_64         /svr/packages/arch/x86_64/package.py[]          /home/ajohns/package_cache/arch/x86_64/6450/a
+cached   click-7.1.2         /svr/packages/click/7.1.2/package.py[0]         /home/ajohns/package_cache/click/7.1.2/0da2/a
+cached   itsdangerous-1.1.0  /svr/packages/itsdangerous/1.1.0/package.py[0]  /home/ajohns/package_cache/itsdangerous/1.1.0/b23f/a
+cached   platform-linux      /svr/packages/platform/linux/package.py[]       /home/ajohns/package_cache/platform/linux/9d4d/a
+copying  python-3.7.4        /svr/packages/python/3.7.4/package.py[0]        /home/ajohns/package_cache/python/3.7.4/ce1c/a
+stalled  MarkupSafe-1.1.1    /svr/packages/MarkupSafe/1.1.1/package.py[1]    /home/ajohns/package_cache/MarkupSafe/1.1.1/724c/a
 
 ```
 

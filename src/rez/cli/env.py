@@ -110,6 +110,9 @@ def setup_parser(parser, completions=False):
         "--stats", action="store_true",
         help="print advanced solver stats")
     parser.add_argument(
+        "--no-pkg-cache", action="store_true",
+        help="Disable package caching")
+    parser.add_argument(
         "--pre-command", type=str, help=SUPPRESS)
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
@@ -192,18 +195,21 @@ def command(opts, parser, extra_arg_groups=None):
             package_filter.add_inclusion(rule)
 
         # perform the resolve
-        context = ResolvedContext(package_requests=request,
-                                  timestamp=t,
-                                  package_paths=pkg_paths,
-                                  building=opts.build,
-                                  package_filter=package_filter,
-                                  add_implicit_packages=(not opts.no_implicit),
-                                  verbosity=opts.verbose,
-                                  max_fails=opts.max_fails,
-                                  time_limit=opts.time_limit,
-                                  caching=(not opts.no_cache),
-                                  suppress_passive=opts.no_passive,
-                                  print_stats=opts.stats)
+        context = ResolvedContext(
+            package_requests=request,
+            timestamp=t,
+            package_paths=pkg_paths,
+            building=opts.build,
+            package_filter=package_filter,
+            add_implicit_packages=(not opts.no_implicit),
+            verbosity=opts.verbose,
+            max_fails=opts.max_fails,
+            time_limit=opts.time_limit,
+            caching=(not opts.no_cache),
+            suppress_passive=opts.no_passive,
+            print_stats=opts.stats,
+            package_caching=(not opts.no_pkg_cache)
+        )
 
     success = (context.status == ResolverStatus.solved)
 

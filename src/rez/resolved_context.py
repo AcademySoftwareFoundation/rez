@@ -781,24 +781,31 @@ class ResolvedContext(object):
             col = None
             location = None
 
+            # check for retargeted variant root (ie package caching)
+            pkg_root = pkg.root
+
+            if is_current:
+                uname = pkg.name.upper().replace('.', '_')
+                prefix = "REZ_" + uname
+                if os.getenv(prefix + "_ORIG_ROOT"):
+                    pkg_root = os.getenv(
+                        prefix + "_ROOT",  # will point to cache
+                        pkg.root  # in case some joker deletes the env-var!
+                    )
+                    t.append("cached")
+
             # print root/uri
             if show_resolved_uris or not pkg.root:
                 location = pkg.uri
             else:
-                location = pkg.root
-                if not os.path.exists(pkg.root):
+                location = pkg_root
+                if not os.path.exists(pkg_root):
                     t.append('NOT FOUND')
                     col = critical
 
             if pkg.is_local:
                 t.append('local')
                 col = local
-
-            # check for retargeted variant root (ie package caching)
-            if is_current:
-                prefix = "REZ_" + pkg.name.upper().replace('.', '_')
-                if os.getenv(prefix + "_ORIG_ROOT"):
-                    t.append("cached")
 
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, location, t))
