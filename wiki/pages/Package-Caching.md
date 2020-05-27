@@ -6,6 +6,9 @@ reside on shared storage (which is common), then running say, a Python process,
 will fetch all source from the shared storage across your network. The point of
 the cache is to copy that content locally instead, and avoid the network cost.
 
+> [[media/icons/info.png]] Please note: Package caching does _NOT_ cache package
+> definitions - only their payloads (ie, the package root directory).
+
 # Enabling
 
 Package caching is not enabled by default. To enable it, you need to configure
