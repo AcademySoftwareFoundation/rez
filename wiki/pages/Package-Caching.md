@@ -90,7 +90,7 @@ default (see [package_cache_local](Configuring-Rez#package_cache_local)).
 ## Inspection
 
 Use the `rez-pkg-cache` tool to view the state of the cache, and to perform
-deletion operations. Example output follows:
+warming and deletion operations. Example output follows:
 
 ```
 ]$ rez-pkg-cache
