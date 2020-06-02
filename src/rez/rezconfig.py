@@ -5,8 +5,9 @@ Settings are determined in the following way (higher number means higher
 precedence):
 
 1) The setting is first read from this file;
-2) The setting is then overridden if it is present in another settings file
-   pointed at by the $REZ_CONFIG_FILE environment variable;
+2) The setting is then overridden if it is present in another settings file(s)
+   pointed at by the $REZ_CONFIG_FILE environment variable. Note that multiple
+   files are supported, separated by os.pathsep;
 3) The setting is further overriden if it is present in $HOME/.rezconfig;
 4) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
