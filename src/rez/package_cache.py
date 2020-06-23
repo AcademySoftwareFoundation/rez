@@ -551,12 +551,15 @@ class PackageCache(object):
             if pid > 0:
                 sys.exit(0)
 
-        logger = self._init_logging()
+        # somewhere for the daemon to store stateful info
+        state = {
+            "logger": self._init_logging()
+        }
 
         # copy variants into cache
         try:
             while True:
-                keep_running = self._run_daemon_step(logger)
+                keep_running = self._run_daemon_step(state)
                 if not keep_running:
                     break
         except Exception:
@@ -670,14 +673,17 @@ class PackageCache(object):
             except NotLocked:
                 pass
 
-    def _run_daemon_step(self, logger):
+    def _run_daemon_step(self, state):
+        logger = state["logger"]
+
         # pick a random pending variant to copy
-        pending_filenames = os.listdir(self._pending_dir)
+        pending_filenames = set(os.listdir(self._pending_dir))
+        pending_filenames -= set(state.get("copying", set()))
         if not pending_filenames:
             return False
 
         i = random.randint(0, len(pending_filenames) - 1)
-        filename = pending_filenames[i]
+        filename = list(pending_filenames)[i]
         filepath = os.path.join(self._pending_dir, filename)
 
         try:
@@ -724,7 +730,13 @@ class PackageCache(object):
         else:  # VARIANT_CREATED
             logger.info("Cached variant to %s in %g seconds", rootpath, secs)
 
-        if status != self.VARIANT_COPYING:
+        if status == self.VARIANT_COPYING:
+            # we cannot delete the pending file (another proc is copying the
+            # variant, so it's responsible); but we also have to ignore this
+            # variant from now on.
+            #
+            state.setdefault("copying", set()).add(filename)
+        else:
             safe_remove(filepath)
 
         return True
