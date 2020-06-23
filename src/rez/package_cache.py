@@ -271,7 +271,10 @@ class PackageCache(object):
         def _while_copying():
             while still_copying:
                 time.sleep(self._COPYING_TIME_INC)
-                os.utime(copying_filepath, None)
+                try:
+                    os.utime(copying_filepath, None)
+                except:
+                    pass
 
         rootpath = os.path.join(path, incname)
         th = threading.Thread(target=_while_copying)
@@ -551,9 +554,11 @@ class PackageCache(object):
             if pid > 0:
                 sys.exit(0)
 
+        logger = self._init_logging()
+
         # somewhere for the daemon to store stateful info
         state = {
-            "logger": self._init_logging()
+            "logger": logger
         }
 
         # copy variants into cache
