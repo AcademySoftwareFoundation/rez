@@ -7,6 +7,6 @@ INCLUDE_DIRECTORIES ( ../lib )
 LINK_DIRECTORIES( lib )
 
 # build and install executable
-ADD_EXECUTABLE (test_ghetto main.cpp)
-TARGET_LINK_LIBRARIES ( test_ghetto supworld ${pkgs_LIBRARIES} )
-INSTALL ( TARGETS test_ghetto DESTINATION bin )
+ADD_EXECUTABLE (greeter main.cpp)
+TARGET_LINK_LIBRARIES ( greeter supworld ${pkgs_LIBRARIES} )
+INSTALL ( TARGETS greeter DESTINATION bin )

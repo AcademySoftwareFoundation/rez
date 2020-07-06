@@ -1,5 +1,5 @@
-#ifndef _LOLSPEAKLIB__GHETTOSPEAK__H_
-#define _LOLSPEAKLIB__GHETTOSPEAK__H_
+#ifndef _LOLSPEAKLIB__SPANISHSPEAK__H_
+#define _LOLSPEAKLIB__SPANISHSPEAK__H_
 
 #include "translator.h"
 #include <map>
@@ -7,15 +7,10 @@
 
 namespace translate {
 
-	/*
-	 * @class GhettoTranslator
-	 * @brief
-	 * Ghetto translator.
-	 */
-	class GhettoTranslator : public Translator
+	class SpanishTranslator : public Translator
 	{
 	public:
-		GhettoTranslator();
+		SpanishTranslator();
 		virtual std::string getWord(const std::string& word) const;
 
 	protected:

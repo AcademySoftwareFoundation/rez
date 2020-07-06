@@ -1,11 +1,11 @@
 #include <iostream>
-#include "ghetto_greet.h"
+#include "spanish_greet.h"
 
 using namespace supworld;
 
 
 int main(int argc, char** argv)
 {
-	std::cout << ghetto_greet() << std::endl;
+	std::cout << spanish_greet() << std::endl;
 	return 0;
 }
