@@ -209,11 +209,22 @@ class System(object):
 
         parts = module_path.split(os.path.sep)
 
+        # find last 'lib' or 'lib64' dir in rez module path
+        # Note: Occasionally a rez install will use the python lib stored in
+        # lib64 instead of lib, I don't know why.
+        #
+        rev_parts = list(reversed(parts))
         try:
-            i = parts.index("lib")
+            i = rev_parts.index("lib")
         except ValueError:
-            return None
+            try:
+                i = rev_parts.index("lib64")
+            except ValueError:
+                return None
 
+        i = len(parts) - 1 - i  # unreverse the index
+
+        # find rez bin path and look for the production install marker file
         if platform.system() == "Windows":
             bin_dirname = "Scripts"
         else:
