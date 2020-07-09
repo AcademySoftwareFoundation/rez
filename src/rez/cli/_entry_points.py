@@ -187,6 +187,13 @@ def run_rez_pip():
     return run("pip")
 
 
+@scriptname("rez-pkg-cache")
+def run_rez_pkg_cache():
+    check_production_install()
+    from rez.cli._main import run
+    return run("pkg-cache")
+
+
 @scriptname("rez-plugins")
 def run_rez_plugins():
     check_production_install()

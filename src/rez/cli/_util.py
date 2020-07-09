@@ -41,6 +41,7 @@ subcommands = {
     "interpret": {},
     "memcache": {},
     "pip": {},
+    "pkg-cache": {},
     "plugins": {},
     "python": {
         "arg_mode": "passthrough"

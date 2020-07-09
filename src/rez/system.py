@@ -2,6 +2,8 @@ import os
 import os.path
 import re
 import sys
+import platform
+
 from rez import __version__
 from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
@@ -196,24 +198,32 @@ class System(object):
         """Get path containing rez binaries, or None if no binaries are
         available, or Rez is not a production install.
         """
-        binpath = None
-        if sys.argv and sys.argv[0]:
-            executable = sys.argv[0]
-            path = which("rezolve", env={"PATH":os.path.dirname(executable),
-                                         "PATHEXT":os.environ.get("PATHEXT",
-                                                                  "")})
-            binpath = os.path.dirname(path) if path else None
 
-        # TODO: improve this, could still pick up non-production 'rezolve'
-        if not binpath:
-            path = which("rezolve")
-            if path:
-                binpath = os.path.dirname(path)
+        # Rez install layout will be like:
+        #
+        # /<install>/lib/python2.7/site-packages/rez  <- module path
+        # /<install>/(bin or Scripts)/rez/rez  <- rez executable
+        #
+        import rez
+        module_path = rez.__path__[0]
 
-        if binpath:
-            validation_file = os.path.join(binpath, ".rez_production_install")
-            if os.path.exists(validation_file):
-                return os.path.realpath(binpath)
+        parts = module_path.split(os.path.sep)
+
+        try:
+            i = parts.index("lib")
+        except ValueError:
+            return None
+
+        if platform.system() == "Windows":
+            bin_dirname = "Scripts"
+        else:
+            bin_dirname = "bin"
+
+        binpath = os.path.sep.join(parts[:i] + [bin_dirname, "rez"])
+
+        validation_file = os.path.join(binpath, ".rez_production_install")
+        if os.path.exists(validation_file):
+            return os.path.realpath(binpath)
 
         return None
 
@@ -221,6 +231,11 @@ class System(object):
     def is_production_rez_install(self):
         """Return True if this is a production rez install."""
         return bool(self.rez_bin_path)
+
+    @property
+    def selftest_is_running(self):
+        """Return True if tests are running via rez-selftest tool."""
+        return os.getenv("__REZ_SELFTEST_RUNNING") == "1"
 
     def get_summary_string(self):
         """Get a string summarising the state of Rez as a whole.

@@ -7,6 +7,7 @@ from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
 from uuid import uuid4
+import errno
 import weakref
 import atexit
 import posixpath
@@ -160,6 +161,19 @@ def get_existing_path(path, topmost_path=None):
         prev_path = path
 
 
+def safe_listdir(path):
+    """Safe listdir.
+
+    Works in a multithread/proc scenario where dirs may be deleted at any time
+    """
+    try:
+        return os.listdir(path)
+    except OSError as e:
+        if e.errno in (errno.ENOENT, errno.ENOTDIR):
+            return []
+        raise
+
+
 def safe_makedirs(path):
     """Safe makedirs.
 
@@ -189,6 +203,28 @@ def safe_remove(path):
     except OSError:
         if os.path.exists(path):
             raise
+
+
+def forceful_rmtree(path):
+    """Like shutil.rmtree, but may change permissions.
+
+    Specifically, non-writable dirs within `path` can cause rmtree to fail. This
+    func chmod's to writable to avoid this issue, if possible.
+    """
+    def _on_error(func, path, exc_info):
+        try:
+            parent_path = os.path.dirname(path)
+
+            if parent_path != path and not os.access(parent_path, os.W_OK):
+                st = os.stat(parent_path)
+                os.chmod(parent_path, st.st_mode | stat.S_IWUSR)
+        except:
+            # avoid confusion by ensuring original exception is reraised
+            pass
+
+        func(path)
+
+    shutil.rmtree(path, onerror=_on_error)
 
 
 def replacing_symlink(source, link_name):

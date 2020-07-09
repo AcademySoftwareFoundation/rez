@@ -175,6 +175,109 @@ memcached_resolve_min_compress_len = 1
 
 
 ###############################################################################
+# Package Copy
+###############################################################################
+
+# Whether a package is relocatable or not, if it does not explicitly state with
+# the 'relocatable' attribute in its package definition file.
+default_relocatable = True
+
+# Set relocatable on a per-package basis. This is here for migration purposes -
+# it's better for packages themselves to set their relocatable attribute.
+# Overrides 'default_relocatable' if a package matches.
+#
+# Example:
+#
+#     default_relocatable_per_package = {
+#         "nuke": False,
+#         "maya": True
+#     }
+default_relocatable_per_package = None
+
+# Set relocatable on a per-package-repository basis. Overrides
+# 'default_relocatable_per_package' and 'default_relocatable' for any repos
+# listed here.
+#
+# Example:
+#
+#     default_relocatable_per_repostitory = {
+#         '/svr/packages': False
+#     }
+default_relocatable_per_repository = None
+
+
+###############################################################################
+# Package Caching
+#
+# Note: "package caching" refers to copying variant payloads to a path on local
+# disk, and using those payloads instead. It is a way to avoid fetching files
+# over shared storage, and is unrelated to memcached-based caching of resolves
+# and package definitions as seen in the "Caching" config section.
+#
+###############################################################################
+
+# Whether a package is cachable or not, if it does not explicitly state with
+# the 'cachable' attribute in its package definition file. If None, defaults
+# to packages' relocatability (ie cachable will == relocatable).
+default_cachable = False
+
+# Set cachable on a per-package basis. This is here for migration purposes -
+# it's better for packages themselves to set their cachable attribute. Overrides
+# 'default_cachable' if a package matches.
+#
+# Example:
+#
+#     default_cachable_per_package = {
+#         "nuke": False,
+#         "maya": True
+#     }
+default_cachable_per_package = None
+
+# Set cachable on a per-package-repository basis. Overrides
+# 'default_cachable_per_package' and 'default_cachable' for any repos listed here.
+#
+# Example:
+#
+#     default_cachable_per_repostitory = {
+#         '/svr/packages': False
+#     }
+default_cachable_per_repository = None
+
+# The path where rez locally caches variants. If this is None, then package
+# caching is disabled.
+cache_packages_path = None
+
+# If True, variants in a resolve will use locally cached payloads if they are
+# present in the cache.
+read_package_cache = True
+
+# If True, creating or sourcing a context will cause variants to be cached.
+write_package_cache = True
+
+# Delete variants that haven't been used in N days (see `rez-pkg-cache --clean`).
+# To disable, set to zero.
+package_cache_max_variant_days = 30
+
+# Allow caching of local packages. You would only want to set this True for
+# testing purposes.
+package_cache_local = False
+
+# Allow package caching if the source package is on the same physical disk
+# as the package cache itself. You would only want to set this True for testing
+# purposes.
+package_cache_same_device = False
+
+# If > 0, spend up to this many seconds cleaning the cache every time the cache
+# is updated. This is a way to keep the cache size under control without having
+# to periodically run 'rez-pkg-cache --clean'. Set to -1 to disable.
+package_cache_clean_limit = 0.5
+
+# Number of days of package cache logs to keep.
+# Logs are written to {pkg-cache-root}/.sys/log/*.log
+package_cache_log_days = 7
+
+
+###############################################################################
 # Package Resolution
 ###############################################################################
 
@@ -497,7 +600,7 @@ package_preprocess_mode = "override"
 
 
 ###############################################################################
-# Tracking
+# Context Tracking
 ###############################################################################
 
 # Send data to AMQP whenever a context is created or sourced.
@@ -623,12 +726,8 @@ shell_error_truncate_cap = 750
 
 
 ###############################################################################
-# Build/Release/Copy
+# Package Build/Release
 ###############################################################################
-
-# Whether a package is relocatable or not, if it does not explicitly state with
-# the 'relocatable' attribute in its package definition file.
-default_relocatable = True
 
 # The default working directory for a package build, either absolute path or
 # relative to the package source directory (this is typically where temporary

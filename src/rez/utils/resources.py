@@ -161,6 +161,12 @@ class ResourceHandle(object):
         """
         return cls(**d)
 
+    def _hashable_repr(self):
+        return (
+            self.key,
+            tuple(sorted(self.variables.items()))
+        )
+
     def __str__(self):
         return str(self.to_dict())
 
@@ -171,7 +177,7 @@ class ResourceHandle(object):
         return (self.key == other.key) and (self.variables == other.variables)
 
     def __hash__(self):
-        return hash((self.key, frozenset(self.variables.items())))
+        return hash(self._hashable_repr())
 
 
 class ResourcePool(object):

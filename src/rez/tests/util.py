@@ -5,11 +5,14 @@ from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
 import tempfile
+import threading
+import time
 import shutil
 import os.path
 import os
 import functools
 import sys
+import json
 from contextlib import contextmanager
 
 
@@ -91,6 +94,17 @@ class TestBase(unittest.TestCase):
         # now swap the config back in...
         self.setup_config()
 
+    def get_settings_env(self):
+        """Get an environ dict that applies the current settings.
+
+        This is required for cases where a subproc has to pick up the same
+        config settings that the test case has set.
+        """
+        return dict(
+            ("REZ_%s_JSON" % k.upper(), json.dumps(v))
+            for k, v in self.settings.items()
+        )
+
 
 class TempdirMixin(object):
     """Mixin that adds tmpdir create/delete."""
@@ -101,8 +115,21 @@ class TempdirMixin(object):
     @classmethod
     def tearDownClass(cls):
         if not os.getenv("REZ_KEEP_TMPDIRS"):
+            # The retries are here because there is at least one case in the
+            # tests where a subproc can be writing to files in a tmpdir after
+            # the tests are completed (this is the rez-pkg-cache proc in the
+            # test_package_cache:test_caching_on_resolve test).
+            #
+            retries = 5
+
             if os.path.exists(cls.root):
-                shutil.rmtree(cls.root)
+                for i in range(retries):
+                    try:
+                        shutil.rmtree(cls.root)
+                        break
+                    except:
+                        if i < (retries - 1):
+                            time.sleep(0.2)
 
 
 def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
@@ -215,6 +242,10 @@ def install_dependent():
     return decorator
 
 
+_restore_sys_path_lock = threading.Lock()
+_restore_os_environ_lock = threading.Lock()
+
+
 @contextmanager
 def restore_sys_path():
     """Encapsulate changes to sys.path and return to the original state.
@@ -235,9 +266,13 @@ def restore_sys_path():
     Yields:
         list: The original sys.path.
     """
-    original = sys.path[:]
-    yield sys.path
-    sys.path = original
+    with _restore_sys_path_lock:
+        original = sys.path[:]
+
+        yield sys.path
+
+        del sys.path[:]
+        sys.path.extend(original)
 
 
 @contextmanager
@@ -261,9 +296,13 @@ def restore_os_environ():
     Yields:
         dict: The original os.environ.
     """
-    original = os.environ.copy()
-    yield os.environ
-    os.environ = original
+    with _restore_os_environ_lock:
+        original = os.environ.copy()
+
+        yield os.environ
+
+        os.environ.clear()
+        os.environ.update(original)
 
 
 # Copyright 2013-2016 Allan Johns.

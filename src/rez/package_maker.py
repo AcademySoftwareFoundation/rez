@@ -62,8 +62,10 @@ package_schema = Schema({
     # deliberately not possible to late bind
     Optional('variants'):               [[package_request_schema]],
 
-    Optional('relocatable'):            late_bound(Or(None, bool)),
     Optional('hashed_variants'):        bool,
+
+    Optional('relocatable'):            late_bound(Or(None, bool)),
+    Optional('cachable'):               late_bound(Or(None, bool)),
 
     Optional('uuid'):                   basestring,
     Optional('config'):                 dict,

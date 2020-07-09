@@ -531,6 +531,14 @@ Package authors. Should be in order, starting with the major contributor.
 This is the same as *requires*, except that these dependencies are only included during a build
 (typically invoked using the *rez-build* tool).
 
+### cachable
+*Boolean*
+
+    cachable = True
+
+Determines whether a package can be cached when [package caching](Package-Caching#Overview) is
+enabled. If not provided, this is determined from the global config setting [default_cachable](Configuring-Rez#default_cachable) and related `default_cachable_*` settings.
+
 ### commands
 *Function*
 
@@ -647,7 +655,7 @@ See [here](Package-Commands#pre-test-commands) for more details.
     relocatable = True
 
 Determines whether a package can be copied to another package repository (using the `rez-cp` tool for
-example). If not provided, this is determined from the global config setting [default_relocatable](Configuring-Rez#default_relocatable).
+example). If not provided, this is determined from the global config setting [default_relocatable](Configuring-Rez#default_relocatable) and related `default_relocatable_*` settings.
 
 ### requires
 *List of string*

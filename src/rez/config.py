@@ -167,10 +167,21 @@ class Int(Setting):
                                      % self._env_var_name)
 
 
+class Float(Setting):
+    schema = Schema(float)
+
+    def _parse_env_var(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            raise ConfigurationError("Expected %s to be a float"
+                                     % self._env_var_name)
+
+
 class Bool(Setting):
     schema = Schema(bool)
-    true_words = frozenset(["1", "true", "yes", "y", "on"])
-    false_words = frozenset(["0", "false", "no", "n", "off"])
+    true_words = frozenset(["1", "true", "t", "yes", "y", "on"])
+    false_words = frozenset(["0", "false", "f", "no", "n", "off"])
     all_words = true_words | false_words
 
     def _parse_env_var(self, value):
@@ -185,6 +196,11 @@ class Bool(Setting):
                 % (self._env_var_name, ", ".join(self.all_words)))
 
 
+class OptionalBool(Bool):
+    # need None first, or Bool.schema will coerce None to False
+    schema = Or(None, Bool.schema)
+
+
 class ForceOrBool(Bool):
     FORCE_STR = "force"
 
@@ -195,7 +211,7 @@ class ForceOrBool(Bool):
     def _parse_env_var(self, value):
         if value == self.FORCE_STR:
             return value
-        super(ForceOrBool, self)._parse_env_var(value)
+        return super(ForceOrBool, self)._parse_env_var(value)
 
 
 class Dict(Setting):
@@ -311,8 +327,13 @@ config_schema = Schema({
     "bind_module_path":                             PathList,
     "standard_system_paths":                        PathList,
     "package_definition_build_python_paths":        PathList,
-    "implicit_packages":                            StrList,
     "platform_map":                                 OptionalDict,
+    "default_relocatable_per_package":              OptionalDict,
+    "default_relocatable_per_repository":           OptionalDict,
+    "default_cachable_per_package":                 OptionalDict,
+    "default_cachable_per_repository":              OptionalDict,
+    "default_cachable":                             OptionalBool,
+    "implicit_packages":                            StrList,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
@@ -339,6 +360,7 @@ config_schema = Schema({
     "rez_tools_visibility":                         RezToolsVisibility_,
     "create_executable_script_mode":                ExecutableScriptMode_,
     "suite_alias_prefix_char":                      Char,
+    "cache_packages_path":                          OptionalStr,
     "package_definition_python_path":               OptionalStr,
     "tmpdir":                                       OptionalStr,
     "context_tmpdir":                               OptionalStr,
@@ -378,8 +400,14 @@ config_schema = Schema({
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
+    "shell_error_truncate_cap":                     Int,
+    "package_cache_log_days":                       Int,
+    "package_cache_max_variant_days":               Int,
+    "package_cache_clean_limit":                    Float,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
+    "package_cache_local":                          Bool,
+    "package_cache_same_device":                    Bool,
     "color_enabled":                                ForceOrBool,
     "resolve_caching":                              Bool,
     "cache_package_files":                          Bool,
@@ -406,7 +434,6 @@ config_schema = Schema({
     "quiet":                                        Bool,
     "show_progress":                                Bool,
     "catch_rex_errors":                             Bool,
-    "shell_error_truncate_cap":                     Int,
     "default_relocatable":                          Bool,
     "set_prompt":                                   Bool,
     "prefix_prompt":                                Bool,
@@ -419,6 +446,8 @@ config_schema = Schema({
     "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
     "make_package_temporarily_writable":            Bool,
+    "read_package_cache":                           Bool,
+    "write_package_cache":                          Bool,
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,

@@ -93,6 +93,11 @@ class PackageCopyError(RezError):
     pass
 
 
+class PackageCacheError(RezError):
+    """There was an error related to a package cache."""
+    pass
+
+
 class PackageTestError(RezError):
     """There was a problem running a package test."""
     pass

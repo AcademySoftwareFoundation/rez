@@ -540,6 +540,7 @@ class FileSystemPackageRepository(PackageRepository):
         - /svr/packages/mypkg/1.0.0/package.py[1]
         - /svr/packages/mypkg/1.0.0/package.py[]  ("null" variant)
         - /svr/packages/mypkg/package.py[1]  (unversioned package - rare)
+        - /svr/packages/mypkg/package.py<1.0.0>[1]  ("combined" package type - rare)
         """
         i = uri.rfind('[')
         if i == -1:
@@ -553,13 +554,20 @@ class FileSystemPackageRepository(PackageRepository):
         part2 = uri[i:][1:-1]  # the '1' in '[1]'
 
         # find package
-        parts = part1.split(os.path.sep)
-        if len(parts) == 3:  # versioned package
-            pkg_name, pkg_ver_str = parts[0], parts[1]
-        elif len(parts) == 2:  # unversioned package
-            pkg_name, pkg_ver_str = parts[0], ''
+        if '<' in part1:
+            # "combined" package type, like 'mypkg/package.py<1.0.0>'
+            i = part1.find('<')
+            pkg_name = part1.split(os.path.sep)[0]
+            pkg_ver_str = part1[i + 1:-1]
+
         else:
-            return None
+            parts = part1.split(os.path.sep)
+            if len(parts) == 3:  # versioned package
+                pkg_name, pkg_ver_str = parts[0], parts[1]
+            elif len(parts) == 2:  # unversioned package
+                pkg_name, pkg_ver_str = parts[0], ''
+            else:
+                return None
 
         fam = self.get_package_family(pkg_name)
         if fam is None:
@@ -716,7 +724,7 @@ class FileSystemPackageRepository(PackageRepository):
 
     @contextmanager
     def _lock_package(self, package_name, package_version=None):
-        from rez.vendor.lockfile import LockFile
+        from rez.vendor.lockfile import LockFile, NotLocked
 
         path = self.location
 
@@ -740,8 +748,10 @@ class FileSystemPackageRepository(PackageRepository):
             yield
 
         finally:
-            if lock.is_locked():
+            try:
                 lock.release()
+            except NotLocked:
+                pass
 
     def clear_caches(self):
         super(FileSystemPackageRepository, self).clear_caches()

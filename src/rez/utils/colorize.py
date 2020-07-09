@@ -146,6 +146,15 @@ def alias(str_):
     return _color_level(str_, 'alias')
 
 
+def inactive(str_):
+    """Return the string wrapped with the appropriate styling to display
+    something inactive.
+
+    Choices are grey, grey or grey.
+    """
+    return _color(str_, styles=["DIM"])
+
+
 def notset(str_):
     """ Return the string wrapped with the appropriate escape sequences to
     remove all styling.
@@ -305,7 +314,7 @@ class Printer(object):
 
 
 # Copyright 2013-2016 Allan Johns.
-#   
+#
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation, either
