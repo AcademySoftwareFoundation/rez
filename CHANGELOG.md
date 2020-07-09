@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.61.0 (2020-07-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.61.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.60.1...2.61.0)
+
+**Notes**
+
+Package caching feature added, see [here](https://github.com/nerdvegas/rez/wiki/Package-Caching).
+
+**Merged pull requests:**
+
+- Package cache [\#893](https://github.com/nerdvegas/rez/pull/893) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.60.1 (2020-05-23)
 [Source](https://github.com/nerdvegas/rez/tree/2.60.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.60.0...2.60.1)
 
