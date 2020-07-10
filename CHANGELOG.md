@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.61.1 (2020-07-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.61.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.61.0...2.61.1)
+
+**Merged pull requests:**
+
+- fix for rez occasionally installed into lib64 dir [\#902](https://github.com/nerdvegas/rez/pull/902) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- occasional missing rez cli in rez-env [\#901](https://github.com/nerdvegas/rez/issues/901)
+
 ## 2.61.0 (2020-07-10)
 [Source](https://github.com/nerdvegas/rez/tree/2.61.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.60.1...2.61.0)
 
