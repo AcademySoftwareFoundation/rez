@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.62.0 (2020-07-22)
+[Source](https://github.com/nerdvegas/rez/tree/2.62.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.61.1...2.62.0)
+
+**Merged pull requests:**
+
+- Allow configuration of filesystem lock mechanism [\#903](https://github.com/nerdvegas/rez/pull/903) ([dbr](https://github.com/dbr))
+- make context tracking tolerant of errors [\#911](https://github.com/nerdvegas/rez/pull/911) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- SSL crash related to context tracking [\#910](https://github.com/nerdvegas/rez/issues/910)
+
 ## 2.61.1 (2020-07-10)
 [Source](https://github.com/nerdvegas/rez/tree/2.61.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.61.0...2.61.1)
 
