@@ -18,7 +18,6 @@ from __future__ import absolute_import
 import errno
 import re
 import socket
-import ssl
 
 # Jython does not have this attribute
 try:
@@ -200,6 +199,11 @@ class SSLTransport(_AbstractTransport):
 
     def _setup_transport(self):
         """Wrap the socket in an SSL object."""
+
+        # note: moved here in rez in order to avoid ssl import unless necessary
+        # https://github.com/nerdvegas/rez/issues/910
+        import ssl
+
         if hasattr(self, 'sslopts'):
             self.sock = ssl.wrap_socket(self.sock, **self.sslopts)
         else:

@@ -14,6 +14,7 @@ from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
 from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs
 from rez.utils.memcached import pool_memcached_connections
+from rez.utils.logging_ import print_error
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -1597,8 +1598,6 @@ class ResolvedContext(object):
                 cls.context_tracking_payload = data
 
     def _track_context(self, context_data, action):
-        from rez.utils.amqp import publish_message
-
         # create message payload
         data = {
             "action": action,
@@ -1612,13 +1611,21 @@ class ResolvedContext(object):
         routing_key = (config.context_tracking_amqp["exchange_routing_key"] +
                        '.' + action.upper())
 
-        publish_message(
-            host=config.context_tracking_host,
-            amqp_settings=config.context_tracking_amqp,
-            routing_key=routing_key,
-            data=data,
-            block=False
-        )
+        try:
+            from rez.utils.amqp import publish_message
+
+            publish_message(
+                host=config.context_tracking_host,
+                amqp_settings=config.context_tracking_amqp,
+                routing_key=routing_key,
+                data=data,
+                block=False
+            )
+        except Exception as e:
+            print_error(
+                "Context tracking failed: %s: %s",
+                e.__class__.__name__, e
+            )
 
     @classmethod
     def _read_from_buffer(cls, buf, identifier_str=None):
