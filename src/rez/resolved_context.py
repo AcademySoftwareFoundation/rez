@@ -153,7 +153,7 @@ class ResolvedContext(object):
                  package_filter=None, package_orderers=None, max_fails=-1,
                  add_implicit_packages=True, time_limit=-1, callback=None,
                  package_load_callback=None, buf=None, suppress_passive=False,
-                 print_stats=False, package_caching=True):
+                 print_stats=False, package_caching=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -188,9 +188,10 @@ class ResolvedContext(object):
             suppress_passive (bool): If True, don't print debugging info that
                 has had no effect on the solve. This argument only has an
                 effect if `verbosity` > 2.
-            print_stats (bool): If true, print advanced solver stats at the end.
-            package_caching (bool): If True, apply package caching settings as
-                per the config.
+            print_stats (bool): If True, print advanced solver stats at the end.
+            package_caching (bool|None): If True, apply package caching settings
+                as per the config. If None, enable as determined by config
+                setting 'package_cache_during_build'.
         """
         self.load_path = None
 
@@ -226,6 +227,13 @@ class ResolvedContext(object):
 
         # settings that affect context execution
         self.append_sys_path = True
+
+        if package_caching is None:
+            if building:
+                package_caching = config.package_cache_during_build
+            else:
+                package_caching = True
+
         self.package_caching = package_caching
 
         # patch settings
