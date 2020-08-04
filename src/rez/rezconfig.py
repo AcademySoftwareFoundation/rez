@@ -323,20 +323,20 @@ prune_failed_graph = True
 #
 # As an example, suppose you have a package foo which has two variants:
 #
-#    variants = [
-#        ["bar-3.0", "baz-2.1"],
-#        ["bar-2.8", "burgle-1.0"]
-#    ]
+#     variants = [
+#         ["bar-3.0", "baz-2.1"],
+#         ["bar-2.8", "burgle-1.0"]
+#     ]
 #
 # if you do:
 #
-#    rez-env foo bar
+#     rez-env foo bar
 #
 # ...then, in either variant_select_mode, it will prefer the first variant,
 # ["bar-3.0", "baz-2.1"], because it has a higher version of the first variant
 # requirement (bar). However, if we instead do:
 #
-#    rez-env foo bar burgle
+#     rez-env foo bar burgle
 #
 # ...we get different behavior. version_priority mode will still return
 # ["bar-3.0", "baz-2.1"], because the first requirement's version is higher.
