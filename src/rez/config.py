@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from rez import __version__
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
     convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \
-    deep_update, ModifyList
+    deep_update, ModifyList, DelayLoad
 from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
@@ -660,10 +660,14 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
         self.__dict__, other.__dict__ = other.__dict__, self.__dict__
 
     def _validate_key(self, key, value, key_schema):
+        if isinstance(value, DelayLoad):
+            value = value.get_value()
+
         if type(key_schema) is type and issubclass(key_schema, Setting):
             key_schema = key_schema(self, key)
         elif not isinstance(key_schema, Schema):
             key_schema = Schema(key_schema)
+
         return key_schema.validate(value)
 
     @cached_property
@@ -881,7 +885,8 @@ def _load_config_py(filepath):
         __file__=filepath,
 
         rez_version=__version__,
-        ModifyList=ModifyList
+        ModifyList=ModifyList,
+        DelayLoad=DelayLoad
     )
 
     g = reserved.copy()

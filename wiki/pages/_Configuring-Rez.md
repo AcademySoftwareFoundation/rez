@@ -78,6 +78,16 @@ The *system* object has the following attributes:
 * domain: Domain name, eg 'somestudio.com';
 * rez_version: Version of rez, eg '2.0.1'.
 
+## Delay Load
+
+It is possible to store a config setting in a separate file, which will be loaded
+only when that setting is referenced. This can be useful if you have a large value
+(such as a dict) that you don't want to pollute the main config with. YAML and
+JSON formats are supported:
+
+    # in rezconfig
+    default_relocatable_per_package = DelayLoad('/svr/configs/rez_relocs.yaml')
+
 ## Commandline Tool
 
 You can use the *rez-config* command line tool to see what the current configured settings are.

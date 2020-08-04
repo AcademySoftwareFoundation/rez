@@ -1,6 +1,8 @@
 """
 Utilities related to managing data types.
 """
+import os.path
+
 from rez.vendor.schema.schema import Schema, Optional
 from rez.exceptions import RexError
 from threading import Lock
@@ -36,6 +38,58 @@ class ModifyList(object):
             raise ValueError("Attempted to apply ModifyList to non-list: %r" % v)
 
         return (self.prepend or []) + v + (self.append or [])
+
+
+class DelayLoad(object):
+    """Used in config to delay load a config value from anothe file.
+
+    Supported formats:
+
+        - yaml (*.yaml, *.yml)
+        - json (*.json)
+    """
+    def __init__(self, filepath):
+        self.filepath = os.path.expanduser(filepath)
+
+    def __str__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.filepath)
+
+    def get_value(self):
+        def _yaml(contents):
+            from rez.vendor import yaml
+            return yaml.load(contents, Loader=yaml.FullLoader)
+
+        def _json(contents):
+            import json
+            return json.loads(contents)
+
+        ext = os.path.splitext(self.filepath)[-1]
+        if ext in (".yaml", "yml"):
+            loader = _yaml
+        elif ext == ".json":
+            loader = _json
+        else:
+            raise ValueError(
+                "Error in DelayLoad - unsupported file format %s"
+                % self.filepath
+            )
+
+        try:
+            with open(self.filepath) as f:
+                contents = f.read()
+        except Exception as e:
+            raise ValueError(
+                "Error reading %s: %s: %s"
+                % (self, e.__class__.__name__, str(e))
+            )
+
+        try:
+            return loader(contents)
+        except Exception as e:
+            raise ValueError(
+                "Error loading from %s: %s: %s"
+                % (self, e.__class__.__name__, str(e))
+            )
 
 
 def remove_nones(**kwargs):
