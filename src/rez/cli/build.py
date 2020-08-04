@@ -15,16 +15,11 @@ _package = None
 
 def get_current_developer_package():
     from rez.packages import get_developer_package
-    from rez.exceptions import PackageMetadataError
 
     global _package
 
     if _package is None:
-        try:
-            _package = get_developer_package(os.getcwd())
-        except PackageMetadataError:
-            # no package, or bad package
-            pass
+        _package = get_developer_package(os.getcwd())
 
     return _package
 
@@ -33,6 +28,7 @@ def setup_parser_common(parser):
     """Parser setup common to both rez-build and rez-release."""
     from rez.build_process import get_build_process_types
     from rez.build_system import get_valid_build_systems
+    from rez.exceptions import PackageMetadataError
 
     process_types = get_build_process_types()
     parser.add_argument(
@@ -40,7 +36,11 @@ def setup_parser_common(parser):
         help="the build process to use (default: %(default)s).")
 
     # add build system choices valid for this package
-    package = get_current_developer_package()
+    try:
+        package = get_current_developer_package()
+    except PackageMetadataError:
+        package = None  # no package, or bad package
+
     clss = get_valid_build_systems(os.getcwd(), package=package)
 
     if clss:
