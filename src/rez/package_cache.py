@@ -187,12 +187,12 @@ class PackageCache(object):
                 )
 
             # Package is already on same disk device as package cache. Note that
-            # this check is skipped on Windows + Py<=2.7, as os.stat does not
+            # this check is skipped on Windows + Py<3.4, as os.stat does not
             # support device identification.
             #
             dev_stat_not_supported = (
                 platform.system() == "Windows" and
-                sys.version_info[:2] <= (2, 7)
+                sys.version_info[:2] < (3, 4)
             )
 
             if not config.package_cache_same_device and not dev_stat_not_supported:
