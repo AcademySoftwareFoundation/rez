@@ -1570,7 +1570,8 @@ class ResolvedContext(object):
     def _update_package_cache(self):
         if not self.package_caching or \
                 not config.cache_packages_path or \
-                not config.write_package_cache:
+                not config.write_package_cache or \
+                not self.success:
             return
 
         # see PackageCache.add_variants_async
