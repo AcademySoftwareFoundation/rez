@@ -186,8 +186,16 @@ class PackageCache(object):
                     "Not cached - package is local: %s" % package.uri
                 )
 
-            # package is already on same disk device as package cache
-            if not config.package_cache_same_device:
+            # Package is already on same disk device as package cache. Note that
+            # this check is skipped on Windows + Py<=2.7, as os.stat does not
+            # support device identification.
+            #
+            dev_stat_not_supported = (
+                platform.system() == "Windows" and
+                sys.version_info[:2] <= (2, 7)
+            )
+
+            if not config.package_cache_same_device and not dev_stat_not_supported:
                 st_pkgcache = os.stat(self.path)
                 st_variant = os.stat(variant_root)
                 if st_pkgcache.st_dev == st_variant.st_dev:
