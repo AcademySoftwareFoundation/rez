@@ -1,5 +1,22 @@
 # Change Log
 
+## 2.63.0 (2020-08-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.63.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.62.0...2.63.0)
+
+**Merged pull requests:**
+
+- don't attempt to update pkg cache on failed resolve [\#916](https://github.com/nerdvegas/rez/pull/916) ([nerdvegas](https://github.com/nerdvegas))
+- fix pkg cache fail on windows, py<=2.7 [\#917](https://github.com/nerdvegas/rez/pull/917) ([nerdvegas](https://github.com/nerdvegas))
+- raise metadata error on bad pkg, rather than build-system-notfound [\#918](https://github.com/nerdvegas/rez/pull/918) ([nerdvegas](https://github.com/nerdvegas))
+- default to disable package caching during build [\#920](https://github.com/nerdvegas/rez/pull/920) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-packaage-cache issue on conflicting context [\#905](https://github.com/nerdvegas/rez/issues/905)
+- Package caching does not work on windows due to device not being implemented in py2 on Windows [\#912](https://github.com/nerdvegas/rez/issues/912)
+- Miss-leaded error message while building with invalid package metadata [\#915](https://github.com/nerdvegas/rez/issues/915)
+- add ability to disable pkg caching during build [\#919](https://github.com/nerdvegas/rez/issues/919)
+
 ## 2.62.0 (2020-07-22)
 [Source](https://github.com/nerdvegas/rez/tree/2.62.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.61.1...2.62.0)
 
