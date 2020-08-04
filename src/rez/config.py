@@ -406,6 +406,7 @@ config_schema = Schema({
     "package_cache_clean_limit":                    Float,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
+    "package_cache_during_build":                   Bool,
     "package_cache_local":                          Bool,
     "package_cache_same_device":                    Bool,
     "color_enabled":                                ForceOrBool,
