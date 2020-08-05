@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
+from rez.system import system
 from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
@@ -139,6 +140,35 @@ def _run_command(args):
     stdout, stderr = p.communicate()
     return stdout, stderr, p.returncode
 
+
+def get_implicit_system_variant():
+    """
+    Filter system variant using implicit packages from config.
+    This allows to use implicit packages to control the granularity of the system variant.
+    Rather than having something like [['platform-windows', 'arch-AMD64', 'os-windows-10.0.18362.SP0']]
+    Convert it into somethign like: variants = [['platform-windows']]
+
+    It's all controlled by the implicit packages setting, by default in rezconfig.py it is set to:
+    implicit_packages = [
+    "~platform=={system.platform}",
+     "~arch=={system.arch}",
+     "~os=={system.os}",
+    ]
+    So to reduce it we just need to set it to:
+    implicit_packages = [
+    "~platform=={system.platform}"
+    ]
+    In general it is enough for windows systems, in Linux probably os is also needed, but for instance arch can be dropped since in general
+    nowdays everybody works on amd64 .
+
+    An implicit package looks like: ~platform==windows
+    The system variant string usually looks like: ['platform-windows', 'arch-AMD64', 'os-windows-10.0.18362.SP0']
+    """
+    implicit_packages = [var.split('==')[0][1:] for var in config.implicit_packages]
+    variants = [var for var in system.variant if var.split('-')[0] in implicit_packages]
+
+    return variants
+    pass
 
 # Copyright 2013-2016 Allan Johns.
 #

@@ -286,6 +286,25 @@ package_cache_log_days = 7
 
 # Packages that are implicitly added to all package resolves, unless the
 # --no-implicit flag is used.
+# Implicit packages can also control the granularity used for bind packages variants.
+# Rather than having something like[['platform-windows', 'arch-AMD64', 'os-windows-10.0.18362.SP0']]
+# Convert it into somethign like: variants = [['platform-windows']]
+# So to reduce it we just need to set it to:
+# implicit_packages = [
+# "~platform=={system.platform}"
+# ]
+# In general it is enough for windows systems, in Linux probably os is also needed, but for instance arch can be dropped since in general
+# nowdays everybody works on amd64 .
+# To use implicit packages to control the system variant just use:
+# from rez.bind._utils import get_implicit_system_variant
+# with make_package("mypkg", path, make_root=make_root) as pkg:
+#       pkg.version = version
+#       pkg.tools = ["mypkg"]
+#       pkg.commands = commands
+#       pkg.variants = [get_implicit_system_variant()]
+#
+# The key is to use get_implicit_system_variant()rather than system.variant .
+
 implicit_packages = [
     "~platform=={system.platform}",
     "~arch=={system.arch}",
