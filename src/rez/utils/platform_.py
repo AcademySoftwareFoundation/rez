@@ -512,7 +512,17 @@ class WindowsPlatform(Platform):
         # This implementation is taken from
         # http://stackoverflow.com/questions/6260149/os-symlink-support-in-windows
         if callable(getattr(os, "symlink", None)):
-            os.symlink(source, link_name)
+            # os.symlink(source, link_name)
+            # Is a pain to use symlinks in windows10 from Python 3, it requieres special permissions.
+            # Is much easier to use the mlink interface as used below, so if os.symlinks fails then
+            # fallback to the mlink option:
+            try:
+                os.symlink(source, link_name)
+            except OSError as err:
+                if "Windows-10" in platform.platform():
+                    subprocess.check_output("mklink %s %s" % (link_name, source), shell=True)
+                else:
+                    raise
         elif "Windows-10" in platform.platform():
             # Starting with Windows 10 Insiders build 14972, symlinks can be
             # created without needing to elevate the console as administrator.
