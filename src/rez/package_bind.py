@@ -19,7 +19,10 @@ def get_bind_modules(verbose=False):
         dict: Map of (name, filepath) listing all bind modules.
     """
     builtin_path = os.path.join(module_root_path, "bind")
-    searchpaths = config.bind_module_path + [builtin_path]
+    # Seach paths for bind modules modified in order to allow preference for
+    # user provided modules.
+    # searchpaths = config.bind_module_path + [builtin_path]
+    searchpaths = [builtin_path] + config.bind_module_path
     bindnames = {}
 
     for path in searchpaths:
@@ -29,6 +32,8 @@ def get_bind_modules(verbose=False):
             continue
 
         for filename in os.listdir(path):
+            # if verbose:
+            # print("Searching file %s in path %s..." % (filename, path))
             fpath = os.path.join(path, filename)
             fname, ext = os.path.splitext(filename)
             if os.path.isfile(fpath) and ext == ".py" \

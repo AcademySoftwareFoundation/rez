@@ -49,7 +49,7 @@ def command(opts, parser, extra_arg_groups=None):
         install_path = config.local_packages_path
 
     if opts.list:
-        d = get_bind_modules()
+        d = get_bind_modules(True)
         rows = [["PACKAGE", "BIND MODULE"],
                 ["-------", "-----------"]]
         rows += sorted(d.items())
@@ -96,7 +96,9 @@ def command(opts, parser, extra_arg_groups=None):
     version_range = None if req.range.is_any() else req.range
 
     if opts.search:
-        find_bind_module(name, verbose=True)
+        bindfile = find_bind_module(name, verbose=True)
+        if bindfile is not None:
+            print("Module found in: %s" % bindfile)
     else:
         bind_package(name,
                      path=install_path,
