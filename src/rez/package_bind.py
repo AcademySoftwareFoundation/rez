@@ -5,6 +5,7 @@ from rez import module_root_path
 from rez.util import get_close_pkgs
 from rez.utils.formatting import columnise
 from rez.utils.logging_ import print_error
+from rez.utils.logging_ import print_info
 from rez.config import config
 import argparse
 import os.path
@@ -27,7 +28,7 @@ def get_bind_modules(verbose=False):
 
     for path in searchpaths:
         if verbose:
-            print("searching %s..." % path)
+            print_info("Searching %s..." % path)
         if not os.path.isdir(path):
             continue
 
@@ -171,7 +172,7 @@ def _bind_package(name, path=None, version_range=None, bind_args=None,
     install_path = path or config.local_packages_path
 
     if not quiet:
-        print("creating package '%s' in %s..." % (name, install_path))
+        print("Creating package '%s' in %s..." % (name, install_path))
 
     bindfunc = namespace.get("bind")
     if not bindfunc:
