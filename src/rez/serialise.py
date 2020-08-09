@@ -22,6 +22,7 @@ from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor.enum import Enum
 from rez.vendor.six.six.moves import StringIO
+from rez.vendor.six.six import PY3
 from rez.vendor import yaml
 
 
@@ -63,12 +64,13 @@ def open_file_for_write(filepath, mode=None):
     filepath = os.path.realpath(filepath)
     tmpdir = tmpdir_manager.mkdtemp()
     cache_filepath = os.path.join(tmpdir, os.path.basename(filepath))
+    encoding = {"encoding": "utf-8"} if PY3 else {}
 
     debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
 
     for attempt in range(2):
         try:
-            with atomic_write(filepath, overwrite=True) as f:
+            with atomic_write(filepath, overwrite=True, **encoding) as f:
                 f.write(content)
 
         except WindowsError as e:
@@ -85,7 +87,7 @@ def open_file_for_write(filepath, mode=None):
     if mode is not None:
         os.chmod(filepath, mode)
 
-    with open(cache_filepath, 'w') as f:
+    with open(cache_filepath, 'w', **encoding) as f:
         f.write(content)
 
     file_cache[filepath] = cache_filepath
