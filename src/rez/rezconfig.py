@@ -127,6 +127,43 @@ plugin_path = []
 # rez packages that reference existing software already installed on the system.
 bind_module_path = []
 
+# Set whether or not bind modules should try to install using folders versions.
+# For those bind modules supporting this type of install it can be enabled from rez bind using:
+#  rez bind mytool --use-folders-vers
+# But if want to enable it by default, so all bind modules that supports this type of install will use it,
+# this option needs to be enable.
+# This is useful when using --quickstart to force all bind modules that supports it to try installing isng folders versions.
+# When using this in conjuction with --quickstart, the default root folder will be used. See below.
+#
+# Folders versions assume tools are installed under a root folder in folders with the same name as the tool.
+# Then inside these folders, every subfolder is a version for the tool that needs a package.
+# It can also use the "tool" folder a the only installed version and create a package for it.
+# An example will be: /opt/python/python27 /opt/python/python38.
+# Here the root folde is /opt. then w ehave the "tool" folder and inside every version as different subfolders.
+# The name of the subfolders doesnt matter, every bind  module that supports this mecahnism implements test funcionts to
+# verify a folder is valid and extract a vertsion of the tool installed in that folder.
+#
+# As said before is also support the "tool" folderas the only installed version, so something like /opt/pytthon will be valid if no
+# subfolder with a proper python install is foiund and the "tool" folder is identified as a valid install.
+bind_use_folders_vers = False
+
+# Set default root for installed tools when use folders vers is used. Left blank to use the default /opt .
+# It will override the default /opt folder if no explicit folder is provided.
+bind_use_folders_vers_root = ""
+
+# List of software to install using quickstart.
+# Leave it a an empty list to use the default.
+# The default list is:
+# ["platform",
+#    "arch",
+#    "os",
+#    "python",
+#    "rez",
+#    "rezgui",
+#    "setuptools",
+#    "pip"]
+bind_quickstart_tools = []
+
 
 ###############################################################################
 # Caching

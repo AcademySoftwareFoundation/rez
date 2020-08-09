@@ -40,6 +40,8 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.package_bind import bind_package, find_bind_module, \
         get_bind_modules, _print_package_list
     from rez.utils.formatting import PackageRequest, columnise
+    from rez.utils.logging_ import print_info
+    from rez.utils.logging_ import print_warning
 
     if opts.release:
         install_path = config.release_packages_path
@@ -70,7 +72,7 @@ def command(opts, parser, extra_arg_groups=None):
         variants = []
 
         for name in names:
-            print("Binding %s into %s..." % (name, install_path))
+            print_info("Binding %s into %s..." % (name, install_path))
             variants_ = bind_package(name,
                                      path=install_path,
                                      no_deps=True,
@@ -98,10 +100,12 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.search:
         bindfile = find_bind_module(name, verbose=opts.verbose)
         if bindfile is not None:
-            print("Module found in: %s" % bindfile)
+            print_info("Module found in: %s" % bindfile)
         else:
-            print("Couldn't find module for %s.\nTry verbose mode, -v, to check locations for modules" % name)
+            print_warning("Couldn't find module for %s.\nTry verbose mode, -v, to check locations for modules" % name)
     else:
+        # if hasattr( config, 'bind_use_folders_vers') and config.bind_use_folders_vers:
+            # opts.BIND_ARGS.extend([ "--use-folders-vers" ])
         bind_package(name,
                      path=install_path,
                      version_range=version_range,

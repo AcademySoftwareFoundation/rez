@@ -170,6 +170,97 @@ def get_implicit_system_variant():
     return variants
     pass
 
+
+def get_app_folders_vers(appname, install_root='/opt', test_folder=None):
+    """
+    This is the basis for folders versions bindin mechanism.
+    This assume the next:
+    App versions are installed under the root folder, install_root, inside a folder
+    with  the same name as the app, and then with subfolders for versions.
+    For instance:
+    /opt/houdini/hfs17.5.626
+    /opt/houdini/hfs18.0.312
+
+    /opt/python/python27
+    /opt/python/python37
+
+    And so on ...
+    Or the tool is directly installed in the root folder and the are not subfolders with versions. In this case somethiing like: /opt/cmder
+    will just return the app folder. This is only checked if test_folder is passed.
+
+    The folders version names doesnt matter, they are assume to be diferent versions.
+    Is the responsability of the bind modules to provide fuinctions to test the folder and to work out
+    what version is installed in the folder.
+    test_folder is doing that, is a function that has one parameter, the path, and can check whether or not the folder is a valid folder for the
+    tools.
+    Is provided in the bind module.
+    For instance for a pytthon install, it can check the the folder has a python.exe or python executable.
+    This function just return a list of folders with version of the appname installed on them.
+
+    Args:
+        appname: name of the app to bind
+        install_root: base install location, under it there must be a folder with  the same name as the app and inside the different verions folder.
+        test_folder: function implemented by the user in the bind module for the app. 
+            Just do some test to check whether or not the folder is an install of the tool. Return Tru or False
+
+    Returns:
+        List of folders with versions of the tool.
+    """
+    baseappinstall = os.path.normpath(os.path.join(install_root, appname))
+    if not os.path.exists(baseappinstall) or not os.path.isdir(baseappinstall):
+        raise RezBindError(
+            "appname base install path doesn't exists or is not a directory: %s" % (appname, baseappinstall))
+    # Check if the passed path is already the app folder, so there are not folders with version, this is the actual folder for the app
+    if test_folder is not None and test_folder(baseappinstall):
+        return [baseappinstall]
+    versdirs = [os.path.normpath(os.path.join(baseappinstall, lsfile)) for lsfile in os.listdir(
+        baseappinstall) if os.path.isdir(os.path.join(baseappinstall, lsfile))]
+    # versdirs = os.listdir(baseappinstall)
+    if test_folder is not None:
+        # Call to filter function
+        return [validdir for validdir in versdirs if test_folder(validdir)]
+    else:
+        return versdirs
+
+    pass
+
+
+def use_folders_vers(arg):
+    """
+    Work out wheter or not folders versions package mode should be used.
+    It checks arguments and config settigns.
+    If --use-folders-vers is passed to the bind command or use_folders_vers is set in rez config then this
+    method will be used.
+
+    Arguments:
+        arg: result of opt.use_folders_vers in the bind module. Option passed as an argument.
+
+    Returns:
+        True if use folders versions should be used.
+    """
+    return arg is not None or (hasattr( config, 'bind_use_folders_vers') and config.bind_use_folders_vers)
+
+def get_use_folders_vers_root(arg):
+    """
+    Guess root install forlder for user folders versions mode.
+    arg is the argument passed in the bind command as --use-folders-vers. If passed this will be used, otherwise it will check if
+    there is a default set in rezconfig.py using the option bind_use_folders_vers_root .
+
+    Arguments:
+        arg: result of opt.use_folders_vers in the bind module. Option passed as an argument.
+    """
+    root_install = arg
+    if ( root_install is None or not root_install ) and (hasattr(config, 'bind_use_folders_vers') and config.bind_use_folders_vers):
+        if( hasattr(config, 'bind_use_folders_vers_root') and config.bind_use_folders_vers_root and config.bind_use_folders_vers_root.strip() ):
+            # root folder specified in rezconfig
+            root_install = config.bind_use_folders_vers_root
+        else:
+            # If there neither the path has been passednor it has been spcified in rezconfig then fallback to the defaul /opt .
+            root_install = '/opt'
+
+    return root_install
+    pass
+
 # Copyright 2013-2016 Allan Johns.
 #
 # This library is free software: you can redistribute it and/or

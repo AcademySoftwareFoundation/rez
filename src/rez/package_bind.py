@@ -142,7 +142,7 @@ def bind_package(name, path=None, version_range=None, no_deps=False,
             exc_type = RezBindError
 
     if installed_variants and not quiet:
-        print("The following packages were installed:")
+        print_info("The following packages were installed:")
         print()
         _print_package_list(installed_variants)
 
@@ -172,12 +172,13 @@ def _bind_package(name, path=None, version_range=None, bind_args=None,
     install_path = path or config.local_packages_path
 
     if not quiet:
-        print("Creating package '%s' in %s..." % (name, install_path))
+        print_info("Creating package '%s' in %s..." % (name, install_path))
 
     bindfunc = namespace.get("bind")
     if not bindfunc:
         raise RezBindError("'bind' function missing in %s" % bindfile)
 
+    # Call bind module
     variants = bindfunc(path=install_path,
                         version_range=version_range,
                         opts=bind_opts,
