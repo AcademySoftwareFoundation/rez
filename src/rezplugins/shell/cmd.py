@@ -132,7 +132,7 @@ class CMD(Shell):
             if match:
                 paths.extend(match.group(2).split(os.pathsep))
 
-        cls.syspaths = set([x for x in paths if x])
+        cls.syspaths = [x for x in paths if x]
         return cls.syspaths
 
     def _bind_interactive_rez(self):
