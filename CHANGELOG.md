@@ -1,5 +1,21 @@
 # Change Log
 
+## 2.64.0 (2020-08-11)
+[Source](https://github.com/nerdvegas/rez/tree/2.64.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.63.0...2.64.0)
+
+**Merged pull requests:**
+
+- added DelayLoad config primitive [\#922](https://github.com/nerdvegas/rez/pull/922) ([nerdvegas](https://github.com/nerdvegas))
+- Sort keys in resolved context JSON [\#923](https://github.com/nerdvegas/rez/pull/923) ([dbr](https://github.com/dbr))
+- Respect sys path order when spawning shell on Windows [\#926](https://github.com/nerdvegas/rez/pull/926) ([davidlatwe](https://github.com/davidlatwe))
+- Fix #927, add encoding=utf-8 on file write [\#928](https://github.com/nerdvegas/rez/pull/928) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- add 'delay_load' config primitive [\#921](https://github.com/nerdvegas/rez/issues/921)
+- New spawned shell's `PATH` is random ordered on Windows [\#925](https://github.com/nerdvegas/rez/issues/925)
+- Packages that contains Unicode character failed on install/release [\#927](https://github.com/nerdvegas/rez/issues/927)
+
 ## 2.63.0 (2020-08-04)
 [Source](https://github.com/nerdvegas/rez/tree/2.63.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.62.0...2.63.0)
 
