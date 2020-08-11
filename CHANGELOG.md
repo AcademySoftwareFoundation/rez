@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.65.0 (2020-08-11)
+[Source](https://github.com/nerdvegas/rez/tree/2.65.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.64.0...2.65.0)
+
+**Notes**
+
+This release cleans up the wiki-based doc generation code, and adds a github workflow
+to automatically update the wiki.
+
+**Merged pull requests:**
+
+- [wiki] Move update utils into main repo [\#831](https://github.com/nerdvegas/rez/pull/831) ([j0yu](https://github.com/j0yu))
+
 ## 2.64.0 (2020-08-11)
 [Source](https://github.com/nerdvegas/rez/tree/2.64.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.63.0...2.64.0)
 
