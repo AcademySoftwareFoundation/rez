@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.66.0 (2020-08-11)
+[Source](https://github.com/nerdvegas/rez/tree/2.66.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.65.0...2.66.0)
+
+**Merged pull requests:**
+
+- [docs] Sphinx API hosted on GitHub Pages [\#832](https://github.com/nerdvegas/rez/pull/832) ([j0yu](https://github.com/j0yu))
+
 ## 2.65.0 (2020-08-11)
 [Source](https://github.com/nerdvegas/rez/tree/2.65.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.64.0...2.65.0)
 

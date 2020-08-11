@@ -28,6 +28,7 @@
 
 :information_source: Others:
 
+- [API Reference](https://___GITHUB_USER___.github.io/__REPO_NAME__/)
 - [[Glossary]]
 - [[FAQ]]
 - [[Notes]]

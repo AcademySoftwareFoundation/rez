@@ -24,7 +24,7 @@ PIP_PATH_REGEX = re.compile(r"'([^']+)' which is not on PATH.")
 class CliParser(argparse.ArgumentParser):
     """Parser flags, using global variables as defaults."""
     INIT_DEFAULTS = {
-        "prog": "entrypoint",
+        "prog": "build",
         "description": "Build Sphinx Python API docs",
     }
 
