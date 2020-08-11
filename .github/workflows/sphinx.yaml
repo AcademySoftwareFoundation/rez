@@ -14,36 +14,24 @@ on:
 
 jobs:
   build:
-    name: "HTML Artifact: Py${{matrix.python-version}} ${{matrix.os-version}}"
-    runs-on: ${{ matrix.os-version }}-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version:
-          - 2.7
-          - 3.6
-          - 3.7
-          - 3.8
-        os-version:
-          - 'macOS'
-          - 'ubuntu'
-          - 'windows'
+    name: Build Sphinx Documentation
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v1
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 2.7
 
       - name: Sphinx Build
-        run: python docs/entrypoint.py --no-docker
+        run: python docs/build.py --no-docker
 
       - uses: actions/upload-artifact@master
         with:
-          name: html-docs-${{ matrix.python-version }}-${{ matrix.os-version }}
+          name: html-docs
           path: docs/_build
 
   publish:
@@ -55,7 +43,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@master
         with:
-          name: html-docs-3.7-ubuntu
+          name: html-docs
           path: .
 
       - name: Setup git repository
