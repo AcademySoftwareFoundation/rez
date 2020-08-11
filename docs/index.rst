@@ -1,5 +1,5 @@
 REZ API Reference
-===
+=================
 
 .. toctree::
     :maxdepth: 2
@@ -10,7 +10,7 @@ REZ API Reference
 
 
 Indices and tables
-===
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
