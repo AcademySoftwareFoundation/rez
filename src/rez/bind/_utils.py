@@ -103,11 +103,11 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
 
     stdout, stderr, returncode = _run_command(args)
     if returncode:
-        raise RezBindError("failed to execute %s: %s\n(error code %d)"
+        raise RezBindError("Failed to execute %s: %s\n(error code %d)"
                            % (exepath, stderr, returncode))
 
     stdout = stdout.strip().split('\n')[0].strip()
-    log("extracting version from output: '%s'" % stdout)
+    log("Extracting version from output: '%s'" % stdout)
 
     try:
         strver = stdout.split()[word_index]
@@ -115,10 +115,10 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
         strver = '.'.join(toks[:version_rank])
         version = Version(strver)
     except Exception as e:
-        raise RezBindError("failed to parse version from output '%s': %s"
+        raise RezBindError("Failed to parse version from output '%s': %s"
                            % (stdout, str(e)))
 
-    log("extracted version: '%s'" % str(version))
+    log("Extracted version: '%s'" % str(version))
     return version
 
 
@@ -260,6 +260,32 @@ def get_use_folders_vers_root(arg):
 
     return root_install
     pass
+
+def get_install_path(install_path, pkgtype=None):
+    """
+    Based on command line options, detect when a local or release (--release) path is needed.
+    This is called from the bind module so it can pass the package type and hence use release_package_root
+    if possible.
+    In other words, allows the bind module to work out the release path based on package type, if provided.
+
+    Arguments:
+        opts: command line options passed  to the bind command. Used to detect if --release is used.
+        pkgtype: package type, used to automatically release into designated folder.
+
+    Returns:
+        install path
+    """
+    if install_path == config.release_packages_path:
+        if pkgtype is not None:
+            if hasattr(config, 'release_packages_root') and config.release_packages_root:
+                print("Got root folder config")
+                if hasattr(config, 'release_packages_types') and len(config.release_packages_types) > 0:
+                    print("Got packages types")
+                    if pkgtype in config.release_packages_types:
+                        print("Type in list") 
+                        install_path = os.path.normpath(os.path.join(config.release_packages_root, pkgtype))
+
+    return install_path
 
 # Copyright 2013-2016 Allan Johns.
 #

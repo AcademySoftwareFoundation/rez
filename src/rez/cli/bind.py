@@ -11,6 +11,9 @@ def setup_parser(parser, completions=False):
         "--quickstart", action="store_true",
         help="bind a set of standard packages to get started")
     parser.add_argument(
+        "--apps", action="store_true",
+        help="bind a set of custom apps packages")
+    parser.add_argument(
         "-r", "--release", action="store_true",
         help="install to release path; overrides -i")
     parser.add_argument(
@@ -42,6 +45,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.utils.formatting import PackageRequest, columnise
     from rez.utils.logging_ import print_info
     from rez.utils.logging_ import print_warning
+    from rez.utils.logging_ import print_error
 
     if opts.release:
         install_path = config.release_packages_path
@@ -69,6 +73,10 @@ def command(opts, parser, extra_arg_groups=None):
                  "setuptools",
                  "pip"]
 
+        # Use config option if provided
+        if hasattr(config, 'bind_quickstart_tools') and len(config.bind_quickstart_tools) > 0:
+            names = config.bind_quickstart_tools
+
         variants = []
 
         for name in names:
@@ -81,6 +89,38 @@ def command(opts, parser, extra_arg_groups=None):
 
         if variants:
             print("\nSuccessfully converted the following software found on "
+                  "the current system into Rez packages:")
+            print()
+            _print_package_list(variants)
+
+        print("\nTo bind other software, see what's available using the "
+              "command 'rez-bind --list', then run 'rez-bind <name>'.\n")
+
+        return
+
+    if opts.apps:
+        # note: in dependency order, do not change
+        if not hasattr(config, 'bind_apps_tools'):
+            print_error("Please add bind_apps_tools option wit the list of apps to install to rezconfig.py")
+            return
+        else:
+            if len(config.bind_apps_tools) == 0:
+                print_warning("Apps list in bind_apps_tools config option is empty")
+                return
+        names = config.bind_apps_tools
+
+        variants = []
+
+        for name in names:
+            print_info("Binding %s into %s..." % (name, install_path))
+            variants_ = bind_package(name,
+                                     path=install_path,
+                                     no_deps=True,
+                                     quiet=True)
+            variants.extend(variants_)
+
+        if variants:
+            print("\nSuccessfully converted the following Apps found on "
                   "the current system into Rez packages:")
             print()
             _print_package_list(variants)

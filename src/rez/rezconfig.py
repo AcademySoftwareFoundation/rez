@@ -47,13 +47,6 @@ import os
 
 ### Do not move or delete this comment (__DOC_START__)
 
-# The package search path. Rez uses this to find packages. A package with the
-# same name and version in an earlier path takes precedence.
-packages_path = [
-    "~/packages",           # locally installed pkgs, not yet deployed
-    "~/.rez/packages/int",  # internally developed pkgs, deployed
-    "~/.rez/packages/ext",  # external (3rd party) pkgs, such as houdini, boost
-]
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path = "~/packages"
@@ -61,6 +54,40 @@ local_packages_path = "~/packages"
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
 release_packages_path = "~/.rez/packages/int"
+
+# The base path that Rez will deploy packages to when rez-release is used. For
+# production use, you will probably want to change this to a site-wide location.
+# This works in conjuction with the next option, release_packages_types.
+# If a package has the attribute type, and it exists in the release_packages_types list
+# It will be used to form the final release package path, so package type apps wil be
+# deployed at [release_packages_root]/apps
+# If packages hasnt had type attribute then it will be deployed to the default path set by
+# release_packages_path .
+# This mechanism allows to categorised deployed software easily.
+# Dont forget to add these paths t othe packages_path variable.
+release_packages_root = "~/.rez/packages"
+
+# Allowed packages types used in conjuction with release_packages_root.
+release_packages_types = [
+    "int",
+    "td",
+    "app",
+    "ext",
+    "bundle",
+    "job",
+]
+
+# The package search path. Rez uses this to find packages. A package with the
+# same name and version in an earlier path takes precedence.
+packages_path = [
+    "~/packages",           # locally installed pkgs, not yet deployed
+    "~/.rez/packages/int",  # internally developed pkgs, deployed
+    "~/.rez/packages/ext",  # external (3rd party) pkgs, such as houdini, boost
+]
+# This is a smarter way to set packages_path based on local and release paths settings:
+# packages_path = [os.path.normpath(local_packages_path), os.path.normpath(release_packages_path)]
+# packages_path.extend([os.path.normpath(os.path.join(release_packages_root, type_dir))
+#                       for type_dir in release_packages_types])
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to "/tmp". It
@@ -164,6 +191,17 @@ bind_use_folders_vers_root = ""
 #    "pip"]
 bind_quickstart_tools = []
 
+# Similar to the former option, bind_quickstart_tools, but this allows to have an extra list of
+# apps that are suposed to have custom bind modules  provided by the user wit the bind_module_path
+# option.
+# it is used with the --apps option in the bind command:
+#   rez bind --aps
+# Is a quick way to install custom app, an example could be:
+# ["houdini",
+# "maya",
+# "blender",
+# "nuke"]
+bind_apps_tools = []
 
 ###############################################################################
 # Caching
