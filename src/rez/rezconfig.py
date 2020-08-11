@@ -982,7 +982,7 @@ disable_rez_1_compatibility = False
 ###############################################################################
 
 # Where Rez's own documentation is hosted
-documentation_url = " http://nerdvegas.github.io/rez/"
+documentation_url = "https://github.com/nerdvegas/rez/wiki"
 
 
 ###############################################################################
