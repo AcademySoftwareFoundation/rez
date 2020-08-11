@@ -566,7 +566,8 @@ class ResolvedContext(object):
         if config.rxt_as_yaml:
             content = dump_yaml(doc)
         else:
-            content = json.dumps(doc, indent=4, separators=(",", ": "))
+            content = json.dumps(doc, indent=4, separators=(",", ": "),
+                                 sort_keys=True)
 
         buf.write(content)
 
