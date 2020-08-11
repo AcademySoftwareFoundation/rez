@@ -25,7 +25,6 @@
 - [[Building Packages]]
 - [[Environment Variables]]
 - [[Command Line Tools]]
-- [Python API](https://___GITHUB_USER___.github.io/__REPO_NAME__/) :link:
 
 :information_source: Others:
 
