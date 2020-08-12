@@ -7,7 +7,7 @@ from rez.build_process import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError, PackageTestError
 from rez.utils import with_noop
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_warning, print_info
 from rez.utils.base26 import create_unique_base26_symlink
 from rez.utils.colorize import Printer, warning
 from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
@@ -361,7 +361,17 @@ class LocalBuildProcess(BuildProcessHelper):
         return build_result.get("build_env_script")
 
     def _release_variant(self, variant, release_message=None, **kwargs):
+        from rez.config import config
         release_path = self.package.config.release_packages_path
+        # Support release root option. Release path will be created from the release root path plus the
+        # package type. See rezconfig.py release_packages_root option.
+        if release_path == config.release_packages_path and hasattr( self.package, 'type') :
+            if self.package.type is not None:
+                if hasattr(config, 'release_packages_root') and config.release_packages_root:
+                    if hasattr(config, 'release_packages_types') and len(config.release_packages_types) > 0:
+                        if self.package.type in config.release_packages_types:
+                            release_path = os.path.normpath(os.path.join(config.release_packages_root, self.package.type))
+                            print_info("Released path resolved from root release and bundle type: %s"%release_path)
 
         # test if variant has already been released
         variant_ = variant.install(release_path, dry_run=True)
