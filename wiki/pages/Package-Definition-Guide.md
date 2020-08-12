@@ -676,6 +676,8 @@ covers the range of all python packages starting with 2.6 - for example, "python
 request a package, you are asking rez for any version within this request, although rez will aim to
 give you the latest possible version.
 
+For more details on request syntax, see [here](Basic-Concepts#package-requests).
+
 ### tests
 *Dict*
 
