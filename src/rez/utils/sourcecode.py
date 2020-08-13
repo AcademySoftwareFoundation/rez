@@ -292,9 +292,11 @@ class IncludeModuleManager(object):
         self.modules = {}
 
     def load_module(self, name, package):
+        from hashlib import sha1
         from rez.config import config  # avoiding circular import
         from rez.developer_package import DeveloperPackage
 
+        hash_str = None
         # in rare cases, a @late bound function may get called before the
         # package is built. An example is 'requires' and the other requires-like
         # functions. These need to be evaluated before a build, but it does also
@@ -303,8 +305,6 @@ class IncludeModuleManager(object):
         # copied into package payload) location.
         #
         if isinstance(package, DeveloperPackage):
-            from hashlib import sha1
-
             # load sourcefile from original location
             path = config.package_definition_python_path
             filepath = os.path.join(path, "%s.py" % name)
@@ -312,21 +312,26 @@ class IncludeModuleManager(object):
             if not os.path.exists(filepath):
                 return None
 
-            with open(filepath, "rb") as f:
-                txt = f.read().strip()
-
-            hash_str = sha1(txt).hexdigest()
         else:
             # load sourcefile that's been copied into package install payload
             path = os.path.join(package.base, self.include_modules_subpath)
-            pathname = os.path.join(path, "%s-*.py" % name)
+            pathname = os.path.join(path, "%s.py" % name)
+            hashname = os.path.join(path, "%s-*.py" % name)
 
-            pathnames = glob(pathname)
-            if not pathnames:
-                return None
+            if not os.path.isfile(pathname):
+                # for backward compat
+                hashnames = glob(hashname)
+                if not hashnames:
+                    return None
 
-            filepath = pathnames[0]
-            hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
+                filepath = hashnames[0]
+                hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
+            else:
+                filepath = pathname
+
+        if hash_str is None:
+            with open(filepath, "rb") as f:
+                hash_str = sha1(f.read().strip()).hexdigest()
 
         module = self.modules.get(hash_str)
         if module is not None:
