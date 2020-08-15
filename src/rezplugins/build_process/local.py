@@ -16,6 +16,7 @@ from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.filesystem import TempDirs
 from rez.package_test import PackageTestRunner, PackageTestResults
 
+from hashlib import sha1
 import json
 import shutil
 import os
@@ -296,9 +297,14 @@ class LocalBuildProcess(BuildProcessHelper):
 
             with open(filepath, "rb") as f:
                 txt = f.read().strip()
+            uuid = sha1(txt).hexdigest()
 
             dest_filepath = os.path.join(path, "%s.py" % name)
             shutil.copy(filepath, dest_filepath)  # overwrite if exists
+
+            sha1_filepath = os.path.join(path, "%s.sha1" % name)
+            with open(sha1_filepath, "w") as f:  # overwrite if exists
+                f.write(uuid)
 
     def _rmtree(self, path):
         try:

@@ -296,7 +296,6 @@ class IncludeModuleManager(object):
         from rez.config import config  # avoiding circular import
         from rez.developer_package import DeveloperPackage
 
-        hash_str = None
         # in rare cases, a @late bound function may get called before the
         # package is built. An example is 'requires' and the other requires-like
         # functions. These need to be evaluated before a build, but it does also
@@ -312,26 +311,32 @@ class IncludeModuleManager(object):
             if not os.path.exists(filepath):
                 return None
 
+            with open(filepath, "rb") as f:
+                hash_str = sha1(f.read().strip()).hexdigest()
+
         else:
             # load sourcefile that's been copied into package install payload
             path = os.path.join(package.base, self.include_modules_subpath)
             pathname = os.path.join(path, "%s.py" % name)
-            hashname = os.path.join(path, "%s-*.py" % name)
+            hashname = os.path.join(path, "%s.sha1" % name)
 
-            if not os.path.isfile(pathname):
-                # for backward compat
-                hashnames = glob(hashname)
+            if os.path.isfile(pathname) and os.path.isfile(hashname):
+                with open(hashname, "r") as f:
+                    hash_str = f.readline()
+                filepath = pathname
+
+            else:
+                # Fallback for backward compat
+                pathname = os.path.join(path, "%s-*.py" % name)
+                hashnames = glob(pathname)
                 if not hashnames:
                     return None
 
                 filepath = hashnames[0]
                 hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
-            else:
-                filepath = pathname
-
-        if hash_str is None:
-            with open(filepath, "rb") as f:
-                hash_str = sha1(f.read().strip()).hexdigest()
+                # End, for details of backward compat,
+                # see https://github.com/nerdvegas/rez/issues/934
+                # and https://github.com/nerdvegas/rez/pull/935
 
         module = self.modules.get(hash_str)
         if module is not None:
