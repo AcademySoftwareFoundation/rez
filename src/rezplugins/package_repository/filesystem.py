@@ -1184,7 +1184,8 @@ class FileSystemPackageRepository(PackageRepository):
         # Stop if package is unversioned and config does not allow that
         if (not package_data["version"]
                 and not config.allow_unversioned_packages):
-            raise PackageMetadataError("Unversioned package is not allowed.")
+            raise PackageMetadataError("Unversioned package is not allowed "
+                                       "in current configuration.")
 
         # write out new package definition file
         package_file = ".".join([package_filename, package_extension])
