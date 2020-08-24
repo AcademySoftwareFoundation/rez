@@ -1181,6 +1181,12 @@ class FileSystemPackageRepository(PackageRepository):
         # format version is always set
         package_data["format_version"] = format_version
 
+        # Stop if package is unversioned and config does not allow that
+        if (not package_data["version"]
+                and not config.allow_unversioned_packages):
+            raise PackageMetadataError("Unversioned package is not allowed "
+                                       "in current configuration.")
+
         # write out new package definition file
         package_file = ".".join([package_filename, package_extension])
         filepath = os.path.join(pkg_base_path, package_file)
