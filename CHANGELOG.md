@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.66.1 (2020-08-25)
+[Source](https://github.com/nerdvegas/rez/tree/2.66.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.66.0...2.66.1)
+
+**Merged pull requests:**
+
+- Fix #934, no hash string in include script file name [\#935](https://github.com/nerdvegas/rez/pull/935) ([davidlatwe](https://github.com/davidlatwe))
+- Raise unversioned error when config not allowed [\#938](https://github.com/nerdvegas/rez/pull/938) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- Installed package not including latest module [\#934](https://github.com/nerdvegas/rez/issues/934)
+
 ## 2.66.0 (2020-08-11)
 [Source](https://github.com/nerdvegas/rez/tree/2.66.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.65.0...2.66.0)
 
