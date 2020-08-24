@@ -292,6 +292,7 @@ class IncludeModuleManager(object):
         self.modules = {}
 
     def load_module(self, name, package):
+        from hashlib import sha1
         from rez.config import config  # avoiding circular import
         from rez.developer_package import DeveloperPackage
 
@@ -303,8 +304,6 @@ class IncludeModuleManager(object):
         # copied into package payload) location.
         #
         if isinstance(package, DeveloperPackage):
-            from hashlib import sha1
-
             # load sourcefile from original location
             path = config.package_definition_python_path
             filepath = os.path.join(path, "%s.py" % name)
@@ -313,20 +312,31 @@ class IncludeModuleManager(object):
                 return None
 
             with open(filepath, "rb") as f:
-                txt = f.read().strip()
+                hash_str = sha1(f.read().strip()).hexdigest()
 
-            hash_str = sha1(txt).hexdigest()
         else:
             # load sourcefile that's been copied into package install payload
             path = os.path.join(package.base, self.include_modules_subpath)
-            pathname = os.path.join(path, "%s-*.py" % name)
+            pathname = os.path.join(path, "%s.py" % name)
+            hashname = os.path.join(path, "%s.sha1" % name)
 
-            pathnames = glob(pathname)
-            if not pathnames:
-                return None
+            if os.path.isfile(pathname) and os.path.isfile(hashname):
+                with open(hashname, "r") as f:
+                    hash_str = f.readline()
+                filepath = pathname
 
-            filepath = pathnames[0]
-            hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
+            else:
+                # Fallback for backward compat
+                pathname = os.path.join(path, "%s-*.py" % name)
+                hashnames = glob(pathname)
+                if not hashnames:
+                    return None
+
+                filepath = hashnames[0]
+                hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
+                # End, for details of backward compat,
+                # see https://github.com/nerdvegas/rez/issues/934
+                # and https://github.com/nerdvegas/rez/pull/935
 
         module = self.modules.get(hash_str)
         if module is not None:

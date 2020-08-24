@@ -297,12 +297,14 @@ class LocalBuildProcess(BuildProcessHelper):
 
             with open(filepath, "rb") as f:
                 txt = f.read().strip()
-
             uuid = sha1(txt).hexdigest()
-            dest_filepath = os.path.join(path, "%s-%s.py" % (name, uuid))
 
-            if not os.path.exists(dest_filepath):
-                shutil.copy(filepath, dest_filepath)
+            dest_filepath = os.path.join(path, "%s.py" % name)
+            shutil.copy(filepath, dest_filepath)  # overwrite if exists
+
+            sha1_filepath = os.path.join(path, "%s.sha1" % name)
+            with open(sha1_filepath, "w") as f:  # overwrite if exists
+                f.write(uuid)
 
     def _rmtree(self, path):
         try:
