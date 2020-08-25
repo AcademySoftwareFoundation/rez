@@ -49,7 +49,8 @@ class CMakeBuildSystem(BuildSystem):
         'make': "Unix Makefiles",
         'nmake': "NMake Makefiles",
         'mingw': "MinGW Makefiles",
-        'xcode': "Xcode"
+        'xcode': "Xcode",
+        'ninja': "Ninja",
     }
 
     build_targets = ["Debug", "Release", "RelWithDebInfo"]
@@ -192,6 +193,8 @@ class CMakeBuildSystem(BuildSystem):
                 make_binary = "mingw32-make"
             elif self.cmake_build_system == "nmake":
                 make_binary = "nmake"
+            elif self.cmake_build_system == "ninja":
+                make_binary = "ninja"
             else:
                 make_binary = "make"
 
