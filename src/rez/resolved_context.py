@@ -14,7 +14,7 @@ from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
 from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs
 from rez.utils.memcached import pool_memcached_connections
-from rez.utils.logging_ import print_error
+from rez.utils.logging_ import print_error, print_warning
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -26,7 +26,7 @@ from rez.package_order import PackageOrderList
 from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
-    RezError, _NeverError
+    RezError, _NeverError, PackageCacheError
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
@@ -126,6 +126,8 @@ class ResolvedContext(object):
 
     context_tracking_payload = None
     context_tracking_lock = threading.Lock()
+
+    package_cache_present = True
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
@@ -1568,6 +1570,20 @@ class ResolvedContext(object):
 
         return r
 
+    @classmethod
+    def _get_package_cache(cls):
+        if not cls.package_cache_present:
+            return None
+
+        try:
+            return PackageCache(config.cache_packages_path)
+        except PackageCacheError:
+            print_warning(
+                "Package caching disabled (dir %s does not exist)",
+                config.cache_packages_path
+            )
+            cls.package_cache_present = False
+
     def _update_package_cache(self):
         if not self.package_caching or \
                 not config.cache_packages_path or \
@@ -1579,8 +1595,9 @@ class ResolvedContext(object):
         if not system.is_production_rez_install:
             return
 
-        pkgcache = PackageCache(config.cache_packages_path)
-        pkgcache.add_variants_async(self.resolved_packages)
+        pkgcache = self._get_package_cache()
+        if pkgcache:
+            pkgcache.add_variants_async(self.resolved_packages)
 
     @classmethod
     def _init_context_tracking_payload_base(cls):
@@ -1738,12 +1755,13 @@ class ResolvedContext(object):
         if self.package_caching and \
                 config.cache_packages_path and \
                 config.read_package_cache:
-            pkgcache = PackageCache(config.cache_packages_path)
 
-            for pkg in resolved_pkgs:
-                cached_root = pkgcache.get_cached_root(pkg)
-                if cached_root:
-                    pkg_roots[pkg.name] = cached_root
+            pkgcache = self._get_package_cache()
+            if pkgcache:
+                for pkg in resolved_pkgs:
+                    cached_root = pkgcache.get_cached_root(pkg)
+                    if cached_root:
+                        pkg_roots[pkg.name] = cached_root
 
         # set basic package variables and create per-package bindings
         bindings = {}
