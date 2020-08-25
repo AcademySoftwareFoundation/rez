@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.67.0 (2020-08-25)
+[Source](https://github.com/nerdvegas/rez/tree/2.67.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.66.1...2.67.0)
+
+**Merged pull requests:**
+
+- Ninja support [\#940](https://github.com/nerdvegas/rez/pull/940) ([bareya](https://github.com/bareya))
+- print warning once if pkg cache dir not present [\#942](https://github.com/nerdvegas/rez/pull/942) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- don't raise on missing package cache dir [\#941](https://github.com/nerdvegas/rez/issues/941)
+
 ## 2.66.1 (2020-08-25)
 [Source](https://github.com/nerdvegas/rez/tree/2.66.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.66.0...2.66.1)
 
