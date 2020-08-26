@@ -25,6 +25,7 @@ from __future__ import unicode_literals
 
 import argparse
 from collections import defaultdict
+import errno
 from io import open
 import inspect
 import os
@@ -789,6 +790,14 @@ class UpdateWikiParser(argparse.ArgumentParser):
 
 
 if __name__ == "__main__":
+    # Quick check for "git" and throw meaningful error message
+    try:
+        subprocess.check_call(["git", "--version"])
+    except OSError as error:
+        if error.errno == errno.ENOENT:
+            raise OSError(errno.ENOENT, '"git" needed but not found in PATH')
+        raise
+
     args = UpdateWikiParser().parse_args()
     CLONE_URL = args.url
     GITHUB_REPO = args.repo
