@@ -563,12 +563,15 @@ def make_cli_source_link():
         "(https://github.com/{repo}/blob/{branch}/{path}#L{start}-L{end})"
     )
 
+    lines, start = inspect.getsourcelines(make_cli_markdown)
+    '''
     try:
         # Patch inspect.getsourcefile which is called by inspect.getsourcelines
         inspect.getsourcefile = PATCHED_getsourcefile
         lines, start = inspect.getsourcelines(make_cli_markdown)
     finally:
         inspect.getsourcefile = ORIGINAL_getsourcefile
+    '''
 
     return link.format(
         func=make_cli_markdown,
