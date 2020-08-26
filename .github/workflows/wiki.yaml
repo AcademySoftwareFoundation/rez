@@ -39,6 +39,7 @@ jobs:
           python wiki/update-wiki.py \
             --keep-temp \
             --no-push \
+            --version="$BRANCH" \
             --github-branch="${BRANCH##refs*/}" \
             --wiki-dir="${{ env.TEMP_WIKI_DIR }}" \
             --wiki-url="${{ env.CLONE_URL }}"

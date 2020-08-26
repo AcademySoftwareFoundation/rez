@@ -42,6 +42,7 @@ REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
 TMP_NAME = ".rez-gen-wiki-tmp"  # See also: .gitignore
 TEMP_WIKI_DIR = os.getenv("TEMP_WIKI_DIR", os.path.join(THIS_DIR, TMP_NAME))
+GITHUB_REF = os.getenv("GITHUB_REF")
 GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "nerdvegas/rez")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "master")
 GITHUB_WORKFLOW = os.getenv("GITHUB_WORKFLOW", "Wiki")
@@ -419,8 +420,11 @@ def create_contributors_md(src_path):
         "j0yu": "Joseph Yu",
         "fpiparo": "Fabio Piparo"
     }
-    out = subprocess.check_output(["git", "shortlog", "-sn", "HEAD"], cwd=src_path)
-    out = unicode(out, encoding='utf8')
+    out = subprocess.check_output(
+        ["git", "shortlog", "-sn", "HEAD"],
+        encoding="utf-8",
+        cwd=src_path,
+    )
     contributors = defaultdict(int)
     regex = re.compile(
         r'^\s*(?P<commits>\d+)\s+(?P<author>.+)\s*$',
@@ -729,7 +733,19 @@ class UpdateWikiParser(argparse.ArgumentParser):
         for key, value in self.INIT_DEFAULTS.items():
             kwargs.setdefault(key, value)
         super(UpdateWikiParser, self).__init__(**kwargs)
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            encoding="utf-8",
+        )
 
+        self.add_argument(
+            "--version",
+            default=GITHUB_REF or commit.strip(),
+            help=(
+                "Rez version/commit the wiki is generated from. "
+                "Overrides environment variable GITHUB_REF."
+            )
+        )
         self.add_argument(
             "--no-push",
             action="store_false",
@@ -800,6 +816,7 @@ if __name__ == "__main__":
 
     args = UpdateWikiParser().parse_args()
     CLONE_URL = args.url
+    GITHUB_REF = args.version
     GITHUB_REPO = args.repo
     GITHUB_BRANCH = args.branch
     GITHUB_WORKFLOW = args.workflow
