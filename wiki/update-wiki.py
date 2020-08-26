@@ -42,7 +42,7 @@ REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
 TMP_NAME = ".rez-gen-wiki-tmp"  # See also: .gitignore
 TEMP_WIKI_DIR = os.getenv("TEMP_WIKI_DIR", os.path.join(THIS_DIR, TMP_NAME))
-GITHUB_REF = os.getenv("GITHUB_REF")
+GITHUB_RELEASE = os.getenv("GITHUB_REF", "Unknown")
 GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "nerdvegas/rez")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "master")
 GITHUB_WORKFLOW = os.getenv("GITHUB_WORKFLOW", "Wiki")
@@ -513,6 +513,7 @@ def process_markdown_files():
     do_replace(
         "_Sidebar",
         {
+            "__GITHUB_RELEASE__": GITHUB_RELEASE,
             "__GITHUB_REPO__": GITHUB_REPO,
             "___GITHUB_USER___": user,
             "__REPO_NAME__": repo_name,
@@ -733,16 +734,13 @@ class UpdateWikiParser(argparse.ArgumentParser):
         for key, value in self.INIT_DEFAULTS.items():
             kwargs.setdefault(key, value)
         super(UpdateWikiParser, self).__init__(**kwargs)
-        commit = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
-            encoding="utf-8",
-        )
 
         self.add_argument(
-            "--version",
-            default=GITHUB_REF or commit.strip(),
+            "--github-release",
+            dest="release",
+            default=GITHUB_RELEASE,
             help=(
-                "Rez version/commit the wiki is generated from. "
+                "GitHub release the wiki is generated from. "
                 "Overrides environment variable GITHUB_REF."
             )
         )
@@ -816,7 +814,7 @@ if __name__ == "__main__":
 
     args = UpdateWikiParser().parse_args()
     CLONE_URL = args.url
-    GITHUB_REF = args.version
+    GITHUB_RELEASE = args.release
     GITHUB_REPO = args.repo
     GITHUB_BRANCH = args.branch
     GITHUB_WORKFLOW = args.workflow
