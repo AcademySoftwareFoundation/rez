@@ -36,6 +36,7 @@ import sys
 
 
 ORIGINAL_getsourcefile = inspect.getsourcefile
+ORIGINAL_findsource = inspect.findsource
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
@@ -50,6 +51,39 @@ CLONE_URL = os.getenv(
     "CLONE_URL",
     "git@github.com:{0}.wiki.git".format(GITHUB_REPO)
 )
+
+
+def DEBUG_findsource(object):
+    """From inspect.findsource in Python 3.7.4"""
+    import linecache
+    from inspect import getfile, getmodule, getsourcefile
+
+    file = getsourcefile(object)
+    print("getsourcefile: {} {}".format(bool(file), file))
+    if file:
+        # Invalidate cache if needed.
+        linecache.checkcache(file)
+    else:
+        file = getfile(object)
+        print("getfile: {} {}".format(bool(file), file))
+        # Allow filenames in form of "<something>" to pass through.
+        # `doctest` monkeypatches `linecache` module to enable
+        # inspection, so let `linecache.getlines` to be called.
+        if not (file.startswith('<') and file.endswith('>')):
+            raise OSError('source code not available')
+
+    module = getmodule(object, file)
+    print("getmodule: {} {}".format(bool(module), module))
+    if module:
+        lines = linecache.getlines(file, module.__dict__)
+        print("lines from module dict: {} {}".format(bool(lines), lines))
+    else:
+        lines = linecache.getlines(file)
+        print("lines: {} {}".format(bool(lines), lines))
+    if not lines:
+        raise OSError('could not get source code')
+
+    return ORIGINAL_findsource(object)
 
 
 def PATCHED_getsourcefile(obj):
@@ -563,15 +597,12 @@ def make_cli_source_link():
         "(https://github.com/{repo}/blob/{branch}/{path}#L{start}-L{end})"
     )
 
-    lines, start = inspect.getsourcelines(make_cli_markdown)
-    '''
     try:
         # Patch inspect.getsourcefile which is called by inspect.getsourcelines
-        inspect.getsourcefile = PATCHED_getsourcefile
+        inspect.findsource = DEBUG_findsource
         lines, start = inspect.getsourcelines(make_cli_markdown)
     finally:
-        inspect.getsourcefile = ORIGINAL_getsourcefile
-    '''
+        inspect.getsourcefile = ORIGINAL_findsource
 
     return link.format(
         func=make_cli_markdown,
