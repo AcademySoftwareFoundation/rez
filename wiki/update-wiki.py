@@ -25,6 +25,7 @@ from __future__ import unicode_literals
 
 import argparse
 from collections import defaultdict
+import errno
 from io import open
 import inspect
 import os
@@ -34,13 +35,13 @@ import shutil
 import sys
 
 
-ORIGINAL_getsourcefile = inspect.getsourcefile
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
 TMP_NAME = ".rez-gen-wiki-tmp"  # See also: .gitignore
 TEMP_WIKI_DIR = os.getenv("TEMP_WIKI_DIR", os.path.join(THIS_DIR, TMP_NAME))
+GITHUB_RELEASE = os.getenv("GITHUB_REF", "Unknown")
 GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "nerdvegas/rez")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "master")
 GITHUB_WORKFLOW = os.getenv("GITHUB_WORKFLOW", "Wiki")
@@ -48,15 +49,6 @@ CLONE_URL = os.getenv(
     "CLONE_URL",
     "git@github.com:{0}.wiki.git".format(GITHUB_REPO)
 )
-
-
-def PATCHED_getsourcefile(obj):
-    """Patch to not return None if path from inspect.getfile is not absolute.
-
-    Returns:
-        str: Full path to source code file for an object, else this file path.
-    """
-    return ORIGINAL_getsourcefile(obj) or THIS_FILE
 
 
 ################################################################################
@@ -418,8 +410,11 @@ def create_contributors_md(src_path):
         "j0yu": "Joseph Yu",
         "fpiparo": "Fabio Piparo"
     }
-    out = subprocess.check_output(["git", "shortlog", "-sn", "HEAD"], cwd=src_path)
-    out = unicode(out, encoding='utf8')
+    out = subprocess.check_output(
+        ["git", "shortlog", "-sn", "HEAD"],
+        encoding="utf-8",
+        cwd=src_path,
+    )
     contributors = defaultdict(int)
     regex = re.compile(
         r'^\s*(?P<commits>\d+)\s+(?P<author>.+)\s*$',
@@ -508,6 +503,7 @@ def process_markdown_files():
     do_replace(
         "_Sidebar",
         {
+            "__GITHUB_RELEASE__": GITHUB_RELEASE,
             "__GITHUB_REPO__": GITHUB_REPO,
             "___GITHUB_USER___": user,
             "__REPO_NAME__": repo_name,
@@ -557,13 +553,7 @@ def make_cli_source_link():
         "(https://github.com/{repo}/blob/{branch}/{path}#L{start}-L{end})"
     )
 
-    try:
-        # Patch inspect.getsourcefile which is called by inspect.getsourcelines
-        inspect.getsourcefile = PATCHED_getsourcefile
-        lines, start = inspect.getsourcelines(make_cli_markdown)
-    finally:
-        inspect.getsourcefile = ORIGINAL_getsourcefile
-
+    lines, start = inspect.getsourcelines(make_cli_markdown)
     return link.format(
         func=make_cli_markdown,
         path=os.path.relpath(THIS_FILE, REZ_SOURCE_DIR),
@@ -730,6 +720,15 @@ class UpdateWikiParser(argparse.ArgumentParser):
         super(UpdateWikiParser, self).__init__(**kwargs)
 
         self.add_argument(
+            "--github-release",
+            dest="release",
+            default=GITHUB_RELEASE,
+            help=(
+                "GitHub release the wiki is generated from. "
+                "Overrides environment variable GITHUB_REF."
+            )
+        )
+        self.add_argument(
             "--no-push",
             action="store_false",
             dest="push",
@@ -789,8 +788,17 @@ class UpdateWikiParser(argparse.ArgumentParser):
 
 
 if __name__ == "__main__":
+    # Quick check for "git" and throw meaningful error message
+    try:
+        subprocess.check_call(["git", "--version"])
+    except OSError as error:
+        if error.errno == errno.ENOENT:
+            raise OSError(errno.ENOENT, '"git" needed but not found in PATH')
+        raise
+
     args = UpdateWikiParser().parse_args()
     CLONE_URL = args.url
+    GITHUB_RELEASE = args.release
     GITHUB_REPO = args.repo
     GITHUB_BRANCH = args.branch
     GITHUB_WORKFLOW = args.workflow

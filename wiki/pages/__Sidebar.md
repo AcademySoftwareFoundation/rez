@@ -1,7 +1,4 @@
-[![][wiki-badge]][wiki-actions]
-
-[wiki-badge]: https://github.com/__GITHUB_REPO__/workflows/__WORKFLOW__/badge.svg?branch=__BRANCH__
-[wiki-actions]: https://github.com/__GITHUB_REPO__/actions?query=workflow%3A__WORKFLOW__+branch%3A__BRANCH__
+**Release:** [__GITHUB_RELEASE__][release]
 
 - [[Home]]
 
@@ -47,3 +44,9 @@
 - [[Troubleshooting]]
 
 </details>
+
+[![][wiki-badge]][wiki-actions]
+
+[release]: https://github.com/__GITHUB_REPO__/releases/tag/__GITHUB_RELEASE__
+[wiki-badge]: https://github.com/__GITHUB_REPO__/workflows/__WORKFLOW__/badge.svg?branch=__BRANCH__
+[wiki-actions]: https://github.com/__GITHUB_REPO__/actions?query=workflow%3A__WORKFLOW__+branch%3A__BRANCH__

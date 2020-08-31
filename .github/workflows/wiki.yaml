@@ -1,8 +1,8 @@
 name: Wiki
 on:
+  release:
+    types: [published]
   push:
-    branches:
-      - master
     paths:
       - 'wiki/**'
       - src/rez/rezconfig.py
@@ -21,15 +21,13 @@ jobs:
       TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
         with:
-          python-version: 2.7
+          python-version: 3.7
 
       - name: Build Wiki
+        working-directory: wiki  # Start in correct dir, else inspect fails
         run: |
           git config --global color.ui always
           if [ "${{ github.event_name == 'pull_request' }}" == "true" ]
@@ -39,11 +37,12 @@ jobs:
             BRANCH="${{ github.ref }}"
           fi
 
-          python wiki/update-wiki.py \
+          python update-wiki.py \
             --keep-temp \
             --no-push \
+            --github-release="$BRANCH" \
             --github-branch="${BRANCH##refs*/}" \
-            --wiki-dir="${{ env.TEMP_WIKI_DIR }}" \
+            --wiki-dir="${{ github.workspace }}"/"${{ env.TEMP_WIKI_DIR }}" \
             --wiki-url="${{ env.CLONE_URL }}"
 
       - uses: actions/upload-artifact@v1.0.0
@@ -55,7 +54,7 @@ jobs:
   publish:
     name: Publish to GitHub Wiki
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.event_name == 'release' && github.event.action == 'published'
     needs: build
 
     steps:
