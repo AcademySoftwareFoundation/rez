@@ -21,6 +21,16 @@ jobs:
       TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
 
     steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - name: Dump GitHub event
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github.event) }}
+        run: echo "${{github.event_name}} $GITHUB_CONTEXT"
+
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
