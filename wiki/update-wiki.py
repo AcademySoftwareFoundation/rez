@@ -77,6 +77,8 @@ def DEBUG_findsource(object):
     if module:
         lines = linecache.getlines(file, module.__dict__)
         print("lines from module dict: {} {}".format(bool(lines), lines))
+        lines_ = linecache.getlines(file)
+        print("lines: {} {}".format(bool(lines_), lines_))
     else:
         lines = linecache.getlines(file)
         print("lines: {} {}".format(bool(lines), lines))
