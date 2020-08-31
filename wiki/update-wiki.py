@@ -61,9 +61,8 @@ def DEBUG_findsource(object):
     file = getsourcefile(object)
     print("getsourcefile: {} {}".format(bool(file), file))
     if file:
-        pass
         # Invalidate cache if needed.
-        # linecache.checkcache(file)
+        linecache.checkcache(file)
     else:
         file = getfile(object)
         print("getfile: {} {}".format(bool(file), file))
@@ -75,6 +74,8 @@ def DEBUG_findsource(object):
 
     module = getmodule(object, file)
     print("getmodule: {} {}".format(bool(module), module))
+
+    linecache.lazycache(file, module.__dict__)
     if module:
         lines = linecache.getlines(file, module.__dict__)
         print("lines from module dict: {} {}".format(bool(lines), lines))
