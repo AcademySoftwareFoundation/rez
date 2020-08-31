@@ -58,7 +58,7 @@ def DEBUG_findsource(object):
     import linecache
     from inspect import getfile, getmodule, getsourcefile
 
-    file = getsourcefile(object)
+    file = None  # getsourcefile(object)
     print("getsourcefile: {} {}".format(bool(file), file))
     if file:
         # Invalidate cache if needed.
