@@ -690,7 +690,7 @@ class MarkdownHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
             # Sub commands, format them with links
             if action.nargs is None:
                 help_text = re.sub(
-                    r'^\s+(\w+)(\s+)',
+                    r'^\s+(\S+)(\s+)',
                     r'[\1](#rez-\1)\2| ',
                     help_text
                 )
