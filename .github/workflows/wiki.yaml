@@ -36,12 +36,13 @@ jobs:
             BRANCH="${{ github.ref }}"
           fi
 
+          cd "$(dirname ${{ env.TEMP_WIKI_DIR }})"
           python wiki/update-wiki.py \
             --keep-temp \
             --no-push \
             --github-release="$BRANCH" \
             --github-branch="${BRANCH##refs*/}" \
-            --wiki-dir="${{ env.TEMP_WIKI_DIR }}" \
+            --wiki-dir="$(basename ${{ env.TEMP_WIKI_DIR }})"
             --wiki-url="${{ env.CLONE_URL }}"
 
       - uses: actions/upload-artifact@v1.0.0
