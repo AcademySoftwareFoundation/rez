@@ -1,0 +1,53 @@
+name: Installation
+on: [push]
+
+jobs:
+  linux-vm:
+    name: ${{ matrix.python-version }} - ${{ matrix.method }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - '2.7'
+          - '3.6'
+          - '3.7'
+        method:
+          - 'python ./install.py'
+          - 'pip install --target /opt/rez .'
+        include:
+          - method: 'python ./install.py'
+            exports: 'PATH=${PATH}:/opt/rez/bin/rez'
+          - method: 'pip install --target /opt/rez .'
+            exports: 'PATH=${PATH}:/opt/rez/bin PYTHONPATH=${PYTHONPATH}:/opt/rez'
+
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install
+      run: |
+        ${{ matrix.method }}
+        find /opt/rez/ -maxdepth 2
+
+    - name: rez status
+      run: |
+        export ${{ matrix.exports }}
+        rez status
+
+    - name: rez-pip --install .
+      run: |
+        export ${{ matrix.exports }}
+        rez-pip --install .
+        rez view rez
+
+    - name: Import rez package in Python
+      run: |
+        export ${{ matrix.exports }}
+
+        # Still needed as there's no fallback to use system's python
+        rez bind python
+
+        echo "Checking rez as python package: ==========================================="
+        rez env rez -- python -c 'import rez;print(rez.__file__)'

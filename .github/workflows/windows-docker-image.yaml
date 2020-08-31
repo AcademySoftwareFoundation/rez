@@ -1,0 +1,116 @@
+#
+# Create base docker image and python version specific images for windows.
+# Currently uses hub.docker.com as registry.
+#
+# Requires a DOCKERHUB_TOKEN secret and username/repository to match the github
+# repository. For example: nerdvegas/rez -> User/Repository: nerdvegas
+#
+# Commit to windows-docker-image.yaml or .github/docker/** separately
+# to trigger a image build. This Image will be used in consecutive commits.
+#
+# TODO:
+# - Better way to pass the variables throughout steps
+# - The reason for using docker is that the github supplied containers have
+#   a bloated PATH environment variable that can not be changed:
+#   https://github.community/t5/GitHub-Actions/Windows-image-bloat-in-PATH-disables-cmd-prompt-usage/m-p/36004#M2414
+# - Github offers its own package registry. Pushing to is broken in the BETA
+#   https://github.community/t5/GitHub-Actions/Docker-Push-to-Package-Registry-from-Windows/m-p/36393#M2560
+
+name: Compose Windows Docker Image
+
+on:
+  push:
+    # Will only trigger building a docker image if any of these changed
+    paths:
+      - '.github/docker/rez-win-base/**'
+      - '.github/docker/rez-win-py/**'
+      - '.github/workflows/windows-docker-image.yaml'
+
+jobs:
+
+  # ----------------------------------------------------------------------------
+  # Create base image if necessary
+  #
+  # State depends on .github\docker\rez-win-base\** and this file
+  base:
+    runs-on: windows-2019
+
+    steps:
+      - name: Login to docker repository
+        run: |
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
+
+      # TODO: Represent the conditional build as steps?
+      # https://github.community/t5/GitHub-Actions/Fallback-via-if-failure-without-failing-the-job/m-p/36596#M2636
+      #
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Build docker image if needed
+        run: |
+          ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          $ErrorActionPreference = "Continue"
+          docker manifest inspect ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} | Out-Null
+          $ErrorActionPreference = "Stop"
+          if ($LastExitCode -ne 0) {
+            cd .github\docker\rez-win-base
+            docker build --tag ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} .
+            docker push ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
+          }
+        env:
+          # By using dockers experimental CLI features we don't need to pull an
+          # image to check if it exists.
+          DOCKER_CLI_EXPERIMENTAL: enabled
+
+  # ----------------------------------------------------------------------------
+  # Create python images off base image
+  # Each image will have a single python version installed as defined in the
+  # strategy-matrix.
+  #
+  python:
+    runs-on: windows-2019
+    needs: base
+
+    strategy:
+      matrix:
+        python-version:
+          - '2.7.17'
+          - '3.6.8'
+          - '3.7.5'
+      fail-fast: false
+
+    steps:
+      - name: Login to docker repository
+        run: |
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
+
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Pull base docker image
+        run: |
+          ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          docker pull ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
+          docker tag ${gh_user}/rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION} rez-win-base:${ENV:LAST_DOCKER_BASE_REVISION}
+
+      - name: Build Docker image if needed
+        run: |
+          ${Env:LAST_DOCKER_BASE_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${Env:LAST_DOCKER_PY_REVISION} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${Env:DOCKER_TAG} = "${{ matrix.python-version }}-${ENV:LAST_DOCKER_PY_REVISION}"
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          $ErrorActionPreference = "Continue"
+          docker manifest inspect ${gh_user}/rez-win-py:${ENV:DOCKER_TAG} | Out-Null
+          $ErrorActionPreference = "Stop"
+          if ($LastExitCode -ne 0) {
+            cd .github\docker\rez-win-py
+            docker build --tag ${gh_user}/rez-win-py:${ENV:DOCKER_TAG} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${ENV:LAST_DOCKER_BASE_REVISION} .
+            docker push ${gh_user}/rez-win-py:${ENV:DOCKER_TAG}
+          }
+          $ErrorActionPreference = "Stop"
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
