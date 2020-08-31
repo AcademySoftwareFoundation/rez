@@ -37,7 +37,7 @@ jobs:
           fi
 
           cd "$(dirname ${{ env.TEMP_WIKI_DIR }})"
-          python wiki/update-wiki.py \
+          python "${{ github.workspace }}"/wiki/update-wiki.py \
             --keep-temp \
             --no-push \
             --github-release="$BRANCH" \
