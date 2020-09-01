@@ -91,17 +91,22 @@ class Resolver(object):
         else:
             self.package_filter = package_filter
 
+        self._print = config.debug_printer("resolve_memcache")
+        self.memcached_servers = config.memcached_uri if config.resolve_caching else None
+
+        # solve results
         self.status_ = ResolverStatus.pending
         self.resolved_packages_ = None
         self.failure_description = None
         self.graph_ = None
         self.from_cache = False
-        self.memcached_servers = config.memcached_uri if config.resolve_caching else None
 
         self.solve_time = 0.0  # time spent solving
         self.load_time = 0.0   # time spent loading package resources
 
-        self._print = config.debug_printer("resolve_memcache")
+        # advanced solve results
+        self.solve_stats = None
+        self.touched_packages = None
 
     @pool_memcached_connections
     def solve(self):
@@ -118,6 +123,9 @@ class Resolver(object):
             solver = self._solve()
             solver_dict = self._solver_to_dict(solver)
             self._set_result(solver_dict)
+
+            self.solve_stats = solver.solve_stats
+            self.touched_packages = solver.touched_packages
 
             with log_duration(self._print, "memcache set (resolve) took %s"):
                 self._set_cached_solve(solver_dict)

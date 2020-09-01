@@ -354,6 +354,10 @@ class _PackageEntry(object):
         self.solver = solver
         self.sorted = False
 
+        # creation of package entry means this package is considered in the
+        # solve, so add to list of touched packages
+        solver.touched_packages.add((package.name, str(package.version)))
+
     @property
     def version(self):
         return self.package.version
@@ -1829,6 +1833,7 @@ class Solver(_Common):
         self.solve_begun = None
         self.solve_time = None
         self.load_time = None
+        self.solve_stats = None
 
         # advanced solve metrics
         self.solve_count = 0
@@ -1845,6 +1850,12 @@ class Solver(_Common):
         self.intersection_test_time = [0.0]
         self.reduction_time = [0.0]
         self.reduction_test_time = [0.0]
+
+        # Packages that were touched during the solve. Touched means that the
+        # package version was considered at all, it does not mean the package
+        # was loaded
+        #
+        self.touched_packages = set()
 
         self._init()
 
@@ -1965,6 +1976,7 @@ class Solver(_Common):
 
         self.load_time = package_repo_stats.package_load_time - pt1
         self.solve_time = time.time() - t1
+        self.solve_stats = self.get_solve_stats()
 
         # print stats
         if self.pr.verbosity > 2:
@@ -1977,8 +1989,7 @@ class Solver(_Common):
             data = {"solve_stats": self.solve_stats}
             print(pformat(data), file=(self.buf or sys.stdout))
 
-    @property
-    def solve_stats(self):
+    def get_solve_stats(self):
         extraction_stats = {
             "extraction_time": self.extraction_time[0],
             "num_extractions": self.extractions_count
@@ -2001,6 +2012,7 @@ class Solver(_Common):
         }
 
         global_stats = {
+            "num_touched_packages": len(self.touched_packages),
             "num_solves": self.num_solves,
             "num_fails": self.num_fails,
             "solve_time": self.solve_time,
