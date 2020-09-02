@@ -37,6 +37,31 @@ previous configuration sources (you can also supply a *prepend* argument):
 
     release_hooks = ModifyList(append=["custom_release_notify"])
 
+## Conditionals and platform differences
+
+Platform dependent configurations can be best expressed with the
+`PlatformDependent` factory. For example:
+
+    default_shell = PlatformDependent(
+        {
+            "linux": "bash",
+            "windows": "powershell",
+        },
+        default="zsh"
+    )
+
+Similar factories exist as `OsDependent` and `ArchDependent`, but please note
+that their keys are not respecting the [platform_map](#platform_map).
+A generic conditional with any key can be expressed via:
+
+    default_shell = Conditional(
+        {
+            "Paris": "bash",
+            "Texas": "zsh",
+        },
+        key=os.getenviron["STUDIO_LOCATION"]
+    )
+
 ## Package Overrides
 
 Packages themselves can override configuration settings. To show how this is useful,

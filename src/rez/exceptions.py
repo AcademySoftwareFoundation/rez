@@ -33,6 +33,18 @@ class ConfigurationError(RezError):
     pass
 
 
+class ConditionalConfigurationError(ConfigurationError):
+    """
+    A misconfiguration error due to a missing key in a Conditional.
+    """
+    def __init__(self, missing_key, *args, **kwargs):
+        super(ConditionalConfigurationError, self).__init__(
+            "'{}' not found in Conditional options".format(missing_key),
+            *args,
+            **kwargs
+        )
+
+
 class ResolveError(RezError):
     """A resolve-related error."""
     pass

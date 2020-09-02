@@ -1,12 +1,13 @@
 """
 Utilities related to managing data types.
 """
+from rez.exceptions import ConditionalConfigurationError
 import os.path
 
 from rez.vendor.schema.schema import Schema, Optional
-from rez.exceptions import RexError
-from threading import Lock
 from rez.vendor.six import six
+from inspect import isclass
+from threading import Lock
 
 if six.PY2:
     from collections import MutableMapping
@@ -643,6 +644,92 @@ class LazyAttributeMeta(type):
                 return self._validate_key_impl(key, attr, key_schema)
 
         return cached_property(getter, name=attribute)
+
+
+class Conditional(object):
+    """
+    Factory class to that constructs a value of given options based on a given
+    key.
+    Useful to clearly set conditional values without branches.
+
+    For example:
+        color = Conditional(
+            {
+                "Paris": "bash",
+                "Texas": "zsh",
+            },
+            key=os.getenv("STUDIO_LOCATION"),
+            default="bash"
+        )
+    """
+
+    def __new__(cls, options, key, default=ConditionalConfigurationError):
+        """
+        Returns the option value based on key. If the key does not exist
+        it will raise the given default exception or return the default value.
+
+        Args:
+            options: dict of options with potential values to construct
+            key: key to choose within given options
+            default: value to return or exception to raise when key is not
+                found in options
+
+        Raises: KeyError if no other `default` is specified
+        Returns: option value or default
+
+        """
+        try:
+            return options[key]
+        except KeyError as e:
+            if isclass(default) and issubclass(default, BaseException):
+                raise default(*e.args)
+            return default
+
+
+class PlatformDependent(Conditional):
+    """
+    Specialized Conditional based on platform's name
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        # Mapped platform depends on config so lazy import
+        from rez.utils.platform_ import platform_
+        return Conditional.__new__(cls, options, key=platform_.name,
+                                       default=default)
+
+
+class ArchDependent(Conditional):
+    """
+    Specialized Conditional based on platform's arch
+    """
+    _cache = None
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        # Mapped platform depends on config so lazy import
+        from rez.utils.platform_ import platform_
+        # Do not use platform_mapped properties. This implies that we have to
+        # use our own caching.
+        arch_value = cls._cache if cls._cache else platform_._arch()
+        cls._cache = arch_value
+        return Conditional.__new__(cls, options, key=arch_value,
+                                   default=default)
+
+
+class OsDependent(Conditional):
+    """
+    Specialized Conditional based on platform's os
+    """
+    _cache = None
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        # Mapped platform depends on config so lazy import
+        from rez.utils.platform_ import platform_
+        # Do not use platform_mapped properties. This implies that we have to
+        # use our own caching.
+        os_value = cls._cache if cls._cache else platform_._os()
+        cls._cache = os_value
+        return Conditional.__new__(cls, options, key=os_value,
+                                   default=default)
 
 
 # Copyright 2013-2016 Allan Johns.

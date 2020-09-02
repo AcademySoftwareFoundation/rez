@@ -877,6 +877,7 @@ def _replace_config(other):
 
 @lru_cache()
 def _load_config_py(filepath):
+    from rez.utils.data_utils import Conditional, PlatformDependent, ArchDependent, OsDependent
     reserved = dict(
         # Standard Python module variables
         # Made available from within the module,
@@ -886,7 +887,11 @@ def _load_config_py(filepath):
 
         rez_version=__version__,
         ModifyList=ModifyList,
-        DelayLoad=DelayLoad
+        DelayLoad=DelayLoad,
+        Conditional=Conditional,
+        PlatformDependent=PlatformDependent,
+        ArchDependent=ArchDependent,
+        OsDependent=OsDependent
     )
 
     g = reserved.copy()
