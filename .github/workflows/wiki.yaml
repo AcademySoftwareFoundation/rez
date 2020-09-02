@@ -1,7 +1,5 @@
 name: Wiki
 on:
-  release:
-    types: [published]
   push:
     paths:
       - 'wiki/**'
@@ -54,7 +52,6 @@ jobs:
   publish:
     name: Publish to GitHub Wiki
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published'
     needs: build
 
     steps:
