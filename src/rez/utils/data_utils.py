@@ -1,6 +1,7 @@
 """
 Utilities related to managing data types.
 """
+from collections import Mapping
 from rez.exceptions import ConditionalConfigurationError
 import os.path
 
@@ -737,7 +738,10 @@ class InspectedDependent(Conditional):
         # a global config.
         platform_map = frame.f_locals.get(
             "platform_map",
-            None
+            frame.f_locals.get(
+                "__fallback_platform_map",
+                None
+            )
         )
 
         return base(options, default, platform_map=platform_map)
@@ -763,6 +767,41 @@ class InConfigOsDependent(OsDependent):
     def __new__(cls, options, default=ConditionalConfigurationError):
         return InspectedDependent(OsDependent, currentframe().f_back, options,
                                   default)
+
+
+class HashableDict(Mapping):
+    """
+    Immutable Hashable dict
+
+    Hash is based on key and value.
+    It supports nested dict-like values.
+    It does ignore any order of the items.
+
+    Could be replaced in future with:
+    https://www.python.org/dev/peps/pep-0603/#why-frozenmap-and-not-frozendict
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._d = dict(*args, **kwargs)
+        self._hash = None
+
+        for k, v in self._d.items():
+            if isinstance(v, dict):
+                self._d[k] = HashableDict(v)
+
+    def __iter__(self):
+        return iter(self._d)
+
+    def __len__(self):
+        return len(self._d)
+
+    def __getitem__(self, key):
+        return self._d[key]
+
+    def __hash__(self):
+        return hash(
+            (frozenset(six.iteritems(self._d)), frozenset(six.itervalues(self._d)))
+        )
 
 
 # Copyright 2013-2016 Allan Johns.

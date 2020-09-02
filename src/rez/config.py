@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from rez import __version__
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
     convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \
-    deep_update, ModifyList, DelayLoad
+    deep_update, ModifyList, DelayLoad, HashableDict
 from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
@@ -876,7 +876,7 @@ def _replace_config(other):
 
 
 @lru_cache()
-def _load_config_py(filepath):
+def _load_config_py(filepath, fallback_platform_map):
     from rez.utils.data_utils import Conditional, PlatformDependent, \
         InConfigArchDependent, InConfigOsDependent
     reserved = dict(
@@ -885,6 +885,7 @@ def _load_config_py(filepath):
         # and later excluded from the `Config` class
         __name__=os.path.splitext(os.path.basename(filepath))[0],
         __file__=filepath,
+        __fallback_platform_map=fallback_platform_map,
 
         rez_version=__version__,
         ModifyList=ModifyList,
@@ -892,7 +893,7 @@ def _load_config_py(filepath):
         Conditional=Conditional,
         PlatformDependent=PlatformDependent,
         ArchDependent=InConfigArchDependent,
-        OsDependent=InConfigOsDependent
+        OsDependent=InConfigOsDependent,
     )
 
     g = reserved.copy()
@@ -909,14 +910,15 @@ def _load_config_py(filepath):
     for k, v in g.items():
         if k != '__builtins__' \
                 and not ismodule(v) \
-                and k not in reserved:
+                and k not in reserved \
+                and k != "__fallback_platform_map":
             result[k] = v
 
     return result
 
 
 @lru_cache()
-def _load_config_yaml(filepath):
+def _load_config_yaml(filepath, _):
     with open(filepath) as f:
         content = f.read()
     try:
@@ -948,7 +950,11 @@ def _load_config_from_filepaths(filepaths):
             if not os.path.isfile(filepath_with_ext):
                 continue
 
-            data_ = loader(filepath_with_ext)
+            previous_platform_map = data.get("platform_map", None)
+            if previous_platform_map is not None:
+                previous_platform_map = HashableDict(previous_platform_map)
+
+            data_ = loader(filepath_with_ext, previous_platform_map)
             deep_update(data, data_)
             sourced_filepaths.append(filepath_with_ext)
             break

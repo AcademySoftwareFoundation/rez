@@ -139,6 +139,19 @@ class TestConfig(TestBase):
         self.assertEqual(c.prune_failed_graph, True)
         self.assertEqual(c.warn_all, True)
 
+    def test_conidition_nested(self):
+        conf = os.path.join(self.config_path, "test_conditional.py")
+        conf_dependee = os.path.join(self.config_path, "test_conditional_dependee.py")
+        c = Config([conf, conf_dependee])
+        self.assertEqual(c.dot_image_format, "hello")
+
+    def test_conidition_nested_inbeween(self):
+        conf = os.path.join(self.config_path, "test_conditional.py")
+        conf_middle = os.path.join(self.config_path, "test2.py")
+        conf_dependee = os.path.join(self.config_path, "test_conditional_dependee.py")
+        c = Config([conf, conf_middle, conf_dependee])
+        self.assertEqual(c.dot_image_format, "hello")
+
     def test_1(self):
         """Test just the root config file."""
 
