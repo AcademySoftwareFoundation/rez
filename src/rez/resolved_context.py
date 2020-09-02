@@ -16,7 +16,7 @@ from rez.utils.filesystem import TempDirs
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
 from rez.backport.shutilwhich import which
-from rez.rex import RexExecutor, Python, OutputStyle
+from rez.rex import RexExecutor, Python, OutputStyle, Alias
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez import package_order
@@ -1307,6 +1307,14 @@ class ResolvedContext(object):
 
         if post_actions_callback:
             post_actions_callback(executor)
+
+        if command:
+            # Swap into actual command if it's alias
+            for action in executor.manager.actions:
+                if isinstance(action, Alias):
+                    if command == action.args[0]:
+                        command = action.args[1]
+                        break
 
         executor.env.REZ_SHELL_INIT_TIMESTAMP = str(int(time.time()))
         executor.env.REZ_SHELL_INTERACTIVE = "1" if command is None else "0"
