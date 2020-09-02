@@ -20,6 +20,7 @@
 - [[Contexts]]
 - [[Suites]]
 - [[Building Packages]]
+- [[Package Caching]]
 - [[Environment Variables]]
 - [[Command Line Tools]]
 
