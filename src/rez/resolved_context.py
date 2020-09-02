@@ -1308,7 +1308,7 @@ class ResolvedContext(object):
         if post_actions_callback:
             post_actions_callback(executor)
 
-        if command:
+        if command and self.platform == "windows":
             command = self._reveal_alias(executor, command)
 
         executor.env.REZ_SHELL_INIT_TIMESTAMP = str(int(time.time()))
