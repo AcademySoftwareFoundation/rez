@@ -23,6 +23,7 @@ class CMD(Shell):
     # http://ss64.com/nt/cmd.html
     syspaths = None
     _doskey = None
+    _doskey_alias = None
     expand_env_vars = True
 
     _env_var_regex = re.compile("%([A-Za-z0-9_]+)%")    # %ENVVAR%
@@ -152,6 +153,7 @@ class CMD(Shell):
                     stdin=False, command=None, env=None, quiet=False,
                     pre_command=None, add_rez=True, **Popen_args):
 
+        command = self._reveal_alias(command)
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         shell_command = None
 
@@ -312,6 +314,7 @@ class CMD(Shell):
                 self._doskey = "doskey"
 
         self._addline("%s %s=%s $*" % (self._doskey, key, value))
+        self._alias_map(key, value)
 
     def comment(self, value):
         for line in value.split('\n'):
@@ -351,6 +354,16 @@ class CMD(Shell):
     @classmethod
     def line_terminator(cls):
         return "\r\n"
+
+    def _alias_map(self, key, value):
+        if self._doskey_alias is None:
+            self._doskey_alias = dict()
+        self._doskey_alias[key] = value
+
+    def _reveal_alias(self, command):
+        if self._doskey_alias is None:
+            return command
+        return self._doskey_alias.get(command, command)
 
 
 def register_plugin():

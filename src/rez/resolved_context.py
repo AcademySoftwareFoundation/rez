@@ -16,7 +16,7 @@ from rez.utils.filesystem import TempDirs
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
 from rez.backport.shutilwhich import which
-from rez.rex import RexExecutor, Python, OutputStyle, Alias
+from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez import package_order
@@ -1308,9 +1308,6 @@ class ResolvedContext(object):
         if post_actions_callback:
             post_actions_callback(executor)
 
-        if command and self.platform == "windows":
-            command = self._reveal_alias(executor, command)
-
         executor.env.REZ_SHELL_INIT_TIMESTAMP = str(int(time.time()))
         executor.env.REZ_SHELL_INTERACTIVE = "1" if command is None else "0"
 
@@ -1881,12 +1878,6 @@ class ResolvedContext(object):
         for path in suite_paths:
             tools_path = os.path.join(path, "bin")
             executor.env.PATH.append(tools_path)
-
-    def _reveal_alias(self, executor, command):
-        for action in executor.actions:
-            if isinstance(action, Alias) and command == action.args[0]:
-                return action.args[1]
-        return command
 
 
 # Copyright 2013-2016 Allan Johns.

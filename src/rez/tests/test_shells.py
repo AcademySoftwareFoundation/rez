@@ -396,8 +396,8 @@ class TestShells(TestBase, TempdirMixin):
     def test_alias_command(self):
         """Testing alias can be passed in as command
 
-        This is important for Windows because the doskey.exe isn't executed
-        yet when the alias is being passed.
+        This is important for Windows CMD shell because the doskey.exe isn't
+        executed yet when the alias is being passed.
 
         """
         def _execute_code(func):
