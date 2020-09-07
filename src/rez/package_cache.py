@@ -290,7 +290,12 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            if sys.platform == 'win32':
+                cmd = 'copy'
+            else:
+                cmd = 'cp'
+            p = Popen([cmd, '-r', variant_root, rootpath], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            output, err = p.communicate()
         finally:
             still_copying = False
 
