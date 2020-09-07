@@ -294,7 +294,7 @@ class PackageCache(object):
                 cmd = 'copy'
             else:
                 cmd = 'cp'
-            p = Popen([cmd, '-r', variant_root, rootpath], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            p = subprocess.Popen([cmd, '-r', variant_root, rootpath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, err = p.communicate()
         finally:
             still_copying = False
