@@ -8,6 +8,7 @@ from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.data_utils import cached_property
 from rez.utils.platform_mapped import platform_mapped
+from rez.vendor.distro import distro
 from rez.exceptions import RezSystemError
 from tempfile import gettempdir
 
@@ -267,10 +268,7 @@ class LinuxPlatform(_UnixPlatform):
 
         # last, use python's dist detection. It is known to return incorrect
         # info on some systems though
-        try:
-            distributor_, release_, _ = platform.linux_distribution()
-        except:
-            distributor_, release_, _ = platform.dist()
+        distributor_, release_, _ = distro.linux_distribution()
 
         if distributor_ and not distributor:
             distributor = distributor_
