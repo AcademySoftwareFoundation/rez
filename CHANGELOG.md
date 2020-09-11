@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.67.1 (2020-09-11)
+[Source](https://github.com/nerdvegas/rez/tree/2.67.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.67.0...2.67.1)
+
+**Merged pull requests:**
+
+- made this.root visible to pkg preprocessor [\#953](https://github.com/nerdvegas/rez/pull/953) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- this.root is None in package preprocessor [\#952](https://github.com/nerdvegas/rez/issues/952)
+
 ## 2.67.0 (2020-08-25)
 [Source](https://github.com/nerdvegas/rez/tree/2.67.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.66.1...2.67.0)
 
