@@ -105,12 +105,17 @@ class DeveloperPackage(Package):
 
         package = create_package(name, data, package_cls=cls)
 
+        # set filepath in case preprocessor needs to do something on disk (eg
+        # check the git repo)
+        package.filepath = filepath
+
         # preprocessing
         result = package._get_preprocessed(data)
 
         if result:
             package, data = result
 
+        # set filepath back in case preprocessor changed it
         package.filepath = filepath
 
         # find all includes, this is needed at install time to copy the right
