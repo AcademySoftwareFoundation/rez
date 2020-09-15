@@ -91,13 +91,6 @@ def load_packages():
 
 
 def do_resolves():
-    if os.path.exists(resolves_dir):
-        print("Deleting previous resolves...")
-        for name in os.listdir(resolves_dir):
-            os.remove(os.path.join(resolves_dir, name))
-    else:
-        os.mkdir(resolves_dir)
-
     with open("./source_data/requests.json") as f:
         requests = json.loads(f.read())
 
@@ -164,11 +157,9 @@ def do_resolves():
 
         summaries.append(summary)
 
-        filename = "resolve-%03d-%s.json" % (i + 1, summary["status"])
-        filepath = os.path.join(resolves_dir, filename)
-
-        with open(filepath, 'w') as f:
-            f.write(json.dumps(summary))
+    # store resolve results to file
+    with open(os.path.join(out_dir, "resolves.json"), 'w') as f:
+        f.write(json.dumps(summaries, indent=2))
 
     # calculate, print results and store to file
     total_secs = time.time() - t_start
@@ -215,8 +206,14 @@ def do_resolves():
 
 
 def run_benchmark():
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
+    if os.path.exists(out_dir):
+        print(
+            "Dir specified by --out (%s) must not exist" % out_dir,
+            file=sys.stderr
+        )
+        sys.exit(1)
+
+    os.mkdir(out_dir)
     print("Writing results to %s..." % out_dir)
 
     # extract package repo
@@ -242,18 +239,14 @@ def print_histogram():
     resolve_times = []
     buckets = [0] * n_rows
 
-    if not os.path.exists(resolves_dir):
-        print("Results dir not present", file=sys.stderr)
+    with open(os.path.join(out_dir, "resolves.json")) as f:
+        summaries = json.loads(f.read())
 
-    # load resolve times
-    for name in os.listdir(resolves_dir):
-        with open(os.path.join(resolves_dir, name)) as f:
-            data = json.loads(f.read())
-
-        if "resolve_time" not in data:
+    for summary in summaries:
+        if "resolve_time" not in summary:
             continue
 
-        resolve_times.append(data["resolve_time"])
+        resolve_times.append(summary["resolve_time"])
 
     # place resolve times into buckets
     max_resolve_time = max(resolve_times)
@@ -291,24 +284,28 @@ def print_histogram():
 
 def compare():
     out_dir2 = opts.compare
-    resolves_dir2 = os.path.join(out_dir2, "resolves")
     mismatches = []
 
-    # list resolves that don't match
-    for filename in sorted(os.listdir(resolves_dir)):
-        with open(os.path.join(resolves_dir, filename)) as f:
-            result1 = json.loads(f.read())
-        with open(os.path.join(resolves_dir2, filename)) as f:
-            result2 = json.loads(f.read())
-        if result1 != result2:
-            mismatches.append(filename)
+    with open(os.path.join(out_dir, "resolves.json")) as f:
+        summaries1 = json.loads(f.read())
+    with open(os.path.join(out_dir2, "resolves.json")) as f:
+        summaries2 = json.loads(f.read())
 
-    if mismatches:
-        print(
-            "%d differing resolves:\n%s"
-            % (len(mismatches), '\n'.join(mismatches))
-        )
-        print('')
+    # list resolves that don't match
+    for i, summary1 in enumerate(summaries1):
+        try:
+            summary2 = summaries2[i]
+        except IndexError:
+            continue
+
+        resolve1 = summary1.get("resolved_packages")
+        resolve2 = summary2.get("resolved_packages")
+
+        if resolve1 != resolve2:
+            print(
+                "%s != %s" % (json.dumps(resolve1), json.dumps(resolve2)),
+                file=sys.stderr
+            )
 
     # show delta of summaries (avg solve time etc)
     with open(os.path.join(out_dir, "summary.json")) as f:
@@ -321,6 +318,9 @@ def compare():
         delta = summary2[field] - summary1[field]
         pct = 100.0 * (delta / summary1[field])
         pct_str = "%.2f%%" % pct
+        if not pct_str.startswith('-'):
+            pct_str = '+' + pct_str
+
         delta_summary["%s_delta" % field] = (delta, pct_str)
 
     print(json.dumps(delta_summary, indent=2))
@@ -335,7 +335,6 @@ if __name__ == "__main__":
 
     out_dir = os.path.abspath(opts.out)
     pkg_repo_dir = os.path.join(out_dir, "packages")
-    resolves_dir = os.path.join(out_dir, "resolves")
 
     if opts.histogram:
         print_histogram()

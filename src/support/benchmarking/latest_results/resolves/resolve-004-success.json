@@ -1,1 +1,0 @@
-{"status": "success", "resolved_packages": ["diam/linux/package.py[]", "understatement/x86_64/package.py[]", "aftershave/CentOS-7/package.py[]", "wave/2.7.13/package.py[0]", "chest/0.0.1/package.py[]"], "request": ["~diam==linux", "~understatement==x86_64", "~aftershave==CentOS-7", "chest-0.0.1"], "resolve_time": 0.003312826156616211}
