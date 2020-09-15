@@ -1,0 +1,11 @@
+{
+  "num_success_resolves": 188, 
+  "num_failed_resolves": 1, 
+  "max": 7.215036869049072, 
+  "min": 0.0006380081176757812, 
+  "median": 1.2456347942352295, 
+  "total_run_time": 375.8232638835907, 
+  "num_error_resolves": 0, 
+  "stddev": 2.025383402218734, 
+  "mean": 1.996584897345685
+}

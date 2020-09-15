@@ -15,7 +15,7 @@ change to the solver algorithm), and run it on the existing master also. You
 then compare the results like so:
 
 ```
-]$ rez-python ./benchmark.py --compare ./results ./results_master
+]$ rez-python ./benchmark.py --compare ./results ./other_results
 ```
 
 If your results are objectively better than the previous results (due to a

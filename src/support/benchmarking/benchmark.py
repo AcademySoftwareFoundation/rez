@@ -52,7 +52,7 @@ def parse_args():
         help="Output dir (default: %(default)s)"
     )
     parser.add_argument(
-        "--iterations", type=int, default=3, metavar="N",
+        "--iterations", type=int, default=1, metavar="N",
         help="Run every resolve N times and take the average (default: %(default)s)"
     )
 
@@ -159,12 +159,8 @@ def do_resolves():
 
         summaries.append(summary)
 
-        if "error" in summary:
-            filepath = os.path.join(resolves_dir, "resolve-error-%d.json" % (i + 1))
-        elif "failed" in summary:
-            filepath = os.path.join(resolves_dir, "resolve-fail-%d.json" % (i + 1))
-        else:
-            filepath = os.path.join(resolves_dir, "resolve-%d.json" % (i + 1))
+        filename = "resolve-%03d-%s.json" % (i + 1, summary["status"])
+        filepath = os.path.join(resolves_dir, filename)
 
         with open(filepath, 'w') as f:
             f.write(json.dumps(summary))
