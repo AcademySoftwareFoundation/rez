@@ -55,10 +55,15 @@ def parse_args():
         "--iterations", type=int, default=1, metavar="N",
         help="Run every resolve N times and take the average (default: %(default)s)"
     )
-
     parser.add_argument(
         "--histogram", action="store_true",
         help="Show an ASCII histogram of resolve times (in dir specified with --out)"
+    )
+    parser.add_argument(
+        "--compare", metavar="RESULTS_DIR",
+        help="Compare RESULTS_DIR to results specified via --out. Ie, if "
+        "'mean_delta' is negative, then RESULTS_DIR resolves are faster on "
+        "average than those in --out dir"
     )
 
     return parser.parse_args()
@@ -284,6 +289,43 @@ def print_histogram():
         start_t = end_t
 
 
+def compare():
+    out_dir2 = opts.compare
+    resolves_dir2 = os.path.join(out_dir2, "resolves")
+    mismatches = []
+
+    # list resolves that don't match
+    for filename in sorted(os.listdir(resolves_dir)):
+        with open(os.path.join(resolves_dir, filename)) as f:
+            result1 = json.loads(f.read())
+        with open(os.path.join(resolves_dir2, filename)) as f:
+            result2 = json.loads(f.read())
+        if result1 != result2:
+            mismatches.append(filename)
+
+    if mismatches:
+        print(
+            "%d differing resolves:\n%s"
+            % (len(mismatches), '\n'.join(mismatches))
+        )
+        print('')
+
+    # show delta of summaries (avg solve time etc)
+    with open(os.path.join(out_dir, "summary.json")) as f:
+        summary1 = json.loads(f.read())
+    with open(os.path.join(out_dir2, "summary.json")) as f:
+        summary2 = json.loads(f.read())
+
+    delta_summary = {}
+    for field in ("max", "min", "mean", "median", "stddev"):
+        delta = summary2[field] - summary1[field]
+        pct = 100.0 * (delta / summary1[field])
+        pct_str = "%.2f%%" % pct
+        delta_summary["%s_delta" % field] = (delta, pct_str)
+
+    print(json.dumps(delta_summary, indent=2))
+
+
 if __name__ == "__main__":
     opts = parse_args()
 
@@ -297,5 +339,7 @@ if __name__ == "__main__":
 
     if opts.histogram:
         print_histogram()
+    elif opts.compare:
+        compare()
     else:
         run_benchmark()
