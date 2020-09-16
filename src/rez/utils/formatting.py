@@ -492,7 +492,7 @@ def as_block_string(txt):
 
     lines = []
     for line in txt.split('\n'):
-        line_ = json.dumps(line)
+        line_ = json.dumps(line, ensure_ascii=False)
         line_ = line_[1:-1].rstrip()  # drop double quotes
         lines.append(line_)
 
