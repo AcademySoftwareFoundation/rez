@@ -73,8 +73,8 @@ class Popen(_PopenBase):
         #
         # NOTE: currently no solution for `python3+<3.6`
         #
-        if sys.version_info[:2] >= (3, 6) and "encoding" in kwargs:
-            kwargs['encoding'] = 'utf-8'
+        if sys.version_info[:2] < (3, 6) and "encoding" in kwargs:
+            kwargs.pop("encoding")
 
         super(Popen, self).__init__(args, **kwargs)
 
