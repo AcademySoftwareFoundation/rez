@@ -337,14 +337,14 @@ class PackageRepository(object):
             # always be made from repo.make_resource_handle... for now,
             # at least, error to catch any "incorrect" construction of
             # handles...
-            if resource_handle.variables.get("repository_type") != self.name():
+            repository_type = resource_handle.variables.get("repository_type")
+            if repository_type != self.name():
                 raise ResourceError("repository_type mismatch - requested %r, "
                                     "repository_type is %r"
-                                    % (resource_handle.variables["repository_type"],
-                                       self.name()))
+                                    % (repository_type, self.name()))
 
             location = resource_handle.variables.get("location")
-            if self.name() == "filesystem":
+            if repository_type == "filesystem":
                 location = canonical_path(location)
 
             if location != self.location:
