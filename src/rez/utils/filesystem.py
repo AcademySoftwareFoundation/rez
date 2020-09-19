@@ -23,6 +23,14 @@ from rez.vendor.six import six
 from rez.utils.platform_ import platform_
 
 
+try:
+    unicode  # PY2
+except NameError:
+    unicode = str
+
+Is_Windows = platform.system() == "Windows"
+
+
 class TempDirs(object):
     """Tempdir manager.
 
@@ -210,14 +218,27 @@ def forceful_rmtree(path):
 
     Specifically, non-writable dirs within `path` can cause rmtree to fail. This
     func chmod's to writable to avoid this issue, if possible.
+
+    Also handled:
+        * path length over 259 char (on Windows)
+        * unicode path
+
     """
+    patch = windows_long_path if Is_Windows else lambda _p: _p
+    path = unicode(path)
+
     def _on_error(func, path, exc_info):
         try:
+            path = patch(path)
             parent_path = os.path.dirname(path)
 
             if parent_path != path and not os.access(parent_path, os.W_OK):
                 st = os.stat(parent_path)
                 os.chmod(parent_path, st.st_mode | stat.S_IWUSR)
+            else:
+                st = os.stat(path)
+                os.chmod(path, st.st_mode | stat.S_IWUSR)
+
         except:
             # avoid confusion by ensuring original exception is reraised
             pass
@@ -649,6 +670,21 @@ def walk_up_dirs(path):
         yield current_path
         prev_path = current_path
         current_path = os.path.dirname(prev_path)
+
+
+def windows_long_path(dos_path):
+    """Prefix '\\?\' for path longer than 259 char (Win32API limitation)
+    """
+    path = os.path.abspath(dos_path)
+
+    if path.startswith("\\\\?\\"):
+        pass
+    elif path.startswith("\\\\"):
+        path = "\\\\?\\UNC\\" + path[2:]
+    else:
+        path = "\\\\?\\" + path
+
+    return path
 
 
 # Copyright 2013-2016 Allan Johns.
