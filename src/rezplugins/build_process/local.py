@@ -142,7 +142,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         # create directories (build, install)
         if clean and os.path.exists(variant_build_path):
-            shutil.rmtree(variant_build_path)
+            self._rmtree(variant_build_path)
 
         safe_makedirs(variant_build_path)
 
