@@ -361,9 +361,13 @@ class CMD(Shell):
         self._doskey_alias[key] = value
 
     def _reveal_alias(self, command):
-        if self._doskey_alias is None:
-            return command
-        return self._doskey_alias.get(command, command)
+        command_map = self._doskey_alias or dict()
+
+        for alias in command_map:
+            if command == alias or command.startswith(alias + " "):
+                return command_map[alias] + command[len(alias):]
+
+        return command
 
 
 def register_plugin():
