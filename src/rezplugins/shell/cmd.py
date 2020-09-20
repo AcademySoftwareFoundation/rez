@@ -361,6 +361,18 @@ class CMD(Shell):
         self._doskey_alias[key] = value
 
     def _expand_alias(self, command):
+        """Expand `command` if alias is being presented
+
+        This is important for Windows CMD shell because the doskey.exe isn't
+        executed yet when the alias is being passed in `command`.
+
+        Which means we could not rely on doskey.exe to execute alias in first
+        run.
+
+        So here we lookup alias that were just parsed from package, replace
+        it with full command if matched.
+
+        """
         command_map = self._doskey_alias or dict()
 
         for alias in command_map:
