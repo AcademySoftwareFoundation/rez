@@ -416,6 +416,31 @@ class TestShells(TestBase, TempdirMixin):
 
         _execute_code(_make_alias)
 
+    @per_available_shell()
+    def test_alias_command_with_args(self):
+        """Testing alias can be passed in as command with args
+
+        This is important for Windows CMD shell because the doskey.exe isn't
+        executed yet when the alias is being passed.
+
+        """
+
+        def _execute_code(func):
+            loc = inspect.getsourcelines(func)[0][1:]
+            code = textwrap.dedent('\n'.join(loc))
+            r = self._create_context([])
+            p = r.execute_shell(command='tell "hello"',
+                                actions_callback=lambda e: e.execute_code(code),
+                                stdout=subprocess.PIPE)
+
+            out, _ = p.communicate()
+            self.assertEqual(0, p.returncode)
+
+        def _make_alias():
+            alias('tell', 'echo')
+
+        _execute_code(_make_alias)
+
 
 if __name__ == '__main__':
     unittest.main()
