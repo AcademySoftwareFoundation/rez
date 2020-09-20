@@ -153,7 +153,7 @@ class CMD(Shell):
                     stdin=False, command=None, env=None, quiet=False,
                     pre_command=None, add_rez=True, **Popen_args):
 
-        command = self._reveal_alias(command)
+        command = self._expand_alias(command)
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         shell_command = None
 
@@ -360,7 +360,7 @@ class CMD(Shell):
             self._doskey_alias = dict()
         self._doskey_alias[key] = value
 
-    def _reveal_alias(self, command):
+    def _expand_alias(self, command):
         command_map = self._doskey_alias or dict()
 
         for alias in command_map:
