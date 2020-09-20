@@ -373,11 +373,13 @@ class CMD(Shell):
         it with full command if matched.
 
         """
-        command_map = self._doskey_alias or dict()
+        if command:
+            command_map = self._doskey_alias or dict()
 
-        for alias in command_map:
-            if command == alias or command.startswith(alias + " "):
-                return command_map[alias] + command[len(alias):]
+            for alias in command_map:
+                if command == alias or command.startswith(alias + " "):
+                    command = command_map[alias] + command[len(alias):]
+                    break
 
         return command
 
