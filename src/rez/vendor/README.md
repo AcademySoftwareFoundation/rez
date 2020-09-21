@@ -87,6 +87,17 @@ Note that the latest versions column is just to give us an idea of how far back 
 
 <!-- ######################################################### -->
 <tr><td>
+    distro
+</td><td>
+    1.5.0 (Mar 31, 2020)
+</td><td>
+    1.5.0 (Mar 31, 2020)
+</td><td>
+-
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
     enum
 </td><td>
     ?
