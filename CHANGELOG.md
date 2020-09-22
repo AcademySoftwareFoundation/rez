@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.68.1 (2020-09-22)
+[Source](https://github.com/nerdvegas/rez/tree/2.68.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.0...2.68.1)
+
+**Merged pull requests:**
+
+- Fix repo location false mismatch [\#957](https://github.com/nerdvegas/rez/pull/957) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.68.0 (2020-09-22)
 [Source](https://github.com/nerdvegas/rez/tree/2.68.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.67.1...2.68.0)
 
