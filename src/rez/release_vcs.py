@@ -208,7 +208,7 @@ class ReleaseVCS(object):
             print_debug("Running command: %s" % cmd_str)
 
         p = Popen(nargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                  cwd=self.pkg_root, text=True)
+                  cwd=self.pkg_root, text=True, encoding="utf-8")
         out, err = p.communicate()
 
         if p.returncode:
