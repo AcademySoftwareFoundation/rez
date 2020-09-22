@@ -1,5 +1,23 @@
 # Change Log
 
+## 2.68.0 (2020-09-22)
+[Source](https://github.com/nerdvegas/rez/tree/2.68.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.67.1...2.68.0)
+
+**Backwards Compatibility Issues**
+
+Note that this release changes OS detection on linux. The results _should_ be the same, but if they
+do differ, and you need to retain the same OS name (which you probably will, because you'll have
+packages that depend on the analogous implicit package), then you can use the
+[platform_map](https://github.com/nerdvegas/rez/wiki/Configuring-Rez#platform_map) setting.
+
+**Merged pull requests:**
+
+- Replace platform.linux_distribution by distro [\#954](https://github.com/nerdvegas/rez/pull/954) ([predat](https://github.com/predat))
+
+**Closed issues:**
+
+- rez platform_ broken with python3.8 [\#883](https://github.com/nerdvegas/rez/issues/883)
+
 ## 2.67.1 (2020-09-11)
 [Source](https://github.com/nerdvegas/rez/tree/2.67.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.67.0...2.67.1)
 
