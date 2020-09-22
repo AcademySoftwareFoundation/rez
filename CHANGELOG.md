@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.68.3 (2020-09-22)
+[Source](https://github.com/nerdvegas/rez/tree/2.68.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.2...2.68.3)
+
+**Merged pull requests:**
+
+- fix regression wrt unicode, subprocess [\#961](https://github.com/nerdvegas/rez/pull/961) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.68.2 (2020-09-22)
 [Source](https://github.com/nerdvegas/rez/tree/2.68.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.1...2.68.2)
 
