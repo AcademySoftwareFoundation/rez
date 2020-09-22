@@ -1,6 +1,5 @@
 from rez.utils.resources import ResourcePool, ResourceHandle
 from rez.utils.data_utils import cached_property
-from rez.utils.filesystem import canonical_path
 from rez.plugin_managers import plugin_manager
 from rez.config import config
 from rez.exceptions import ResourceError
@@ -337,20 +336,17 @@ class PackageRepository(object):
             # always be made from repo.make_resource_handle... for now,
             # at least, error to catch any "incorrect" construction of
             # handles...
-            repository_type = resource_handle.variables.get("repository_type")
-            if repository_type != self.name():
+            if resource_handle.variables.get("repository_type") != self.name():
                 raise ResourceError("repository_type mismatch - requested %r, "
                                     "repository_type is %r"
-                                    % (repository_type, self.name()))
+                                    % (resource_handle.variables["repository_type"],
+                                       self.name()))
 
-            location = resource_handle.variables.get("location")
-            if repository_type == "filesystem":
-                location = canonical_path(location)
-
-            if location != self.location:
+            if resource_handle.variables.get("location") != self.location:
                 raise ResourceError("location mismatch - requested %r, "
                                     "repository location is %r "
-                                    % (location, self.location))
+                                    % (resource_handle.variables["location"],
+                                       self.location))
 
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
