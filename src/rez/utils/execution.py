@@ -64,17 +64,18 @@ class Popen(_PopenBase):
         #
         text = kwargs.pop("text", None)
         universal_newlines = kwargs.pop("universal_newlines", None)
+
         if text or universal_newlines:
             kwargs["universal_newlines"] = True
 
-        # fixes py3/cmd.exe UnicodeDecodeError() with some characters.
-        #    UnicodeDecodeError: 'charmap' codec can't decode byte
-        #    0x8d in position 1023172: character maps to <undefined>
-        #
-        # NOTE: currently no solution for `python3+<3.6`
-        #
-        if sys.version_info[:2] >= (3, 6) and "encoding" not in kwargs:
-            kwargs["encoding"] = "utf-8"
+            # fixes py3/cmd.exe UnicodeDecodeError() with some characters.
+            #    UnicodeDecodeError: 'charmap' codec can't decode byte
+            #    0x8d in position 1023172: character maps to <undefined>
+            #
+            # NOTE: currently no solution for `python3+<3.6`
+            #
+            if sys.version_info[:2] >= (3, 6) and "encoding" not in kwargs:
+                kwargs["encoding"] = "utf-8"
 
         super(Popen, self).__init__(args, **kwargs)
 
