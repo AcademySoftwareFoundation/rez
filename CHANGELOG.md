@@ -1,23 +1,13 @@
 # Change Log
 
 ## 2.68.3 (2020-09-22)
-[Source](https://github.com/nerdvegas/rez/tree/2.68.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.2...2.68.3)
+[Source](https://github.com/nerdvegas/rez/tree/2.68.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.0...2.68.3)
 
 **Merged pull requests:**
 
 - fix regression wrt unicode, subprocess [\#961](https://github.com/nerdvegas/rez/pull/961) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.68.2 (2020-09-22)
-[Source](https://github.com/nerdvegas/rez/tree/2.68.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.1...2.68.2)
-
-**Merged pull requests:**
-
 - Fix unicode vcs changelog encode err [\#956](https://github.com/nerdvegas/rez/pull/956) ([davidlatwe](https://github.com/davidlatwe))
-
-## 2.68.1 (2020-09-22)
-[Source](https://github.com/nerdvegas/rez/tree/2.68.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.0...2.68.1)
-
-**Merged pull requests:**
 
 - Fix repo location false mismatch [\#957](https://github.com/nerdvegas/rez/pull/957) ([davidlatwe](https://github.com/davidlatwe))
 
