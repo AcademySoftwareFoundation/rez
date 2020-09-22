@@ -8,7 +8,6 @@ from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.data_utils import cached_property
 from rez.utils.platform_mapped import platform_mapped
-from rez.vendor.distro import distro
 from rez.exceptions import RezSystemError
 from tempfile import gettempdir
 
@@ -183,6 +182,97 @@ class LinuxPlatform(_UnixPlatform):
     name = "linux"
 
     def _os(self):
+        """
+        Note: We cannot replace this with 'distro.linux_distribution' in
+        entirety as unfortunately there are slight differences. Eg our code
+        gives 'Ubuntu-16.04' whereas distro gives 'ubuntu-16.04'.
+        """
+        distributor = None
+        release = None
+
+        def _str(s):
+            if (s.startswith("'") and s.endswith("'")) \
+                    or (s.startswith('"') and s.endswith('"')):
+                return s[1:-1]
+            else:
+                return s
+
+        def _os():
+            if distributor and release:
+                return "%s-%s" % (distributor, release)
+            else:
+                return None
+
+        def _parse(txt, distributor_key, release_key):
+            distributor_ = None
+            release_ = None
+            lines = txt.strip().split('\n')
+            for line in lines:
+                if line.startswith(distributor_key):
+                    s = line[len(distributor_key):].strip()
+                    distributor_ = _str(s)
+                elif line.startswith(release_key):
+                    s = line[len(release_key):].strip()
+                    release_ = _str(s)
+            return distributor_, release_
+
+        # first try parsing the /etc/lsb-release file
+        file = "/etc/lsb-release"
+        if os.path.isfile(file):
+            with open(file) as f:
+                txt = f.read()
+            distributor, release = _parse(txt,
+                                          "DISTRIB_ID=",
+                                          "DISTRIB_RELEASE=")
+            result = _os()
+            if result:
+                return result
+
+        # next, try getting the output of the lsb_release program
+        import subprocess
+
+        p = Popen(
+            ['/usr/bin/env', 'lsb_release', '-a'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        txt = p.communicate()[0]
+
+        if not p.returncode:
+            distributor_, release_ = _parse(txt,
+                                            "Distributor ID:",
+                                            "Release:")
+            if distributor_ and not distributor:
+                distributor = distributor_
+            if release_ and not release:
+                release = release_
+
+            result = _os()
+            if result:
+                return result
+
+        # try to read the /etc/os-release file
+        # this file contains OS specific data on linux
+        # distributions
+        # see https://www.freedesktop.org/software/systemd/man/os-release.html
+        os_release = '/etc/os-release'
+        if os.path.isfile(os_release):
+            with open(os_release, 'r') as f:
+                txt = f.read()
+            distributor_, release_ = _parse(txt,
+                                            "ID=",
+                                            "VERSION_ID=")
+            if distributor_ and not distributor:
+                distributor = distributor_
+            if release_ and not release:
+                release = release_
+
+            result = _os()
+            if result:
+                return result
+
+        # use distro lib
+        from rez.vendor.distro import distro
+
         parts = distro.linux_distribution(full_distribution_name=False)
         if parts[0] == '':
             raise RezSystemError("cannot detect operating system")
