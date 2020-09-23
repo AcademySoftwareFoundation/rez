@@ -107,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 bar.showMessage(txt, min_display_time - milisecs)
 
     def _open_context(self):
-        filepath = QtWidgets.QFileDialog.getOpenFileName(
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Context", filter="Context files (*.rxt)")
         if filepath:
             self.open_context(str(filepath))

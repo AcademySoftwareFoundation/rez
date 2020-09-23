@@ -125,7 +125,7 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
 
     def _save_context_as(self):
         dir_ = os.path.dirname(self.filepath()) if self.filepath() else ""
-        filepath = QtWidgets.QFileDialog.getSaveFileName(
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save Context", dir_, "Context files (*.rxt)")
 
         if filepath:

@@ -244,7 +244,7 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
         self._diff_with_file(filepath)
 
     def _diff_with_other(self):
-        filepath = QtWidgets.QFileDialog.getOpenFileName(
+        filepath, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Context", filter="Context files (*.rxt)")
         if filepath:
             self._diff_with_file(str(filepath))
