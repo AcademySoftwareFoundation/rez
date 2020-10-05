@@ -33,7 +33,7 @@ class CMD(Shell):
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
     def __init__(self):
-        super(CMD, self).__init_()
+        super(CMD, self).__init__()
         self._doskey_aliases = {}
 
     @classmethod
