@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.68.5 (2020-10-06)
+[Source](https://github.com/nerdvegas/rez/tree/2.68.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.4...2.68.5)
+
+**Merged pull requests:**
+
+- Handling build/install directory remove error in build process [\#959](https://github.com/nerdvegas/rez/pull/959) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.68.4 (2020-10-06)
 [Source](https://github.com/nerdvegas/rez/tree/2.68.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.3...2.68.4)
 
