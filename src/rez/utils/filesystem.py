@@ -23,12 +23,7 @@ from rez.vendor.six import six
 from rez.utils.platform_ import platform_
 
 
-try:
-    unicode  # PY2
-except NameError:
-    unicode = str
-
-Is_Windows = platform.system() == "Windows"
+is_windows = platform.system() == "Windows"
 
 
 class TempDirs(object):
@@ -222,22 +217,20 @@ def forceful_rmtree(path):
     Also handled:
         * path length over 259 char (on Windows)
         * unicode path
-
     """
-    patch = windows_long_path if Is_Windows else lambda _p: _p
-    path = unicode(path)
+    if six.PY2:
+        path = unicode(path)
 
     def _on_error(func, path, exc_info):
         try:
-            path = patch(path)
+            if is_windows:
+                path = windows_long_path(path)
+
             parent_path = os.path.dirname(path)
 
-            if parent_path != path and not os.access(parent_path, os.W_OK):
+            if not os.access(parent_path, os.W_OK):
                 st = os.stat(parent_path)
                 os.chmod(parent_path, st.st_mode | stat.S_IWUSR)
-            else:
-                st = os.stat(path)
-                os.chmod(path, st.st_mode | stat.S_IWUSR)
 
         except:
             # avoid confusion by ensuring original exception is reraised
