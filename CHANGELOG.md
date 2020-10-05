@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.68.4 (2020-10-06)
+[Source](https://github.com/nerdvegas/rez/tree/2.68.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.3...2.68.4)
+
+**Merged pull requests:**
+
+- Support rez-env -c <alias> or -- <alias> (Windows CMD shell) [\#948](https://github.com/nerdvegas/rez/pull/948) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- Alias can't be used on the same line as rez-env [\#708](https://github.com/nerdvegas/rez/issues/708)
+
 ## 2.68.3 (2020-09-22)
 [Source](https://github.com/nerdvegas/rez/tree/2.68.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.0...2.68.3)
 

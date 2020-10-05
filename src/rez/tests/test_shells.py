@@ -383,14 +383,46 @@ class TestShells(TestBase, TempdirMixin):
             env.PATH.append("hey")
             alias('alias_test', '"echo test_echo"')
 
-            # We can not run the command from a batch file because the Windows
-            # doskey doesn't support it. From the docs:
-            # "You cannot run a doskey macro from a batch program."
-            # command('alias_test')
-
         # We don't expect any output, the shell should just return with exit
         # code 0.
         _execute_code(_alias_after_path_manipulation)
+
+    @per_available_shell()
+    def test_alias_command(self):
+        """Testing alias can be passed in as command
+
+        This is important for Windows CMD shell because the doskey.exe isn't
+        executed yet when the alias is being passed.
+
+        """
+        def _make_alias(ex):
+            ex.alias('hi', 'echo "hi"')
+
+        r = self._create_context([])
+        p = r.execute_shell(command='hi',
+                            actions_callback=_make_alias,
+                            stdout=subprocess.PIPE)
+
+        out, _ = p.communicate()
+        self.assertEqual(0, p.returncode)
+
+    @per_available_shell()
+    def test_alias_command_with_args(self):
+        """Testing alias can be passed in as command with args
+
+        This is important for Windows CMD shell because the doskey.exe isn't
+        executed yet when the alias is being passed.
+        """
+        def _make_alias(ex):
+            ex.alias('tell', 'echo')
+
+        r = self._create_context([])
+        p = r.execute_shell(command='tell "hello"',
+                            actions_callback=_make_alias,
+                            stdout=subprocess.PIPE)
+
+        out, _ = p.communicate()
+        self.assertEqual(0, p.returncode)
 
 
 if __name__ == '__main__':

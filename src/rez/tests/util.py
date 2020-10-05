@@ -216,7 +216,7 @@ def per_available_shell():
                     if hasattr(e, "args") and e.args:
                         try:
                             args = list(e.args)
-                            args[0] += " (in shell '{}')".format(shell)
+                            args[0] = str(args[0]) + " (in shell '{}')".format(shell)
                             e.args = tuple(args)
                         except:
                             raise e

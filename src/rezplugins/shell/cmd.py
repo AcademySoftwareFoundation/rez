@@ -32,6 +32,10 @@ class CMD(Shell):
     _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])|(\|)')
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
+    def __init__(self):
+        super(CMD, self).__init_()
+        self._doskey_aliases = {}
+
     @classmethod
     def name(cls):
         return 'cmd'
@@ -152,6 +156,7 @@ class CMD(Shell):
                     stdin=False, command=None, env=None, quiet=False,
                     pre_command=None, add_rez=True, **Popen_args):
 
+        command = self._expand_alias(command)
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         shell_command = None
 
@@ -311,6 +316,8 @@ class CMD(Shell):
             except:
                 self._doskey = "doskey"
 
+        self._doskey_aliases[key] = value
+
         self._addline("%s %s=%s $*" % (self._doskey, key, value))
 
     def comment(self, value):
@@ -351,6 +358,24 @@ class CMD(Shell):
     @classmethod
     def line_terminator(cls):
         return "\r\n"
+
+    def _expand_alias(self, command):
+        """Expand `command` if alias is being presented
+
+        This is important for Windows CMD shell because the doskey.exe isn't
+        executed yet when the alias is being passed in `command`. This means we
+        cannot rely on doskey.exe to execute alias in first run. So here we
+        lookup alias that were just parsed from package, replace it with full
+        command if matched.
+        """
+        if command:
+            word = command.split()[0]
+            resolved_alias = self._doskey_aliases.get(word)
+
+            if resolved_alias:
+                command = command.replace(word, resolved_alias, 1)
+
+        return command
 
 
 def register_plugin():
