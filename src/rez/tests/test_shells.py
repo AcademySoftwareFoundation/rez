@@ -383,11 +383,6 @@ class TestShells(TestBase, TempdirMixin):
             env.PATH.append("hey")
             alias('alias_test', '"echo test_echo"')
 
-            # We can not run the command from a batch file because the Windows
-            # doskey doesn't support it. From the docs:
-            # "You cannot run a doskey macro from a batch program."
-            # command('alias_test')
-
         # We don't expect any output, the shell should just return with exit
         # code 0.
         _execute_code(_alias_after_path_manipulation)
@@ -400,21 +395,16 @@ class TestShells(TestBase, TempdirMixin):
         executed yet when the alias is being passed.
 
         """
-        def _execute_code(func):
-            loc = inspect.getsourcelines(func)[0][1:]
-            code = textwrap.dedent('\n'.join(loc))
-            r = self._create_context([])
-            p = r.execute_shell(command='hi',
-                                actions_callback=lambda e: e.execute_code(code),
-                                stdout=subprocess.PIPE)
+        def _make_alias(ex):
+            ex.alias('hi', 'echo "hi"')
 
-            out, _ = p.communicate()
-            self.assertEqual(0, p.returncode)
+        r = self._create_context([])
+        p = r.execute_shell(command='hi',
+                            actions_callback=_make_alias,
+                            stdout=subprocess.PIPE)
 
-        def _make_alias():
-            alias('hi', 'echo "hi"')
-
-        _execute_code(_make_alias)
+        out, _ = p.communicate()
+        self.assertEqual(0, p.returncode)
 
     @per_available_shell()
     def test_alias_command_with_args(self):
@@ -422,24 +412,17 @@ class TestShells(TestBase, TempdirMixin):
 
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
-
         """
+        def _make_alias(ex):
+            ex.alias('tell', 'echo')
 
-        def _execute_code(func):
-            loc = inspect.getsourcelines(func)[0][1:]
-            code = textwrap.dedent('\n'.join(loc))
-            r = self._create_context([])
-            p = r.execute_shell(command='tell "hello"',
-                                actions_callback=lambda e: e.execute_code(code),
-                                stdout=subprocess.PIPE)
+        r = self._create_context([])
+        p = r.execute_shell(command='tell "hello"',
+                            actions_callback=_make_alias,
+                            stdout=subprocess.PIPE)
 
-            out, _ = p.communicate()
-            self.assertEqual(0, p.returncode)
-
-        def _make_alias():
-            alias('tell', 'echo')
-
-        _execute_code(_make_alias)
+        out, _ = p.communicate()
+        self.assertEqual(0, p.returncode)
 
 
 if __name__ == '__main__':

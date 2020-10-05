@@ -23,7 +23,6 @@ class CMD(Shell):
     # http://ss64.com/nt/cmd.html
     syspaths = None
     _doskey = None
-    _doskey_alias = None
     expand_env_vars = True
 
     _env_var_regex = re.compile("%([A-Za-z0-9_]+)%")    # %ENVVAR%
@@ -32,6 +31,10 @@ class CMD(Shell):
     # http://ss64.com/nt/syntax-esc.html
     _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])|(\|)')
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
+
+    def __init__(self):
+        super(CMD, self).__init_()
+        self._doskey_aliases = {}
 
     @classmethod
     def name(cls):
@@ -313,8 +316,9 @@ class CMD(Shell):
             except:
                 self._doskey = "doskey"
 
+        self._doskey_aliases[key] = value
+
         self._addline("%s %s=%s $*" % (self._doskey, key, value))
-        self._alias_map(key, value)
 
     def comment(self, value):
         for line in value.split('\n'):
@@ -355,31 +359,21 @@ class CMD(Shell):
     def line_terminator(cls):
         return "\r\n"
 
-    def _alias_map(self, key, value):
-        if self._doskey_alias is None:
-            self._doskey_alias = dict()
-        self._doskey_alias[key] = value
-
     def _expand_alias(self, command):
         """Expand `command` if alias is being presented
 
         This is important for Windows CMD shell because the doskey.exe isn't
-        executed yet when the alias is being passed in `command`.
-
-        Which means we could not rely on doskey.exe to execute alias in first
-        run.
-
-        So here we lookup alias that were just parsed from package, replace
-        it with full command if matched.
-
+        executed yet when the alias is being passed in `command`. This means we
+        cannot rely on doskey.exe to execute alias in first run. So here we
+        lookup alias that were just parsed from package, replace it with full
+        command if matched.
         """
         if command:
-            command_map = self._doskey_alias or dict()
+            word = command.split()[0]
+            resolved_alias = self._doskey_aliases.get(word)
 
-            for alias in command_map:
-                if command == alias or command.startswith(alias + " "):
-                    command = command_map[alias] + command[len(alias):]
-                    break
+            if resolved_alias:
+                command = command.replace(word, resolved_alias, 1)
 
         return command
 
