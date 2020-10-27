@@ -14,6 +14,7 @@ import os
 
 from rez.build_system import BuildSystem
 from rez.build_process import BuildType
+from rez.utils.execution import create_forwarding_script
 from rez.packages import get_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import PackageMetadataError
