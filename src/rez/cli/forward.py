@@ -15,6 +15,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
+    from rez.utils.platform_ import platform_
     from rez.exceptions import RezSystemError
     from rez.vendor import yaml
     from rez.vendor.yaml.error import YAMLError
@@ -33,8 +34,13 @@ def command(opts, parser, extra_arg_groups=None):
     for arg_group in (extra_arg_groups or []):
         cli_args.extend(arg_group)
 
-    with open(yaml_file) as f:
-        content = f.read()
+    if platform_.name == "windows" and yaml_file.lower().endswith(".cmd"):
+        with open(yaml_file) as f:
+            content = "\n".join(f.readlines()[4:])  # strip batch script
+    else:
+        with open(yaml_file) as f:
+            content = f.read()
+
     try:
         doc = yaml.load(content, Loader=yaml.FullLoader)
     except YAMLError as e:
