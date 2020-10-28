@@ -6,6 +6,7 @@ from rez.tests.util import TestBase, TempdirMixin, \
 from rez.resolved_context import ResolvedContext
 from rez.suite import Suite
 from rez.config import config
+from rez.system import system
 import subprocess
 import unittest
 import uuid
@@ -155,14 +156,14 @@ class TestRezSuites(TestBase, TempdirMixin):
 
         bin_path = os.path.join(suite_path, "bin")
         env = os.environ.copy()
+        # To access _rez_fwd
+        env["PATH"] = os.pathsep.join([system.rez_bin_path, env["PATH"]])
+        # activate suite
         env["PATH"] = os.pathsep.join([bin_path, env["PATH"]])
-        output = subprocess.check_output(["hunny"],
-                                         shell=True,
-                                         env=env,
+
+        output = subprocess.check_output(["hunny"], shell=True, env=env,
                                          universal_newlines=True)
-
-        self.assertEqual(output.strip(), "yum yum")
-
+        self.assertTrue("yum yum" in output)
 
 if __name__ == '__main__':
     unittest.main()

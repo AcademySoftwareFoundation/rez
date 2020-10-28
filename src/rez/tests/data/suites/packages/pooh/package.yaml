@@ -2,4 +2,4 @@ name: pooh
 tools:
 - hunny
 commands: |
-    env.PATH.append("{root}/bin")
+    env.PATH.prepend("{root}/bin")
