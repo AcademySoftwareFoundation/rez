@@ -157,20 +157,10 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
             # TODO: make cross platform
             if (platform_.name == "windows"
                     and current_filepath.lower().endswith(".cmd")):
-                path_seg = []
-
-                if system.rez_bin_path is None:
-                    sys.stderr.write("Rez is not a production install, suite "
-                                     "tool may not work correctly.")
-                else:
-                    path_seg.append(system.rez_bin_path)
-
-                path_seg.append(program)
-
                 # following lines of batch script will be stripped
                 # before yaml.load
                 f.write("@echo off\n")
-                f.write("%s.exe %%~dpnx0\n" % os.path.sep.join(path_seg))
+                f.write("%s.exe %%~dpnx0\n" % program)
                 f.write("goto :eof\n")  # skip YAML body
                 f.write(":: YAML\n")    # comment for human
             else:
