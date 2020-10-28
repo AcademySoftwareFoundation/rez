@@ -1,9 +1,12 @@
 """
 test suites
 """
-from rez.tests.util import TestBase, TempdirMixin
+from rez.tests.util import TestBase, TempdirMixin, \
+    per_available_shell, install_dependent
 from rez.resolved_context import ResolvedContext
 from rez.suite import Suite
+from rez.config import config
+import subprocess
 import unittest
 import uuid
 import os.path
@@ -134,6 +137,31 @@ class TestRezSuites(TestBase, TempdirMixin):
         self.assertEqual(s.get_tool_context("bahbah"), "bah")
 
         self._test_serialization(s)
+
+    @per_available_shell()
+    @install_dependent()
+    def test_executable(self):
+        """Test tool can be executed"""
+        c_pooh = ResolvedContext(["pooh"])
+        s = Suite()
+        s.add_context("pooh", c_pooh)
+
+        expected_tools = set(["hunny"])
+        self.assertEqual(set(s.get_tools().keys()), expected_tools)
+
+        per_shell = config.get("default_shell")
+        suite_path = os.path.join(self.root, "test_suites", per_shell, "pooh")
+        s.save(suite_path)
+
+        bin_path = os.path.join(suite_path, "bin")
+        env = os.environ.copy()
+        env["PATH"] = os.pathsep.join([bin_path, env["PATH"]])
+        output = subprocess.check_output(["hunny"],
+                                         shell=True,
+                                         env=env,
+                                         universal_newlines=True)
+
+        self.assertEqual(output.strip(), "yum yum")
 
 
 if __name__ == '__main__':
