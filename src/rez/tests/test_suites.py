@@ -142,7 +142,20 @@ class TestRezSuites(TestBase, TempdirMixin):
     @per_available_shell()
     @install_dependent()
     def test_executable(self):
-        """Test tool can be executed"""
+        """Test suite tool can be executed
+
+        Testing suite tool can be found and executed in multiple platforms.
+        This test is equivalent to the following commands in shell:
+        ```
+        $ rez-env pooh --output pooh.rxt
+        $ rez-suite --create pooh
+        $ rez-suite --add pooh.rxt --context pooh pooh
+        $ export PATH=$(pwd)/pooh/bin:$PATH
+        $ hunny
+        yum yum
+        ```
+
+        """
         c_pooh = ResolvedContext(["pooh"])
         s = Suite()
         s.add_context("pooh", c_pooh)
@@ -156,7 +169,7 @@ class TestRezSuites(TestBase, TempdirMixin):
 
         bin_path = os.path.join(suite_path, "bin")
         env = os.environ.copy()
-        # To access _rez_fwd
+        # activate rez, to access _rez_fwd
         env["PATH"] = os.pathsep.join([system.rez_bin_path, env["PATH"]])
         # activate suite
         env["PATH"] = os.pathsep.join([bin_path, env["PATH"]])
