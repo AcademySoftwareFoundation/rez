@@ -125,10 +125,12 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
 
     """
     from rez.config import config
-    from rez.system import system
     from rez.utils.platform_ import platform_
     program = program or "python"
     py_script_mode = py_script_mode or config.create_executable_script_mode
+    is_forwarding_script_on_windows = (program == "_rez_fwd"
+                                       and platform_.name == "windows"
+                                       and filepath.lower().endswith(".cmd"))
 
     if callable(body):
         from rez.utils.sourcecode import SourceCode
@@ -155,8 +157,7 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
     for current_filepath in script_filepaths:
         with open(current_filepath, 'w') as f:
             # TODO: make cross platform
-            if (platform_.name == "windows"
-                    and current_filepath.lower().endswith(".cmd")):
+            if is_forwarding_script_on_windows:
                 # following lines of batch script will be stripped
                 # before yaml.load
                 f.write("@echo off\n")
