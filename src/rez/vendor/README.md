@@ -159,12 +159,15 @@ Note that the latest versions column is just to give us an idea of how far back 
 <tr><td>
     pydot
 </td><td>
-    1.4.1 (Dec 12, 2018)
+    1.4.2.dev0 (Oct 28, 2020)
 </td><td>
-    1.4.1 (Dec 12, 2018)
+    1.4.2.dev0 (Oct 28, 2020)
 </td><td>
-    Updated (July 2019) in order to update pyparsing lib which in turn is
-    required by the packaging library. Updated (Aug 2019) for py3.
+    
+* Updated (July 2019) in order to update pyparsing lib which in turn is
+required by the packaging library. Updated (Aug 2019) for py3.
+
+* Updated (Nov 2020) for finding right dot executable on Windows + Anaconda, see [pydot/pydot#205](https://github.com/pydot/pydot/issues/205) for detail. Also, pydot has not bumping version for a long time, log down commit change here: a10ced4 -> 03533f3
 </td></tr>
 
 <!-- ######################################################### -->
