@@ -1287,7 +1287,25 @@ class _ResolvePhase(_Common):
                     #n = len(scopes)
 
                     for req in new_extracted_reqs:
-                        scope = _PackageScope(req, solver=self.solver)
+                        try:
+                            scope = _PackageScope(req, solver=self.solver)
+                        except PackageFamilyNotFoundError as e:
+                            # Look up which is requesting the missing one
+                            for k, extracted_request in extractions.items():
+                                if extracted_request.name == req.name:
+                                    requested, required = k
+                                    break
+                            else:
+                                # Must have a match.
+                                # But if not, raise origin error
+                                raise e
+                            # Raise with more info when match found
+                            searched = "; ".join(self.solver.package_paths)
+                            raise PackageFamilyNotFoundError(
+                                "package family not found: %s, was required "
+                                "by: %s (searched: %s)"
+                                % (required, requested, searched))
+
                         scopes.append(scope)
                         if self.pr:
                             self.pr("added %s", scope)
