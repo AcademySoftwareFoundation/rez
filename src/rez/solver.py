@@ -176,7 +176,7 @@ class Reduction(_Common):
 class DependencyConflict(_Common):
     """A common dependency shared by all variants in a scope, conflicted with
     another scope in the current phase."""
-    def __init__(self, dependency, conflicting_request):
+    def __init__(self, dependency, conflicting_request, detail=None):
         """
         Args:
             dependency (`Requirement`): Merged requirement from a set of variants.
@@ -184,6 +184,7 @@ class DependencyConflict(_Common):
         """
         self.dependency = dependency
         self.conflicting_request = conflicting_request
+        self.detail = detail or ""
 
     def __eq__(self, other):
         return (self.dependency == other.dependency) \
@@ -243,7 +244,7 @@ class DependencyConflicts(FailureReason):
         return (self.conflicts == other.conflicts)
 
     def __str__(self):
-        return ' '.join(("(%s)" % str(x)) for x in self.conflicts)
+        return ' '.join(("(%s)%s" % (str(x), x.detail)) for x in self.conflicts)
 
 
 class Cycle(FailureReason):
@@ -1193,6 +1194,38 @@ class _ResolvePhase(_Common):
                 phase.status = status
             return phase
 
+        def _dep_info(_req, depth=0):
+            """Make dependency chain str from `extractions` and `scopes`"""
+            def scope_match(dep_name):
+                return (s for s in scopes if s.package_name == dep_name)
+
+            def dig(_pkg_req, battery):
+                battery -= 1
+                for key, ex_req in extractions.items():
+                    if (ex_req.name == _pkg_req.name
+                            and not ex_req.conflicts_with(_pkg_req)):
+                        dep_name, _ = key
+                        scp = next(scope_match(dep_name), None)
+                        if scp is None:
+                            break  # should not happen
+
+                        dep_req = scp.package_request
+                        yield str(dep_req)
+                        if not battery:
+                            break
+
+                        for dep_r in dig(dep_req, battery):
+                            yield dep_r
+                        break
+
+            return " <-- ".join(dig(_req, depth)) or "-"
+
+        def _conflict_detail(this, that):
+            """Generate detail when failed on conflict: this <--!--> that"""
+            this = "\n\t%s: %s" % (this, _dep_info(this))
+            that = "\n\t%s: %s" % (that, _dep_info(that))
+            return this + that
+
         # iteratively reduce until no more reductions possible
         while True:
             prev_num_scopes = len(scopes)
@@ -1227,7 +1260,8 @@ class _ResolvePhase(_Common):
 
                 if extracted_requests.conflict:  # extractions are in conflict
                     req1, req2 = extracted_requests.conflict
-                    conflict = DependencyConflict(req1, req2)
+                    detail = _conflict_detail(req1, req2)
+                    conflict = DependencyConflict(req1, req2, detail)
                     failure_reason = DependencyConflicts([conflict])
                     return _create_phase(SolverStatus.failed)
                 elif self.pr:
@@ -1251,8 +1285,10 @@ class _ResolvePhase(_Common):
 
                         if scope_ is None:
                             # the scope conflicted with the extraction
+                            detail = _conflict_detail(extracted_req,
+                                                      scope.package_request)
                             conflict = DependencyConflict(
-                                extracted_req, scope.package_request)
+                                extracted_req, scope.package_request, detail)
                             failure_reason = DependencyConflicts([conflict])
                             return _create_phase(SolverStatus.failed)
 
@@ -1289,22 +1325,17 @@ class _ResolvePhase(_Common):
                     for req in new_extracted_reqs:
                         try:
                             scope = _PackageScope(req, solver=self.solver)
-                        except PackageFamilyNotFoundError as e:
-                            # Look up which is requesting the missing one
-                            for k, extracted_request in extractions.items():
-                                if extracted_request.name == req.name:
-                                    requested, required = k
-                                    break
-                            else:
-                                # Must have a match.
-                                # But if not, raise origin error
-                                raise e
-                            # Raise with more info when match found
+                        except PackageFamilyNotFoundError:
+                            # Raise with more info
+                            #   Searched path is more important than full
+                            #   dependency info in this case, so only walk
+                            #   one level down.
+                            requested_detail = _dep_info(req, depth=1)
                             searched = "; ".join(self.solver.package_paths)
                             raise PackageFamilyNotFoundError(
                                 "package family not found: %s, was required "
                                 "by: %s (searched: %s)"
-                                % (required, requested, searched))
+                                % (req.name, requested_detail, searched))
 
                         scopes.append(scope)
                         if self.pr:
