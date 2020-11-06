@@ -1196,6 +1196,8 @@ class _ResolvePhase(_Common):
 
         def _dep_info(_req, depth=0):
             """Make dependency chain str from `extractions` and `scopes`"""
+            digged = set()
+
             def scope_match(dep_name):
                 return (s for s in scopes if s.package_name == dep_name)
 
@@ -1203,6 +1205,7 @@ class _ResolvePhase(_Common):
                 battery -= 1
                 for key, ex_req in extractions.items():
                     if (ex_req.name == _pkg_req.name
+                            and ex_req not in digged  # avoid cycle
                             and not ex_req.conflicts_with(_pkg_req)):
                         dep_name, _ = key
                         scp = next(scope_match(dep_name), None)
@@ -1214,6 +1217,7 @@ class _ResolvePhase(_Common):
                         if not battery:
                             break
 
+                        digged.add(dep_req)
                         for dep_r in dig(dep_req, battery):
                             yield dep_r
                         break
