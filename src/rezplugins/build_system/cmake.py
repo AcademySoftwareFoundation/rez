@@ -163,7 +163,7 @@ class CMakeBuildSystem(BuildSystem):
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
-                                              post_actions_callback=callback)
+                                              actions_callback=callback)
         ret = {}
         if retcode:
             ret["success"] = False
