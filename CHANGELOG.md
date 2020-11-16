@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.69.1 (2020-11-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.69.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.0...2.69.1)
+
+**Merged pull requests:**
+
+- Update vendored pydot (1.4.2.dev0) [\#970](https://github.com/nerdvegas/rez/pull/970) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.69.0 (2020-11-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.68.5...2.69.0)
 
