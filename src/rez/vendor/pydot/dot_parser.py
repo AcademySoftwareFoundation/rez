@@ -548,8 +548,7 @@ def parse_dot_data(s):
         tokens = graphparser.parseString(s)
         return list(tokens)
     except ParseException as err:
-        print(
-            err.line +
-            " "*(err.column-1) + "^" +
-            err)
+        print(err.line)
+        print(" " * (err.column - 1) + "^")
+        print(err)
         return None
