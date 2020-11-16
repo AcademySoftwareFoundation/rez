@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.69.2 (2020-11-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.69.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.1...2.69.2)
+
+**Merged pull requests:**
+
+- 965| Fix io.UnsupportedOperation [\#966](https://github.com/nerdvegas/rez/pull/966) ([spsalefeve](https://github.com/spsalefeve))
+
+**Closed issues:**
+
+- io.UnsupportedOperation when using rez api with pytest [\#965](https://github.com/nerdvegas/rez/issues/965)
+
 ## 2.69.1 (2020-11-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.0...2.69.1)
 

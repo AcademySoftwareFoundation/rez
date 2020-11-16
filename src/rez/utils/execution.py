@@ -53,7 +53,10 @@ class Popen(_PopenBase):
         if "stdin" not in kwargs:
             try:
                 file_no = sys.stdin.fileno()
-            except (AttributeError, UnsupportedOperation):
+            except (
+                AttributeError,
+                UnsupportedOperation  # https://github.com/nerdvegas/rez/pull/966
+            ):
                 file_no = sys.__stdin__.fileno()
 
             if file_no not in (0, 1, 2):
