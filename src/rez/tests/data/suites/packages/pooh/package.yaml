@@ -1,0 +1,5 @@
+name: pooh
+tools:
+- hunny
+commands: |
+    env.PATH.prepend("{root}/bin")

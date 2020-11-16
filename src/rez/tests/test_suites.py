@@ -1,9 +1,13 @@
 """
 test suites
 """
-from rez.tests.util import TestBase, TempdirMixin
+from rez.tests.util import TestBase, TempdirMixin, \
+    per_available_shell, install_dependent
 from rez.resolved_context import ResolvedContext
 from rez.suite import Suite
+from rez.config import config
+from rez.system import system
+import subprocess
 import unittest
 import uuid
 import os.path
@@ -135,6 +139,44 @@ class TestRezSuites(TestBase, TempdirMixin):
 
         self._test_serialization(s)
 
+    @per_available_shell()
+    @install_dependent()
+    def test_executable(self):
+        """Test suite tool can be executed
+
+        Testing suite tool can be found and executed in multiple platforms.
+        This test is equivalent to the following commands in shell:
+        ```
+        $ rez-env pooh --output pooh.rxt
+        $ rez-suite --create pooh
+        $ rez-suite --add pooh.rxt --context pooh pooh
+        $ export PATH=$(pwd)/pooh/bin:$PATH
+        $ hunny
+        yum yum
+        ```
+
+        """
+        c_pooh = ResolvedContext(["pooh"])
+        s = Suite()
+        s.add_context("pooh", c_pooh)
+
+        expected_tools = set(["hunny"])
+        self.assertEqual(set(s.get_tools().keys()), expected_tools)
+
+        per_shell = config.get("default_shell")
+        suite_path = os.path.join(self.root, "test_suites", per_shell, "pooh")
+        s.save(suite_path)
+
+        bin_path = os.path.join(suite_path, "bin")
+        env = os.environ.copy()
+        # activate rez, to access _rez_fwd
+        env["PATH"] = os.pathsep.join([system.rez_bin_path, env["PATH"]])
+        # activate suite
+        env["PATH"] = os.pathsep.join([bin_path, env["PATH"]])
+
+        output = subprocess.check_output(["hunny"], shell=True, env=env,
+                                         universal_newlines=True)
+        self.assertTrue("yum yum" in output)
 
 if __name__ == '__main__':
     unittest.main()
