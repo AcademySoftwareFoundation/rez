@@ -128,6 +128,8 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
     from rez.utils.platform_ import platform_
     program = program or "python"
     py_script_mode = py_script_mode or config.create_executable_script_mode
+
+    # https://github.com/nerdvegas/rez/pull/968
     is_forwarding_script_on_windows = (program == "_rez_fwd"
                                        and platform_.name == "windows"
                                        and filepath.lower().endswith(".cmd"))
