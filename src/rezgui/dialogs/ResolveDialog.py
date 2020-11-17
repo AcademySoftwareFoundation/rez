@@ -307,7 +307,7 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
         return i
 
     def _save_context(self):
-        filepath = QtWidgets.QFileDialog.getSaveFileName(
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save Context", filter="Context files (*.rxt)")
         if filepath:
             self.resolver.context.save(filepath)
