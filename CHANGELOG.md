@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.69.4 (2020-11-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.69.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.3...2.69.4)
+
+**Merged pull requests:**
+
+- Fix pip.py get purelib error. [\#973](https://github.com/nerdvegas/rez/pull/973) ([zclongpop123](https://github.com/zclongpop123))
+
 ## 2.69.3 (2020-11-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.2...2.69.3)
 
