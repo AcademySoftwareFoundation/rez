@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.69.3 (2020-11-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.69.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.2...2.69.3)
+
+**Merged pull requests:**
+
+- handling QFileDialog.getSaveFileName return type [\#963](https://github.com/nerdvegas/rez/pull/963) ([sparklabor](https://github.com/sparklabor))
+
+**Closed issues:**
+
+- QFileDialog.getSaveFileName and getOpenFileName return tuple not str [\#962](https://github.com/nerdvegas/rez/issues/962)
+
 ## 2.69.2 (2020-11-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.1...2.69.2)
 
