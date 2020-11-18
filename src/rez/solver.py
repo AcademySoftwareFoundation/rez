@@ -1290,21 +1290,22 @@ class _ResolvePhase(_Common):
                         try:
                             scope = _PackageScope(req, solver=self.solver)
                         except PackageFamilyNotFoundError as e:
-                            # Look up which is requesting the missing one
+                            # Look up which are requesting the missing one
+                            requesters = []
                             for k, extracted_request in extractions.items():
                                 if extracted_request.name == req.name:
-                                    requested, required = k
-                                    break
-                            else:
-                                # Must have a match.
-                                # But if not, raise origin error
+                                    requesters.append(k[0])
+                            if not requesters:
+                                # Must have a match. Raise origin error if not
                                 raise e
-                            # Raise with more info when match found
-                            searched = "; ".join(self.solver.package_paths)
-                            raise PackageFamilyNotFoundError(
-                                "package family not found: %s, was required "
-                                "by: %s (searched: %s)"
-                                % (required, requested, searched))
+                            else:
+                                # Raise with more info when match found
+                                searched = "; ".join(self.solver.package_paths)
+                                requested = ", ".join(requesters)
+                                raise PackageFamilyNotFoundError(
+                                    "package family not found: %s, "
+                                    "was required by: %s (searched: %s)"
+                                    % (req.name, requested, searched))
 
                         scopes.append(scope)
                         if self.pr:
