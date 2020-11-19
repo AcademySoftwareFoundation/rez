@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.69.5 (2020-11-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.69.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.4...2.69.5)
+
+**Merged pull requests:**
+
+- Try telling who is/are requesting missing package [\#976](https://github.com/nerdvegas/rez/pull/976) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.69.4 (2020-11-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.3...2.69.4)
 
