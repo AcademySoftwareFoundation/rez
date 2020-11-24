@@ -1,8 +1,8 @@
 from __future__ import print_function
 
 from rez.utils._version import _rez_version
-import logging.config
 import atexit
+import sys
 import os
 
 
@@ -14,10 +14,30 @@ __license__ = "LGPL"
 module_root_path = __path__[0]
 
 
-logging_conf_file = os.environ.get(
-    'REZ_LOGGING_CONF',
-    os.path.join(module_root_path, 'utils', 'logging.conf'))
-logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)
+# TODO: Revamp logging. For now, this is here for backwards compatibility
+def _init_logging():
+    logging_conf = os.getenv("REZ_LOGGING_CONF")
+    if logging_conf:
+        import logging.config
+        logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
+        return
+
+    import logging
+    from rez.utils.colorize import ColorizedStreamHandler
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s %(levelname)-8s %(message)s",
+        datefmt="%X"
+    )
+    handler = ColorizedStreamHandler(sys.stderr)
+    handler.setFormatter(formatter)
+    logger = logging.getLogger("rez")
+    logger.propagate = False
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+
+
+_init_logging()
 
 
 # actions registered on SIGUSR1
