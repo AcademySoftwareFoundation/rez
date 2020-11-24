@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.69.6 (2020-11-24)
+[Source](https://github.com/nerdvegas/rez/tree/2.69.6) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.5...2.69.6)
+
+**Merged pull requests:**
+
+- avoid using fileConfig to init logging, as it overwrites root logger [\#978](https://github.com/nerdvegas/rez/pull/978) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez overwrites root logger [\#977](https://github.com/nerdvegas/rez/issues/977)
+
 ## 2.69.5 (2020-11-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.4...2.69.5)
 
