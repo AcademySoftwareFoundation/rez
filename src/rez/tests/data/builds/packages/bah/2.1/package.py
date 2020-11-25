@@ -12,6 +12,8 @@ variants = [
 
 hashed_variants = True
 
+build_command = 'python {root}/build.py {install}'
+
 
 # Copyright 2013-2016 Allan Johns.
 #

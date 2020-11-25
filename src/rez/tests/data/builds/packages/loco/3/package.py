@@ -7,6 +7,8 @@ description = "muy loco"
 # deliberate conflict
 requires = ["foo-1.0", "foo-1.1"]
 
+build_command = "python {root}/build.py {install}"
+
 
 # Copyright 2013-2016 Allan Johns.
 #

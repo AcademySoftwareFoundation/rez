@@ -59,7 +59,7 @@ class TestRelease(TestBase, TempdirMixin):
 
         # check build system type
         buildsys = create_build_system(self.src_root, verbose=True)
-        self.assertEqual(buildsys.name(), "bez")
+        self.assertEqual(buildsys.name(), "custom")
 
         # create the vcs - should error because stub file doesn't exist yet
         with self.assertRaises(ReleaseVCSError):

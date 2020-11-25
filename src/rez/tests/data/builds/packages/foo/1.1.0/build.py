@@ -22,6 +22,16 @@ def build(source_path, build_path, install_path, targets):
                             install_path=install_path)
 
 
+if __name__ == '__main__':
+    import os, sys
+    build(
+        source_path=os.environ['REZ_BUILD_SOURCE_PATH'],
+        build_path=os.environ['REZ_BUILD_PATH'],
+        install_path=os.environ['REZ_BUILD_INSTALL_PATH'],
+        targets=sys.argv[1:]
+    )
+
+
 # Copyright 2013-2016 Allan Johns.
 #
 # This library is free software: you can redistribute it and/or

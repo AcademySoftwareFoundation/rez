@@ -1,30 +1,40 @@
 from __future__ import print_function
 
-from build_util import build_directory_recurse, check_visible
+import shutil
 import os.path
 import os
+import sys
 
 
 def build(source_path, build_path, install_path, targets):
 
-    # build requirement 'floob' should be visible
-    check_visible("foo", "floob")
-    import floob
-    print(floob.hello())
+    def _copy(src, dest):
+        print("copying %s to %s..." % (src, dest))
+        if os.path.exists(dest):
+            shutil.rmtree(dest)
+        shutil.copytree(src, dest)
 
-    # env var should have been set in pre_build_commands
-    if os.getenv("FOO_TEST_VAR") != "hello":
-        raise RuntimeError("Expected $FOO_TEST_VAR to be set")
+    # build
+    src = os.path.join(source_path, "data")
+    dest = os.path.join(build_path, "data")
+    _copy(src, dest)
 
-    # do the build
     if "install" not in (targets or []):
-        install_path = None
+        return
 
-    build_directory_recurse(src_dir="foo",
-                            dest_dir=os.path.join("python", "foo"),
-                            source_path=source_path,
-                            build_path=build_path,
-                            install_path=install_path)
+    # install
+    src = os.path.join(build_path, "data")
+    dest = os.path.join(install_path, "data")
+    _copy(src, dest)
+
+
+if __name__ == '__main__':
+    build(
+        source_path=os.environ['REZ_BUILD_SOURCE_PATH'],
+        build_path=os.environ['REZ_BUILD_PATH'],
+        install_path=os.environ['REZ_BUILD_INSTALL_PATH'],
+        targets=sys.argv[1:]
+    )
 
 
 # Copyright 2013-2016 Allan Johns.

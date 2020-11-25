@@ -4,6 +4,8 @@ authors = ["joe.bloggs"]
 uuid = "4e9f63cbc4794453b0031f0c5ff50759"
 description = "a deliberately broken package"
 
+build_command = "python {root}/build.py {install}"
+
 
 # Copyright 2013-2016 Allan Johns.
 #

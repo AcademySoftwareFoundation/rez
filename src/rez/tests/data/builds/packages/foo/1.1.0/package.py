@@ -15,6 +15,8 @@ def commands():
 
     late_utils.add_eek_var(env)
 
+build_command = 'python {root}/build.py {install}'
+
 
 # Copyright 2013-2016 Allan Johns.
 #

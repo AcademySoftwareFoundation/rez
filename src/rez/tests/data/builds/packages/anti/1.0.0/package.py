@@ -11,6 +11,8 @@ requires = ["floob", "!loco"]
 def commands():
     env.PYTHONPATH.append('{root}/python')
 
+build_command = 'python {root}/build.py {install}'
+
 
 # Copyright 2013-2016 Allan Johns.
 #
