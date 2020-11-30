@@ -73,15 +73,6 @@ def run_rezolve():
     return run()
 
 
-@scriptname("bez")
-def run_bez():
-    # TODO: Deprecate. Use custom build commands instead.
-    # https://github.com/nerdvegas/rez/wiki/Building-Packages#custom-build-commands
-    check_production_install()
-    from rez.cli._bez import run
-    run()
-
-
 @scriptname("_rez-complete")
 def run_rez_complete():
     check_production_install()

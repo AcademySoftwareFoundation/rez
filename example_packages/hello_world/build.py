@@ -1,13 +1,9 @@
-"""
-To use this as the build script, add to package.py:
-
-    build_command = 'python {root}/build.py {install}'
-
-"""
+#!/usr/bin/env python
 
 import os
 import os.path
 import shutil
+import sys
 import stat
 
 
@@ -54,7 +50,6 @@ def build(source_path, build_path, install_path, targets):
 
 
 if __name__ == '__main__':
-    import os, sys
     build(
         source_path=os.environ['REZ_BUILD_SOURCE_PATH'],
         build_path=os.environ['REZ_BUILD_PATH'],

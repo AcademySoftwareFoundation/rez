@@ -213,8 +213,7 @@ class RezPluginManager(object):
     rez, and the modules below that are individual custom plugins extending
     that type.
 
-    For example, rez provides three plugins of type 'build_system': 'cmake',
-    'make' and 'bez'::
+    For example, rez provides plugins of type 'build_system': 'cmake' and 'make'::
 
         rezplugins/
           __init__.py
@@ -222,7 +221,6 @@ class RezPluginManager(object):
             __init__.py
             cmake.py
             make.py
-            bez.py
           ...
 
     Here is an example of how to provide your own plugin.  In the example,

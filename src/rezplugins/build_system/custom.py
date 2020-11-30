@@ -105,8 +105,7 @@ class CustomBuildSystem(BuildSystem):
         ret = {}
 
         if self.write_build_scripts:
-            # write out the script that places the user in a build env, where
-            # they can run bez directly themselves.
+            # write out the script that places the user in a build env
             build_env_script = os.path.join(build_path, "build-env")
             create_forwarding_script(build_env_script,
                                      module=("build_system", "custom"),
