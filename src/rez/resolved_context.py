@@ -255,6 +255,7 @@ class ResolvedContext(object):
         # resolve results
         self.status_ = ResolverStatus.pending
         self._resolved_packages = None
+        self._resolved_ephemerals = None
         self.failure_description = None
         self.graph_string = None
         self.graph_ = None
@@ -313,10 +314,11 @@ class ResolvedContext(object):
 
         if self.status_ == ResolverStatus.solved:
             self._resolved_packages = []
-
             for variant in resolver.resolved_packages:
                 variant.set_context(self)
                 self._resolved_packages.append(variant)
+
+            self._resolved_ephemerals = resolver.resolved_ephemerals
 
         # track context usage
         if config.context_tracking_host:
@@ -374,6 +376,15 @@ class ResolvedContext(object):
         """
         return self._resolved_packages
 
+    @property
+    def resolved_ephemerals(self):
+        """Get non-conflict ephemerals in the resolve.
+
+        Returns:
+            List of `Requirement` objects, or None if the resolve failed.
+        """
+        return self._resolved_ephemerals
+
     def set_load_path(self, path):
         """Set the path that this context was reportedly loaded from.
 
@@ -386,13 +397,15 @@ class ResolvedContext(object):
     def __eq__(self, other):
         """Equality test.
 
-        Two contexts are considered equal if they have a equivalent request,
+        Two contexts are considered equal if they have an equivalent request,
         and an equivalent resolve. Other details, such as timestamp, are not
         considered.
         """
-        return (isinstance(other, ResolvedContext)
-                and other.requested_packages(True) == self.requested_packages(True)
-                and other.resolved_packages == self.resolved_packages)
+        return (
+            isinstance(other, ResolvedContext) and
+            other.requested_packages(True) == self.requested_packages(True) and
+            other.resolved_packages == self.resolved_packages
+        )
 
     def __hash__(self):
         list_ = []
@@ -1374,6 +1387,8 @@ class ResolvedContext(object):
             for pkg in (self._resolved_packages or []):
                 resolved_packages.append(pkg.handle.to_dict())
             data["resolved_packages"] = resolved_packages
+
+        pass  # resolved_ephemerals
 
         if _add("serialize_version"):
             data["serialize_version"] = \

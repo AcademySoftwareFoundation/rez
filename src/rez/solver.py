@@ -937,10 +937,13 @@ class _PackageScope(_Common):
     def __init__(self, package_request, solver):
         self.package_name = package_request.name
         self.solver = solver
+        self.package_request = None
         self.variant_slice = None
         self.pr = solver.pr
+        self.is_ephemeral = (package_request.name.startswith('.'))
 
-        if package_request.conflict:
+        if package_request.conflict or self.is_ephemeral:
+            # these cases don't actually contain variants
             self.package_request = package_request
         else:
             self.variant_slice = solver._get_variant_slice(
@@ -965,9 +968,42 @@ class _PackageScope(_Common):
             of the given range removed. If there were no removals, self is
             returned. If all variants were removed, None is returned.
         """
+
+        # ephemerals are just a range intersection
+        if self.is_ephemeral:
+            inter_range = None
+            if self.is_conflict:
+                intersect_range = range_ - self.package_request.range
+            else:
+                intersect_range = range_ & self.package_request.range
+
+            if intersect_range is None:
+                if self.pr:
+                    self.pr(
+                        "%s intersected with range '%s' resulted in conflict",
+                        self, range_
+                    )
+                return None
+            elif intersect_range == self.package_request.range:
+                # intersection did not change the scope
+                return self
+            else:
+                scope = copy.copy(self)
+                scope.package_request = Requirement.construct(
+                    self.package_name, intersect_range
+                )
+
+                if self.pr:
+                    self.pr(
+                        "%s was intersected to %s by range '%s'",
+                        self, scope, range_
+                    )
+                return scope
+
+        # typical case: slice or conflict
         new_slice = None
 
-        if self.package_request.conflict:
+        if self.is_conflict:
             if self.package_request.range is None:
                 new_slice = self.solver._get_variant_slice(
                     self.package_name, range_)
@@ -1007,9 +1043,9 @@ class _PackageScope(_Common):
         """
         self.solver.reduction_broad_tests_count += 1
 
-        if self.package_request.conflict:
-            # conflict scopes don't reduce. Instead, other scopes will be
-            # reduced against a conflict scope.
+        # reduction of conflicts and ephemerals is nonsensical (they have no
+        # variant list to reduce)
+        if self.is_conflict or self.is_ephemeral:
             return (self, [])
 
         # perform the reduction
@@ -1048,17 +1084,21 @@ class _PackageScope(_Common):
             with the extraction, and the extracted package range. If no package
             was extracted, then (self,None) is returned.
         """
-        if not self.package_request.conflict:
-            new_slice, package_request = self.variant_slice.extract()
-            if package_request:
-                assert(new_slice is not self.variant_slice)
-                scope = copy.copy(self)
-                scope.variant_slice = new_slice
-                if self.pr:
-                    self.pr("extracted %s from %s", package_request, self)
-                return (scope, package_request)
 
-        return (self, None)
+        # extraction is nonsensical for conflicts and ephemerals
+        if self.is_conflict or self.is_ephemeral:
+            return (self, None)
+
+        new_slice, package_request = self.variant_slice.extract()
+        if not package_request:
+            return (self, None)
+
+        assert(new_slice is not self.variant_slice)
+        scope = copy.copy(self)
+        scope.variant_slice = new_slice
+        if self.pr:
+            self.pr("extracted %s from %s", package_request, self)
+        return (scope, package_request)
 
     def split(self):
         """Split the scope.
@@ -1068,17 +1108,21 @@ class _PackageScope(_Common):
             guaranteed to have a common dependency. Or None, if splitting is
             not applicable to this scope.
         """
-        if self.package_request.conflict or (len(self.variant_slice) == 1):
+        if (
+            self.is_conflict or
+            self.is_ephemeral or
+            len(self.variant_slice) == 1
+        ):
             return None
-        else:
-            r = self.variant_slice.split()
-            if r is None:
-                return None
-            else:
-                slice, next_slice = r
-                scope = self._copy(slice)
-                next_scope = self._copy(next_slice)
-                return (scope, next_scope)
+
+        r = self.variant_slice.split()
+        if r is None:
+            return None
+
+        slice_, next_slice = r
+        scope = self._copy(slice_)
+        next_scope = self._copy(next_slice)
+        return (scope, next_scope)
 
     def _copy(self, new_slice):
         scope = copy.copy(self)
@@ -1087,15 +1131,28 @@ class _PackageScope(_Common):
         return scope
 
     def _is_solved(self):
-        return bool(self.package_request.conflict) \
-            or ((len(self.variant_slice) == 1)
-                and (not self.variant_slice.extractable))
+        return (
+            self.is_conflict or
+            self.is_ephemeral or
+            (
+                len(self.variant_slice) == 1 and
+                not self.variant_slice.extractable
+            )
+        )
 
     def _get_solved_variant(self):
-        if (not self.package_request.conflict) \
-                and (len(self.variant_slice) == 1) \
-                and (not self.variant_slice.extractable):
+        if (
+            self.variant_slice is not None and
+            len(self.variant_slice) == 1 and
+            not self.variant_slice.extractable
+        ):
             return self.variant_slice.first_variant
+        else:
+            return None
+
+    def _get_solved_ephemeral(self):
+        if self.is_ephemeral and not self.is_conflict:
+            return self.package_request
         else:
             return None
 
@@ -1400,7 +1457,7 @@ class _ResolvePhase(_Common):
         assert(self._is_solved())
         g = self._get_minimal_graph()
         scopes = dict((x.package_name, x) for x in self.scopes
-                      if not x.package_request.conflict)
+                      if not x.is_conflict)
 
         # check for cyclic dependencies
         fam_cycle = find_cycle(g)
@@ -1425,7 +1482,7 @@ class _ResolvePhase(_Common):
         scopes_ = []
         for fam in ordered_fams:
             scope = scopes[fam]
-            if not scope.package_request.conflict:
+            if not scope.is_conflict:
                 scopes_.append(scope)
 
         phase = copy.copy(self)
@@ -1767,6 +1824,15 @@ class _ResolvePhase(_Common):
 
         return variants
 
+    def _get_solved_ephemerals(self):
+        ephemerals = []
+        for scope in self.scopes:
+            ephemeral = scope._get_solved_ephemeral()
+            if ephemeral:
+                ephemerals.append(ephemeral)
+
+        return ephemerals
+
     def __str__(self):
         return ' '.join(str(x) for x in self.scopes)
 
@@ -1836,9 +1902,6 @@ class Solver(_Common):
             self.optimised = False
         else:
             self.optimised = optimised
-
-        self.non_conflict_package_requests = [x for x in package_requests
-                                              if not x.conflict]
 
         self.phase_stack = None
         self.failed_phase_list = None
@@ -1949,14 +2012,33 @@ class Solver(_Common):
 
     @property
     def resolved_packages(self):
-        """Return a list of PackageVariant objects, or None if the resolve did
-        not complete or was unsuccessful.
+        """Return a list of resolved variants.
+
+        Returns:
+            list of `PackageVariant`: Resolved variants, or None if the resolve
+            did not complete or was unsuccessful.
         """
         if (self.status != SolverStatus.solved):
             return None
 
         final_phase = self.phase_stack[-1]
         return final_phase._get_solved_variants()
+
+    @property
+    def resolved_ephemerals(self):
+        """Return the list of final ephemeral package ranges.
+
+        Note that conflict ephemerals are not included.
+
+        Returns:
+            List of `Requirement`: Final non-conflict ephemerals, or None
+            if the resolve did not complete or was unsuccessful.
+        """
+        if (self.status != SolverStatus.solved):
+            return None
+
+        final_phase = self.phase_stack[-1]
+        return final_phase._get_solved_ephemerals()
 
     def reset(self):
         """Reset the solver, removing any current solve."""
