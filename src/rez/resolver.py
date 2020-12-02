@@ -434,6 +434,7 @@ class Resolver(object):
         load_time = solver.load_time
         failure_description = None
         variant_handles = None
+        ephemerals = None
 
         st = solver.status
         if st == SolverStatus.unsolved:
