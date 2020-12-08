@@ -8,7 +8,8 @@ from rez.system import system
 from rez.config import config
 from rez.util import shlex_join, dedup, is_non_string_iterable
 from rez.utils.sourcecode import SourceCodeError
-from rez.utils.colorize import critical, heading, local, implicit, Printer
+from rez.utils.colorize import critical, heading, local, implicit, Printer, \
+    ephemeral as ephemeral_color
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
     header_comment, minor_header_comment
 from rez.utils.data_utils import deep_del
@@ -30,6 +31,7 @@ from rez.exceptions import ResolvedContextError, PackageCommandError, \
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
+from rez.vendor.version.requirement import Requirement
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils import json
@@ -121,7 +123,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 5)
+    serialize_version = (4, 6)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     context_tracking_payload = None
@@ -780,8 +782,12 @@ class ResolvedContext(object):
         rows = []
         colors = []
         for request in self._package_requests:
-            rows.append((str(request), ""))
-            colors.append(None)
+            if request.name.startswith('.'):
+                rows.append((str(request), "(ephemeral)"))
+                colors.append(ephemeral_color)
+            else:
+                rows.append((str(request), ""))
+                colors.append(None)
 
         for request in self.implicit_packages:
             rows.append((str(request), "(implicit)"))
@@ -840,6 +846,13 @@ class ResolvedContext(object):
             _pr(line, col)
 
         if verbosity:
+            _pr()
+            _pr("resolved ephemerals:", heading)
+            ephemerals = self.resolved_ephemerals or []
+            ephemerals = sorted(ephemerals, key=lambda x: x.name)
+            for req in ephemerals:
+                _pr(str(req), ephemeral_color)
+
             _pr()
             actual_solve_time = self.solve_time - self.load_time
             _pr("resolve details:", heading)
@@ -949,7 +962,7 @@ class ResolvedContext(object):
         return _check
 
     @_on_success
-    def get_dependency_graph(self):
+    def get_dependency_graph(self, as_dot=False):
         """Generate the dependency graph.
 
         The dependency graph is a simpler subset of the resolve graph. It
@@ -962,7 +975,14 @@ class ResolvedContext(object):
         """
         from rez.vendor.pygraph.classes.digraph import digraph
 
+        # add nodes
         nodes = {}
+        for variant in self._resolved_packages:
+            nodes[variant.name] = variant.qualified_package_name
+        for ephemeral in self._resolved_ephemerals:
+            nodes[ephemeral.name] = str(ephemeral)
+
+        # add edges
         edges = set()
         for variant in self._resolved_packages:
             nodes[variant.name] = variant.qualified_package_name
@@ -981,7 +1001,11 @@ class ResolvedContext(object):
             g.add_node(name, attrs=attrs + [("label", qname)])
         for edge in edges:
             g.add_edge(edge)
-        return g
+
+        if as_dot:
+            return write_dot(g)
+        else:
+            return g
 
     @_on_success
     def validate(self):
@@ -1388,7 +1412,11 @@ class ResolvedContext(object):
                 resolved_packages.append(pkg.handle.to_dict())
             data["resolved_packages"] = resolved_packages
 
-        pass  # resolved_ephemerals
+        if _add("resolved_ephemerals"):
+            resolved_ephemerals = []
+            for ephemeral in (self._resolved_ephemerals or []):
+                resolved_ephemerals.append(str(ephemeral))
+            data["resolved_ephemerals"] = resolved_ephemerals
 
         if _add("serialize_version"):
             data["serialize_version"] = \
@@ -1570,6 +1598,13 @@ class ResolvedContext(object):
         # -- SINCE SERIALIZE VERSION 4.5
 
         r.package_caching = d.get("package_caching", True)
+
+        # -- SINCE SERIALIZE VERSION 4.6
+
+        r._resolved_ephemerals = []
+        for eph_str in d.get("resolved_ephemerals", []):
+            req = Requirement(eph_str)
+            r._resolved_ephemerals.append(req)
 
         # <END SERIALIZATION>
 

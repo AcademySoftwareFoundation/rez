@@ -1790,17 +1790,16 @@ class _ResolvePhase(_Common):
         scopes = dict((x.package_name, x) for x in self.scopes)
 
         for scope in scopes.values():
+            if scope.is_conflict:
+                continue
+
+            nodes.add(scope.package_name)
+
             variant = scope._get_solved_variant()
             if variant:
-                nodes.add(variant.name)
                 for req in variant.requires_list.requirements:
                     if not req.conflict:
-                        scope_ = scopes.get(req.name)
-                        if scope_:
-                            variant_ = scope_._get_solved_variant()
-                            if variant_:
-                                nodes.add(variant_.name)
-                                edges.add((variant.name, variant_.name))
+                        edges.add((scope.package_name, req.name))
 
         g = digraph()
         g.add_nodes(nodes)

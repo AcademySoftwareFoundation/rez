@@ -58,6 +58,10 @@ def setup_parser(parser, completions=False):
         "-g", "--graph", action="store_true",
         help="display the resolve graph as an image")
     parser.add_argument(
+        "-d", "--dependency-graph", action="store_true",
+        help="display the (simpler) dependency graph. Works in combination "
+        "with other graph options")
+    parser.add_argument(
         "--pg", "--print-graph", dest="print_graph", action="store_true",
         help="print the resolve graph as a string")
     parser.add_argument(
@@ -120,7 +124,10 @@ def command(opts, parser, extra_arg_groups=None):
 
     def _graph():
         if rc.has_graph:
-            return rc.graph(as_dot=True)
+            if opts.dependency_graph:
+                return rc.get_dependency_graph(as_dot=True)
+            else:
+                return rc.graph(as_dot=True)
         else:
             print("The context does not contain a graph.", file=sys.stderr)
             sys.exit(1)
@@ -155,12 +162,12 @@ def command(opts, parser, extra_arg_groups=None):
         elif opts.print_graph:
             gstr = _graph()
             print(gstr)
-        elif opts.graph or opts.write_graph:
+        elif opts.graph or opts.dependency_graph or opts.write_graph:
             gstr = _graph()
             if opts.prune_pkg:
                 req = PackageRequest(opts.prune_pkg)
                 gstr = prune_graph(gstr, req.name)
-            func = view_graph if opts.graph else save_graph
+            func = view_graph if (opts.graph or opts.dependency_graph) else save_graph
             func(gstr, dest_file=opts.write_graph)
         else:
             rc.print_info(verbosity=opts.verbose,
