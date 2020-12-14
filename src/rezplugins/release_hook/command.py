@@ -142,7 +142,7 @@ class CommandReleaseHook(ReleaseHook):
         variant_infos = []
         if variants:
             for variant in variants:
-                if isinstance(variant, (int, long)):
+                if isinstance(variant, six.integer_types):
                     variant_infos.append(variant)
                 else:
                     package = variant.parent
