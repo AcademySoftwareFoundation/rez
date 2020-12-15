@@ -1,7 +1,7 @@
 name = "pybah"
 version = "4"
 
-requires = ["python-2.6"]
+requires = ["python-2.6", ".eek-1"]
 
 
 # Copyright 2013-2016 Allan Johns.

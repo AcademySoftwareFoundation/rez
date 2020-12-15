@@ -1,7 +1,7 @@
 name = "pyfoo"
 version = "3.0.0"
 
-requires = ["python-2.5"]
+requires = ["python-2.5", ".eek-3+"]
 
 
 # Copyright 2013-2016 Allan Johns.

@@ -6,7 +6,7 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.util import shlex_join, dedup, is_non_string_iterable
+from rez.util import dedup, is_non_string_iterable
 from rez.utils.sourcecode import SourceCodeError
 from rez.utils.colorize import critical, heading, local, implicit, Printer, \
     ephemeral as ephemeral_color
@@ -19,7 +19,7 @@ from rez.utils.logging_ import print_error, print_warning
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
-    VariantsBinding, RequirementsBinding
+    VariantsBinding, RequirementsBinding, EphemeralsBinding, intersects
 from rez import package_order
 from rez.packages import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
@@ -842,17 +842,17 @@ class ResolvedContext(object):
             rows.append((pkg.qualified_package_name, location, t))
             colors.append(col)
 
+        # add ephemerals to end of resolved packages list
+        ephemerals = self.resolved_ephemerals or []
+        ephemerals = sorted(ephemerals, key=lambda x: x.name)
+        for req in ephemerals:
+            rows.append((str(req), '', "(ephemeral)"))
+            colors.append(ephemeral_color)
+
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
 
         if verbosity:
-            _pr()
-            _pr("resolved ephemerals:", heading)
-            ephemerals = self.resolved_ephemerals or []
-            ephemerals = sorted(ephemerals, key=lambda x: x.name)
-            for req in ephemerals:
-                _pr(str(req), ephemeral_color)
-
             _pr()
             actual_solve_time = self.solve_time - self.load_time
             _pr("resolve details:", heading)
@@ -1742,7 +1742,8 @@ class ResolvedContext(object):
                 "system": system,
                 "building": self.building,
                 "request": RequirementsBinding(self._package_requests),
-                "implicits": RequirementsBinding(self.implicit_packages)
+                "implicits": RequirementsBinding(self.implicit_packages),
+                "intersects": intersects
             }
 
         return self.pre_resolve_bindings
@@ -1751,6 +1752,7 @@ class ResolvedContext(object):
     def _execute(self, executor):
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
+        ephemerals = self.resolved_ephemerals or []
         request_str = ' '.join(str(x) for x in self._package_requests)
         implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
@@ -1783,11 +1785,12 @@ class ResolvedContext(object):
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
         # binds objects such as 'request', which are accessible before a resolve
-        bindings = self._get_pre_resolve_bindings()
-        for k, v in bindings.items():
+        pre_resolve_bindings = self._get_pre_resolve_bindings()
+        for k, v in pre_resolve_bindings.items():
             executor.bind(k, v)
 
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
+        executor.bind('ephemerals', EphemeralsBinding(ephemerals))
 
         #
         # -- apply each resolved package to the execution context
@@ -1801,7 +1804,6 @@ class ResolvedContext(object):
 
         # retarget variant roots wrt package caching
         pkg_roots = {}
-
         if self.package_caching and \
                 config.cache_packages_path and \
                 config.read_package_cache:
@@ -1814,7 +1816,7 @@ class ResolvedContext(object):
                         pkg_roots[pkg.name] = cached_root
 
         # set basic package variables and create per-package bindings
-        bindings = {}
+        pkg_bindings = {}
         for pkg in resolved_pkgs:
             minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
@@ -1836,10 +1838,12 @@ class ResolvedContext(object):
             else:
                 executor.setenv(prefix + "_ROOT", pkg.root)
 
-            bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
-                                      variant=VariantBinding(pkg))
+            pkg_bindings[pkg.name] = dict(
+                version=VersionBinding(pkg.version),
+                variant=VariantBinding(pkg)
+            )
 
-        # commands
+        # package commands
         for attr in ("pre_commands", "commands", "post_commands"):
             found = False
             for pkg in resolved_pkgs:
@@ -1851,14 +1855,13 @@ class ResolvedContext(object):
                     header_comment(executor, attr)
 
                 minor_header_comment(executor, "%s from package %s" % (attr, pkg.qualified_name))
-                bindings_ = bindings[pkg.name]
-                executor.bind('this',       bindings_["variant"])
-                executor.bind("version",    bindings_["version"])
-                executor.bind('root',       pkg_roots.get(pkg.name, pkg.root))
-                executor.bind('base',       pkg.base)
+                pkg_bindings_ = pkg_bindings[pkg.name]
+                executor.bind('this', pkg_bindings_["variant"])
+                executor.bind("version", pkg_bindings_["version"])
+                executor.bind('root', pkg_roots.get(pkg.name, pkg.root))
+                executor.bind('base', pkg.base)
 
                 exc = None
-                trace = None
                 commands.set_package(pkg)
 
                 try:
@@ -1881,6 +1884,16 @@ class ResolvedContext(object):
         #
         for name in ("this", "version", "root", "base"):
             executor.unbind(name)
+
+        # set variables per ephemeral
+        # for eph '.foo-1.2' for eg, $REZ_EPH_FOO_REQUEST="1.2"
+        if ephemerals:
+            header_comment(executor, "ephemeral variables")
+
+            for eph_req in ephemerals:
+                uname = eph_req.name[1:].upper().replace('.', '_')
+                varname = "REZ_EPH_" + uname + "_REQUEST"
+                executor.setenv(varname, str(eph_req.range))
 
         header_comment(executor, "post system setup")
 
