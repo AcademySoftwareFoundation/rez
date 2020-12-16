@@ -73,13 +73,18 @@ def open_file_for_write(filepath, mode=None):
             with atomic_write(filepath, overwrite=True, **encoding) as f:
                 f.write(content)
 
-        except WindowsError as e:
-            if attempt == 0:
+        except OSError as e:
+            # If we are writing to the network, we can't ensure atomicity
+            if e.errno == 22:
+                with open(filepath, "w", **encoding) as f:
+                    f.write(content)
+
+            elif attempt == 0:
                 # `overwrite=True` of atomic_write doesn't restore
                 # writability to the file being written to.
                 os.chmod(filepath, stat.S_IWRITE | stat.S_IREAD)
 
-            else:
+            elif sys.platform == "win32":
                 # Under Windows, atomic_write doesn't tell you about
                 # which file actually failed.
                 raise WindowsError("%s: '%s'" % (e, filepath))
