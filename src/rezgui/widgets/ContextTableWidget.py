@@ -235,10 +235,10 @@ class CellDelegate(QtWidgets.QStyledItemDelegate):
             draw_right_edge = True
 
             def _draw_path():
-                painter.setRenderHints(QtWidgets.QPainter.Antialiasing, True)
+                painter.setRenderHints(QtGui.QPainter.Antialiasing, True)
                 painter.drawPath(self.path)
                 painter.resetTransform()
-                painter.setRenderHints(QtWidgets.QPainter.Antialiasing, False)
+                painter.setRenderHints(QtGui.QPainter.Antialiasing, False)
 
             if cmp_widget:
                 if cmp_widget.left():
