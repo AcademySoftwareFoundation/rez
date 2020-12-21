@@ -343,6 +343,17 @@ between list items, but this can be overridden using the config setting *env_var
 
 like *env.append*, but prepends the environment variable instead.
 
+### ephemerals
+*Dict-like object*
+
+    if intersects(ephemerals.get("foo.cli", "1"), "1"):
+        env.PATH.append("{rot}/bin")
+
+A dict representing the list of ephemerals in the resolved environment. Each item is a
+string (the full request, eg `.foo.cli-1`), keyed by the ephemeral package name. Note
+that you do **not** include the leading `.` when getting items from the `ephemerals`
+object.
+
 ### error
 *Function*
 
@@ -377,6 +388,21 @@ defined by the [implicit_packages](Configuring-Rez#implicit_packages) configurat
     info("floob version is %s" % resolve.floob.version)
 
 Prints to standard out.
+
+### intersects
+*Function*
+
+    if intersects(resolve.maya, "2019+"):
+        info("Maya 2019 or greater is present")
+
+A boolean function that returns True if the version or version range of the given
+object, intersects with the given version range. Valid objects to query include:
+
+* A resolved package, eg `resolve.maya`;
+* A package request, eg `request.foo`;
+* A version of a resolved package, eg `resolve.maya.version` (this is identical
+  to specifying `resolve.maya`);
+* A resolved ephemeral, eg `ephemerals.foo`
 
 ### literal
 *Function*

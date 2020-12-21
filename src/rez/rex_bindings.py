@@ -185,7 +185,7 @@ class EphemeralsBinding(RO_MappingBinding):
     """
     def __init__(self, ephemerals):
         doc = dict(
-            (x.name[1:], str(x)[1:])  # note: stripped leading '.'
+            (x.name[1:], str(x))  # note: stripped leading '.'
             for x in ephemerals
         )
         super(EphemeralsBinding, self).__init__(doc)
@@ -201,13 +201,9 @@ def intersects(obj, range_):
 
         # in package.py
         def commands():
-            # version is implied
+            # test a request
             if intersects(request.maya, '2019+'):
-                info('requested maya was >=2019.*')
-
-            # same as above
-            if intersects(request.maya.version, '2019+'):
-                info('requested maya was >=2019.*')
+                info('requested maya allows >=2019.*')
 
             # tests if a resolved version intersects with given range
             if intersects(resolve.maya, '2019+')
