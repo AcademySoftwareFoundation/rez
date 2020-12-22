@@ -83,7 +83,7 @@ def create_build_system(working_dir, buildsys_type=None, package=None, opts=None
                     "\n"
                     "There is a rezbuild.py file present, suggesting you were "
                     "using the deprecated bez build system. You need to use a "
-                    "custom build command instead. You port your existing "
+                    "custom build command instead. You can port your existing "
                     "rezbuild.py like so:\n"
                     "\n"
                     "Add this line to package.py:\n"
