@@ -1,10 +1,8 @@
 name: Wiki
 on:
   push:
-    paths:
-      - 'wiki/**'
-      - src/rez/rezconfig.py
-  pull_request:
+    #branches:
+    #  - master
     paths:
       - 'wiki/**'
       - src/rez/rezconfig.py
@@ -24,22 +22,20 @@ jobs:
         with:
           python-version: 3.7
 
+      - name: Get Rez Version
+        run: |
+          rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
+          echo "rezver=${rezver}" >> $GITHUB_ENV
+
       - name: Build Wiki
         working-directory: wiki  # Start in correct dir, else inspect fails
         run: |
-          git config --global color.ui always
-          if [ "${{ github.event_name == 'pull_request' }}" == "true" ]
-          then
-            BRANCH="${{ github.head_ref }}"
-          else
-            BRANCH="${{ github.ref }}"
-          fi
+          #git config --global color.ui always
 
           python update-wiki.py \
             --keep-temp \
             --no-push \
-            --github-release="$BRANCH" \
-            --github-branch="${BRANCH##refs*/}" \
+            --github-release=${rezver} \
             --wiki-dir="${{ github.workspace }}"/"${{ env.TEMP_WIKI_DIR }}" \
             --wiki-url="${{ env.CLONE_URL }}"
 
