@@ -4,6 +4,7 @@ on:
     #branches:
     #  - master
     paths:
+      - '.github/workflows/wiki.yaml'
       - 'wiki/**'
       - src/rez/rezconfig.py
 env:
