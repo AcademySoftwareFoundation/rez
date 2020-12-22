@@ -1753,22 +1753,27 @@ class ResolvedContext(object):
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
         ephemerals = self.resolved_ephemerals or []
+
         request_str = ' '.join(str(x) for x in self._package_requests)
         implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         package_paths_str = os.pathsep.join(self.package_paths)
+        req_timestamp_str = str(self.requested_timestamp or 0)
 
         header_comment(executor, "system setup")
 
         executor.setenv("REZ_USED", self.rez_path)
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
-        executor.setenv("REZ_USED_REQUESTED_TIMESTAMP",
-                        str(self.requested_timestamp or 0))
+        executor.setenv("REZ_USED_REQUESTED_TIMESTAMP", req_timestamp_str)
         executor.setenv("REZ_USED_REQUEST", request_str)
         executor.setenv("REZ_USED_IMPLICIT_PACKAGES", implicit_str)
         executor.setenv("REZ_USED_RESOLVE", resolve_str)
         executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
+
+        if ephemerals:
+            eph_resolve_str = ' '.join(str(x) for x in ephemerals)
+            executor.setenv("REZ_USED_EPH_RESOLVE", eph_resolve_str)
 
         if self.building:
             executor.setenv("REZ_BUILD_ENV", "1")

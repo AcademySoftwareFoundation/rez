@@ -30,7 +30,7 @@ in any case).
 
 Example showing range intersection:
 
-    ]$ rez-env .foo-1 .foo-1.5+
+    ]$ rez-env .foo-1 '.foo-1.5+'
 
     You are now in a rez-configured environment.
 
@@ -52,12 +52,24 @@ Example of conflicting request:
     The context failed to resolve:
     The following package conflicts occurred: (.foo-1 <--!--> .foo-2)
 
-The only alteration to the runtime directly caused by an ephemeral is the setting
-of environment variables `REZ_EPH_{NAME}_REQUEST`, where `NAME` is the ephemeral
-name, minus the leading `.`:
+## Environment Variables
 
-    ]$ rez-env .foo-1 -- echo '$REZ_EPH_FOO_REQUEST'
+Ephemerals do not affect the runtime in the way that packages can (via their
+`commands` section), however some environment variables are set:
+
+* `REZ_USED_EPH_RESOLVE` lists all resolved ephemeral requests;
+* `REZ_EPH_(PKG)_REQUEST` is set for every resolved ephemeral. Here, `(PKG)` is
+  the ephemeral name, in uppercase, with dots replaced by underscores and with
+  **the leading dot removed**.
+
+The following example illustrates:
+
+    ]$ rez-env python .foo-1 .bah-2
+    ...
+    ]$ echo $REZ_EPH_FOO_REQUEST
     1
+    ]$ ecgo $REZ_USED_EPH_RESOLVE
+    .foo-1 .bah-2
 
 ## Introspection
 
