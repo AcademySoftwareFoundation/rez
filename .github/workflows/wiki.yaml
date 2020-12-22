@@ -1,8 +1,8 @@
 name: Wiki
 on:
   push:
-    #branches:
-    #  - master
+    branches:
+      - master
     paths:
       - '.github/workflows/wiki.yaml'
       - 'wiki/**'
