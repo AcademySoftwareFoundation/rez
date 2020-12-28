@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.69.7 (2020-12-22)
+[Source](https://github.com/nerdvegas/rez/tree/2.69.7) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.6...2.69.7)
+
+**Merged pull requests:**
+
+- Issue 994 wiki workflow fixes [\#995](https://github.com/nerdvegas/rez/pull/995) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- wiki workflow broken [\#994](https://github.com/nerdvegas/rez/issues/994)
+
 ## 2.69.6 (2020-11-24)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.6) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.5...2.69.6)
 
