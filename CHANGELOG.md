@@ -1,5 +1,23 @@
 # Change Log
 
+## 2.70.0 (2020-12-29)
+[Source](https://github.com/nerdvegas/rez/tree/2.70.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.7...2.70.0)
+
+**Backwards Compatibility Issues**
+
+This release **removes the bez build system**. This was a very simple build system that does nothing more
+than call a function in `rezbuild.py`, passing it some build attributes (such as installation path). It has
+been removed because you can achieve the same thing using a custom build command, and you can retrieve the
+build attributes from environment variables instead.
+
+If you attempt to build a package that was previously using bez (ie, the `rezbuild.py` script is still there,
+and `build_command` is not specified in your package.py) then the resulting error message shows you what you
+need to do to port your existing build script.
+
+**Merged pull requests:**
+
+- Remove bez [\#979](https://github.com/nerdvegas/rez/pull/979) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.69.7 (2020-12-22)
 [Source](https://github.com/nerdvegas/rez/tree/2.69.7) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.6...2.69.7)
 
