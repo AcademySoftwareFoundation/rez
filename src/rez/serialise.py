@@ -72,6 +72,7 @@ def open_file_for_write(filepath, mode=None):
         try:
             with atomic_write(filepath, overwrite=True, **encoding) as f:
                 f.write(content)
+            break
 
         except WindowsError as e:
             if attempt == 0:
