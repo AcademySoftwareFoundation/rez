@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.70.1 (2020-12-29)
+[Source](https://github.com/nerdvegas/rez/tree/2.70.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.0...2.70.1)
+
+**Merged pull requests:**
+
+- Fixes release hook for Python 3 [\#981](https://github.com/nerdvegas/rez/pull/981) ([bfloch](https://github.com/bfloch))
+
 ## 2.70.0 (2020-12-29)
 [Source](https://github.com/nerdvegas/rez/tree/2.70.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.69.7...2.70.0)
 
