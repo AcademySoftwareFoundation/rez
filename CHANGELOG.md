@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.70.2 (2020-12-29)
+[Source](https://github.com/nerdvegas/rez/tree/2.70.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.1...2.70.2)
+
+**Merged pull requests:**
+
+- fix: exit file write retry loop after successfull write [\#989](https://github.com/nerdvegas/rez/pull/989) ([bpabel](https://github.com/bpabel))
+
 ## 2.70.1 (2020-12-29)
 [Source](https://github.com/nerdvegas/rez/tree/2.70.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.0...2.70.1)
 
