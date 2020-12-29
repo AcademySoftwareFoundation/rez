@@ -53,7 +53,12 @@ class TestSolver(TestBase):
 
         s1.solve()
         self.assertEqual(s1.status, SolverStatus.solved)
-        resolve = [str(x) for x in s1.resolved_packages]
+
+        # ephemeral order doesn't matter, hence the sort
+        resolve = (
+            [str(x) for x in s1.resolved_packages] +
+            sorted(str(x) for x in s1.resolved_ephemerals)
+        )
 
         print()
         print("request: %s" % ' '.join(packages))
@@ -64,7 +69,10 @@ class TestSolver(TestBase):
         print("checking that unoptimised solve matches optimised...")
         s2.solve()
         self.assertEqual(s2.status, SolverStatus.solved)
-        resolve2 = [str(x) for x in s2.resolved_packages]
+        resolve2 = (
+            [str(x) for x in s2.resolved_packages] +
+            sorted(str(x) for x in s2.resolved_ephemerals)
+        )
         self.assertEqual(resolve2, resolve)
 
         print("checking that permutations also succeed...")
@@ -108,6 +116,12 @@ class TestSolver(TestBase):
                     [])
         self._solve(["~nada"],
                     [])
+        self._solve([".foo-1"],
+                    [".foo-1"])
+        self._solve(["!.bah"],
+                    [])
+        self._solve(["!.bah-2.5+"],
+                    [])
         self._solve(["python"],
                     ["python-2.7.0[]"])
         self._solve(["~python-2+"],
@@ -145,6 +159,8 @@ class TestSolver(TestBase):
         self._fail("nada", "!nada")
         self._fail("python-2.6", "~python-2.7")
         self._fail("pyfoo", "nada", "!nada")
+        self._fail(".foo-1", ".foo-2")
+        self._fail(".foo-2.5", "!.foo-2")
 
     def test_04(self):
         """Basic failures."""
@@ -156,6 +172,7 @@ class TestSolver(TestBase):
     def test_05(self):
         """More complex failures."""
         self._fail("bahish", "pybah<5")
+        self._fail("pybah-4", "pyfoo-3.0")
 
     def test_06(self):
         """Basic solves involving multiple packages."""
@@ -163,21 +180,25 @@ class TestSolver(TestBase):
                     ["nada[]", "nopy-2.1[]"])
         self._solve(["pyfoo"],
                     ["python-2.6.8[]", "pyfoo-3.1.0[]"])
+        self._solve(["pyfoo-3.0"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]", ".eek-3+"])
+        self._solve(["pyfoo-3.0", ".eek-4.5"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]", ".eek-4.5"])
         self._solve(["pybah"],
                     ["python-2.5.2[]", "pybah-5[]"])
         self._solve(["nopy", "python"],
                     ["nopy-2.1[]", "python-2.7.0[]"])
         self._solve(["pybah", "!python-2.5"],
-                    ["python-2.6.8[]", "pybah-4[]"])
+                    ["python-2.6.8[]", "pybah-4[]", ".eek-1"])
         self._solve(["pybah", "!python-2.5", "python<2.6.8"],
-                    ["python-2.6.0[]", "pybah-4[]"])
+                    ["python-2.6.0[]", "pybah-4[]", ".eek-1"])
         self._solve(["python", "pybah"],
-                    ["python-2.6.8[]", "pybah-4[]"])
+                    ["python-2.6.8[]", "pybah-4[]", ".eek-1"])
 
     def test_07(self):
         """More complex solves."""
         self._solve(["python", "pyodd"],
-                    ["python-2.6.8[]", "pybah-4[]", "pyodd-2[]"])
+                    ["python-2.6.8[]", "pybah-4[]", "pyodd-2[]", ".eek-1"])
         self._solve(["pybah", "pyodd"],
                     ["python-2.5.2[]", "pybah-5[]", "pyodd-2[]"])
         self._solve(["pysplit", "python-2.5"],
@@ -186,6 +207,8 @@ class TestSolver(TestBase):
                     ["pysplit-5[]"])
         self._solve(["python", "bahish", "pybah"],
                     ["python-2.5.2[]", "pybah-5[]", "bahish-2[]"])
+        self._solve([".foo-2.5+", ".foo-2"],
+                    [".foo-2.5+<2_"])
 
     def test_08(self):
         """Cyclic failures."""

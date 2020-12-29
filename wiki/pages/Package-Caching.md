@@ -1,4 +1,4 @@
-# Overview
+## Overview
 
 Package caching is a feature that copies package payloads onto local disk in
 order to speed up runtime environments. For example, if your released packages
@@ -9,7 +9,7 @@ the cache is to copy that content locally instead, and avoid the network cost.
 > [[media/icons/info.png]] Please note: Package caching does _NOT_ cache package
 > definitions - only their payloads (ie, the package root directory).
 
-# Enabling
+## Enabling
 
 Package caching is not enabled by default. To enable it, you need to configure
 [cache_packages_path](Configuring-Rez#cache_packages_path) to specify a path to
@@ -30,7 +30,7 @@ and [default_cachable_per_repository](Configuring-Rez#default_cachable_per_repos
 Note that you can also disable package caching on the command line, using
 `rez-env --no-pkg-caching`.
 
-# Verifying
+## Verifying
 
 When you resolve an environment, you can see which variants have been cached by
 noting the `cached` label in the righthand column of the `rez-context` output,
@@ -67,7 +67,7 @@ an environment variable like so:
 /svr/packages/Flask/1.1.2/88a70aca30cb79a278872594adf043dc6c40af99
 ```
 
-# How it Works
+## How it Works
 
 Package caching actually caches _variants_, not entire packages. When you perform
 a resolve, or source an existing context, the variants required are copied to
@@ -88,9 +88,9 @@ you should _not_ enable caching on package repositories where packages may get
 overwritten. It is for this reason that caching is disabled for local packages by
 default (see [package_cache_local](Configuring-Rez#package_cache_local)).
 
-# Commandline Tool
+## Commandline Tool
 
-## Inspection
+### Inspection
 
 Use the `rez-pkg-cache` tool to view the state of the cache, and to perform
 warming and deletion operations. Example output follows:
@@ -125,7 +125,7 @@ Cached variants have one of the following statuses at any given time:
 * **stalled**: The variant was getting copied, but something went wrong and there is
   now a partial copy present (but unused) in the cache.
 
-## Logging
+### Logging
 
 Caching operations are stored into logfiles within the cache directory. To view:
 
@@ -138,7 +138,7 @@ rez-pkg-cache 2020-05-23 16:17:45,404 PID-29827 INFO Started caching of variant 
 rez-pkg-cache 2020-05-23 16:17:46,006 PID-29827 INFO Cached variant to /home/ajohns/package_cache/python/3.7.4/ce1c/a in 0.602037 seconds
 ```
 
-## Cleaning The Cache
+### Cleaning The Cache
 
 Cleaning the cache refers to deleting variants that are stalled or no longer in use.
 It isn't really possible to know whether a variant is in use, so there is a

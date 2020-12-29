@@ -6,9 +6,10 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.util import shlex_join, dedup, is_non_string_iterable
+from rez.util import dedup, is_non_string_iterable
 from rez.utils.sourcecode import SourceCodeError
-from rez.utils.colorize import critical, heading, local, implicit, Printer
+from rez.utils.colorize import critical, heading, local, implicit, Printer, \
+    ephemeral as ephemeral_color
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
     header_comment, minor_header_comment
 from rez.utils.data_utils import deep_del
@@ -18,7 +19,7 @@ from rez.utils.logging_ import print_error, print_warning
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
-    VariantsBinding, RequirementsBinding
+    VariantsBinding, RequirementsBinding, EphemeralsBinding, intersects
 from rez import package_order
 from rez.packages import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
@@ -30,6 +31,7 @@ from rez.exceptions import ResolvedContextError, PackageCommandError, \
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
+from rez.vendor.version.requirement import Requirement
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils import json
@@ -121,7 +123,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 5)
+    serialize_version = (4, 6)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     context_tracking_payload = None
@@ -255,6 +257,7 @@ class ResolvedContext(object):
         # resolve results
         self.status_ = ResolverStatus.pending
         self._resolved_packages = None
+        self._resolved_ephemerals = None
         self.failure_description = None
         self.graph_string = None
         self.graph_ = None
@@ -313,10 +316,11 @@ class ResolvedContext(object):
 
         if self.status_ == ResolverStatus.solved:
             self._resolved_packages = []
-
             for variant in resolver.resolved_packages:
                 variant.set_context(self)
                 self._resolved_packages.append(variant)
+
+            self._resolved_ephemerals = resolver.resolved_ephemerals
 
         # track context usage
         if config.context_tracking_host:
@@ -374,6 +378,15 @@ class ResolvedContext(object):
         """
         return self._resolved_packages
 
+    @property
+    def resolved_ephemerals(self):
+        """Get non-conflict ephemerals in the resolve.
+
+        Returns:
+            List of `Requirement` objects, or None if the resolve failed.
+        """
+        return self._resolved_ephemerals
+
     def set_load_path(self, path):
         """Set the path that this context was reportedly loaded from.
 
@@ -386,13 +399,15 @@ class ResolvedContext(object):
     def __eq__(self, other):
         """Equality test.
 
-        Two contexts are considered equal if they have a equivalent request,
+        Two contexts are considered equal if they have an equivalent request,
         and an equivalent resolve. Other details, such as timestamp, are not
         considered.
         """
-        return (isinstance(other, ResolvedContext)
-                and other.requested_packages(True) == self.requested_packages(True)
-                and other.resolved_packages == self.resolved_packages)
+        return (
+            isinstance(other, ResolvedContext) and
+            other.requested_packages(True) == self.requested_packages(True) and
+            other.resolved_packages == self.resolved_packages
+        )
 
     def __hash__(self):
         list_ = []
@@ -767,8 +782,12 @@ class ResolvedContext(object):
         rows = []
         colors = []
         for request in self._package_requests:
-            rows.append((str(request), ""))
-            colors.append(None)
+            if request.name.startswith('.'):
+                rows.append((str(request), "(ephemeral)"))
+                colors.append(ephemeral_color)
+            else:
+                rows.append((str(request), ""))
+                colors.append(None)
 
         for request in self.implicit_packages:
             rows.append((str(request), "(implicit)"))
@@ -822,6 +841,13 @@ class ResolvedContext(object):
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, location, t))
             colors.append(col)
+
+        # add ephemerals to end of resolved packages list
+        ephemerals = self.resolved_ephemerals or []
+        ephemerals = sorted(ephemerals, key=lambda x: x.name)
+        for req in ephemerals:
+            rows.append((str(req), '', "(ephemeral)"))
+            colors.append(ephemeral_color)
 
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
@@ -936,7 +962,7 @@ class ResolvedContext(object):
         return _check
 
     @_on_success
-    def get_dependency_graph(self):
+    def get_dependency_graph(self, as_dot=False):
         """Generate the dependency graph.
 
         The dependency graph is a simpler subset of the resolve graph. It
@@ -949,7 +975,14 @@ class ResolvedContext(object):
         """
         from rez.vendor.pygraph.classes.digraph import digraph
 
+        # add nodes
         nodes = {}
+        for variant in self._resolved_packages:
+            nodes[variant.name] = variant.qualified_package_name
+        for ephemeral in self._resolved_ephemerals:
+            nodes[ephemeral.name] = str(ephemeral)
+
+        # add edges
         edges = set()
         for variant in self._resolved_packages:
             nodes[variant.name] = variant.qualified_package_name
@@ -968,7 +1001,11 @@ class ResolvedContext(object):
             g.add_node(name, attrs=attrs + [("label", qname)])
         for edge in edges:
             g.add_edge(edge)
-        return g
+
+        if as_dot:
+            return write_dot(g)
+        else:
+            return g
 
     @_on_success
     def validate(self):
@@ -1375,6 +1412,12 @@ class ResolvedContext(object):
                 resolved_packages.append(pkg.handle.to_dict())
             data["resolved_packages"] = resolved_packages
 
+        if _add("resolved_ephemerals"):
+            resolved_ephemerals = []
+            for ephemeral in (self._resolved_ephemerals or []):
+                resolved_ephemerals.append(str(ephemeral))
+            data["resolved_ephemerals"] = resolved_ephemerals
+
         if _add("serialize_version"):
             data["serialize_version"] = \
                 '.'.join(map(str, ResolvedContext.serialize_version))
@@ -1556,6 +1599,13 @@ class ResolvedContext(object):
 
         r.package_caching = d.get("package_caching", True)
 
+        # -- SINCE SERIALIZE VERSION 4.6
+
+        r._resolved_ephemerals = []
+        for eph_str in d.get("resolved_ephemerals", []):
+            req = Requirement(eph_str)
+            r._resolved_ephemerals.append(req)
+
         # <END SERIALIZATION>
 
         # track context usage
@@ -1692,7 +1742,8 @@ class ResolvedContext(object):
                 "system": system,
                 "building": self.building,
                 "request": RequirementsBinding(self._package_requests),
-                "implicits": RequirementsBinding(self.implicit_packages)
+                "implicits": RequirementsBinding(self.implicit_packages),
+                "intersects": intersects
             }
 
         return self.pre_resolve_bindings
@@ -1701,22 +1752,28 @@ class ResolvedContext(object):
     def _execute(self, executor):
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
+        ephemerals = self.resolved_ephemerals or []
+
         request_str = ' '.join(str(x) for x in self._package_requests)
         implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         package_paths_str = os.pathsep.join(self.package_paths)
+        req_timestamp_str = str(self.requested_timestamp or 0)
 
         header_comment(executor, "system setup")
 
         executor.setenv("REZ_USED", self.rez_path)
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
-        executor.setenv("REZ_USED_REQUESTED_TIMESTAMP",
-                        str(self.requested_timestamp or 0))
+        executor.setenv("REZ_USED_REQUESTED_TIMESTAMP", req_timestamp_str)
         executor.setenv("REZ_USED_REQUEST", request_str)
         executor.setenv("REZ_USED_IMPLICIT_PACKAGES", implicit_str)
         executor.setenv("REZ_USED_RESOLVE", resolve_str)
         executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
+
+        if ephemerals:
+            eph_resolve_str = ' '.join(str(x) for x in ephemerals)
+            executor.setenv("REZ_USED_EPH_RESOLVE", eph_resolve_str)
 
         if self.building:
             executor.setenv("REZ_BUILD_ENV", "1")
@@ -1733,11 +1790,12 @@ class ResolvedContext(object):
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
         # binds objects such as 'request', which are accessible before a resolve
-        bindings = self._get_pre_resolve_bindings()
-        for k, v in bindings.items():
+        pre_resolve_bindings = self._get_pre_resolve_bindings()
+        for k, v in pre_resolve_bindings.items():
             executor.bind(k, v)
 
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
+        executor.bind('ephemerals', EphemeralsBinding(ephemerals))
 
         #
         # -- apply each resolved package to the execution context
@@ -1751,7 +1809,6 @@ class ResolvedContext(object):
 
         # retarget variant roots wrt package caching
         pkg_roots = {}
-
         if self.package_caching and \
                 config.cache_packages_path and \
                 config.read_package_cache:
@@ -1764,7 +1821,7 @@ class ResolvedContext(object):
                         pkg_roots[pkg.name] = cached_root
 
         # set basic package variables and create per-package bindings
-        bindings = {}
+        pkg_bindings = {}
         for pkg in resolved_pkgs:
             minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
@@ -1786,10 +1843,12 @@ class ResolvedContext(object):
             else:
                 executor.setenv(prefix + "_ROOT", pkg.root)
 
-            bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
-                                      variant=VariantBinding(pkg))
+            pkg_bindings[pkg.name] = dict(
+                version=VersionBinding(pkg.version),
+                variant=VariantBinding(pkg)
+            )
 
-        # commands
+        # package commands
         for attr in ("pre_commands", "commands", "post_commands"):
             found = False
             for pkg in resolved_pkgs:
@@ -1801,14 +1860,13 @@ class ResolvedContext(object):
                     header_comment(executor, attr)
 
                 minor_header_comment(executor, "%s from package %s" % (attr, pkg.qualified_name))
-                bindings_ = bindings[pkg.name]
-                executor.bind('this',       bindings_["variant"])
-                executor.bind("version",    bindings_["version"])
-                executor.bind('root',       pkg_roots.get(pkg.name, pkg.root))
-                executor.bind('base',       pkg.base)
+                pkg_bindings_ = pkg_bindings[pkg.name]
+                executor.bind('this', pkg_bindings_["variant"])
+                executor.bind("version", pkg_bindings_["version"])
+                executor.bind('root', pkg_roots.get(pkg.name, pkg.root))
+                executor.bind('base', pkg.base)
 
                 exc = None
-                trace = None
                 commands.set_package(pkg)
 
                 try:
@@ -1831,6 +1889,16 @@ class ResolvedContext(object):
         #
         for name in ("this", "version", "root", "base"):
             executor.unbind(name)
+
+        # set variables per ephemeral
+        # for eph '.foo-1.2' for eg, $REZ_EPH_FOO_REQUEST="1.2"
+        if ephemerals:
+            header_comment(executor, "ephemeral variables")
+
+            for eph_req in ephemerals:
+                uname = eph_req.name[1:].upper().replace('.', '_')
+                varname = "REZ_EPH_" + uname + "_REQUEST"
+                executor.setenv(varname, str(eph_req.range))
 
         header_comment(executor, "post system setup")
 

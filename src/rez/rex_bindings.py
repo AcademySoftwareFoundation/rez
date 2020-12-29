@@ -1,17 +1,23 @@
 """
 Provides wrappers for various types for binding to Rex. We do not want to bind
 object instances directly in Rex, because this would create an indirect
-dependency between rex code in package.* files, and versions of Rez.
+dependency between rex code in package.py files, and versions of Rez.
 
 The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
+from rez.vendor.six import six
+from rez.vendor.version.version import VersionRange
+from rez.vendor.version.requirement import Requirement
+
+
+basestring = six.string_types[0]
 
 
 class Binding(object):
     """Abstract base class."""
     def __init__(self, data=None):
-        self.__data = data or {}
+        self._data = data or {}
 
     def _attr_error(self, attr):
         raise AttributeError("%s has no attribute '%s'"
@@ -19,7 +25,7 @@ class Binding(object):
 
     def __getattr__(self, attr):
         try:
-            return self.__data[attr]
+            return self._data[attr]
         except KeyError:
             self._attr_error(attr)
 
@@ -107,14 +113,12 @@ class VariantBinding(Binding):
         super(VariantBinding, self).__init__(doc)
         self.__variant = variant
 
-    # hacky, but we'll be deprecating all these bindings..
     def __getattr__(self, attr):
         try:
             return super(VariantBinding, self).__getattr__(attr)
         except:
-            missing = object()
-            value = getattr(self.__variant, attr, missing)
-            if value is missing:
+            value = getattr(self.__variant, attr, KeyError)
+            if value is KeyError:
                 raise
 
             return value
@@ -127,37 +131,124 @@ class VariantBinding(Binding):
         return self.__variant.qualified_package_name
 
 
-class VariantsBinding(Binding):
-    """Binds a list of packages.Variant objects, under the package name of
-    each variant."""
-    def __init__(self, variants):
-        self.__variants = dict((x.name, VariantBinding(x)) for x in variants)
-        super(VariantsBinding, self).__init__(self.__variants)
+class RO_MappingBinding(Binding):
+    """A read-only, dict-like object.
+    """
+    def __init__(self, data):
+        super(RO_MappingBinding, self).__init__(data)
 
-    def _attr_error(self, attr):
-        raise AttributeError("package does not exist: '%s'" % attr)
-
-    def __contains__(self, name):
-        return (name in self.__variants)
-
-
-class RequirementsBinding(Binding):
-    """Binds a list of version.Requirement objects."""
-    def __init__(self, requirements):
-        self.__requirements = dict((x.name, str(x)) for x in requirements)
-        super(RequirementsBinding, self).__init__(self.__requirements)
-
-    def _attr_error(self, attr):
-        raise AttributeError("request does not exist: '%s'" % attr)
+    def get(self, name, default=None):
+        return self._data.get(name, default)
 
     def __getitem__(self, name):
-        if name in self.__requirements:
-            return self.__requirements[name]
+        if name in self._data:
+            return self._data[name]
         else:
             self._attr_error(name)
 
     def __contains__(self, name):
-        return (name in self.__requirements)
+        return (name in self._data)
+
+    def __str__(self):
+        return str(self._data.values())
+
+
+class VariantsBinding(RO_MappingBinding):
+    """Binds a list of packages.Variant objects, under the package name of
+    each variant."""
+    def __init__(self, variants):
+        doc = dict((x.name, VariantBinding(x)) for x in variants)
+        super(VariantsBinding, self).__init__(doc)
+
+    def _attr_error(self, attr):
+        raise AttributeError("package does not exist: '%s'" % attr)
+
+
+class RequirementsBinding(RO_MappingBinding):
+    """Binds a list of version.Requirement objects."""
+    def __init__(self, requirements):
+        doc = dict((x.name, str(x)) for x in requirements)
+        super(RequirementsBinding, self).__init__(doc)
+
+    def _attr_error(self, attr):
+        raise AttributeError("request does not exist: '%s'" % attr)
+
+
+class EphemeralsBinding(RO_MappingBinding):
+    """Binds a list of resolved ephemeral packages.
+
+    Note that the leading '.' is implied when referring to ephemerals. Eg:
+
+        # in package.py
+        def commands():
+            if "foo.cli" in ephemerals:  # will match '.foo.cli-*' request
+    """
+    def __init__(self, ephemerals):
+        doc = dict(
+            (x.name[1:], str(x))  # note: stripped leading '.'
+            for x in ephemerals
+        )
+        super(EphemeralsBinding, self).__init__(doc)
+
+    def _attr_error(self, attr):
+        raise AttributeError("ephemeral does not exist: '%s'" % attr)
+
+
+def intersects(obj, range_):
+    """Test if an object intersects with the given version range.
+
+    Examples:
+
+        # in package.py
+        def commands():
+            # test a request
+            if intersects(request.maya, '2019+'):
+                info('requested maya allows >=2019.*')
+
+            # tests if a resolved version intersects with given range
+            if intersects(resolve.maya, '2019+')
+                ...
+
+            # same as above
+            if intersects(resolve.maya.version, '2019+')
+                ...
+
+        # disable my cli tools if .foo.cli-0 was specified
+        def commands():
+            if intersects(ephemerals.get('foo.cli', '1'), '1'):
+                env.PATH.append('{root}/bin')
+
+    Args:
+        obj (VariantBinding or str): Object to test, either a
+            variant, or requirement string (eg 'foo-1.2.3+').
+        range_ (str): Version range, eg '1.2+<2'
+
+    Returns:
+        bool: True if the object intersects the given range.
+    """
+    range1 = VersionRange(range_)
+
+    # eg 'if intersects(request.maya, ...)'
+    if isinstance(obj, basestring):
+        req = Requirement(obj)
+        if req.conflict:
+            return False
+        range2 = req.range
+
+    # eg 'if intersects(resolve.maya, ...)'
+    elif isinstance(obj, VariantBinding):
+        range2 = VersionRange(str(obj.version))
+
+    # eg 'if intersects(resolve.maya.version, ...)'
+    elif isinstance(obj, VersionBinding):
+        range2 = VersionRange(str(obj))
+
+    else:
+        raise RuntimeError(
+            "Invalid type %s passed as first arg to 'intersects'" % type(obj)
+        )
+
+    return range1.intersects(range2)
 
 
 # Copyright 2013-2016 Allan Johns.

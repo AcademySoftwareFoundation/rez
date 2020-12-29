@@ -14,6 +14,7 @@
 - [[Package Commands]]
 - [[Package Definition Guide]]
 - [[Variants]]
+- [[Ephemeral Packages]]
 
 :rocket: rez:
 

@@ -1062,6 +1062,11 @@ implicit_fore = "cyan"
 implicit_back = None
 implicit_styles = None
 
+# Ephemerals
+ephemeral_fore = "blue"
+ephemeral_back = None
+ephemeral_styles = None
+
 # Tool aliases in suites
 alias_fore = "cyan"
 alias_back = None

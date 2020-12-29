@@ -6,6 +6,7 @@ from rez.utils.memcached import memcached_client, pool_memcached_connections
 from rez.utils.logging_ import log_duration
 from rez.config import config
 from rez.vendor.enum import Enum
+from rez.vendor.version.requirement import Requirement
 from contextlib import contextmanager
 from hashlib import sha1
 import os
@@ -93,6 +94,7 @@ class Resolver(object):
 
         self.status_ = ResolverStatus.pending
         self.resolved_packages_ = None
+        self.resolved_ephemerals_ = None
         self.failure_description = None
         self.graph_ = None
         self.from_cache = False
@@ -140,6 +142,16 @@ class Resolver(object):
             completed.
         """
         return self.resolved_packages_
+
+    @property
+    def resolved_ephemerals(self):
+        """Get the list of resolved ewphemerals.
+
+        Returns:
+            List of `Requirement` objects, or None if the resolve has not
+            completed.
+        """
+        return self.resolved_ephemerals_
 
     @property
     def graph(self):
@@ -402,12 +414,19 @@ class Resolver(object):
         self.failure_description = solver_dict.get("failure_description")
 
         self.resolved_packages_ = None
+        self.resolved_ephemerals_ = None
+
         if self.status_ == ResolverStatus.solved:
             # convert solver.Variants to packages.Variants
             self.resolved_packages_ = []
             for variant_handle in solver_dict.get("variant_handles", []):
                 variant = self._get_variant(variant_handle)
                 self.resolved_packages_.append(variant)
+
+            self.resolved_ephemerals_ = []
+            for req_str in solver_dict.get("ephemerals", []):
+                req = Requirement(req_str)
+                self.resolved_ephemerals_.append(req)
 
     @classmethod
     def _solver_to_dict(cls, solver):
@@ -416,6 +435,7 @@ class Resolver(object):
         load_time = solver.load_time
         failure_description = None
         variant_handles = None
+        ephemerals = None
 
         st = solver.status
         if st == SolverStatus.unsolved:
@@ -424,6 +444,7 @@ class Resolver(object):
         elif st == SolverStatus.failed:
             status_ = ResolverStatus.failed
             failure_description = solver.failure_description()
+
         elif st == SolverStatus.solved:
             status_ = ResolverStatus.solved
 
@@ -432,13 +453,19 @@ class Resolver(object):
                 variant_handle_dict = solver_variant.handle
                 variant_handles.append(variant_handle_dict)
 
+            ephemerals = []
+            for ephemeral in solver.resolved_ephemerals:
+                ephemerals.append(str(ephemeral))
+
         return dict(
             status=status_,
             graph=graph_,
             solve_time=solve_time,
             load_time=load_time,
             failure_description=failure_description,
-            variant_handles=variant_handles)
+            variant_handles=variant_handles,
+            ephemerals=ephemerals
+        )
 
 
 # Copyright 2013-2016 Allan Johns.

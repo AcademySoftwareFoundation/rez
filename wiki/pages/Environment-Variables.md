@@ -11,6 +11,7 @@ These are variables that rez generates within a resolved environment (a "context
 * **REZ_USED_IMPLICIT_PACKAGES** - The list of implicit packages used in the resolve.
 * **REZ_USED_PACKAGES_PATH** - The package searchpath used for this resolve.
 * **REZ_USED_RESOLVE** - The list of resolved packages, eg *"platform-linux utils-1.2.3"*.
+* **REZ_USED_EPH_RESOLVE** - The list of resolved ephemerals, eg *".foo.cli-1 .debugging-0"*.
 * **REZ_USED_REQUEST** - The environment request string, eg *"maya-2017 maya_utils-1.3+"*.
   Does not include implicit packages.
 * **REZ_USED_REQUESTED_TIMESTAMP** - The epoch time of this resolved environment,
@@ -34,6 +35,13 @@ dots replaced with underscore:
 * **REZ_(PKG)_MAJOR_VERSION** - The major version of the package, or ''.
 * **REZ_(PKG)_MINOR_VERSION** - The minor version of the package, or ''.
 * **REZ_(PKG)_PATCH_VERSION** - The patch version of the package, or ''.
+
+For every _ephemeral_ package request, the following variables are generated. Note
+that for a given ephemeral package name, *"(PKG)"* in the variables below is the
+uppercased package name, with dots replaced by underscore, and **the leading dot
+removed**:
+
+* **REZ_EPH_(PKG)_REQUEST** - The resolved ephemeral package request.
 
 ## Build Environment Variables
 

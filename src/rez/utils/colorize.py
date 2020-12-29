@@ -133,6 +133,20 @@ def implicit(str_):
     return _color_level(str_, 'implicit')
 
 
+def ephemeral(str_):
+    """ Return the string wrapped with the appropriate styling to display an
+    ephemeral package.  The styling will be determined based on the rez
+    configuration.
+
+    Args:
+      str_ (str): The string to be wrapped.
+
+    Returns:
+      str: The string styled with the appropriate escape sequences.
+    """
+    return _color_level(str_, 'ephemeral')
+
+
 def alias(str_):
     """ Return the string wrapped with the appropriate styling to display a
     tool alias.  The styling will be determined based on the rez configuration.

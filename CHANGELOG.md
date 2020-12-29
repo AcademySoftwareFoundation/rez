@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.71.0 (2020-12-29)
+[Source](https://github.com/nerdvegas/rez/tree/2.71.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.5...2.71.0)
+
+**Notes**
+
+[Ephemeral packages](https://github.com/nerdvegas/rez/wiki/Ephemeral-Packages) are a major new feature. These
+enable dependencies on abstract objects or machine capabilities (for example), and also act as a way to pass
+'options' to packages that can alter their behaviour. These will also form the basis for _package features_, an
+upcoming feature that will allow packages to depend on _features_ of other packages, rather than just their
+version number.
+
+**Merged pull requests:**
+
+- Ephemeral packages [\#993](https://github.com/nerdvegas/rez/pull/993) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.70.5 (2020-12-29)
 [Source](https://github.com/nerdvegas/rez/tree/2.70.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.4...2.70.5)
 
