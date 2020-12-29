@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.70.3 (2020-12-29)
+[Source](https://github.com/nerdvegas/rez/tree/2.70.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.2...2.70.3)
+
+**Merged pull requests:**
+
+- Fix no CLI args passed into forward script on Windows [\#990](https://github.com/nerdvegas/rez/pull/990) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.70.2 (2020-12-29)
 [Source](https://github.com/nerdvegas/rez/tree/2.70.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.1...2.70.2)
 
