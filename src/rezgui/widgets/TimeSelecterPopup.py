@@ -23,7 +23,7 @@ class Canvas(QtWidgets.QWidget):
         margin = 5
         j = h / 4
 
-        p = QtWidgets.QPainter(self)
+        p = QtGui.QPainter(self)
         update_font(p, italic=True)
 
         pal = QtGui.QPalette()
