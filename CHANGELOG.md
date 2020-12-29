@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.70.5 (2020-12-29)
+[Source](https://github.com/nerdvegas/rez/tree/2.70.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.4...2.70.5)
+
+**Merged pull requests:**
+
+- Fix module 'Qt.QtWidgets' has no attribute'QPainter' [\#992](https://github.com/nerdvegas/rez/pull/992) ([loonghao](https://github.com/loonghao))
+
 ## 2.70.4 (2020-12-29)
 [Source](https://github.com/nerdvegas/rez/tree/2.70.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.3...2.70.4)
 
