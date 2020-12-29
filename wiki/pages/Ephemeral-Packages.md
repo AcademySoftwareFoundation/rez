@@ -3,9 +3,9 @@
 _Introduced in version 2.71.0_
 
 Ephemeral packages (or simply 'ephemerals') are requests for packages that do not
-exist. Ephemeral package names always begin with `.`. Like all package requests,
-ephemerals can be requested as part of packages' requires or variants lists, or
-directly by the user (via `rez-env` for eg).
+exist. Ephemeral package names always begin with a dot (`.`). Like all package
+requests, ephemerals can be requested as part of packages' requires or variants
+lists, or directly by the user (via `rez-env` for eg).
 
 Example:
 
@@ -68,7 +68,7 @@ The following example illustrates:
     ...
     ]$ echo $REZ_EPH_FOO_REQUEST
     1
-    ]$ ecgo $REZ_USED_EPH_RESOLVE
+    ]$ echo $REZ_USED_EPH_RESOLVE
     .foo-1 .bah-2
 
 ## Introspection
