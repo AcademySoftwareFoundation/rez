@@ -68,26 +68,36 @@ def open_file_for_write(filepath, mode=None):
 
     debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
 
-    for attempt in range(2):
-        try:
-            with atomic_write(filepath, overwrite=True, **encoding) as f:
-                f.write(content)
-            break
+    # Attempt to make file writable if it isn't already. Just fallthrough
+    # if this fails, we'll get the error we expect on write anyway
+    #
+    try:
+        if os.path.exists(filepath):
+            orig_mode = os.stat(filepath).st_mode
+            os.chmod(filepath, orig_mode | stat.S_IWUSR)
+    except:
+        pass
 
-        except WindowsError as e:
-            if attempt == 0:
-                # `overwrite=True` of atomic_write doesn't restore
-                # writability to the file being written to.
-                os.chmod(filepath, stat.S_IWRITE | stat.S_IREAD)
+    # try atomic write, but that can sometimes fail.
+    # https://github.com/nerdvegas/rez/issues/858
+    #
+    written = False
+    try:
+        with atomic_write(filepath, overwrite=True, **encoding) as f:
+            f.write(content)
+        written = True
+    except:
+        pass
 
-            else:
-                # Under Windows, atomic_write doesn't tell you about
-                # which file actually failed.
-                raise WindowsError("%s: '%s'" % (e, filepath))
+    # fallback to standard write
+    if not written:
+        with open(filepath, 'w', **encoding) as f:
+            f.write(content)
 
     if mode is not None:
         os.chmod(filepath, mode)
 
+    # write the local fs cache copy
     with open(cache_filepath, 'w', **encoding) as f:
         f.write(content)
 
