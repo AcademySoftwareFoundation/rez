@@ -1,18 +1,17 @@
 name: Ubuntu
 on:
-  # Don't run on the following updates:
-  # - docker images
-  # - documentation
   pull_request:
     paths-ignore:
       - '.github/docker/**'
       - '.github/workflows/windows-docker-image.yaml'
+      - 'src/rez/utils/_version.py'
       - 'wiki/**'
       - '**.md'
   push:
     paths-ignore:
       - '.github/docker/**'
       - '.github/workflows/windows-docker-image.yaml'
+      - 'src/rez/utils/_version.py'
       - 'wiki/**'
       - '**.md'
 

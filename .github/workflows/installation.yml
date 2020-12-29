@@ -1,5 +1,10 @@
 name: Installation
-on: [push]
+on:
+  push:
+    paths-ignore:
+      - 'src/rez/utils/_version.py'
+      - 'wiki/**'
+      - '**.md'
 
 jobs:
   linux-vm:
