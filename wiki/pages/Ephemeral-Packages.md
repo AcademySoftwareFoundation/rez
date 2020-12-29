@@ -1,6 +1,6 @@
 ## Overview
 
-_Introduced in version 2.70.0_
+_Introduced in version 2.71.0_
 
 Ephemeral packages (or simply 'ephemerals') are requests for packages that do not
 exist. Ephemeral package names always begin with `.`. Like all package requests,
