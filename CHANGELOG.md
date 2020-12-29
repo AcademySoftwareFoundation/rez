@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.70.4 (2020-12-29)
+[Source](https://github.com/nerdvegas/rez/tree/2.70.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.3...2.70.4)
+
+**Merged pull requests:**
+
+- update open_file_for_write with simplified error handling [\#998](https://github.com/nerdvegas/rez/pull/998) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- 'rez build --install --prefix' error  [\#858](https://github.com/nerdvegas/rez/issues/858)
+
 ## 2.70.3 (2020-12-29)
 [Source](https://github.com/nerdvegas/rez/tree/2.70.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.2...2.70.3)
 
