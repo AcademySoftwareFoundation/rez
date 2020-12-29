@@ -78,8 +78,8 @@ class ImageViewerWidget(QtWidgets.QWidget):
         self.view = GraphicsView(self.scene, max_scale=max_scale)
 
         create_pane([self.view], False, parent_widget=self)
-        self.view.setRenderHints(QtWidgets.QPainter.Antialiasing
-                                 | QtWidgets.QPainter.SmoothPixmapTransform)
+        self.view.setRenderHints(QtGui.QPainter.Antialiasing
+                                 | QtGui.QPainter.SmoothPixmapTransform)
         self.view.show()
         self._fit_in_view()
 
