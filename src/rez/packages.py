@@ -403,7 +403,8 @@ class Variant(PackageBaseResourceWrapper):
             (self.parent.requires or []) + self.variant_requires
         )
 
-    def get_requires(self, build_requires=False, private_build_requires=False):
+    def get_requires(self, build_requires=False, private_build_requires=False,
+                     requires=True):
         """Get the requirements of the variant.
 
         Args:
@@ -414,14 +415,16 @@ class Variant(PackageBaseResourceWrapper):
         Returns:
             List of `Requirement` objects.
         """
-        requires = self.requires or []
+        result = []
+        if requires:
+            result += self.requires or []
 
         if build_requires:
-            requires = requires + (self.build_requires or [])
+            result += self.build_requires or []
         if private_build_requires:
-            requires = requires + (self.private_build_requires or [])
+            result += self.private_build_requires or []
 
-        return requires
+        return result
 
     def install(self, path, dry_run=False, overrides=None):
         """Install this variant into another package repository.

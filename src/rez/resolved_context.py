@@ -224,10 +224,7 @@ class ResolvedContext(object):
         self.package_filter = (PackageFilterList.singleton if package_filter is None
                                else package_filter)
 
-        self.package_orderers = (
-            PackageOrderList.singleton if package_orderers is None
-            else package_orders
-        )
+        self.package_orderers = package_orderers or PackageOrderList.singleton
 
         # settings that affect context execution
         self.append_sys_path = True

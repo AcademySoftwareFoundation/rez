@@ -225,7 +225,8 @@ class BuildProcessHelper(BuildProcess):
     def create_build_context(self, variant, build_type, build_path):
         """Create a context to build the variant within."""
         request = variant.get_requires(build_requires=True,
-                                       private_build_requires=True)
+                                       private_build_requires=True,
+                                       requires=False)
 
         req_strs = map(str, request)
         quoted_req_strs = map(quote, req_strs)
