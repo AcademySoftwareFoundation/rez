@@ -24,19 +24,25 @@ from rez.cli._entry_points import get_specifications
 from rez.backport.shutilwhich import which
 from rez.vendor.distlib.scripts import ScriptMaker
 
-from build_utils.virtualenv.virtualenv import create_environment, path_locations
+# switch to builtin venv in python 3.9+
+use_venv = (sys.version_info[:2] >= (3, 9))
+
+if use_venv:
+    import venv
+else:
+    from build_utils.virtualenv.virtualenv import create_environment, path_locations
 
 
-def get_py_venv_executable(dest_dir):
+def get_virtualenv_py_executable(dest_dir):
     # get virtualenv's python executable
-    _, _, _, venv_bin_dir = path_locations(dest_dir)
+    _, _, _, virtualenv_bin_dir = path_locations(dest_dir)
 
     env = {
-        "PATH": venv_bin_dir,
+        "PATH": virtualenv_bin_dir,
         "PATHEXT": os.environ.get("PATHEXT", "")
     }
 
-    return venv_bin_dir, which("python", env=env)
+    return virtualenv_bin_dir, which("python", env=env)
 
 
 def run_command(args, cwd=source_path):
@@ -46,20 +52,20 @@ def run_command(args, cwd=source_path):
 
 
 def patch_rez_binaries(dest_dir):
-    venv_bin_path, py_executable = get_py_venv_executable(dest_dir)
+    virtualenv_bin_path, py_executable = get_virtualenv_py_executable(dest_dir)
 
     specs = get_specifications()
 
     # delete rez bin files written into virtualenv
     for name in specs.keys():
-        filepath = os.path.join(venv_bin_path, name)
+        filepath = os.path.join(virtualenv_bin_path, name)
         if os.path.isfile(filepath):
             os.remove(filepath)
 
     # write patched bins instead. These go into 'bin/rez' subdirectory, which
     # gives us a bin dir containing only rez binaries. This is what we want -
-    # we don't want resolved envs accidentally getting the venv's 'python'.
-    dest_bin_path = os.path.join(venv_bin_path, "rez")
+    # we don't want resolved envs accidentally getting the virtualenv's 'python'.
+    dest_bin_path = os.path.join(virtualenv_bin_path, "rez")
     if os.path.exists(dest_bin_path):
         shutil.rmtree(dest_bin_path)
     os.makedirs(dest_bin_path)
@@ -101,6 +107,14 @@ def copy_completion_scripts(dest_dir):
     return None
 
 
+def create_virtual_environment(dest_dir):
+    if use_venv:
+        builder = venv.EnvBuilder()
+        builder.create(dest_dir)
+    else:
+        create_environment(dest_dir)
+
+
 def install(dest_dir, print_welcome=False):
     """Install rez into the given directory.
 
@@ -110,7 +124,7 @@ def install(dest_dir, print_welcome=False):
     print("installing rez to %s..." % dest_dir)
 
     # create the virtualenv
-    create_environment(dest_dir)
+    create_virtual_environment(dest_dir)
 
     # install rez from source
     install_rez_from_source(dest_dir)
@@ -118,12 +132,12 @@ def install(dest_dir, print_welcome=False):
     # patch the rez binaries
     patch_rez_binaries(dest_dir)
 
-    # copy completion scripts into venv
+    # copy completion scripts into virtualenv
     completion_path = copy_completion_scripts(dest_dir)
 
-    # mark venv as production rez install. Do not remove - rez uses this!
-    _, _, _, venv_bin_dir = path_locations(dest_dir)
-    dest_bin_dir = os.path.join(venv_bin_dir, "rez")
+    # mark virtualenv as production rez install. Do not remove - rez uses this!
+    _, _, _, virtualenv_bin_dir = path_locations(dest_dir)
+    dest_bin_dir = os.path.join(virtualenv_bin_dir, "rez")
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
         f.write(_rez_version)
@@ -169,7 +183,7 @@ def install(dest_dir, print_welcome=False):
 
 
 def install_rez_from_source(dest_dir):
-    _, py_executable = get_py_venv_executable(dest_dir)
+    _, py_executable = get_virtualenv_py_executable(dest_dir)
 
     # install via pip
     run_command([py_executable, "-m", "pip", "install", "."])
@@ -186,7 +200,7 @@ def install_as_rez_package(repo_path):
     """
     from tempfile import mkdtemp
 
-    # do a temp production (venv-based) rez install
+    # do a temp production (virtualenv-based) rez install
     tmpdir = mkdtemp(prefix="rez-install-")
     install(tmpdir)
 
