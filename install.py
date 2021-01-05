@@ -25,7 +25,7 @@ from rez.backport.shutilwhich import which
 from rez.vendor.distlib.scripts import ScriptMaker
 
 # switch to builtin venv in python 3.9+
-use_venv = (sys.version_info[:2] >= (3, 9))
+use_venv = (sys.version_info[:2] >= (3, 6))
 
 if use_venv:
     import venv
