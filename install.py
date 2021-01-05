@@ -33,16 +33,34 @@ else:
     from build_utils.virtualenv.virtualenv import create_environment, path_locations
 
 
+def create_virtual_environment(dest_dir):
+    if use_venv:
+        builder = venv.EnvBuilder()
+        builder.create(dest_dir)
+    else:
+        create_environment(dest_dir)
+
+
+def get_virtualenv_bin_dir(dest_dir):
+    if use_venv:
+        builder = venv.EnvBuilder()
+        context = builder.ensure_directories(dest_dir)
+        return context.bin_path
+    else:
+        _, _, _, bin_dir = path_locations(dest_dir)
+        return bin_dir
+
+
 def get_virtualenv_py_executable(dest_dir):
     # get virtualenv's python executable
-    _, _, _, virtualenv_bin_dir = path_locations(dest_dir)
+    bin_dir = get_virtualenv_bin_dir()
 
     env = {
-        "PATH": virtualenv_bin_dir,
+        "PATH": bin_dir,
         "PATHEXT": os.environ.get("PATHEXT", "")
     }
 
-    return virtualenv_bin_dir, which("python", env=env)
+    return bin_dir, which("python", env=env)
 
 
 def run_command(args, cwd=source_path):
@@ -92,11 +110,12 @@ def copy_completion_scripts(dest_dir):
     # find completion dir in rez package
     path = os.path.join(dest_dir, "lib")
     completion_path = None
-    for root, dirs, _ in os.walk(path):
-        if os.path.basename(root) == "completion":
+    for root, _, _ in os.walk(path):
+        if root.endswith(os.path.sep + "rez" + os.path.sep + "completion"):
             completion_path = root
             break
 
+    # copy completion scripts into root of virtualenv for ease of use
     if completion_path:
         dest_path = os.path.join(dest_dir, "completion")
         if os.path.exists(dest_path):
@@ -105,14 +124,6 @@ def copy_completion_scripts(dest_dir):
         return dest_path
 
     return None
-
-
-def create_virtual_environment(dest_dir):
-    if use_venv:
-        builder = venv.EnvBuilder()
-        builder.create(dest_dir)
-    else:
-        create_environment(dest_dir)
 
 
 def install(dest_dir, print_welcome=False):
