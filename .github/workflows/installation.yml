@@ -7,7 +7,7 @@ on:
       - '**.md'
 
 jobs:
-  linux-vm:
+  main:
     name: ${{ matrix.python-version }} - ${{ matrix.method }}
     runs-on: ubuntu-latest
     strategy:

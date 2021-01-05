@@ -24,8 +24,13 @@ from rez.cli._entry_points import get_specifications
 from rez.backport.shutilwhich import which
 from rez.vendor.distlib.scripts import ScriptMaker
 
-# switch to builtin venv in python 3.9+
-use_venv = (sys.version_info[:2] >= (3, 6))
+# switch to builtin venv in python 3.7+
+#
+# Note: There are issues using venv with 3.6. Installed pip version is 18.2
+# (which isn't high enough for rez-pip to behave correctly). 3.7 installs pip
+# version 20.1.
+#
+use_venv = (sys.version_info[:2] >= (3, 7))
 
 if use_venv:
     import venv
