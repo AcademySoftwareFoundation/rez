@@ -147,7 +147,7 @@ def install(dest_dir, print_welcome=False):
     completion_path = copy_completion_scripts(dest_dir)
 
     # mark virtualenv as production rez install. Do not remove - rez uses this!
-    _, _, _, virtualenv_bin_dir = path_locations(dest_dir)
+    virtualenv_bin_dir = get_virtualenv_bin_dir(dest_dir)
     dest_bin_dir = os.path.join(virtualenv_bin_dir, "rez")
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
