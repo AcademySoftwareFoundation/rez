@@ -35,7 +35,7 @@ else:
 
 def create_virtual_environment(dest_dir):
     if use_venv:
-        builder = venv.EnvBuilder()
+        builder = venv.EnvBuilder(with_pip=True)
         builder.create(dest_dir)
     else:
         create_environment(dest_dir)
@@ -45,9 +45,6 @@ def get_virtualenv_bin_dir(dest_dir):
     if use_venv:
         builder = venv.EnvBuilder()
         context = builder.ensure_directories(dest_dir)
-
-        print("ZZZZZZZZZZZZZZZZ %s" % os.listdir(context.bin_path))
-
         return context.bin_path
     else:
         _, _, _, bin_dir = path_locations(dest_dir)
