@@ -13,3 +13,4 @@ docs/_build
 .DS_Store
 .rez-gen-wiki-tmp
 LATEST_CHANGELOG.md
+__pycache__
