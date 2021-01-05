@@ -53,7 +53,7 @@ def get_virtualenv_bin_dir(dest_dir):
 
 def get_virtualenv_py_executable(dest_dir):
     # get virtualenv's python executable
-    bin_dir = get_virtualenv_bin_dir()
+    bin_dir = get_virtualenv_bin_dir(dest_dir)
 
     env = {
         "PATH": bin_dir,
