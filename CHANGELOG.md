@@ -1,5 +1,23 @@
 # Change Log
 
+## 2.72.0 (2021-01-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.72.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.71.0...2.72.0)
+
+**Notes**
+
+This release uses python-3's native `venv` module to perform the rez installation, for python-3.7 and above.
+For earlier python versions, an embedded copy of virtualenv was used, but this ceases to work correctly in
+python-3.9.
+
+**Merged pull requests:**
+
+- venv based install [\#1006](https://github.com/nerdvegas/rez/pull/1006) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Installation With Python >=3.9 Fails ('HTMLParser' object has no attribute 'unescape') [\#980](https://github.com/nerdvegas/rez/issues/980)
+- have install.py use venv in python3 [\#982](https://github.com/nerdvegas/rez/issues/982)
+
 ## 2.71.0 (2020-12-29)
 [Source](https://github.com/nerdvegas/rez/tree/2.71.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.70.5...2.71.0)
 
