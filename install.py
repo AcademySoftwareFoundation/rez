@@ -1,6 +1,6 @@
 """
-This script uses an embedded copy of virtualenv to create a standalone,
-production-ready Rez installation in the specified directory.
+This script uses venv/virtualenv to create a standalone, production-ready Rez
+installation in the specified directory.
 """
 from __future__ import print_function
 
@@ -19,10 +19,10 @@ sys.path.insert(0, src_path)
 # Note: The following imports are carefully selected, they will work even
 # though rez is not yet built.
 #
-from rez.utils._version import _rez_version
-from rez.cli._entry_points import get_specifications
-from rez.backport.shutilwhich import which
-from rez.vendor.distlib.scripts import ScriptMaker
+from rez.utils._version import _rez_version  # noqa: E402
+from rez.cli._entry_points import get_specifications  # noqa: E402
+from rez.backport.shutilwhich import which  # noqa: E402
+from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
 # switch to builtin venv in python 3.7+
 #
