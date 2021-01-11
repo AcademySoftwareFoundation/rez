@@ -105,7 +105,7 @@ def find_pip(pip_version=None, python_version=None):
 
         found_pip_version = pip.__version__
         py_exe = sys.executable
-        print_warning("Found no pip in any python and/or pip packages!")
+        print_warning("Found no pip in any python and/or pip rez packages!")
         print_warning("Falling back to pip installed in rez own virtualenv:")
         logging_arguments = (
             ("pip", found_pip_version, pip.__file__),
@@ -179,7 +179,7 @@ def find_pip_from_context(python_version, pip_version=None):
         if package:
             python_major_minor_ver = package.version.trim(2)
         else:
-            raise BuildError("Found no python package.")
+            raise BuildError("Found no python rez package.")
 
     python_package = "python-%s" % str(python_major_minor_ver)
 

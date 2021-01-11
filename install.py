@@ -1,6 +1,6 @@
 """
-This script uses an embedded copy of virtualenv to create a standalone,
-production-ready Rez installation in the specified directory.
+This script uses venv/virtualenv to create a standalone, production-ready Rez
+installation in the specified directory.
 """
 from __future__ import print_function
 
@@ -19,24 +19,53 @@ sys.path.insert(0, src_path)
 # Note: The following imports are carefully selected, they will work even
 # though rez is not yet built.
 #
-from rez.utils._version import _rez_version
-from rez.cli._entry_points import get_specifications
-from rez.backport.shutilwhich import which
-from rez.vendor.distlib.scripts import ScriptMaker
+from rez.utils._version import _rez_version  # noqa: E402
+from rez.cli._entry_points import get_specifications  # noqa: E402
+from rez.backport.shutilwhich import which  # noqa: E402
+from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
-from build_utils.virtualenv.virtualenv import create_environment, path_locations
+# switch to builtin venv in python 3.7+
+#
+# Note: There are issues using venv with 3.6. Installed pip version is 18.2
+# (which isn't high enough for rez-pip to behave correctly). 3.7 installs pip
+# version 20.1.
+#
+use_venv = (sys.version_info[:2] >= (3, 7))
+
+if use_venv:
+    import venv
+else:
+    from build_utils.virtualenv.virtualenv import create_environment, path_locations
 
 
-def get_py_venv_executable(dest_dir):
+def create_virtual_environment(dest_dir):
+    if use_venv:
+        builder = venv.EnvBuilder(with_pip=True)
+        builder.create(dest_dir)
+    else:
+        create_environment(dest_dir)
+
+
+def get_virtualenv_bin_dir(dest_dir):
+    if use_venv:
+        builder = venv.EnvBuilder()
+        context = builder.ensure_directories(dest_dir)
+        return context.bin_path
+    else:
+        _, _, _, bin_dir = path_locations(dest_dir)
+        return bin_dir
+
+
+def get_virtualenv_py_executable(dest_dir):
     # get virtualenv's python executable
-    _, _, _, venv_bin_dir = path_locations(dest_dir)
+    bin_dir = get_virtualenv_bin_dir(dest_dir)
 
     env = {
-        "PATH": venv_bin_dir,
+        "PATH": bin_dir,
         "PATHEXT": os.environ.get("PATHEXT", "")
     }
 
-    return venv_bin_dir, which("python", env=env)
+    return bin_dir, which("python", env=env)
 
 
 def run_command(args, cwd=source_path):
@@ -46,20 +75,20 @@ def run_command(args, cwd=source_path):
 
 
 def patch_rez_binaries(dest_dir):
-    venv_bin_path, py_executable = get_py_venv_executable(dest_dir)
+    virtualenv_bin_path, py_executable = get_virtualenv_py_executable(dest_dir)
 
     specs = get_specifications()
 
     # delete rez bin files written into virtualenv
     for name in specs.keys():
-        filepath = os.path.join(venv_bin_path, name)
+        filepath = os.path.join(virtualenv_bin_path, name)
         if os.path.isfile(filepath):
             os.remove(filepath)
 
     # write patched bins instead. These go into 'bin/rez' subdirectory, which
     # gives us a bin dir containing only rez binaries. This is what we want -
-    # we don't want resolved envs accidentally getting the venv's 'python'.
-    dest_bin_path = os.path.join(venv_bin_path, "rez")
+    # we don't want resolved envs accidentally getting the virtualenv's 'python'.
+    dest_bin_path = os.path.join(virtualenv_bin_path, "rez")
     if os.path.exists(dest_bin_path):
         shutil.rmtree(dest_bin_path)
     os.makedirs(dest_bin_path)
@@ -86,11 +115,12 @@ def copy_completion_scripts(dest_dir):
     # find completion dir in rez package
     path = os.path.join(dest_dir, "lib")
     completion_path = None
-    for root, dirs, _ in os.walk(path):
-        if os.path.basename(root) == "completion":
+    for root, _, _ in os.walk(path):
+        if root.endswith(os.path.sep + "rez" + os.path.sep + "completion"):
             completion_path = root
             break
 
+    # copy completion scripts into root of virtualenv for ease of use
     if completion_path:
         dest_path = os.path.join(dest_dir, "completion")
         if os.path.exists(dest_path):
@@ -110,7 +140,7 @@ def install(dest_dir, print_welcome=False):
     print("installing rez to %s..." % dest_dir)
 
     # create the virtualenv
-    create_environment(dest_dir)
+    create_virtual_environment(dest_dir)
 
     # install rez from source
     install_rez_from_source(dest_dir)
@@ -118,12 +148,12 @@ def install(dest_dir, print_welcome=False):
     # patch the rez binaries
     patch_rez_binaries(dest_dir)
 
-    # copy completion scripts into venv
+    # copy completion scripts into virtualenv
     completion_path = copy_completion_scripts(dest_dir)
 
-    # mark venv as production rez install. Do not remove - rez uses this!
-    _, _, _, venv_bin_dir = path_locations(dest_dir)
-    dest_bin_dir = os.path.join(venv_bin_dir, "rez")
+    # mark virtualenv as production rez install. Do not remove - rez uses this!
+    virtualenv_bin_dir = get_virtualenv_bin_dir(dest_dir)
+    dest_bin_dir = os.path.join(virtualenv_bin_dir, "rez")
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
         f.write(_rez_version)
@@ -169,7 +199,7 @@ def install(dest_dir, print_welcome=False):
 
 
 def install_rez_from_source(dest_dir):
-    _, py_executable = get_py_venv_executable(dest_dir)
+    _, py_executable = get_virtualenv_py_executable(dest_dir)
 
     # install via pip
     run_command([py_executable, "-m", "pip", "install", "."])
@@ -186,7 +216,7 @@ def install_as_rez_package(repo_path):
     """
     from tempfile import mkdtemp
 
-    # do a temp production (venv-based) rez install
+    # do a temp production (virtualenv-based) rez install
     tmpdir = mkdtemp(prefix="rez-install-")
     install(tmpdir)
 
