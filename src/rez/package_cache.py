@@ -466,6 +466,15 @@ class PackageCache(object):
                     stderr=out_target,
                     **kwargs
                 )
+
+                if (platform.system() == "Windows"
+                        and sys.version_info <= (3, 6)):
+                    # Wait subprocess cleanup
+                    #   This is a Python<=3.6 won't fix on Windows.
+                    #   Based on issue: https://bugs.python.org/issue37380
+                    #   and the comment: https://bugs.python.org/msg346332
+                    _.wait(1)
+
         except Exception as e:
             print_warning(
                 "Failed to start package caching daemon (command: %s): %s",
