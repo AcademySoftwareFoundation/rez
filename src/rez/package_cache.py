@@ -468,7 +468,7 @@ class PackageCache(object):
                 )
 
                 if (platform.system() == "Windows"
-                        and sys.version_info <= (3, 6)):
+                        and sys.version_info < (3, 7)):
                     # Wait subprocess cleanup
                     #   This is a Python<=3.6 won't fix on Windows.
                     #   Based on issue: https://bugs.python.org/issue37380
