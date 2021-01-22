@@ -228,7 +228,7 @@ def install_as_rez_package(repo_path):
         args = (
             py_executable, "-E", "-c",
             r"from rez.utils.installer import install_as_rez_package;"
-            r"install_as_rez_package('%s')" % repo_path
+            r"install_as_rez_package(%r)" % repo_path
         )
         print(subprocess.check_output(args))
 
