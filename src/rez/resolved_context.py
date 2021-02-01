@@ -27,7 +27,7 @@ from rez.package_order import PackageOrderList
 from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
-    RezError, _NeverError, PackageCacheError
+    RezError, _NeverError, PackageCacheError, PackageNotFoundError
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
@@ -226,7 +226,7 @@ class ResolvedContext(object):
 
         self.package_orderers = (
             PackageOrderList.singleton if package_orderers is None
-            else package_orders
+            else package_orderers
         )
 
         # settings that affect context execution
@@ -438,6 +438,68 @@ class ResolvedContext(object):
         """Returns a shallow copy of the context."""
         import copy
         return copy.copy(self)
+
+    def retargeted(self, package_paths, package_names=None, skip_missing=False):
+        """Create a retargeted copy of this context.
+
+        Retargeting a context means replacing its variant references with
+        the same variants from other package repositories.
+
+        Note that `package_paths` can contains relative filepaths for filesystem
+        repositories. In this case, the context will expect the repo to be
+        stored relative to `self.load_path`, and will disable memcached when
+        accessing that repo. This functionality is used by `rez-bundle`.
+
+        Args:
+            package_paths: List of paths to search for pkgs to retarget to.
+            package_names (list of str): Only retarget these packages. If None,
+                retarget all packages.
+            skip_missing (bool): If True, skip retargeting of variants that
+                cannot be found in `package_paths`. By default, a
+                `PackageNotFoundError` is raised.
+
+        Returns:
+            ResolvecContext`: The retargeted context.
+        """
+        retargeted_variants = []
+
+        pkg_repos = [
+            package_repository_manager.get_repository(x)
+            for x in package_paths
+        ]
+
+        # find retargeted variant for every variant in this context
+        for src_variant in (self._resolved_packages or []):
+            if package_names is not None and src_variant.name not in package_names:
+                retargeted_variants.append(src_variant)
+                continue
+
+            found = None
+
+            for pkg_repo in pkg_repos:
+                dest_variant = pkg_repo.get_equivalent_variant(src_variant.resource)
+                if dest_variant is not None:
+                    found = True
+                    break
+
+            if not found:
+                if skip_missing:
+                    retargeted_variants.append(src_variant)
+                    continue
+                else:
+                    raise PackageNotFoundError(
+                        "The equivalent variant in package %s could not be found in any of %r"
+                        % (src_variant.parent, package_paths)
+                    )
+
+            retargeted_variants.append(dest_variant)
+
+        # create the retargeted context
+        d = self.to_dict()
+        d["resolved_packages"] = [
+            x.handle.to_dict() for x in retargeted_variants
+        ]
+        return self.from_dict(d)
 
     # TODO: deprecate in favor of patch() method
     def get_patched_request(self, package_requests=None,

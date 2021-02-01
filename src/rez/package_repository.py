@@ -230,6 +230,25 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_equivalent_variant(self, variant_resource):
+        """Find a variant in this repository that is equivalent to that given.
+
+        A variant is equivalent to another if it belongs to a package of the
+        same name and version, and it has the same definition (ie package
+        requirements).
+
+        Note that even though the implementation is trivial, this function is
+        provided since using `install_variant` to find an existing variant is
+        nonintuitive.
+
+        Args:
+            variant_resource (`VariantResource`): Variant to install.
+
+        Returns:
+            `VariantResource` object, or None if the variant was not found.
+        """
+        return self.install_variant(variant_resource, dry_run=True)
+
     def get_parent_package_family(self, package_resource):
         """Get the parent package family of the given package.
 
