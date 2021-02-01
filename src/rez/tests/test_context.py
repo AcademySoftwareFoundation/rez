@@ -114,7 +114,8 @@ class TestContext(TestBase, TempdirMixin):
 
         # check the pkg we contain is in the copied pkg repo
         variant = r2.resolved_packages[0]
-        self.assertTrue(variant.root.startswith(packages_path2 + os.path.sep))
+        prefix = packages_path2 + os.path.sep
+        self.assertEqual(variant.root[:len(prefix)], prefix)
 
         self._test_execute_command_environ(r2)
 
