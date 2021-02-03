@@ -362,7 +362,7 @@ def find_matching_symlink(path, source):
 
     for name in os.listdir(path):
         linkpath = os.path.join(path, name)
-        if os.path.islink:
+        if os.path.islink(linkpath):
             source_ = os.readlink(linkpath)
             if to_abs(source_) == abs_source:
                 return name
