@@ -421,7 +421,7 @@ class PackageRepositoryManager(object):
         self.pool = resource_pool
         self.repositories = {}
 
-    def get_repository(self, path, **repo_args):
+    def get_repository(self, path):
         """Get a package repository.
 
         Args:
@@ -429,7 +429,6 @@ class PackageRepositoryManager(object):
                 simply be a path (which is managed by the 'filesystem' package
                 repository plugin), or a string in the form "type@location",
                 where 'type' identifies the repository plugin type to use.
-            repo_args (kwargs): Extra constructor args for the repo.
 
         Returns:
             `PackageRepository` instance.
@@ -452,17 +451,12 @@ class PackageRepositoryManager(object):
         normalised_path = "%s@%s" % (repo_type, location)
 
         # get possibly cached repo
-        if repo_args:
-            key = tuple([normalised_path] + sorted(repo_args.items()))
-        else:
-            key = normalised_path
-
-        repository = self.repositories.get(key)
+        repository = self.repositories.get(normalised_path)
 
         # create and cache if not already cached
         if repository is None:
-            repository = self._get_repository(normalised_path, **repo_args)
-            self.repositories[key] = repository
+            repository = self._get_repository(normalised_path)
+            self.repositories[normalised_path] = repository
 
         return repository
 

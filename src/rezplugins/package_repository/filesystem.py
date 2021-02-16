@@ -23,6 +23,7 @@ from rez.utils.logging_ import print_warning
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, canonical_path
 from rez.utils.platform_ import platform_
+from rez.utils.yaml import load_yaml
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
@@ -477,7 +478,7 @@ class FileSystemPackageRepository(PackageRepository):
     def name(cls):
         return "filesystem"
 
-    def __init__(self, location, resource_pool, disable_memcache=False):
+    def __init__(self, location, resource_pool):
         """Create a filesystem package repository.
 
         Args:
@@ -489,8 +490,16 @@ class FileSystemPackageRepository(PackageRepository):
         location = canonical_path(location, platform_)
 
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
-        self.disable_memcache = disable_memcache
 
+        # load settings optionally defined in a settings.yaml
+        local_settings = {}
+        settings_filepath = os.path.join(location, "settings.yaml")
+        if os.path.exists(settings_filepath):
+            local_settings.update(load_yaml(settings_filepath))
+
+        self.disable_memcache = local_settings.get("disable_memcache", False)
+
+        # TODO allow these settings to be overridden in settings.yaml also
         global _settings
         _settings = config.plugins.package_repository.filesystem
 
@@ -856,8 +865,12 @@ class FileSystemPackageRepository(PackageRepository):
 
         for name in os.listdir(self.location):
             path = os.path.join(self.location, name)
+
+            if name in ("settings.yaml", self.file_lock_dir):
+                continue  # skip reserved file/dirnames
+
             if os.path.isdir(path):
-                if is_valid_package_name(name) and name != self.file_lock_dir:
+                if is_valid_package_name(name):
                     dirs.append((name, None))
             else:
                 name_, ext_ = os.path.splitext(name)

@@ -6,6 +6,7 @@ from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
 from rez.resolved_context import ResolvedContext
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
+from rez.utils.filesystem import is_subdirectory
 import unittest
 import subprocess
 import shutil
@@ -114,11 +115,7 @@ class TestContext(TestBase, TempdirMixin):
 
         # check the pkg we contain is in the copied pkg repo
         variant = r2.resolved_packages[0]
-        packages_path2 = os.path.realpath(packages_path2)
-        variant_root = os.path.realpath(variant.root)
-
-        prefix = packages_path2 + os.path.sep
-        self.assertEqual(variant_root[:len(prefix)], prefix)
+        self.assertTrue(is_subdirectory(variant.root, packages_path2))
 
         self._test_execute_command_environ(r2)
 

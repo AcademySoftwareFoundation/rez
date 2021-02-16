@@ -53,6 +53,13 @@ def load_yaml(filepath):
     return yaml.load(txt, Loader=yaml.FullLoader)
 
 
+def save_yaml(filepath, **fields):
+    """Convenience function for writing yaml-encoded data to disk."""
+    content = dump_yaml(fields)
+    with open(filepath, 'w') as f:
+        f.write(content + '\n')
+
+
 # Copyright 2013-2016 Allan Johns.
 #
 # This library is free software: you can redistribute it and/or
