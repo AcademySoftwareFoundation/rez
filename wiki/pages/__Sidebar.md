@@ -19,6 +19,7 @@
 :rocket: rez:
 
 - [[Contexts]]
+- [[Bundles]]
 - [[Suites]]
 - [[Building Packages]]
 - [[Package Caching]]

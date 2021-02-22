@@ -10,6 +10,7 @@ from rez.utils.platform_ import platform_
 from rez.utils.filesystem import is_subdirectory
 import unittest
 import subprocess
+import platform
 import shutil
 import os.path
 import os
@@ -122,16 +123,6 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_bundled(self):
         """Test that a bundled context behaves identically."""
-        bundle_path = os.path.join(self.root, "bundle")
-
-        # create context and bundle it
-        r = ResolvedContext(["hello_world"])
-        bundle_context(
-            context=r,
-            dest_dir=bundle_path,
-            force=True,
-            verbose=True
-        )
 
         def _test_bundle(path):
             # load the bundled context
@@ -143,6 +134,17 @@ class TestContext(TestBase, TempdirMixin):
 
             self._test_execute_command_environ(r2)
 
+        bundle_path = os.path.join(self.root, "bundle")
+
+        # create context and bundle it
+        r = ResolvedContext(["hello_world"])
+        bundle_context(
+            context=r,
+            dest_dir=bundle_path,
+            force=True,
+            verbose=True
+        )
+
         # test the bundle
         _test_bundle(bundle_path)
 
@@ -150,6 +152,27 @@ class TestContext(TestBase, TempdirMixin):
         bundle_path2 = os.path.join(self.root, "bundle2")
         shutil.copytree(bundle_path, bundle_path2)
         _test_bundle(bundle_path2)
+
+        # Create a bundle in a symlinked dest path. Bugs can arise where the
+        # real path is used in some places and not others.
+        #
+        if platform.system().lower() in ("linux", "darwin"):
+            hard_path = os.path.join(self.root, "foo")
+            bundles_path = os.path.join(self.root, "bundles")
+            bundle_path3 = os.path.join(bundles_path, "bundle3")
+
+            os.mkdir(hard_path)
+            os.symlink(hard_path, bundles_path)
+
+            r = ResolvedContext(["hello_world"])
+            bundle_context(
+                context=r,
+                dest_dir=bundle_path3,
+                force=True,
+                verbose=True
+            )
+
+            _test_bundle(bundle_path3)
 
 
 if __name__ == '__main__':

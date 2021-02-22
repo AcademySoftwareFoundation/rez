@@ -13,7 +13,7 @@ from rez.utils.colorize import critical, heading, local, implicit, Printer, \
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
     header_comment, minor_header_comment
 from rez.utils.data_utils import deep_del
-from rez.utils.filesystem import TempDirs, is_subdirectory
+from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
 from rez.backport.shutilwhich import which
@@ -36,6 +36,7 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
+from rez.utils.platform_ import platform_
 
 from contextlib import contextmanager
 from functools import wraps
@@ -1743,14 +1744,22 @@ class ResolvedContext(object):
             assert os.path.isabs(repo_path)
 
             if is_subdirectory(repo_path, bundle_path):
-                vars_["location"] = os.path.relpath(repo_path, bundle_path)
+                vars_["location"] = os.path.relpath(
+                    os.path.realpath(repo_path),
+                    os.path.realpath(bundle_path)
+                )
 
         # serializing in, make repo absolute
         else:
             if os.path.isabs(repo_path):
                 return
 
-            vars_["location"] = os.path.join(bundle_path, repo_path)
+            # Must make canonical otherwise a symlinked path will cause it not
+            # to match the repo location, which is always canonical.
+            #
+            location = os.path.join(bundle_path, repo_path)
+            location = canonical_path(location, platform_)
+            vars_["location"] = location
 
     @classmethod
     def _get_package_cache(cls):
