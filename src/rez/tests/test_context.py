@@ -4,6 +4,7 @@ test resolved contexts
 from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
     TestBase
 from rez.resolved_context import ResolvedContext
+from rez.bundle_context import bundle_context
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
 from rez.utils.filesystem import is_subdirectory
@@ -118,6 +119,37 @@ class TestContext(TestBase, TempdirMixin):
         self.assertTrue(is_subdirectory(variant.root, packages_path2))
 
         self._test_execute_command_environ(r2)
+
+    def test_bundled(self):
+        """Test that a bundled context behaves identically."""
+        bundle_path = os.path.join(self.root, "bundle")
+
+        # create context and bundle it
+        r = ResolvedContext(["hello_world"])
+        bundle_context(
+            context=r,
+            dest_dir=bundle_path,
+            force=True,
+            verbose=True
+        )
+
+        def _test_bundle(path):
+            # load the bundled context
+            r2 = ResolvedContext.load(os.path.join(path, "context.rxt"))
+
+            # check the pkg we contain is in the bundled pkg repo
+            variant = r2.resolved_packages[0]
+            self.assertTrue(is_subdirectory(variant.root, path))
+
+            self._test_execute_command_environ(r2)
+
+        # test the bundle
+        _test_bundle(bundle_path)
+
+        # copy the bundle and test the copy
+        bundle_path2 = os.path.join(self.root, "bundle2")
+        shutil.copytree(bundle_path, bundle_path2)
+        _test_bundle(bundle_path2)
 
 
 if __name__ == '__main__':
