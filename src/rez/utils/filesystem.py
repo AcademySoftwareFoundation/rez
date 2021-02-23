@@ -227,10 +227,13 @@ def forceful_rmtree(path):
                 path = windows_long_path(path)
 
             parent_path = os.path.dirname(path)
-
             if not os.access(parent_path, os.W_OK):
                 st = os.stat(parent_path)
                 os.chmod(parent_path, st.st_mode | stat.S_IWUSR)
+
+            if not os.access(path, os.W_OK):
+                st = os.stat(path)
+                os.chmod(path, st.st_mode | stat.S_IWUSR)
 
         except:
             # avoid confusion by ensuring original exception is reraised
