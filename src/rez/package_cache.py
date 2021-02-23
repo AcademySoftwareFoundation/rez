@@ -460,20 +460,12 @@ class PackageCache(object):
                 else:
                     out_target = devnull
 
-                _ = subprocess.Popen(
+                subprocess.Popen(
                     [exe, "--daemon", self.path],
                     stdout=out_target,
                     stderr=out_target,
                     **kwargs
                 )
-
-                if (platform.system() == "Windows"
-                        and sys.version_info < (3, 7)):
-                    # Wait subprocess cleanup
-                    #   This is a Python<=3.6 won't fix on Windows.
-                    #   Based on issue: https://bugs.python.org/issue37380
-                    #   and the comment: https://bugs.python.org/msg346332
-                    _.wait(1)
 
         except Exception as e:
             print_warning(
