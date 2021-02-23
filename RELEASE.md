@@ -17,11 +17,12 @@ To merge a PR to master and release a new version:
    ```
    This command prints the changelog entry to stdout, which you can then paste in
    to the top of CHANGELOG.md.
-5. Run the release-rez utility script. This performs the following actions:
-   * Pushes codebase to master;
+5. Commit and push to master;
+6. Wait for all Github workflows to pass;
+7. Run the release-rez utility script. This performs the following actions:
    * Creates tag on latest version, and pushes tag to master;
    * Generates the new GitHub release (https://github.com/nerdvegas/rez/releases).
    ```
    ]$ python ./release-rez.py
    ```
-6. Relax.
+8. Relax.
