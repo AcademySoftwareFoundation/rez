@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.72.2 (2021-02-23)
+[Source](https://github.com/nerdvegas/rez/tree/2.72.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.1...2.72.2)
+
+**Merged pull requests:**
+
+- Fix install-as-rez-package script for Windows [\#1014](https://github.com/nerdvegas/rez/pull/1014) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.72.1 (2021-02-23)
 [Source](https://github.com/nerdvegas/rez/tree/2.72.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.0...2.72.1)
 
