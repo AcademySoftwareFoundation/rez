@@ -219,15 +219,16 @@ def install_as_rez_package(repo_path):
     # do a temp production (virtualenv-based) rez install
     tmpdir = mkdtemp(prefix="rez-install-")
     install(tmpdir)
+    _, py_executable = get_virtualenv_py_executable(tmpdir)
 
     try:
         # This extracts a rez package from the installation. See
         # rez.utils.installer.install_as_rez_package for more details.
         #
         args = (
-            os.path.join(tmpdir, "bin", "python"), "-E", "-c",
+            py_executable, "-E", "-c",
             r"from rez.utils.installer import install_as_rez_package;"
-            r"install_as_rez_package('%s')" % repo_path
+            r"install_as_rez_package(%r)" % repo_path
         )
         print(subprocess.check_output(args))
 
