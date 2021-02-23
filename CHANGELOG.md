@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.72.3 (2021-02-23)
+[Source](https://github.com/nerdvegas/rez/tree/2.72.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.2...2.72.3)
+
+**Merged pull requests:**
+
+- Fix tab-completion behavior for rez deployments installed with python3 [\#1021](https://github.com/nerdvegas/rez/pull/1021) ([zachlewis](https://github.com/zachlewis))
+
+**Closed issues:**
+
+- Tab completion broken for rez deployments installed with Python-3.6 [\#1020](https://github.com/nerdvegas/rez/issues/1020)
+
 ## 2.72.2 (2021-02-23)
 [Source](https://github.com/nerdvegas/rez/tree/2.72.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.1...2.72.2)
 
