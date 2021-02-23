@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.72.1 (2021-02-23)
+[Source](https://github.com/nerdvegas/rez/tree/2.72.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.0...2.72.1)
+
+**Merged pull requests:**
+
+- Fix dir/file remove error handling [\#1012](https://github.com/nerdvegas/rez/pull/1012) ([davidlatwe](https://github.com/davidlatwe))
+- Fixes bug where readlink is applied on regular files. [\#1019](https://github.com/nerdvegas/rez/pull/1019) ([bfloch](https://github.com/bfloch))
+
 ## 2.72.0 (2021-01-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.72.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.71.0...2.72.0)
 
