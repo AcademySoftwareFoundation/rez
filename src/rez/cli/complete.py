@@ -96,6 +96,7 @@ def command(opts, parser, extra_arg_groups=None):
                                     comp_line=comp_line,
                                     comp_point=comp_point)
     words = completer.completions
+    words = [w.decode() if hasattr(w, 'decode') else w for w in words]
     print(' '.join(words))
 
 

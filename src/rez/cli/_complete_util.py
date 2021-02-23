@@ -2,7 +2,7 @@ import os
 import os.path
 from fnmatch import fnmatch
 from rez.vendor.argcomplete import CompletionFinder, default_validator, \
-    sys_encoding, split_line, debug
+    sys_encoding, split_line, debug, USING_PYTHON2
 
 
 class RezCompletionFinder(CompletionFinder):
@@ -12,9 +12,12 @@ class RezCompletionFinder(CompletionFinder):
         self.exclude = None
         self.validator = default_validator
         self.wordbreaks = " \t\"'@><=;|&(:"  # TODO: might need to be configurable/OS specific
-
-        comp_point = len(comp_line[:comp_point].decode(sys_encoding))
-        comp_line = comp_line.decode(sys_encoding)
+        
+        if USING_PYTHON2:
+            comp_line = comp_line.decode(sys_encoding)
+            comp_point = len(comp_line[:comp_point].decode(sys_encoding))
+        else:
+            comp_point = len(comp_line.encode(sys_encoding)[:comp_point].decode(sys_encoding))
 
         cword_prequote, cword_prefix, cword_suffix, comp_words, \
             first_colon_pos = split_line(comp_line, comp_point)
