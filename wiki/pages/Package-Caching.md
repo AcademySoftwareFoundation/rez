@@ -23,7 +23,7 @@ linked to them in a way that doesn't support library relocation.
 
 There are also config settings that affect cachability in the event that `cachable`
 is not defined in a package's definition. For example, see
-[default_cachable](Configuring-Rez#),
+[default_cachable](Configuring-Rez#default_cachable),
 [default_cachable_per_package](Configuring-Rez#default_cachable_per_package)
 and [default_cachable_per_repository](Configuring-Rez#default_cachable_per_repository).
 
