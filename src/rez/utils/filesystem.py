@@ -343,6 +343,7 @@ def is_subdirectory(path_a, path_b):
     try:
         relative = os.path.relpath(path_a, path_b)
     except ValueError:
+        # paths are on different mount drives
         return False
     else:
         return not relative.startswith(os.pardir + os.sep)
