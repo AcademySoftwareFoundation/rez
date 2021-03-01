@@ -13,7 +13,7 @@ from rez.utils.colorize import critical, heading, local, implicit, Printer, \
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
     header_comment, minor_header_comment
 from rez.utils.data_utils import deep_del
-from rez.utils.filesystem import TempDirs
+from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
 from rez.backport.shutilwhich import which
@@ -27,7 +27,7 @@ from rez.package_order import PackageOrderList
 from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
-    RezError, _NeverError, PackageCacheError
+    RezError, _NeverError, PackageCacheError, PackageNotFoundError
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
@@ -36,7 +36,9 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
+from rez.utils.platform_ import platform_
 
+from contextlib import contextmanager
 from functools import wraps
 import getpass
 import socket
@@ -123,13 +125,12 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 6)
+    serialize_version = (4, 7)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
-
     context_tracking_payload = None
     context_tracking_lock = threading.Lock()
-
     package_cache_present = True
+    local = threading.local()
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
@@ -226,7 +227,7 @@ class ResolvedContext(object):
 
         self.package_orderers = (
             PackageOrderList.singleton if package_orderers is None
-            else package_orders
+            else package_orderers
         )
 
         # settings that affect context execution
@@ -439,6 +440,68 @@ class ResolvedContext(object):
         import copy
         return copy.copy(self)
 
+    def retargeted(self, package_paths, package_names=None, skip_missing=False):
+        """Create a retargeted copy of this context.
+
+        Retargeting a context means replacing its variant references with
+        the same variants from other package repositories.
+
+        Args:
+            package_paths: List of paths to search for pkgs to retarget to.
+            package_names (list of str): Only retarget these packages. If None,
+                retarget all packages.
+            skip_missing (bool): If True, skip retargeting of variants that
+                cannot be found in `package_paths`. By default, a
+                `PackageNotFoundError` is raised.
+
+        Returns:
+            ResolvecContext`: The retargeted context.
+        """
+        retargeted_variants = []
+
+        pkg_repos = [
+            package_repository_manager.get_repository(x)
+            for x in package_paths
+        ]
+
+        # find retargeted variant for every variant in this context
+        for src_variant in (self._resolved_packages or []):
+            if package_names is not None and src_variant.name not in package_names:
+                retargeted_variants.append(src_variant)
+                continue
+
+            found = None
+
+            for pkg_repo in pkg_repos:
+                dest_variant = pkg_repo.get_equivalent_variant(src_variant.resource)
+                if dest_variant is not None:
+                    found = True
+                    break
+
+            if not found:
+                if skip_missing:
+                    retargeted_variants.append(src_variant)
+                    continue
+                else:
+                    raise PackageNotFoundError(
+                        "The equivalent variant in package %s could not be found in any of %r"
+                        % (src_variant.parent, package_paths)
+                    )
+
+            retargeted_variants.append(dest_variant)
+
+        # create the retargeted context
+        d = self.to_dict()
+
+        d.update({
+            "package_paths": package_paths,
+            "resolved_packages": [
+                x.handle.to_dict() for x in retargeted_variants
+            ]
+        })
+
+        return self.from_dict(d)
+
     # TODO: deprecate in favor of patch() method
     def get_patched_request(self, package_requests=None,
                             package_subtractions=None, strict=False, rank=0):
@@ -573,8 +636,9 @@ class ResolvedContext(object):
 
     def save(self, path):
         """Save the resolved context to file."""
-        with open(path, 'w') as f:
-            self.write_to_buffer(f)
+        with self._detect_bundle(path):
+            with open(path, 'w') as f:
+                self.write_to_buffer(f)
 
     def write_to_buffer(self, buf):
         """Save the context to a buffer."""
@@ -618,8 +682,10 @@ class ResolvedContext(object):
     @classmethod
     def load(cls, path):
         """Load a resolved context from file."""
-        with open(path) as f:
-            context = cls.read_from_buffer(f, path)
+        with cls._detect_bundle(path):
+            with open(path) as f:
+                context = cls.read_from_buffer(f, path)
+
         context.set_load_path(path)
         return context
 
@@ -1412,6 +1478,10 @@ class ResolvedContext(object):
                 resolved_packages.append(pkg.handle.to_dict())
             data["resolved_packages"] = resolved_packages
 
+            # since serialization version 4.7
+            for handle in data["resolved_packages"]:
+                self._adjust_variant_for_bundling(handle, out=True)
+
         if _add("resolved_ephemerals"):
             resolved_ephemerals = []
             for ephemeral in (self._resolved_ephemerals or []):
@@ -1551,6 +1621,9 @@ class ResolvedContext(object):
                 from rez.utils.backcompat import convert_old_variant_handle
                 variant_handle = convert_old_variant_handle(variant_handle)
 
+            # -- SINCE SERIALIZE VERSION 4.7
+            cls._adjust_variant_for_bundling(variant_handle, out=False)
+
             variant = get_variant(variant_handle)
             variant.set_context(r)
             r._resolved_packages.append(variant)
@@ -1619,6 +1692,74 @@ class ResolvedContext(object):
         r._update_package_cache()
 
         return r
+
+    @classmethod
+    @contextmanager
+    def _detect_bundle(cls, path):
+        bundle_path = None
+        base_dir = os.path.dirname(os.path.abspath(path))
+        bundle_filepath = os.path.join(base_dir, "bundle.yaml")
+
+        try:
+            if os.path.exists(bundle_filepath):
+                bundle_path = base_dir
+        except IOError:
+            pass
+
+        try:
+            if bundle_path:
+                cls.local.bundle_path = bundle_path
+
+            yield
+        finally:
+            try:
+                delattr(cls.local, "bundle_path")
+            except AttributeError:
+                pass
+
+    @classmethod
+    def _get_bundle_path(cls):
+        return getattr(cls.local, "bundle_path", None)
+
+    @classmethod
+    def _adjust_variant_for_bundling(cls, handle, out):
+        """
+        Deals with making variant pkg repo ref relative/nonrelative to take
+        bundling into account.
+
+        Note: Alters `handle` in-place.
+        """
+        bundle_path = cls._get_bundle_path()
+        if not bundle_path:
+            return
+
+        vars_ = handle.get("variables", {})
+        if vars_.get("repository_type") != "filesystem":
+            return
+
+        repo_path = vars_["location"]
+
+        # serializing out, make repo relative
+        if out:
+            assert os.path.isabs(repo_path)
+
+            if is_subdirectory(repo_path, bundle_path):
+                vars_["location"] = os.path.relpath(
+                    os.path.realpath(repo_path),
+                    os.path.realpath(bundle_path)
+                )
+
+        # serializing in, make repo absolute
+        else:
+            if os.path.isabs(repo_path):
+                return
+
+            # Must make canonical otherwise a symlinked path will cause it not
+            # to match the repo location, which is always canonical.
+            #
+            location = os.path.join(bundle_path, repo_path)
+            location = canonical_path(location, platform_)
+            vars_["location"] = location
 
     @classmethod
     def _get_package_cache(cls):

@@ -7,13 +7,13 @@ import os
 import stat
 import errno
 import time
-import platform
 
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
     PackageResourceHelper, package_pod_schema, \
     package_release_keys, package_build_only_keys
-from rez.serialise import clear_file_caches, open_file_for_write
+from rez.serialise import clear_file_caches, open_file_for_write, load_from_file, \
+    FileFormat
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
     ConfigurationError, PackageRepositoryError
@@ -24,7 +24,7 @@ from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, \
     canonical_path, is_subdirectory
 from rez.utils.platform_ import platform_
-from rez.serialise import load_from_file, FileFormat
+from rez.utils.yaml import load_yaml
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
@@ -187,7 +187,12 @@ class FileSystemPackageResource(PackageResourceHelper):
             raise PackageDefinitionFileMissing(
                 "Missing package definition file: %r" % self)
 
-        data = load_from_file(self.filepath, self.file_format)
+        data = load_from_file(
+            self.filepath,
+            self.file_format,
+            disable_memcache=self._repository.disable_memcache
+        )
+
         check_format_version(self.filepath, data)
 
         if "timestamp" not in data:  # old format support
@@ -324,7 +329,12 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
 
     def _load(self):
         format_ = FileFormat[self.ext]
-        data = load_from_file(self.filepath, format_)
+        data = load_from_file(
+            self.filepath,
+            format_,
+            disable_memcache=self._repository.disable_memcache
+        )
+
         check_format_version(self.filepath, data)
         return data
 
@@ -482,6 +492,15 @@ class FileSystemPackageRepository(PackageRepository):
 
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
 
+        # load settings optionally defined in a settings.yaml
+        local_settings = {}
+        settings_filepath = os.path.join(location, "settings.yaml")
+        if os.path.exists(settings_filepath):
+            local_settings.update(load_yaml(settings_filepath))
+
+        self.disable_memcache = local_settings.get("disable_memcache", False)
+
+        # TODO allow these settings to be overridden in settings.yaml also
         global _settings
         _settings = config.plugins.package_repository.filesystem
 
@@ -498,6 +517,24 @@ class FileSystemPackageRepository(PackageRepository):
         self.get_packages = lru_cache(maxsize=None)(self._get_packages)
         self.get_variants = lru_cache(maxsize=None)(self._get_variants)
         self.get_file = lru_cache(maxsize=None)(self._get_file)
+
+        # decorate with memcachemed memoizers unless told otherwise
+        if not self.disable_memcache:
+            decorator1 = memcached(
+                servers=config.memcached_uri if config.cache_listdir else None,
+                min_compress_len=config.memcached_listdir_min_compress_len,
+                key=self._get_family_dirs__key,
+                debug=config.debug_memcache
+            )
+            self._get_family_dirs = decorator1(self._get_family_dirs)
+
+            decorator2 = memcached(
+                servers=config.memcached_uri if config.cache_listdir else None,
+                min_compress_len=config.memcached_listdir_min_compress_len,
+                key=self._get_version_dirs__key,
+                debug=config.debug_memcache
+            )
+            self._get_version_dirs = decorator2(self._get_version_dirs)
 
     def _uid(self):
         t = ["filesystem", self.location]
@@ -799,8 +836,11 @@ class FileSystemPackageRepository(PackageRepository):
         self.get_packages.cache_clear()
         self.get_variants.cache_clear()
         self.get_file.cache_clear()
-        self._get_family_dirs.forget()
-        self._get_version_dirs.forget()
+
+        if not self.disable_memcache:
+            self._get_family_dirs.forget()
+            self._get_version_dirs.forget()
+
         # unfortunately we need to clear file cache across the board
         clear_file_caches()
 
@@ -821,10 +861,6 @@ class FileSystemPackageRepository(PackageRepository):
         else:
             return str(("listdir", self.location))
 
-    @memcached(servers=config.memcached_uri if config.cache_listdir else None,
-               min_compress_len=config.memcached_listdir_min_compress_len,
-               key=_get_family_dirs__key,
-               debug=config.debug_memcache)
     def _get_family_dirs(self):
         dirs = []
         if not os.path.isdir(self.location):
@@ -832,8 +868,12 @@ class FileSystemPackageRepository(PackageRepository):
 
         for name in os.listdir(self.location):
             path = os.path.join(self.location, name)
+
+            if name in ("settings.yaml", self.file_lock_dir):
+                continue  # skip reserved file/dirnames
+
             if os.path.isdir(path):
-                if is_valid_package_name(name) and name != self.file_lock_dir:
+                if is_valid_package_name(name):
                     dirs.append((name, None))
             else:
                 name_, ext_ = os.path.splitext(name)
@@ -846,12 +886,7 @@ class FileSystemPackageRepository(PackageRepository):
         st = os.stat(root)
         return str(("listdir", root, int(st.st_ino), st.st_mtime))
 
-    @memcached(servers=config.memcached_uri if config.cache_listdir else None,
-               min_compress_len=config.memcached_listdir_min_compress_len,
-               key=_get_version_dirs__key,
-               debug=config.debug_memcache)
     def _get_version_dirs(self, root):
-
         # Ignore a version if there is a .ignore<version> file next to it
         def ignore_dir(name):
             path = os.path.join(root, self.ignore_prefix + name)

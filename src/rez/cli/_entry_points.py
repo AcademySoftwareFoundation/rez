@@ -253,3 +253,10 @@ def run_rez_yaml2py():
     check_production_install()
     from rez.cli._main import run
     return run("yaml2py")
+
+
+@scriptname("rez-bundle")
+def run_rez_bundle():
+    check_production_install()
+    from rez.cli._main import run
+    return run("bundle")

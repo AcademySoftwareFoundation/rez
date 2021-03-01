@@ -93,6 +93,11 @@ class PackageCopyError(RezError):
     pass
 
 
+class ContextBundleError(RezError):
+    """There was a problem bundling a context."""
+    pass
+
+
 class PackageCacheError(RezError):
     """There was an error related to a package cache."""
     pass

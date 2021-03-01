@@ -56,6 +56,7 @@ subcommands = {
     "test": {},
     "view": {},
     "yaml2py": {},
+    "bundle": {}
 }
 
 

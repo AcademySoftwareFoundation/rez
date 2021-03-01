@@ -230,6 +230,25 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_equivalent_variant(self, variant_resource):
+        """Find a variant in this repository that is equivalent to that given.
+
+        A variant is equivalent to another if it belongs to a package of the
+        same name and version, and it has the same definition (ie package
+        requirements).
+
+        Note that even though the implementation is trivial, this function is
+        provided since using `install_variant` to find an existing variant is
+        nonintuitive.
+
+        Args:
+            variant_resource (`VariantResource`): Variant to install.
+
+        Returns:
+            `VariantResource` object, or None if the variant was not found.
+        """
+        return self.install_variant(variant_resource, dry_run=True)
+
     def get_parent_package_family(self, package_resource):
         """Get the parent package family of the given package.
 
@@ -434,6 +453,7 @@ class PackageRepositoryManager(object):
         # get possibly cached repo
         repository = self.repositories.get(normalised_path)
 
+        # create and cache if not already cached
         if repository is None:
             repository = self._get_repository(normalised_path)
             self.repositories[normalised_path] = repository
@@ -504,10 +524,10 @@ class PackageRepositoryManager(object):
         self.repositories.clear()
         self.pool.clear_caches()
 
-    def _get_repository(self, path):
+    def _get_repository(self, path, **repo_args):
         repo_type, location = path.split('@', 1)
         cls = plugin_manager.get_plugin_class('package_repository', repo_type)
-        repo = cls(location, self.pool)
+        repo = cls(location, self.pool, **repo_args)
         return repo
 
 

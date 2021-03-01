@@ -8,7 +8,7 @@ import importlib
 from argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.utils.logging_ import print_error
-from rez.exceptions import RezError, RezSystemError
+from rez.exceptions import RezError, RezSystemError, _NeverError
 from rez import __version__
 
 
@@ -146,7 +146,7 @@ def run(command=None):
         extra_arg_groups = []
 
     if opts.debug or _env_var_true("REZ_DEBUG"):
-        exc_type = None
+        exc_type = _NeverError
     else:
         exc_type = RezError
 

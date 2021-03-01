@@ -4,10 +4,14 @@ test resolved contexts
 from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
     TestBase
 from rez.resolved_context import ResolvedContext
+from rez.bundle_context import bundle_context
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
+from rez.utils.filesystem import is_subdirectory
 import unittest
 import subprocess
+import platform
+import shutil
 import os.path
 import os
 
@@ -17,12 +21,12 @@ class TestContext(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        packages_path = os.path.join(cls.root, "packages")
-        os.makedirs(packages_path)
-        hello_world.bind(packages_path)
+        cls.packages_path = os.path.join(cls.root, "packages")
+        os.makedirs(cls.packages_path)
+        hello_world.bind(cls.packages_path)
 
         cls.settings = dict(
-            packages_path=[packages_path],
+            packages_path=[cls.packages_path],
             package_filter=None,
             implicit_packages=[],
             warn_untimestamped=False,
@@ -65,15 +69,17 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_execute_command_environ(self):
         """Test that execute_command properly sets environ dict."""
-        parent_environ = {"BIGLY": "covfefe"}
         r = ResolvedContext(["hello_world"])
+        self._test_execute_command_environ(r)
 
+    def _test_execute_command_environ(self, r):
         pycode = ("import os; "
                   "print(os.getenv(\"BIGLY\")); "
                   "print(os.getenv(\"OH_HAI_WORLD\"))")
 
         args = ["python", "-c", pycode]
 
+        parent_environ = {"BIGLY": "covfefe"}
         p = r.execute_command(args, parent_environ=parent_environ,
                               stdout=subprocess.PIPE)
         stdout, _ = p.communicate()
@@ -83,7 +89,7 @@ class TestContext(TestBase, TempdirMixin):
         self.assertEqual(parts, ["covfefe", "hello"])
 
     def test_serialize(self):
-        """Test context serlialzation."""
+        """Test context serialization."""
 
         # save
         file = os.path.join(self.root, "test.rxt")
@@ -97,6 +103,76 @@ class TestContext(TestBase, TempdirMixin):
         # verify
         env = r2.get_environ()
         self.assertEqual(env.get("OH_HAI_WORLD"), "hello")
+
+    def test_retarget(self):
+        """Test that a retargeted context behaves identically."""
+
+        # make a copy of the pkg repo
+        packages_path2 = os.path.join(self.root, "packages2")
+        shutil.copytree(self.packages_path, packages_path2)
+
+        # create a context, retarget to pkg repo copy
+        r = ResolvedContext(["hello_world"])
+        r2 = r.retargeted(package_paths=[packages_path2])
+
+        # check the pkg we contain is in the copied pkg repo
+        variant = r2.resolved_packages[0]
+        self.assertTrue(is_subdirectory(variant.root, packages_path2))
+
+        self._test_execute_command_environ(r2)
+
+    def test_bundled(self):
+        """Test that a bundled context behaves identically."""
+
+        def _test_bundle(path):
+            # load the bundled context
+            r2 = ResolvedContext.load(os.path.join(path, "context.rxt"))
+
+            # check the pkg we contain is in the bundled pkg repo
+            variant = r2.resolved_packages[0]
+            self.assertTrue(is_subdirectory(variant.root, path))
+
+            self._test_execute_command_environ(r2)
+
+        bundle_path = os.path.join(self.root, "bundle")
+
+        # create context and bundle it
+        r = ResolvedContext(["hello_world"])
+        bundle_context(
+            context=r,
+            dest_dir=bundle_path,
+            force=True,
+            verbose=True
+        )
+
+        # test the bundle
+        _test_bundle(bundle_path)
+
+        # copy the bundle and test the copy
+        bundle_path2 = os.path.join(self.root, "bundle2")
+        shutil.copytree(bundle_path, bundle_path2)
+        _test_bundle(bundle_path2)
+
+        # Create a bundle in a symlinked dest path. Bugs can arise where the
+        # real path is used in some places and not others.
+        #
+        if platform.system().lower() in ("linux", "darwin"):
+            hard_path = os.path.join(self.root, "foo")
+            bundles_path = os.path.join(self.root, "bundles")
+            bundle_path3 = os.path.join(bundles_path, "bundle3")
+
+            os.mkdir(hard_path)
+            os.symlink(hard_path, bundles_path)
+
+            r = ResolvedContext(["hello_world"])
+            bundle_context(
+                context=r,
+                dest_dir=bundle_path3,
+                force=True,
+                verbose=True
+            )
+
+            _test_bundle(bundle_path3)
 
 
 if __name__ == '__main__':

@@ -19,8 +19,10 @@
 :rocket: rez:
 
 - [[Contexts]]
+- [[Bundles]]
 - [[Suites]]
 - [[Building Packages]]
+- [[Copying Packages]]
 - [[Package Caching]]
 - [[Environment Variables]]
 - [[Command Line Tools]]
