@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.73.0 (2021-03-02)
+[Source](https://github.com/nerdvegas/rez/tree/2.73.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.5...2.73.0)
+
+**Merged pull requests:**
+
+- context bundles [\#1029](https://github.com/nerdvegas/rez/pull/1029) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- bundled contexts ("bundles") [\#1009](https://github.com/nerdvegas/rez/issues/1009)
+
 ## 2.72.5 (2021-03-02)
 [Source](https://github.com/nerdvegas/rez/tree/2.72.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.4...2.72.5)
 
