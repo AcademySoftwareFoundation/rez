@@ -346,10 +346,12 @@ def is_subdirectory(path_a, path_b):
     try:
         relative = os.path.relpath(path_a, path_b)
     except ValueError:
-        # paths are on different mount drives
+        # Different mounts on Windows:
+        # ValueError: path is on mount 'c:', start on mount 'd:'
+        #
         return False
-    else:
-        return not relative.startswith(os.pardir + os.sep)
+
+    return not relative.startswith(os.pardir + os.sep)
 
 
 def find_matching_symlink(path, source):
