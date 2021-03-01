@@ -21,7 +21,8 @@ from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning
 from rez.utils.memcached import memcached, pool_memcached_connections
-from rez.utils.filesystem import make_path_writable, canonical_path
+from rez.utils.filesystem import make_path_writable, \
+    canonical_path, is_subdirectory
 from rez.utils.platform_ import platform_
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
@@ -543,12 +544,14 @@ class FileSystemPackageRepository(PackageRepository):
         - /svr/packages/mypkg/package.py[1]  (unversioned package - rare)
         - /svr/packages/mypkg/package.py<1.0.0>[1]  ("combined" package type - rare)
         """
+        uri = os.path.normcase(uri)
+
         i = uri.rfind('[')
         if i == -1:
             return None
 
         prefix = self.location + os.path.sep
-        if not uri.startswith(prefix):
+        if not is_subdirectory(uri, prefix):
             return None
 
         part1 = uri[len(prefix):i]  # 'mypkg/1.0.0/package.py'
