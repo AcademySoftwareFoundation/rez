@@ -343,8 +343,13 @@ def is_subdirectory(path_a, path_b):
     """Returns True if `path_a` is a subdirectory of `path_b`."""
     path_a = os.path.realpath(path_a)
     path_b = os.path.realpath(path_b)
-    relative = os.path.relpath(path_a, path_b)
-    return (not relative.startswith(os.pardir + os.sep))
+    try:
+        relative = os.path.relpath(path_a, path_b)
+    except ValueError:
+        # paths are on different mount drives
+        return False
+    else:
+        return not relative.startswith(os.pardir + os.sep)
 
 
 def find_matching_symlink(path, source):
