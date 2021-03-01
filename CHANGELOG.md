@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.72.4 (2021-03-02)
+[Source](https://github.com/nerdvegas/rez/tree/2.72.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.3...2.72.4)
+
+**Merged pull requests:**
+
+- Wait subprocess cleanup [\#1010](https://github.com/nerdvegas/rez/pull/1010) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.72.3 (2021-02-23)
 [Source](https://github.com/nerdvegas/rez/tree/2.72.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.2...2.72.3)
 
