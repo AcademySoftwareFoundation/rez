@@ -460,12 +460,13 @@ class PackageCache(object):
                 else:
                     out_target = devnull
 
-                _ = subprocess.Popen(
+                subprocess.Popen(
                     [exe, "--daemon", self.path],
                     stdout=out_target,
                     stderr=out_target,
                     **kwargs
                 )
+
         except Exception as e:
             print_warning(
                 "Failed to start package caching daemon (command: %s): %s",
