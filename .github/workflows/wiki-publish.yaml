@@ -1,0 +1,35 @@
+name: wiki-pubish
+on:
+  release:
+    types: [released]
+env:
+  CLONE_URL: "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
+
+jobs:
+  publish:
+    name: Publish to GitHub Wiki
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # https://stackoverflow.com/questions/60355925/share-artifacts-between-workflows-github-actions
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: wiki-build.yaml
+          workflow_conclusion: success
+          name: wiki-markdown
+          path: .
+
+      - name: Setup git config
+        run: |
+          git config --global user.name "github.com/${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@${{ github.sha }}"
+
+      - name: Git commit and push
+        run: |
+          git commit \
+              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
+              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}" \
+              || exit 0
+          git remote set-url origin "${{ env.CLONE_URL }}"
+          git push origin master
