@@ -18,8 +18,10 @@ jobs:
       TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
 
     steps:
-      - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # required to calc credits list
         with:
           python-version: 3.7
 
@@ -31,8 +33,6 @@ jobs:
       - name: Build Wiki
         working-directory: wiki  # Start in correct dir, else inspect fails
         run: |
-          #git config --global color.ui always
-
           python update-wiki.py \
             --keep-temp \
             --no-push \
