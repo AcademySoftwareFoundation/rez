@@ -4,10 +4,10 @@ on:
     workflows:
       - ubuntu
       - mac
-      - windows
+      #- windows TEMPORARY
       - installation
-    branches:
-      - master
+    #branches:
+    #  - master  TEMPORARY
     types:
       - completed
 
@@ -23,11 +23,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
 
-      - name: Detect
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install jq
+
+      - name: Check Versions
         run: |
 
           # get latest github release
-          sudo apt-get install jq
           latest_release_version=$(curl -s https://api.github.com/repos/nerdvegas/rez/releases/latest | jq '.tag_name' -r)
 
           # get version at HEAD
@@ -69,7 +72,10 @@ jobs:
       - build
 
     steps:
-      - name: Upload to PyPi
+      - name: Install Dependencies
         run: |
           pip install twine
+
+      - name: Upload to PyPi
+        run: |
           twine upload dist/*
