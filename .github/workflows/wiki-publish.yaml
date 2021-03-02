@@ -29,6 +29,7 @@ jobs:
 
       - name: Build Wiki
         working-directory: wiki
+        run: |
           rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
 
           python update-wiki.py \
