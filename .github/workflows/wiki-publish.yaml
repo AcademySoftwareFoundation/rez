@@ -50,7 +50,7 @@ jobs:
     needs: build
 
     steps:
-      - uses: dawidd6/download-artifact@v2
+      - uses: actions/download-artifact@v2
         with:
           workflow: wiki-build.yaml
           workflow_conclusion: success
