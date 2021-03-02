@@ -1,4 +1,4 @@
-name: Wiki
+name: wiki
 on:
   push:
     branches:
