@@ -17,6 +17,10 @@ jobs:
         with:
           python-version: 2.7
 
+      - name: Install Dependencies
+        run: |
+          pip install wheel
+
       - name: Build rez
         run: |
           python setup.py sdist bdist_wheel
