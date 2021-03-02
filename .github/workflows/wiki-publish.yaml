@@ -9,7 +9,6 @@ jobs:
   publish:
     name: Publish to GitHub Wiki
     runs-on: ubuntu-latest
-    needs: build
 
     steps:
       # https://stackoverflow.com/questions/60355925/share-artifacts-between-workflows-github-actions
