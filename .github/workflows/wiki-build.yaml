@@ -1,8 +1,11 @@
+#
+# This workflow just ensures the wiki builds correctly, it doesn't publish
+# anything. See wiki-publish.yaml for publishing the wiki.
+#
+
 name: wiki-build
 on:
   push:
-    #branches:
-    #  - master
     paths:
       - '.github/workflows/wiki-build.yaml'
       - 'wiki/**'
@@ -26,22 +29,14 @@ jobs:
         with:
           python-version: 3.7
 
-      - name: Get Rez Version
+      - name: Build Wiki
+        working-directory: wiki
         run: |
           rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
-          echo "rezver=${rezver}" >> $GITHUB_ENV
 
-      - name: Build Wiki
-        working-directory: wiki  # Start in correct dir, else inspect fails
-        run: |
           python update-wiki.py \
             --keep-temp \
             --no-push \
             --github-release=${rezver} \
             --wiki-dir="${{ github.workspace }}"/"${{ env.TEMP_WIKI_DIR }}" \
             --wiki-url="${{ env.CLONE_URL }}"
-
-      - uses: actions/upload-artifact@v1.0.0
-        with:
-          name: wiki-markdown
-          path: ${{ env.TEMP_WIKI_DIR }}
