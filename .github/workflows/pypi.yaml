@@ -4,8 +4,8 @@ on:
     types: [released]
 
 jobs:
-  build:
-    name: Build Rez
+  publish:
+    name: Publish to PyPi
     runs-on: ubuntu-latest
 
     steps:
@@ -19,22 +19,11 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install wheel
+          pip install wheel twine
 
       - name: Build rez
         run: |
           python setup.py sdist bdist_wheel
-
-  publish:
-    name: Publish to PyPi
-    runs-on: ubuntu-latest
-    needs:
-      - build
-
-    steps:
-      - name: Install Dependencies
-        run: |
-          pip install twine
 
       - name: Upload to PyPi
         run: |
