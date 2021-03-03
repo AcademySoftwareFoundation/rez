@@ -42,6 +42,11 @@ def find_files(pattern, path=None, root="rez"):
     return paths
 
 
+this_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(this_directory, 'README.md')) as f:
+    long_description = f.read()
+
+
 setup(
     name="rez",
     version=_rez_version,
@@ -49,7 +54,8 @@ setup(
                  "install multiple version of packages, and dynamically "
                  "configure resolved environments at runtime."),
     keywords="package resolve version build install software management",
-    long_description=None,
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url="https://github.com/nerdvegas/rez",
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
@@ -59,11 +65,11 @@ setup(
     },
     include_package_data=True,
     zip_safe=False,
-    package_dir = {'': 'src'},
+    package_dir={'': 'src'},
     packages=find_packages('src', exclude=["build_utils",
                                            "build_utils.*",
                                            "tests"]),
-    package_data = {
+    package_data={
         'rez':
             ['utils/logging.conf'] +
             ['README*'] +
@@ -77,7 +83,7 @@ setup(
             find_files('rezguiconfig', root='rezgui') +
             find_files('*', 'icons', root='rezgui')
     },
-    classifiers = [
+    classifiers=[
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",

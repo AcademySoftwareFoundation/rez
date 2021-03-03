@@ -1,0 +1,32 @@
+name: pypi
+on:
+  release:
+    types: [released]
+
+jobs:
+  publish:
+    name: Publish to PyPi
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 2.7
+
+      - name: Install Dependencies
+        run: |
+          pip install wheel
+
+      - name: Build rez
+        run: |
+          python setup.py sdist bdist_wheel
+
+      - name: Upload to PyPi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: '${{ secrets.PYPI_API_TOKEN }}'

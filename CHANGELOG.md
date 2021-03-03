@@ -1,5 +1,22 @@
 # Change Log
 
+## 2.75.0 (2021-03-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.73.0...2.75.0)
+
+**Notes**
+
+* Workflow added to perform pypi publish on release
+* Wiki workflow updated to publish only on release
+* Note that version skip (2.73.0 -> 2.75.0) due to workflow testing on github
+
+**Merged pull requests:**
+
+- Issue 1032 pypi [\#1034](https://github.com/nerdvegas/rez/pull/1034) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Pypi entries are out of date [\#1032](https://github.com/nerdvegas/rez/issues/1032)
+
 ## 2.73.0 (2021-03-02)
 [Source](https://github.com/nerdvegas/rez/tree/2.73.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.5...2.73.0)
 

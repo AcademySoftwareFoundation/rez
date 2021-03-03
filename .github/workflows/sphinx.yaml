@@ -1,16 +1,7 @@
-name: Sphinx
+name: sphinx
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'docs/**'
-      - 'src/**'
-  pull_request:
-    paths:
-      - 'docs/**'
-      - 'src/**'
-
+  release:
+    types: [released]
 
 jobs:
   build:
@@ -29,7 +20,7 @@ jobs:
       - name: Sphinx Build
         run: python docs/build.py --no-docker
 
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@v2
         with:
           name: html-docs
           path: docs/_build
@@ -37,18 +28,16 @@ jobs:
   publish:
     name: Publish to GitHub pages
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
     needs: build
 
     steps:
-      - uses: actions/download-artifact@master
+      - uses: actions/download-artifact@v2
         with:
           name: html-docs
           path: .
 
       - name: Setup git repository
         run: |
-          git config --global color.ui always
           git init .
           git config --global user.name "github.com/${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@${{ github.sha }}"

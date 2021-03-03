@@ -3,7 +3,7 @@
 # * Build-system dependent;
 # * Platform dependent.
 #
-name: Core
+name: core
 on:
   pull_request:
     paths-ignore:

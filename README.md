@@ -4,9 +4,6 @@
 [![MacOS](https://github.com/nerdvegas/rez/workflows/MacOS/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AMacOS+branch%3Amaster)
 [![Windows](https://github.com/nerdvegas/rez/workflows/Windows/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AWindows+branch%3Amaster)
 
-
-![logo](media/rez_banner_256.png)
-
 - [What Is Rez?](#what-is-rez)
 - [The Basics](#the-basics)
 - [Examples](#examples)

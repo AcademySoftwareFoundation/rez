@@ -10,7 +10,7 @@
 #  .github/workflows/windows-docker-image.yaml
 #
 
-name: Windows
+name: windows
 
 on:
   pull_request:
