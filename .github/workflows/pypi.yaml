@@ -19,15 +19,14 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install wheel twine
+          pip install wheel
 
       - name: Build rez
         run: |
           python setup.py sdist bdist_wheel
 
       - name: Upload to PyPi
-        run: |
-          python -m twine upload dist/*
-        env:
-          TWINE_USERNAME: '${{ secrets.PYPI_USERNAME }}'
-          TWINE_PASSWORD: '${{ secrets.PYPI_PASSWORD }}'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: '${{ secrets.PYPI_API_TOKEN }}'
