@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload to PyPi
         run: |
-          /usr/loca/bin/twine upload dist/*
+          /usr/local/bin/twine upload dist/*
         env:
           TWINE_USERNAME: '${{ secrets.PYPI_USERNAME }}'
           TWINE_PASSWORD: '${{ secrets.PYPI_PASSWORD }}'
