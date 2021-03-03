@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.74.2 (2021-03-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.74.1...2.74.2)
+
+Testing, pls ignore.
+
 ## 2.74.1 (2021-03-03)
 [Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.74.0...2.74.1)
 
