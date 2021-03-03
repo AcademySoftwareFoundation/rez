@@ -1,17 +1,16 @@
-name: wiki-publish
+name: wiki
 on:
   release:
     types: [released]
+  push:
+    paths:
+      - '.github/workflows/wiki-build.yaml'
+      - 'wiki/**'
+      - src/rez/rezconfig.py
 env:
   CLONE_URL: "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
 
 jobs:
-
-  # Note: Identical to 'build' job in wiki-build.yaml. Ideally would like to
-  # use the artifact generated from that instead, however github's interworkflow
-  # support isn't great yet. Specifically we would run wiki-publish only when
-  # wiki-build ran and uploaded its artifact previously.
-  #
   build:
     name: Build Wiki Artifact
     runs-on: ubuntu-latest
@@ -48,6 +47,7 @@ jobs:
     name: Publish to GitHub Wiki
     runs-on: ubuntu-latest
     needs: build
+    if: github.event_name == 'release'
 
     steps:
       - uses: actions/download-artifact@v2
