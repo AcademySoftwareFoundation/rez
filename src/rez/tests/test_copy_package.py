@@ -117,7 +117,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         dest_variant = next(dest_pkg.iter_variants())
         self.assertEqual(dest_variant.handle, result_variant.handle)
 
-        pyfile = os.path.join(dest_pkg.base, "python")
+        pyfile = os.path.join(dest_pkg.base, "python", "floob", "__init__.py")
         ctime = os.stat(pyfile).st_ctime
 
         # copy again but with overwrite=False; should do nothing
@@ -144,7 +144,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
 
         dest_pkg = self._get_dest_pkg("floob", "1.2.0")
 
-        pyfile = os.path.join(dest_pkg.base, "python")
+        pyfile = os.path.join(dest_pkg.base, "python", "floob", "__init__.py")
         ctime = os.stat(pyfile).st_ctime
 
         # overwrite same package copy
@@ -181,7 +181,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
             dest_variant = dest_pkg.get_variant(index)
             self.assertEqual(dest_variant.handle, result_variant.handle)
 
-            pyfile = os.path.join(dest_variant.root, "python")
+            pyfile = os.path.join(dest_variant.root, "python", "bah", "__init__.py")
             ctime = os.stat(pyfile).st_ctime
             ctimes.append(ctime)
 
@@ -211,12 +211,12 @@ class TestCopyPackage(TestBase, TempdirMixin):
         self.assertEqual(dest_variant.handle, result_variant.handle)
 
         # check copied variant payload was overwritten
-        pyfile = os.path.join(dest_variant.root, "python")
+        pyfile = os.path.join(dest_variant.root, "python", "bah", "__init__.py")
         self.assertNotEqual(os.stat(pyfile).st_ctime, ctimes[1])
 
         # check non-copied variant payload was not written
         skipped_variant = dest_pkg.get_variant(0)
-        pyfile = os.path.join(skipped_variant.root, "python")
+        pyfile = os.path.join(skipped_variant.root, "python", "bah", "__init__.py")
         self.assertEqual(os.stat(pyfile).st_ctime, ctimes[0])
 
     def test_4(self):
