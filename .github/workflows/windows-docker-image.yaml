@@ -16,7 +16,7 @@
 # - Github offers its own package registry. Pushing to is broken in the BETA
 #   https://github.community/t5/GitHub-Actions/Docker-Push-to-Package-Registry-from-Windows/m-p/36393#M2560
 
-name: Compose Windows Docker Image
+name: windows-docker-image
 
 on:
   push:

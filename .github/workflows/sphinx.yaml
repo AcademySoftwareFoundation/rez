@@ -1,4 +1,4 @@
-name: Sphinx
+name: sphinx
 on:
   push:
     branches:

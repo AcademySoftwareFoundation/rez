@@ -1,16 +1,17 @@
-name: Wiki
+name: wiki-publish
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - '.github/workflows/wiki.yaml'
-      - 'wiki/**'
-      - src/rez/rezconfig.py
+  release:
+    types: [released]
 env:
   CLONE_URL: "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
 
 jobs:
+
+  # Note: Identical to 'build' job in wiki-build.yaml. Ideally would like to
+  # use the artifact generated from that instead, however github's interworkflow
+  # support isn't great yet. Specifically we would run wiki-publish only when
+  # wiki-build ran and uploaded its artifact previously.
+  #
   build:
     name: Build Wiki Artifact
     runs-on: ubuntu-latest
@@ -20,19 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # required to calc credits list
+          fetch-depth: 0  # required to generate credits list
+
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
 
-      - name: Get Rez Version
+      - name: Build Wiki
+        working-directory: wiki
         run: |
           rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
-          echo "rezver=${rezver}" >> $GITHUB_ENV
 
-      - name: Build Wiki
-        working-directory: wiki  # Start in correct dir, else inspect fails
-        run: |
           python update-wiki.py \
             --keep-temp \
             --no-push \
@@ -40,11 +39,10 @@ jobs:
             --wiki-dir="${{ github.workspace }}"/"${{ env.TEMP_WIKI_DIR }}" \
             --wiki-url="${{ env.CLONE_URL }}"
 
-      - uses: actions/upload-artifact@v1.0.0
+      - uses: actions/upload-artifact@v2
         with:
           name: wiki-markdown
           path: ${{ env.TEMP_WIKI_DIR }}
-
 
   publish:
     name: Publish to GitHub Wiki
@@ -52,14 +50,15 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/download-artifact@master
+      - uses: actions/download-artifact@v2
         with:
+          workflow: wiki-build.yaml
+          workflow_conclusion: success
           name: wiki-markdown
           path: .
 
       - name: Setup git config
         run: |
-          git config --global color.ui always
           git config --global user.name "github.com/${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@${{ github.sha }}"
 

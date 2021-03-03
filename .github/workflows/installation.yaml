@@ -1,4 +1,4 @@
-name: Installation
+name: installation
 on:
   push:
     paths-ignore:

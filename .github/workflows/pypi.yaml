@@ -1,0 +1,33 @@
+name: pypi
+on:
+  release:
+    types: [released]
+
+jobs:
+  publish:
+    name: Publish to PyPi
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 2.7
+
+      - name: Install Dependencies
+        run: |
+          pip install wheel twine
+
+      - name: Build rez
+        run: |
+          python setup.py sdist bdist_wheel
+
+      - name: Upload to PyPi
+        run: |
+          python -m twine upload dist/*
+        env:
+          TWINE_USERNAME: '${{ secrets.PYPI_USERNAME }}'
+          TWINE_PASSWORD: '${{ secrets.PYPI_PASSWORD }}'
