@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.74.0 (2021-03-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.73.0...2.74.0)
+
+**Merged pull requests:**
+
+- Issue 1032 pypi [\#1034](https://github.com/nerdvegas/rez/pull/1034) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Pypi entries are out of date [\#1032](https://github.com/nerdvegas/rez/issues/1032)
+
 ## 2.73.0 (2021-03-02)
 [Source](https://github.com/nerdvegas/rez/tree/2.73.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.72.5...2.73.0)
 
