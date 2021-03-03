@@ -173,6 +173,14 @@ class RequirementsBinding(RO_MappingBinding):
     def _attr_error(self, attr):
         raise AttributeError("request does not exist: '%s'" % attr)
 
+    def get_range(self, name, default=None):
+        """Returns requirement version range object"""
+        req_str = self._data.get(name)
+        if req_str:
+            return Requirement(req_str).range
+        else:
+            return VersionRange(default)
+
 
 class EphemeralsBinding(RO_MappingBinding):
     """Binds a list of resolved ephemeral packages.
