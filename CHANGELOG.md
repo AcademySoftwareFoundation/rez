@@ -1,21 +1,13 @@
 # Change Log
 
-## 2.74.2 (2021-03-03)
-[Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.74.1...2.74.2)
-
-Testing, pls ignore.
-
-## 2.74.1 (2021-03-03)
-[Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.74.0...2.74.1)
+## 2.75.0 (2021-03-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.73.0...2.75.0)
 
 **Notes**
 
-Implements some improvements to 2.74.0, all workflow-related:
-* Now using official pypa publish github action (instead of using twine)
-* Collapsed back to one wiki workflow, but only publish on release event
-
-## 2.74.0 (2021-03-03)
-[Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.73.0...2.74.0)
+* Workflow added to perform pypi publish on release
+* Wiki workflow updated to publish only on release
+* Note that version skip (2.73.0 -> 2.75.0) due to workflow testing on github
 
 **Merged pull requests:**
 
