@@ -483,6 +483,10 @@ class TestRex(TestBase):
         bar_on = intersects(ephemerals.get("foo.bar", "foo.bar-0"), "1")
         self.assertFalse(bar_on)  # workaround, see PR nerdvegas/rez#1030
 
+        ephemerals = EphemeralsBinding([])
+        bar_on = intersects(ephemerals.get("foo.bar", default=None), "0")
+        self.assertFalse(bar_on)
+
         # ephemerals.get_range
         ephemerals = EphemeralsBinding([Requirement(".foo.bar-1")])
         bar_on = intersects(ephemerals.get_range("foo.bar", "0"), "1")
@@ -503,6 +507,10 @@ class TestRex(TestBase):
         ephemerals = EphemeralsBinding([Requirement(".foo-1.4.5")])
         foo = intersects(ephemerals.get_range("foo", "==1.2.3"), "1.4")
         self.assertTrue(foo)
+
+        ephemerals = EphemeralsBinding([])
+        bar_on = intersects(ephemerals.get_range("foo.bar", default=None), "0")
+        self.assertFalse(bar_on)
 
 
 if __name__ == '__main__':
