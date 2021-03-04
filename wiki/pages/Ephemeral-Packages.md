@@ -80,13 +80,18 @@ to the [resolve](Package-Commands#resolve) object. You would typically use the
 
     # in package.py
     def commands()
-        if intersects(ephemerals.get('enable_tracking', '0'), '1'):
+        if intersects(ephemerals.get_range('enable_tracking', '0'), '1'):
             env.TRACKING_ENABLED = 1
 
 In this example, the given package would set the `TRACKING_ENABLED` environment
 variable if an ephemeral such as `.enable_tracking-1` (or `.enable_tracking-1.2+`
 etc) is present in the resolve. Note that the leading `.` is implied and not
 included when querying the `ephemerals` object.
+
+> [[media/icons/warning.png]] Since `ephemerals` is a dict-like object, so it has
+> a `get` function which will return a full request string if key exists. Hence,
+> the default value should also be a full request string, not just a version range
+> string like `'0'` in `get_range`. Or `intersects` may not work as expect. 
 
 ## Ephemeral Use Cases
 
@@ -101,7 +106,7 @@ to packages in a resolve. For example, consider the following package definition
     name = 'bah'
 
     def commands():
-        if intersects(ephemerals.get('bah.cli', '1'), '1'):
+        if intersects(ephemerals.get_range('bah.cli', '1'), '1'):
             env.PATH.append('{root}/bin')
 
 This package will disable its command line tools if an ephemeral like `.bah.cli-0`
@@ -120,7 +125,7 @@ we introduce a `.cli` ephemeral that acts as a global whitelist:
     name = 'bah'
 
     def commands():
-        if intersects(ephemerals.get('cli', ''), 'bah'):
+        if intersects(ephemerals.get_range('cli', ''), 'bah'):
             env.PATH.append('{root}/bin')
 
 Here, all packages' cli will be enabled if `.cli` is not specified, but if it is
