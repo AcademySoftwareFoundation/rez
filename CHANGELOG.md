@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.75.1 (2021-03-09)
+[Source](https://github.com/nerdvegas/rez/tree/2.75.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.75.0...2.75.1)
+
+**Merged pull requests:**
+
+- fix rez_bin_path on windows [\#1031](https://github.com/nerdvegas/rez/pull/1031) ([nerdvegas](https://github.com/nerdvegas))
+- Fix rez.vendor.distlib for Windows [\#1035](https://github.com/nerdvegas/rez/pull/1035) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- Issues with system.System.is_production_rez_install method on Windows. [\#1005](https://github.com/nerdvegas/rez/issues/1005)
+
 ## 2.75.0 (2021-03-03)
 [Source](https://github.com/nerdvegas/rez/tree/2.74.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.73.0...2.75.0)
 
