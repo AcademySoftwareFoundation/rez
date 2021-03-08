@@ -208,12 +208,14 @@ class System(object):
         module_path = rez.__path__[0]
 
         parts = module_path.split(os.path.sep)
+        parts_lower = module_path.lower().split(os.path.sep)
 
         # find last 'lib' or 'lib64' dir in rez module path
+        # Note: On Windows it can be 'Lib' (hence lowercase check).
         # Note: Occasionally a rez install will use the python lib stored in
         # lib64 instead of lib, I don't know why.
         #
-        rev_parts = list(reversed(parts))
+        rev_parts = list(reversed(parts_lower))
         try:
             i = rev_parts.index("lib")
         except ValueError:
