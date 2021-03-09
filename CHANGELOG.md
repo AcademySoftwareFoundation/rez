@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.76.0 (2021-03-09)
+[Source](https://github.com/nerdvegas/rez/tree/2.76.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.75.1...2.76.0)
+
+**Merged pull requests:**
+
+- add EphemeralsBinding.get_range [\#1030](https://github.com/nerdvegas/rez/pull/1030) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.75.1 (2021-03-09)
 [Source](https://github.com/nerdvegas/rez/tree/2.75.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.75.0...2.75.1)
 

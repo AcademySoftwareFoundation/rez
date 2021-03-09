@@ -180,6 +180,8 @@ class RequirementsBinding(RO_MappingBinding):
             return Requirement(req_str).range
         elif default is not None:
             return VersionRange(default)
+        else:
+            return None
 
 
 class EphemeralsBinding(RO_MappingBinding):
@@ -208,6 +210,8 @@ class EphemeralsBinding(RO_MappingBinding):
             return Requirement(req_str).range
         elif default is not None:
             return VersionRange(default)
+        else:
+            return None
 
 
 def intersects(obj, range_):

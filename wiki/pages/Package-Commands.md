@@ -346,21 +346,20 @@ like *env.append*, but prepends the environment variable instead.
 ### ephemerals
 *Dict-like object*
 
-    if intersects(ephemerals.get("foo.cli", default="foo.cli-1"), "1"):
-        env.PATH.append("{root}/bin")
+    if "foo.cli" in ephemerals:
+        info("Foo cli option is being specified!")
 
 A dict representing the list of ephemerals in the resolved environment. Each item is a
 string (the full request, eg `.foo.cli-1`), keyed by the ephemeral package name. Note
 that you do **not** include the leading `.` when getting items from the `ephemerals`
 object.
 
-Noted that the default value of `ephemerals.get` method should be a full request string so the `intersects`
-can work as expect.
-
-Alternatively, you can use `ephemerals.get_range` to get `VersionRange` object, which may provide
-a bit intuitive way to interact with `intersects`.
+Use `get_range` to test with the [intersects](Package-Commands#intersects) function.
+Here, we enable foo's commandline tools by default, unless explicitly disabled via
+a request for `.foo.cli-0`:
 
     if intersects(ephemerals.get_range("foo.cli", "1"), "1"):
+        info("Enabling foo cli tools")
         env.PATH.append("{root}/bin")
 
 ### error
@@ -409,9 +408,17 @@ object, intersects with the given version range. Valid objects to query include:
 
 * A resolved package, eg `resolve.maya`;
 * A package request, eg `request.foo`;
-* A version of a resolved package, eg `resolve.maya.version` (this is identical
-  to specifying `resolve.maya`);
-* A resolved ephemeral, eg `ephemerals.foo`
+* A version of a resolved package, eg `resolve.maya.version`;
+* A resolved ephemeral, eg `ephemerals.foo`;
+* A version range object, eg `ephemerals.get_range('foo.cli', '1')`
+
+> [[media/icons/warning.png]] Do **not** do this:
+> `if intersects(ephemerals.get("foo.cli", "0"), "1"): ...`
+> If 'foo.cli' is not present, this will unexpectedly compare the unversioned
+> package named "0" against the version range "1", which will succeed! Use
+> `get_range` when testing intersections on the _request_ and _ephemerals_
+> objects instead:
+> `if intersects(ephemerals.get_range("foo.cli", "0"), "1"): ...`
 
 ### literal
 *Function*
@@ -442,19 +449,10 @@ This request would yield the following *request* object:
         "corelib": "!corelib-1.4.4"
     }
 
-To use with `intersects`:
+Use `get_range` to test with the [intersects](Package-Commands#intersects) function:
 
-    if intersects(request.get("foo.cli", default="foo.cli-1"), "1"):
-        env.PATH.append("{root}/bin")
-
-Noted that the default value of `request.get` method should be a full request string so the `intersects`
-can work as expect.
-
-Alternatively, you can use `request.get_range` to get `VersionRange` object, which may provide
-a bit intuitive way to interact with `intersects`.
-
-    if intersects(request.get_range("foo.cli", "1"), "1"):
-        env.PATH.append("{root}/bin")
+    if intersects(request.get_range("maya", "0"), "2019"):
+        info("maya 2019.* was asked for!")
 
 > [[media/icons/info.png]] If multiple requests are present that refer to the same package, the
 request is combined ahead of time. In other words, if requests *foo-4+* and *foo-<6* were both
