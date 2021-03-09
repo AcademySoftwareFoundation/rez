@@ -346,13 +346,22 @@ like *env.append*, but prepends the environment variable instead.
 ### ephemerals
 *Dict-like object*
 
-    if intersects(ephemerals.get("foo.cli", "1"), "1"):
-        env.PATH.append("{rot}/bin")
+    if intersects(ephemerals.get("foo.cli", default="foo.cli-1"), "1"):
+        env.PATH.append("{root}/bin")
 
 A dict representing the list of ephemerals in the resolved environment. Each item is a
 string (the full request, eg `.foo.cli-1`), keyed by the ephemeral package name. Note
 that you do **not** include the leading `.` when getting items from the `ephemerals`
 object.
+
+Noted that the default value of `ephemerals.get` method should be a full request string so the `intersects`
+can work as expect.
+
+Alternatively, you can use `ephemerals.get_range` to get `VersionRange` object, which may provide
+a bit intuitive way to interact with `intersects`.
+
+    if intersects(ephemerals.get_range("foo.cli", "1"), "1"):
+        env.PATH.append("{root}/bin")
 
 ### error
 *Function*
@@ -432,6 +441,20 @@ This request would yield the following *request* object:
         "maya_utils": "maya_utils-1.2+<2",
         "corelib": "!corelib-1.4.4"
     }
+
+To use with `intersects`:
+
+    if intersects(request.get("foo.cli", default="foo.cli-1"), "1"):
+        env.PATH.append("{root}/bin")
+
+Noted that the default value of `request.get` method should be a full request string so the `intersects`
+can work as expect.
+
+Alternatively, you can use `request.get_range` to get `VersionRange` object, which may provide
+a bit intuitive way to interact with `intersects`.
+
+    if intersects(request.get_range("foo.cli", "1"), "1"):
+        env.PATH.append("{root}/bin")
 
 > [[media/icons/info.png]] If multiple requests are present that refer to the same package, the
 request is combined ahead of time. In other words, if requests *foo-4+* and *foo-<6* were both
