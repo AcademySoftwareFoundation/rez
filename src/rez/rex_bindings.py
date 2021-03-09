@@ -178,7 +178,7 @@ class RequirementsBinding(RO_MappingBinding):
         req_str = self._data.get(name)
         if req_str:
             return Requirement(req_str).range
-        else:
+        elif default is not None:
             return VersionRange(default)
 
 
@@ -206,7 +206,7 @@ class EphemeralsBinding(RO_MappingBinding):
         req_str = self._data.get(name)
         if req_str:
             return Requirement(req_str).range
-        else:
+        elif default is not None:
             return VersionRange(default)
 
 
