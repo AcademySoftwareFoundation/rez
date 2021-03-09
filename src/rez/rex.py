@@ -948,7 +948,7 @@ def expandable(value):
 
 
 def optionvars(name, default=None):
-    return config.optionvars.get(name, default)
+    return (config.optionvars or {}).get(name, default)
 
 
 #===============================================================================
