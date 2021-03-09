@@ -23,7 +23,6 @@ from rez.utils.logging_ import print_warning
 from rez.vendor.six import six
 from rez.config import config
 
-
 basestring = six.string_types[0]
 
 
@@ -38,12 +37,24 @@ class CustomBuildSystem(BuildSystem):
     located somewhere under the 'build' dir under the root dir containing the
     package.py.
 
+    The '{build_path}' string will expand to the default build path.
+
+    The '{install}' string will expand to 'install' if an install is occurring,
+    or the empty string ('') otherwise.
+
+    The '{install_path}' will expand to the full path where the install should go.
+
+    The '{name}' string will expand to the package name.
+
     The '{root}' string will expand to the source directory (the one containing
     the package.py).
 
-    The '{install}' string will expand to 'install' if an install is occuring,
-    and the empty string ('') otherwise.
+    The '{variant_index}' will expand to the index of the current variant to be build,
+    or an empty string ('') if no variants are present.
+
+    The '{version}' string will expand to the package version currently build.
     """
+
     @classmethod
     def name(cls):
         return "custom"
@@ -84,7 +95,7 @@ class CustomBuildSystem(BuildSystem):
         before_args = set(x.dest for x in parser._actions)
 
         try:
-            exec(source, {"parser": group})
+            exec (source, {"parser": group})
         except Exception as e:
             print_warning("Error in ./parse_build_args.py: %s" % str(e))
 
@@ -129,9 +140,13 @@ class CustomBuildSystem(BuildSystem):
             return ret
 
         def expand(txt):
-            root = self.package.root
-            install_ = "install" if install else ''
-            return txt.format(root=root, install=install_).strip()
+            return txt.format(build_path=build_path,
+                              install="install" if install else '',
+                              install_path=install_path,
+                              name=self.package.name,
+                              root=self.package.root,
+                              variant_index=variant.index if variant.index is not None else '',
+                              version=self.package.version).strip()
 
         if isinstance(command, basestring):
             if self.build_args:
