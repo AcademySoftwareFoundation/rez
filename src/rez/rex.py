@@ -948,6 +948,7 @@ def expandable(value):
 
 
 def optionvars(name, default=None):
+    """Accessing arbitrary data from rez config optionvars."""
     return (config.optionvars or {}).get(name, default)
 
 
