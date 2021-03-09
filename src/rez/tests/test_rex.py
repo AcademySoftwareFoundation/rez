@@ -4,13 +4,17 @@ test the rex command generator API
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv, expandable, \
     literal
-from rez.rex_bindings import VersionBinding
+from rez.rex_bindings import VersionBinding, VariantsBinding, \
+    RequirementsBinding, EphemeralsBinding, intersects
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
 import unittest
 from rez.vendor.version.version import Version
+from rez.vendor.version.requirement import Requirement
 from rez.tests.util import TestBase
 from rez.utils.backcompat import convert_old_commands
+from rez.package_repository import package_repository_manager
+from rez.packages import iter_package_families
 import inspect
 import textwrap
 import os
@@ -406,6 +410,107 @@ class TestRex(TestBase):
         rez_commands = convert_old_commands(["export A=$C:B:$A"],
                                             annotate=False)
         self.assertEqual(rez_commands, expected)
+
+    def test_intersects_resolve(self):
+        """Test intersects with resolve object"""
+        resolved_pkg_data = {
+            "foo": {"1": {"name": "foo", "version": "1"}},
+            "maya": {"2020.1": {"name": "maya", "version": "2020.1"}},
+        }
+        mem_path = "memory@%s" % hex(id(resolved_pkg_data))
+        resolved_repo = package_repository_manager.get_repository(mem_path)
+        resolved_repo.data = resolved_pkg_data
+        resolved_packages = [
+            variant
+            for family in iter_package_families(paths=[mem_path])
+            for package in family.iter_packages()
+            for variant in package.iter_variants()
+        ]
+        resolve = VariantsBinding(resolved_packages)
+        self.assertTrue(intersects(resolve.foo, "1"))
+        self.assertFalse(intersects(resolve.foo, "0"))
+        self.assertTrue(intersects(resolve.maya, "2019+"))
+        self.assertFalse(intersects(resolve.maya, "<=2019"))
+
+    def test_intersects_request(self):
+        """Test intersects with request object"""
+        # request.get
+        request = RequirementsBinding([Requirement("foo.bar-1")])
+        bar_on = intersects(request.get("foo.bar", "0"), "1")
+        self.assertTrue(bar_on)
+
+        request = RequirementsBinding([])
+        bar_on = intersects(request.get("foo.bar", "0"), "1")
+        self.assertTrue(bar_on)  # should be False, but for backward compat
+
+        request = RequirementsBinding([])
+        bar_on = intersects(request.get("foo.bar", "foo.bar-0"), "1")
+        self.assertFalse(bar_on)  # workaround, see PR nerdvegas/rez#1030
+
+        # request.get_range
+        request = RequirementsBinding([Requirement("foo.bar-1")])
+        bar_on = intersects(request.get_range("foo.bar", "0"), "1")
+        self.assertTrue(bar_on)
+
+        request = RequirementsBinding([])
+        bar_on = intersects(request.get_range("foo.bar", "0"), "1")
+        self.assertFalse(bar_on)
+
+        request = RequirementsBinding([])
+        foo = intersects(request.get_range("foo", "==1.2.3"), "1.2")
+        self.assertTrue(foo)
+
+        request = RequirementsBinding([])
+        foo = intersects(request.get_range("foo", "==1.2.3"), "1.4")
+        self.assertFalse(foo)
+
+        request = RequirementsBinding([Requirement("foo-1.4.5")])
+        foo = intersects(request.get_range("foo", "==1.2.3"), "1.4")
+        self.assertTrue(foo)
+
+    def test_intersects_ephemerals(self):
+        """Test intersects with ephemerals object"""
+        # ephemerals.get
+        ephemerals = EphemeralsBinding([Requirement(".foo.bar-1")])
+        bar_on = intersects(ephemerals.get("foo.bar", "0"), "1")
+        self.assertTrue(bar_on)
+
+        ephemerals = EphemeralsBinding([])
+        bar_on = intersects(ephemerals.get("foo.bar", "0"), "1")
+        self.assertTrue(bar_on)  # should be False, but for backward compat
+
+        ephemerals = EphemeralsBinding([])
+        bar_on = intersects(ephemerals.get("foo.bar", "foo.bar-0"), "1")
+        self.assertFalse(bar_on)  # workaround, see PR nerdvegas/rez#1030
+
+        ephemerals = EphemeralsBinding([])
+        self.assertRaises(RuntimeError,  # no default
+                          intersects, ephemerals.get("foo.bar"), "0")
+
+        # ephemerals.get_range
+        ephemerals = EphemeralsBinding([Requirement(".foo.bar-1")])
+        bar_on = intersects(ephemerals.get_range("foo.bar", "0"), "1")
+        self.assertTrue(bar_on)
+
+        ephemerals = EphemeralsBinding([])
+        bar_on = intersects(ephemerals.get_range("foo.bar", "0"), "1")
+        self.assertFalse(bar_on)
+
+        ephemerals = EphemeralsBinding([])
+        foo = intersects(ephemerals.get_range("foo", "==1.2.3"), "1.2")
+        self.assertTrue(foo)
+
+        ephemerals = EphemeralsBinding([])
+        foo = intersects(ephemerals.get_range("foo", "==1.2.3"), "1.4")
+        self.assertFalse(foo)
+
+        ephemerals = EphemeralsBinding([Requirement(".foo-1.4.5")])
+        foo = intersects(ephemerals.get_range("foo", "==1.2.3"), "1.4")
+        self.assertTrue(foo)
+
+        ephemerals = EphemeralsBinding([])
+        self.assertRaises(RuntimeError,  # no default
+                          intersects, ephemerals.get_range("foo.bar"), "0")
 
 
 if __name__ == '__main__':
