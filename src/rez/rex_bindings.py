@@ -263,10 +263,6 @@ def intersects(obj, range_):
     elif isinstance(obj, VersionBinding):
         range2 = VersionRange(str(obj))
 
-    # eg 'if intersects(ephemerals.get('foo.cli'), ...)'
-    elif obj is None:
-        range2 = VersionRange(obj)
-
     else:
         raise RuntimeError(
             "Invalid type %s passed as first arg to 'intersects'" % type(obj)
