@@ -37,22 +37,17 @@ class CustomBuildSystem(BuildSystem):
     located somewhere under the 'build' dir under the root dir containing the
     package.py.
 
-    The '{build_path}' string will expand to the default build path.
+    The following variables are available for expansion:
 
-    The '{install}' string will expand to 'install' if an install is occurring,
-    or the empty string ('') otherwise.
-
-    The '{install_path}' will expand to the full path where the install should go.
-
-    The '{name}' string will expand to the package name.
-
-    The '{root}' string will expand to the source directory (the one containing
-    the package.py).
-
-    The '{variant_index}' will expand to the index of the current variant to be build,
-    or an empty string ('') if no variants are present.
-
-    The '{version}' string will expand to the package version currently build.
+    * root: The source directory (the one containing the package.py).
+    * install: 'install' if an install is occurring, or the empty string ('')
+      otherwise;
+    * build_path: The build path (this will also be the cwd);
+    * install_path: Full path to install destination;
+    * name: Name of the package getting built;
+    * variant_index: Index of the current variant getting built, or an empty
+      string ('') if no variants are present.
+    * version: Package version currently getting built.
     """
 
     @classmethod

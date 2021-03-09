@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.77.0 (2021-03-09)
+[Source](https://github.com/nerdvegas/rez/tree/2.77.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.76.0...2.77.0)
+
+**Merged pull requests:**
+
+- Adds more variables to the custom build system. [\#1013](https://github.com/nerdvegas/rez/pull/1013) ([bfloch](https://github.com/bfloch))
+
 ## 2.76.0 (2021-03-09)
 [Source](https://github.com/nerdvegas/rez/tree/2.76.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.75.1...2.76.0)
 

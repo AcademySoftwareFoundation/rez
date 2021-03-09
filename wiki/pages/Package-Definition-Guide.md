@@ -796,6 +796,17 @@ otherwise. This is useful for passing the install target directly to the command
 using *make*) rather than relying on a build script checking the *REZ_BUILD_INSTALL* environment
 variable.
 
+The full set of variables that can be referenced in the build command are:
+
+    * *root*: (see above);
+    * *install*: (see above)
+    * *build_path*: The build path (this will also be the current working directory);
+    * *install_path*: Full path to install destination;
+    * *name*: Name of the package getting built;
+    * *variant_index*: Index of the current variant getting built, or an empty
+      string ('') if no variants are present.
+    * *version*: Package version currently getting built.
+
 ### build_system
 *String*
 
