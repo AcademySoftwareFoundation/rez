@@ -60,6 +60,52 @@ subcommands = {
 }
 
 
+def load_plugin_cmd():
+    """Load application plugin subcommand
+
+    The application plugin module must have attribute `command_behavior`, and
+    the value must be a dict. For example:
+
+        # in your application plugin module
+        command_behavior = {
+            "hidden": False,   # optional: bool
+            "arg_mode": None,  # optional: None, "passthrough", "grouped"
+        }
+
+    """
+    from rez.config import config
+    from rez.utils.logging_ import print_debug
+    from rez.plugin_managers import plugin_manager
+
+    ext_plugins = dict()
+
+    for plugin_name in plugin_manager.get_plugins("application"):
+        module = plugin_manager.get_plugin_module("application", plugin_name)
+
+        if hasattr(module, "command_behavior"):
+            try:
+                data = module.command_behavior.copy()
+                data.update({"module_name": module.__name__})
+                ext_plugins[plugin_name] = data
+
+            except Exception:
+                if config.debug("plugins"):
+                    import traceback
+                    from rez.vendor.six.six import StringIO
+                    out = StringIO()
+                    traceback.print_exc(file=out)
+                    print_debug(out.getvalue())
+
+        elif config.debug("plugins"):
+            print_debug("Attribute 'command_behavior' not found in plugin "
+                        "module %s, command not registered." % module.__name__)
+
+    return ext_plugins
+
+
+subcommands.update(load_plugin_cmd())
+
+
 class LazySubParsersAction(_SubParsersAction):
     """Argparse Action which calls the `setup_subparser` function provided to
     `LazyArgumentParser`.

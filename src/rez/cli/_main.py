@@ -93,8 +93,8 @@ def setup_parser():
 
     # add lazy subparsers
     subparser = parser.add_subparsers(dest='cmd', metavar='COMMAND')
-    for subcommand in subcommands:
-        module_name = "rez.cli.%s" % subcommand
+    for subcommand, data in subcommands.items():
+        module_name = data.get('module_name', 'rez.cli.%s' % subcommand)
 
         subparser.add_parser(
             subcommand,
