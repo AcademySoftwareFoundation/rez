@@ -123,6 +123,9 @@ package_definition_python_path = None
 # Search path for rez plugins.
 plugin_path = []
 
+# Search module name for rez plugins.
+plugin_module = []
+
 # Search path for bind modules. The *rez-bind* tool uses these modules to create
 # rez packages that reference existing software already installed on the system.
 bind_module_path = []
