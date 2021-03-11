@@ -141,8 +141,6 @@ class RezPluginType(object):
             if config.debug("plugins"):
                 print_debug("searching plugin path %s...", path)
 
-            plugin_names = set()
-
             for loader, modname, ispkg in pkgutil.iter_modules(
                     [path], package.__name__ + '.'):
 
@@ -150,9 +148,7 @@ class RezPluginType(object):
                     continue
 
                 plugin_name = modname.split('.')[-1]
-                if (plugin_name.startswith('_')
-                        or plugin_name == 'rezconfig'
-                        or plugin_name.startswith('rezconfig-')):
+                if plugin_name.startswith('_') or plugin_name == 'rezconfig':
                     continue
 
                 if config.debug("plugins"):
@@ -169,7 +165,6 @@ class RezPluginType(object):
                         plugin_class = module.register_plugin()
                         if plugin_class != None:
                             self.register_plugin(plugin_name, plugin_class, module)
-                            plugin_names.add(plugin_name)
                         else:
                             if config.debug("plugins"):
                                 print_warning(
@@ -194,15 +189,7 @@ class RezPluginType(object):
                         print_debug(out.getvalue())
 
             # load config
-            # accepting 'rezconfig-{plugin_name}' as valid config file is
-            # to allow custom plugin being pip-installed directly under
-            # `rezplugins` package, and to avoid default config file being
-            # overwritten by the custom plugin's config file during install.
-            default_config = [os.path.join(path, "rezconfig")]
-            plugins_config = [os.path.join(path, "rezconfig-%s" % n)
-                              for n in plugin_names]
-            config_paths = default_config + plugins_config
-            data, _ = _load_config_from_filepaths(config_paths)
+            data, _ = _load_config_from_filepaths([os.path.join(path, "rezconfig")])
             deep_update(self.config_data, data)
 
     def get_plugin_class(self, plugin_name):
