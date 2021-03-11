@@ -83,8 +83,7 @@ def extend_path(path, name):
                 continue
 
         module_path = sys.modules[name].__path__
-        for root in module_path:
-            dir_ = os.path.join(root, "_plugins")
+        for dir_ in module_path:
             append_if_valid(dir_)
 
     return path
