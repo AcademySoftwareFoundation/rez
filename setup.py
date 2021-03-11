@@ -8,6 +8,7 @@ import sys
 
 try:
     from setuptools import setup, find_packages
+    from setuptools.command import build_py
 except ImportError:
     print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
@@ -47,7 +48,80 @@ with open(os.path.join(this_directory, 'README.md')) as f:
     long_description = f.read()
 
 
-setup(
+class BuildPyWithRezBinsPatch(build_py.build_py):
+
+    def run(self):
+        super(BuildPyWithRezBinsPatch, self).run()
+        self.patch_rez_binaries()
+        self.copy_completion_scripts()
+
+    def _append_data_files(self, manifest):
+        """Append `manifest` into `distribution.data_files`
+        Just like:
+            setup(...,
+                data_files=[('config', ['cfg/data.cfg'])],
+            )
+        But for those extra files that can only be created in build time,
+        here's the second chance.
+
+        @param manifest: a sequence of (directory, files) pairs
+        @return:
+        """
+        # will be picked up by `distutils.command.install_data`
+        if self.distribution.data_files is None:
+            self.distribution.data_files = manifest
+        else:
+            self.distribution.data_files += manifest
+
+    def patch_rez_binaries(self):
+        from rez.vendor.distlib.scripts import ScriptMaker
+
+        self.announce("Generating rez bin tools...", level=3)
+
+        # Create additional build dir for binaries, so they won't be handled
+        # as regular builds under "build/lib".
+        build_path = os.path.join("build", "rez_bins")
+        self.mkpath(build_path)
+
+        # Make binaries, referenced from rez's install.py
+        maker = ScriptMaker(
+            source_dir=None,
+            target_dir=build_path
+        )
+        maker.executable = sys.executable
+        rel_rez_bin_paths = maker.make_multiple(
+            specifications=get_specifications().values(),
+            options=dict(interpreter_args=["-E"])
+        )
+
+        # Add rez production install validation file
+        validation_file = os.path.join(build_path, ".rez_production_install")
+        with open(validation_file, "w") as vfn:
+            vfn.write(_rez_version)
+        rel_rez_bin_paths.append(validation_file)
+
+        # Compute relative install path, to work with wheel.
+        # Install path, e.g. "bin/rez" or "scripts/rez" on Windows.
+        abs_rez_dir = os.path.join(os.path.dirname(sys.executable), "rez")
+        rel_rez_dir = os.path.relpath(abs_rez_dir, sys.prefix)
+
+        self._append_data_files([(rel_rez_dir, rel_rez_bin_paths)])
+
+    def copy_completion_scripts(self):
+        # find completion dir in rez package
+        completion_path = os.path.join("build", "lib", "rez", "completion")
+
+        # copy completion scripts into root of python install for ease of use
+        abs_py_install = os.path.dirname(os.path.dirname(sys.executable))
+        rel_py_install = os.path.relpath(abs_py_install, sys.prefix)
+        rel_dest_path = os.path.join(rel_py_install, "completion")
+        rel_src_paths = [os.path.join(completion_path, fn)
+                         for fn in os.listdir(completion_path)]
+
+        self._append_data_files([(rel_dest_path, rel_src_paths)])
+
+
+dist = setup(
     name="rez",
     version=_rez_version,
     description=("A cross-platform packaging system that can build and "
@@ -83,6 +157,9 @@ setup(
         'rezgui':
             find_files('rezguiconfig', root='rezgui') +
             find_files('*', 'icons', root='rezgui')
+    },
+    cmdclass={
+        "build_py": BuildPyWithRezBinsPatch,
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
