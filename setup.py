@@ -94,7 +94,8 @@ class BuildPyWithRezBinsPatch(build_py.build_py):
             options=dict(interpreter_args=["-E"])
         )
 
-        # Add rez production install validation file
+        # Add validation file as production rez install
+        # Do not remove - rez uses this!
         validation_file = os.path.join(build_path, ".rez_production_install")
         with open(validation_file, "w") as vfn:
             vfn.write(_rez_version)
@@ -121,7 +122,7 @@ class BuildPyWithRezBinsPatch(build_py.build_py):
         self._append_data_files([(rel_dest_path, rel_src_paths)])
 
 
-dist = setup(
+setup(
     name="rez",
     version=_rez_version,
     description=("A cross-platform packaging system that can build and "
@@ -135,7 +136,7 @@ dist = setup(
     author_email="nerdvegas@gmail.com",
     license="LGPL",
     entry_points={
-        "console_scripts": get_specifications().values()
+        "console_scripts": []
     },
     include_package_data=True,
     zip_safe=False,
