@@ -55,23 +55,39 @@ class BuildPyWithRezBinsPatch(build_py.build_py):
         self.patch_rez_binaries()
         self.copy_completion_scripts()
 
-    def _append_data_files(self, manifest):
-        """Append `manifest` into `distribution.data_files`
-        Just like:
-            setup(...,
-                data_files=[('config', ['cfg/data.cfg'])],
-            )
-        But for those extra files that can only be created in build time,
-        here's the second chance.
+    def _append(self, data_files):
+        """Append `data_files` into `distribution.data_files`
 
-        @param manifest: a sequence of (directory, files) pairs
+        Just like how additional files be assigned with setup(data_files=[..]),
+        but for those extra files that can only be created in build time, here
+        is the second chance.
+
+        The `data_files` specifies a sequence of (directory, files) pairs in
+        the following way:
+
+            setup(...,
+                data_files=[('config', ['foo/cfg/data.cfg'])],
+            )
+
+        Each (directory, files) pair in the sequence specifies the installation
+        directory and the files to install there.
+
+        So in the example above, the file `data.cfg` will be installed to
+        `config/data.cfg`.
+
+        IMPORTANT:
+        The directory MUST be a relative path. It is interpreted relative to
+        the installation prefix (Python’s sys.prefix for system installations;
+        site.USER_BASE for user installations).
+
+        @param data_files: a sequence of (directory, files) pairs
         @return:
         """
         # will be picked up by `distutils.command.install_data`
         if self.distribution.data_files is None:
-            self.distribution.data_files = manifest
+            self.distribution.data_files = data_files
         else:
-            self.distribution.data_files += manifest
+            self.distribution.data_files += data_files
 
     def patch_rez_binaries(self):
         from rez.vendor.distlib.scripts import ScriptMaker
@@ -106,20 +122,17 @@ class BuildPyWithRezBinsPatch(build_py.build_py):
         abs_rez_dir = os.path.join(os.path.dirname(sys.executable), "rez")
         rel_rez_dir = os.path.relpath(abs_rez_dir, sys.prefix)
 
-        self._append_data_files([(rel_rez_dir, rel_rez_bin_paths)])
+        self._append([(rel_rez_dir, rel_rez_bin_paths)])
 
     def copy_completion_scripts(self):
-        # find completion dir in rez package
-        completion_path = os.path.join("build", "lib", "rez", "completion")
+        # find completion dir in rez package build
+        src = os.path.join("build", "lib", "rez", "completion")
 
-        # copy completion scripts into root of python install for ease of use
-        abs_py_install = os.path.dirname(os.path.dirname(sys.executable))
-        rel_py_install = os.path.relpath(abs_py_install, sys.prefix)
-        rel_dest_path = os.path.join(rel_py_install, "completion")
-        rel_src_paths = [os.path.join(completion_path, fn)
-                         for fn in os.listdir(completion_path)]
-
-        self._append_data_files([(rel_dest_path, rel_src_paths)])
+        self._append([
+            # copy completion scripts into root of python installation for
+            # ease of use.
+            ("completion", [os.path.join(src, fn) for fn in os.listdir(src)])
+        ])
 
 
 setup(
