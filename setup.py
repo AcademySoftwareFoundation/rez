@@ -51,7 +51,7 @@ with open(os.path.join(this_directory, 'README.md')) as f:
 class BuildPyWithRezBinsPatch(build_py.build_py):
 
     def run(self):
-        super(BuildPyWithRezBinsPatch, self).run()
+        build_py.build_py.run(self)
         self.patch_rez_binaries()
         self.copy_completion_scripts()
 
