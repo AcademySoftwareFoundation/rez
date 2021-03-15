@@ -30,12 +30,10 @@ from rez.cli._entry_points import get_specifications
 
 
 def patch_production_scripts(target_dir):
-    from rez.vendor.distlib.scripts import ScriptMaker
-    maker = ScriptMaker(source_dir=None, target_dir=target_dir)
-    maker.executable = sys.executable
-    scripts = maker.make_multiple(
-        specifications=get_specifications().values(),
-        options=dict(interpreter_args=["-E"])
+    from rez.utils.installer import create_rez_production_scripts
+    scripts = create_rez_production_scripts(
+        target_dir,
+        specifications=get_specifications().values()
     )
     validation_file = os.path.join(target_dir, ".rez_production_install")
     with open(validation_file, "w") as vfn:

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import rez
+from rez.vendor.distlib.scripts import ScriptMaker
 from rez.package_maker import make_package
 from rez.system import system
 import os.path
@@ -39,3 +40,27 @@ def install_as_rez_package(repo_path):
 
     print('')
     print("Success! Rez was installed to %s/rez/%s" % (repo_path, rez.__version__))
+
+
+def create_rez_production_scripts(target_dir, specifications):
+    """Create Rez production used binary scripts
+    """
+    SCRIPT_TEMPLATE = r'''# -*- coding: utf-8 -*-
+import re
+import os
+import sys
+if "REZ_PRODUCTION_PATH" in os.environ:
+    sys.path.append(os.environ["REZ_PRODUCTION_PATH"])
+from %(module)s import %(import_name)s
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(%(func)s())
+'''
+    maker = ScriptMaker(source_dir=None, target_dir=target_dir)
+    maker.script_template = SCRIPT_TEMPLATE
+    maker.executable = sys.executable
+    scripts = maker.make_multiple(
+        specifications=specifications,
+        options=dict(interpreter_args=["-E"])
+    )
+    return scripts
