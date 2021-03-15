@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.77.1 (2021-03-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.77.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.77.0...2.77.1)
+
+**Merged pull requests:**
+
+- Fix missing files in sdist [\#1042](https://github.com/nerdvegas/rez/pull/1042) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.77.0 (2021-03-09)
 [Source](https://github.com/nerdvegas/rez/tree/2.77.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.76.0...2.77.0)
 
