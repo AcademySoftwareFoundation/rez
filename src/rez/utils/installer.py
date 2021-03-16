@@ -44,6 +44,15 @@ def install_as_rez_package(repo_path):
 
 def create_rez_production_scripts(target_dir, specifications):
     """Create Rez production used binary scripts
+
+    The binary script will be executed with Python interpreter flag -E, which
+    will ignore all PYTHON* env vars, e.g. PYTHONPATH and PYTHONHOME.
+
+    But for case like installing rez with `pip install rez --target <dst>`,
+    which may install rez packages into a custom location that cannot be
+    seen by Python unless setting PYTHONPATH, use REZ_PRODUCTION_PATH to
+    expose <dst>, it will be appended into sys.path before execute.
+
     """
     SCRIPT_TEMPLATE = r'''# -*- coding: utf-8 -*-
 import re
