@@ -8,7 +8,7 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.vendor.six import six
 from rez.exceptions import RezPluginError
-import importlib
+import pkgutil
 import os.path
 import sys
 
@@ -54,37 +54,22 @@ def extend_path(path, name):
     path = path[:]
 
     def append_if_valid(dir_):
-        if not os.path.isdir(dir_):
-            if config.debug("plugins"):
-                print_debug("skipped nonexistant rez plugin path: %s" % dir_)
-            return
+        if os.path.isdir(dir_):
+            subdir = os.path.normcase(os.path.join(dir_, pname))
+            initfile = os.path.join(subdir, init_py)
+            if subdir not in path and os.path.isfile(initfile):
+                path.append(subdir)
 
-        subdir = os.path.join(dir_, pname)
-        # XXX This may still add duplicate entries to path on
-        # case-insensitive filesystems
-        initfile = os.path.join(subdir, init_py)
-        if subdir not in path and os.path.isfile(initfile):
-            path.append(subdir)
+        elif config.debug("plugins"):
+            print_debug("skipped nonexistant rez plugin path: %s" % dir_)
 
+    # Extend old-style plugins
     for dir_ in config.plugin_path:
         append_if_valid(dir_)
-
-    for name in config.extensions:
-        if name not in sys.modules:
-            try:
-                importlib.import_module(name)
-            except Exception:
-                if config.debug("plugins"):
-                    import traceback
-                    from rez.vendor.six.six import StringIO
-                    out = StringIO()
-                    traceback.print_exc(file=out)
-                    print_debug(out.getvalue())
-                continue
-
-        module_path = sys.modules[name].__path__
-        for dir_ in module_path:
-            append_if_valid(dir_)
+    # Extend new-style plugins
+    for loader, name, ispkg in pkgutil.iter_modules():
+        if ispkg:
+            append_if_valid(os.path.join(loader.path, name))
 
     return path
 

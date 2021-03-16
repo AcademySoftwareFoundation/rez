@@ -333,7 +333,6 @@ config_schema = Schema({
     "default_cachable_per_package":                 OptionalDict,
     "default_cachable_per_repository":              OptionalDict,
     "default_cachable":                             OptionalBool,
-    "extensions":                                   StrList,
     "implicit_packages":                            StrList,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
