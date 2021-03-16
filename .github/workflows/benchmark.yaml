@@ -1,0 +1,48 @@
+# Run resolving benchmark and store results. Fail if any resolved runtimes
+# change from previous result
+#
+name: benchmark
+on:
+  push:
+    paths-ignore:
+      - '.github/docker/**'
+      - '.github/workflows/windows-docker-image.yaml'
+      - 'src/rez/utils/_version.py'
+      - 'wiki/**'
+      - '**.md'
+
+jobs:
+  run_benchmark:
+    name: main
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version:
+          - '2.7'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Rez
+        run: |
+          mkdir ./build
+          python ./install.py ./build
+
+      - name: Run Benchmark
+        run: |
+          ./build/bin/rez/rez-benchmark --out ./out
+
+          # remove benchmarking suite package repo
+          rm -rf ./out/packages
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: benchmark-result
+          path: ./out

@@ -12,12 +12,12 @@ by hand; the 'benchmark' Github workflow does this automatically.
 * **CPU Count**: 4
 * **CPU**: Intel(R) Core(TM) i5-4590 CPU @ 3.30GHz
 * **Results**:
-    * max: 6.33
-    * min: 0.00
-    * total_run_time: 1232
-    * mean: 2.18
-    * num_failed_resolves: 1,
-    * num_success_resolves: 188,
-    * stddev: 2.12
     * median: 1.34
+    * mean: 2.18
+    * min: 0.00
+    * max: 6.33
+    * stddev: 2.12
+    * total_run_time: 1232
+    * num_success_resolves: 188
+    * num_failed_resolves: 1
     * num_error_resolves: 0
