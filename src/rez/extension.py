@@ -2,7 +2,7 @@
 from rez.config import config
 
 
-class Application(object):
+class Extension(object):
     """An interface for registering custom Rez subcommand
 
     To register plugin and expose subcommand, the plugin module..
@@ -17,7 +17,7 @@ class Application(object):
 
         '''The docstring for command help, this is required.
         '''
-        from rez.application import Application
+        from rez.extension import Extension
 
         command_behavior = {
             "hidden": False,   # optional: bool
@@ -31,7 +31,7 @@ class Application(object):
             if opts.hello:
                 print("world")
 
-        class ApplicationFoo(Application):
+        class ExtensionFoo(Extension):
             schema_dict = {}
 
             @classmethod
@@ -39,14 +39,14 @@ class Application(object):
                 return "foo"
 
         def register_plugin():
-            return ApplicationFoo
+            return ExtensionFoo
 
     """
     def __init__(self):
-        self.type_settings = config.plugins.application
+        self.type_settings = config.plugins.extension
         self.settings = self.type_settings.get(self.name())
 
     @classmethod
     def name(cls):
-        """Return the name of the Application and rez-subcommand."""
+        """Return the name of the Extension and rez-subcommand."""
         raise NotImplementedError

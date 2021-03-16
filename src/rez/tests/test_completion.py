@@ -29,8 +29,7 @@ class TestCompletion(TestBase):
         _eq("zzz", [])
         _eq("pref", ["prefix_prompt"])
         _eq("plugin", ["plugins",
-                       "plugin_path",
-                       "plugin_module"])
+                       "plugin_path"])
         _eq("plugins", ["plugins",
                         "plugins.application",
                         "plugins.package_repository",

@@ -69,7 +69,7 @@ def extend_path(path, name):
     for dir_ in config.plugin_path:
         append_if_valid(dir_)
 
-    for name in config.plugin_module:
+    for name in config.extensions:
         if name not in sys.modules:
             try:
                 importlib.import_module(name)
@@ -401,10 +401,10 @@ class BuildProcessPluginType(RezPluginType):
     type_name = "build_process"
 
 
-class ApplicationPluginType(RezPluginType):
+class ExtensionPluginType(RezPluginType):
     """Support for different custom Rez applications/subcommands.
     """
-    type_name = "application"
+    type_name = "extension"
 
 
 plugin_manager = RezPluginManager()
@@ -416,7 +416,7 @@ plugin_manager.register_plugin_type(ReleaseHookPluginType)
 plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
-plugin_manager.register_plugin_type(ApplicationPluginType)
+plugin_manager.register_plugin_type(ExtensionPluginType)
 
 
 # Copyright 2013-2016 Allan Johns.
