@@ -1,7 +1,6 @@
 """
 test the pip utilities
 """
-import os
 import unittest
 
 import rez.vendor.packaging.version
@@ -11,19 +10,18 @@ from rez.vendor.version.requirement import Requirement
 from rez.vendor.packaging.requirements import Requirement as packaging_Requirement
 from rez.vendor.packaging.specifiers import SpecifierSet
 from rez.exceptions import PackageRequestError
+from rez.tests.util import TestBase
 
 import rez.utils.pip
 
 
-class TestPipUtils(unittest.TestCase):
+class TestPipUtils(TestBase):
     """
     """
     @classmethod
     def setUpClass(cls):
-        cls.dist_path = os.path.join(
-            os.path.realpath(os.path.dirname(__file__)),
-            "data", "pip", "installed_distributions"
-        )
+        cls.settings = {}
+        cls.dist_path = cls.data_path("pip", "installed_distributions")
 
     def test_pip_to_rez_package_name(self):
         """
@@ -343,3 +341,7 @@ class TestPipUtils(unittest.TestCase):
             [packaging_Requirement('mypkg; sys_platform == "win32"')],
             [set(["test"])]
         )
+
+
+if __name__ == '__main__':
+    unittest.main()

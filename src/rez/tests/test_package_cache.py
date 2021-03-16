@@ -16,9 +16,8 @@ class TestPackageCache(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        path = os.path.realpath(os.path.dirname(__file__))
-        cls.py_packages_path = os.path.join(path, "data", "packages", "py_packages")
-        cls.solver_packages_path = os.path.join(path, "data", "solver", "packages")
+        cls.py_packages_path = cls.data_path("packages", "py_packages")
+        cls.solver_packages_path = cls.data_path("solver", "packages")
 
         cls.package_cache_path = os.path.join(cls.root, "package_cache")
         os.mkdir(cls.package_cache_path)
@@ -31,11 +30,11 @@ class TestPackageCache(TestBase, TempdirMixin):
             # ensure test packages will get cached
             package_cache_same_device=True,
 
-            default_cachable_per_repository = {
+            default_cachable_per_repository={
                 cls.solver_packages_path: False
             },
 
-            default_cachable_per_package = {
+            default_cachable_per_package={
                 "late_binding": False
             }
         )

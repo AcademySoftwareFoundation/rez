@@ -1,6 +1,8 @@
+'''
+Run a benchmarking suite for runtime resolves.
+'''
 from __future__ import print_function
 
-import argparse
 import json
 import os
 import os.path
@@ -8,33 +10,6 @@ import math
 import subprocess
 import sys
 import time
-
-# Default config settings, this has to be done before rez loads. This stops
-# settings (such as resolve caching) affecting the benchmarking.
-#
-settings = {
-    "memcached_uri": [],
-    "package_filter": [],
-    "package_orderers": [],
-    "allow_unversioned_packages": False,
-    "resource_caching_maxsize": -1,
-    "cache_packages_path": None
-}
-
-for setting, value in settings.items():
-    os.environ.pop("REZ_" + setting.upper(), None)
-    os.environ["REZ_" + setting.upper() + "_JSON"] = json.dumps(value)
-
-try:
-    from rez.packages import iter_package_families
-    from rez.resolved_context import ResolvedContext
-    from rez.solver import SolverCallbackReturn
-
-except ImportError:
-    print(
-        "Rez not present, you may need to invoke this script with rez-python "
-        "depending on what you're doing."
-    )
 
 
 # globals
@@ -44,11 +19,9 @@ pkg_repo_dir = None
 resolves_dir = None
 
 
-def parse_args():
-    parser = argparse.ArgumentParser("Rez benchmarker tool")
-
+def setup_parser(parser, completions=False):
     parser.add_argument(
-        "--out", metavar="RESULTS_DIR", default="results",
+        "--out", metavar="RESULTS_DIR", default="out",
         help="Output dir (default: %(default)s)"
     )
     parser.add_argument(
@@ -66,12 +39,12 @@ def parse_args():
         "average than those in --out dir"
     )
 
-    return parser.parse_args()
-
 
 def load_packages():
     """Load all packages so loading time doesn't impact solve times
     """
+    from rez.packages import iter_package_families
+
     print("Warming package cache...")
     fams = list(iter_package_families(paths=[pkg_repo_dir]))
 
@@ -91,6 +64,9 @@ def load_packages():
 
 
 def do_resolves():
+    from rez.resolved_context import ResolvedContext
+    from rez.solver import SolverCallbackReturn
+
     with open("./source_data/requests.json") as f:
         requests = json.loads(f.read())
 
@@ -321,12 +297,8 @@ def compare():
     print(json.dumps(delta_summary, indent=2))
 
 
-if __name__ == "__main__":
-    opts = parse_args()
-
-    # are we in the right place?
-    if not os.path.exists("source_data/packages.tar.gz"):
-        print("Run script in src/support/benchmarking dir", file=sys.stderr)
+def command(opts, parser, extra_arg_groups=None):
+    global pkg_repo_dir
 
     out_dir = os.path.abspath(opts.out)
     pkg_repo_dir = os.path.join(out_dir, "packages")

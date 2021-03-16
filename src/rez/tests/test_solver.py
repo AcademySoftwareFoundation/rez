@@ -9,7 +9,6 @@ from rez.config import config
 import unittest
 from rez.tests.util import TestBase
 import itertools
-import os.path
 
 
 solver_verbosity = 1
@@ -18,8 +17,7 @@ solver_verbosity = 1
 class TestSolver(TestBase):
     @classmethod
     def setUpClass(cls):
-        path = os.path.dirname(__file__)
-        packages_path = os.path.join(path, "data", "solver", "packages")
+        packages_path = cls.data_path("solver", "packages")
         cls.packages_path = [packages_path]
         cls.settings = dict(
             packages_path=cls.packages_path,
