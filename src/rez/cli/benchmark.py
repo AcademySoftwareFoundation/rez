@@ -16,7 +16,6 @@ import time
 opts = None
 out_dir = None
 pkg_repo_dir = None
-resolves_dir = None
 
 
 def setup_parser(parser, completions=False):
@@ -83,6 +82,11 @@ def do_resolves():
     t_start = time.time()
 
     for i, request_list in enumerate(requests):
+
+        # TEMP
+        if i > 10:
+            break
+
         print("\n[%d/%d]" % (i + 1, len(requests)))
         print("Request: %s" % request_list)
 
@@ -97,7 +101,7 @@ def do_resolves():
         try:
             secs = 0.0
 
-            for _ in range(opts.iterations):
+            for _ in range(_opts.iterations):
                 t = time.time()
                 ctxt = ResolvedContext(
                     package_requests=request_list,
@@ -107,7 +111,7 @@ def do_resolves():
                 )
                 secs += time.time() - t
 
-            resolve_time = secs / opts.iterations
+            resolve_time = secs / _opts.iterations
             print('\n')
 
             if ctxt.success:
@@ -158,7 +162,7 @@ def do_resolves():
 
     if resolve_times:
         resolve_times = sorted(resolve_times)
-        median_resolve_time = resolve_times[n_resolve_times / 2]
+        median_resolve_time = resolve_times[n_resolve_times // 2]
         avg_resolve_time = sum(resolve_times) / float(n_resolve_times)
         min_resolve_time = min(resolve_times)
         max_resolve_time = max(resolve_times)
@@ -196,16 +200,12 @@ def run_benchmark():
     print("Writing results to %s..." % out_dir)
 
     # extract package repo
-    if os.path.exists(pkg_repo_dir):
-        print("Using existing package repository at %s" % pkg_repo_dir)
-    else:
-
-        filepath = os.path.join(module_root_path, "data", "benchmarking", "packages.tar.gz")
-        proc = subprocess.Popen(
-            ["tar", "-xvf", filepath],
-            cwd=out_dir
-        )
-        proc.wait()
+    filepath = os.path.join(module_root_path, "data", "benchmarking", "packages.tar.gz")
+    proc = subprocess.Popen(
+        ["tar", "-xvf", filepath],
+        cwd=out_dir
+    )
+    proc.wait()
 
     load_packages()
     do_resolves()
@@ -261,7 +261,7 @@ def print_histogram():
 
 
 def compare():
-    out_dir2 = opts.compare
+    out_dir2 = _opts.compare
 
     with open(os.path.join(out_dir, "resolves.json")) as f:
         summaries1 = json.loads(f.read())
@@ -275,14 +275,20 @@ def compare():
         except IndexError:
             continue
 
+        request = summary1.get("request")
         resolve1 = summary1.get("resolved_packages")
         resolve2 = summary2.get("resolved_packages")
 
         if resolve1 != resolve2:
             print(
-                "%s != %s" % (json.dumps(resolve1), json.dumps(resolve2)),
+                "MISMATCHING RESULT (#%d):\n"
+                "REQUEST: %r\n"
+                "RESOLVE FROM %s: %r\n"
+                "RESOLVE FROM %s: %r"
+                % (i, request, out_dir, resolve1, out_dir2, resolve2),
                 file=sys.stderr
             )
+            sys.exit(1)
 
     # show delta of summaries (avg solve time etc)
     with open(os.path.join(out_dir, "summary.json")) as f:
@@ -304,8 +310,11 @@ def compare():
 
 
 def command(opts, parser, extra_arg_groups=None):
+    global _opts
+    global out_dir
     global pkg_repo_dir
 
+    _opts = opts
     out_dir = os.path.abspath(opts.out)
     pkg_repo_dir = os.path.join(out_dir, "packages")
 
