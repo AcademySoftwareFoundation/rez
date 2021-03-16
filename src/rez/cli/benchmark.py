@@ -64,10 +64,12 @@ def load_packages():
 
 
 def do_resolves():
+    from rez import module_root_path
     from rez.resolved_context import ResolvedContext
     from rez.solver import SolverCallbackReturn
 
-    with open("./source_data/requests.json") as f:
+    filepath = os.path.join(module_root_path, "data", "benchmarking", "requests.json")
+    with open(filepath) as f:
         requests = json.loads(f.read())
 
     print("Performing %d resolves..." % len(requests))
@@ -181,6 +183,8 @@ def do_resolves():
 
 
 def run_benchmark():
+    from rez import module_root_path
+
     if os.path.exists(out_dir):
         print(
             "Dir specified by --out (%s) must not exist" % out_dir,
@@ -195,8 +199,10 @@ def run_benchmark():
     if os.path.exists(pkg_repo_dir):
         print("Using existing package repository at %s" % pkg_repo_dir)
     else:
+
+        filepath = os.path.join(module_root_path, "data", "benchmarking", "packages.tar.gz")
         proc = subprocess.Popen(
-            ["tar", "-xvf", "../source_data/packages.tar.gz"],
+            ["tar", "-xvf", filepath],
             cwd=out_dir
         )
         proc.wait()
