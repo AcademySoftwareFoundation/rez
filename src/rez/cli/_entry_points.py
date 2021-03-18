@@ -48,6 +48,10 @@ def check_production_install():
 
     if os.path.exists(filepath):
         try:
+            # For case like `pip install rez --target <dst>`, which rez tools
+            # may not have the same directory hierarchy as normal install and
+            # makes `rez.system.rez_bin_path` not able to find the validation
+            # file from module path.
             import rez
             rez.production_bin_path = path
         except ImportError:
