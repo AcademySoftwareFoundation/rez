@@ -81,6 +81,10 @@ class Popen(_PopenBase):
             if sys.version_info[:2] >= (3, 6) and "encoding" not in kwargs:
                 kwargs["encoding"] = "utf-8"
 
+        # Patch batch script extension for Windows
+        if sys.platform == "win32" and os.path.isfile(args[0] + ".cmd"):
+            args[0] += ".cmd"
+
         super(Popen, self).__init__(args, **kwargs)
 
 

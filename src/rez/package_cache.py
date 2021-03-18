@@ -18,6 +18,7 @@ from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
 from rez.utils import json
+from rez.utils.execution import Popen
 from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
     forceful_rmtree
 from rez.utils.colorize import ColorizedStreamHandler
@@ -460,7 +461,7 @@ class PackageCache(object):
                 else:
                     out_target = devnull
 
-                subprocess.Popen(
+                Popen(
                     [exe, "--daemon", self.path],
                     stdout=out_target,
                     stderr=out_target,
