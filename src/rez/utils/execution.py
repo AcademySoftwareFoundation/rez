@@ -171,7 +171,7 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
                 # following lines of batch script will be stripped
                 # before yaml.load
                 f.write("@echo off\n")
-                f.write("%s.exe %%~dpnx0 %%*\n" % program)
+                f.write("%s %%~dpnx0 %%*\n" % program)
                 f.write("goto :eof\n")  # skip YAML body
                 f.write(":: YAML\n")    # comment for human
             else:
