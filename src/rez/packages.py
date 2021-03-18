@@ -7,6 +7,7 @@ from rez.utils import reraise
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
+from rez.utils.filesystem import canonical_path
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
@@ -280,10 +281,10 @@ class Package(PackageBaseResourceWrapper):
             return self.cachable
 
         if config.default_cachable_per_repository:
-            value = config.default_cachable_per_repository.get(
-                self.repository.location)
-            if value is not None:
-                return value
+            repo_location = self.repository.location
+            for path, value in config.default_cachable_per_repository.items():
+                if value is not None and canonical_path(path) == repo_location:
+                    return value
 
         if config.default_cachable_per_package:
             value = config.default_cachable_per_package.get(self.name)
