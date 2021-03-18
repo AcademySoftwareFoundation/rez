@@ -8,8 +8,7 @@ import sys
 
 try:
     from setuptools import setup, find_packages
-    from setuptools.command import build_py
-    from distutils.command import install_data
+    from setuptools.command import install_scripts
 except ImportError:
     print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
@@ -29,20 +28,32 @@ from rez.utils._version import _rez_version
 from rez.cli._entry_points import get_specifications
 
 
-def patch_production_scripts(target_dir):
-    from rez.utils.installer import create_rez_production_scripts
-    scripts = create_rez_production_scripts(
-        target_dir,
-        specifications=get_specifications().values()
-    )
-    validation_file = os.path.join(target_dir, ".rez_production_install")
-    with open(validation_file, "w") as vfn:
-        vfn.write(_rez_version)
+class InstallRezScripts(install_scripts.install_scripts):
 
-    return scripts + [validation_file]
+    def run(self):
+        install_scripts.install_scripts.run(self)
+        self.patch_rez_binaries()
+
+    def patch_rez_binaries(self):
+        from rez.utils.installer import create_rez_production_scripts
+
+        build_path = os.path.join(self.build_dir, "rez")
+        install_path = os.path.join(self.install_dir, "rez")
+
+        specifications = get_specifications().values()
+        create_rez_production_scripts(build_path, specifications)
+
+        validation_file = os.path.join(build_path, ".rez_production_install")
+        with open(validation_file, "w") as vfn:
+            # PEP-427, wheel will rewrite this *shebang* to the python that
+            # used to install rez. And we'll use this to run rez cli tools.
+            vfn.write("#!python\n")
+            vfn.write(_rez_version)
+
+        self.outfiles += self.copy_tree(build_path, install_path)
 
 
-def find_files(pattern, path=None, root="rez"):
+def find_files(pattern, path=None, root="rez", prefix=""):
     paths = []
     basepath = os.path.realpath(os.path.join("src", root))
     path_ = basepath
@@ -54,74 +65,12 @@ def find_files(pattern, path=None, root="rez"):
         files = [os.path.join(root, x) for x in files]
         paths += [x[len(basepath):].lstrip(os.path.sep) for x in files]
 
-    return paths
+    return [prefix + p for p in paths]
 
 
 this_directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(this_directory, 'README.md')) as f:
     long_description = f.read()
-
-
-class RezBuildPy(build_py.build_py):
-
-    def run(self):
-        build_py.build_py.run(self)
-        self.patch_production_scripts()
-        self.copy_completion_scripts()
-
-    def _append(self, data_files):
-        if self.distribution.data_files is None:
-            self.distribution.data_files = []
-        self.distribution.data_files += data_files
-
-    def patch_production_scripts(self):
-        # Create additional build dir for binaries, so they won't be handled
-        # as regular builds under "build/lib".
-        build_path = os.path.join("build", "rez_bins")
-        self.mkpath(build_path)
-        production_scripts = patch_production_scripts(build_path)
-        self._append([
-            # We don't know script install dir at this moment, therefore we
-            # use a placeholder and pickup later.
-            ("_production_script_:rez", production_scripts)
-        ])
-
-    def copy_completion_scripts(self):
-        # find completion dir in rez package build
-        src = os.path.join("build", "lib", "rez", "completion")
-        self._append([
-            # copy completion scripts into root of python installation for
-            # ease of use.
-            ("completion", [os.path.join(src, fn) for fn in os.listdir(src)])
-        ])
-
-
-class InstallData(install_data.install_data):
-
-    def initialize_options(self):
-        install_data.install_data.initialize_options(self)
-        self.script_dir = None
-
-    def finalize_options(self):
-        install_data.install_data.finalize_options(self)
-        self.set_undefined_options(
-            'install', ('install_scripts', 'script_dir'),
-        )
-
-    def run(self):
-        self.patch_production_scripts()
-        install_data.install_data.run(self)
-
-    def patch_production_scripts(self):
-        data_files = []
-        for dst, src in self.data_files:
-            if dst.startswith("_production_script_:"):
-                # Compute relative script install path
-                sub_dir = dst.split(":")[-1]
-                abs_dst_dir = os.path.join(self.script_dir, sub_dir)
-                dst = os.path.relpath(abs_dst_dir, self.install_dir)
-            data_files.append((dst, src))
-        self.data_files[:] = data_files
 
 
 setup(
@@ -161,9 +110,11 @@ setup(
             find_files('rezguiconfig', root='rezgui') +
             find_files('*', 'icons', root='rezgui')
     },
+    data_files=[
+        ("completion", find_files('*', 'completion', prefix='src/rez/'))
+    ],
     cmdclass={
-        "build_py": RezBuildPy,
-        "install_data": InstallData,
+        "install_scripts": InstallRezScripts,
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
