@@ -1,7 +1,8 @@
 """
 Test package caching.
 """
-from rez.tests.util import TestBase, TempdirMixin, restore_os_environ
+from rez.tests.util import TestBase, TempdirMixin, restore_os_environ, \
+    install_dependent
 from rez.packages import get_package
 from rez.package_cache import PackageCache
 from rez.resolved_context import ResolvedContext
@@ -31,11 +32,11 @@ class TestPackageCache(TestBase, TempdirMixin):
             # ensure test packages will get cached
             package_cache_same_device=True,
 
-            default_cachable_per_repository = {
+            default_cachable_per_repository={
                 cls.solver_packages_path: False
             },
 
-            default_cachable_per_package = {
+            default_cachable_per_package={
                 "late_binding": False
             }
         )
@@ -117,6 +118,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
+    @install_dependent()
     def test_caching_on_resolve(self):
         """Test that cache is updated as expected on resolved env."""
         pkgcache = self._pkgcache()
