@@ -7,6 +7,7 @@ from rez.packages import get_package
 from rez.package_cache import PackageCache
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import PackageCacheError
+from rez.utils.filesystem import canonical_path
 import os
 import os.path
 import time
@@ -17,7 +18,7 @@ class TestPackageCache(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        path = os.path.realpath(os.path.dirname(__file__))
+        path = canonical_path(os.path.dirname(__file__))
         cls.py_packages_path = os.path.join(path, "data", "packages", "py_packages")
         cls.solver_packages_path = os.path.join(path, "data", "solver", "packages")
 
