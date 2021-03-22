@@ -104,18 +104,18 @@ class RezPluginType(object):
         self.plugin_modules[plugin_name] = plugin_module
 
     def load_plugins(self):
-        import pkgutil
-        from rez.backport.importlib import import_module
-        type_module_name = 'rezplugins.' + self.type_name
-        package = import_module(type_module_name)
+        main_plugin = plugin_manager.load_main_plugin_module(self.type_name)
 
         # on import, the `__path__` variable of the imported package is extended
         # to include existing directories on the plugin search path (via
         # extend_path, above). this means that `walk_packages` will walk over all
         # modules on the search path at the same level (.e.g in a
         # 'rezplugins/type_name' sub-directory).
-        paths = [package.__path__] if isinstance(package.__path__, basestring) \
-            else package.__path__
+        paths = (
+            [main_plugin.__path__]
+            if isinstance(main_plugin.__path__, basestring)
+            else main_plugin.__path__
+        )
 
         # reverse plugin path order, so that custom plugins have a chance to
         # override the builtin plugins (from /rezplugins).
@@ -126,7 +126,7 @@ class RezPluginType(object):
                 print_debug("searching plugin path %s...", path)
 
             for loader, modname, ispkg in pkgutil.iter_modules(
-                    [path], package.__name__ + '.'):
+                    [path], main_plugin.__name__ + '.'):
 
                 if loader is None:
                     continue
@@ -265,7 +265,41 @@ class RezPluginManager(object):
             'rezplugins' is always found first.
     """
     def __init__(self):
+        self._plugin_types_root = None
         self._plugin_types = {}
+
+    def locate_main_rezplugins(self):
+        if config.debug("plugins"):
+            print_debug("searching main 'rezplugins' module..")
+
+        for imp in pkgutil.iter_importers():
+            for name, ispkg in pkgutil.iter_importer_modules(imp):
+                if name != "rezplugins":
+                    continue
+
+                module_path = os.path.join(imp.path, "rezplugins")
+                verification = os.path.join(module_path, "MAIN")
+                if not os.path.isfile(verification):
+                    if config.debug("plugins"):
+                        print_debug("skipping external rezplugins module: %s"
+                                    % module_path)
+                    continue
+
+                self._plugin_types_root = module_path
+                return module_path
+
+        raise RezPluginError("Main 'rezplugins' module not found, enable "
+                             "REZ_DEBUG_PLUGINS for more detail.")
+
+    def load_main_plugin_module(self, plugin_type):
+        root = self._plugin_types_root or self.locate_main_rezplugins()
+        for importer, modname, _ in pkgutil.iter_modules([root]):
+            if modname == plugin_type:
+                loader = importer.find_module(modname)
+                return loader.load_module(modname)
+
+        raise RezPluginError("Plugin type '%s' not exists in main "
+                             "'rezplugins' module: %s" % (plugin_type, root))
 
     # -- plugin types
 
