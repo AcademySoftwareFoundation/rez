@@ -9,6 +9,7 @@ on:
       - '.github/workflows/windows-docker-image.yaml'
       - 'src/rez/utils/_version.py'
       - 'wiki/**'
+      - 'metrics/**'
       - '**.md'
 
 jobs:

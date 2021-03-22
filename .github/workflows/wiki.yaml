@@ -4,7 +4,7 @@ on:
     types: [released]
   push:
     paths:
-      - '.github/workflows/wiki-build.yaml'
+      - '.github/workflows/wiki.yaml'
       - 'wiki/**'
       - src/rez/rezconfig.py
 env:

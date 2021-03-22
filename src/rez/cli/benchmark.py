@@ -8,6 +8,7 @@ import os
 import os.path
 import math
 import subprocess
+import platform
 import sys
 import time
 
@@ -60,6 +61,50 @@ def load_packages():
             sys.stdout.flush()
 
     print('')
+
+
+def get_system_info():
+    """Get system info that might affect resolve time.
+    """
+    from rez import __version__
+    from rez.utils.execution import Popen
+
+    info = {
+        "rez_version": __version__,
+        "py_version": "%d.%d" % sys.version_info[:2],
+        "platform": platform.platform()
+    }
+
+    # this may only work on linux, but that's ok - the important thing is that
+    # it works in the benchmark workflow, and we run that on linux only
+    #
+    try:
+        proc = Popen(
+            ["cat", "/proc/cpuinfo"],
+            stdout=subprocess.PIPE,
+            text=True
+        )
+        out, _ = proc.communicate()
+
+        if proc.returncode == 0:
+            # parse output, lines are like 'field : value'
+            fields = {}
+            for line in out.strip().split('\n'):
+                if ':' not in line:
+                    continue
+
+                parts = line.strip().split(':', 1)
+                key = parts[0].strip()
+                value = parts[1].strip()
+                fields[key] = value
+
+            # get the bits we care about
+            info["num_cpu"] = int(fields["processor"]) + 1
+            info["cpu"] = fields["model name"]
+    except:
+        pass
+
+    return info
 
 
 def do_resolves():
@@ -160,6 +205,8 @@ def do_resolves():
         "num_failed_resolves": len(fails),
     }
 
+    stats.update(get_system_info())
+
     if resolve_times:
         resolve_times = sorted(resolve_times)
         median_resolve_time = resolve_times[n_resolve_times // 2]
@@ -188,6 +235,7 @@ def do_resolves():
 
 def run_benchmark():
     from rez import module_root_path
+    from rez.utils.execution import Popen
 
     if os.path.exists(out_dir):
         print(
@@ -201,7 +249,7 @@ def run_benchmark():
 
     # extract package repo
     filepath = os.path.join(module_root_path, "data", "benchmarking", "packages.tar.gz")
-    proc = subprocess.Popen(
+    proc = Popen(
         ["tar", "-xf", filepath],
         cwd=out_dir
     )

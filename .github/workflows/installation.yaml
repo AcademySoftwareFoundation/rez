@@ -4,6 +4,7 @@ on:
     paths-ignore:
       - 'src/rez/utils/_version.py'
       - 'wiki/**'
+      - 'metrics/**'
       - '**.md'
 
 jobs:
