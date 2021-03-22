@@ -293,10 +293,11 @@ class RezPluginManager(object):
 
     def load_main_plugin_module(self, plugin_type):
         root = self._plugin_types_root or self.locate_main_rezplugins()
-        for importer, modname, _ in pkgutil.iter_modules([root]):
-            if modname == plugin_type:
-                loader = importer.find_module(modname)
-                return loader.load_module(modname)
+        prefix = "rezplugins."
+        for importer, name, _ in pkgutil.iter_modules([root], prefix=prefix):
+            if name == prefix + plugin_type:
+                loader = importer.find_module(name)
+                return loader.load_module(name)
 
         raise RezPluginError("Plugin type '%s' not exists in main "
                              "'rezplugins' module: %s" % (plugin_type, root))
