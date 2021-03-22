@@ -20,6 +20,7 @@ jobs:
       matrix:
         python-version:
           - '2.7'
+          #- '3.7' TODO
 
     steps:
       - name: Checkout

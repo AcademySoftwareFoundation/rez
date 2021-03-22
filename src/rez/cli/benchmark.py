@@ -202,7 +202,7 @@ def run_benchmark():
     # extract package repo
     filepath = os.path.join(module_root_path, "data", "benchmarking", "packages.tar.gz")
     proc = subprocess.Popen(
-        ["tar", "-xvf", filepath],
+        ["tar", "-xf", filepath],
         cwd=out_dir
     )
     proc.wait()
