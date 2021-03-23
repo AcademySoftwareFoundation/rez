@@ -55,7 +55,7 @@ jobs:
     needs: run_benchmark
 
     strategy:
-      max-parallel: 0
+      max-parallel: 1
       matrix:
         python-version:
           - '2.7'
