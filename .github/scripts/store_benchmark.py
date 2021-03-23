@@ -59,7 +59,7 @@ def update_markdown():
         "stddev"
     )
 
-    md_table_line = "| ".join(summary[x] for x in columns) + " |"
+    md_table_line = "| ".join(str(summary[x]) for x in columns) + " |"
 
     filepath = os.path.join("metrics", "benchmarking", "RESULTS.md")
     with open(filepath, "a") as f:
