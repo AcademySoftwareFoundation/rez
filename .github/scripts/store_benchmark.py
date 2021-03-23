@@ -3,12 +3,18 @@ import os
 import os.path
 import json
 import sys
+import shutil
 import time
 
 src_path = os.path.join(os.getcwd(), "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version  # noqa
+
+
+# max number of result artifacts to store
+# TODO up this soon, it's low so we can test that it is working
+MAX_ARTIFACTS = 1
 
 
 def store_result():
@@ -43,6 +49,15 @@ def store_result():
         )
 
 
+def remove_old_results():
+    path = os.path.join("metrics", "benchmarking", "artifacts")
+    dirs = sorted(os.listdir(path))
+
+    while len(dirs) > MAX_ARTIFACTS:
+        shutil.rmtree(os.path.join(path, dirs[0]))
+        dirs = dirs[1:]
+
+
 def update_markdown():
     filepath = os.path.join("metrics", "benchmarking", "summary.json")
     with open(filepath) as f:
@@ -75,3 +90,4 @@ def update_markdown():
 if __name__ == "__main__":
     update_markdown()
     store_result()
+    remove_old_results()

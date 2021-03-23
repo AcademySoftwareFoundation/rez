@@ -127,11 +127,6 @@ def do_resolves():
     t_start = time.time()
 
     for i, request_list in enumerate(requests):
-
-        # TEMP
-        if i > 10:
-            break
-
         print("\n[%d/%d]" % (i + 1, len(requests)))
         print("Request: %s" % request_list)
 
