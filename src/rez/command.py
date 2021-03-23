@@ -17,7 +17,7 @@ class Command(object):
 
         '''The docstring for command help, this is required.
         '''
-        from rez.extension import Command
+        from rez.command import Command
 
         command_behavior = {
             "hidden": False,   # optional: bool
