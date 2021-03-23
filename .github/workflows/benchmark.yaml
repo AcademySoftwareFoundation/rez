@@ -67,7 +67,7 @@ jobs:
           key: store_benchmark_result
 
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -81,6 +81,8 @@ jobs:
 
       - name: Store Benchmark Result
         run: |
-          ls
+          git branch
+
+          ls -a
 
           python ./github/scripts/store_benchmark.py
