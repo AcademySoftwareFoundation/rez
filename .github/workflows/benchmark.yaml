@@ -85,6 +85,12 @@ jobs:
 
       - name: Checkin
         run: |
+          git config --global user.name "github.com/${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@${{ github.sha }}"
+
           git add --all
-          git commit -m 'workflow: store_benchmark_result'
+          git commit -m \
+              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
+              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}"
+
           git push
