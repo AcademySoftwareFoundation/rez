@@ -74,11 +74,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/download-artifact@v2
-        with:
-          name: "benchmark-result-${{ matrix.python-version }}"
-          path: ./metrics/benchmarking/
+      #- uses: actions/download-artifact@v2
+      #  with:
+      #    name: "benchmark-result-${{ matrix.python-version }}"
+      #    path: ./metrics/benchmarking/
 
       - name: Store Benchmark Result
         run: |
+          ls
+
           python ./github/scripts/store_benchmark.py
