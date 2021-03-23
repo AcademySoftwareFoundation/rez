@@ -67,9 +67,9 @@ def extend_path(path, name):
     for dir_ in config.plugin_path:
         append_if_valid(dir_)
     # Extend new-style plugins
-    for loader, name, ispkg in pkgutil.iter_modules():
+    for importer, name, ispkg in pkgutil.iter_modules():
         if ispkg:
-            append_if_valid(os.path.join(loader.path, name))
+            append_if_valid(os.path.join(importer.path, name))
 
     return path
 
@@ -125,10 +125,10 @@ class RezPluginType(object):
             if config.debug("plugins"):
                 print_debug("searching plugin path %s...", path)
 
-            for loader, modname, ispkg in pkgutil.iter_modules(
+            for importer, modname, ispkg in pkgutil.iter_modules(
                     [path], package.__name__ + '.'):
 
-                if loader is None:
+                if importer is None:
                     continue
 
                 plugin_name = modname.split('.')[-1]
@@ -141,19 +141,24 @@ class RezPluginType(object):
                 try:
                     # load_module will force reload the module if it's
                     # already loaded, so check for that
-                    module = sys.modules.get(modname)
-                    if module is None:
-                        module = loader.find_module(modname).load_module(modname)
-                    if hasattr(module, 'register_plugin') and \
-                            hasattr(module.register_plugin, '__call__'):
-                        plugin_class = module.register_plugin()
-                        if plugin_class != None:
-                            self.register_plugin(plugin_name, plugin_class, module)
+                    plugin_module = sys.modules.get(modname)
+                    if plugin_module is None:
+                        loader = importer.find_module(modname)
+                        plugin_module = loader.load_module(modname)
+
+                    if (hasattr(plugin_module, "register_plugin")
+                            and callable(plugin_module.register_plugin)):
+
+                        plugin_class = plugin_module.register_plugin()
+                        if plugin_class is not None:
+                            self.register_plugin(plugin_name,
+                                                 plugin_class,
+                                                 plugin_module)
                         else:
                             if config.debug("plugins"):
                                 print_warning(
-                                    "'register_plugin' function at %s: %s did not return a class."
-                                    % (path, modname))
+                                    "'register_plugin' function at %s: %s did "
+                                    "not return a class." % (path, modname))
                     else:
                         if config.debug("plugins"):
                             print_warning(
