@@ -62,13 +62,10 @@ jobs:
           - '3.7'
 
     steps:
-      #- name: Mutex
-      #  uses: shogo82148/actions-mutex@v1
-      #  with:
-      #    key: store_benchmark_result
-
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          ref: "issue_1044-auto-benchmarking"
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -79,12 +76,6 @@ jobs:
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: ./metrics/benchmarking/
-
-      #- name: Why
-      #  run: |
-      #    git config --global user.name "github.com/${{ github.actor }}"
-      #    git config --global user.email "${{ github.actor }}@${{ github.sha }}"
-      #    git pull
 
       - name: Store Benchmark Result
         run: |
