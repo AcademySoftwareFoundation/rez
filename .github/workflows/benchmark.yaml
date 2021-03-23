@@ -14,7 +14,7 @@ on:
 
 jobs:
   run_benchmark:
-    name: main
+    name: run_benchmark
     runs-on: ubuntu-latest
 
     strategy:
@@ -46,5 +46,39 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: benchmark-result
+          name: "benchmark-result-${{ matrix.python-version }}"
           path: ./out
+
+  store_benchmark_result:
+    name: store_benchmark_result
+    runs-on: ubuntu-latest
+    needs: run_benchmark
+
+    strategy:
+      matrix:
+        python-version:
+          - '2.7'
+          #- '3.7' TODO
+
+    steps:
+      - name: Mutex
+        uses: shogo82148/actions-mutex@v1
+        with:
+          key: store_benchmark_result
+
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: "benchmark-result-${{ matrix.python-version }}"
+          path: ./metrics/benchmarking/
+
+      - name: Store Benchmark Result
+        run: |
+          python ./github/scripts/store_benchmark.py
