@@ -21,7 +21,7 @@ jobs:
       matrix:
         python-version:
           - '2.7'
-          #- '3.7' TODO
+          - '3.7'
 
     steps:
       - name: Checkout
@@ -58,7 +58,7 @@ jobs:
       matrix:
         python-version:
           - '2.7'
-          #- '3.7' TODO
+          - '3.7'
 
     steps:
       - name: Mutex

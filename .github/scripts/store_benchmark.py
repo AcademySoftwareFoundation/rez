@@ -59,7 +59,13 @@ def update_markdown():
         "stddev"
     )
 
-    md_table_line = "| ".join(str(summary[x]) for x in columns) + " |"
+    def _tostr(value):
+        if isinstance(value, float):
+            return "%.02f" % value
+        else:
+            return str(value)
+
+    md_table_line = "| " + " | ".join(_tostr(summary[x]) for x in columns) + " |"
 
     filepath = os.path.join("metrics", "benchmarking", "RESULTS.md")
     with open(filepath, "a") as f:
