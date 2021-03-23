@@ -82,3 +82,9 @@ jobs:
       - name: Store Benchmark Result
         run: |
           python ./.github/scripts/store_benchmark.py
+
+      - name: Checkin
+        run: |
+          git add --all
+          git commit -m 'workflow: store_benchmark_result'
+          git push
