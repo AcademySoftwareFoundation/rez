@@ -80,6 +80,12 @@ jobs:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: ./metrics/benchmarking/
 
+      - name: Why
+        run: |
+          git config --global user.name "github.com/${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@${{ github.sha }}"
+          git pull
+
       - name: Store Benchmark Result
         run: |
           python ./.github/scripts/store_benchmark.py
