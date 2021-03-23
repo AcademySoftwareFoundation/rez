@@ -73,6 +73,11 @@ def extend_path(path, name):
     return path
 
 
+def uncache_sys_module_paths(instance=None):
+    instance = instance or plugin_manager
+    cached_property.uncache(instance, "sys_module_paths")
+
+
 class RezPluginType(object):
     """An abstract base class representing a single type of plugin.
 
