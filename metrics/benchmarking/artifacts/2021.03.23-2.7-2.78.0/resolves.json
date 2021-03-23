@@ -47,7 +47,7 @@
       "placode", 
       "wave-2"
     ], 
-    "resolve_time": 0.1225118637084961
+    "resolve_time": 0.10340189933776855
   }, 
   {
     "status": "success", 
@@ -70,11 +70,11 @@
       "integer-1.6.6", 
       "coincidence"
     ], 
-    "resolve_time": 0.02164292335510254
+    "resolve_time": 0.01663494110107422
   }, 
   {
     "status": "failed", 
-    "resolve_time": 0.013030052185058594, 
+    "resolve_time": 0.010803937911987305, 
     "request": [
       "~diam==linux", 
       "~understatement==x86_64", 
@@ -100,7 +100,7 @@
       "~aftershave==CentOS-7", 
       "chest-0.0.1"
     ], 
-    "resolve_time": 0.0050029754638671875
+    "resolve_time": 0.003938913345336914
   }, 
   {
     "status": "success", 
@@ -184,7 +184,7 @@
       "integer-1+<2", 
       "grasshopper-2.36.1"
     ], 
-    "resolve_time": 0.38813090324401855
+    "resolve_time": 0.31192708015441895
   }, 
   {
     "status": "success", 
@@ -244,7 +244,7 @@
       "~crucifixion-3.39", 
       "~basketball-19.05"
     ], 
-    "resolve_time": 0.0734410285949707
+    "resolve_time": 0.05708599090576172
   }, 
   {
     "status": "success", 
@@ -303,7 +303,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.1+<4"
     ], 
-    "resolve_time": 0.06712698936462402
+    "resolve_time": 0.052606821060180664
   }, 
   {
     "status": "success", 
@@ -324,7 +324,7 @@
       "~aftershave==CentOS-7", 
       "integer"
     ], 
-    "resolve_time": 0.025501012802124023
+    "resolve_time": 0.02158188819885254
   }, 
   {
     "status": "success", 
@@ -386,7 +386,7 @@
       "integer", 
       "veldt-0.2.1"
     ], 
-    "resolve_time": 0.22933697700500488
+    "resolve_time": 0.1718459129333496
   }, 
   {
     "status": "success", 
@@ -431,7 +431,7 @@
       "~aftershave==CentOS-7", 
       "pelican-0"
     ], 
-    "resolve_time": 0.1239328384399414
+    "resolve_time": 0.0888979434967041
   }, 
   {
     "status": "success", 
@@ -459,6 +459,6 @@
       "~aftershave==CentOS-7", 
       "resist==5.4.1"
     ], 
-    "resolve_time": 0.04853701591491699
+    "resolve_time": 0.03787493705749512
   }
 ]
