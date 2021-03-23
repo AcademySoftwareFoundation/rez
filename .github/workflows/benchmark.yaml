@@ -89,7 +89,7 @@ jobs:
           git config --global user.email "${{ github.actor }}@${{ github.sha }}"
 
           git add --all
-          git commit -m \
+          git commit \
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
               -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}"
 
