@@ -2,17 +2,7 @@
 test rezplugins manager behaviors
 """
 from rez.tests.util import TestBase, TempdirMixin, restore_sys_path
-from rez.plugin_managers import (
-    uncache_sys_module_paths,
-    RezPluginManager,
-    ShellPluginType,
-    ReleaseVCSPluginType,
-    ReleaseHookPluginType,
-    BuildSystemPluginType,
-    PackageRepositoryPluginType,
-    BuildProcessPluginType,
-    CommandPluginType
-)
+from rez.plugin_managers import plugin_manager, uncache_sys_module_paths
 import os
 import sys
 import unittest
@@ -21,33 +11,35 @@ import unittest
 class TestPluginManagers(TestBase, TempdirMixin):
     def __init__(self, *nargs, **kwargs):
         TestBase.__init__(self, *nargs, **kwargs)
-        self._original_modules = set()
-        self.plugin_manager = None
+        self._reset_plugin_manager()
+
+    @classmethod
+    def _reset_plugin_manager(cls):
+        uncache_sys_module_paths()
+
+        plugin_types = []
+        for singleton in plugin_manager._plugin_types.values():
+            plugin_types.append(singleton.instance_class)
+        plugin_manager._plugin_types.clear()
+
+        for plugin_type in plugin_types:
+            plugin_manager.register_plugin_type(plugin_type)
+
+        for key in list(sys.modules.keys()):
+            if key.startswith("rezplugins."):
+                del sys.modules[key]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.settings = {"debug_plugins": True}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._reset_plugin_manager()
 
     def setUp(self):
         TestBase.setUp(self)
-        uncache_sys_module_paths()
-
-        plugin_manager = RezPluginManager()
-        plugin_manager.register_plugin_type(ShellPluginType)
-        plugin_manager.register_plugin_type(ReleaseVCSPluginType)
-        plugin_manager.register_plugin_type(ReleaseHookPluginType)
-        plugin_manager.register_plugin_type(BuildSystemPluginType)
-        plugin_manager.register_plugin_type(PackageRepositoryPluginType)
-        plugin_manager.register_plugin_type(BuildProcessPluginType)
-        plugin_manager.register_plugin_type(CommandPluginType)
-
-        self._original_modules.update(sys.modules.keys())
-        self.plugin_manager = plugin_manager
-
-    def tearDown(self):
-        TestBase.tearDown(self)
-        self.plugin_manager = None
-
-        for key in set(sys.modules.keys()):
-            if key not in self._original_modules:
-                del sys.modules[key]
-        self._original_modules.clear()
+        self._reset_plugin_manager()
 
     def test_old_loading_style(self):
         """Test loading rez plugin from plugin_path"""
@@ -56,7 +48,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
             plugin_path=[os.path.join(path, "data", "extensions", "foo")]
         ))
 
-        cloud_cls = self.plugin_manager.get_plugin_class(
+        cloud_cls = plugin_manager.get_plugin_class(
             "package_repository", "cloud")
         self.assertEqual(cloud_cls.name(), "cloud")
 
@@ -66,7 +58,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
         with restore_sys_path():
             sys.path.append(os.path.join(path, "data", "extensions"))
 
-            cloud_cls = self.plugin_manager.get_plugin_class(
+            cloud_cls = plugin_manager.get_plugin_class(
                 "package_repository", "cloud")
             self.assertEqual(cloud_cls.name(), "cloud")
 
@@ -77,7 +69,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
             plugin_path=[os.path.join(path, "data", "extensions", "non-mod")]
         ))
 
-        mem_cls = self.plugin_manager.get_plugin_class(
+        mem_cls = plugin_manager.get_plugin_class(
             "package_repository", "memory")
         self.assertEqual("non-mod", mem_cls.on_test)
 
@@ -87,7 +79,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
         with restore_sys_path():
             sys.path.append(os.path.join(path, "data", "extensions"))
 
-            mem_cls = self.plugin_manager.get_plugin_class(
+            mem_cls = plugin_manager.get_plugin_class(
                 "package_repository", "memory")
             self.assertEqual("bar", mem_cls.on_test)
 
@@ -102,7 +94,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
                 plugin_path=[os.path.join(path, "data", "extensions", "non-mod")]
             ))
 
-            mem_cls = self.plugin_manager.get_plugin_class(
+            mem_cls = plugin_manager.get_plugin_class(
                 "package_repository", "memory")
             self.assertEqual("bar", mem_cls.on_test)
 
