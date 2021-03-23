@@ -55,11 +55,13 @@ jobs:
     needs: run_benchmark
 
     strategy:
-      max-parallel: 1
       matrix:
         python-version:
           - '2.7'
           - '3.7'
+
+      # so we don't have runs pushing at same time
+      max-parallel: 1
 
     steps:
       #  https://www.techiediaries.com/get-current-branch-name-github-actions-github_ref-bash/
