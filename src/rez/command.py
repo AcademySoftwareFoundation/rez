@@ -2,22 +2,22 @@
 from rez.config import config
 
 
-class Extension(object):
+class Command(object):
     """An interface for registering custom Rez subcommand
 
     To register plugin and expose subcommand, the plugin module..
 
     * MUST have a module-level docstring (used as the command help)
-    * MUST have a module-level attribute `command_behavior`
     * MUST provide a `setup_parser()` function
     * MUST provide a `command()` function
     * MUST provide a `register_plugin()` function
+    * SHOULD have a module-level attribute `command_behavior`
 
     For example, a plugin named 'foo' and this is the `foo.py`:
 
         '''The docstring for command help, this is required.
         '''
-        from rez.extension import Extension
+        from rez.extension import Command
 
         command_behavior = {
             "hidden": False,   # optional: bool
@@ -31,7 +31,7 @@ class Extension(object):
             if opts.hello:
                 print("world")
 
-        class ExtensionFoo(Extension):
+        class CommandFoo(Command):
             schema_dict = {}
 
             @classmethod
@@ -39,7 +39,7 @@ class Extension(object):
                 return "foo"
 
         def register_plugin():
-            return ExtensionFoo
+            return CommandFoo
 
     """
     def __init__(self):
@@ -48,5 +48,5 @@ class Extension(object):
 
     @classmethod
     def name(cls):
-        """Return the name of the Extension and rez-subcommand."""
+        """Return the name of the Command and rez-subcommand."""
         raise NotImplementedError

@@ -386,10 +386,10 @@ class BuildProcessPluginType(RezPluginType):
     type_name = "build_process"
 
 
-class ExtensionPluginType(RezPluginType):
+class CommandPluginType(RezPluginType):
     """Support for different custom Rez applications/subcommands.
     """
-    type_name = "extension"
+    type_name = "command"
 
 
 plugin_manager = RezPluginManager()
@@ -401,7 +401,7 @@ plugin_manager.register_plugin_type(ReleaseHookPluginType)
 plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
-plugin_manager.register_plugin_type(ExtensionPluginType)
+plugin_manager.register_plugin_type(CommandPluginType)
 
 
 # Copyright 2013-2016 Allan Johns.

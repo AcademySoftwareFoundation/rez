@@ -61,12 +61,12 @@ subcommands = {
 
 
 def load_plugin_cmd():
-    """Load extension plugin subcommand
+    """Load subcommand from command type plugin
 
-    The extension plugin module must have attribute `command_behavior`, and
-    the value must be a dict. For example:
+    The command type plugin module should have attribute `command_behavior`,
+    and the value must be a dict if provided. For example:
 
-        # in your extension plugin module
+        # in your command plugin module
         command_behavior = {
             "hidden": False,   # optional: bool
             "arg_mode": None,  # optional: None, "passthrough", "grouped"
@@ -79,8 +79,8 @@ def load_plugin_cmd():
 
     ext_plugins = dict()
 
-    for plugin_name in plugin_manager.get_plugins("extension"):
-        module = plugin_manager.get_plugin_module("extension", plugin_name)
+    for plugin_name in plugin_manager.get_plugins("command"):
+        module = plugin_manager.get_plugin_module("command", plugin_name)
 
         if hasattr(module, "command_behavior"):
             try:
