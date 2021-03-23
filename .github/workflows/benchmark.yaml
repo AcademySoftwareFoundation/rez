@@ -55,16 +55,17 @@ jobs:
     needs: run_benchmark
 
     strategy:
+      max-parallel: 0
       matrix:
         python-version:
           - '2.7'
           - '3.7'
 
     steps:
-      - name: Mutex
-        uses: shogo82148/actions-mutex@v1
-        with:
-          key: store_benchmark_result
+      #- name: Mutex
+      #  uses: shogo82148/actions-mutex@v1
+      #  with:
+      #    key: store_benchmark_result
 
       - name: Checkout
         uses: actions/checkout@v2
