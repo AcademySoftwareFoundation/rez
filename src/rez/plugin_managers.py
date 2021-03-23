@@ -118,7 +118,7 @@ class RezPluginType(object):
             else package.__path__
 
         # reverse plugin path order, so that custom plugins have a chance to
-        # override the builtin plugins (from /rezplugins).
+        # be found before the builtin plugins (from /rezplugins).
         paths = reversed(paths)
 
         for path in paths:
@@ -135,16 +135,35 @@ class RezPluginType(object):
                 if plugin_name.startswith('_') or plugin_name == 'rezconfig':
                     continue
 
+                if plugin_name in self.plugin_modules:
+                    # same named plugins will have identical module name,
+                    # which will just reuse previous imported module from
+                    # `sys.modules` below. skipping the rest of the process
+                    # for good.
+                    if config.debug("plugins"):
+                        print_warning("skipped same named %s plugin at %s: %s"
+                                      % (self.type_name, path, modname))
+                    continue
+
                 if config.debug("plugins"):
                     print_debug("loading %s plugin at %s: %s..."
                                 % (self.type_name, path, modname))
                 try:
+                    # nerdvegas/rez#218
                     # load_module will force reload the module if it's
                     # already loaded, so check for that
                     plugin_module = sys.modules.get(modname)
                     if plugin_module is None:
                         loader = importer.find_module(modname)
                         plugin_module = loader.load_module(modname)
+
+                    elif os.path.dirname(plugin_module.__file__) != path:
+                        if config.debug("plugins"):
+                            # this should not happen but if it does, tell why.
+                            print_warning(
+                                "plugin module %s is not loaded from current "
+                                "load path but reused from previous imported "
+                                "path: %s" % (modname, plugin_module.__file__))
 
                     if (hasattr(plugin_module, "register_plugin")
                             and callable(plugin_module.register_plugin)):
