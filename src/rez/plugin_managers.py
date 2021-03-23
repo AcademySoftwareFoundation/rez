@@ -67,9 +67,8 @@ def extend_path(path, name):
     for dir_ in config.plugin_path:
         append_if_valid(dir_)
     # Extend new-style plugins
-    for importer, name, ispkg in pkgutil.iter_modules():
-        if ispkg:
-            append_if_valid(os.path.join(importer.path, name))
+    for dir_ in plugin_manager.sys_module_paths:
+        append_if_valid(dir_)
 
     return path
 
@@ -290,6 +289,14 @@ class RezPluginManager(object):
     """
     def __init__(self):
         self._plugin_types = {}
+
+    @cached_property
+    def sys_module_paths(self):
+        paths = []
+        for importer, name, ispkg in pkgutil.iter_modules():
+            if ispkg:
+                paths.append(os.path.join(importer.path, name))
+        return paths
 
     # -- plugin types
 
