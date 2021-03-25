@@ -7,6 +7,20 @@ import json
 this_benchmark = {}
 prev_benchmark = {}
 
+msg_template = \
+"""
+RESOLVES DIFFER:
+
+REQUEST:
+{request}
+
+RESULT:
+{result}
+
+PREVIOUS RESULT ({prev_path}):
+{prev_result}
+"""  # noqa
+
 
 def _load_benchmark(path):
     resolves_dict = {}
@@ -26,6 +40,7 @@ def _load_benchmark(path):
         }
 
     return {
+        "path": path,
         "resolves": resolves_dict,
         "solver_version": summary.get("rez_solver_version")
     }
@@ -66,6 +81,17 @@ def compare_benchmarks():
         prev_result = prev_benchmark["resolves"].get(request)
 
         if prev_result and result != prev_result:
+            msg = msg_template.format(
+                request=json.dumps(request),
+                result=json.dumps(result),
+                prev_path=prev_benchmark["path"],
+                prev_result=json.dumps(prev_result)
+            )
+
+            print(msg, file=sys.stderr)
+            sys.exit(1)
+
+            """
             info = {
                 "request": request,
                 "result": result,
@@ -74,6 +100,7 @@ def compare_benchmarks():
 
             print("RESOLVES DIFFER: %r" % info, file=sys.stderr)
             sys.exit(1)
+            """
 
     print("Success: Current resolves match previous resolves")
 
