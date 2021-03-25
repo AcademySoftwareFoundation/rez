@@ -68,9 +68,11 @@ def get_system_info():
     """
     from rez import __version__
     from rez.utils.execution import Popen
+    from rez.solver import SOLVER_VERSION
 
     info = {
         "rez_version": __version__,
+        "rez_solver_version": SOLVER_VERSION,
         "py_version": "%d.%d" % sys.version_info[:2],
         "platform": platform.platform()
     }

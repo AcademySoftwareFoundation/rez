@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -44,6 +44,10 @@ jobs:
           # remove benchmarking suite package repo
           rm -rf ./out/packages
 
+      - name: Validate Result
+        run: |
+          python ./.github/scripts/validate_benchmark.py
+
       - uses: actions/upload-artifact@v2
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
@@ -60,7 +64,7 @@ jobs:
           - '2.7'
           - '3.7'
 
-      # so we don't have runs pushing at same time
+      # so we don't have jobs trying to push to git at the same time
       max-parallel: 1
 
     steps:
@@ -99,8 +103,5 @@ jobs:
           git config --global user.email "${{ github.actor }}@${{ github.sha }}"
 
           git add --all
-          git commit \
-              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}"
-
+          git commit -m "Generated from GitHub "${{ github.workflow }}" Workflow"
           git push

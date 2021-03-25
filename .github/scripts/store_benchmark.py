@@ -13,8 +13,7 @@ from rez.utils._version import _rez_version  # noqa
 
 
 # max number of result artifacts to store
-# TODO up this soon, it's low so we can test that it is working
-MAX_ARTIFACTS = 1
+MAX_ARTIFACTS = 50
 
 
 def store_result():

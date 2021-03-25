@@ -33,7 +33,26 @@ import os
 
 # a hidden control for forcing to non-optimized solving mode. This is here as
 # first port of call for narrowing down the cause of a solver bug if we see one
+#
 _force_unoptimised_solver = (os.getenv("_FORCE_REZ_UNOPTIMISED_SOLVER") == "1")
+
+
+# the 'solver version' is an internal version number that changes if the
+# behaviour of the solver changes in a way that potentially changes the result
+# of a solve.
+#
+# Solves are deterministic - given a known request and set of package repositories,
+# the result should always be the same. However, bugfixes or intentional changes
+# to solver behaviour might change the solve result. In  this case, there's a good
+# chance that the benchmark.yaml workflow will fail, since it expects the same
+# results as the previous workflow run.
+#
+# If the benchmark.yaml workflow fails, and you determine that the solver behaviour
+# change is intentional and expected, then you need to update this version. The
+# workflow will then succeed on its next run, because it will skip the check
+# against the previous results, if the solver version differs.
+#
+SOLVER_VERSION = 1
 
 
 class VariantSelectMode(Enum):
