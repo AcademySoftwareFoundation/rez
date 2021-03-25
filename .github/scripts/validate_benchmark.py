@@ -46,7 +46,8 @@ def load_prev_benchmark():
     if not dirnames:
         return
 
-    path = sorted(dirnames)[-1]
+    latest_dirname = sorted(dirnames)[-1]
+    path = os.path.join(artifacts_dir, latest_dirname)
     prev_benchmark.update(_load_benchmark(path))
 
 
