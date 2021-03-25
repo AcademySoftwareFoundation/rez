@@ -22,6 +22,11 @@ jobs:
         python-version:
           - '2.7'
           - '3.7'
+
+      # without this, we're sometimes getting at the end of this job:
+      # '[error] The operation was canceled'.
+      # Do we hit a resource limit?
+      #
       max-parallel: 1
 
     steps:

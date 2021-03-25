@@ -38,7 +38,11 @@ def load_this_benchmark():
 def load_prev_benchmark():
     # find most recent result
     artifacts_dir = os.path.join("metrics", "benchmarking", "artifacts")
-    dirnames = os.listdir(artifacts_dir)
+    try:
+        dirnames = os.listdir(artifacts_dir)
+    except OSError:
+        dirnames = []
+
     if not dirnames:
         return
 
