@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.78.0 (2021-03-27)
+[Source](https://github.com/nerdvegas/rez/tree/2.78.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.77.1...2.78.0)
+
+**Merged pull requests:**
+
+- Issue 1044 auto benchmarking [\#1048](https://github.com/nerdvegas/rez/pull/1048) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- automatically run benchmarking [\#1044](https://github.com/nerdvegas/rez/issues/1044)
+
 ## 2.77.1 (2021-03-16)
 [Source](https://github.com/nerdvegas/rez/tree/2.77.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.77.0...2.77.1)
 
