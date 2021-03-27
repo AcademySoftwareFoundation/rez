@@ -19,7 +19,7 @@ from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError, RezSystemError
-from rez.vendor.version.version import Version, VersionRange
+from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
@@ -52,7 +52,7 @@ _force_unoptimised_solver = (os.getenv("_FORCE_REZ_UNOPTIMISED_SOLVER") == "1")
 # workflow will then succeed on its next run, because it will skip the check
 # against the previous results, if the solver version differs.
 #
-SOLVER_VERSION = 1
+SOLVER_VERSION = 2
 
 
 class VariantSelectMode(Enum):
