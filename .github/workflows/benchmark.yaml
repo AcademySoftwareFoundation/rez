@@ -3,13 +3,8 @@
 #
 name: benchmark
 on:
-  push:
-    paths-ignore:
-      - '.github/docker/**'
-      - '.github/workflows/windows-docker-image.yaml'
-      - 'wiki/**'
-      - 'metrics/**'
-      - '**.md'
+  release:
+    types: [released]
 
 jobs:
   run_benchmark:
