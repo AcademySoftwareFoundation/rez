@@ -18,8 +18,7 @@ class TestRezSuites(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        path = os.path.dirname(__file__)
-        packages_path = os.path.join(path, "data", "suites", "packages")
+        packages_path = cls.data_path("suites", "packages")
         cls.settings = dict(
             packages_path=[packages_path],
             package_filter=None,
@@ -41,7 +40,6 @@ class TestRezSuites(TestBase, TempdirMixin):
 
     def test_1(self):
         """Test empty suite."""
-        path = os.path.join(self.root, "suite1")
         s = Suite()
         tools = s.get_tools()
         self.assertEqual(tools, {})
@@ -177,6 +175,7 @@ class TestRezSuites(TestBase, TempdirMixin):
         output = subprocess.check_output(["hunny"], shell=True, env=env,
                                          universal_newlines=True)
         self.assertTrue("yum yum" in output)
+
 
 if __name__ == '__main__':
     unittest.main()

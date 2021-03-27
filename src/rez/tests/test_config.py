@@ -17,8 +17,7 @@ class TestConfig(TestBase):
     def setUpClass(cls):
         cls.settings = {}
         cls.root_config_file = get_module_root_config()
-        path = os.path.dirname(__file__)
-        cls.config_path = os.path.join(path, "data", "config")
+        cls.config_path = cls.data_path("config")
 
     def _test_basic(self, c):
         self.assertEqual(type(c.warn_all), bool)

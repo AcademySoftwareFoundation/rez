@@ -2,7 +2,6 @@
 Test cases for package_order.py (package ordering)
 """
 import json
-import os
 
 from rez.config import config
 from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
@@ -18,9 +17,8 @@ class _BaseTestPackagesOrder(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        dirname = os.path.realpath(os.path.dirname(__file__))
-        cls.solver_packages_path = os.path.join(dirname, "data", "solver", "packages")
-        cls.py_packages_path = os.path.join(dirname, "data", "packages", "py_packages")
+        cls.py_packages_path = cls.data_path("packages", "py_packages")
+        cls.solver_packages_path = cls.data_path("solver", "packages")
 
         cls.settings = dict(
             packages_path=[

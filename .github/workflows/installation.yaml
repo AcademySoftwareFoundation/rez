@@ -4,6 +4,7 @@ on:
     paths-ignore:
       - 'src/rez/utils/_version.py'
       - 'wiki/**'
+      - 'metrics/**'
       - '**.md'
 
 jobs:
@@ -52,7 +53,8 @@ jobs:
         export ${{ matrix.exports }}
 
         # Still needed as there's no fallback to use system's python
+        # TODO update once 'provides' mechanism is implemented
         rez bind python
 
-        echo "Checking rez as python package: ==========================================="
+        echo "Checking rez as python package:"
         rez env rez -- python -c 'import rez;print(rez.__file__)'
