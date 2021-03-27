@@ -77,30 +77,30 @@ def compare_benchmarks():
         print("Skipping benchmark comparison - solver versions differ")
         return
 
+    # to help debugging, report the mismatch with the smallest request
+    mismatch = None
+
     for request, result in this_benchmark["resolves"].items():
         prev_result = prev_benchmark["resolves"].get(request)
 
         if prev_result and result != prev_result:
-            msg = msg_template.format(
-                request=json.dumps(request),
-                result=json.dumps(result),
-                prev_path=prev_benchmark["path"],
-                prev_result=json.dumps(prev_result)
-            )
+            if mismatch is None or len(request) < len(mismatch["request"]):
+                mismatch = {
+                    "request": request,
+                    "result": result,
+                    "prev_result": prev_result
+                }
 
-            print(msg, file=sys.stderr)
-            sys.exit(1)
+    if mismatch:
+        msg = msg_template.format(
+            request=json.dumps(mismatch["request"]),
+            result=json.dumps(mismatch["result"]),
+            prev_result=json.dumps(mismatch["prev_result"]),
+            prev_path=prev_benchmark["path"]
+        )
 
-            """
-            info = {
-                "request": request,
-                "result": result,
-                "prev_result": prev_result
-            }
-
-            print("RESOLVES DIFFER: %r" % info, file=sys.stderr)
-            sys.exit(1)
-            """
+        print(msg, file=sys.stderr)
+        sys.exit(1)
 
     print("Success: Current resolves match previous resolves")
 
