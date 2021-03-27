@@ -1192,7 +1192,7 @@ def _get_dependency_order(g, node_list):
     but with child nodes earlier in the list than parents."""
     access_ = accessibility(g)
     deps = dict((k, set(v) - set([k])) for k, v in access_.items())
-    nodes = node_list + list(set(g.nodes()) - set(node_list))
+    nodes = node_list + sorted(set(g.nodes()) - set(node_list))
     ordered_nodes = []
 
     while nodes:

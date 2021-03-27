@@ -250,3 +250,11 @@ introduce a new package into the solve).
   [blah==35.0.2[0,1]] was reduced to [blah==35.0.2[0]]* by python==2.7.3
 
 This shows any reductions and the scopes that have changed as a result.
+
+## History Of Changes
+
+### SOLVER_VERSION 1
+
+First version of the solver (not really, but this is when I started keeping
+change records)
+
