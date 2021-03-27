@@ -68,7 +68,10 @@ def load_prev_benchmark():
 
 def compare_benchmarks():
     if not prev_benchmark:
+        print("No previous benchmark to test against")
         return  # no previous result to compare to
+
+    print("Comparing to benchmark at %s..." % prev_benchmark["path"])
 
     # if solver version doesn't match, then don't bother comparing (see
     # solver.py:SOLVER_VERSION for more details)
