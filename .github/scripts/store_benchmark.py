@@ -6,7 +6,7 @@ import sys
 import shutil
 import time
 
-src_path = os.path.join(os.getcwd(), "src")
+src_path = os.path.join(os.getcwd(), "src", "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version  # noqa
