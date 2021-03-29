@@ -3,8 +3,16 @@
 #
 name: benchmark
 on:
-  release:
-    types: [released]
+  #release:
+  #  types: [released]
+  # TESTING
+  push:
+    paths-ignore:
+      - '.github/docker/**'
+      - '.github/workflows/windows-docker-image.yaml'
+      - 'wiki/**'
+      - 'metrics/**'
+      - '**.md'
 
 jobs:
   run_benchmark:
@@ -68,20 +76,10 @@ jobs:
       max-parallel: 1
 
     steps:
-      #  https://www.techiediaries.com/get-current-branch-name-github-actions-github_ref-bash/
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})"
-        id: extract_branch
-
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          # checkout gets commit that caused the event by default. We need
-          # branch head, so we can pick up a previous job's push
-          #
-          ref: "${{ steps.extract_branch.outputs.branch }}"
+          ref: master
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -97,11 +95,11 @@ jobs:
         run: |
           python ./.github/scripts/store_benchmark.py
 
-      - name: Checkin
+      - name: Git commit and push
         run: |
           git config --global user.name "github.com/${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@${{ github.sha }}"
 
           git add --all
           git commit -m "Generated from GitHub "${{ github.workflow }}" Workflow"
-          git push
+          git push origin master
