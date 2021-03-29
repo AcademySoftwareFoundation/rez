@@ -132,9 +132,6 @@ def do_resolves():
         print("\n[%d/%d]" % (i + 1, len(requests)))
         print("Request: %s" % request_list)
 
-        if i > 5:
-            break  # TESTING
-
         sys.stdout.write("Resolving")
         sys.stdout.flush()
 

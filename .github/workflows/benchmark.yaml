@@ -3,16 +3,8 @@
 #
 name: benchmark
 on:
-  #release:
-  #  types: [released]
-  # TESTING
-  push:
-    paths-ignore:
-      - '.github/docker/**'
-      - '.github/workflows/windows-docker-image.yaml'
-      - 'wiki/**'
-      - 'metrics/**'
-      - '**.md'
+  release:
+    types: [released]
 
 jobs:
   run_benchmark:
@@ -89,7 +81,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: issue_1044-auto-benchmarking  # TODO master
+          ref: master
           path: src
 
       - name: Store Benchmark Result
@@ -106,6 +98,6 @@ jobs:
           git add --all
           git commit \
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              && git push origin issue_1044-auto-benchmarking \
+              && git push origin master \
               || echo "Nothing new to commit"
         working-directory: src
