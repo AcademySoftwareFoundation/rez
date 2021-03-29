@@ -108,3 +108,4 @@ jobs:
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
               && git push origin issue_1044-auto-benchmarking \
               || echo "Nothing new to commit"
+        working-directory: src
