@@ -64,7 +64,6 @@ jobs:
         run: |
           git commit \
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}" \
-              || exit 0
-          git remote set-url origin "${{ env.CLONE_URL }}"
-          git push origin master
+              && git remote set-url origin "${{ env.CLONE_URL }}" \
+              && git push origin master \
+              || echo "Nothing new to commit"

@@ -6,7 +6,7 @@ import sys
 import shutil
 import time
 
-src_path = os.path.join(os.getcwd(), "src")
+src_path = os.path.join(os.getcwd(), "src", "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version  # noqa
@@ -14,6 +14,8 @@ from rez.utils._version import _rez_version  # noqa
 
 # max number of result artifacts to store
 MAX_ARTIFACTS = 50
+
+benchmarking_dir = os.path.join("src", "metrics", "benchmarking")
 
 
 def store_result():
@@ -28,28 +30,25 @@ def store_result():
         _rez_version
     ))
 
-    destpath = os.path.join("metrics", "benchmarking", "artifacts", destdir)
+    destpath = os.path.join(benchmarking_dir, "artifacts", destdir)
     if os.path.exists(destpath):
         return
 
     os.makedirs(destpath)
 
     # take the files that the artifact download created, and move them into
-    # the version-specific directory
+    # the versioned directory
     artifact_files = [
         "resolves.json",
         "summary.json"
     ]
 
     for filename in artifact_files:
-        os.rename(
-            os.path.join("metrics", "benchmarking", filename),
-            os.path.join(destpath, filename)
-        )
+        os.rename(filename, os.path.join(destpath, filename))
 
 
 def remove_old_results():
-    path = os.path.join("metrics", "benchmarking", "artifacts")
+    path = os.path.join(benchmarking_dir, "artifacts")
     dirs = sorted(os.listdir(path))
 
     while len(dirs) > MAX_ARTIFACTS:
@@ -58,8 +57,7 @@ def remove_old_results():
 
 
 def update_markdown():
-    filepath = os.path.join("metrics", "benchmarking", "summary.json")
-    with open(filepath) as f:
+    with open("summary.json") as f:
         summary = json.loads(f.read())
 
     columns = (
@@ -81,7 +79,7 @@ def update_markdown():
 
     md_table_line = "| " + " | ".join(_tostr(summary[x]) for x in columns) + " |"
 
-    filepath = os.path.join("metrics", "benchmarking", "RESULTS.md")
+    filepath = os.path.join(benchmarking_dir, "RESULTS.md")
     with open(filepath, "a") as f:
         f.write(md_table_line + '\n')
 
