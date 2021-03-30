@@ -49,6 +49,5 @@ jobs:
           git add .
           git commit \
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}" \
               && git push --force origin gh-pages \
-              || echo "Nothing new to commit and push"
+              || echo "Nothing new to commit"

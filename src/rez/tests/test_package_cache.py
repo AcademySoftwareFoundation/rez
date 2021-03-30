@@ -18,9 +18,8 @@ class TestPackageCache(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        path = canonical_path(os.path.dirname(__file__))
-        cls.py_packages_path = os.path.join(path, "data", "packages", "py_packages")
-        cls.solver_packages_path = os.path.join(path, "data", "solver", "packages")
+        cls.py_packages_path = canonical_path(cls.data_path("packages", "py_packages"))
+        cls.solver_packages_path = canonical_path(cls.data_path("solver", "packages"))
 
         cls.package_cache_path = os.path.join(cls.root, "package_cache")
         os.mkdir(cls.package_cache_path)

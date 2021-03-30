@@ -1,0 +1,103 @@
+# Run resolving benchmark and store results. Fail if any resolved runtimes
+# change from previous result
+#
+name: benchmark
+on:
+  release:
+    types: [released]
+
+jobs:
+  run_benchmark:
+    name: run_benchmark
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version:
+          - '2.7'
+          - '3.7'
+
+      # without this, we're sometimes getting at the end of this job:
+      # '[error] The operation was canceled'.
+      # Do we hit a resource limit?
+      #
+      max-parallel: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Rez
+        run: |
+          mkdir ./build
+          python ./install.py ./build
+
+      - name: Run Benchmark
+        run: |
+          ./build/bin/rez/rez-benchmark --out ./out
+
+          # remove benchmarking suite package repo
+          rm -rf ./out/packages
+
+      - name: Validate Result
+        run: |
+          python ./.github/scripts/validate_benchmark.py
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: "benchmark-result-${{ matrix.python-version }}"
+          path: ./out
+
+  store_benchmark_result:
+    name: store_benchmark_result
+    runs-on: ubuntu-latest
+    needs: run_benchmark
+
+    strategy:
+      matrix:
+        python-version:
+          - '2.7'
+          - '3.7'
+
+      # so we don't have jobs trying to push to git at the same time
+      max-parallel: 1
+
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: "benchmark-result-${{ matrix.python-version }}"
+          path: .
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: master
+          path: src
+
+      - name: Store Benchmark Result
+        run: |
+          python ./src/.github/scripts/store_benchmark.py
+
+      - name: Setup git config
+        run: |
+          git config --global user.name "github.com/${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@${{ github.sha }}"
+
+      - name: Git commit and push
+        run: |
+          git add --all
+          git commit \
+              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
+              && git push origin master \
+              || echo "Nothing new to commit"
+        working-directory: src

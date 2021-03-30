@@ -7,7 +7,6 @@ from rez.package_py_utils import expand_requirement
 from rez.package_resources import package_release_keys
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
-from rez.utils.platform_ import platform_
 from rez.utils.sourcecode import SourceCode
 import unittest
 from rez.vendor.version.version import Version
@@ -65,15 +64,14 @@ class TestPackages(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        path = os.path.realpath(os.path.dirname(__file__))
-        cls.solver_packages_path = os.path.join(path, "data", "solver", "packages")
-        cls.packages_base_path = os.path.join(path, "data", "packages")
+        cls.solver_packages_path = cls.data_path("solver", "packages")
+        cls.packages_base_path = cls.data_path("packages")
         cls.yaml_packages_path = os.path.join(cls.packages_base_path, "yaml_packages")
         cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
         cls.package_definition_build_python_paths = [
-            os.path.join(path, "data", "python", "early_bind"),
-            os.path.join(path, "data", "python", "preprocess")
+            cls.data_path("python", "early_bind"),
+            cls.data_path("python", "preprocess")
         ]
 
         cls.settings = dict(

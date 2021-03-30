@@ -5,15 +5,12 @@ import unittest
 from rez.tests.util import TestBase
 from rez.config import Config, get_module_root_config
 from rez.packages import get_completions
-import os
-import os.path
 
 
 class TestCompletion(TestBase):
     @classmethod
     def setUpClass(cls):
-        path = os.path.dirname(__file__)
-        packages_path = os.path.join(path, "data", "solver", "packages")
+        packages_path = cls.data_path("solver", "packages")
         cls.settings = dict(
             packages_path=[packages_path],
             package_filter=None)

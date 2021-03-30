@@ -200,8 +200,14 @@ class PackageFilter(PackageFilterBase):
         cached_property.uncache(self, "cost")
 
     def __str__(self):
-        return str((sorted(self._excludes.items()),
-                    sorted(self._includes.items())))
+        def sortkey(rule_items):
+            family, rules = rule_items
+            if family is None:
+                return ("", rules)
+            return rule_items
+
+        return str((sorted(self._excludes.items(), key=sortkey),
+                    sorted(self._includes.items(), key=sortkey)))
 
 
 class PackageFilterList(PackageFilterBase):

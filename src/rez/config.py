@@ -459,6 +459,7 @@ config_schema = Schema({
     "new_session_popen_args":                       OptionalDict,
     "context_tracking_amqp":                        OptionalDict,
     "context_tracking_extra_fields":                OptionalDict,
+    "optionvars":                                   OptionalDict,
 
     # GUI settings
     "use_pyside":                                   Bool,

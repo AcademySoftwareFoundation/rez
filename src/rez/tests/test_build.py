@@ -19,14 +19,13 @@ class TestBuild(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        path = os.path.dirname(__file__)
-        packages_path = os.path.join(path, "data", "builds", "packages")
+        packages_path = cls.data_path("builds", "packages")
         cls.src_root = os.path.join(cls.root, "src", "packages")
         cls.install_root = os.path.join(cls.root, "packages")
         shutil.copytree(packages_path, cls.src_root)
 
         # include modules
-        pypath = os.path.join(path, "data", "python", "late_bind")
+        pypath = cls.data_path("python", "late_bind")
 
         cls.settings = dict(
             packages_path=[cls.install_root],

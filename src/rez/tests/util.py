@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import unittest
+from rez import module_root_path
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
@@ -44,6 +45,13 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.teardown_config()
+
+    @classmethod
+    def data_path(cls, *dirs):
+        """Get path to test data.
+        """
+        path = os.path.join(module_root_path, "data", "tests", *dirs)
+        return os.path.realpath(path)
 
     # These are moved into their own functions so update_settings can call
     # them without having to call setUp / tearDown, and without worrying

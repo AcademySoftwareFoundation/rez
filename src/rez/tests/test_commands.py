@@ -18,8 +18,7 @@ class TestCommands(TestBase):
 
     @classmethod
     def get_packages_path(cls):
-        path = canonical_path(os.path.dirname(__file__))
-        return os.path.join(path, "data", "commands", "packages")
+        return canonical_path(cls.data_path("commands", "packages"))
 
     @classmethod
     def setUpClass(cls):

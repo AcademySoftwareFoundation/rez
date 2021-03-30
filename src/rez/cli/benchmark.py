@@ -1,54 +1,27 @@
+'''
+Run a benchmarking suite for runtime resolves.
+'''
 from __future__ import print_function
 
-import argparse
 import json
 import os
 import os.path
 import math
 import subprocess
+import platform
 import sys
 import time
-
-# Default config settings, this has to be done before rez loads. This stops
-# settings (such as resolve caching) affecting the benchmarking.
-#
-settings = {
-    "memcached_uri": [],
-    "package_filter": [],
-    "package_orderers": [],
-    "allow_unversioned_packages": False,
-    "resource_caching_maxsize": -1,
-    "cache_packages_path": None
-}
-
-for setting, value in settings.items():
-    os.environ.pop("REZ_" + setting.upper(), None)
-    os.environ["REZ_" + setting.upper() + "_JSON"] = json.dumps(value)
-
-try:
-    from rez.packages import iter_package_families
-    from rez.resolved_context import ResolvedContext
-    from rez.solver import SolverCallbackReturn
-
-except ImportError:
-    print(
-        "Rez not present, you may need to invoke this script with rez-python "
-        "depending on what you're doing."
-    )
 
 
 # globals
 opts = None
 out_dir = None
 pkg_repo_dir = None
-resolves_dir = None
 
 
-def parse_args():
-    parser = argparse.ArgumentParser("Rez benchmarker tool")
-
+def setup_parser(parser, completions=False):
     parser.add_argument(
-        "--out", metavar="RESULTS_DIR", default="results",
+        "--out", metavar="RESULTS_DIR", default="out",
         help="Output dir (default: %(default)s)"
     )
     parser.add_argument(
@@ -57,7 +30,7 @@ def parse_args():
     )
     parser.add_argument(
         "--histogram", action="store_true",
-        help="Show an ASCII histogram of resolve times (in dir specified with --out)"
+        help="Show an ASCII histogram of resolve times (from results in --out)"
     )
     parser.add_argument(
         "--compare", metavar="RESULTS_DIR",
@@ -66,12 +39,12 @@ def parse_args():
         "average than those in --out dir"
     )
 
-    return parser.parse_args()
-
 
 def load_packages():
     """Load all packages so loading time doesn't impact solve times
     """
+    from rez.packages import iter_package_families
+
     print("Warming package cache...")
     fams = list(iter_package_families(paths=[pkg_repo_dir]))
 
@@ -90,8 +63,59 @@ def load_packages():
     print('')
 
 
+def get_system_info():
+    """Get system info that might affect resolve time.
+    """
+    from rez import __version__
+    from rez.utils.execution import Popen
+    from rez.solver import SOLVER_VERSION
+
+    info = {
+        "rez_version": __version__,
+        "rez_solver_version": SOLVER_VERSION,
+        "py_version": "%d.%d" % sys.version_info[:2],
+        "platform": platform.platform()
+    }
+
+    # this may only work on linux, but that's ok - the important thing is that
+    # it works in the benchmark workflow, and we run that on linux only
+    #
+    try:
+        proc = Popen(
+            ["cat", "/proc/cpuinfo"],
+            stdout=subprocess.PIPE,
+            text=True
+        )
+        out, _ = proc.communicate()
+
+        if proc.returncode == 0:
+            # parse output, lines are like 'field : value'
+            fields = {}
+            for line in out.strip().split('\n'):
+                if ':' not in line:
+                    continue
+
+                parts = line.strip().split(':', 1)
+                key = parts[0].strip()
+                value = parts[1].strip()
+                fields[key] = value
+
+            # get the bits we care about
+            info["num_cpu"] = int(fields["processor"]) + 1
+            info["cpu"] = fields["model name"]
+    except:
+        pass
+
+    return info
+
+
 def do_resolves():
-    with open("./source_data/requests.json") as f:
+    from rez import module_root_path
+    from rez.resolved_context import ResolvedContext
+    from rez.solver import SolverCallbackReturn
+
+    filepath = os.path.join(module_root_path, "data", "benchmarking", "requests.json")
+    with open(filepath) as f:
         requests = json.loads(f.read())
 
     print("Performing %d resolves..." % len(requests))
@@ -119,7 +143,7 @@ def do_resolves():
         try:
             secs = 0.0
 
-            for _ in range(opts.iterations):
+            for _ in range(_opts.iterations):
                 t = time.time()
                 ctxt = ResolvedContext(
                     package_requests=request_list,
@@ -129,7 +153,7 @@ def do_resolves():
                 )
                 secs += time.time() - t
 
-            resolve_time = secs / opts.iterations
+            resolve_time = secs / _opts.iterations
             print('\n')
 
             if ctxt.success:
@@ -163,7 +187,6 @@ def do_resolves():
 
     # calculate, print results and store to file
     total_secs = time.time() - t_start
-    successes = [x for x in summaries if x["status"] == "success"]
     errors = [x for x in summaries if x["status"] == "error"]
     fails = [x for x in summaries if x["status"] == "failed"]
     resolve_times = [
@@ -179,14 +202,16 @@ def do_resolves():
         "num_failed_resolves": len(fails),
     }
 
+    stats.update(get_system_info())
+
     if resolve_times:
         resolve_times = sorted(resolve_times)
-        median_resolve_time = resolve_times[n_resolve_times / 2]
+        median_resolve_time = resolve_times[n_resolve_times // 2]
         avg_resolve_time = sum(resolve_times) / float(n_resolve_times)
         min_resolve_time = min(resolve_times)
         max_resolve_time = max(resolve_times)
         stddev = math.sqrt(
-            sum((x - avg_resolve_time) ** 2 for x in resolve_times) / n_resolve_times
+            sum((x - avg_resolve_time) ** 2 for x in resolve_times) / float(n_resolve_times)
         )
 
         stats.update({
@@ -206,6 +231,9 @@ def do_resolves():
 
 
 def run_benchmark():
+    from rez import module_root_path
+    from rez.utils.execution import Popen
+
     if os.path.exists(out_dir):
         print(
             "Dir specified by --out (%s) must not exist" % out_dir,
@@ -217,17 +245,12 @@ def run_benchmark():
     print("Writing results to %s..." % out_dir)
 
     # extract package repo
-    if os.path.exists(pkg_repo_dir):
-        print("Using existing package repository at %s" % pkg_repo_dir)
-    else:
-        proc = subprocess.Popen(
-            ["tar", "-xvf", "../source_data/packages.tar.gz"],
-            cwd=out_dir
-        )
-
-        # wait for files to become visible on filesystem, sometimes they aren't
-        # and all resolves fail
-        time.sleep(5)
+    filepath = os.path.join(module_root_path, "data", "benchmarking", "packages.tar.gz")
+    proc = Popen(
+        ["tar", "-xf", filepath],
+        cwd=out_dir
+    )
+    proc.wait()
 
     load_packages()
     do_resolves()
@@ -283,8 +306,7 @@ def print_histogram():
 
 
 def compare():
-    out_dir2 = opts.compare
-    mismatches = []
+    out_dir2 = _opts.compare
 
     with open(os.path.join(out_dir, "resolves.json")) as f:
         summaries1 = json.loads(f.read())
@@ -298,14 +320,20 @@ def compare():
         except IndexError:
             continue
 
+        request = summary1.get("request")
         resolve1 = summary1.get("resolved_packages")
         resolve2 = summary2.get("resolved_packages")
 
         if resolve1 != resolve2:
             print(
-                "%s != %s" % (json.dumps(resolve1), json.dumps(resolve2)),
+                "MISMATCHING RESULT (#%d):\n"
+                "REQUEST: %r\n"
+                "RESOLVE FROM %s: %r\n"
+                "RESOLVE FROM %s: %r"
+                % (i, request, out_dir, resolve1, out_dir2, resolve2),
                 file=sys.stderr
             )
+            sys.exit(1)
 
     # show delta of summaries (avg solve time etc)
     with open(os.path.join(out_dir, "summary.json")) as f:
@@ -326,13 +354,12 @@ def compare():
     print(json.dumps(delta_summary, indent=2))
 
 
-if __name__ == "__main__":
-    opts = parse_args()
+def command(opts, parser, extra_arg_groups=None):
+    global _opts
+    global out_dir
+    global pkg_repo_dir
 
-    # are we in the right place?
-    if not os.path.exists("source_data/packages.tar.gz"):
-        print("Run script in src/support/benchmarking dir", file=sys.stderr)
-
+    _opts = opts
     out_dir = os.path.abspath(opts.out)
     pkg_repo_dir = os.path.join(out_dir, "packages")
 
