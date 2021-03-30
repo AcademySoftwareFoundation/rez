@@ -69,7 +69,7 @@ jobs:
 
       - name: Install Rez test dependencies
         run: |
-          ./build/bin/rez/rez-python -m pip install pytest
+          ./build/bin/rez/rez-python -m pip install pytest-cov
 
       - name: Run Rez Tests
         run: |
