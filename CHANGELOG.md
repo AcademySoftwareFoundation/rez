@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.79.1 (2021-03-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.79.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.79.0...2.79.1)
+
+**Merged pull requests:**
+
+- Fix sorting of rules with and without family (closes #1037) [\#1038](https://github.com/nerdvegas/rez/pull/1038) ([jasperges](https://github.com/jasperges))
+
+**Closed issues:**
+
+- An exception is raised when combining filters with `-` and without `-`. [\#1037](https://github.com/nerdvegas/rez/issues/1037)
+
 ## 2.79.0 (2021-03-30)
 [Source](https://github.com/nerdvegas/rez/tree/2.79.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.78.1...2.79.0)
 

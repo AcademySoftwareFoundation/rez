@@ -203,8 +203,7 @@ class PackageFilter(PackageFilterBase):
         def sortkey(rule_items):
             family, rules = rule_items
             if family is None:
-                family = ""
-                return (family, rules)
+                return ("", rules)
             return rule_items
 
         return str((sorted(self._excludes.items(), key=sortkey),
