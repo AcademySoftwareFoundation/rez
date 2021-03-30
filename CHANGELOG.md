@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.79.0 (2021-03-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.79.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.78.1...2.79.0)
+
+**Merged pull requests:**
+
+- add optionvars [\#1036](https://github.com/nerdvegas/rez/pull/1036) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.78.1 (2021-03-30)
 [Source](https://github.com/nerdvegas/rez/tree/2.78.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.78.0...2.78.1)
 

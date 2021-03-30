@@ -1,11 +1,8 @@
 from __future__ import print_function
 
 import os
-import subprocess
 import sys
-import pipes
 import re
-import inspect
 import traceback
 from contextlib import contextmanager
 from string import Formatter
@@ -948,8 +945,28 @@ def expandable(value):
 
 
 def optionvars(name, default=None):
-    """Accessing arbitrary data from rez config optionvars."""
-    return (config.optionvars or {}).get(name, default)
+    """Access arbitrary data from rez config setting 'optionvars'.
+
+    Args:
+        name (str): Name of the optionvar. Use dot notation for values in
+            nested dicts.
+        default (object): Default value if setting is missing.
+    """
+    value = config.optionvars or {}
+    parts = name.split('.')
+
+    for i, key in enumerate(parts):
+        if not isinstance(value, dict):
+            raise RexError(
+                "Optionvar %r is invalid because %r is not a dict"
+                % (name, '.'.join(parts[:i]))
+            )
+
+        value = value.get(key, KeyError)
+        if value is KeyError:
+            return default
+
+    return value
 
 
 #===============================================================================
