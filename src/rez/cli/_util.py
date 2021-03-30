@@ -50,7 +50,9 @@ subcommands = {
         "arg_mode": "grouped"
     },
     "search": {},
-    "selftest": {},
+    "selftest": {
+        "arg_mode": "passthrough"
+    },
     "status": {},
     "suite": {},
     "test": {},

@@ -1,17 +1,26 @@
 '''
-Run unit tests.
+Run unit tests. Use pytest if available.
 '''
 
-import inspect
 import os
+import sys
+import inspect
 import argparse
 from pkgutil import iter_modules
+
+try:
+    import pytest
+except ImportError:
+    use_pytest = False
+else:
+    use_pytest = True
 
 cli_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 src_rez_dir = os.path.dirname(cli_dir)
 tests_dir = os.path.join(src_rez_dir, 'tests')
 
 all_module_tests = []
+
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
@@ -21,7 +30,10 @@ def setup_parser(parser, completions=False):
         "all tests are run")
     parser.add_argument(
         "-s", "--only-shell", metavar="SHELL",
-        help="limit shell-dependent tests to the specified shell")
+        help="limit shell-dependent tests to the specified shell. Note: This "
+             "flag shadowed pytest '–capture=no' shorthand '-s', so the long "
+             "name must be used for disabling stdout/err capturing in pytest."
+    )
 
     # make an Action that will append the appropriate test to the "--test" arg
     class AddTestModuleAction(argparse.Action):
@@ -50,8 +62,6 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    import sys
-    from unittest.main import main
 
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
@@ -62,11 +72,57 @@ def command(opts, parser, extra_arg_groups=None):
         module_tests = all_module_tests
     else:
         module_tests = opts.module_tests
+
+    if use_pytest:
+        run_pytest(module_tests, opts.tests, opts.verbose, extra_arg_groups)
+    else:
+        run_unittest(module_tests, opts.tests, opts.verbose)
+
+
+def run_unittest(module_tests, tests, verbosity):
+    from unittest.main import main
+
     module_tests = [("rez.tests.test_%s" % x) for x in sorted(module_tests)]
-    tests = module_tests + opts.tests
+    tests = module_tests + tests
 
     argv = [sys.argv[0]] + tests
-    main(module=None, argv=argv, verbosity=opts.verbose)
+    main(module=None, argv=argv, verbosity=verbosity)
+
+
+def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
+    from pytest import main
+
+    cwd = os.getcwd()
+    os.chdir(tests_dir)
+
+    # parse test name, e.g.
+    #   "rez.tests.test_solver.TestSolver.test_01"
+    # into
+    #   "test_solver.py::TestSolver::test_01"
+    test_specifications = []
+    for test in tests:
+        specifier = ""
+        for part in test.split("."):
+            if specifier:
+                specifier += "::" + part
+                continue
+            if os.path.isfile(part + ".py"):
+                specifier = part + ".py"
+        if specifier:
+            test_specifications.append(specifier)
+
+    module_tests = [("test_%s.py" % x) for x in sorted(module_tests)]
+    tests = module_tests + test_specifications
+
+    argv = tests[:]
+
+    if verbosity:
+        argv += ["-" + ("v" * verbosity)]
+    if extra_arg_groups:
+        argv += extra_arg_groups[0]
+
+    main(args=argv)
+    os.chdir(cwd)
 
 
 # Copyright 2013-2016 Allan Johns.
