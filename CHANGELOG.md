@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.80.0 (2021-03-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.80.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.79.1...2.80.0)
+
+**Merged pull requests:**
+
+- Fix rez-python arg disordered [\#1041](https://github.com/nerdvegas/rez/pull/1041) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.79.1 (2021-03-30)
 [Source](https://github.com/nerdvegas/rez/tree/2.79.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.79.0...2.79.1)
 
