@@ -40,5 +40,8 @@ jobs:
       - name: Run flake8
         run: |
           ls *.py utils/*.py cli/*.py tests/*.py \
-            xargs flake8
+            xargs flake8 --select \
+              F401 `# unused import` \
+              F841 `# unused variable`
+
         working-directory: src/rez

@@ -197,7 +197,6 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
     #
 
     package = maker.get_package()
-    cwd = os.getcwd()
     src_variants = []
 
     # skip those variants that already exist

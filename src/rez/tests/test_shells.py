@@ -224,9 +224,7 @@ class TestShells(TestBase, TempdirMixin):
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
 
-            sh = create_shell()
             output = out.strip().split("\n")
-
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():

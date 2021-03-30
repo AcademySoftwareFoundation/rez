@@ -990,7 +990,6 @@ class _PackageScope(_Common):
 
         # ephemerals are just a range intersection
         if self.is_ephemeral:
-            inter_range = None
             if self.is_conflict:
                 intersect_range = range_ - self.package_request.range
             else:

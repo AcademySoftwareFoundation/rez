@@ -1380,7 +1380,7 @@ class RexExecutor(object):
             return fn(*nargs, **kwargs)
         except RexError:
             raise
-        except exc_type as e:
+        except exc_type:
             from inspect import getfile
 
             stack = traceback.format_exc()

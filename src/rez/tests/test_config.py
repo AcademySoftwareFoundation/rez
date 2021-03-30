@@ -188,8 +188,7 @@ class TestConfig(TestBase):
         c = Config([conf], locked=True)
 
         with self.assertRaises(ConfigurationError):
-            _ = c.debug_all
-
+            _ = c.debug_all  # noqa
 
     def test_6(self):
         """Test setting of dict values from environ"""
@@ -208,7 +207,6 @@ class TestConfig(TestBase):
             @property
             def _data(self):
                 return {'dumb_dict': self.DEFAULT_DUMB_DICT}
-
 
         # need to NOT use locked, because we want to test setting from env
         # vars, but don't want values from "real" os.environ to pollute our

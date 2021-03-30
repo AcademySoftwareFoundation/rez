@@ -316,8 +316,6 @@ class TestPackages(TestBase, TempdirMixin):
             requires=[PackageRequest("python-2.7")],
             commands=SourceCode('env.PATH.append("{root}/bin")'))
 
-        requires_ = ["platform-linux", "platform-osx"]
-
         package = get_package("variants_py", "2.0")
         for i, variant in enumerate(package.iter_variants()):
             data = variant.validated_data()
@@ -437,7 +435,7 @@ class TestMemoryPackages(TestBase):
         self.assertEqual(package.description, desc)
         variant = next(package.iter_variants())
         parent_package = variant.parent
-        self.assertEqual(package.description, desc)
+        self.assertEqual(parent_package.description, desc)
 
 
 if __name__ == '__main__':

@@ -518,7 +518,6 @@ def get_marker_sys_requirements(marker):
     _py = "python"
     _plat = "platform"
     _arch = "arch"
-    _os = "os"
 
     sys_requires_lookup = {
         # TODO There is no way to associate a python version with its implementation
