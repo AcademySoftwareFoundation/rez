@@ -1,8 +1,6 @@
 """
 Utility code for supporting earlier Rez data in later Rez releases.
 """
-from rez.config import config
-from rez.utils.logging_ import print_debug
 import re
 import os
 import os.path
@@ -10,10 +8,10 @@ import textwrap
 
 
 variant_key_conversions = {
-    "name":         "name",
-    "version":      "version",
-    "index":        "index",
-    "search_path":  "location"
+    "name": "name",
+    "version": "version",
+    "index": "index",
+    "search_path": "location"
 }
 
 
@@ -24,7 +22,6 @@ def convert_old_variant_handle(handle_dict):
 
     for old_key, key in variant_key_conversions.items():
         value = old_variables.get(old_key)
-        #if value is not None:
         variables[key] = value
 
     path = handle_dict["path"]
@@ -39,12 +36,12 @@ def convert_old_variant_handle(handle_dict):
 
 def convert_old_command_expansions(command):
     """Convert expansions from !OLD! style to {new}."""
-    command = command.replace("!VERSION!",       "{version}")
+    command = command.replace("!VERSION!", "{version}")
     command = command.replace("!MAJOR_VERSION!", "{version.major}")
     command = command.replace("!MINOR_VERSION!", "{version.minor}")
-    command = command.replace("!BASE!",          "{base}")
-    command = command.replace("!ROOT!",          "{root}")
-    command = command.replace("!USER!",          "{system.user}")
+    command = command.replace("!BASE!", "{base}")
+    command = command.replace("!ROOT!", "{root}")
+    command = command.replace("!USER!", "{system.user}")
     return command
 
 

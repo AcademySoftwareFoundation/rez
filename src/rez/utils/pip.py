@@ -2,13 +2,10 @@
 Python packaging related utilities.
 """
 import os.path
-import sys
 from email.parser import Parser
-import platform
 
 import pkg_resources
 
-from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.packaging.version import (
     parse as packaging_parse,
     LegacyVersion as packaging_LegacyVersion,

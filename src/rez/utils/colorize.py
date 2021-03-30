@@ -4,7 +4,6 @@ import sys
 import logging
 from rez.vendor import colorama
 from rez.config import config
-from rez.utils.platform_ import platform_
 
 
 _initialised = False

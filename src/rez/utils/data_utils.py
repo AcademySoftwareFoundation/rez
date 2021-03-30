@@ -4,7 +4,6 @@ Utilities related to managing data types.
 import os.path
 
 from rez.vendor.schema.schema import Schema, Optional
-from rez.exceptions import RexError
 from threading import Lock
 from rez.vendor.six import six
 

@@ -1,5 +1,5 @@
 import warnings
-from rez.package_resources import *
+from rez.package_resources import *  # noqa
 
 
 warnings.warn(

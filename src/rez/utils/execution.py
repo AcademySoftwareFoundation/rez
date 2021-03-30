@@ -30,6 +30,7 @@ if six.PY2:
     class _PopenBase(subprocess.Popen):
         def __enter__(self):
             return self
+
         def __exit__(self, exc_type, value, traceback):
             self.wait()
 

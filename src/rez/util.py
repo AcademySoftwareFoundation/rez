@@ -2,7 +2,6 @@
 Misc useful stuff.
 TODO: Move this into rez.utils.?
 """
-import sys
 import collections
 import atexit
 import os
@@ -10,7 +9,6 @@ import os.path
 from rez.exceptions import RezError
 from rez.vendor.progress.bar import Bar
 from rez.vendor.six import six
-
 
 
 class ProgressBar(Bar):

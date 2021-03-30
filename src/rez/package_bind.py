@@ -9,7 +9,6 @@ from rez.config import config
 import argparse
 import os.path
 import os
-import sys
 
 
 def get_bind_modules(verbose=False):

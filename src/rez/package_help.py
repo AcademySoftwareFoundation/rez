@@ -8,9 +8,7 @@ from rez.utils.backcompat import convert_old_command_expansions
 from rez.utils.scope import scoped_formatter
 from rez.vendor.six import six
 from rez.system import system
-import subprocess
 import webbrowser
-import os.path
 import sys
 
 

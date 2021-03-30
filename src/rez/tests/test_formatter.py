@@ -5,7 +5,6 @@ import unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
 from rez.vendor.six import six
-import sys
 
 
 class TestFormatter(TestBase):

@@ -18,7 +18,7 @@ def install_as_rez_package(repo_path):
         repo_path (str): Repository to install the rez package into.
     """
     def commands():
-        env.PYTHONPATH.append('{this.root}')
+        env.PYTHONPATH.append('{this.root}')  # noqa
 
     def make_root(variant, root):
         # copy source

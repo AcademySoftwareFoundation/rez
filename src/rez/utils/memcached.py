@@ -12,6 +12,7 @@ from hashlib import md5
 from uuid import uuid4
 from rez.vendor.six import six
 
+
 basestring = six.string_types[0]
 
 

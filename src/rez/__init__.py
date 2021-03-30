@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 from rez.utils._version import _rez_version
-import atexit
 import sys
 import os
 
@@ -11,7 +10,7 @@ __author__ = "Allan Johns"
 __license__ = "LGPL"
 
 
-module_root_path = __path__[0]
+module_root_path = __path__[0]  # noqa
 
 
 # TODO: Revamp logging. For now, this is here for backwards compatibility
@@ -43,7 +42,8 @@ _init_logging()
 # actions registered on SIGUSR1
 action = os.getenv("REZ_SIGUSR1_ACTION")
 if action:
-    import signal, traceback
+    import signal
+    import traceback
 
     if action == "print_stack":
         def callback(sig, frame):

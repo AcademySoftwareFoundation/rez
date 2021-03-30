@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-from rez.vendor import yaml
 from rez.serialise import FileFormat
 from rez.package_resources import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use

@@ -1,5 +1,5 @@
 from rez.utils._version import _rez_version
-from rez.utils.schema import Required, schema_keys, extensible_schema_dict
+from rez.utils.schema import Required, extensible_schema_dict
 from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper

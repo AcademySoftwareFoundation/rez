@@ -1,13 +1,11 @@
 import os
 import os.path
 import re
-import sys
 import platform
 
 from rez import __version__
 from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
-from rez.util import which
 from rez.utils.data_utils import cached_property
 
 
