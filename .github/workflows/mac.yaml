@@ -49,6 +49,10 @@ jobs:
         run: |
           pwsh --version
 
+      - name: Install test dependencies
+        run: |
+          python -m pip install pytest
+
       - name: Install Rez
         run: |
           mkdir ./build

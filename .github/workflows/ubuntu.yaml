@@ -62,6 +62,10 @@ jobs:
         run: |
           sudo apt-get install -y zsh
 
+      - name: Install test dependencies
+        run: |
+          python -m pip install pytest
+
       - name: Install Rez
         run: |
           mkdir ./build
