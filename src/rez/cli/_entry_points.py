@@ -260,3 +260,32 @@ def run_rez_bundle():
     check_production_install()
     from rez.cli._main import run
     return run("bundle")
+
+
+@scriptname("rez-benchmark")
+def run_rez_benchmark():
+    check_production_install()
+
+    # Special case - we have to override config settings here, before rez is
+    # loaded. TODO this would be cleaner if we had an Application object, see
+    # https://github.com/nerdvegas/rez/issues/1043
+    #
+    # /start
+    import json
+
+    settings = {
+        "memcached_uri": [],
+        "package_filter": [],
+        "package_orderers": [],
+        "allow_unversioned_packages": False,
+        "resource_caching_maxsize": -1,
+        "cache_packages_path": None
+    }
+
+    for setting, value in settings.items():
+        os.environ.pop("REZ_" + setting.upper(), None)
+        os.environ["REZ_" + setting.upper() + "_JSON"] = json.dumps(value)
+    # /end
+
+    from rez.cli._main import run
+    return run("benchmark")

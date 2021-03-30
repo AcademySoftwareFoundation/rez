@@ -4,7 +4,7 @@ on:
     types: [released]
   push:
     paths:
-      - '.github/workflows/wiki-build.yaml'
+      - '.github/workflows/wiki.yaml'
       - 'wiki/**'
       - src/rez/rezconfig.py
 env:
@@ -52,8 +52,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v2
         with:
-          workflow: wiki-build.yaml
-          workflow_conclusion: success
           name: wiki-markdown
           path: .
 
@@ -66,7 +64,6 @@ jobs:
         run: |
           git commit \
               -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              -m "See https://github.com/${{ github.repository }}/runs/${GITHUB_ACTION}" \
-              || exit 0
-          git remote set-url origin "${{ env.CLONE_URL }}"
-          git push origin master
+              && git remote set-url origin "${{ env.CLONE_URL }}" \
+              && git push origin master \
+              || echo "Nothing new to commit"

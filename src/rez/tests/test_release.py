@@ -23,8 +23,7 @@ class TestRelease(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        path = os.path.dirname(__file__)
-        cls.src_path = os.path.join(path, "data", "release")
+        cls.src_path = cls.data_path("release")
         cls.src_root = os.path.join(cls.root, "src")
         cls.install_root = os.path.join(cls.root, "packages")
 

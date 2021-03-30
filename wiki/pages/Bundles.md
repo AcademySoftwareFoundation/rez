@@ -14,7 +14,7 @@ To create a bundle via command line:
 ]$ rez-env foo -o foo.rxt
 ]$ rez-bundle foo.rxt ./mybundle
 
-# example of running a command from the bundled context
+]$ # example of running a command from the bundled context
 ]$ rez-env -i ./mybundle/context.rxt -- foo-tool
 ```
 

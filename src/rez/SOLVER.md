@@ -250,3 +250,16 @@ introduce a new package into the solve).
   [blah==35.0.2[0,1]] was reduced to [blah==35.0.2[0]]* by python==2.7.3
 
 This shows any reductions and the scopes that have changed as a result.
+
+## History Of Changes
+
+### SOLVER_VERSION 1
+
+First version of the solver (not really, but this is when I started keeping
+change records)
+
+### SOLVER_VERSION 2 (introduced in rez 2.78.0)
+
+A very small change was made to avoid an issue where the order of resolved
+packages was different between py2 and py3. This was caused by an accidental
+reliance on the order of items in a set.

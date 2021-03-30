@@ -1,5 +1,55 @@
 # Change Log
 
+## 2.80.0 (2021-03-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.80.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.79.1...2.80.0)
+
+**Merged pull requests:**
+
+- Fix rez-python arg disordered [\#1041](https://github.com/nerdvegas/rez/pull/1041) ([davidlatwe](https://github.com/davidlatwe))
+
+## 2.79.1 (2021-03-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.79.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.79.0...2.79.1)
+
+**Merged pull requests:**
+
+- Fix sorting of rules with and without family (closes #1037) [\#1038](https://github.com/nerdvegas/rez/pull/1038) ([jasperges](https://github.com/jasperges))
+
+**Closed issues:**
+
+- An exception is raised when combining filters with `-` and without `-`. [\#1037](https://github.com/nerdvegas/rez/issues/1037)
+
+## 2.79.0 (2021-03-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.79.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.78.1...2.79.0)
+
+**Merged pull requests:**
+
+- add optionvars [\#1036](https://github.com/nerdvegas/rez/pull/1036) ([davidlatwe](https://github.com/davidlatwe))
+
+## 2.78.1 (2021-03-30)
+[Source](https://github.com/nerdvegas/rez/tree/2.78.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.78.0...2.78.1)
+
+**Merged pull requests:**
+
+- auto benchmarking fix [\#1049](https://github.com/nerdvegas/rez/pull/1049) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.78.0 (2021-03-27)
+[Source](https://github.com/nerdvegas/rez/tree/2.78.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.77.1...2.78.0)
+
+**Merged pull requests:**
+
+- Issue 1044 auto benchmarking [\#1048](https://github.com/nerdvegas/rez/pull/1048) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- automatically run benchmarking [\#1044](https://github.com/nerdvegas/rez/issues/1044)
+
+## 2.77.1 (2021-03-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.77.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.77.0...2.77.1)
+
+**Merged pull requests:**
+
+- Fix missing files in sdist [\#1042](https://github.com/nerdvegas/rez/pull/1042) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.77.0 (2021-03-09)
 [Source](https://github.com/nerdvegas/rez/tree/2.77.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.76.0...2.77.0)
 

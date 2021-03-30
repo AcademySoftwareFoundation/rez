@@ -914,6 +914,37 @@ pip_install_remaps = [
     },
 ]
 
+# Optional variables. A dict type config for storing arbitrary data that can be
+# accessed by the [optionvars](Package-Commands#optionvars) function in packages
+# *commands*.
+#
+# This is like user preferences for packages, which may not easy to define in
+# package's definition file directly due to the differences between machines/
+# users/pipeline-roles.
+#
+# Example:
+#
+#     # in your rezconfig.py
+#     optionvars = {
+#         "userRoles": ["artist"]
+#     }
+#
+# And to access:
+#
+#     # in package.py
+#     def commands():
+#         roles = optionvars("userRoles", default=None) or []
+#         if "artist" in roles:
+#             env.SOMETHING_FRIENDLY = "Yes"
+#
+# Note that you can refer to values in nested dicts using dot notation:
+#
+#     def commands():
+#         if optionvars("nuke.lighting_tools_enabled"):
+#             ...
+#
+optionvars = None
+
 ###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
