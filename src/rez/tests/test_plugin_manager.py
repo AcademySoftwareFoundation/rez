@@ -58,7 +58,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
     def test_new_loading_style(self):
         """Test loading rez plugin from python modules"""
         with restore_sys_path():
-            sys.path.append(self.data_path("data", "extensions"))
+            sys.path.append(self.data_path("extensions"))
 
             cloud_cls = plugin_manager.get_plugin_class(
                 "package_repository", "cloud")
