@@ -20,13 +20,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.utils.execution import Popen
     import sys
 
-    cmd = [sys.executable, "-E"]
-
-    for arg_group in (extra_arg_groups or []):
-        cmd.extend(arg_group)
-
-    if opts.FILE:
-        cmd.append(opts.FILE)
+    cmd = [sys.executable, "-E"] + sys.argv[1:]
 
     with Popen(cmd) as p:
         sys.exit(p.wait())
