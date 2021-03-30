@@ -4,7 +4,6 @@ test rezplugins manager behaviors
 from rez.tests.util import TestBase, TempdirMixin, restore_sys_path
 from rez.plugin_managers import plugin_manager, uncache_sys_module_paths
 from rez.package_repository import package_repository_manager
-import os
 import sys
 import unittest
 
@@ -48,9 +47,8 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
     def test_old_loading_style(self):
         """Test loading rez plugin from plugin_path"""
-        path = os.path.realpath(os.path.dirname(__file__))
         self.update_settings(dict(
-            plugin_path=[os.path.join(path, "data", "extensions", "foo")]
+            plugin_path=[self.data_path("extensions", "foo")]
         ))
 
         cloud_cls = plugin_manager.get_plugin_class(
@@ -59,9 +57,8 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
     def test_new_loading_style(self):
         """Test loading rez plugin from python modules"""
-        path = os.path.realpath(os.path.dirname(__file__))
         with restore_sys_path():
-            sys.path.append(os.path.join(path, "data", "extensions"))
+            sys.path.append(self.data_path("data", "extensions"))
 
             cloud_cls = plugin_manager.get_plugin_class(
                 "package_repository", "cloud")
@@ -69,9 +66,8 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
     def test_plugin_override_1(self):
         """Test plugin from plugin_path can override the default"""
-        path = os.path.realpath(os.path.dirname(__file__))
         self.update_settings(dict(
-            plugin_path=[os.path.join(path, "data", "extensions", "non-mod")]
+            plugin_path=[self.data_path("extensions", "non-mod")]
         ))
 
         mem_cls = plugin_manager.get_plugin_class(
@@ -80,9 +76,8 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
     def test_plugin_override_2(self):
         """Test plugin from python modules can override the default"""
-        path = os.path.realpath(os.path.dirname(__file__))
         with restore_sys_path():
-            sys.path.append(os.path.join(path, "data", "extensions"))
+            sys.path.append(self.data_path("extensions"))
 
             mem_cls = plugin_manager.get_plugin_class(
                 "package_repository", "memory")
@@ -90,13 +85,12 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
     def test_plugin_override_3(self):
         """Test plugin from python modules can override plugin_path"""
-        path = os.path.realpath(os.path.dirname(__file__))
         with restore_sys_path():
             # setup new
-            sys.path.append(os.path.join(path, "data", "extensions"))
+            sys.path.append(self.data_path("extensions"))
             # setup old
             self.update_settings(dict(
-                plugin_path=[os.path.join(path, "data", "extensions", "non-mod")]
+                plugin_path=[self.data_path("extensions", "non-mod")]
             ))
 
             mem_cls = plugin_manager.get_plugin_class(
