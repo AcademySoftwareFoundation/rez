@@ -74,7 +74,14 @@ def command(opts, parser, extra_arg_groups=None):
         module_tests = opts.module_tests
 
     if use_pytest:
-        run_pytest(module_tests, opts.tests, opts.verbose, extra_arg_groups)
+        cwd = os.getcwd()
+        os.chdir(tests_dir)
+        try:
+            run_pytest(module_tests, opts.tests, opts.verbose,
+                       extra_arg_groups)
+        finally:
+            os.chdir(cwd)
+
     else:
         run_unittest(module_tests, opts.tests, opts.verbose)
 
@@ -91,9 +98,6 @@ def run_unittest(module_tests, tests, verbosity):
 
 def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
     from pytest import main
-
-    cwd = os.getcwd()
-    os.chdir(tests_dir)
 
     # parse test name, e.g.
     #   "rez.tests.test_solver.TestSolver.test_01"
@@ -122,7 +126,6 @@ def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
         argv += extra_arg_groups[0]
 
     main(args=argv)
-    os.chdir(cwd)
 
 
 # Copyright 2013-2016 Allan Johns.
