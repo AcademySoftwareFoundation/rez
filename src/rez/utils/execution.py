@@ -135,9 +135,11 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
     py_script_mode = py_script_mode or config.create_executable_script_mode
 
     # https://github.com/nerdvegas/rez/pull/968
-    is_forwarding_script_on_windows = (program == "_rez_fwd"
-                                       and platform_.name == "windows"
-                                       and filepath.lower().endswith(".cmd"))
+    is_forwarding_script_on_windows = (
+        program == "_rez_fwd" and
+        platform_.name == "windows" and
+        filepath.lower().endswith(".cmd")
+    )
 
     if callable(body):
         from rez.utils.sourcecode import SourceCode
@@ -181,8 +183,11 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
         # clean up the files once the test has run.  Temporarily we don't bother
         # setting the permissions, but this will need to change.
         if os.name == "posix":
-            os.chmod(current_filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-                     | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            os.chmod(
+                current_filepath,
+                stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IXUSR |
+                stat.S_IXGRP | stat.S_IXOTH
+            )
 
     return script_filepaths
 
@@ -234,8 +239,8 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     """
     from rez.utils.platform_ import platform_
 
-    if (platform_.name == "windows"
-            and os.path.splitext(filepath)[-1].lower() != ".cmd"):
+    if platform_.name == "windows" and \
+            os.path.splitext(filepath)[-1].lower() != ".cmd":
         filepath += ".cmd"
 
     doc = dict(

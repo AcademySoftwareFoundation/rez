@@ -236,8 +236,10 @@ def find_site_python(module_name, paths=None):
 
     py_cmd = 'import {x}; print({x}.__path__)'.format(x=module_name)
 
-    p = Popen(["python", "-c", py_cmd], stdout=subprocess.PIPE,
-               stderr=subprocess.PIPE, text=True)
+    p = Popen(
+        ["python", "-c", py_cmd], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, text=True
+    )
     out, err = p.communicate()
 
     if p.returncode:

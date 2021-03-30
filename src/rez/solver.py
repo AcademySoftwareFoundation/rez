@@ -347,14 +347,18 @@ class PackageVariant(_Common):
         return self.requires_list.get(pkg_name)
 
     def __eq__(self, other):
-        return (self.name == other.name
-                and self.version == other.version
-                and self.index == other.index)
+        return (
+            self.name == other.name and
+            self.version == other.version and
+            self.index == other.index
+        )
 
     def __lt__(self, other):
-        return (self.name < other.name
-                and self.version < other.version
-                and self.index < other.index)
+        return (
+            self.name < other.name and
+            self.version < other.version and
+            self.index < other.index
+        )
 
     def __str__(self):
         stmt = VersionedObject.construct(self.name, self.version)

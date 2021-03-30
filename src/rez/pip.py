@@ -352,8 +352,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                     "run_requires": map(str, distribution.run_requires)
                 },
                 "rez": rez_requires
-            }
-        ))
+            })
+        )
 
         # determine where pip files need to be copied into rez package
         src_dst_lut = _get_distribution_files_mapping(distribution, targetpath)

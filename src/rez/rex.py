@@ -74,7 +74,6 @@ class EnvAction(Action):
 
 class Unsetenv(EnvAction):
     name = 'unsetenv'
-Unsetenv.register()
 
 
 class Setenv(EnvAction):
@@ -89,7 +88,6 @@ class Setenv(EnvAction):
     def post_exec(self, interpreter, result):
         interpreter._environ.add(self.key)
         return result
-Setenv.register()
 
 
 class Resetenv(EnvAction):
@@ -109,56 +107,60 @@ class Resetenv(EnvAction):
     def post_exec(self, interpreter, result):
         interpreter._environ.add(self.key)
         return result
-Resetenv.register()
 
 
 class Prependenv(Setenv):
     name = 'prependenv'
-Prependenv.register()
 
 
 class Appendenv(Setenv):
     name = 'appendenv'
-Appendenv.register()
 
 
 class Alias(Action):
     name = 'alias'
-Alias.register()
 
 
 class Info(Action):
     name = 'info'
-Info.register()
 
 
 class Error(Action):
     name = 'error'
-Error.register()
 
 
 class Stop(Action):
     name = 'stop'
-Stop.register()
 
 
 class Command(Action):
     name = 'command'
-Command.register()
 
 
 class Comment(Action):
     name = 'comment'
-Comment.register()
 
 
 class Source(Action):
     name = 'source'
-Source.register()
 
 
 class Shebang(Action):
     name = 'shebang'
+
+
+Unsetenv.register()
+Setenv.register()
+Resetenv.register()
+Prependenv.register()
+Appendenv.register()
+Alias.register()
+Info.register()
+Error.register()
+Stop.register()
+Command.register()
+Comment.register()
+Source.register()
 Shebang.register()
 
 
@@ -276,8 +278,10 @@ class ActionManager(object):
 
     def undefined(self, key):
         _, expanded_key = self._key(key)
-        return (expanded_key not in self.environ
-                and expanded_key not in self.parent_environ)
+        return (
+            expanded_key not in self.environ and
+            expanded_key not in self.parent_environ
+        )
 
     def defined(self, key):
         return not self.undefined(key)
@@ -473,7 +477,6 @@ class ActionInterpreter(object):
             "\\$([a-zA-Z_]+[a-zA-Z0-9_]*?)",    # $ENVVAR
         ])
     )
-
 
     def get_output(self, style=OutputStyle.file):
         """Returns any implementation specific data.
@@ -794,7 +797,7 @@ class EscapedString(object):
         self._add(value, False)
         return self
 
-    def l(self, value):
+    def l(self, value):  # noqa
         return self.literal(value)
 
     def e(self, value):
@@ -818,8 +821,10 @@ class EscapedString(object):
         if isinstance(other, basestring):
             return (str(self) == str(other))
         else:
-            return (isinstance(other, EscapedString)
-                    and other.strings == self.strings)
+            return (
+                isinstance(other, EscapedString) and
+                other.strings == self.strings
+            )
 
     def __ne__(self, other):
         return not (self == other)

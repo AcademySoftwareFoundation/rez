@@ -136,8 +136,9 @@ class PowerShellBase(Shell):
             # Ensures that the PATHEXT does not append duplicates.
             executor.command(
                 '$Env:PATHEXT = ((($Env:PATHEXT + ";{}") -split ";") | Select-Object -Unique) -join ";"'.format(
-                ";".join(self.settings.additional_pathext)
-            ))
+                    ";".join(self.settings.additional_pathext)
+                )
+            )
 
     def spawn_shell(self,
                     context_file,

@@ -633,8 +633,10 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
                 return _get_plugin_completions(prefix_)
             return []
         else:
-            keys = ([x for x in self._schema_keys if isinstance(x, basestring)]
-                    + ["plugins"])
+            keys = (
+                [x for x in self._schema_keys if isinstance(x, basestring)] +
+                ["plugins"]
+            )
             keys = [x for x in keys if x.startswith(prefix)]
             if keys == ["plugins"]:
                 keys += _get_plugin_completions('')

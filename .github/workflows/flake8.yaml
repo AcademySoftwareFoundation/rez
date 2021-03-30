@@ -39,9 +39,16 @@ jobs:
 
       - name: Run flake8
         run: |
-          ls *.py utils/*.py cli/*.py tests/*.py \
-            xargs flake8 --select \
-              F401 `# unused import` \
-              F841 `# unused variable`
+          find -name '*.py' \
+            -not -path './build_utils/*' \
+            -not -path './rez/vendor/*' \
+            -not -path './rez/data/*' \
+            -not -path './support/*' \
+            -not -path './rez/backport/*' \
+            -not -path './rezgui/*' \
+            | xargs flake8 --select \
+            E122 E127 E225 E251 E305 E711 \
+            F401 F841 \
+            W503
 
         working-directory: src/rez
