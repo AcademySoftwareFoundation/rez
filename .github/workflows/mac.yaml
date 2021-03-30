@@ -49,14 +49,14 @@ jobs:
         run: |
           pwsh --version
 
-      - name: Install test dependencies
-        run: |
-          python -m pip install pytest
-
       - name: Install Rez
         run: |
           mkdir ./build
           python ./install.py ./build
+
+      - name: Install Rez test dependencies
+        run: |
+          ./build/bin/rez/rez-python -m pip install pytest
 
       - name: Run Rez Tests
         run: |
