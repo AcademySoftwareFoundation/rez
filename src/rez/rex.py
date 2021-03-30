@@ -947,6 +947,11 @@ def expandable(value):
     return EscapedString(value, False)
 
 
+def optionvars(name, default=None):
+    """Accessing arbitrary data from rez config optionvars."""
+    return (config.optionvars or {}).get(name, default)
+
+
 #===============================================================================
 # Rex Execution Namespace
 #===============================================================================
@@ -1166,6 +1171,7 @@ class RexExecutor(object):
         self.bind('format', self.expand)
         self.bind('literal', literal)
         self.bind('expandable', expandable)
+        self.bind('optionvars', optionvars)
 
         if interpreter is None:
             interpreter = Python(target_environ={})

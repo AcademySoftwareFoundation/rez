@@ -430,6 +430,11 @@ Inhibits expansion of object and environment variable references. You can also c
 
     env.FOO = literal("the value of {root} is").expandable("{root}")
 
+### optionvars
+*Function*
+
+A `dict.get` like function for package accessing arbitrary data from `optionvars` in rez config. See the [optionvars](Configuring-Rez#optionvars) configuration setting for more details.
+
 ### request
 *Dict-like object*
 
