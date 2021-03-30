@@ -51,4 +51,4 @@ jobs:
             F401 F841 \
             W503
 
-        working-directory: src/rez
+        working-directory: src
