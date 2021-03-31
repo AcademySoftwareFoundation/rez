@@ -63,7 +63,7 @@ jobs:
       - name: Git commit and push
         run: |
           git commit \
-              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              && git remote set-url origin "${{ env.CLONE_URL }}" \
-              && git push origin master \
-              || echo "Nothing new to commit"
+            -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
+            && git remote set-url origin "${{ env.CLONE_URL }}" \
+            && git push origin master \
+            || echo "Nothing new to commit"

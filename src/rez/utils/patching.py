@@ -32,10 +32,10 @@ def get_patched_request(requires, patchlist):
 
     # rules from table in docstring above
     rules = {
-        '':  (True,  True,  True ),
+        '': (True, True, True),
         '!': (False, False, False),
-        '~': (False, False, True ),
-        '^': (True,  True,  True )
+        '~': (False, False, True),
+        '^': (True, True, True)
     }
 
     requires = [Requirement(x) if not isinstance(x, Requirement) else x

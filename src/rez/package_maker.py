@@ -1,5 +1,5 @@
 from rez.utils._version import _rez_version
-from rez.utils.schema import Required, schema_keys, extensible_schema_dict
+from rez.utils.schema import Required, extensible_schema_dict
 from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
@@ -197,7 +197,6 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
     #
 
     package = maker.get_package()
-    cwd = os.getcwd()
     src_variants = []
 
     # skip those variants that already exist

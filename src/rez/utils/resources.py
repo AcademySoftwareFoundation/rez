@@ -271,8 +271,10 @@ class ResourceWrapper(six.with_metaclass(AttributeForwardMeta, object)):
         self.resource.validate_data()
 
     def __eq__(self, other):
-        return (self.__class__ == other.__class__
-                and self.resource == other.resource)
+        return (
+            self.__class__ == other.__class__
+            and self.resource == other.resource
+        )
 
     def __str__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self.resource))

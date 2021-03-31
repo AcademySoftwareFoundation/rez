@@ -191,8 +191,8 @@ class PackageCache(object):
             # support device identification.
             #
             dev_stat_not_supported = (
-                platform.system() == "Windows" and
-                sys.version_info[:2] < (3, 4)
+                platform.system() == "Windows"
+                and sys.version_info[:2] < (3, 4)
             )
 
             if not config.package_cache_same_device and not dev_stat_not_supported:
@@ -276,6 +276,7 @@ class PackageCache(object):
         # copies, and report them as VARIANT_COPY_STALLED status.
         #
         still_copying = True
+
         def _while_copying():
             while still_copying:
                 time.sleep(self._COPYING_TIME_INC)
@@ -611,8 +612,8 @@ class PackageCache(object):
 
         def should_exit():
             return (
-                time_limit is not None and
-                (time.time() - now) > time_limit
+                time_limit is not None
+                and (time.time() - now) > time_limit
             )
 
         # find variants to delete

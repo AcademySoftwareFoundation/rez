@@ -141,7 +141,7 @@ class RezPluginType(object):
                     if hasattr(module, 'register_plugin') and \
                             hasattr(module.register_plugin, '__call__'):
                         plugin_class = module.register_plugin()
-                        if plugin_class != None:
+                        if plugin_class is not None:
                             self.register_plugin(plugin_name, plugin_class, module)
                         else:
                             if config.debug("plugins"):

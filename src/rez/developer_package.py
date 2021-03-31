@@ -183,8 +183,6 @@ class DeveloperPackage(Package):
         from rez.utils.data_utils import get_dict_diff_str
         from copy import deepcopy
 
-        package_preprocess_mode = self.config.package_preprocess_mode
-
         def _get_package_level():
             return getattr(self, "preprocess", None)
 

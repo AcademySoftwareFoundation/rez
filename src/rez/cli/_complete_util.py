@@ -12,7 +12,7 @@ class RezCompletionFinder(CompletionFinder):
         self.exclude = None
         self.validator = default_validator
         self.wordbreaks = " \t\"'@><=;|&(:"  # TODO: might need to be configurable/OS specific
-        
+
         if USING_PYTHON2:
             comp_line = comp_line.decode(sys_encoding)
             comp_point = len(comp_line[:comp_point].decode(sys_encoding))
@@ -22,9 +22,11 @@ class RezCompletionFinder(CompletionFinder):
         cword_prequote, cword_prefix, cword_suffix, comp_words, \
             first_colon_pos = split_line(comp_line, comp_point)
 
-        debug("\nLINE: '{l}'\nPREQUOTE: '{pq}'\nPREFIX: '{p}'".format(l=comp_line, pq=cword_prequote, p=cword_prefix),
-              "\nSUFFIX: '{s}'".format(s=cword_suffix),
-              "\nWORDS:", comp_words)
+        debug(
+            "\nLINE: '{l}'\nPREQUOTE: '{pq}'\nPREFIX: '{p}'".format(l=comp_line, pq=cword_prequote, p=cword_prefix),
+            "\nSUFFIX: '{s}'".format(s=cword_suffix),
+            "\nWORDS:", comp_words
+        )
 
         completions = self._get_completions(comp_words, cword_prefix,
                                             cword_prequote, first_colon_pos)

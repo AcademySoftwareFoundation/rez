@@ -1,4 +1,3 @@
-import re
 import sys
 from rez.vendor.six import six
 from contextlib import contextmanager

@@ -1,0 +1,51 @@
+name: flake8
+on:
+  pull_request:
+    paths-ignore:
+      - '.github/docker/**'
+      - '.github/workflows/windows-docker-image.yaml'
+      - 'src/rez/utils/_version.py'
+      - 'wiki/**'
+      - 'metrics/**'
+      - 'data/**'
+      - '**.md'
+  push:
+    paths-ignore:
+      - '.github/docker/**'
+      - '.github/workflows/windows-docker-image.yaml'
+      - 'src/rez/utils/_version.py'
+      - 'wiki/**'
+      - 'metrics/**'
+      - 'data/**'
+      - '**.md'
+
+jobs:
+  lint:
+    name: Run Linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: Install Dependencies
+        run: |
+          pip install flake8
+
+      - name: Run flake8
+        run: >-
+          find -name '*.py'
+          -not -path './build_utils/*'
+          -not -path './rez/vendor/*'
+          -not -path './rez/data/*'
+          -not -path './support/*'
+          -not -path './rez/backport/*'
+          -not -path './rezgui/*'
+          | xargs flake8 --ignore
+          E241,E265,E266,E741,E742,E722,F821,W503
+        working-directory: src

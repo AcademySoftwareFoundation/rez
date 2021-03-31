@@ -66,7 +66,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     # replace '--' with special '--N#' flag so that subcommands can specify
     # custom completions.
-    regex = re.compile("\s--\s")
+    regex = re.compile(r"\s--\s")
     ddashes = regex.findall(comp_line)
     for i, ddash in enumerate(ddashes):
         j = comp_line.find(ddash)

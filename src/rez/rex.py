@@ -74,7 +74,6 @@ class EnvAction(Action):
 
 class Unsetenv(EnvAction):
     name = 'unsetenv'
-Unsetenv.register()
 
 
 class Setenv(EnvAction):
@@ -89,7 +88,6 @@ class Setenv(EnvAction):
     def post_exec(self, interpreter, result):
         interpreter._environ.add(self.key)
         return result
-Setenv.register()
 
 
 class Resetenv(EnvAction):
@@ -109,56 +107,60 @@ class Resetenv(EnvAction):
     def post_exec(self, interpreter, result):
         interpreter._environ.add(self.key)
         return result
-Resetenv.register()
 
 
 class Prependenv(Setenv):
     name = 'prependenv'
-Prependenv.register()
 
 
 class Appendenv(Setenv):
     name = 'appendenv'
-Appendenv.register()
 
 
 class Alias(Action):
     name = 'alias'
-Alias.register()
 
 
 class Info(Action):
     name = 'info'
-Info.register()
 
 
 class Error(Action):
     name = 'error'
-Error.register()
 
 
 class Stop(Action):
     name = 'stop'
-Stop.register()
 
 
 class Command(Action):
     name = 'command'
-Command.register()
 
 
 class Comment(Action):
     name = 'comment'
-Comment.register()
 
 
 class Source(Action):
     name = 'source'
-Source.register()
 
 
 class Shebang(Action):
     name = 'shebang'
+
+
+Unsetenv.register()
+Setenv.register()
+Resetenv.register()
+Prependenv.register()
+Appendenv.register()
+Alias.register()
+Info.register()
+Error.register()
+Stop.register()
+Command.register()
+Comment.register()
+Source.register()
 Shebang.register()
 
 
@@ -276,8 +278,10 @@ class ActionManager(object):
 
     def undefined(self, key):
         _, expanded_key = self._key(key)
-        return (expanded_key not in self.environ
-                and expanded_key not in self.parent_environ)
+        return (
+            expanded_key not in self.environ
+            and expanded_key not in self.parent_environ
+        )
 
     def defined(self, key):
         return not self.undefined(key)
@@ -473,7 +477,6 @@ class ActionInterpreter(object):
             "\\$([a-zA-Z_]+[a-zA-Z0-9_]*?)",    # $ENVVAR
         ])
     )
-
 
     def get_output(self, style=OutputStyle.file):
         """Returns any implementation specific data.
@@ -705,7 +708,7 @@ class Python(ActionInterpreter):
             self._add_systemroot_to_env_win32(env)
 
     def _add_systemroot_to_env_win32(self, env):
-        """ Sets ``%SYSTEMROOT%`` environment variable, if not present
+        r""" Sets ``%SYSTEMROOT%`` environment variable, if not present
         in :py:attr:`target_environ` .
 
         Args:
@@ -794,7 +797,7 @@ class EscapedString(object):
         self._add(value, False)
         return self
 
-    def l(self, value):
+    def l(self, value):  # noqa
         return self.literal(value)
 
     def e(self, value):
@@ -818,8 +821,10 @@ class EscapedString(object):
         if isinstance(other, basestring):
             return (str(self) == str(other))
         else:
-            return (isinstance(other, EscapedString)
-                    and other.strings == self.strings)
+            return (
+                isinstance(other, EscapedString)
+                and other.strings == self.strings
+            )
 
     def __ne__(self, other):
         return not (self == other)
@@ -1317,7 +1322,7 @@ class RexExecutor(object):
                 pyc = compile(code, filename, 'exec')
         except SourceCodeError as e:
             reraise(e, RexError)
-        except Exception as e:
+        except:
             stack = traceback.format_exc()
             raise RexError("Failed to compile %s:\n\n%s" % (filename, stack))
 
@@ -1334,7 +1339,7 @@ class RexExecutor(object):
                 raise
             except SourceCodeError as e:
                 reraise(e, RexError)
-            except exc_type as e:
+            except exc_type:
                 stack = traceback.format_exc()
                 raise RexError("Failed to exec %s:\n\n%s" % (filename, stack))
 
@@ -1380,7 +1385,7 @@ class RexExecutor(object):
             return fn(*nargs, **kwargs)
         except RexError:
             raise
-        except exc_type as e:
+        except exc_type:
             from inspect import getfile
 
             stack = traceback.format_exc()

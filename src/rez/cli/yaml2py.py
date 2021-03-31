@@ -5,10 +5,10 @@ from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
-    PKG_action = parser.add_argument(
+    parser.add_argument(
         "PATH", type=str, nargs='?',
         help="path to yaml to convert, or directory to search for package.yaml;"
-            " cwd if not provided")
+        " cwd if not provided")
 
 
 def command(opts, parser, extra_arg_groups=None):

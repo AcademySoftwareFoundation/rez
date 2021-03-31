@@ -2,13 +2,10 @@
 Python packaging related utilities.
 """
 import os.path
-import sys
 from email.parser import Parser
-import platform
 
 import pkg_resources
 
-from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.packaging.version import (
     parse as packaging_parse,
     LegacyVersion as packaging_LegacyVersion,
@@ -521,7 +518,6 @@ def get_marker_sys_requirements(marker):
     _py = "python"
     _plat = "platform"
     _arch = "arch"
-    _os = "os"
 
     sys_requires_lookup = {
         # TODO There is no way to associate a python version with its implementation

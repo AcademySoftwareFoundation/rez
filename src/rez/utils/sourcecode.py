@@ -109,7 +109,7 @@ class SourceCode(object):
         other.func = self.func
         other.filepath = self.filepath
         other.eval_as_function = self.eval_as_function
-        other.package =self.package
+        other.package = self.package
         other.funcname = self.funcname
         other.decorators = self.decorators
 
@@ -165,9 +165,11 @@ class SourceCode(object):
             funcname = self.funcname or "_unnamed"
 
             code = indent(self.source)
-            code = ("def %s():\n" % funcname
-                    + code
-                    + "\n_result = %s()" % funcname)
+            code = (
+                "def %s():\n" % funcname
+                + code
+                + "\n_result = %s()" % funcname
+            )
         else:
             code = "if True:\n" + indent(self.source)
 
@@ -266,8 +268,10 @@ class SourceCode(object):
         self.package = None
 
     def __eq__(self, other):
-        return (isinstance(other, SourceCode)
-                and other.source == self.source)
+        return (
+            isinstance(other, SourceCode)
+            and other.source == self.source
+        )
 
     def __ne__(self, other):
         return not (other == self)

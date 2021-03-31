@@ -15,7 +15,7 @@ import re
 import time
 
 
-PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
+PACKAGE_NAME_REGSTR = r"[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
 PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
 
 ENV_VAR_REGSTR = r'\$(\w+|\{[^}]*\})'
@@ -43,8 +43,8 @@ def is_valid_package_name(name, raise_error=False):
         bool.
     """
     is_valid = (
-        PACKAGE_NAME_REGEX.match(name) and
-        name not in invalid_package_names
+        PACKAGE_NAME_REGEX.match(name)
+        and name not in invalid_package_names
     )
 
     if raise_error and not is_valid:
@@ -132,7 +132,7 @@ class ObjectStringFormatter(Formatter):
         try:
             return Formatter.get_field(self, field_name, args, kwargs)
         except (AttributeError, KeyError, TypeError):
-            reg = re.compile("[^\.\[]+")
+            reg = re.compile(r"[^\.\[]+")
             try:
                 key = reg.match(field_name).group()
             except:
@@ -459,8 +459,10 @@ def positional_number_string(n):
 # regex used to expand user; set here to avoid recompile on every call
 EXPANDUSER_RE = re.compile(
     r'(\A|\s|[{pathseps}])~([{seps}]|[{pathseps}]|\s|\Z)'.format(
-    seps = re.escape(''.join(set([os.sep + (getattr(os, 'altsep') or os.sep)]))),
-    pathseps = re.escape(''.join(set([os.pathsep + ';'])))))
+        seps=re.escape(''.join(set([os.sep + (getattr(os, 'altsep') or os.sep)]))),
+        pathseps=re.escape(''.join(set([os.pathsep + ';'])))
+    )
+)
 
 
 def expanduser(path):

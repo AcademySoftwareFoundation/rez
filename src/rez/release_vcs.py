@@ -34,8 +34,10 @@ def create_release_vcs(path, vcs_name=None):
         classes_by_level.setdefault(levels_up, []).append((cls, vcs_path))
 
     if not classes_by_level:
-        raise ReleaseVCSError("No version control system for package "
-                      "releasing is associated with the path %s" % path)
+        raise ReleaseVCSError(
+            "No version control system for package "
+            "releasing is associated with the path %s" % path
+        )
 
     # it's ok to have multiple results, as long as there is only one at the
     # "closest" directory up from this dir - ie, if we start at:

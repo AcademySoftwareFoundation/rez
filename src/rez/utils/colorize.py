@@ -4,7 +4,6 @@ import sys
 import logging
 from rez.vendor import colorama
 from rez.config import config
-from rez.utils.platform_ import platform_
 
 
 _initialised = False
@@ -265,7 +264,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         30: warning,
         20: info,
         10: debug,
-        0:  notset,
+        0: notset,
     }
 
     @property
@@ -313,8 +312,10 @@ class ColorizedStreamHandler(logging.StreamHandler):
 class Printer(object):
     def __init__(self, buf=sys.stdout):
         self.buf = buf
-        self.colorize = (config.get("color_enabled", False) == "force") \
-                        or stream_is_tty(buf)
+        self.colorize = (
+            config.get("color_enabled", False) == "force"
+            or stream_is_tty(buf)
+        )
 
     def __call__(self, msg='', style=None):
         print(self.get(msg, style), file=self.buf)

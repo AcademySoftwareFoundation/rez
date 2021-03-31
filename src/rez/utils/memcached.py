@@ -12,6 +12,7 @@ from hashlib import md5
 from uuid import uuid4
 from rez.vendor.six import six
 
+
 basestring = six.string_types[0]
 
 
@@ -320,7 +321,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
     """
     def default_key(func, *nargs, **kwargs):
         parts = [func.__module__]
-        argnames =  py23.get_function_arg_names(func)
+        argnames = py23.get_function_arg_names(func)
 
         if argnames:
             if argnames[0] == "cls":
@@ -335,11 +336,14 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
         parts.append(func.__name__)
 
         value = ('.'.join(parts), nargs, tuple(sorted(kwargs.items())))
+
         # make sure key is hashable. We don't strictly need it to be, but this
         # is a way of hopefully avoiding object types that are not ordered (these
         # would give an unreliable key). If you need to key on unhashable args,
         # you should provide your own `key` functor.
-        _ = hash(value)
+        #
+        _ = hash(value)  # noqa
+
         return repr(value)
 
     def identity(value, *nargs, **kwargs):
