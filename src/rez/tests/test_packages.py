@@ -130,8 +130,9 @@ class TestPackages(TestBase, TempdirMixin):
 
         # a yaml-based package
         package = get_package("versioned", "2.0")
-        expected_uri = canonical_path(os.path.join(self.yaml_packages_path,
-                                            "versioned", "2.0", "package.yaml"))
+        expected_uri = canonical_path(
+            os.path.join(self.yaml_packages_path, "versioned", "2.0", "package.yaml")
+        )
         self.assertEqual(package.uri, expected_uri)
 
         # a py-based package with late binding attribute functions

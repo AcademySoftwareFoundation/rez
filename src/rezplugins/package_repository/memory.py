@@ -2,11 +2,10 @@
 In-memory package repository
 """
 from rez.package_repository import PackageRepository
-from rez.package_resources import PackageFamilyResource, PackageResource, \
-    VariantResourceHelper, PackageResourceHelper, package_pod_schema
-from rez.exceptions import PackageMetadataError
-from rez.utils.formatting import is_valid_package_name, PackageRequest
-from rez.utils.resources import ResourceHandle, ResourcePool, cached_property
+from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
+    PackageResourceHelper, package_pod_schema
+from rez.utils.formatting import is_valid_package_name
+from rez.utils.resources import ResourcePool, cached_property
 from rez.vendor.version.requirement import VersionedObject
 
 
@@ -91,8 +90,9 @@ class MemoryVariantResource(VariantResourceHelper):
         package = self._repository.get_resource(
             MemoryPackageResource.key,
             location=self.location,
-             name=self.name,
-             version=self.get("version"))
+            name=self.name,
+            version=self.get("version")
+        )
         return package
 
 

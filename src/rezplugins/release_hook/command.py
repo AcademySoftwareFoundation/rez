@@ -133,8 +133,10 @@ class CommandReleaseHook(ReleaseHook):
                                errors=errors,
                                variants=variants)
         if errors:
-            print_debug("The following post-release commands failed:\n"
-                        + '\n\n'.join(errors))
+            print_debug(
+                "The following post-release commands failed:\n" +
+                '\n\n'.join(errors)
+            )
 
     def _execute_commands(self, commands, install_path, package, errors=None,
                           variants=None):

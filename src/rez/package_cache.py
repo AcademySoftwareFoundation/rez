@@ -276,6 +276,7 @@ class PackageCache(object):
         # copies, and report them as VARIANT_COPY_STALLED status.
         #
         still_copying = True
+
         def _while_copying():
             while still_copying:
                 time.sleep(self._COPYING_TIME_INC)

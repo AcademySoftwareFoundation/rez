@@ -26,6 +26,7 @@ basestring = six.string_types[0]
 # package-related classes
 # ------------------------------------------------------------------------------
 
+
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
     format_expand = StringFormatType.unchanged
 

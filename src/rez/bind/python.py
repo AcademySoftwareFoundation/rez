@@ -8,7 +8,6 @@ from rez.package_maker import make_package
 from rez.system import system
 from rez.utils.lint_helper import env
 from rez.utils.platform_ import platform_
-from rez.vendor.version.version import Version
 import shutil
 import os.path
 
@@ -26,9 +25,10 @@ def commands():
 def post_commands():
     # these are the builtin modules for this python executable. If we don't
     # include these, some python behavior can be incorrect.
-    import os, os.path
+    import os
+    import os.path
 
-    path = os.path.join(this.root, "python")
+    path = os.path.join(this.root, "python")  # noqa
     for dirname in os.listdir(path):
         path_ = os.path.join(path, dirname)
         env.PYTHONPATH.append(path_)

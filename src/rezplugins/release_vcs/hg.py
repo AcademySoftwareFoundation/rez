@@ -49,9 +49,11 @@ class HgReleaseVCS(ReleaseVCS):
     def hg(self, *nargs, **kwargs):
         if kwargs.pop('patch', False):
             nargs += ('--mq',)
-        if ('-R' not in nargs and '--repository' not in nargs
-            and not any(x.startswith(('-R', '--repository=')) for x in nargs)):
+        if '-R' not in nargs and \
+                '--repository' not in nargs and \
+                not any(x.startswith(('-R', '--repository=')) for x in nargs):
             nargs += ('--repository', self.vcs_root)
+
         if kwargs:
             raise HgReleaseVCSError("Unrecognized keyword args to hg command:"
                                     " %s" % ", ".join(kwargs))

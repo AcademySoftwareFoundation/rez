@@ -13,6 +13,7 @@ tests_dir = os.path.join(src_rez_dir, 'tests')
 
 all_module_tests = []
 
+
 def setup_parser(parser, completions=False):
     parser.add_argument(
         "tests", metavar="NAMED_TEST", default=[], nargs="*",

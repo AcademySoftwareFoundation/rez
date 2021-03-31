@@ -2,7 +2,6 @@
 Builds packages on remote hosts
 """
 from rez.build_process import BuildProcessHelper
-from rez.exceptions import BuildError
 
 
 class RemoteBuildProcess(BuildProcessHelper):

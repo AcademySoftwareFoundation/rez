@@ -38,17 +38,14 @@ jobs:
           pip install flake8
 
       - name: Run flake8
-        run: |
-          find -name '*.py' \
-            -not -path './build_utils/*' \
-            -not -path './rez/vendor/*' \
-            -not -path './rez/data/*' \
-            -not -path './support/*' \
-            -not -path './rez/backport/*' \
-            -not -path './rezgui/*' \
-            | xargs flake8 --select \
-            E122 E127 E225 E251 E305 E711 \
-            F401 F841 \
-            W503
-
+        run: >-
+          find -name '*.py'
+          -not -path './build_utils/*'
+          -not -path './rez/vendor/*'
+          -not -path './rez/data/*'
+          -not -path './support/*'
+          -not -path './rez/backport/*'
+          -not -path './rezgui/*'
+          | xargs flake8 --ignore
+          E241,E265,E266,E741,E742,E722,F821
         working-directory: src

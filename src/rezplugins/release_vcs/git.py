@@ -4,7 +4,7 @@ Git version control
 from __future__ import print_function
 
 from rez.release_vcs import ReleaseVCS
-from rez.utils.logging_ import print_error, print_warning, print_debug
+from rez.utils.logging_ import print_error, print_debug
 from rez.exceptions import ReleaseVCSError
 from shutil import rmtree
 import functools
@@ -82,9 +82,9 @@ class GitReleaseVCS(ReleaseVCS):
             # capitalization of message changed sometime between git 1.8.3
             # and 2.12 - used to be "No upstream", now "no upstream"..
             errmsg = str(e).lower()
-            if ("no upstream branch" not in errmsg
-                    and "no upstream configured" not in errmsg
-                    and "does not point to a branch" not in errmsg):
+            if "no upstream branch" not in errmsg and \
+                    "no upstream configured" not in errmsg and \
+                    "does not point to a branch" not in errmsg:
                 raise e
         return (None, None)
 

@@ -122,6 +122,7 @@ class StrList(Setting):
         value = value.replace(self.sep, ' ').split()
         return [x for x in value if x]
 
+
 class PipInstallRemaps(Setting):
     """Ordered, pip install remappings."""
     PARDIR, SEP = map(re.escape, (os.pardir, os.sep))
@@ -142,6 +143,7 @@ class PipInstallRemaps(Setting):
             }
             for remap in super(PipInstallRemaps, self).validate(data)
         ]
+
 
 class OptionalStrList(StrList):
     schema = Or(And(None, Use(lambda x: [])),

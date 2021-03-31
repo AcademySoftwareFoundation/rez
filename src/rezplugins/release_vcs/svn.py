@@ -132,6 +132,7 @@ class SvnReleaseVCS(ReleaseVCS):
         self.svnc.callback_get_log_message = lambda: (True, message)
         self.svnc.copy(self.pkg_root, self.get_tag_url(tag_name))
 
+
 def register_plugin():
     return SvnReleaseVCS
 

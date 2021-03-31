@@ -434,8 +434,10 @@ class PackageResourceHelper(PackageResource):
         else:
             return commands
 
+
 class _Metas(AttributeForwardMeta, LazyAttributeMeta):
     pass
+
 
 class VariantResourceHelper(six.with_metaclass(_Metas, VariantResource)):
     """Helper class for implementing variants that inherit properties from their

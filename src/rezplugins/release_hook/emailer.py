@@ -13,7 +13,6 @@ from rez.vendor.schema.schema import Or
 from rez.vendor.six import six
 import os.path
 import smtplib
-import sys
 
 
 basestring = six.string_types[0]
@@ -22,12 +21,13 @@ basestring = six.string_types[0]
 class EmailReleaseHook(ReleaseHook):
 
     schema_dict = {
-        "subject":          basestring,
-        "body":             basestring,
-        "smtp_host":        basestring,
-        "smtp_port":        int,
-        "sender":           basestring,
-        "recipients":       Or(basestring, [basestring])}
+        "subject": basestring,
+        "body": basestring,
+        "smtp_host": basestring,
+        "smtp_port": int,
+        "sender": basestring,
+        "recipients": Or(basestring, [basestring])
+    }
 
     @classmethod
     def name(cls):
