@@ -708,7 +708,7 @@ class Python(ActionInterpreter):
             self._add_systemroot_to_env_win32(env)
 
     def _add_systemroot_to_env_win32(self, env):
-        """ Sets ``%SYSTEMROOT%`` environment variable, if not present
+        r""" Sets ``%SYSTEMROOT%`` environment variable, if not present
         in :py:attr:`target_environ` .
 
         Args:

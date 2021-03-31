@@ -283,7 +283,7 @@ class System(object):
 
     @classmethod
     def _make_safe_version_string(cls, s):
-        sep_regex = re.compile("[\.\-]")
+        sep_regex = re.compile(r"[\.\-]")
         char_regex = re.compile("[a-zA-Z0-9_]")
 
         s = s.strip('.').strip('-')

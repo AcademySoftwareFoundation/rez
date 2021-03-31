@@ -51,7 +51,7 @@ class GitReleaseVCS(ReleaseVCS):
         is behind, positive in front, zero means we are matched to remote.
         """
         s = self.git("status", "--short", "-b")[0]
-        r = re.compile("\[([^\]]+)\]")
+        r = re.compile(r"\[([^\]]+)\]")
         toks = r.findall(s)
         if toks:
             try:
