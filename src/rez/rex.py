@@ -279,8 +279,8 @@ class ActionManager(object):
     def undefined(self, key):
         _, expanded_key = self._key(key)
         return (
-            expanded_key not in self.environ and
-            expanded_key not in self.parent_environ
+            expanded_key not in self.environ
+            and expanded_key not in self.parent_environ
         )
 
     def defined(self, key):
@@ -822,8 +822,8 @@ class EscapedString(object):
             return (str(self) == str(other))
         else:
             return (
-                isinstance(other, EscapedString) and
-                other.strings == self.strings
+                isinstance(other, EscapedString)
+                and other.strings == self.strings
             )
 
     def __ne__(self, other):

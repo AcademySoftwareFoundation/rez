@@ -159,8 +159,8 @@ class Suite(object):
                 if variant:
                     overlap = (variant.version in in_resolve.range)
                     return (
-                        (in_resolve.conflict and not overlap) or
-                        (overlap and not in_resolve.conflict)
+                        (in_resolve.conflict and not overlap)
+                        or (overlap and not in_resolve.conflict)
                     )
                 else:
                     return in_resolve.conflict

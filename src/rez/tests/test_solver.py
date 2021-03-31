@@ -54,8 +54,8 @@ class TestSolver(TestBase):
 
         # ephemeral order doesn't matter, hence the sort
         resolve = (
-            [str(x) for x in s1.resolved_packages] +
-            sorted(str(x) for x in s1.resolved_ephemerals)
+            [str(x) for x in s1.resolved_packages]
+            + sorted(str(x) for x in s1.resolved_ephemerals)
         )
 
         print()
@@ -68,8 +68,8 @@ class TestSolver(TestBase):
         s2.solve()
         self.assertEqual(s2.status, SolverStatus.solved)
         resolve2 = (
-            [str(x) for x in s2.resolved_packages] +
-            sorted(str(x) for x in s2.resolved_ephemerals)
+            [str(x) for x in s2.resolved_packages]
+            + sorted(str(x) for x in s2.resolved_ephemerals)
         )
         self.assertEqual(resolve2, resolve)
 

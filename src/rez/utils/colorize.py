@@ -264,7 +264,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         30: warning,
         20: info,
         10: debug,
-        0:  notset,
+        0: notset,
     }
 
     @property
@@ -313,8 +313,8 @@ class Printer(object):
     def __init__(self, buf=sys.stdout):
         self.buf = buf
         self.colorize = (
-            config.get("color_enabled", False) == "force" or
-            stream_is_tty(buf)
+            config.get("color_enabled", False) == "force"
+            or stream_is_tty(buf)
         )
 
     def __call__(self, msg='', style=None):

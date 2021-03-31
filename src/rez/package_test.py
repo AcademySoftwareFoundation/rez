@@ -563,8 +563,8 @@ class PackageTestRunner(object):
             current_reqs = current_context.get_resolve_as_exact_requests()
 
             meets_requirements = (
-                RequirementList(current_reqs) ==
-                RequirementList(current_reqs + reqs)
+                RequirementList(current_reqs)
+                == RequirementList(current_reqs + reqs)
             )
 
             if meets_requirements:

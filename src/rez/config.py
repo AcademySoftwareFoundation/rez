@@ -558,13 +558,17 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
 
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
-        return (not self.quiet and not self.warn_none and
-                (self.warn_all or getattr(self, "warn_%s" % key)))
+        return (
+            not self.quiet and not self.warn_none
+            and (self.warn_all or getattr(self, "warn_%s" % key))
+        )
 
     def debug(self, key):
         """Returns True if the debug setting is enabled."""
-        return (not self.quiet and not self.debug_none and
-                (self.debug_all or getattr(self, "debug_%s" % key)))
+        return (
+            not self.quiet and not self.debug_none
+            and (self.debug_all or getattr(self, "debug_%s" % key))
+        )
 
     def debug_printer(self, key):
         """Returns a printer object suitably enabled based on the given key."""
@@ -636,8 +640,8 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
             return []
         else:
             keys = (
-                [x for x in self._schema_keys if isinstance(x, basestring)] +
-                ["plugins"]
+                [x for x in self._schema_keys if isinstance(x, basestring)]
+                + ["plugins"]
             )
             keys = [x for x in keys if x.startswith(prefix)]
             if keys == ["plugins"]:

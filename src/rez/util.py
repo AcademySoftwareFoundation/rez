@@ -135,8 +135,8 @@ def is_non_string_iterable(arg):
         iterable_class = collections.abc.Iterable
 
     return (
-        isinstance(arg, iterable_class) and
-        not isinstance(arg, six.string_types)
+        isinstance(arg, iterable_class)
+        and not isinstance(arg, six.string_types)
     )
 
 # Copyright 2013-2016 Allan Johns.

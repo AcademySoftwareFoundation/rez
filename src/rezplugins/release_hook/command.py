@@ -25,24 +25,30 @@ basestring = six.string_types[0]
 
 class CommandReleaseHook(ReleaseHook):
 
-    commands_schema = Schema(
-        {"command":     basestring,
-         Optional("args"):  Or(And(basestring,
-                                   Use(lambda x: x.strip().split())),
-                               [basestring]),
-         Optional("pretty_args"): bool,
-         Optional("user"):  basestring,
-         Optional("env"):   dict})
+    commands_schema = Schema({
+        "command": basestring,
+        Optional("args"): Or(
+            And(
+                basestring,
+                Use(lambda x: x.strip().split())
+            ),
+            [basestring]
+        ),
+        Optional("pretty_args"): bool,
+        Optional("user"): basestring,
+        Optional("env"): dict
+    })
 
     schema_dict = {
-        "print_commands":           bool,
-        "print_output":             bool,
-        "print_error":              bool,
-        "cancel_on_error":          bool,
-        "stop_on_error":            bool,
-        "pre_build_commands":       [commands_schema],
-        "pre_release_commands":     [commands_schema],
-        "post_release_commands":    [commands_schema]}
+        "print_commands": bool,
+        "print_output": bool,
+        "print_error": bool,
+        "cancel_on_error": bool,
+        "stop_on_error": bool,
+        "pre_build_commands": [commands_schema],
+        "pre_release_commands": [commands_schema],
+        "post_release_commands": [commands_schema]
+    }
 
     @classmethod
     def name(cls):
@@ -134,8 +140,8 @@ class CommandReleaseHook(ReleaseHook):
                                variants=variants)
         if errors:
             print_debug(
-                "The following post-release commands failed:\n" +
-                '\n\n'.join(errors)
+                "The following post-release commands failed:\n"
+                + '\n\n'.join(errors)
             )
 
     def _execute_commands(self, commands, install_path, package, errors=None,

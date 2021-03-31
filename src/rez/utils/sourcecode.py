@@ -166,9 +166,9 @@ class SourceCode(object):
 
             code = indent(self.source)
             code = (
-                "def %s():\n" % funcname +
-                code +
-                "\n_result = %s()" % funcname
+                "def %s():\n" % funcname
+                + code
+                + "\n_result = %s()" % funcname
             )
         else:
             code = "if True:\n" + indent(self.source)
@@ -269,8 +269,8 @@ class SourceCode(object):
 
     def __eq__(self, other):
         return (
-            isinstance(other, SourceCode) and
-            other.source == self.source
+            isinstance(other, SourceCode)
+            and other.source == self.source
         )
 
     def __ne__(self, other):

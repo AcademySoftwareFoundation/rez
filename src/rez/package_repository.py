@@ -110,9 +110,9 @@ class PackageRepository(object):
 
     def __eq__(self, other):
         return (
-            isinstance(other, PackageRepository) and
-            other.name() == self.name() and
-            other.uid == self.uid
+            isinstance(other, PackageRepository)
+            and other.name() == self.name()
+            and other.uid == self.uid
         )
 
     def is_empty(self):

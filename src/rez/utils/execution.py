@@ -136,9 +136,9 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
 
     # https://github.com/nerdvegas/rez/pull/968
     is_forwarding_script_on_windows = (
-        program == "_rez_fwd" and
-        platform_.name == "windows" and
-        filepath.lower().endswith(".cmd")
+        program == "_rez_fwd"
+        and platform_.name == "windows"
+        and filepath.lower().endswith(".cmd")
     )
 
     if callable(body):
@@ -185,8 +185,8 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
         if os.name == "posix":
             os.chmod(
                 current_filepath,
-                stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IXUSR |
-                stat.S_IXGRP | stat.S_IXOTH
+                stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IXUSR
+                | stat.S_IXGRP | stat.S_IXOTH
             )
 
     return script_filepaths
@@ -211,20 +211,23 @@ def _get_python_script_files(filepath, py_script_mode, platform):
     has_py_ext = extension == ".py"
     is_windows = platform == "windows"
 
-    if py_script_mode == ExecutableScriptMode.single or \
-            py_script_mode == ExecutableScriptMode.both or \
-            (py_script_mode == ExecutableScriptMode.py and has_py_ext) or \
-            (py_script_mode == ExecutableScriptMode.platform_specific and
-             not is_windows) or \
-            (py_script_mode == ExecutableScriptMode.platform_specific and
-             is_windows and has_py_ext):
+    if (
+        py_script_mode == ExecutableScriptMode.single
+        or py_script_mode == ExecutableScriptMode.both
+        or (py_script_mode == ExecutableScriptMode.py and has_py_ext)
+        or (py_script_mode == ExecutableScriptMode.platform_specific and not is_windows)
+        or (py_script_mode == ExecutableScriptMode.platform_specific and is_windows and has_py_ext)
+    ):
         script_filepaths.append(filepath)
 
-    if not has_py_ext and \
-            ((py_script_mode == ExecutableScriptMode.both) or
-             (py_script_mode == ExecutableScriptMode.py) or
-             (py_script_mode == ExecutableScriptMode.platform_specific and
-              is_windows)):
+    if (
+        not has_py_ext
+        and (
+            py_script_mode == ExecutableScriptMode.both
+            or py_script_mode == ExecutableScriptMode.py
+            or (py_script_mode == ExecutableScriptMode.platform_specific and is_windows)
+        )
+    ):
         script_filepaths.append(base_filepath + ".py")
 
     return script_filepaths

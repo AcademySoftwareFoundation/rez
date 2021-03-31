@@ -344,10 +344,10 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         # log the pip -> rez requirements translation, for debugging
         _log(
-            "Pip to rez requirements translation information for " +
-            distribution.name_and_version +
-            ":\n" +
-            pformat({
+            "Pip to rez requirements translation information for "
+            + distribution.name_and_version
+            + ":\n"
+            + pformat({
                 "pip": {
                     "run_requires": map(str, distribution.run_requires)
                 },

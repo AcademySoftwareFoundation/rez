@@ -181,11 +181,11 @@ class Reduction(_Common):
         return [req, self.dependency, self.conflicting_request]
 
     def __eq__(self, other):
-        return (self.name == other.name and
-                self.version == other.version and
-                self.variant_index == other.variant_index and
-                self.dependency == other.dependency and
-                self.conflicting_request == other.conflicting_request)
+        return (self.name == other.name
+                and self.version == other.version
+                and self.variant_index == other.variant_index
+                and self.dependency == other.dependency
+                and self.conflicting_request == other.conflicting_request)
 
     def __str__(self):
         return "%s (dep(%s) <--!--> %s)" \
@@ -348,16 +348,16 @@ class PackageVariant(_Common):
 
     def __eq__(self, other):
         return (
-            self.name == other.name and
-            self.version == other.version and
-            self.index == other.index
+            self.name == other.name
+            and self.version == other.version
+            and self.index == other.index
         )
 
     def __lt__(self, other):
         return (
-            self.name < other.name and
-            self.version < other.version and
-            self.index < other.index
+            self.name < other.name
+            and self.version < other.version
+            and self.index < other.index
         )
 
     def __str__(self):
@@ -435,8 +435,7 @@ class _PackageEntry(object):
                 if not request.conflict and request.name not in names:
                     additional_key.append((request.range, request.name))
 
-            if (VariantSelectMode[config.variant_select_mode] ==
-                    VariantSelectMode.version_priority):
+            if (VariantSelectMode[config.variant_select_mode] == VariantSelectMode.version_priority):
                 k = (requested_key,
                      -len(additional_key),
                      additional_key,
@@ -876,8 +875,8 @@ class _PackageVariantSlice(_Common):
 
         for variant in self.iter_variants():
             self._common_fams &= variant.request_fams
-            self._fam_requires |= (variant.request_fams |
-                                   variant.conflict_request_fams)
+            self._fam_requires |= (variant.request_fams
+                                   | variant.conflict_request_fams)
 
     def __len__(self):
         if self._len is None:
@@ -1131,9 +1130,9 @@ class _PackageScope(_Common):
             not applicable to this scope.
         """
         if (
-            self.is_conflict or
-            self.is_ephemeral or
-            len(self.variant_slice) == 1
+            self.is_conflict
+            or self.is_ephemeral
+            or len(self.variant_slice) == 1
         ):
             return None
 
@@ -1154,19 +1153,19 @@ class _PackageScope(_Common):
 
     def _is_solved(self):
         return (
-            self.is_conflict or
-            self.is_ephemeral or
-            (
-                len(self.variant_slice) == 1 and
-                not self.variant_slice.extractable
+            self.is_conflict
+            or self.is_ephemeral
+            or (
+                len(self.variant_slice) == 1
+                and not self.variant_slice.extractable
             )
         )
 
     def _get_solved_variant(self):
         if (
-            self.variant_slice is not None and
-            len(self.variant_slice) == 1 and
-            not self.variant_slice.extractable
+            self.variant_slice is not None
+            and len(self.variant_slice) == 1
+            and not self.variant_slice.extractable
         ):
             return self.variant_slice.first_variant
         else:
@@ -1363,7 +1362,6 @@ class _ResolvePhase(_Common):
 
                 if new_extracted_reqs:
                     self.pr.subheader("ADDING:")
-                    #n = len(scopes)
 
                     for req in new_extracted_reqs:
                         try:
@@ -1559,9 +1557,9 @@ class _ResolvePhase(_Common):
 
         # because a scope was narrowed by a split, other scopes need to be
         # reduced against it
-        #for i in range(len(phase.scopes)):
-        #    if i != split_i:
-        #        phase.pending_reducts.add((i, split_i))
+        # for i in range(len(phase.scopes)):
+        #     if i != split_i:
+        #         phase.pending_reducts.add((i, split_i))
 
         next_phase = copy.copy(phase)
         next_phase.scopes = next_scopes
