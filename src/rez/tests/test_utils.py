@@ -2,8 +2,10 @@
 unit tests for 'utils.filesystem' module
 """
 import os
+from collections import OrderedDict
 from rez.tests.util import TestBase
 from rez.utils import filesystem
+from rez.utils.data_utils import HashableDict
 from rez.utils.platform_ import Platform, platform_
 
 
@@ -44,6 +46,27 @@ class TestCanonicalPath(TestBase):
         path = filesystem.canonical_path('/a/b/File.txt', platform)
         expects = '/a/b/file.txt'.replace('\\', os.sep)
         self.assertEqual(path, expects)
+
+
+class TestDataUtils(TestBase):
+
+    def test_hashabledict(self):
+        # Make sure that hashes matches even on dicts with different order.
+
+        a = HashableDict(OrderedDict([("a", 1), ("b", 3)]))
+        b = HashableDict(OrderedDict([("b", 3), ("a", 1)]))
+        c = HashableDict(OrderedDict([("a", 1), ("c", 3)]))
+
+        self.assertEqual(a, b)
+        self.assertNotEqual(a, c)
+
+        # Immutable
+
+        with self.assertRaises(TypeError):
+            a["d"] = 5
+
+        self.assertEqual(a, b)
+
 
 
 # Copyright 2013-2016 Allan Johns.

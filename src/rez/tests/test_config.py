@@ -6,7 +6,8 @@ from rez.tests.util import TestBase
 from rez.exceptions import ConfigurationError
 from rez.config import Config, get_module_root_config, _replace_config
 from rez.system import system
-from rez.utils.data_utils import RO_AttrDictWrapper
+from rez.utils.data_utils import RO_AttrDictWrapper, PlatformDependent, \
+    ArchDependent, OsDependent
 from rez.packages import get_developer_package
 import os
 import os.path
@@ -37,11 +38,13 @@ class TestConfig(TestBase):
         c.override("build_directory", "floober")
         c.override("plugins.release_vcs.tag_name", "bah")
         c.override("plugins.release_hook.emailer.sender", "joe.bloggs")
+        c.override("implicit_packages", ["a list", "of values"])
 
         self.assertEqual(c.debug_none, True)
         self.assertEqual(c.build_directory, "floober")
         self.assertEqual(c.plugins.release_vcs.tag_name, "bah")
         self.assertEqual(c.plugins.release_hook.emailer.sender, "joe.bloggs")
+        self.assertListEqual(c.implicit_packages, ["a list", "of values"])
 
         # second override
         c.override("build_directory", "flabber")
@@ -57,6 +60,97 @@ class TestConfig(TestBase):
         self.assertEqual(value_, value)
 
         self._test_basic(c)
+
+    def test_conditional_overrides(self):
+        """Test configuration with platform conditionals"""
+
+        from rez.utils.platform_ import platform_
+        platform_name = platform_.name
+        platform_arch = platform_.arch
+        platform_os = "IMPOSSIBLE_OS"
+
+        c = Config([self.root_config_file], locked=True)
+        c.override("platform_map", {
+            "os": {"^.*$": "IMPOSSIBLE_OS"},
+        })
+
+        c.validate_data()
+
+        # Missing valid key or fallback
+        with self.assertRaises(ConfigurationError):
+            c.override("debug_none", PlatformDependent({
+                "__not__valid__platform__": True,
+            }))
+
+        c.override("debug_none", PlatformDependent({
+            platform_name: True,
+        }))
+
+        c.override("build_directory", PlatformDependent({
+            platform_name: "floober"
+        }))
+
+        # Usage of fallback key
+        c.override("plugins.release_vcs.tag_name", PlatformDependent(
+            { "something else": "Not sure", },
+            default="bah"
+        ))
+
+        # Arch variant
+        c.override("plugins.release_hook.emailer.sender", ArchDependent({
+            platform_arch: "joe.bloggs",
+        }
+        ))
+
+        # Os variant with explicit platform_map override
+        c.override(
+            "implicit_packages",
+            OsDependent(
+                {
+                    platform_os: ["a list", "of values"],
+                },
+                platform_map=c.platform_map
+            )
+        )
+
+        c.validate_data()
+
+        self.assertEqual(c.debug_none, True)
+        self.assertEqual(c.build_directory, "floober")
+        self.assertEqual(c.plugins.release_vcs.tag_name, "bah")
+        self.assertEqual(c.plugins.release_hook.emailer.sender, "joe.bloggs")
+        self.assertListEqual(c.implicit_packages, ["a list", "of values"])
+
+        with self.assertRaises(ConfigurationError):
+            # Schema validation still works?
+            c.override("debug_none", PlatformDependent({
+                platform_name: "Wrong Type",
+            }))
+            c.validate_data()
+
+
+    def test_conditional_in_file(self):
+        """Test package config overrides."""
+        conf = os.path.join(self.config_path, "test_conditional.py")
+        c = Config([self.root_config_file, conf])
+
+        self.assertListEqual(c.plugins.release_hook.emailer.recipients, ["joe@here.com"])
+        self.assertEqual(c.release_hooks, ["foo"])
+        self.assertEqual(c.prune_failed_graph, True)
+        self.assertEqual(c.warn_all, True)
+
+    def test_conidition_nested(self):
+        conf = os.path.join(self.config_path, "test_conditional.py")
+        conf_dependee = os.path.join(self.config_path, "test_conditional_dependee.py")
+        c = Config([conf, conf_dependee])
+        self.assertEqual(c.dot_image_format, "hello")
+
+    def test_conidition_nested_inbeween(self):
+        conf = os.path.join(self.config_path, "test_conditional.py")
+        conf_middle = os.path.join(self.config_path, "test2.py")
+        conf_dependee = os.path.join(self.config_path, "test_conditional_dependee.py")
+        c = Config([conf, conf_middle, conf_dependee])
+        self.assertEqual(c.dot_image_format, "hello")
 
     def test_1(self):
         """Test just the root config file."""

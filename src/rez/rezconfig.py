@@ -35,6 +35,16 @@ Paths should use the path separator appropriate for the operating system
 (based on Python's os.path.sep).  So for Linux paths, / should be used. On
 Windows \ (unescaped) should be used.
 
+Platform dependent configurations can be achieved via the PlatformDependent
+factory. Read the documentation for details. For example:
+    default_shell = PlatformDependent(
+        {
+            "linux": "bash",
+            "windows": "powershell",
+        },
+        default="zsh"
+    )
+
 Note: The comments in this file are extracted and turned into Wiki content. Pay
 attention to the comment formatting and follow the existing style closely.
 """

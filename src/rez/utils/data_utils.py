@@ -1,12 +1,14 @@
 """
 Utilities related to managing data types.
 """
+from collections import Mapping
+from rez.exceptions import ConditionalConfigurationError
 import os.path
 
 from rez.vendor.schema.schema import Schema, Optional
-from rez.exceptions import RexError
-from threading import Lock
 from rez.vendor.six import six
+from inspect import isclass, currentframe
+from threading import Lock
 
 if six.PY2:
     from collections import MutableMapping
@@ -643,6 +645,163 @@ class LazyAttributeMeta(type):
                 return self._validate_key_impl(key, attr, key_schema)
 
         return cached_property(getter, name=attribute)
+
+
+class Conditional(object):
+    """
+    Factory class to that constructs a value of given options based on a given
+    key.
+    Useful to clearly set conditional values without branches.
+
+    For example:
+        color = Conditional(
+            {
+                "Paris": "bash",
+                "Texas": "zsh",
+            },
+            key=os.getenv("STUDIO_LOCATION"),
+            default="bash"
+        )
+    """
+
+    def __new__(cls, options, key, default=ConditionalConfigurationError):
+        """
+        Returns the option value based on key. If the key does not exist
+        it will raise the given default exception or return the default value.
+
+        Args:
+            options: dict of options with potential values to construct
+            key: key to choose within given options
+            default: value to return or exception to raise when key is not
+                found in options
+
+        Raises: KeyError if no other `default` is specified
+        Returns: option value or default
+
+        """
+        try:
+            return options[key]
+        except KeyError as e:
+            if isclass(default) and issubclass(default, BaseException):
+                raise default(*e.args)
+            return default
+
+
+class PlatformDependent(Conditional):
+    """
+    Specialized Conditional based on platform's name
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        # Mapped platform depends on config so lazy import
+        from rez.utils.platform_ import platform_
+        return Conditional.__new__(cls, options, key=platform_.name,
+                                       default=default)
+
+
+class ArchDependent(Conditional):
+    """
+    Specialized Conditional based on platform's arch
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError,
+                platform_map=None):
+
+        from rez.utils.platform_ import create_platform
+        platform_ = create_platform(platform_map=platform_map)
+
+        return Conditional.__new__(cls, options, key=platform_.arch,
+                                   default=default)
+
+
+class OsDependent(Conditional):
+    """
+    Specialized Conditional based on platform's os
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError,
+                platform_map=None):
+
+        from rez.utils.platform_ import create_platform
+        platform_ = create_platform(platform_map=platform_map)
+
+        return Conditional.__new__(cls, options, key=platform_.os,
+                                   default=default)
+
+
+class InspectedDependent(Conditional):
+
+    def __new__(cls, base, frame, options, default=ConditionalConfigurationError):
+
+        # The owner of this conditional might be a config and as such we
+        # have to respect its platform_map as opposed to the platform map of
+        # a global config.
+        platform_map = frame.f_locals.get(
+            "platform_map",
+            frame.f_locals.get(
+                "__fallback_platform_map",
+                None
+            )
+        )
+
+        return base(options, default, platform_map=platform_map)
+
+
+class InConfigArchDependent(ArchDependent):
+    """
+    Constructs an ArchDependent that works with the platform_map within its own
+    config.
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        return InspectedDependent(ArchDependent, currentframe().f_back, options,
+                                  default)
+
+
+class InConfigOsDependent(OsDependent):
+    """
+    Constructs an OsDependent that works with the platform_map within its own
+    config.
+    """
+
+    def __new__(cls, options, default=ConditionalConfigurationError):
+        return InspectedDependent(OsDependent, currentframe().f_back, options,
+                                  default)
+
+
+class HashableDict(Mapping):
+    """
+    Immutable Hashable dict
+
+    Hash is based on key and value.
+    It supports nested dict-like values.
+    It does ignore any order of the items.
+
+    Could be replaced in future with:
+    https://www.python.org/dev/peps/pep-0603/#why-frozenmap-and-not-frozendict
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._d = dict(*args, **kwargs)
+        self._hash = None
+
+        for k, v in self._d.items():
+            if isinstance(v, dict):
+                self._d[k] = HashableDict(v)
+
+    def __iter__(self):
+        return iter(self._d)
+
+    def __len__(self):
+        return len(self._d)
+
+    def __getitem__(self, key):
+        return self._d[key]
+
+    def __hash__(self):
+        return hash(
+            (frozenset(six.iteritems(self._d)), frozenset(six.itervalues(self._d)))
+        )
 
 
 # Copyright 2013-2016 Allan Johns.

@@ -7,7 +7,6 @@ import subprocess
 from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.data_utils import cached_property
-from rez.utils.platform_mapped import platform_mapped
 from rez.exceptions import RezSystemError
 from tempfile import gettempdir
 
@@ -17,20 +16,68 @@ class Platform(object):
     """
     name = None
 
-    def __init__(self):
-        pass
+    def __init__(self, platform_map=None):
+        """
+        Construct platform
+
+        Args:
+            platform_map: Force explicit platform map
+        """
+        self._platform_map = platform_map
+
+    def _platform_mapped(self, key, value):
+        """Looks the value up within the _platform_map of the instance or the
+        config.platform_map dictionary.
+
+        Note that there is no guaranteed order within the dictionary evaluation.
+        Only the first matching regular expression is being used.
+        For example:
+
+        config.platform_map = {
+            "os": {
+                r"Scientific Linux-(.*)": r"Scientific-\1",    # Scientific Linux-x.x -> Scientific-x.x
+                r"Ubuntu-14.\d": r"Ubuntu-14",                 # Any Ubuntu-14.x      -> Ubuntu-14
+            },
+            "arch": {
+                "x86_64": "64bit",                             # Maps both x86_64 and amd64 -> 64bit (don't)
+                "amd64": "64bit",
+            },
+        }
+
+        Args:
+            key (str): key to use in the platform_map
+            value (str): the value to map
+
+        Returns:
+            platform mapped value or original value if no map is found
+
+        """
+        platform_map = self._platform_map
+        if platform_map is None:
+            # Since platform is being used within config lazy import config to
+            # prevent circular dependencies
+            from rez.config import config
+            platform_map = config.platform_map
+
+        # The function name is used as primary key
+        entry = platform_map.get(key)
+        if entry:
+            for key, map_value in entry.items():
+                value, changes = re.subn(key, map_value, value)
+                if changes > 0:
+                    break
+
+        return value
 
     @cached_property
-    @platform_mapped
     def arch(self):
         """Returns the name of the architecture."""
-        return self._arch()
+        return self._platform_mapped("arch", self._arch())
 
     @cached_property
-    @platform_mapped
     def os(self):
         """Returns the name of the operating system."""
-        return self._os()
+        return self._platform_mapped("os", self._os())
 
     @cached_property
     def terminal_emulator_command(self):
@@ -560,15 +607,31 @@ class WindowsPlatform(Platform):
         return which("meld", "fc")
 
 
+def create_platform(name=None, platform_map=None):
+    """
+    Static factory for
+
+    Args:
+        name (str): force a particular platform construction
+        platform_map (dict): Explicit platform_map. Defaults to platform_ma[
+            from config.
+
+    Returns:
+        Platform or None
+    """
+    if name is None:
+        name = name=platform.system().lower()
+    if name == "linux":
+        return LinuxPlatform(platform_map=platform_map)
+    elif name == "darwin":
+        return OSXPlatform(platform_map=platform_map)
+    elif name == "windows":
+        return WindowsPlatform(platform_map=platform_map)
+    return None
+
+
 # singleton
-platform_ = None
-name = platform.system().lower()
-if name == "linux":
-    platform_ = LinuxPlatform()
-elif name == "darwin":
-    platform_ = OSXPlatform()
-elif name == "windows":
-    platform_ = WindowsPlatform()
+platform_ = create_platform()
 
 
 # Copyright 2013-2016 Allan Johns.
