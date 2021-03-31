@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.81.0 (2021-04-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.81.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.80.0...2.81.0)
+
+**Merged pull requests:**
+
+- Flake8 [\#1050](https://github.com/nerdvegas/rez/pull/1050) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.80.0 (2021-03-30)
 [Source](https://github.com/nerdvegas/rez/tree/2.80.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.79.1...2.80.0)
 
