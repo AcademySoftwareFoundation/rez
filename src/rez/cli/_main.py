@@ -168,7 +168,7 @@ def run(command=None):
     else:
         try:
             returncode = run_cmd()
-        except (NotImplementedError, RezSystemError) as e:
+        except (NotImplementedError, RezSystemError):
             raise
         except exc_type as e:
             print_error("%s: %s" % (e.__class__.__name__, str(e)))

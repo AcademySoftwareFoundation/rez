@@ -1322,7 +1322,7 @@ class RexExecutor(object):
                 pyc = compile(code, filename, 'exec')
         except SourceCodeError as e:
             reraise(e, RexError)
-        except Exception as e:
+        except:
             stack = traceback.format_exc()
             raise RexError("Failed to compile %s:\n\n%s" % (filename, stack))
 
@@ -1339,7 +1339,7 @@ class RexExecutor(object):
                 raise
             except SourceCodeError as e:
                 reraise(e, RexError)
-            except exc_type as e:
+            except exc_type:
                 stack = traceback.format_exc()
                 raise RexError("Failed to exec %s:\n\n%s" % (filename, stack))
 
