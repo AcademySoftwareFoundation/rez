@@ -36,7 +36,7 @@ if (-not $?) {exit 1}
 
 # Run Rez Tests
 #
-.\build\Scripts\rez\rez-selftest.exe
+.\build\Scripts\rez\rez-selftest
 
 # Pass on exit code to runner
 exit $LASTEXITCODE

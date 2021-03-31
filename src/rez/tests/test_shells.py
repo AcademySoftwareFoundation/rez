@@ -8,7 +8,7 @@ from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
 from rez.utils.execution import create_executable_script, ExecutableScriptMode, \
-    _get_python_script_files
+    _get_python_script_files, Popen
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.util import which
@@ -191,7 +191,7 @@ class TestShells(TestBase, TempdirMixin):
 
         # Assumes that the shell has an echo command, build-in or alias
         cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
-        process = subprocess.Popen(
+        process = Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, universal_newlines=True
         )

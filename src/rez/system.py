@@ -198,14 +198,17 @@ class System(object):
         """Get path containing rez binaries, or None if no binaries are
         available, or Rez is not a production install.
         """
+        import rez
+
+        if rez.production_bin_path:
+            return rez.production_bin_path
 
         # Rez install layout will be like:
         #
         # /<install>/lib/python2.7/site-packages/rez  <- module path
         # /<install>/(bin or Scripts)/rez/rez  <- rez executable
         #
-        import rez
-        module_path = rez.__path__[0]
+        module_path = rez.module_root_path
 
         parts = module_path.split(os.path.sep)
         parts_lower = module_path.lower().split(os.path.sep)

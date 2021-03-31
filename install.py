@@ -20,9 +20,7 @@ sys.path.insert(0, src_path)
 # though rez is not yet built.
 #
 from rez.utils._version import _rez_version  # noqa: E402
-from rez.cli._entry_points import get_specifications  # noqa: E402
 from rez.backport.shutilwhich import which  # noqa: E402
-from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
 # switch to builtin venv in python 3.7+
 #
@@ -74,63 +72,6 @@ def run_command(args, cwd=source_path):
     return subprocess.check_output(args, cwd=source_path)
 
 
-def patch_rez_binaries(dest_dir):
-    virtualenv_bin_path, py_executable = get_virtualenv_py_executable(dest_dir)
-
-    specs = get_specifications()
-
-    # delete rez bin files written into virtualenv
-    for name in specs.keys():
-        filepath = os.path.join(virtualenv_bin_path, name)
-        if os.path.isfile(filepath):
-            os.remove(filepath)
-
-    # write patched bins instead. These go into 'bin/rez' subdirectory, which
-    # gives us a bin dir containing only rez binaries. This is what we want -
-    # we don't want resolved envs accidentally getting the virtualenv's 'python'.
-    dest_bin_path = os.path.join(virtualenv_bin_path, "rez")
-    if os.path.exists(dest_bin_path):
-        shutil.rmtree(dest_bin_path)
-    os.makedirs(dest_bin_path)
-
-    maker = ScriptMaker(
-        # note: no filenames are referenced in any specifications, so
-        # source_dir is unused
-        source_dir=None,
-        target_dir=dest_bin_path
-    )
-
-    maker.executable = py_executable
-
-    maker.make_multiple(
-        specifications=specs.values(),
-        # the -E arg is crucial - it means rez cli tools still work within a
-        # rez-resolved env, even if PYTHONPATH or related env-vars would have
-        # otherwise changed rez's behaviour
-        options=dict(interpreter_args=["-E"])
-    )
-
-
-def copy_completion_scripts(dest_dir):
-    # find completion dir in rez package
-    path = os.path.join(dest_dir, "lib")
-    completion_path = None
-    for root, _, _ in os.walk(path):
-        if root.endswith(os.path.sep + "rez" + os.path.sep + "completion"):
-            completion_path = root
-            break
-
-    # copy completion scripts into root of virtualenv for ease of use
-    if completion_path:
-        dest_path = os.path.join(dest_dir, "completion")
-        if os.path.exists(dest_path):
-            shutil.rmtree(dest_path)
-        shutil.copytree(completion_path, dest_path)
-        return dest_path
-
-    return None
-
-
 def install(dest_dir, print_welcome=False):
     """Install rez into the given directory.
 
@@ -145,23 +86,12 @@ def install(dest_dir, print_welcome=False):
     # install rez from source
     install_rez_from_source(dest_dir)
 
-    # patch the rez binaries
-    patch_rez_binaries(dest_dir)
-
-    # copy completion scripts into virtualenv
-    completion_path = copy_completion_scripts(dest_dir)
-
-    # mark virtualenv as production rez install. Do not remove - rez uses this!
-    virtualenv_bin_dir = get_virtualenv_bin_dir(dest_dir)
-    dest_bin_dir = os.path.join(virtualenv_bin_dir, "rez")
-    validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
-    with open(validation_file, 'w') as f:
-        f.write(_rez_version)
-
     # done
     if print_welcome:
         print()
         print("SUCCESS!")
+        virtualenv_bin_dir = get_virtualenv_bin_dir(dest_dir)
+        dest_bin_dir = os.path.join(virtualenv_bin_dir, "rez")
         rez_exe = os.path.realpath(os.path.join(dest_bin_dir, "rez"))
         print("Rez executable installed to: %s" % rez_exe)
 
@@ -181,7 +111,8 @@ def install(dest_dir, print_welcome=False):
         print("To activate Rez, add the following path to $PATH:")
         print(dest_bin_dir)
 
-        if completion_path:
+        completion_path = os.path.join(dest_dir, "completion")
+        if os.path.isdir(completion_path):
             print('')
             shell = os.getenv('SHELL')
 

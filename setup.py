@@ -8,6 +8,7 @@ import sys
 
 try:
     from setuptools import setup, find_packages
+    from setuptools.command import install_scripts
 except ImportError:
     print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
@@ -27,7 +28,32 @@ from rez.utils._version import _rez_version
 from rez.cli._entry_points import get_specifications
 
 
-def find_files(pattern, path=None, root="rez"):
+class InstallRezScripts(install_scripts.install_scripts):
+
+    def run(self):
+        install_scripts.install_scripts.run(self)
+        self.patch_rez_binaries()
+
+    def patch_rez_binaries(self):
+        from rez.utils.installer import create_rez_production_scripts
+
+        build_path = os.path.join(self.build_dir, "rez")
+        install_path = os.path.join(self.install_dir, "rez")
+
+        specifications = get_specifications().values()
+        create_rez_production_scripts(build_path, specifications)
+
+        validation_file = os.path.join(build_path, ".rez_production_install")
+        with open(validation_file, "w") as vfn:
+            # PEP-427, wheel will rewrite this *shebang* to the python that
+            # used to install rez. And we'll use this to run rez cli tools.
+            vfn.write("#!python\n")
+            vfn.write(_rez_version)
+
+        self.outfiles += self.copy_tree(build_path, install_path)
+
+
+def find_files(pattern, path=None, root="rez", prefix=""):
     paths = []
     basepath = os.path.realpath(os.path.join("src", root))
     path_ = basepath
@@ -39,7 +65,7 @@ def find_files(pattern, path=None, root="rez"):
         files = [os.path.join(root, x) for x in files]
         paths += [x[len(basepath):].lstrip(os.path.sep) for x in files]
 
-    return paths
+    return [prefix + p for p in paths]
 
 
 this_directory = os.path.abspath(os.path.dirname(__file__))
@@ -61,7 +87,7 @@ setup(
     author_email="nerdvegas@gmail.com",
     license="LGPL",
     entry_points={
-        "console_scripts": get_specifications().values()
+        "console_scripts": []
     },
     include_package_data=True,
     zip_safe=False,
@@ -83,6 +109,12 @@ setup(
         'rezgui':
             find_files('rezguiconfig', root='rezgui') +
             find_files('*', 'icons', root='rezgui')
+    },
+    data_files=[
+        ("completion", find_files('*', 'completion', prefix='src/rez/'))
+    ],
+    cmdclass={
+        "install_scripts": InstallRezScripts,
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",

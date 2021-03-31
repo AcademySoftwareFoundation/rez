@@ -912,6 +912,14 @@ pip_install_remaps = [
         "pip_install": r"\1",
         "rez_install": r"python{s}\1",
     },
+    # Path in record          | pip installed to    | copy to rez destination
+    # ------------------------|---------------------|--------------------------
+    # ../../*                 | *                   | *
+    {
+        "record_path": r"^{p}{s}{p}{s}(.*)",
+        "pip_install": r"\1",
+        "rez_install": r"\1",
+    },
 ]
 
 # Optional variables. A dict type config for storing arbitrary data that can be

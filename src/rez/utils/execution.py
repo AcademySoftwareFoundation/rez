@@ -81,6 +81,10 @@ class Popen(_PopenBase):
             if sys.version_info[:2] >= (3, 6) and "encoding" not in kwargs:
                 kwargs["encoding"] = "utf-8"
 
+        # Patch batch script extension for Windows
+        if sys.platform == "win32" and os.path.isfile(args[0] + ".cmd"):
+            args[0] += ".cmd"
+
         super(Popen, self).__init__(args, **kwargs)
 
 
@@ -167,7 +171,7 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
                 # following lines of batch script will be stripped
                 # before yaml.load
                 f.write("@echo off\n")
-                f.write("%s.exe %%~dpnx0 %%*\n" % program)
+                f.write("%s %%~dpnx0 %%*\n" % program)
                 f.write("goto :eof\n")  # skip YAML body
                 f.write(":: YAML\n")    # comment for human
             else:
