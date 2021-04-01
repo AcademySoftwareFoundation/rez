@@ -1,8 +1,13 @@
-[![Installation](https://github.com/nerdvegas/rez/workflows/Installation/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AInstallation+branch%3Amaster)
-[![Core](https://github.com/nerdvegas/rez/workflows/core/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3ACore+branch%3Amaster)
-[![Ubuntu](https://github.com/nerdvegas/rez/workflows/ubuntu/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AUbuntu+branch%3Amaster)
-[![MacOS](https://github.com/nerdvegas/rez/workflows/mac/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AMacOS+branch%3Amaster)
+[![Core](https://github.com/nerdvegas/rez/workflows/core/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Acore+branch%3Amaster)
+[![Ubuntu](https://github.com/nerdvegas/rez/workflows/ubuntu/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Aubuntu+branch%3Amaster)
+[![MacOS](https://github.com/nerdvegas/rez/workflows/mac/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Amac+branch%3Amaster)
 [![Windows](https://github.com/nerdvegas/rez/workflows/windows/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AWindows+branch%3Amaster)
+[![Installation](https://github.com/nerdvegas/rez/workflows/installation/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Ainstallation+branch%3Amaster)
+[![Wiki](https://github.com/nerdvegas/rez/workflows/wiki/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Awiki+branch%3Amaster)
+[![Pypi](https://github.com/nerdvegas/rez/workflows/pypi/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Apypi+branch%3Amaster)
+[![Flake8](https://github.com/nerdvegas/rez/workflows/flake8/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Aflake8+branch%3Amaster)
+[![Benchmark](https://github.com/nerdvegas/rez/workflows/benchmark/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Abenchmark+branch%3Amaster)
+
 
 - [What Is Rez?](#what-is-rez)
 - [The Basics](#the-basics)
