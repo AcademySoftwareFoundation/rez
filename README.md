@@ -1,4 +1,5 @@
 [![Release](https://shields.io/github/v/release/nerdvegas/rez)](https://github.com/nerdvegas/rez/releases)
+
 [![Core](https://github.com/nerdvegas/rez/workflows/core/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Acore+branch%3Amaster)
 [![Ubuntu](https://github.com/nerdvegas/rez/workflows/ubuntu/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Aubuntu+branch%3Amaster)
 [![Mac](https://github.com/nerdvegas/rez/workflows/mac/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Amac+branch%3Amaster)
