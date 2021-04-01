@@ -170,6 +170,18 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_package_from_uri(self, uri):
+        """Get a package given its URI.
+
+        Args:
+            uri (str): Package URI
+
+        Returns:
+            `PackageResource`, or None if the package is not present in this
+            package repository.
+        """
+        return None
+
     def get_variant_from_uri(self, uri):
         """Get a variant given its URI.
 

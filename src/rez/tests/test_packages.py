@@ -2,7 +2,8 @@
 test package iteration, serialization etc
 """
 from rez.packages import iter_package_families, iter_packages, get_package, \
-    create_package, get_developer_package, get_variant_from_uri
+    create_package, get_developer_package, get_variant_from_uri, \
+    get_package_from_uri
 from rez.package_py_utils import expand_requirement
 from rez.package_resources import package_release_keys
 from rez.tests.util import TestBase, TempdirMixin
@@ -169,10 +170,11 @@ class TestPackages(TestBase, TempdirMixin):
     def test_4(self):
         """test package creation."""
         package_data = {
-            "name":             "foo",
-            "version":          "1.0.0",
-            "description":      "something foo-like",
-            "requires":         ["python-2.6+"]}
+            "name": "foo",
+            "version": "1.0.0",
+            "description": "something foo-like",
+            "requires": ["python-2.6+"]
+        }
 
         package = create_package("foo", package_data)
         self.assertEqual(package.version, Version("1.0.0"))
@@ -418,6 +420,12 @@ class TestPackages(TestBase, TempdirMixin):
 
         for req in bad_tests:
             self.assertRaises(VersionError, expand_requirement, req)
+
+    def test_package_from_uri(self):
+        """Test getting a package from its uri."""
+        package = get_package("variants_py", "2.0")
+        package2 = get_package_from_uri(package.uri)
+        self.assertEqual(package, package2)
 
     def test_variant_from_uri(self):
         """Test getting a variant from its uri."""
