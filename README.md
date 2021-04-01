@@ -3,10 +3,10 @@
 [![MacOS](https://github.com/nerdvegas/rez/workflows/mac/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Amac+branch%3Amaster)
 [![Windows](https://github.com/nerdvegas/rez/workflows/windows/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AWindows+branch%3Amaster)
 [![Installation](https://github.com/nerdvegas/rez/workflows/installation/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Ainstallation+branch%3Amaster)
-[![Wiki](https://github.com/nerdvegas/rez/workflows/wiki/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Awiki+branch%3Amaster)
-[![Pypi](https://github.com/nerdvegas/rez/workflows/pypi/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Apypi+branch%3Amaster)
 [![Flake8](https://github.com/nerdvegas/rez/workflows/flake8/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Aflake8+branch%3Amaster)
-[![Benchmark](https://github.com/nerdvegas/rez/workflows/benchmark/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Abenchmark+branch%3Amaster)
+[![Wiki](https://github.com/nerdvegas/rez/workflows/wiki/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Awiki+event%3Arelease)
+[![Pypi](https://github.com/nerdvegas/rez/workflows/pypi/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Apypi+event%3Arelease)
+[![Benchmark](https://github.com/nerdvegas/rez/workflows/benchmark/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Abenchmark+event%3Arelease)
 
 
 - [What Is Rez?](#what-is-rez)
