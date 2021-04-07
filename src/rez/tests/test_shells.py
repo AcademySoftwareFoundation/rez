@@ -376,7 +376,7 @@ class TestShells(TestBase, TempdirMixin):
             # Appending something to the PATH and creating an alias afterwards
             # did fail before we implemented a doskey specific fix.
             env.PATH.append("hey")
-            alias('alias_test', '"echo test_echo"')
+            alias("alias_test", "echo test_echo")
 
         # We don't expect any output, the shell should just return with exit
         # code 0.
