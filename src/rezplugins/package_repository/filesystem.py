@@ -652,6 +652,49 @@ class FileSystemPackageRepository(PackageRepository):
 
         return None
 
+    def ignore_package(self, pkg_name, pkg_version):
+        # find family
+        fam = self.get_package_family(pkg_name)
+        if not fam:
+            return -1
+
+        filename = self.ignore_prefix + str(pkg_version)
+        filepath = os.path.join(self.location, pkg_name, filename)
+        if os.path.exists(filepath):
+            return 0
+
+        # find package
+        found = False
+        for pkg in fam.iter_packages():
+            if pkg.version == pkg_version:
+                found = True
+                break
+
+        if not found:
+            return -1
+
+        # create .ignore<ver> file
+        with open(filepath, 'w'):
+            pass
+
+        self._notify_changed_family(pkg_name)
+        return 1
+
+    def unignore_package(self, pkg_name, pkg_version):
+        # find family
+        fam = self.get_package_family(pkg_name)
+        if not fam:
+            return -1
+
+        filename = self.ignore_prefix + str(pkg_version)
+        filepath = os.path.join(self.location, pkg_name, filename)
+        if not os.path.exists(filepath):
+            return 0
+
+        os.remove(filepath)
+        self._notify_changed_family(pkg_name)
+        return 1
+
     def get_resource_from_handle(self, resource_handle, verify_repo=True):
         if verify_repo:
             repository_type = resource_handle.variables.get("repository_type")
@@ -1288,8 +1331,7 @@ class FileSystemPackageRepository(PackageRepository):
         except:
             pass
 
-        # touch the family dir, this keeps memcached resolves updated properly
-        os.utime(family_path, None)
+        self._notify_changed_family(variant_name)
 
         # load new variant
         new_variant = None
@@ -1309,6 +1351,16 @@ class FileSystemPackageRepository(PackageRepository):
         if not new_variant:
             raise RezSystemError("Internal failure - expected installed variant")
         return new_variant
+
+    def _notify_changed_family(self, pkg_name):
+        """
+        This step is important. Whenever a package within a family is
+        changed/removed/added, we update the access time of the parent family
+        dir. We can then do far less filesystem stats to determine if a resolve
+        cache is stale.
+        """
+        family_path = os.path.join(self.location, pkg_name)
+        os.utime(family_path, None)
 
     def _delete_stale_build_tagfiles(self, family_path):
         now = time.time()

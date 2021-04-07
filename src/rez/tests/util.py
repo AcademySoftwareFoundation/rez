@@ -122,22 +122,25 @@ class TempdirMixin(object):
 
     @classmethod
     def tearDownClass(cls):
-        if not os.getenv("REZ_KEEP_TMPDIRS"):
-            # The retries are here because there is at least one case in the
-            # tests where a subproc can be writing to files in a tmpdir after
-            # the tests are completed (this is the rez-pkg-cache proc in the
-            # test_package_cache:test_caching_on_resolve test).
-            #
-            retries = 5
+        if os.getenv("REZ_KEEP_TMPDIRS"):
+            print("Tempdir kept due to $REZ_KEEP_TMPDIRS: %s" % cls.root)
+            return
 
-            if os.path.exists(cls.root):
-                for i in range(retries):
-                    try:
-                        shutil.rmtree(cls.root)
-                        break
-                    except:
-                        if i < (retries - 1):
-                            time.sleep(0.2)
+        # The retries are here because there is at least one case in the
+        # tests where a subproc can be writing to files in a tmpdir after
+        # the tests are completed (this is the rez-pkg-cache proc in the
+        # test_package_cache:test_caching_on_resolve test).
+        #
+        retries = 5
+
+        if os.path.exists(cls.root):
+            for i in range(retries):
+                try:
+                    shutil.rmtree(cls.root)
+                    break
+                except:
+                    if i < (retries - 1):
+                        time.sleep(0.2)
 
 
 def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
