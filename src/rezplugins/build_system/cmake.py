@@ -127,7 +127,10 @@ class CMakeBuildSystem(BuildSystem):
         sh = create_shell()
 
         # assemble cmake command
-        cmd = [found_exe, "-d", self.working_dir]
+        cmd = [found_exe]
+        # cmd.append("-d")  # see https://github.com/nerdvegas/rez/issues/1055
+        cmd.append(self.working_dir)
+
         cmd += (self.settings.cmake_args or [])
         cmd += (self.build_args or [])
 
