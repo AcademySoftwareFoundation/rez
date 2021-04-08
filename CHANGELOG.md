@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.81.2 (2021-04-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.81.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.1...2.81.2)
+
+**Closed issues:**
+
+- install related regression in v2.80.0 [\#1057](https://github.com/nerdvegas/rez/issues/1057)
+
 ## 2.81.1 (2021-04-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.81.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.0...2.81.1)
 
