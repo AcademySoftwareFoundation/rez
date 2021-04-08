@@ -194,7 +194,7 @@ class PackageRepository(object):
         """
         return None
 
-    def ignore_package(self, pkg_name, pkg_version):
+    def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
         """Ignore the given package.
 
         Ignoring a package makes it invisible to further resolves.
@@ -202,6 +202,10 @@ class PackageRepository(object):
         Args:
             pkg_name (str): Package name
             pkg_version(`Version`): Package version
+            allow_missing (bool): if True, allow for ignoring a package that
+                does not exist. This is useful when you want to copy a package
+                to a repo and you don't want it visible until the copy is
+                completed.
 
         Returns:
             int:

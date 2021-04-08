@@ -652,26 +652,33 @@ class FileSystemPackageRepository(PackageRepository):
 
         return None
 
-    def ignore_package(self, pkg_name, pkg_version):
+    def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
+        fam_path = os.path.join(self.location, pkg_name)
+
         # find family
         fam = self.get_package_family(pkg_name)
         if not fam:
-            return -1
+            if allow_missing:
+                # we have to create the fam dir in order to create .ignore file
+                os.mkdir(fam_path)
+            else:
+                return -1
 
         filename = self.ignore_prefix + str(pkg_version)
-        filepath = os.path.join(self.location, pkg_name, filename)
+        filepath = os.path.join(fam_path, filename)
         if os.path.exists(filepath):
             return 0
 
         # find package
-        found = False
-        for pkg in fam.iter_packages():
-            if pkg.version == pkg_version:
-                found = True
-                break
+        if not allow_missing:
+            found = False
+            for pkg in fam.iter_packages():
+                if pkg.version == pkg_version:
+                    found = True
+                    break
 
-        if not found:
-            return -1
+            if not found:
+                return -1
 
         # create .ignore<ver> file
         with open(filepath, 'w'):

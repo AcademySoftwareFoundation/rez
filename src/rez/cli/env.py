@@ -9,6 +9,7 @@ def setup_parser(parser, completions=False):
     from rez.config import config
     from rez.system import system
     from rez.shells import get_shell_types
+    import os
 
     shells = get_shell_types()
 
@@ -42,7 +43,7 @@ def setup_parser(parser, completions=False):
         help="create a build environment")
     parser.add_argument(
         "--paths", type=str, default=None,
-        help="set package search path")
+        help="set package search path (use %r separator)" % os.pathsep)
     parser.add_argument(
         "-t", "--time", type=str,
         help="ignore packages released after the given time. Supported formats "

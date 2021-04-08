@@ -456,6 +456,10 @@ class TestPackages(TestBase, TempdirMixin):
         i = repo.ignore_package(pkg_name, pkg_version)
         self.assertEqual(i, 1)
 
+        # ignore a pkg that doesn't exist, but allow
+        i = repo.ignore_package("i_dont_exist", Version("1"), allow_missing=True)
+        self.assertEqual(i, 1)
+
         # verify that ignoring it again does nothing
         i = repo.ignore_package(pkg_name, pkg_version)
         self.assertEqual(i, 0)
