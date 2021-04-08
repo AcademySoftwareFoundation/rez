@@ -166,12 +166,15 @@ def install(dest_dir, print_welcome=False):
         print("Rez executable installed to: %s" % rez_exe)
 
         try:
-            out = subprocess.check_output([
-                rez_exe,
-                "python",
-                "-c",
-                "import rez; print(rez.__path__[0])"
-            ])
+            out = subprocess.check_output(
+                [
+                    rez_exe,
+                    "python",
+                    "-c",
+                    "import rez; print(rez.__path__[0])"
+                ],
+                universal_newlines=True
+            )
             pkg_path = os.path.realpath(out.strip())
             print("Rez python package installed to: %s" % pkg_path)
         except:
