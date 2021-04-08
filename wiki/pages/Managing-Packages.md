@@ -2,7 +2,8 @@
 
 Packages can be ignored. When this happens, the package is still present in its
 repository, but it will not be visible to the rez API nor to any newly resolved
-runtimes.
+runtimes. Any runtimes that are currently using an ignored package are unaffected,
+since the package's payload has not been removed.
 
 To ignore a package via comandline:
 
