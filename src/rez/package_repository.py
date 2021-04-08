@@ -170,6 +170,18 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_package_from_uri(self, uri):
+        """Get a package given its URI.
+
+        Args:
+            uri (str): Package URI
+
+        Returns:
+            `PackageResource`, or None if the package is not present in this
+            package repository.
+        """
+        return None
+
     def get_variant_from_uri(self, uri):
         """Get a variant given its URI.
 
@@ -181,6 +193,38 @@ class PackageRepository(object):
             package repository.
         """
         return None
+
+    def ignore_package(self, pkg_name, pkg_version):
+        """Ignore the given package.
+
+        Ignoring a package makes it invisible to further resolves.
+
+        Args:
+            pkg_name (str): Package name
+            pkg_version(`Version`): Package version
+
+        Returns:
+            int:
+            * -1: Package not found
+            * 0: Nothing was done, package already ignored
+            * 1: Package was ignored
+        """
+        raise NotImplementedError
+
+    def unignore_package(self, pkg_name, pkg_version):
+        """Unignore the given package.
+
+        Args:
+            pkg_name (str): Package name
+            pkg_version(`Version`): Package version
+
+        Returns:
+            int:
+            * -1: Package not found
+            * 0: Nothing was done, package already visible
+            * 1: Package was unignored
+        """
+        raise NotImplementedError
 
     def pre_variant_install(self, variant_resource):
         """Called before a variant is installed.

@@ -674,6 +674,53 @@ def get_variant(variant_handle, context=None):
     return variant
 
 
+def get_package_from_uri(uri, paths=None):
+    """Get a package given its URI.
+
+    Args:
+        uri (str): Variant URI
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`. If None, attempts to find a package that
+            may have come from any package repo.
+
+    Returns:
+        `Package`, or None if the package could not be found.
+    """
+    def _find_in_path(path):
+        repo = package_repository_manager.get_repository(path)
+        pkg_resource = repo.get_package_from_uri(uri)
+        if pkg_resource is not None:
+            return Package(pkg_resource)
+        else:
+            return None
+
+    for path in (paths or config.packages_path):
+        pkg = _find_in_path(path)
+        if pkg is not None:
+            return pkg
+
+    if paths:
+        return None
+
+    # same deal as in get_variant_from_uri, see there for comments
+
+    parts = os.path.split(uri)
+
+    # assume form /{pkg-repo-path}/{pkg-name}/{pkg-version}/package.py
+    if '<' not in uri:
+        path = os.path.sep.join(parts[:-3])
+        pkg = _find_in_path(path)
+        if pkg is not None:
+            return pkg
+
+    # assume unversioned OR 'combined'-type package, ie:
+    # /{pkg-repo-path}/{pkg-name}/package.py OR
+    # /{pkg-repo-path}/{pkg-name}/package.py<{version}>
+    #
+    path = os.path.sep.join(parts[:-2])
+    return _find_in_path(path)
+
+
 def get_variant_from_uri(uri, paths=None):
     """Get a variant given its URI.
 
@@ -684,8 +731,7 @@ def get_variant_from_uri(uri, paths=None):
             may have come from any package repo.
 
     Returns:
-        `VariantResource`, or None if the variant is not present in this
-        package repository.
+        `Variant`, or None if the variant could not be found.
     """
     def _find_in_path(path):
         repo = package_repository_manager.get_repository(path)
@@ -721,7 +767,7 @@ def get_variant_from_uri(uri, paths=None):
         if variant is not None:
             return variant
 
-    # assume unversioned / 'combined'-type package, ie:
+    # assume unversioned OR 'combined'-type package, ie:
     # /{pkg-repo-path}/{pkg-name}/package.py[{index}] OR
     # /{pkg-repo-path}/{pkg-name}/package.py<{version}>[{index}]
     #

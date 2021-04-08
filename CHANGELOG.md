@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.82.0 (2021-04-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.82.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.2...2.82.0)
+
+**Notes**
+
+New tool: `rez-pkg-ignore`.
+
+**Merged pull requests:**
+
+- Issue 1052 pkg ignore [\#1054](https://github.com/nerdvegas/rez/pull/1054) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- make package ignore a formal api/tool [\#1052](https://github.com/nerdvegas/rez/issues/1052)
+
 ## 2.81.2 (2021-04-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.81.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.1...2.81.2)
 

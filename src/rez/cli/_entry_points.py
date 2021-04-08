@@ -290,3 +290,10 @@ def run_rez_benchmark():
 
     from rez.cli._main import run
     return run("benchmark")
+
+
+@scriptname("rez-pkg-ignore")
+def run_rez_pkg_ignore():
+    check_production_install()
+    from rez.cli._main import run
+    return run("pkg-ignore")

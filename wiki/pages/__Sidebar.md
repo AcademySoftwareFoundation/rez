@@ -22,8 +22,7 @@
 - [[Bundles]]
 - [[Suites]]
 - [[Building Packages]]
-- [[Copying Packages]]
-- [[Package Caching]]
+- [[Managing Packages]]
 - [[Environment Variables]]
 - [[Command Line Tools]]
 

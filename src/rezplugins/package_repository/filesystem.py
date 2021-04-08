@@ -573,73 +573,127 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
-    def get_variant_from_uri(self, uri):
+    def get_package_from_uri(self, uri):
         """
         Example URIs:
-        - /svr/packages/mypkg/1.0.0/package.py[1]
-        - /svr/packages/mypkg/1.0.0/package.py[]  ("null" variant)
-        - /svr/packages/mypkg/package.py[1]  (unversioned package - rare)
-        - /svr/packages/mypkg/package.py<1.0.0>[1]  ("combined" package type - rare)
+        - /svr/packages/mypkg/1.0.0/package.py
+        - /svr/packages/mypkg/package.py  # (unversioned package - rare)
+        - /svr/packages/mypkg/package.py<1.0.0>  # ("combined" package type - rare)
         """
         uri = os.path.normcase(uri)
-
-        i = uri.rfind('[')
-        if i == -1:
-            return None
 
         prefix = self.location + os.path.sep
         if not is_subdirectory(uri, prefix):
             return None
 
-        part1 = uri[len(prefix):i]  # 'mypkg/1.0.0/package.py'
-        part2 = uri[i:][1:-1]  # the '1' in '[1]'
+        part = uri[len(prefix):]  # eg 'mypkg/1.0.0/package.py'
+        parts = part.split(os.path.sep)
+        pkg_name = parts[0]
+
+        if len(parts) == 2:
+            if '<' in part:
+                # "combined" package type, like 'mypkg/package.py<1.0.0>'
+                pkg_ver_str = parts[1][1:-1]
+            else:
+                # 'mypkg/package.py' (unversioned)
+                pkg_ver_str = ''
+        elif len(parts) == 3:
+            # typical case: 'mypkg/1.0.0/package.py'
+            pkg_ver_str = parts[1]
+        else:
+            return None
 
         # find package
-        if '<' in part1:
-            # "combined" package type, like 'mypkg/package.py<1.0.0>'
-            i = part1.find('<')
-            pkg_name = part1.split(os.path.sep)[0]
-            pkg_ver_str = part1[i + 1:-1]
-
-        else:
-            parts = part1.split(os.path.sep)
-            if len(parts) == 3:  # versioned package
-                pkg_name, pkg_ver_str = parts[0], parts[1]
-            elif len(parts) == 2:  # unversioned package
-                pkg_name, pkg_ver_str = parts[0], ''
-            else:
-                return None
-
         fam = self.get_package_family(pkg_name)
         if fam is None:
             return None
 
         ver = Version(pkg_ver_str)
-        pkg = None
 
         for package in fam.iter_packages():
             if package.version == ver:
-                pkg = package
-                break
+                return package
 
+        return None
+
+    def get_variant_from_uri(self, uri):
+        """
+        Example URIs:
+        - /svr/packages/mypkg/1.0.0/package.py[1]
+        - /svr/packages/mypkg/1.0.0/package.py[]  # ("null" variant)
+        - /svr/packages/mypkg/package.py[1]  # (unversioned package - rare)
+        - /svr/packages/mypkg/package.py<1.0.0>[1]  # ("combined" package type - rare)
+        """
+        i = uri.rfind('[')
+        if i == -1:
+            return None
+
+        package_uri = uri[:i]  # eg 'mypkg/1.0.0/package.py'
+        variant_index_str = uri[i + 1:-1]  # the '1' in '[1]'
+
+        # find package
+        pkg = self.get_package_from_uri(package_uri)
         if pkg is None:
             return None
 
         # find variant in package
-        if part2 == '':
+        if variant_index_str == '':
             variant_index = None
         else:
             try:
-                variant_index = int(part2)
-            except:
+                variant_index = int(variant_index_str)
+            except ValueError:
                 # future proof - we may move to hash-based indices for hashed variants
-                variant_index = part2
+                variant_index = variant_index_str
 
         for variant in pkg.iter_variants():
             if variant.index == variant_index:
                 return variant
 
         return None
+
+    def ignore_package(self, pkg_name, pkg_version):
+        # find family
+        fam = self.get_package_family(pkg_name)
+        if not fam:
+            return -1
+
+        filename = self.ignore_prefix + str(pkg_version)
+        filepath = os.path.join(self.location, pkg_name, filename)
+        if os.path.exists(filepath):
+            return 0
+
+        # find package
+        found = False
+        for pkg in fam.iter_packages():
+            if pkg.version == pkg_version:
+                found = True
+                break
+
+        if not found:
+            return -1
+
+        # create .ignore<ver> file
+        with open(filepath, 'w'):
+            pass
+
+        self._notify_changed_family(pkg_name)
+        return 1
+
+    def unignore_package(self, pkg_name, pkg_version):
+        # find family
+        fam = self.get_package_family(pkg_name)
+        if not fam:
+            return -1
+
+        filename = self.ignore_prefix + str(pkg_version)
+        filepath = os.path.join(self.location, pkg_name, filename)
+        if not os.path.exists(filepath):
+            return 0
+
+        os.remove(filepath)
+        self._notify_changed_family(pkg_name)
+        return 1
 
     def get_resource_from_handle(self, resource_handle, verify_repo=True):
         if verify_repo:
@@ -1277,8 +1331,7 @@ class FileSystemPackageRepository(PackageRepository):
         except:
             pass
 
-        # touch the family dir, this keeps memcached resolves updated properly
-        os.utime(family_path, None)
+        self._notify_changed_family(variant_name)
 
         # load new variant
         new_variant = None
@@ -1298,6 +1351,16 @@ class FileSystemPackageRepository(PackageRepository):
         if not new_variant:
             raise RezSystemError("Internal failure - expected installed variant")
         return new_variant
+
+    def _notify_changed_family(self, pkg_name):
+        """
+        This step is important. Whenever a package within a family is
+        changed/removed/added, we update the access time of the parent family
+        dir. We can then do far less filesystem stats to determine if a resolve
+        cache is stale.
+        """
+        family_path = os.path.join(self.location, pkg_name)
+        os.utime(family_path, None)
 
     def _delete_stale_build_tagfiles(self, family_path):
         now = time.time()
