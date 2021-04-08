@@ -8,7 +8,7 @@ since the package's payload has not been removed.
 To ignore a package via comandline:
 
 ```
-# you need to specify the repo, but you'll be shown a list if you don't
+]$ # you need to specify the repo, but you'll be shown a list if you don't
 ]$ rez-pkg-ignore foo-1.2.3
 No action taken. Run again, and set PATH to one of:
 filesystem@/home/ajohns/packages
