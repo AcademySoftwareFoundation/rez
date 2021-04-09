@@ -536,6 +536,8 @@ class FileSystemPackageRepository(PackageRepository):
             )
             self._get_version_dirs = decorator2(self._get_version_dirs)
 
+        self._disable_pkg_ignore = False
+
     def _uid(self):
         t = ["filesystem", self.location]
         if os.path.exists(self.location):
@@ -604,17 +606,8 @@ class FileSystemPackageRepository(PackageRepository):
             return None
 
         # find package
-        fam = self.get_package_family(pkg_name)
-        if fam is None:
-            return None
-
-        ver = Version(pkg_ver_str)
-
-        for package in fam.iter_packages():
-            if package.version == ver:
-                return package
-
-        return None
+        pkg_ver = Version(pkg_ver_str)
+        return self.get_package(pkg_name, pkg_ver)
 
     def get_variant_from_uri(self, uri):
         """
@@ -660,7 +653,7 @@ class FileSystemPackageRepository(PackageRepository):
         if not fam:
             if allow_missing:
                 # we have to create the fam dir in order to create .ignore file
-                os.mkdir(fam_path)
+                os.makedirs(fam_path)
             else:
                 return -1
 
@@ -950,8 +943,11 @@ class FileSystemPackageRepository(PackageRepository):
     def _get_version_dirs(self, root):
         # Ignore a version if there is a .ignore<version> file next to it
         def ignore_dir(name):
-            path = os.path.join(root, self.ignore_prefix + name)
-            return os.path.isfile(path)
+            if self._disable_pkg_ignore:
+                return False
+            else:
+                path = os.path.join(root, self.ignore_prefix + name)
+                return os.path.isfile(path)
 
         # simpler case if this test is on
         #
@@ -1340,23 +1336,35 @@ class FileSystemPackageRepository(PackageRepository):
 
         self._notify_changed_family(variant_name)
 
-        # load new variant
-        new_variant = None
+        # clear caches so the newly installed variant is visible
         self.clear_caches()
-        family = self.get_package_family(variant_name)
 
-        if family:
-            for package in self.iter_packages(family):
-                if package.version == variant_version:
-                    for variant_ in self.iter_variants(package):
-                        if variant_.index == installed_variant_index:
-                            new_variant = variant_
-                            break
-                elif new_variant:
+        # load new variant. Note that we load it from a copy of this repo, with
+        # package ignore disabled. We do this so it's possible to install
+        # variants into a hidden (ignored) package. This is used by `move_package`
+        # in order to make the moved package visible only after all its variants
+        # have been copied over.
+        #
+        new_variant = None
+
+        repo_copy = self.__class__(self.location, self.pool)
+        repo_copy._disable_pkg_ignore = True
+        pkg = repo_copy.get_package(variant_name, variant_version)
+
+        if pkg is not None:
+            for variant_ in self.iter_variants(pkg):
+                if variant_.index == installed_variant_index:
+                    new_variant = variant_
                     break
 
         if not new_variant:
             raise RezSystemError("Internal failure - expected installed variant")
+
+        # a bit hacky but it works. We need the variant to belong to the actual
+        # repo, not the temp copy we retrieved it from
+        #
+        new_variant._repository = self
+
         return new_variant
 
     def _notify_changed_family(self, pkg_name):

@@ -568,7 +568,7 @@ def iter_packages(name, range_=None, paths=None):
 
 
 def get_package(name, version, paths=None):
-    """Get an exact version of a package.
+    """Get a package by searching a list of repositories.
 
     Args:
         name (str): Name of the package, eg 'maya'.
@@ -589,6 +589,19 @@ def get_package(name, version, paths=None):
         return next(it)
     except StopIteration:
         return None
+
+
+def get_package_from_repository(name, version, repo):
+    """Get a package from a repository.
+
+    Returns:
+        `Package` object, or None if the package was not found.
+    """
+    package_resource = repo.get_package(name, version)
+    if package_resource is None:
+        return None
+
+    return Package(package_resource)
 
 
 def get_package_from_handle(package_handle):

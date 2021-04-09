@@ -93,6 +93,11 @@ class PackageCopyError(RezError):
     pass
 
 
+class PackageMoveError(RezError):
+    """There was a problem moving a package."""
+    pass
+
+
 class ContextBundleError(RezError):
     """There was a problem bundling a context."""
     pass

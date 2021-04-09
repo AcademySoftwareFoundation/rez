@@ -45,15 +45,8 @@ def list_repos_containing_pkg(pkg_name, pkg_version):
 
     for path in config.packages_path:
         repo = package_repository_manager.get_repository(path)
-
-        fam = repo.get_package_family(pkg_name)
-        if fam is None:
-            continue
-
-        for pkg in fam.iter_packages():
-            if pkg.version == pkg_version:
-                matching_repos.append(repo)
-                break
+        if repo.get_package(pkg_name, pkg_version):
+            matching_repos.append(repo)
 
     if matching_repos:
         print("No action taken. Run again, and set PATH to one of:")

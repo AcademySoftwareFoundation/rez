@@ -170,6 +170,26 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_package(self, name, version):
+        """Get a package.
+
+        Args:
+            name (str): Package name.
+            version (`Version`): Package version.
+
+        Returns:
+            `PackageResource` or None: Matching package, or None if not found.
+        """
+        fam = self.get_package_family(name)
+        if fam is None:
+            return None
+
+        for pkg in fam.iter_packages():
+            if pkg.version == version:
+                return pkg
+
+        return None
+
     def get_package_from_uri(self, uri):
         """Get a package given its URI.
 
