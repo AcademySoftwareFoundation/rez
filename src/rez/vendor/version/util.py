@@ -29,23 +29,6 @@ def dedup(iterable):
         yield e[0]
 
 
-def is_valid_bound(bound):
-    """"""
-    lower_tokens = bound.lower.version.tokens
-    upper_tokens = bound.upper.version.tokens
-    return ((lower_tokens is None or lower_tokens)
-            or (upper_tokens is None or upper_tokens))
-
-
-def fix_bound(bound):
-    lower_tokens = bound.lower.version.tokens
-    if not lower_tokens:
-        bound.lower = bound.lower.min
-    upper_tokens = bound.upper.version.tokens
-    if not upper_tokens:
-        bound.upper = bound.upper.inf
-
-
 @contextmanager
 def dewildcard(request):
     deer = WildcardReplacer(request)
@@ -95,8 +78,6 @@ class WildcardReplacer(object):
         return string
 
     def clean(self, on_wildcard=None, on_version=None):
-        from .version import VersionRange
-
         on_wildcard = on_wildcard or self._on_wildcard or (lambda v, r: v)
         on_version = on_version or self._on_version or (lambda v, r: None)
 
@@ -144,12 +125,28 @@ class WildcardReplacer(object):
             return version_
 
         req.range_.visit_versions(visit_version)
+        ensure_valid_range_bounds(req)
 
-        for bound in list(req.range_.bounds):
-            if is_valid_bound(bound):
-                fix_bound(bound)
-            else:
-                req.range_.bounds.remove(bound)
 
-        if not req.range_.bounds:
-            req.range_ = VersionRange()
+def ensure_valid_range_bounds(requirement):
+    """Ensure requirement has no broken bounds after wildcard cleanup"""
+    from .version import VersionRange
+
+    for bound in list(requirement.range_.bounds):
+        lower_tokens = bound.lower.version.tokens
+        upper_tokens = bound.upper.version.tokens
+
+        if ((lower_tokens is None or lower_tokens)
+                or (upper_tokens is None or upper_tokens)):
+
+            if not lower_tokens:
+                bound.lower = bound.lower.min
+            if not upper_tokens:
+                bound.upper = bound.upper.inf
+
+        else:
+            # invalid bound
+            requirement.range_.bounds.remove(bound)
+
+    if not requirement.range_.bounds:
+        requirement.range_ = VersionRange()
