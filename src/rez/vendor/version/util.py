@@ -30,10 +30,20 @@ def dedup(iterable):
 
 
 def is_valid_bound(bound):
+    """"""
     lower_tokens = bound.lower.version.tokens
     upper_tokens = bound.upper.version.tokens
     return ((lower_tokens is None or lower_tokens)
-            and (upper_tokens is None or upper_tokens))
+            or (upper_tokens is None or upper_tokens))
+
+
+def fix_bound(bound):
+    lower_tokens = bound.lower.version.tokens
+    if not lower_tokens:
+        bound.lower = bound.lower.min
+    upper_tokens = bound.upper.version.tokens
+    if not upper_tokens:
+        bound.upper = bound.upper.inf
 
 
 @contextmanager
@@ -136,7 +146,9 @@ class WildcardReplacer(object):
         req.range_.visit_versions(visit_version)
 
         for bound in list(req.range_.bounds):
-            if not is_valid_bound(bound):
+            if is_valid_bound(bound):
+                fix_bound(bound)
+            else:
                 req.range_.bounds.remove(bound)
 
         if not req.range_.bounds:
