@@ -10,6 +10,7 @@ import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
     per_available_shell, install_dependent, program_dependent
 from rez.utils.platform_ import platform_
+from rez.packages import get_package
 import shutil
 import os.path
 
@@ -175,6 +176,18 @@ class TestBuild(TestBase, TempdirMixin):
         proc = context.execute_command(['hai'], stdout=PIPE)
         stdout = proc.communicate()[0]
         self.assertEqual('Oh hai!', stdout.decode("utf-8").strip())
+
+    def test_build_soft(self):
+        self._test_build("soft_dep", "1.0.0")
+        self._test_build("soft_dep", "1.1.0")
+        self._test_build("soft_var", "2.1")
+        self._test_build("soft_var", "3.0")
+        self._test_build("soft")
+
+        soft = get_package("soft", "1", paths=[self.install_root])
+        self.assertEqual("soft_dep-1.0", str(soft.requires[0]))
+        self.assertEqual(["soft_var-2.1"], list(map(str, soft.variants[0])))
+        self.assertEqual(["soft_var-3.0"], list(map(str, soft.variants[1])))
 
 
 if __name__ == '__main__':
