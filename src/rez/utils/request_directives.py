@@ -126,7 +126,7 @@ def bind_directives(package):
     directive_manager.loaded.clear(anonymous=True)
 
 
-def process_directives(variant, context):
+def resolve_directives(variant, context):
     """Evaluate directives with resolved context
     """
     package = variant.parent

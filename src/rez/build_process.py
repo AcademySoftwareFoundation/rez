@@ -6,7 +6,7 @@ from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseVCSError, _NeverError
 from rez.utils.logging_ import print_warning
 from rez.utils.colorize import heading, Printer
-from rez.utils.request_directives import process_directives
+from rez.utils.request_directives import resolve_directives
 from rez.resolved_context import ResolvedContext
 from rez.release_hook import create_release_hooks
 from rez.resolver import ResolverStatus
@@ -266,7 +266,7 @@ class BuildProcessHelper(BuildProcess):
         if context.status != ResolverStatus.solved:
             raise BuildContextResolveError(context)
 
-        process_directives(variant, context)
+        resolve_directives(variant, context)
 
         return context, rxt_filepath
 
