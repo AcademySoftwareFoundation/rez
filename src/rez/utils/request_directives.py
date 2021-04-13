@@ -171,7 +171,7 @@ def resolve_directives(variant, context):
         data = schema.validate({key: package_data[key]})
         if directed:
             processed[key] = copy(data[key])
-            directed.clear()
+            del directed[:]
 
     directive_manager.processed.put(processed, key=variant)
 
