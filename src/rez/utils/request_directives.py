@@ -129,10 +129,12 @@ def bind_directives(package):
 def resolve_directives(variant, context):
     """Evaluate directives with resolved context
     """
+    directives = directive_manager.loaded.retrieve(key=variant)
+    if not directives:
+        return
+
     package = variant.parent
     package_data = package.validated_data()
-
-    directives = directive_manager.loaded.retrieve(key=variant) or dict()
     resolved_packages = {p.name: p for p in context.resolved_packages}
 
     processed = dict()
@@ -178,6 +180,8 @@ def apply_directives(variant):
     """Patch evaluated directives to variant on install
     """
     directed_requires = directive_manager.processed.retrieve(key=variant)
+    if not directed_requires:
+        return
 
     # Just like how `cached_property` caching attributes, override
     # requirement attributes internally. These change will be picked
