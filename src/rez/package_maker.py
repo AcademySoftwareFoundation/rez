@@ -4,12 +4,13 @@ from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.logging_ import print_warning
+from rez.utils.request_directives import bind_directives
 from rez.exceptions import PackageMetadataError
 from rez.package_resources import help_schema, _commands_schema, \
     _function_schema, late_bound
 from rez.package_repository import create_memory_package_repository
 from rez.packages import Package
-from rez.package_py_utils import expand_requirement
+from rez.package_py_utils import late_expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.vendor.six import six
 from rez.vendor.version.version import Version
@@ -23,7 +24,7 @@ basestring = six.string_types[0]
 # this schema will automatically harden request strings like 'python-*'; see
 # the 'expand_requires' function for more info.
 #
-package_request_schema = Or(And(basestring, Use(expand_requirement)),
+package_request_schema = Or(And(basestring, Use(late_expand_requirement)),
                             And(PackageRequest, Use(str)))
 
 tests_schema = Schema({
@@ -140,6 +141,10 @@ class PackageMaker(AttrDictWrapper):
 
         # revalidate the package for extra measure
         package.validate_data()
+
+        # bind schema validated directive requires with package
+        bind_directives(package)
+
         return package
 
     def _get_data(self):
