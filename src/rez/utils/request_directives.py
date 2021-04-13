@@ -100,11 +100,7 @@ def _convert_wildcard_to_directive(request):
         return None, None
     else:
         rank = next(iter(ranks.values()))
-
-        if rank < 0:
-            directive = "harden"
-        else:
-            directive = "harden(%d)" % rank
+        directive = "harden(%d)" % rank
 
         return cleaned_request, directive
 
