@@ -677,7 +677,7 @@ class FileSystemPackageRepository(PackageRepository):
         with open(filepath, 'w'):
             pass
 
-        self._notify_changed_family(pkg_name)
+        self._on_changed(pkg_name)
         return 1
 
     def unignore_package(self, pkg_name, pkg_version):
@@ -692,7 +692,8 @@ class FileSystemPackageRepository(PackageRepository):
             return 0
 
         os.remove(filepath)
-        self._notify_changed_family(pkg_name)
+
+        self._on_changed(pkg_name)
         return 1
 
     def get_resource_from_handle(self, resource_handle, verify_repo=True):
@@ -1075,7 +1076,8 @@ class FileSystemPackageRepository(PackageRepository):
         path = os.path.join(self.location, name)
         if not os.path.exists(path):
             os.makedirs(path)
-        self.clear_caches()
+
+        self._on_changed(name)
         return self.get_package_family(name)
 
     def _create_variant(self, variant, dry_run=False, overrides=None):
@@ -1334,10 +1336,7 @@ class FileSystemPackageRepository(PackageRepository):
         except:
             pass
 
-        self._notify_changed_family(variant_name)
-
-        # clear caches so the newly installed variant is visible
-        self.clear_caches()
+        self._on_changed(variant_name)
 
         # load new variant. Note that we load it from a copy of this repo, with
         # package ignore disabled. We do this so it's possible to install
@@ -1367,15 +1366,18 @@ class FileSystemPackageRepository(PackageRepository):
 
         return new_variant
 
-    def _notify_changed_family(self, pkg_name):
+    def _on_changed(self, pkg_name):
+        """Called when a package is added/removed/changed.
         """
-        This step is important. Whenever a package within a family is
-        changed/removed/added, we update the access time of the parent family
-        dir. We can then do far less filesystem stats to determine if a resolve
-        cache is stale.
-        """
+
+        # update access time of family dir. This is done so that very few file
+        # stats are required to determine if a resolve cache entry is stale.
+        #
         family_path = os.path.join(self.location, pkg_name)
         os.utime(family_path, None)
+
+        # clear internal caches, otherwise change may not be visible
+        self.clear_caches()
 
     def _delete_stale_build_tagfiles(self, family_path):
         now = time.time()

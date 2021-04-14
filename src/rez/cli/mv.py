@@ -50,7 +50,6 @@ def list_repos_containing_pkg(pkg_name, pkg_version):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.package_repository import package_repository_manager
     from rez.vendor.version.requirement import VersionedObject
     from rez.packages import get_package_from_repository
     from rez.package_move import move_package
@@ -63,18 +62,15 @@ def command(opts, parser, extra_arg_groups=None):
         sys.exit(0)
 
     # find src pkg
-    src_repo = package_repository_manager.get_repository(opts.PATH)
-    src_pkg = get_package_from_repository(obj.name, obj.version, src_repo)
+    src_pkg = get_package_from_repository(obj.name, obj.version, opts.PATH)
 
     if src_pkg is None:
         print("Package not found.", file=sys.stderr)
         sys.exit(1)
 
-    dest_repo = package_repository_manager.get_repository(opts.dest_path)
-
     move_package(
         package=src_pkg,
-        dest_repository=dest_repo,
+        dest_repository=opts.dest_path,
         keep_timestamp=opts.keep_timestamp,
         force=opts.force,
         verbose=opts.verbose

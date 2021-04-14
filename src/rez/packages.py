@@ -591,12 +591,18 @@ def get_package(name, version, paths=None):
         return None
 
 
-def get_package_from_repository(name, version, repo):
+def get_package_from_repository(name, version, path):
     """Get a package from a repository.
+
+    Args:
+        name (str): Name of the package, eg 'maya'.
+        version (Version or str): Version of the package, eg '1.0.0'
 
     Returns:
         `Package` object, or None if the package was not found.
     """
+    repo = package_repository_manager.get_repository(path)
+
     package_resource = repo.get_package(name, version)
     if package_resource is None:
         return None
