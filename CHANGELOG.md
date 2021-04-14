@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.83.0 (2021-04-14)
+[Source](https://github.com/nerdvegas/rez/tree/2.83.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.82.0...2.83.0)
+
+**Notes**
+
+New tool: `rez-mv`.
+
+**Merged pull requests:**
+
+- Package move [\#1061](https://github.com/nerdvegas/rez/pull/1061) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add pkg move feature [\#1059](https://github.com/nerdvegas/rez/issues/1059)
+
 ## 2.82.0 (2021-04-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.82.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.2...2.82.0)
 
