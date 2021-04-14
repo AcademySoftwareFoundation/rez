@@ -170,6 +170,26 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_package(self, name, version):
+        """Get a package.
+
+        Args:
+            name (str): Package name.
+            version (`Version`): Package version.
+
+        Returns:
+            `PackageResource` or None: Matching package, or None if not found.
+        """
+        fam = self.get_package_family(name)
+        if fam is None:
+            return None
+
+        for pkg in fam.iter_packages():
+            if pkg.version == version:
+                return pkg
+
+        return None
+
     def get_package_from_uri(self, uri):
         """Get a package given its URI.
 
@@ -194,7 +214,7 @@ class PackageRepository(object):
         """
         return None
 
-    def ignore_package(self, pkg_name, pkg_version):
+    def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
         """Ignore the given package.
 
         Ignoring a package makes it invisible to further resolves.
@@ -202,6 +222,10 @@ class PackageRepository(object):
         Args:
             pkg_name (str): Package name
             pkg_version(`Version`): Package version
+            allow_missing (bool): if True, allow for ignoring a package that
+                does not exist. This is useful when you want to copy a package
+                to a repo and you don't want it visible until the copy is
+                completed.
 
         Returns:
             int:

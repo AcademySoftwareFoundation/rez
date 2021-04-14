@@ -85,8 +85,8 @@ Copying packages is enabled by default, however you're also able to specify whic
 packages are and are not _relocatable_, for much the same reasons as given
 [here](Managing-Packages#enabling-package-caching).
 
-You can mark a package as non-relocatable by setting `relocatable = False` in its
-package definition file. There are also config settings that affect relocatability
+You can mark a package as non-relocatable by setting [relocatable](Package-Definition-Guide#relocatable)
+to False in its package definition file. There are also config settings that affect relocatability
 in the event that relocatable is not defined in a package's definition. For example,
 see [default_relocatable](Configuring-Rez#default_relocatable),
 [default_relocatable_per_package](Configuring-Rez#default_relocatable_per_package)
@@ -95,6 +95,44 @@ and [default_relocatable_per_repository](Configuring-Rez#default_relocatable_per
 Attempting to copy a non-relocatable package will raise a `PackageCopyError`.
 However, note that there is a `force` option that will override this - use at
 your own risk.
+
+
+## Moving Packages
+
+Packages can be moved from one [package repository](Basic-Concepts#package-repositories)
+to another. Be aware that moving a package does not actually delete the source
+package however. Instead, the source package is hidden (ignored) - it is up to
+you to delete it at some later date.
+
+You move a package like so:
+
+```
+>>> from rez.package_move import move_package
+>>> from rez.packages import get_package_from_repository
+>>>
+>>> p = get_package_from_repository("python", "3.7.4", "/packages")
+>>> p
+Package(FileSystemPackageResource({'location': '/packages', 'name': 'python', 'repository_type': 'filesystem', 'version': '3.7.4'}))
+>>>
+>>> new_p = move_package(p, "/packages2")
+>>> new_p
+Package(FileSystemPackageResource({'location': '/packages2', 'name': 'python', 'repository_type': 'filesystem', 'version': '3.7.4'}))
+>>>
+>>> p = get_package_from_repository("python", "3.7.4", "/packages")
+>>> p
+None
+```
+
+Be aware that a non-relocatable package is also not movable (see
+[here](Package-Definition-Guide#relocatable) for more details). Like package
+copying, there is a `force` option to move it regardless.
+
+A typical reason you might want to move a package is to archive packages that are
+no longer in use. In this scenario, you would move the package to some archival
+package repository. In case an old runtime needs to be resurrected, you would add
+this archival repository to the packages path before performing the resolve. Note
+that you will probably want to use the `--keep-timestamp` option when doing this,
+otherwise rez will think the package did not exist prior to its archival date.
 
 
 ## Package Caching
@@ -115,9 +153,9 @@ Package caching is not enabled by default. To enable it, you need to configure
 store the cache in.
 
 You also have granular control over whether an individual package will or will
-not be cached. To make a package cachable, you can set `cachable = True` in its
-package definition file. Reasons you may _not_ want to do this include packages
-that are large, or that aren't relocatable because other compiled packages are
+not be cached. To make a package cachable, you can set [cachable](Package-Definition-Guide#cachable)
+ to False in its package definition file. Reasons you may _not_ want to do this include
+packages that are large, or that aren't relocatable because other compiled packages are
 linked to them in a way that doesn't support library relocation.
 
 There are also config settings that affect cachability in the event that `cachable`

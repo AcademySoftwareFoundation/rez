@@ -58,7 +58,8 @@ subcommands = {
     "yaml2py": {},
     "bundle": {},
     "benchmark": {},
-    "pkg-ignore": {}
+    "pkg-ignore": {},
+    "mv": {}
 }
 
 
