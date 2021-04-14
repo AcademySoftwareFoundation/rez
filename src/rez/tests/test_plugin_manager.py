@@ -100,4 +100,3 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
 if __name__ == '__main__':
     unittest.main()
-
