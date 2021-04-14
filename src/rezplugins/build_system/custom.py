@@ -83,14 +83,14 @@ class CustomBuildSystem(BuildSystem):
         try:
             with open("./parse_build_args.py") as f:
                 source = f.read()
-        except Exception as e:
+        except:
             return
 
         # detect what extra args have been added
         before_args = set(x.dest for x in parser._actions)
 
         try:
-            exec (source, {"parser": group})
+            exec(source, {"parser": group})
         except Exception as e:
             print_warning("Error in ./parse_build_args.py: %s" % str(e))
 

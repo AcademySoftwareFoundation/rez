@@ -3,7 +3,6 @@ Bash shell
 """
 import os
 import os.path
-from rez.shells import Shell
 from rez.utils.platform_ import platform_
 from rezplugins.shell.sh import SH
 from rez import module_root_path

@@ -88,6 +88,7 @@ class KittenResource(PetResource):
 class PuppyResource(PetResource):
     key = "puppy"
 
+
 class PetPool(ResourcePool):
     # don't want to define get_resource on normal pool object anymore,
     # because it's dangerous, since we always want ResourceHandle creation to
@@ -97,6 +98,7 @@ class PetPool(ResourcePool):
         variables = variables or {}
         handle = ResourceHandle(resource_key, variables)
         return self.get_resource_from_handle(handle)
+
 
 class PetRepository(PackageRepository):
     def __init__(self, pool):

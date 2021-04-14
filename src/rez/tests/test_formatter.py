@@ -5,7 +5,6 @@ import unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
 from rez.vendor.six import six
-import sys
 
 
 class TestFormatter(TestBase):
@@ -53,12 +52,14 @@ class TestFormatter(TestBase):
         class C(object):
             def __init__(self, x=100):
                 self._x = x
+
             def __format__(self, spec):
                 return spec
 
         class D(object):
             def __init__(self, x):
                 self.x = x
+
             def __format__(self, spec):
                 return str(self.x)
 
@@ -66,6 +67,7 @@ class TestFormatter(TestBase):
         class E(object):
             def __init__(self, x):
                 self.x = x
+
             def __str__(self):
                 return 'E(' + self.x + ')'
 
@@ -73,6 +75,7 @@ class TestFormatter(TestBase):
         class F(object):
             def __init__(self, x):
                 self.x = x
+
             def __repr__(self):
                 return 'F(' + self.x + ')'
 
@@ -80,8 +83,10 @@ class TestFormatter(TestBase):
         class G(object):
             def __init__(self, x):
                 self.x = x
+
             def __str__(self):
                 return "string is " + self.x
+
             def __format__(self, format_spec):
                 if format_spec == 'd':
                     return 'G(' + self.x + ')'
@@ -124,9 +129,9 @@ class TestFormatter(TestBase):
         self.assert_formatter_equal('}}x{{', '}x{')
 
         # weird field names
-        self.assert_formatter_equal("{0[foo-bar]}", 'baz', {'foo-bar':'baz'})
-        self.assert_formatter_equal("{0[foo bar]}", 'baz', {'foo bar':'baz'})
-        self.assert_formatter_equal("{0[ ]}", '3', {' ':3})
+        self.assert_formatter_equal("{0[foo-bar]}", 'baz', {'foo-bar': 'baz'})
+        self.assert_formatter_equal("{0[foo bar]}", 'baz', {'foo bar': 'baz'})
+        self.assert_formatter_equal("{0[ ]}", '3', {' ': 3})
 
         self.assert_formatter_equal('{foo._x}', '20', foo=C(20))
         self.assert_formatter_equal('{1}{0}', '2010', D(10), D(20))
@@ -286,7 +291,6 @@ class TestFormatter(TestBase):
                                         Trex='Timmy the Trex')
         self.assert_formatter_equal('Hello {greeted}!',
                                     'Hello Timmy the Trex!')
-
 
 
 if __name__ == '__main__':

@@ -3,9 +3,7 @@ Functions for manipulating dot-based resolve graphs.
 """
 from __future__ import print_function
 
-import re
 import os.path
-import subprocess
 import sys
 import tempfile
 from ast import literal_eval

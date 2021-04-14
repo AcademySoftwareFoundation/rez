@@ -2,7 +2,7 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, expandable, literal, OutputStyle, EscapedString
+from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.execution import Popen
@@ -192,10 +192,13 @@ class CMD(Shell):
         # Make .py launch within cmd without extension.
         if self.settings.additional_pathext:
             # Ensure that the PATHEXT does not append duplicates.
+            fmt = (
+                'echo %PATHEXT%|C:\\Windows\\System32\\findstr.exe /i /c:"{0}">nul '
+                '|| set PATHEXT=%PATHEXT%;{0}'
+            )
+
             for pathext in self.settings.additional_pathext:
-                executor.command('echo %PATHEXT%|C:\\Windows\\System32\\findstr.exe /i /c:"{0}">nul || set PATHEXT=%PATHEXT%;{0}'.format(
-                    pathext
-                ))
+                executor.command(fmt.format(pathext))
             # This resets the errorcode, which is tainted by the code above
             executor.command("(call )")
 

@@ -1,14 +1,13 @@
 from rez.config import config
 from rez.resolved_context import ResolvedContext
-from rez.packages import get_latest_package_from_string, Variant
+from rez.packages import get_latest_package_from_string
 from rez.exceptions import RezError, PackageNotFoundError, PackageTestError
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.utils.colorize import heading, Printer
-from rez.utils.logging_ import print_info, print_warning, print_error, print_debug
+from rez.utils.logging_ import print_info, print_warning, print_error
 from rez.vendor.six import six
 from rez.vendor.version.requirement import Requirement, RequirementList
 from pipes import quote
-import subprocess
 import time
 import sys
 import os
@@ -564,8 +563,8 @@ class PackageTestRunner(object):
             current_reqs = current_context.get_resolve_as_exact_requests()
 
             meets_requirements = (
-                RequirementList(current_reqs) ==
-                RequirementList(current_reqs + reqs)
+                RequirementList(current_reqs)
+                == RequirementList(current_reqs + reqs)
             )
 
             if meets_requirements:

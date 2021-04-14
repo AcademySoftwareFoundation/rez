@@ -110,9 +110,9 @@ class PackageRepository(object):
 
     def __eq__(self, other):
         return (
-            isinstance(other, PackageRepository) and
-            other.name() == self.name() and
-            other.uid == self.uid
+            isinstance(other, PackageRepository)
+            and other.name() == self.name()
+            and other.uid == self.uid
         )
 
     def is_empty(self):
@@ -170,6 +170,38 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_package(self, name, version):
+        """Get a package.
+
+        Args:
+            name (str): Package name.
+            version (`Version`): Package version.
+
+        Returns:
+            `PackageResource` or None: Matching package, or None if not found.
+        """
+        fam = self.get_package_family(name)
+        if fam is None:
+            return None
+
+        for pkg in fam.iter_packages():
+            if pkg.version == version:
+                return pkg
+
+        return None
+
+    def get_package_from_uri(self, uri):
+        """Get a package given its URI.
+
+        Args:
+            uri (str): Package URI
+
+        Returns:
+            `PackageResource`, or None if the package is not present in this
+            package repository.
+        """
+        return None
+
     def get_variant_from_uri(self, uri):
         """Get a variant given its URI.
 
@@ -181,6 +213,42 @@ class PackageRepository(object):
             package repository.
         """
         return None
+
+    def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
+        """Ignore the given package.
+
+        Ignoring a package makes it invisible to further resolves.
+
+        Args:
+            pkg_name (str): Package name
+            pkg_version(`Version`): Package version
+            allow_missing (bool): if True, allow for ignoring a package that
+                does not exist. This is useful when you want to copy a package
+                to a repo and you don't want it visible until the copy is
+                completed.
+
+        Returns:
+            int:
+            * -1: Package not found
+            * 0: Nothing was done, package already ignored
+            * 1: Package was ignored
+        """
+        raise NotImplementedError
+
+    def unignore_package(self, pkg_name, pkg_version):
+        """Unignore the given package.
+
+        Args:
+            pkg_name (str): Package name
+            pkg_version(`Version`): Package version
+
+        Returns:
+            int:
+            * -1: Package not found
+            * 0: Nothing was done, package already visible
+            * 1: Package was unignored
+        """
+        raise NotImplementedError
 
     def pre_variant_install(self, variant_resource):
         """Called before a variant is installed.

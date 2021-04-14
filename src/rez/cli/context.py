@@ -12,14 +12,15 @@ from __future__ import print_function
 # disable them in this tool.
 #
 import os
+import json
+import sys
+
 os.environ.update({
     "REZ_CONTEXT_TRACKING_HOST": '',
     "REZ_WRITE_PACKAGE_CACHE": "False"
 })
 
-import json
-import sys
-from rez.rex import OutputStyle
+from rez.rex import OutputStyle  # noqa
 
 
 def setup_parser(parser, completions=False):

@@ -1,6 +1,5 @@
 """Windows PowerShell 5"""
 
-from rez.shells import Shell
 from rez.utils.platform_ import platform_
 from ._utils.powershell_base import PowerShellBase
 

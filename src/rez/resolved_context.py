@@ -405,9 +405,9 @@ class ResolvedContext(object):
         considered.
         """
         return (
-            isinstance(other, ResolvedContext) and
-            other.requested_packages(True) == self.requested_packages(True) and
-            other.resolved_packages == self.resolved_packages
+            isinstance(other, ResolvedContext)
+            and other.requested_packages(True) == self.requested_packages(True)
+            and other.resolved_packages == self.resolved_packages
         )
 
     def __hash__(self):
@@ -1805,8 +1805,8 @@ class ResolvedContext(object):
         # remove fields with unexpanded env-vars, or empty string
         def _del(value):
             return (
-                isinstance(value, basestring) and
-                (not value or ENV_VAR_REGEX.search(value))
+                isinstance(value, basestring)
+                and (not value or ENV_VAR_REGEX.search(value))
             )
 
         data = deep_del(data, _del)
@@ -1826,8 +1826,10 @@ class ResolvedContext(object):
         data.update(self.context_tracking_payload)
 
         # publish message
-        routing_key = (config.context_tracking_amqp["exchange_routing_key"] +
-                       '.' + action.upper())
+        routing_key = (
+            config.context_tracking_amqp["exchange_routing_key"]
+            + '.' + action.upper()
+        )
 
         try:
             from rez.utils.amqp import publish_message

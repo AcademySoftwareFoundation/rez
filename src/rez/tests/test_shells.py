@@ -7,13 +7,10 @@ from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
-from rez.utils.execution import create_executable_script, ExecutableScriptMode, \
-    _get_python_script_files
+from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
-from rez.util import which
 from rez.bind import hello_world
-from rez.vendor.six import six
 import unittest
 import subprocess
 import tempfile
@@ -227,9 +224,7 @@ class TestShells(TestBase, TempdirMixin):
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
 
-            sh = create_shell()
             output = out.strip().split("\n")
-
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():
@@ -381,7 +376,7 @@ class TestShells(TestBase, TempdirMixin):
             # Appending something to the PATH and creating an alias afterwards
             # did fail before we implemented a doskey specific fix.
             env.PATH.append("hey")
-            alias('alias_test', '"echo test_echo"')
+            alias("alias_test", "echo test_echo")
 
         # We don't expect any output, the shell should just return with exit
         # code 0.

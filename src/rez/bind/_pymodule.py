@@ -13,7 +13,6 @@ from rez.package_maker import make_package
 from rez.exceptions import RezBindError
 from rez.system import system
 from rez.utils.logging_ import print_warning
-import subprocess
 import shutil
 import sys
 import os.path

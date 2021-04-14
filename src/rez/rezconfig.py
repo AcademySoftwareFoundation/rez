@@ -1,4 +1,4 @@
-r"""
+"""
 Rez configuration settings. Do not change this file.
 
 Settings are determined in the following way (higher number means higher
@@ -38,6 +38,9 @@ Windows \ (unescaped) should be used.
 Note: The comments in this file are extracted and turned into Wiki content. Pay
 attention to the comment formatting and follow the existing style closely.
 """
+
+# flake8: noqa
+
 import os
 
 

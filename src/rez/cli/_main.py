@@ -12,6 +12,14 @@ from rez.exceptions import RezError, RezSystemError, _NeverError
 from rez import __version__
 
 
+# true if command was like 'rez-env' rather than 'rez env'
+_hyphened_command = False
+
+
+def is_hyphened_command():
+    return _hyphened_command
+
+
 class SetupRezSubParser(object):
     """Callback class for lazily setting up rez sub-parsers.
     """
@@ -105,17 +113,23 @@ def setup_parser():
 
 
 def run(command=None):
+    global _hyphened_command
 
     sys.dont_write_bytecode = True
 
     # construct args list. Note that commands like 'rez-env foo' and
     # 'rez env foo' are equivalent
+    #
     if command:
+        # like 'rez-foo arg1 arg2'
         args = [command] + sys.argv[1:]
+        _hyphened_command = True
     elif len(sys.argv) > 1 and sys.argv[1] in subcommands:
+        # like 'rez foo arg1 arg2'
         command = sys.argv[1]
         args = sys.argv[1:]
     else:
+        # like 'rez -i'
         args = sys.argv[1:]
 
     # parse args depending on subcommand behaviour
@@ -168,7 +182,7 @@ def run(command=None):
     else:
         try:
             returncode = run_cmd()
-        except (NotImplementedError, RezSystemError) as e:
+        except (NotImplementedError, RezSystemError):
             raise
         except exc_type as e:
             print_error("%s: %s" % (e.__class__.__name__, str(e)))

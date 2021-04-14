@@ -1,4 +1,4 @@
-from rez.solver import Solver, SolverStatus, PackageVariantCache
+from rez.solver import Solver, SolverStatus
 from rez.package_repository import package_repository_manager
 from rez.packages import get_variant, get_last_release_time
 from rez.package_filter import PackageFilterList, TimestampRule
@@ -9,7 +9,6 @@ from rez.vendor.enum import Enum
 from rez.vendor.version.requirement import Requirement
 from contextlib import contextmanager
 from hashlib import sha1
-import os
 
 
 class ResolverStatus(Enum):

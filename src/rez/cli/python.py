@@ -17,10 +17,19 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.cli._main import is_hyphened_command
     from rez.utils.execution import Popen
     import sys
 
-    cmd = [sys.executable, "-E"] + sys.argv[1:]
+    # We need to skip first arg if 'rez-python' form was used, but we need to
+    # skip the first TWO args if 'rez python' form was used.
+    #
+    if is_hyphened_command():
+        args = sys.argv[1:]
+    else:
+        args = sys.argv[2:]
+
+    cmd = [sys.executable, "-E"] + args
 
     with Popen(cmd) as p:
         sys.exit(p.wait())

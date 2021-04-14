@@ -9,7 +9,6 @@ from rez.config import config
 import argparse
 import os.path
 import os
-import sys
 
 
 def get_bind_modules(verbose=False):
@@ -95,7 +94,6 @@ def bind_package(name, path=None, version_range=None, no_deps=False,
     pending = set([name])
     installed_variants = []
     installed_package_names = set()
-    primary = True
 
     # bind package and possibly dependencies
     while pending:
@@ -130,7 +128,6 @@ def bind_package(name, path=None, version_range=None, no_deps=False,
                             pending.add(requirement.name)
 
             # non-primary packages are treated a little differently
-            primary = False
             version_range = None
             bind_args = None
             exc_type = RezBindError

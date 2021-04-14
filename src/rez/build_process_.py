@@ -1,5 +1,5 @@
 import warnings
-from rez.build_process import *
+from rez.build_process import *  # noqa
 
 
 warnings.warn(

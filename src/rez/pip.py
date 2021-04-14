@@ -1,11 +1,8 @@
 from __future__ import print_function, absolute_import
 
 from rez.packages import get_latest_package
-from rez.vendor.version.version import Version, VersionError
-from rez.vendor.distlib import DistlibException
+from rez.vendor.version.version import Version
 from rez.vendor.distlib.database import DistributionPath
-from rez.vendor.distlib.markers import interpret
-from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
 from rez.vendor.packaging.version import Version as PackagingVersion
 from rez.vendor.packaging.specifiers import Specifier
@@ -17,10 +14,9 @@ from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
 from rez.utils.logging_ import print_debug, print_info, print_error, \
     print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
-    PackageNotFoundError, RezSystemError, convert_errors
+    PackageNotFoundError, RezSystemError
 from rez.package_maker import make_package
 from rez.config import config
-from rez.utils.platform_ import platform_
 
 import os
 from pipes import quote
@@ -348,16 +344,16 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
         # log the pip -> rez requirements translation, for debugging
         _log(
-            "Pip to rez requirements translation information for " +
-            distribution.name_and_version +
-            ":\n" +
-            pformat({
+            "Pip to rez requirements translation information for "
+            + distribution.name_and_version
+            + ":\n"
+            + pformat({
                 "pip": {
                     "run_requires": map(str, distribution.run_requires)
                 },
                 "rez": rez_requires
-            }
-        ))
+            })
+        )
 
         # determine where pip files need to be copied into rez package
         src_dst_lut = _get_distribution_files_mapping(distribution, targetpath)

@@ -58,8 +58,10 @@ help_schema = Or(basestring,  # single help entry
 
 _is_late = And(SourceCode, lambda x: hasattr(x, "_late"))
 
+
 def late_bound(schema):
     return Or(SourceCode, schema)
+
 
 # used when 'requires' is late bound
 late_requires_schema = Schema([
@@ -75,7 +77,7 @@ late_requires_schema = Schema([
 #
 
 base_resource_schema_dict = {
-    Required("name"):                   basestring
+    Required("name"): basestring
 }
 
 
@@ -432,8 +434,10 @@ class PackageResourceHelper(PackageResource):
         else:
             return commands
 
+
 class _Metas(AttributeForwardMeta, LazyAttributeMeta):
     pass
+
 
 class VariantResourceHelper(six.with_metaclass(_Metas, VariantResource)):
     """Helper class for implementing variants that inherit properties from their

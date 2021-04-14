@@ -231,6 +231,7 @@ class TestRelease(TestBase, TempdirMixin):
         # ...but that the description was updated
         self.assertEqual(rel_package.description, third_desc)
 
+
 if __name__ == '__main__':
     unittest.main()
 

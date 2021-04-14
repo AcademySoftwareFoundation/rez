@@ -48,6 +48,6 @@ jobs:
         run: |
           git add .
           git commit \
-              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              && git push --force origin gh-pages \
-              || echo "Nothing new to commit"
+            -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
+            && git push --force origin gh-pages \
+            || echo "Nothing new to commit"

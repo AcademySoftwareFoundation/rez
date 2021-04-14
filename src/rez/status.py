@@ -10,7 +10,7 @@ from rez.resolved_context import ResolvedContext
 from rez.packages import iter_packages, Package
 from rez.suite import Suite
 from rez.wrapper import Wrapper
-from rez.utils.colorize import local, warning, critical, Printer
+from rez.utils.colorize import warning, critical, Printer
 from rez.utils.formatting import print_colored_columns, PackageRequest
 from rez.backport.shutilwhich import which
 

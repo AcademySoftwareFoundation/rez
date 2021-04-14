@@ -11,11 +11,9 @@ from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
 from rez.vendor.six import six
-import subprocess
 import os
 import os.path
 import pipes
-import re
 
 
 basestring = six.string_types[0]

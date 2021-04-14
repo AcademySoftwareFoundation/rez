@@ -2,7 +2,7 @@
 Utilities for working with dict-based schemas.
 """
 from rez.vendor.six import six
-from rez.vendor.schema.schema import Schema, Optional, Use, And, Optional
+from rez.vendor.schema.schema import Schema, Optional, Use, And
 
 
 basestring = six.string_types[0]

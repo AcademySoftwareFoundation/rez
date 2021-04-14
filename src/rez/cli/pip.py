@@ -27,8 +27,8 @@ def setup_parser(parser, completions=False):
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
-         "-p", "--prefix", type=str, metavar='PATH',
-         help="install to a custom package repository path.")
+        "-p", "--prefix", type=str, metavar='PATH',
+        help="install to a custom package repository path.")
     parser.add_argument(
         "PACKAGE",
         help="package to install or archive/url to install from")

@@ -1,13 +1,11 @@
 import os
 import os.path
 import re
-import sys
 import platform
 
 from rez import __version__
 from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
-from rez.util import which
 from rez.utils.data_utils import cached_property
 
 
@@ -285,7 +283,7 @@ class System(object):
 
     @classmethod
     def _make_safe_version_string(cls, s):
-        sep_regex = re.compile("[\.\-]")
+        sep_regex = re.compile(r"[\.\-]")
         char_regex = re.compile("[a-zA-Z0-9_]")
 
         s = s.strip('.').strip('-')

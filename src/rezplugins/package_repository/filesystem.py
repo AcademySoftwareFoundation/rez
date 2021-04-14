@@ -536,6 +536,8 @@ class FileSystemPackageRepository(PackageRepository):
             )
             self._get_version_dirs = decorator2(self._get_version_dirs)
 
+        self._disable_pkg_ignore = False
+
     def _uid(self):
         t = ["filesystem", self.location]
         if os.path.exists(self.location):
@@ -573,73 +575,126 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
-    def get_variant_from_uri(self, uri):
+    def get_package_from_uri(self, uri):
         """
         Example URIs:
-        - /svr/packages/mypkg/1.0.0/package.py[1]
-        - /svr/packages/mypkg/1.0.0/package.py[]  ("null" variant)
-        - /svr/packages/mypkg/package.py[1]  (unversioned package - rare)
-        - /svr/packages/mypkg/package.py<1.0.0>[1]  ("combined" package type - rare)
+        - /svr/packages/mypkg/1.0.0/package.py
+        - /svr/packages/mypkg/package.py  # (unversioned package - rare)
+        - /svr/packages/mypkg/package.py<1.0.0>  # ("combined" package type - rare)
         """
         uri = os.path.normcase(uri)
-
-        i = uri.rfind('[')
-        if i == -1:
-            return None
 
         prefix = self.location + os.path.sep
         if not is_subdirectory(uri, prefix):
             return None
 
-        part1 = uri[len(prefix):i]  # 'mypkg/1.0.0/package.py'
-        part2 = uri[i:][1:-1]  # the '1' in '[1]'
+        part = uri[len(prefix):]  # eg 'mypkg/1.0.0/package.py'
+        parts = part.split(os.path.sep)
+        pkg_name = parts[0]
 
-        # find package
-        if '<' in part1:
-            # "combined" package type, like 'mypkg/package.py<1.0.0>'
-            i = part1.find('<')
-            pkg_name = part1.split(os.path.sep)[0]
-            pkg_ver_str = part1[i + 1:-1]
-
-        else:
-            parts = part1.split(os.path.sep)
-            if len(parts) == 3:  # versioned package
-                pkg_name, pkg_ver_str = parts[0], parts[1]
-            elif len(parts) == 2:  # unversioned package
-                pkg_name, pkg_ver_str = parts[0], ''
+        if len(parts) == 2:
+            if '<' in part:
+                # "combined" package type, like 'mypkg/package.py<1.0.0>'
+                pkg_ver_str = parts[1][1:-1]
             else:
-                return None
-
-        fam = self.get_package_family(pkg_name)
-        if fam is None:
+                # 'mypkg/package.py' (unversioned)
+                pkg_ver_str = ''
+        elif len(parts) == 3:
+            # typical case: 'mypkg/1.0.0/package.py'
+            pkg_ver_str = parts[1]
+        else:
             return None
 
-        ver = Version(pkg_ver_str)
-        pkg = None
+        # find package
+        pkg_ver = Version(pkg_ver_str)
+        return self.get_package(pkg_name, pkg_ver)
 
-        for package in fam.iter_packages():
-            if package.version == ver:
-                pkg = package
-                break
+    def get_variant_from_uri(self, uri):
+        """
+        Example URIs:
+        - /svr/packages/mypkg/1.0.0/package.py[1]
+        - /svr/packages/mypkg/1.0.0/package.py[]  # ("null" variant)
+        - /svr/packages/mypkg/package.py[1]  # (unversioned package - rare)
+        - /svr/packages/mypkg/package.py<1.0.0>[1]  # ("combined" package type - rare)
+        """
+        i = uri.rfind('[')
+        if i == -1:
+            return None
 
+        package_uri = uri[:i]  # eg 'mypkg/1.0.0/package.py'
+        variant_index_str = uri[i + 1:-1]  # the '1' in '[1]'
+
+        # find package
+        pkg = self.get_package_from_uri(package_uri)
         if pkg is None:
             return None
 
         # find variant in package
-        if part2 == '':
+        if variant_index_str == '':
             variant_index = None
         else:
             try:
-                variant_index = int(part2)
-            except:
+                variant_index = int(variant_index_str)
+            except ValueError:
                 # future proof - we may move to hash-based indices for hashed variants
-                variant_index = part2
+                variant_index = variant_index_str
 
         for variant in pkg.iter_variants():
             if variant.index == variant_index:
                 return variant
 
         return None
+
+    def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
+        fam_path = os.path.join(self.location, pkg_name)
+
+        # find family
+        fam = self.get_package_family(pkg_name)
+        if not fam:
+            if allow_missing:
+                # we have to create the fam dir in order to create .ignore file
+                os.makedirs(fam_path)
+            else:
+                return -1
+
+        filename = self.ignore_prefix + str(pkg_version)
+        filepath = os.path.join(fam_path, filename)
+        if os.path.exists(filepath):
+            return 0
+
+        # find package
+        if not allow_missing:
+            found = False
+            for pkg in fam.iter_packages():
+                if pkg.version == pkg_version:
+                    found = True
+                    break
+
+            if not found:
+                return -1
+
+        # create .ignore<ver> file
+        with open(filepath, 'w'):
+            pass
+
+        self._on_changed(pkg_name)
+        return 1
+
+    def unignore_package(self, pkg_name, pkg_version):
+        # find family
+        fam = self.get_package_family(pkg_name)
+        if not fam:
+            return -1
+
+        filename = self.ignore_prefix + str(pkg_version)
+        filepath = os.path.join(self.location, pkg_name, filename)
+        if not os.path.exists(filepath):
+            return 0
+
+        os.remove(filepath)
+
+        self._on_changed(pkg_name)
+        return 1
 
     def get_resource_from_handle(self, resource_handle, verify_repo=True):
         if verify_repo:
@@ -889,8 +944,11 @@ class FileSystemPackageRepository(PackageRepository):
     def _get_version_dirs(self, root):
         # Ignore a version if there is a .ignore<version> file next to it
         def ignore_dir(name):
-            path = os.path.join(root, self.ignore_prefix + name)
-            return os.path.isfile(path)
+            if self._disable_pkg_ignore:
+                return False
+            else:
+                path = os.path.join(root, self.ignore_prefix + name)
+                return os.path.isfile(path)
 
         # simpler case if this test is on
         #
@@ -1018,7 +1076,8 @@ class FileSystemPackageRepository(PackageRepository):
         path = os.path.join(self.location, name)
         if not os.path.exists(path):
             os.makedirs(path)
-        self.clear_caches()
+
+        self._on_changed(name)
         return self.get_package_family(name)
 
     def _create_variant(self, variant, dry_run=False, overrides=None):
@@ -1248,8 +1307,7 @@ class FileSystemPackageRepository(PackageRepository):
         package_data["format_version"] = format_version
 
         # Stop if package is unversioned and config does not allow that
-        if (not package_data["version"]
-                and not config.allow_unversioned_packages):
+        if not package_data["version"] and not config.allow_unversioned_packages:
             raise PackageMetadataError("Unversioned package is not allowed "
                                        "in current configuration.")
 
@@ -1278,27 +1336,48 @@ class FileSystemPackageRepository(PackageRepository):
         except:
             pass
 
-        # touch the family dir, this keeps memcached resolves updated properly
-        os.utime(family_path, None)
+        self._on_changed(variant_name)
 
-        # load new variant
+        # load new variant. Note that we load it from a copy of this repo, with
+        # package ignore disabled. We do this so it's possible to install
+        # variants into a hidden (ignored) package. This is used by `move_package`
+        # in order to make the moved package visible only after all its variants
+        # have been copied over.
+        #
         new_variant = None
-        self.clear_caches()
-        family = self.get_package_family(variant_name)
 
-        if family:
-            for package in self.iter_packages(family):
-                if package.version == variant_version:
-                    for variant_ in self.iter_variants(package):
-                        if variant_.index == installed_variant_index:
-                            new_variant = variant_
-                            break
-                elif new_variant:
+        repo_copy = self.__class__(self.location, self.pool)
+        repo_copy._disable_pkg_ignore = True
+        pkg = repo_copy.get_package(variant_name, variant_version)
+
+        if pkg is not None:
+            for variant_ in self.iter_variants(pkg):
+                if variant_.index == installed_variant_index:
+                    new_variant = variant_
                     break
 
         if not new_variant:
             raise RezSystemError("Internal failure - expected installed variant")
+
+        # a bit hacky but it works. We need the variant to belong to the actual
+        # repo, not the temp copy we retrieved it from
+        #
+        new_variant._repository = self
+
         return new_variant
+
+    def _on_changed(self, pkg_name):
+        """Called when a package is added/removed/changed.
+        """
+
+        # update access time of family dir. This is done so that very few file
+        # stats are required to determine if a resolve cache entry is stale.
+        #
+        family_path = os.path.join(self.location, pkg_name)
+        os.utime(family_path, None)
+
+        # clear internal caches, otherwise change may not be visible
+        self.clear_caches()
 
     def _delete_stale_build_tagfiles(self, family_path):
         now = time.time()

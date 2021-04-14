@@ -326,7 +326,7 @@ class LinuxPlatform(_UnixPlatform):
 
         known_ids = set()
 
-        proc_re = re.compile('^processor\s*:\s+[0-9]+\s*$', re.MULTILINE)
+        proc_re = re.compile(r'^processor\s*:\s+[0-9]+\s*$', re.MULTILINE)
         procsplit = proc_re.split(contents)
 
         if len(procsplit) <= 1:

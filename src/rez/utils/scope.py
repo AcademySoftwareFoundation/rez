@@ -257,7 +257,6 @@ def scoped_format(txt, **objects):
     """
     pretty = objects.pop("pretty", RecursiveAttribute.format_pretty)
     expand = objects.pop("expand", RecursiveAttribute.format_expand)
-    attr = RecursiveAttribute(objects, read_only=True)
     formatter = scoped_formatter(**objects)
     return formatter.format(txt, pretty=pretty, expand=expand)
 

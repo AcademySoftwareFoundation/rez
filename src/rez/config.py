@@ -122,6 +122,7 @@ class StrList(Setting):
         value = value.replace(self.sep, ' ').split()
         return [x for x in value if x]
 
+
 class PipInstallRemaps(Setting):
     """Ordered, pip install remappings."""
     PARDIR, SEP = map(re.escape, (os.pardir, os.sep))
@@ -142,6 +143,7 @@ class PipInstallRemaps(Setting):
             }
             for remap in super(PipInstallRemaps, self).validate(data)
         ]
+
 
 class OptionalStrList(StrList):
     schema = Or(And(None, Use(lambda x: [])),
@@ -556,13 +558,17 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
 
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
-        return (not self.quiet and not self.warn_none and
-                (self.warn_all or getattr(self, "warn_%s" % key)))
+        return (
+            not self.quiet and not self.warn_none
+            and (self.warn_all or getattr(self, "warn_%s" % key))
+        )
 
     def debug(self, key):
         """Returns True if the debug setting is enabled."""
-        return (not self.quiet and not self.debug_none and
-                (self.debug_all or getattr(self, "debug_%s" % key)))
+        return (
+            not self.quiet and not self.debug_none
+            and (self.debug_all or getattr(self, "debug_%s" % key))
+        )
 
     def debug_printer(self, key):
         """Returns a printer object suitably enabled based on the given key."""
@@ -633,8 +639,10 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
                 return _get_plugin_completions(prefix_)
             return []
         else:
-            keys = ([x for x in self._schema_keys if isinstance(x, basestring)]
-                    + ["plugins"])
+            keys = (
+                [x for x in self._schema_keys if isinstance(x, basestring)]
+                + ["plugins"]
+            )
             keys = [x for x in keys if x.startswith(prefix)]
             if keys == ["plugins"]:
                 keys += _get_plugin_completions('')

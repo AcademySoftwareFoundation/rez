@@ -51,8 +51,7 @@ def setup_parser(parser, completions=False):
         help="select variants to copy (zero-indexed).")
     parser.add_argument(
         "--variant-uri", metavar="URI",
-        help="copy variant with the given URI. Ignores --variants."
-        )
+        help="copy variant with the given URI. Ignores --variants.")
     pkg_action = parser.add_argument(
         "PKG", nargs='?',
         help="package to copy")

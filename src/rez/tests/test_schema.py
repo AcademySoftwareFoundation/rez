@@ -2,7 +2,7 @@
 unit tests for 'schema' module
 """
 import unittest
-from rez.vendor.schema.test_schema import TestSchema
+from rez.vendor.schema.test_schema import TestSchema  # noqa
 
 
 if __name__ == '__main__':

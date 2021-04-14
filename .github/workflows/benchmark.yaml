@@ -97,7 +97,7 @@ jobs:
         run: |
           git add --all
           git commit \
-              -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-              && git push origin master \
-              || echo "Nothing new to commit"
+            -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
+            && git push origin master \
+            || echo "Nothing new to commit"
         working-directory: src

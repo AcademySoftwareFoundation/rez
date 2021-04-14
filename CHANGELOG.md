@@ -1,5 +1,67 @@
 # Change Log
 
+## 2.83.0 (2021-04-14)
+[Source](https://github.com/nerdvegas/rez/tree/2.83.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.82.0...2.83.0)
+
+**Notes**
+
+New tool: `rez-mv`.
+
+**Merged pull requests:**
+
+- Package move [\#1061](https://github.com/nerdvegas/rez/pull/1061) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add pkg move feature [\#1059](https://github.com/nerdvegas/rez/issues/1059)
+
+## 2.82.0 (2021-04-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.82.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.2...2.82.0)
+
+**Notes**
+
+New tool: `rez-pkg-ignore`.
+
+**Merged pull requests:**
+
+- Issue 1052 pkg ignore [\#1054](https://github.com/nerdvegas/rez/pull/1054) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- make package ignore a formal api/tool [\#1052](https://github.com/nerdvegas/rez/issues/1052)
+
+## 2.81.2 (2021-04-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.81.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.1...2.81.2)
+
+**Closed issues:**
+
+- install related regression in v2.80.0 [\#1057](https://github.com/nerdvegas/rez/issues/1057)
+
+## 2.81.1 (2021-04-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.81.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.0...2.81.1)
+
+**Notes**
+
+CMake no longer uses the `-d` arg to specify the directory in which to find CMakeLists.txt. This appears
+to be incompatible with newer cmake versions, but (happily) dropping it in older versions also appears
+compatible.
+
+**Merged pull requests:**
+
+- Issue 1055 failing tests [\#1056](https://github.com/nerdvegas/rez/pull/1056) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- problem with alias in powershell [\#1017](https://github.com/nerdvegas/rez/issues/1017)
+- tests failing suddenly [\#1055](https://github.com/nerdvegas/rez/issues/1055)
+
+## 2.81.0 (2021-04-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.81.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.80.0...2.81.0)
+
+**Merged pull requests:**
+
+- Flake8 [\#1050](https://github.com/nerdvegas/rez/pull/1050) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.80.0 (2021-03-30)
 [Source](https://github.com/nerdvegas/rez/tree/2.80.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.79.1...2.80.0)
 

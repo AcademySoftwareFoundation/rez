@@ -2,7 +2,7 @@ import re
 
 
 def platform_mapped(func):
-    """Decorates functions for lookups within a config.platform_map dictionary.
+    r"""Decorates functions for lookups within a config.platform_map dictionary.
 
     The first level key is mapped to the func.__name__ of the decorated function.
     Regular expressions are used on the second level key, values.

@@ -2,9 +2,11 @@
 test package iteration, serialization etc
 """
 from rez.packages import iter_package_families, iter_packages, get_package, \
-    create_package, get_developer_package, get_variant_from_uri
+    create_package, get_developer_package, get_variant_from_uri, \
+    get_package_from_uri, get_package_from_repository
 from rez.package_py_utils import expand_requirement
 from rez.package_resources import package_release_keys
+from rez.package_move import move_package
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.sourcecode import SourceCode
@@ -12,6 +14,7 @@ import unittest
 from rez.vendor.version.version import Version
 from rez.vendor.version.util import VersionError
 from rez.utils.filesystem import canonical_path
+import shutil
 import os.path
 import os
 
@@ -45,7 +48,8 @@ ALL_PACKAGES = set([
     'late_binding-1.0',
     'timestamped-1.0.5', 'timestamped-1.0.6', 'timestamped-1.1.0', 'timestamped-1.1.1',
     'timestamped-1.2.0', 'timestamped-2.0.0', 'timestamped-2.1.0', 'timestamped-2.1.5',
-    'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0'])
+    'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0'
+])
 
 
 ALL_FAMILIES = set(x.split('-')[0] for x in ALL_PACKAGES)
@@ -85,12 +89,12 @@ class TestPackages(TestBase, TempdirMixin):
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
 
-    def test_1(self):
+    def test_fam_iteration(self):
         """package family iteration."""
         all_fams = _to_names(iter_package_families())
         self.assertEqual(all_fams, ALL_FAMILIES)
 
-    def test_2(self):
+    def test_pkg_iteration(self):
         """package iteration."""
         all_packages = set()
         all_fams = iter_package_families()
@@ -116,7 +120,7 @@ class TestPackages(TestBase, TempdirMixin):
                 it = family.iter_packages()
                 self.assertTrue(package in it)
 
-    def test_3(self):
+    def test_pkg_data(self):
         """check package contents."""
         # a py-based package
         package = get_package("versioned", "3.0")
@@ -130,8 +134,9 @@ class TestPackages(TestBase, TempdirMixin):
 
         # a yaml-based package
         package = get_package("versioned", "2.0")
-        expected_uri = canonical_path(os.path.join(self.yaml_packages_path,
-                                            "versioned", "2.0", "package.yaml"))
+        expected_uri = canonical_path(
+            os.path.join(self.yaml_packages_path, "versioned", "2.0", "package.yaml")
+        )
         self.assertEqual(package.uri, expected_uri)
 
         # a py-based package with late binding attribute functions
@@ -165,13 +170,14 @@ class TestPackages(TestBase, TempdirMixin):
         expected_uri = canonical_path(os.path.join(self.py_packages_path, "multi.py<2.0>"))
         self.assertEqual(package.uri, expected_uri)
 
-    def test_4(self):
+    def test_pkg_create(self):
         """test package creation."""
         package_data = {
-            "name":             "foo",
-            "version":          "1.0.0",
-            "description":      "something foo-like",
-            "requires":         ["python-2.6+"]}
+            "name": "foo",
+            "version": "1.0.0",
+            "description": "something foo-like",
+            "requires": ["python-2.6+"]
+        }
 
         package = create_package("foo", package_data)
         self.assertEqual(package.version, Version("1.0.0"))
@@ -184,7 +190,7 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(len(packages), 1)
         self.assertEqual(package, packages[0])
 
-    def test_developer(self):
+    def test_developer_pkg(self):
         """test developer package."""
         path = os.path.join(self.packages_base_path, "developer")
         package = get_developer_package(path)
@@ -305,7 +311,7 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(package.added_by_global_preprocess, True)
         self.assertEqual(package.added_by_local_preprocess, True)
 
-    def test_6(self):
+    def test_variant_iteration(self):
         """test variant iteration."""
         base = canonical_path(os.path.join(self.py_packages_path, "variants_py", "2.0"))
         expected_data = dict(
@@ -316,8 +322,6 @@ class TestPackages(TestBase, TempdirMixin):
             requires=[PackageRequest("python-2.7")],
             commands=SourceCode('env.PATH.append("{root}/bin")'))
 
-        requires_ = ["platform-linux", "platform-osx"]
-
         package = get_package("variants_py", "2.0")
         for i, variant in enumerate(package.iter_variants()):
             data = variant.validated_data()
@@ -325,7 +329,7 @@ class TestPackages(TestBase, TempdirMixin):
             self.assertEqual(variant.index, i)
             self.assertEqual(variant.parent, package)
 
-    def test_7(self):
+    def test_variant_install(self):
         """test variant installation."""
         repo_path = os.path.join(self.root, "packages")
         if not os.path.exists(repo_path):
@@ -382,7 +386,7 @@ class TestPackages(TestBase, TempdirMixin):
             data_ = _data(installed_package)
             self.assertDictEqual(data, data_)
 
-    def test_8(self):
+    def test_expand_requirement(self):
         """test expand_requirement function."""
         tests = (
             ("pyfoo", "pyfoo"),
@@ -420,12 +424,89 @@ class TestPackages(TestBase, TempdirMixin):
         for req in bad_tests:
             self.assertRaises(VersionError, expand_requirement, req)
 
+    def test_package_from_uri(self):
+        """Test getting a package from its uri."""
+        package = get_package("variants_py", "2.0")
+        package2 = get_package_from_uri(package.uri)
+        self.assertEqual(package, package2)
+
     def test_variant_from_uri(self):
         """Test getting a variant from its uri."""
         package = get_package("variants_py", "2.0")
         for variant in package.iter_variants():
             variant2 = get_variant_from_uri(variant.uri)
             self.assertEqual(variant, variant2)
+
+    def test_package_ignore(self):
+        """Test package ignore/unignore."""
+        pkg_name = "pydad"
+        pkg_version = Version("2")
+
+        # copy packages to a temp repo
+        repo_path = os.path.join(self.root, "tmp1_packages")
+        shutil.copytree(self.solver_packages_path, repo_path)
+
+        # check that a known package exists
+        pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
+        self.assertNotEqual(pkg, None)
+
+        repo = pkg.repository
+
+        # ignore a pkg that doesn't exist, but allow it
+        i = repo.ignore_package("i_dont_exist", Version("1"), allow_missing=True)
+        self.assertEqual(i, 1)
+
+        # ignore an existing package
+        i = repo.ignore_package(pkg_name, pkg_version)
+        self.assertEqual(i, 1)
+
+        # verify that ignoring it again does nothing
+        i = repo.ignore_package(pkg_name, pkg_version)
+        self.assertEqual(i, 0)
+
+        # verify that we cannot see it
+        pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
+        self.assertEqual(pkg, None)
+
+        # unignore it
+        i = repo.unignore_package(pkg_name, pkg_version)
+        self.assertEqual(i, 1)
+
+        # verify that unignoring it again does nothing
+        i = repo.unignore_package(pkg_name, pkg_version)
+        self.assertEqual(i, 0)
+
+        # verify that we can see it again
+        pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
+        self.assertNotEqual(pkg, None)
+
+    def test_package_move(self):
+        """Test package move."""
+        pkg_name = "pydad"
+        pkg_version = Version("2")
+
+        # copy packages to a temp repo
+        repo_path = os.path.join(self.root, "tmp2_packages")
+        shutil.copytree(self.solver_packages_path, repo_path)
+
+        # create an empty temp repo
+        dest_repo_path = os.path.join(self.root, "tmp3_packages")
+        os.mkdir(dest_repo_path)
+
+        # verify that source pkg exists
+        src_pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
+        self.assertNotEqual(src_pkg, None)
+
+        # move it to dest repo
+        move_package(src_pkg, dest_repo_path)
+
+        # verify it exists in dest repo
+        dest_pkg = get_package_from_repository(pkg_name, pkg_version, dest_repo_path)
+        self.assertNotEqual(dest_pkg, None)
+
+        # verify it is not visible in source repo
+        src_pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
+        self.assertEqual(src_pkg, None)
 
 
 class TestMemoryPackages(TestBase):
@@ -437,7 +518,7 @@ class TestMemoryPackages(TestBase):
         self.assertEqual(package.description, desc)
         variant = next(package.iter_variants())
         parent_package = variant.parent
-        self.assertEqual(package.description, desc)
+        self.assertEqual(parent_package.description, desc)
 
 
 if __name__ == '__main__':
