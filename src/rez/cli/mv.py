@@ -16,7 +16,7 @@ def setup_parser(parser, completions=False):
         help="move package even if it isn't relocatable (use at your own risk)")
     pkg_action = parser.add_argument(
         "PKG",
-        help="package to move")
+        help="package to move (eg 'foo-1.2.3')")
     parser.add_argument(
         "PATH", nargs='?',
         help="The repository containing the package. If not specified, this "

@@ -59,7 +59,8 @@ subcommands = {
     "bundle": {},
     "benchmark": {},
     "pkg-ignore": {},
-    "mv": {}
+    "mv": {},
+    "rm": {}
 }
 
 
