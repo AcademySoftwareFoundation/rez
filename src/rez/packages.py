@@ -4,6 +4,7 @@ from rez.package_resources import PackageFamilyResource, PackageResource, \
     package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
 from rez.utils import reraise
+from rez.utils.logging_ import print_info
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
@@ -905,8 +906,8 @@ def get_latest_package_from_string(txt, paths=None, error=False):
 
     Args:
         txt (str): Request, eg 'foo-1.2+'
-        paths (list of str, optional): paths to search for package families,
-            defaults to `config.packages_path`.
+        paths (list of str, optional): paths to search for packages, defaults
+            to `config.packages_path`.
         error (bool): If True, raise an error if no package is found.
 
     Returns:
@@ -919,6 +920,37 @@ def get_latest_package_from_string(txt, paths=None, error=False):
                               range_=req.range_,
                               paths=paths,
                               error=error)
+
+
+def remove_packages_ignored_since(days, paths=None, dry_run=False, verbose=False):
+    """Remove packages ignored for >= specified number of days.
+
+    Args:
+        days (int): Remove packages ignored >= this many days
+        paths (list of str, optional): paths to search for packages, defaults
+            to `config.packages_path`.
+        dry_run: Dry run mode
+        verbose (bool): Verbose mode
+
+    Returns:
+        int: Number of packages removed. In dry-run mode, returns the number of
+        packages that _would_ be removed.
+    """
+    num_removed = 0
+
+    for path in (paths or config.packages_path):
+        repo = package_repository_manager.get_repository(path)
+
+        if verbose:
+            print_info("Searching %s...", repo)
+
+        num_removed += repo.remove_ignored_since(
+            days=days,
+            dry_run=dry_run,
+            verbose=verbose
+        )
+
+    return num_removed
 
 
 def _get_families(name, paths=None):

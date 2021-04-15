@@ -19,16 +19,21 @@ def setup_parser(parser, completions=False):
         "--dry-run", action="store_true",
         help="dry run mode")
     parser.add_argument(
-        "PATH",
+        "PATH", nargs='?',
         help="the repository containing the package(s) to remove.")
 
 
-def remove_package(repo, opts, parser):
+def remove_package(opts, parser):
     from rez.vendor.version.requirement import VersionedObject
+    from rez.package_repository import package_repository_manager
 
     if opts.dry_run:
         parser.error("--dry-run is not supported with --package")
 
+    if not opts.PATH:
+        parser.error("Must specify PATH with --package")
+
+    repo = package_repository_manager.get_repository(opts.PATH)
     obj = VersionedObject(opts.package)
 
     if repo.remove_package(obj.name, obj.version):
@@ -38,27 +43,34 @@ def remove_package(repo, opts, parser):
         sys.exit(1)
 
 
-def remove_ignored_since(repo, opts, parser):
-    count = repo.remove_ignored_since(
+def remove_ignored_since(opts, parser):
+    from rez.packages import remove_packages_ignored_since
+
+    if opts.PATH:
+        paths = [opts.PATH]
+    else:
+        paths = None
+
+    num_removed = remove_packages_ignored_since(
         days=opts.ignored_since,
+        paths=paths,
         dry_run=opts.dry_run,
         verbose=opts.verbose
     )
 
-    if count:
-        print("%d packages were removed." % count)
+    if num_removed:
+        if opts.dry_run:
+            print("%d packages would be removed." % num_removed)
+        else:
+            print("%d packages were removed." % num_removed)
     else:
         print("No packages were removed.")
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.package_repository import package_repository_manager
-
-    repo = package_repository_manager.get_repository(opts.PATH)
-
     if opts.package:
-        remove_package(repo, opts, parser)
-    elif opts.ignored_since:
-        remove_ignored_since(repo, opts, parser)
+        remove_package(opts, parser)
+    elif opts.ignored_since is not None:
+        remove_ignored_since(opts, parser)
     else:
         parser.error("Must specify either --package or --ignored-since")

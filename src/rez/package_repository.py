@@ -274,7 +274,8 @@ class PackageRepository(object):
             verbose (bool): Verbose mode
 
         Returns:
-            int: Number of packages removed.
+            int: Number of packages removed. In dry-run mode, returns the
+            number of packages that _would_ be removed.
         """
         raise NotImplementedError
 

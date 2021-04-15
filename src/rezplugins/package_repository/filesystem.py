@@ -21,7 +21,7 @@ from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, 
 from rez.utils.resources import ResourcePool
 from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_warning, print_info
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, \
     canonical_path, is_subdirectory
@@ -648,34 +648,26 @@ class FileSystemPackageRepository(PackageRepository):
         return None
 
     def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
-        fam_path = os.path.join(self.location, pkg_name)
-
-        # find family
-        fam = self.get_package_family(pkg_name)
-        if not fam:
-            if allow_missing:
-                # we have to create the fam dir in order to create .ignore file
-                os.makedirs(fam_path)
-            else:
+        # find package, even if already ignored
+        if not allow_missing:
+            repo_copy = self._copy(disable_pkg_ignore=True)
+            if not repo_copy.get_package(pkg_name, pkg_version):
                 return -1
 
         filename = self.ignore_prefix + str(pkg_version)
+        fam_path = os.path.join(self.location, pkg_name)
         filepath = os.path.join(fam_path, filename)
+
+        # do nothing if already ignored
         if os.path.exists(filepath):
             return 0
 
-        # find package
-        if not allow_missing:
-            found = False
-            for pkg in fam.iter_packages():
-                if pkg.version == pkg_version:
-                    found = True
-                    break
+        # create .ignore{ver} file
+        try:
+            os.makedirs(fam_path)
+        except OSError:  # already exists
+            pass
 
-            if not found:
-                return -1
-
-        # create .ignore<ver> file
         with open(filepath, 'w'):
             pass
 
@@ -710,7 +702,7 @@ class FileSystemPackageRepository(PackageRepository):
         pkg = repo_copy.get_package(pkg_name, pkg_version)
         assert pkg
 
-        if not isinstance(pkg, FileSystemPackageResource):
+        if isinstance(pkg, FileSystemCombinedPackageResource):
             raise NotImplementedError(
                 "Package removal not supported in combined-style packages")
 
@@ -722,6 +714,46 @@ class FileSystemPackageRepository(PackageRepository):
         self.unignore_package(pkg_name, pkg_version)
 
         return True
+
+    def remove_ignored_since(self, days, dry_run=False, verbose=False):
+        now = int(time.time())
+        num_removed = 0
+
+        def _info(msg, *nargs):
+            if verbose:
+                print_info(msg, *nargs)
+
+        for fam in self._get_families():
+            fam_path = os.path.join(self.location, fam.name)
+            if not os.path.isdir(fam_path):
+                continue  # might be a combined-style package
+
+            for name in os.listdir(fam_path):
+                if not name.startswith(self.ignore_prefix):
+                    continue
+
+                # get age of .ignore{ver} file
+                filepath = os.path.join(fam_path, name)
+                st = os.stat(filepath)
+                age_secs = now - int(st.st_ctime)
+                age_days = age_secs / (3600 * 24)
+
+                if age_days < days:
+                    continue
+
+                # extract pkg version from .ignore filename
+                ver_str = name[len(self.ignore_prefix):]
+
+                # remove the package
+                if dry_run:
+                    _info("Would remove %s-%s from %s", fam.name, ver_str, self)
+                    num_removed += 1
+
+                elif self.remove_package(fam.name, Version(ver_str)):
+                    num_removed += 1
+                    _info("Removed %s-%s from %s", fam.name, ver_str, self)
+
+        return num_removed
 
     def get_resource_from_handle(self, resource_handle, verify_repo=True):
         if verify_repo:
