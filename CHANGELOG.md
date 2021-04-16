@@ -1,5 +1,20 @@
 # Change Log
 
+## 2.84.0 (2021-04-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.84.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.83.0...2.84.0)
+
+**Notes**
+
+New tool: `rez-rm`.
+
+**Merged pull requests:**
+
+- package removal [\#1063](https://github.com/nerdvegas/rez/pull/1063) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add package removal [\#1062](https://github.com/nerdvegas/rez/issues/1062)
+
 ## 2.83.0 (2021-04-14)
 [Source](https://github.com/nerdvegas/rez/tree/2.83.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.82.0...2.83.0)
 
