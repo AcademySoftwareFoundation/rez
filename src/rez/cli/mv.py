@@ -6,7 +6,7 @@ from __future__ import print_function
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
-        "--dest-path", metavar="PATH", required=True,
+        "-d", "--dest-path", metavar="PATH", required=True,
         help="package repository to move PKG to.")
     parser.add_argument(
         "-k", "--keep-timestamp", action="store_true",

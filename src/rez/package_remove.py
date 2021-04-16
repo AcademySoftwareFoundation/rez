@@ -1,9 +1,10 @@
 from rez.package_repository import package_repository_manager
+from rez.vendor.version.version import Version
 from rez.utils.logging_ import print_info
 from rez.config import config
 
 
-def remove_package(package_name, package_version, path):
+def remove_package(name, version, path):
     """Remove a package from its repository.
 
     Note that you are able to remove a package that is hidden (ie ignored).
@@ -11,15 +12,18 @@ def remove_package(package_name, package_version, path):
     you wouldn't be able to get one).
 
     Args:
-        package_name (str): Name of package.
-        package_version (`Version`): Package version.
+        name (str): Name of package.
+        version (Version or str): Version of the package, eg '1.0.0'
         path (str): Package repository path containing the package.
 
     Returns:
         bool: True if the package was removed, False if package not found.
     """
+    if isinstance(version, basestring):
+        version = Version(version)
+
     repo = package_repository_manager.get_repository(path)
-    return repo.remove_package(package_name, package_version)
+    return repo.remove_package(name, version)
 
 
 def remove_packages_ignored_since(days, paths=None, dry_run=False, verbose=False):

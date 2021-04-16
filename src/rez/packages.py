@@ -10,7 +10,7 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
-from rez.vendor.version.version import VersionRange
+from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.vendor.six import six
 from rez.serialise import FileFormat
@@ -602,6 +602,9 @@ def get_package_from_repository(name, version, path):
         `Package` object, or None if the package was not found.
     """
     repo = package_repository_manager.get_repository(path)
+
+    if isinstance(version, basestring):
+        version = Version(version)
 
     package_resource = repo.get_package(name, version)
     if package_resource is None:

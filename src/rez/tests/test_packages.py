@@ -540,6 +540,31 @@ class TestPackages(TestBase, TempdirMixin):
         i = repo.unignore_package(pkg_name, pkg_version)
         self.assertEqual(i, -1)
 
+    def test_remove_packages_ignored_since(self):
+        pkg_name = "pydad"
+        pkg_version = Version("2")
+
+        # copy packages to a temp repo
+        repo_path = os.path.join(self.root, "tmp5_packages")
+        shutil.copytree(self.solver_packages_path, repo_path)
+
+        # verify that source pkg exists
+        src_pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
+        self.assertNotEqual(src_pkg, None)
+
+        # ignore it
+        repo = package_repository_manager.get_repository(repo_path)
+        i = repo.ignore_package(pkg_name, pkg_version)
+        self.assertEqual(i, 1)
+
+        # remove all ignored packages
+        num_removed = remove_packages_ignored_since(days=0, paths=[repo_path])
+        self.assertEqual(num_removed, 1)
+
+        # verify that source pkg no longer exists (and isn't simply ignored)
+        i = repo.unignore_package(pkg_name, pkg_version)
+        self.assertEqual(i, -1)
+
 
 class TestMemoryPackages(TestBase):
     def test_1_memory_variant_parent(self):

@@ -686,6 +686,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         if self.get_package(pkg_name, pkg_version):
             if ignore_file_was_removed:
+                self._on_changed(pkg_name)
                 return 1
             else:
                 return 0
