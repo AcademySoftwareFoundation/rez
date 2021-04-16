@@ -7,6 +7,7 @@ import os
 import stat
 import errno
 import time
+import shutil
 
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
@@ -17,9 +18,10 @@ from rez.serialise import clear_file_caches, open_file_for_write, load_from_file
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
     ConfigurationError, PackageRepositoryError
+from rez.utils.resources import ResourcePool
 from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_warning, print_info
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, \
     canonical_path, is_subdirectory
@@ -646,34 +648,26 @@ class FileSystemPackageRepository(PackageRepository):
         return None
 
     def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
-        fam_path = os.path.join(self.location, pkg_name)
-
-        # find family
-        fam = self.get_package_family(pkg_name)
-        if not fam:
-            if allow_missing:
-                # we have to create the fam dir in order to create .ignore file
-                os.makedirs(fam_path)
-            else:
+        # find package, even if already ignored
+        if not allow_missing:
+            repo_copy = self._copy(disable_pkg_ignore=True)
+            if not repo_copy.get_package(pkg_name, pkg_version):
                 return -1
 
         filename = self.ignore_prefix + str(pkg_version)
+        fam_path = os.path.join(self.location, pkg_name)
         filepath = os.path.join(fam_path, filename)
+
+        # do nothing if already ignored
         if os.path.exists(filepath):
             return 0
 
-        # find package
-        if not allow_missing:
-            found = False
-            for pkg in fam.iter_packages():
-                if pkg.version == pkg_version:
-                    found = True
-                    break
+        # create .ignore{ver} file
+        try:
+            os.makedirs(fam_path)
+        except OSError:  # already exists
+            pass
 
-            if not found:
-                return -1
-
-        # create .ignore<ver> file
         with open(filepath, 'w'):
             pass
 
@@ -681,20 +675,88 @@ class FileSystemPackageRepository(PackageRepository):
         return 1
 
     def unignore_package(self, pkg_name, pkg_version):
-        # find family
-        fam = self.get_package_family(pkg_name)
-        if not fam:
-            return -1
-
+        # find and remove .ignore{ver} file if it exists
+        ignore_file_was_removed = False
         filename = self.ignore_prefix + str(pkg_version)
         filepath = os.path.join(self.location, pkg_name, filename)
-        if not os.path.exists(filepath):
-            return 0
 
-        os.remove(filepath)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            ignore_file_was_removed = True
 
-        self._on_changed(pkg_name)
-        return 1
+        if self.get_package(pkg_name, pkg_version):
+            if ignore_file_was_removed:
+                self._on_changed(pkg_name)
+                return 1
+            else:
+                return 0
+        else:
+            return -1
+
+    def remove_package(self, pkg_name, pkg_version):
+        # ignore it first, so a partially deleted pkg is not visible
+        i = self.ignore_package(pkg_name, pkg_version)
+        if i == -1:
+            return False
+
+        # check for combined-style package, this is not supported
+        repo_copy = self._copy(disable_pkg_ignore=True)
+
+        pkg = repo_copy.get_package(pkg_name, pkg_version)
+        assert pkg
+
+        if isinstance(pkg, FileSystemCombinedPackageResource):
+            raise NotImplementedError(
+                "Package removal not supported in combined-style packages")
+
+        # delete the payload
+        pkg_dir = os.path.join(self.location, pkg_name, str(pkg_version))
+        shutil.rmtree(pkg_dir)
+
+        # unignore (just so the .ignore{ver} file is removed)
+        self.unignore_package(pkg_name, pkg_version)
+
+        return True
+
+    def remove_ignored_since(self, days, dry_run=False, verbose=False):
+        now = int(time.time())
+        num_removed = 0
+
+        def _info(msg, *nargs):
+            if verbose:
+                print_info(msg, *nargs)
+
+        for fam in self._get_families():
+            fam_path = os.path.join(self.location, fam.name)
+            if not os.path.isdir(fam_path):
+                continue  # might be a combined-style package
+
+            for name in os.listdir(fam_path):
+                if not name.startswith(self.ignore_prefix):
+                    continue
+
+                # get age of .ignore{ver} file
+                filepath = os.path.join(fam_path, name)
+                st = os.stat(filepath)
+                age_secs = now - int(st.st_ctime)
+                age_days = age_secs / (3600 * 24)
+
+                if age_days < days:
+                    continue
+
+                # extract pkg version from .ignore filename
+                ver_str = name[len(self.ignore_prefix):]
+
+                # remove the package
+                if dry_run:
+                    _info("Would remove %s-%s from %s", fam.name, ver_str, self)
+                    num_removed += 1
+
+                elif self.remove_package(fam.name, Version(ver_str)):
+                    num_removed += 1
+                    _info("Removed %s-%s from %s", fam.name, ver_str, self)
+
+        return num_removed
 
     def get_resource_from_handle(self, resource_handle, verify_repo=True):
         if verify_repo:
@@ -845,6 +907,18 @@ class FileSystemPackageRepository(PackageRepository):
                 variant = _create_variant()
 
         return variant
+
+    def _copy(self, disable_pkg_ignore=False):
+        """
+        Make a copy of the repo that does not share resources with this one.
+        """
+        pool = ResourcePool(cache_size=None)
+        repo_copy = self.__class__(self.location, pool)
+
+        if disable_pkg_ignore:
+            repo_copy._disable_pkg_ignore = True
+
+        return repo_copy
 
     @contextmanager
     def _lock_package(self, package_name, package_version=None):
@@ -1346,8 +1420,7 @@ class FileSystemPackageRepository(PackageRepository):
         #
         new_variant = None
 
-        repo_copy = self.__class__(self.location, self.pool)
-        repo_copy._disable_pkg_ignore = True
+        repo_copy = self._copy(disable_pkg_ignore=True)
         pkg = repo_copy.get_package(variant_name, variant_version)
 
         if pkg is not None:

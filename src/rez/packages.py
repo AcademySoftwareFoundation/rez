@@ -10,7 +10,7 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
-from rez.vendor.version.version import VersionRange
+from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.vendor.six import six
 from rez.serialise import FileFormat
@@ -603,6 +603,9 @@ def get_package_from_repository(name, version, path):
     """
     repo = package_repository_manager.get_repository(path)
 
+    if isinstance(version, basestring):
+        version = Version(version)
+
     package_resource = repo.get_package(name, version)
     if package_resource is None:
         return None
@@ -905,8 +908,8 @@ def get_latest_package_from_string(txt, paths=None, error=False):
 
     Args:
         txt (str): Request, eg 'foo-1.2+'
-        paths (list of str, optional): paths to search for package families,
-            defaults to `config.packages_path`.
+        paths (list of str, optional): paths to search for packages, defaults
+            to `config.packages_path`.
         error (bool): If True, raise an error if no package is found.
 
     Returns:

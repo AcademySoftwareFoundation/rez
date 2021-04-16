@@ -250,6 +250,35 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def remove_package(self, pkg_name, pkg_version):
+        """Remove a package.
+
+        Note that this should work even if the specified package is currently
+        ignored.
+
+        Args:
+            pkg_name (str): Package name
+            pkg_version(`Version`): Package version
+
+        Returns:
+            bool: True if the package was removed, False if it wasn't found.
+        """
+        raise NotImplementedError
+
+    def remove_ignored_since(self, days, dry_run=False, verbose=False):
+        """Remove packages ignored for >= specified number of days.
+
+        Args:
+            days (int): Remove packages ignored >= this many days
+            dry_run: Dry run mode
+            verbose (bool): Verbose mode
+
+        Returns:
+            int: Number of packages removed. In dry-run mode, returns the
+            number of packages that _would_ be removed.
+        """
+        raise NotImplementedError
+
     def pre_variant_install(self, variant_resource):
         """Called before a variant is installed.
 

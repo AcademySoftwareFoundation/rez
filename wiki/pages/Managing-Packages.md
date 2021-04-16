@@ -61,7 +61,7 @@ Package(FileSystemPackageResource({'location': '/home/ajohns/packages', 'name': 
     'copied': [
         (
             Variant(FileSystemVariantResource({'location': '/home/ajohns/packages', 'name': 'python', 'repository_type': 'filesystem', 'index': 0, 'version': '3.7.4'})),
-            FileSystemVariantResource({'location': '/home/ajohns/repo2', 'name': 'python', 'repository_type': 'filesystem', 'index': 0, 'version': '3.7.4'})
+            Variant(FileSystemVariantResource({'location': '/home/ajohns/repo2', 'name': 'python', 'repository_type': 'filesystem', 'index': 0, 'version': '3.7.4'}))
         )
     ],
     'skipped': []
@@ -104,7 +104,13 @@ to another. Be aware that moving a package does not actually delete the source
 package however. Instead, the source package is hidden (ignored) - it is up to
 you to delete it at some later date.
 
-You move a package like so:
+To move a package via commandline:
+
+```
+]$ rez-mv --dest-path /packages2 python-3.7.4 /packages
+```
+
+Via API:
 
 ```
 >>> from rez.package_move import move_package
@@ -133,6 +139,52 @@ package repository. In case an old runtime needs to be resurrected, you would ad
 this archival repository to the packages path before performing the resolve. Note
 that you will probably want to use the `--keep-timestamp` option when doing this,
 otherwise rez will think the package did not exist prior to its archival date.
+
+
+## Removing Packages
+
+Packages can be removed. This is different from ignoring - the package and its
+payload is deleted from storage, whereas ignoring just hides it. It is not
+possible to un-remove a package.
+
+To remove a package via commandline:
+
+```
+]$ rez-rm --package python-3.7.4 /packages
+```
+
+Via API:
+
+```
+>>> from rez.package_remove import remove_package
+>>>
+>>> remove_package("python", "3.7.4", "/packages")
+```
+
+It can be useful to ignore packages that you don't want to use anymore, and
+actually remove them at a later date. This gives you a safety buffer in case
+current runtimes are using the package - they won't be affected if the package is
+ignored, but could break if it is removed.
+
+To facilitate this workflow, `rez-rm` lets you remove all packages that have
+been ignored for longer than N days. Here we remove all packages that have been
+ignored for 30 days or longer:
+
+```
+]$ rez-rm --ignored-since=30 -v
+14:47:09 INFO     Searching filesystem@/home/ajohns/packages...
+14:47:09 INFO     Removed python-3.7.4 from filesystem@/home/ajohns/packages
+1 packages were removed.
+```
+
+Via API:
+
+```
+>>> from rez.package_remove import remove_packages_ignored_since
+>>>
+>>> remove_packages_ignored_since(days=30)
+1
+```
 
 
 ## Package Caching
