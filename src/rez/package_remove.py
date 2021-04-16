@@ -1,7 +1,11 @@
 from rez.package_repository import package_repository_manager
 from rez.vendor.version.version import Version
 from rez.utils.logging_ import print_info
+from rez.vendor.six import six
 from rez.config import config
+
+
+basestring = six.string_types[0]
 
 
 def remove_package(name, version, path):
