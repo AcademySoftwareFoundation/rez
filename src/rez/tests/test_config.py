@@ -8,6 +8,7 @@ from rez.config import Config, get_module_root_config, _replace_config
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages import get_developer_package
+from rez.vendor.six import six
 import os
 import os.path
 import subprocess
@@ -266,14 +267,13 @@ class TestConfig(TestBase):
                     config_args + ["--json", config_key],
                     env=env,
                 )
-                config_json_value = stdout.decode().strip()
                 self.assertEqual(
-                    config_json_value,
-                    json.dumps(getattr(c, config_key)).decode(),
+                    six.ensure_str(stdout).strip(),
+                    six.ensure_str(json.dumps(getattr(c, config_key))),
                 )
 
                 # Test setting via env var and fetching custom value
-                test_json_value = json.dumps(test_value).decode()
+                test_json_value = six.ensure_str(json.dumps(test_value))
                 env["REZ_%s_JSON" % config_key.upper()] = test_json_value
                 stdout = subprocess.check_output(
                     config_args + ["--json", config_key],
