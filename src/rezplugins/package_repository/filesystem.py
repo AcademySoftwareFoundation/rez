@@ -675,20 +675,22 @@ class FileSystemPackageRepository(PackageRepository):
         return 1
 
     def unignore_package(self, pkg_name, pkg_version):
-        # find family
-        fam = self.get_package_family(pkg_name)
-        if not fam:
-            return -1
-
+        # find and remove .ignore{ver} file if it exists
+        ignore_file_was_removed = False
         filename = self.ignore_prefix + str(pkg_version)
         filepath = os.path.join(self.location, pkg_name, filename)
-        if not os.path.exists(filepath):
-            return 0
 
-        os.remove(filepath)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            ignore_file_was_removed = True
 
-        self._on_changed(pkg_name)
-        return 1
+        if self.get_package(pkg_name, pkg_version):
+            if ignore_file_was_removed:
+                return 1
+            else:
+                return 0
+        else:
+            return -1
 
     def remove_package(self, pkg_name, pkg_version):
         # ignore it first, so a partially deleted pkg is not visible

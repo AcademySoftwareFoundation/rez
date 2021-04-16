@@ -61,7 +61,7 @@ Package(FileSystemPackageResource({'location': '/home/ajohns/packages', 'name': 
     'copied': [
         (
             Variant(FileSystemVariantResource({'location': '/home/ajohns/packages', 'name': 'python', 'repository_type': 'filesystem', 'index': 0, 'version': '3.7.4'})),
-            FileSystemVariantResource({'location': '/home/ajohns/repo2', 'name': 'python', 'repository_type': 'filesystem', 'index': 0, 'version': '3.7.4'})
+            Variant(FileSystemVariantResource({'location': '/home/ajohns/repo2', 'name': 'python', 'repository_type': 'filesystem', 'index': 0, 'version': '3.7.4'}))
         )
     ],
     'skipped': []

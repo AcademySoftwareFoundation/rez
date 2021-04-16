@@ -25,7 +25,7 @@ def setup_parser(parser, completions=False):
 
 def remove_package(opts, parser):
     from rez.vendor.version.requirement import VersionedObject
-    from rez.package_repository import package_repository_manager
+    from rez.package_remove import remove_package
 
     if opts.dry_run:
         parser.error("--dry-run is not supported with --package")
@@ -33,10 +33,9 @@ def remove_package(opts, parser):
     if not opts.PATH:
         parser.error("Must specify PATH with --package")
 
-    repo = package_repository_manager.get_repository(opts.PATH)
     obj = VersionedObject(opts.package)
 
-    if repo.remove_package(obj.name, obj.version):
+    if remove_package(obj.name, obj.version, opts.PATH):
         print("Package removed.")
     else:
         print("Package not found.", file=sys.stderr)
@@ -44,7 +43,7 @@ def remove_package(opts, parser):
 
 
 def remove_ignored_since(opts, parser):
-    from rez.packages import remove_packages_ignored_since
+    from rez.package_remove import remove_packages_ignored_since
 
     if opts.PATH:
         paths = [opts.PATH]
