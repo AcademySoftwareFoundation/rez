@@ -49,6 +49,10 @@ jobs:
           mkdir ./build
           python ./install.py ./build
 
+      - name: Install Rez test dependencies
+        run: |
+          ./build/bin/rez/rez-python -m pip install pytest-cov
+
       # TODO: Add a --core rez-selftest option. Some test suites (eg test_context)
       # have some 'core' parts (eg not reliant on a shell). It would be good to just
       # run those parts when --core is present, rather than skipping the entire
