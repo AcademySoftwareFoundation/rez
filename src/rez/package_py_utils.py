@@ -11,9 +11,17 @@ from rez.utils.request_directives import parse_directive
 from rez.utils.execution import Popen
 from rez.exceptions import InvalidPackageError
 from rez.vendor.six import six
+import os
 
 
 basestring = six.string_types[0]
+
+
+def test_late_expand_requirement(request):
+    """Test used only, for switching late requirement expansion function"""
+    if os.getenv("__REZ_SELFTEST_DISABLE_LATE_EXPAND"):
+        return expand_requirement(request)
+    return late_expand_requirement(request)
 
 
 def late_expand_requirement(request):

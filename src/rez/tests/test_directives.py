@@ -4,7 +4,7 @@ Test directive requirement request/build
 import os
 import shutil
 import unittest
-from rez.tests.util import TestBase, TempdirMixin
+from rez.tests.util import TestBase, TempdirMixin, install_dependent
 from rez.resolved_context import ResolvedContext
 from rez.build_process import create_build_process
 from rez.build_system import create_build_system
@@ -13,9 +13,10 @@ from rez.package_py_utils import expand_requirement
 from rez.packages import get_package
 from rez.utils.request_directives import \
     parse_directive, anonymous_directive_string
+from rez.exceptions import BuildContextResolveError
 
 
-class TestBuildDirectives(TestBase, TempdirMixin):
+class _TestBuildDirectivesBase(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
@@ -67,29 +68,52 @@ class TestBuildDirectives(TestBase, TempdirMixin):
         builder.build(install_path=self.install_root, install=True, clean=True)
         builder.build(install_path=self.install_root, install=True)
 
+
+class TestBuildDirectives(_TestBuildDirectivesBase):
+
     def test_build_soft(self):
         self._test_build("soft_dep", "1.0.0")
         self._test_build("soft_dep", "1.1.0")
         self._test_build("soft_var", "2.1")
         self._test_build("soft_var", "3.0")
+        self._test_build("soft_lock_dep")
         self._test_build("soft")
 
         soft = get_package("soft", "1", paths=[self.install_root])
         self.assertEqual("soft_dep-1.0", str(soft.requires[0]))
+
         self.assertEqual(["soft_var-2.1"], list(map(str, soft.variants[0])))
         self.assertEqual(["soft_var-3.0"], list(map(str, soft.variants[1])))
 
     def test_build_soft_early(self):
         self._test_build("soft_dep", "1.0.0")
         self._test_build("soft_dep", "1.1.0")
-        self._test_build("soft_var", "2.1")
-        self._test_build("soft_var", "3.0")
+        self._test_build("soft_lock_dep")
         self._test_build("soft_early")
 
         soft = get_package("soft_early", "1", paths=[self.install_root])
         self.assertEqual("soft_dep-1.0", str(soft.requires[0]))
-        self.assertEqual(["soft_var-2.1"], list(map(str, soft.variants[0])))
-        self.assertEqual(["soft_var-3.0"], list(map(str, soft.variants[1])))
+
+
+class TestBuildNoLateExpansion(_TestBuildDirectivesBase):
+
+    def setUp(self):
+        _TestBuildDirectivesBase.setUp(self)
+        os.environ["__REZ_SELFTEST_DISABLE_LATE_EXPAND"] = "1"
+
+    def tearDown(self):
+        _TestBuildDirectivesBase.tearDown(self)
+        del os.environ["__REZ_SELFTEST_DISABLE_LATE_EXPAND"]
+
+    @install_dependent()
+    def test_build_soft_without_late_expand(self):
+        self._test_build("soft_dep", "1.0.0")
+        self._test_build("soft_dep", "1.1.0")
+        self._test_build("soft_lock_dep")
+        # conflicts occurred: (soft_dep-1.0.0 <--!--> soft_dep==1.1.0)
+        self.assertRaises(BuildContextResolveError,
+                          self._test_build,
+                          "soft_no_late")
 
 
 class TestRequestDirectives(TestBase):

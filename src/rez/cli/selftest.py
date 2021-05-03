@@ -32,6 +32,9 @@ def setup_parser(parser, completions=False):
                 namespace.module_tests = []
             namespace.module_tests.append(name)
 
+    # mark as testing before loading modules
+    os.environ["__REZ_SELFTEST_RUNNING"] = "1"
+
     # find unit tests
     tests = []
     prefix = "test_"
@@ -53,8 +56,6 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     import sys
     from unittest.main import main
-
-    os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
     if opts.only_shell:
         os.environ["__REZ_SELFTEST_SHELL"] = opts.only_shell

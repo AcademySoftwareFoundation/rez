@@ -8,16 +8,10 @@ def requires():
     if building:
         return [
             'soft_dep-1//harden(2)',
-            'soft_dep<1.1.0',
+            'soft_lock_dep',
         ]
     else:
-        return [
-            'soft_dep-1',
-        ]
+        return []
 
 
-variants = [
-    ['soft_var-2//harden(2)'],
-    ['soft_var-3.*'],
-]
 build_command = False
