@@ -189,6 +189,18 @@ class TestBuild(TestBase, TempdirMixin):
         self.assertEqual(["soft_var-2.1"], list(map(str, soft.variants[0])))
         self.assertEqual(["soft_var-3.0"], list(map(str, soft.variants[1])))
 
+    def test_build_soft_early(self):
+        self._test_build("soft_dep", "1.0.0")
+        self._test_build("soft_dep", "1.1.0")
+        self._test_build("soft_var", "2.1")
+        self._test_build("soft_var", "3.0")
+        self._test_build("soft_early")
+
+        soft = get_package("soft_early", "1", paths=[self.install_root])
+        self.assertEqual("soft_dep-1.0", str(soft.requires[0]))
+        self.assertEqual(["soft_var-2.1"], list(map(str, soft.variants[0])))
+        self.assertEqual(["soft_var-3.0"], list(map(str, soft.variants[1])))
+
 
 if __name__ == '__main__':
     unittest.main()
