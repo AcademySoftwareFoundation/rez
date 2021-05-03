@@ -21,7 +21,7 @@ import os
 basestring = six.string_types[0]
 
 if os.getenv("__REZ_SELFTEST_RUNNING") == "1":
-    late_expand_requirement = test_late_expand_requirement
+    late_expand_requirement = test_late_expand_requirement  # noqa: F811
 
 # this schema will automatically harden request strings like 'python-*'; see
 # the 'expand_requires' function for more info.
