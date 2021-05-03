@@ -1,6 +1,7 @@
 from rez.config import config
 from rez.packages import Package, create_package
 from rez.serialise import load_from_file, FileFormat, set_objects
+from rez.utils.request_directives import bind_directives
 from rez.exceptions import PackageMetadataError, InvalidPackageError
 from rez.utils.execution import add_sys_paths
 from rez.utils.sourcecode import SourceCode
@@ -114,6 +115,9 @@ class DeveloperPackage(Package):
 
         if result:
             package, data = result
+
+        # bind schema validated directive requires with package
+        bind_directives(package)
 
         # set filepath back in case preprocessor changed it
         package.filepath = filepath
