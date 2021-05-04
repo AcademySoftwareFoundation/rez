@@ -178,13 +178,6 @@ class TestFormatter(TestBase):
         self.assert_formatter_equal('{0!r:}', "'Hello'", 'Hello')
         self.assert_formatter_equal('{0!r}', 'F(Hello)', F('Hello'))
 
-        if six.PY2:
-            # Classes without __format__ are not supported in Python 3
-            self.assert_formatter_equal('{0}', 'E(data)', E('data'))
-            self.assert_formatter_equal('{0:^10}', ' E(data)  ', E('data'))
-            self.assert_formatter_equal('{0:^10s}', ' E(data)  ', E('data'))
-            self.assert_formatter_equal('{0:>15s}', ' string is data', G('data'))
-
         self.assert_formatter_equal('{0:d}', 'G(data)', G('data'))
         self.assert_formatter_equal('{0!s}', 'string is data', G('data'))
 
