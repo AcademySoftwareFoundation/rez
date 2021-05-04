@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.86.1 (2021-05-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.86.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.86.0...2.86.1)
+
+**Merged pull requests:**
+
+- Fix pkg cache test [\#1046](https://github.com/nerdvegas/rez/pull/1046) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.86.0 (2021-05-04)
 [Source](https://github.com/nerdvegas/rez/tree/2.86.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.85.0...2.86.0)
 
