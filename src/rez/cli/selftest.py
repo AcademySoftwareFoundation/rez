@@ -9,7 +9,7 @@ import argparse
 from pkgutil import iter_modules
 
 try:
-    import pytest
+    import pytest  # noqa
 except ImportError:
     use_pytest = False
 else:
