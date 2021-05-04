@@ -62,7 +62,6 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
     if opts.only_shell:
