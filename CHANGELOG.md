@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.86.0 (2021-05-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.86.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.85.0...2.86.0)
+
+**Merged pull requests:**
+
+- rez config --json FIELD [\#1064](https://github.com/nerdvegas/rez/pull/1064) ([j0yu](https://github.com/j0yu))
+
 ## 2.85.0 (2021-05-04)
 [Source](https://github.com/nerdvegas/rez/tree/2.85.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.84.0...2.85.0)
 

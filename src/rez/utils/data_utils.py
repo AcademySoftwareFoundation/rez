@@ -2,6 +2,7 @@
 Utilities related to managing data types.
 """
 import os.path
+import json
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
@@ -461,6 +462,29 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
             qual_words.append("%s.%s" % (qual_word, word))
 
     return qual_words
+
+
+def convert_json_safe(value):
+    """Convert data to JSON safe values.
+
+    Anything not representable (eg python objects) will be stringified.
+    """
+    try:
+        _ = json.dumps(value)  # noqa
+        return value
+    except TypeError:
+        pass
+
+    if isinstance(value, (list, tuple, set)):
+        return type(value)(convert_json_safe(x) for x in value)
+
+    if isinstance(value, dict):
+        return type(value)(
+            (convert_json_safe(k), convert_json_safe(v))
+            for k, v in value.items()
+        )
+
+    return str(value)
 
 
 class AttributeForwardMeta(type):

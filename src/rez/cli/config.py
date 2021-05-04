@@ -29,6 +29,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.utils.yaml import dump_yaml
+    from rez.utils.data_utils import convert_json_safe
 
     if opts.search_list:
         for filepath in config.filepaths:
@@ -52,7 +53,11 @@ def command(opts, parser, extra_arg_groups=None):
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
     if isinstance(data, (dict, list)):
-        txt = json.dumps(data) if opts.json else dump_yaml(data)
+        if opts.json:
+            txt = json.dumps(convert_json_safe(data))
+        else:
+            txt = dump_yaml(data)
+
         print(txt.strip())
     else:
         print(data)
