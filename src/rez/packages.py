@@ -337,6 +337,7 @@ class Variant(PackageBaseResourceWrapper):
         _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource, context)
         self._parent = parent
+        self._cached_root = None
 
     # arbitrary keys
     def __getattr__(self, name):
@@ -347,6 +348,10 @@ class Variant(PackageBaseResourceWrapper):
 
     def arbitrary_keys(self):
         return self.parent.arbitrary_keys()
+
+    @property
+    def root(self):
+        return self._cached_root or self.resource.root
 
     @cached_property
     def qualified_package_name(self):
@@ -426,6 +431,27 @@ class Variant(PackageBaseResourceWrapper):
             requires = requires + (self.private_build_requires or [])
 
         return requires
+
+    def is_cached(self):
+        """True if variant payload has been redirected to the cached copy
+
+        Returns:
+             Bool
+        """
+        return bool(self._cached_root)
+
+    def set_cached(self, cached_root):
+        """Redirect variant payload root to the cached copy
+
+        This should be set by `ResolvedContext`.
+
+        Args:
+            cached_root (str): Cached variant root path
+
+        Returns:
+            None
+        """
+        self._cached_root = cached_root
 
     def install(self, path, dry_run=False, overrides=None):
         """Install this variant into another package repository.

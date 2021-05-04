@@ -1962,6 +1962,7 @@ class ResolvedContext(object):
                     cached_root = pkgcache.get_cached_root(pkg)
                     if cached_root:
                         pkg_roots[pkg.name] = cached_root
+                        pkg.set_cached(cached_root)
 
         # set basic package variables and create per-package bindings
         pkg_bindings = {}
