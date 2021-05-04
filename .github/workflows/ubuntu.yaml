@@ -67,6 +67,10 @@ jobs:
           mkdir ./build
           python ./install.py ./build
 
+      - name: Install Rez test dependencies
+        run: |
+          ./build/bin/rez/rez-python -m pip install pytest-cov
+
       - name: Run Rez Tests
         run: |
           ./build/bin/rez/rez-selftest

@@ -6,6 +6,7 @@ import time
 from rez.config import config
 from rez.exceptions import PackageCopyError
 from rez.package_repository import package_repository_manager
+from rez.packages import Variant
 from rez.serialise import FileFormat
 from rez.utils import with_noop
 from rez.utils.base26 import create_unique_base26_symlink
@@ -137,13 +138,15 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
     new_src_variants = []
 
     for src_variant in src_variants:
-        existing_variant = dest_pkg_repo.install_variant(
+        existing_variant_resource = dest_pkg_repo.install_variant(
             src_variant.resource,
             overrides=overrides,
             dry_run=True
         )
 
-        if existing_variant:
+        if existing_variant_resource:
+            existing_variant = Variant(existing_variant_resource)
+
             if overwrite:
                 if verbose:
                     print_info("Source variant %s will overwrite %s",
@@ -206,10 +209,12 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
                 overrides_["timestamp"] = int(time.time())
 
             # install the variant into the package definition
-            dest_variant = dest_pkg_repo.install_variant(
+            dest_variant_resource = dest_pkg_repo.install_variant(
                 variant_resource=src_variant.resource,
                 overrides=overrides_
             )
+
+            dest_variant = Variant(dest_variant_resource)
 
         if verbose:
             print_info("Copied source variant %s to target variant %s",

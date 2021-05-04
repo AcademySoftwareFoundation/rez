@@ -3,8 +3,14 @@ Print current rez settings.
 '''
 from __future__ import print_function
 
+import json
+
 
 def setup_parser(parser, completions=False):
+    parser.add_argument(
+        "--json", dest="json", action="store_true",
+        help="Output dict/list field values as JSON. Useful for setting "
+             "REZ_*_JSON environment variables. Ignored if FIELD not given")
     parser.add_argument(
         "--search-list", dest="search_list", action="store_true",
         help="list the config files searched")
@@ -23,6 +29,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.utils.yaml import dump_yaml
+    from rez.utils.data_utils import convert_json_safe
 
     if opts.search_list:
         for filepath in config.filepaths:
@@ -46,8 +53,12 @@ def command(opts, parser, extra_arg_groups=None):
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
     if isinstance(data, (dict, list)):
-        txt = dump_yaml(data).strip()
-        print(txt)
+        if opts.json:
+            txt = json.dumps(convert_json_safe(data))
+        else:
+            txt = dump_yaml(data)
+
+        print(txt.strip())
     else:
         print(data)
 

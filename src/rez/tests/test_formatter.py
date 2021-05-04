@@ -90,7 +90,7 @@ class TestFormatter(TestBase):
             def __format__(self, format_spec):
                 if format_spec == 'd':
                     return 'G(' + self.x + ')'
-                return object.__format__(self, format_spec)
+                return format(str(self), format_spec)
 
         # class that returns a bad type from __format__
         class H(object):
@@ -177,18 +177,6 @@ class TestFormatter(TestBase):
         self.assert_formatter_equal('{0!r}', "'Hello'", 'Hello')
         self.assert_formatter_equal('{0!r:}', "'Hello'", 'Hello')
         self.assert_formatter_equal('{0!r}', 'F(Hello)', F('Hello'))
-
-        # test fallback to object.__format__
-        self.assert_formatter_equal('{0}', '{}', {})
-        self.assert_formatter_equal('{0}', '[]', [])
-        self.assert_formatter_equal('{0}', '[1]', [1])
-
-        if six.PY2:
-            # Classes without __format__ are not supported in Python 3
-            self.assert_formatter_equal('{0}', 'E(data)', E('data'))
-            self.assert_formatter_equal('{0:^10}', ' E(data)  ', E('data'))
-            self.assert_formatter_equal('{0:^10s}', ' E(data)  ', E('data'))
-            self.assert_formatter_equal('{0:>15s}', ' string is data', G('data'))
 
         self.assert_formatter_equal('{0:d}', 'G(data)', G('data'))
         self.assert_formatter_equal('{0!s}', 'string is data', G('data'))

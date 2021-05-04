@@ -7,6 +7,7 @@ import os
 import stat
 import errno
 import time
+import shutil
 
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
@@ -17,9 +18,10 @@ from rez.serialise import clear_file_caches, open_file_for_write, load_from_file
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
     ConfigurationError, PackageRepositoryError
+from rez.utils.resources import ResourcePool
 from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_warning, print_info
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, \
     canonical_path, is_subdirectory
@@ -536,6 +538,8 @@ class FileSystemPackageRepository(PackageRepository):
             )
             self._get_version_dirs = decorator2(self._get_version_dirs)
 
+        self._disable_pkg_ignore = False
+
     def _uid(self):
         t = ["filesystem", self.location]
         if os.path.exists(self.location):
@@ -604,17 +608,8 @@ class FileSystemPackageRepository(PackageRepository):
             return None
 
         # find package
-        fam = self.get_package_family(pkg_name)
-        if fam is None:
-            return None
-
-        ver = Version(pkg_ver_str)
-
-        for package in fam.iter_packages():
-            if package.version == ver:
-                return package
-
-        return None
+        pkg_ver = Version(pkg_ver_str)
+        return self.get_package(pkg_name, pkg_ver)
 
     def get_variant_from_uri(self, uri):
         """
@@ -652,48 +647,116 @@ class FileSystemPackageRepository(PackageRepository):
 
         return None
 
-    def ignore_package(self, pkg_name, pkg_version):
-        # find family
-        fam = self.get_package_family(pkg_name)
-        if not fam:
-            return -1
+    def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
+        # find package, even if already ignored
+        if not allow_missing:
+            repo_copy = self._copy(disable_pkg_ignore=True)
+            if not repo_copy.get_package(pkg_name, pkg_version):
+                return -1
 
         filename = self.ignore_prefix + str(pkg_version)
-        filepath = os.path.join(self.location, pkg_name, filename)
+        fam_path = os.path.join(self.location, pkg_name)
+        filepath = os.path.join(fam_path, filename)
+
+        # do nothing if already ignored
         if os.path.exists(filepath):
             return 0
 
-        # find package
-        found = False
-        for pkg in fam.iter_packages():
-            if pkg.version == pkg_version:
-                found = True
-                break
+        # create .ignore{ver} file
+        try:
+            os.makedirs(fam_path)
+        except OSError:  # already exists
+            pass
 
-        if not found:
-            return -1
-
-        # create .ignore<ver> file
         with open(filepath, 'w'):
             pass
 
-        self._notify_changed_family(pkg_name)
+        self._on_changed(pkg_name)
         return 1
 
     def unignore_package(self, pkg_name, pkg_version):
-        # find family
-        fam = self.get_package_family(pkg_name)
-        if not fam:
-            return -1
-
+        # find and remove .ignore{ver} file if it exists
+        ignore_file_was_removed = False
         filename = self.ignore_prefix + str(pkg_version)
         filepath = os.path.join(self.location, pkg_name, filename)
-        if not os.path.exists(filepath):
-            return 0
 
-        os.remove(filepath)
-        self._notify_changed_family(pkg_name)
-        return 1
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            ignore_file_was_removed = True
+
+        if self.get_package(pkg_name, pkg_version):
+            if ignore_file_was_removed:
+                self._on_changed(pkg_name)
+                return 1
+            else:
+                return 0
+        else:
+            return -1
+
+    def remove_package(self, pkg_name, pkg_version):
+        # ignore it first, so a partially deleted pkg is not visible
+        i = self.ignore_package(pkg_name, pkg_version)
+        if i == -1:
+            return False
+
+        # check for combined-style package, this is not supported
+        repo_copy = self._copy(disable_pkg_ignore=True)
+
+        pkg = repo_copy.get_package(pkg_name, pkg_version)
+        assert pkg
+
+        if isinstance(pkg, FileSystemCombinedPackageResource):
+            raise NotImplementedError(
+                "Package removal not supported in combined-style packages")
+
+        # delete the payload
+        pkg_dir = os.path.join(self.location, pkg_name, str(pkg_version))
+        shutil.rmtree(pkg_dir)
+
+        # unignore (just so the .ignore{ver} file is removed)
+        self.unignore_package(pkg_name, pkg_version)
+
+        return True
+
+    def remove_ignored_since(self, days, dry_run=False, verbose=False):
+        now = int(time.time())
+        num_removed = 0
+
+        def _info(msg, *nargs):
+            if verbose:
+                print_info(msg, *nargs)
+
+        for fam in self._get_families():
+            fam_path = os.path.join(self.location, fam.name)
+            if not os.path.isdir(fam_path):
+                continue  # might be a combined-style package
+
+            for name in os.listdir(fam_path):
+                if not name.startswith(self.ignore_prefix):
+                    continue
+
+                # get age of .ignore{ver} file
+                filepath = os.path.join(fam_path, name)
+                st = os.stat(filepath)
+                age_secs = now - int(st.st_ctime)
+                age_days = age_secs / (3600 * 24)
+
+                if age_days < days:
+                    continue
+
+                # extract pkg version from .ignore filename
+                ver_str = name[len(self.ignore_prefix):]
+
+                # remove the package
+                if dry_run:
+                    _info("Would remove %s-%s from %s", fam.name, ver_str, self)
+                    num_removed += 1
+
+                elif self.remove_package(fam.name, Version(ver_str)):
+                    num_removed += 1
+                    _info("Removed %s-%s from %s", fam.name, ver_str, self)
+
+        return num_removed
 
     def get_resource_from_handle(self, resource_handle, verify_repo=True):
         if verify_repo:
@@ -845,6 +908,18 @@ class FileSystemPackageRepository(PackageRepository):
 
         return variant
 
+    def _copy(self, disable_pkg_ignore=False):
+        """
+        Make a copy of the repo that does not share resources with this one.
+        """
+        pool = ResourcePool(cache_size=None)
+        repo_copy = self.__class__(self.location, pool)
+
+        if disable_pkg_ignore:
+            repo_copy._disable_pkg_ignore = True
+
+        return repo_copy
+
     @contextmanager
     def _lock_package(self, package_name, package_version=None):
         from rez.vendor.lockfile import NotLocked
@@ -943,8 +1018,11 @@ class FileSystemPackageRepository(PackageRepository):
     def _get_version_dirs(self, root):
         # Ignore a version if there is a .ignore<version> file next to it
         def ignore_dir(name):
-            path = os.path.join(root, self.ignore_prefix + name)
-            return os.path.isfile(path)
+            if self._disable_pkg_ignore:
+                return False
+            else:
+                path = os.path.join(root, self.ignore_prefix + name)
+                return os.path.isfile(path)
 
         # simpler case if this test is on
         #
@@ -1072,7 +1150,8 @@ class FileSystemPackageRepository(PackageRepository):
         path = os.path.join(self.location, name)
         if not os.path.exists(path):
             os.makedirs(path)
-        self.clear_caches()
+
+        self._on_changed(name)
         return self.get_package_family(name)
 
     def _create_variant(self, variant, dry_run=False, overrides=None):
@@ -1331,36 +1410,47 @@ class FileSystemPackageRepository(PackageRepository):
         except:
             pass
 
-        self._notify_changed_family(variant_name)
+        self._on_changed(variant_name)
 
-        # load new variant
+        # load new variant. Note that we load it from a copy of this repo, with
+        # package ignore disabled. We do this so it's possible to install
+        # variants into a hidden (ignored) package. This is used by `move_package`
+        # in order to make the moved package visible only after all its variants
+        # have been copied over.
+        #
         new_variant = None
-        self.clear_caches()
-        family = self.get_package_family(variant_name)
 
-        if family:
-            for package in self.iter_packages(family):
-                if package.version == variant_version:
-                    for variant_ in self.iter_variants(package):
-                        if variant_.index == installed_variant_index:
-                            new_variant = variant_
-                            break
-                elif new_variant:
+        repo_copy = self._copy(disable_pkg_ignore=True)
+        pkg = repo_copy.get_package(variant_name, variant_version)
+
+        if pkg is not None:
+            for variant_ in self.iter_variants(pkg):
+                if variant_.index == installed_variant_index:
+                    new_variant = variant_
                     break
 
         if not new_variant:
             raise RezSystemError("Internal failure - expected installed variant")
+
+        # a bit hacky but it works. We need the variant to belong to the actual
+        # repo, not the temp copy we retrieved it from
+        #
+        new_variant._repository = self
+
         return new_variant
 
-    def _notify_changed_family(self, pkg_name):
+    def _on_changed(self, pkg_name):
+        """Called when a package is added/removed/changed.
         """
-        This step is important. Whenever a package within a family is
-        changed/removed/added, we update the access time of the parent family
-        dir. We can then do far less filesystem stats to determine if a resolve
-        cache is stale.
-        """
+
+        # update access time of family dir. This is done so that very few file
+        # stats are required to determine if a resolve cache entry is stale.
+        #
         family_path = os.path.join(self.location, pkg_name)
         os.utime(family_path, None)
+
+        # clear internal caches, otherwise change may not be visible
+        self.clear_caches()
 
     def _delete_stale_build_tagfiles(self, family_path):
         now = time.time()

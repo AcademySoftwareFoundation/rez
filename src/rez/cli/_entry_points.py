@@ -297,3 +297,17 @@ def run_rez_pkg_ignore():
     check_production_install()
     from rez.cli._main import run
     return run("pkg-ignore")
+
+
+@scriptname("rez-mv")
+def run_rez_mv():
+    check_production_install()
+    from rez.cli._main import run
+    return run("mv")
+
+
+@scriptname("rez-rm")
+def run_rez_rm():
+    check_production_install()
+    from rez.cli._main import run
+    return run("rm")

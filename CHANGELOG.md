@@ -1,5 +1,56 @@
 # Change Log
 
+## 2.86.1 (2021-05-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.86.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.86.0...2.86.1)
+
+**Merged pull requests:**
+
+- Fix pkg cache test [\#1046](https://github.com/nerdvegas/rez/pull/1046) ([davidlatwe](https://github.com/davidlatwe))
+
+## 2.86.0 (2021-05-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.86.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.85.0...2.86.0)
+
+**Merged pull requests:**
+
+- rez config --json FIELD [\#1064](https://github.com/nerdvegas/rez/pull/1064) ([j0yu](https://github.com/j0yu))
+
+## 2.85.0 (2021-05-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.85.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.84.0...2.85.0)
+
+**Merged pull requests:**
+
+- Let rez-selftest try using pytest [\#1051](https://github.com/nerdvegas/rez/pull/1051) ([davidlatwe](https://github.com/davidlatwe))
+
+## 2.84.0 (2021-04-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.84.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.83.0...2.84.0)
+
+**Notes**
+
+New tool: `rez-rm`.
+
+**Merged pull requests:**
+
+- package removal [\#1063](https://github.com/nerdvegas/rez/pull/1063) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add package removal [\#1062](https://github.com/nerdvegas/rez/issues/1062)
+
+## 2.83.0 (2021-04-14)
+[Source](https://github.com/nerdvegas/rez/tree/2.83.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.82.0...2.83.0)
+
+**Notes**
+
+New tool: `rez-mv`.
+
+**Merged pull requests:**
+
+- Package move [\#1061](https://github.com/nerdvegas/rez/pull/1061) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add pkg move feature [\#1059](https://github.com/nerdvegas/rez/issues/1059)
+
 ## 2.82.0 (2021-04-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.82.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.81.2...2.82.0)
 

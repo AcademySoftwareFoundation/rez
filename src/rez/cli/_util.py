@@ -50,7 +50,9 @@ subcommands = {
         "arg_mode": "grouped"
     },
     "search": {},
-    "selftest": {},
+    "selftest": {
+        "arg_mode": "grouped"
+    },
     "status": {},
     "suite": {},
     "test": {},
@@ -58,7 +60,9 @@ subcommands = {
     "yaml2py": {},
     "bundle": {},
     "benchmark": {},
-    "pkg-ignore": {}
+    "pkg-ignore": {},
+    "mv": {},
+    "rm": {}
 }
 
 

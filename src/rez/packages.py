@@ -11,7 +11,7 @@ from rez.utils.request_directives import apply_directives
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
-from rez.vendor.version.version import VersionRange
+from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.vendor.six import six
 from rez.serialise import FileFormat
@@ -282,6 +282,9 @@ class Package(PackageBaseResourceWrapper):
             return self.cachable
 
         if config.default_cachable_per_repository:
+            # TODO: The location of filesystem repository is canonical path,
+            #   so if the path in `default_cachable_per_repository` isn't
+            #   canonical, this may return false value e.g. on Windows.
             value = config.default_cachable_per_repository.get(
                 self.repository.location)
             if value is not None:
@@ -571,7 +574,7 @@ def iter_packages(name, range_=None, paths=None):
 
 
 def get_package(name, version, paths=None):
-    """Get an exact version of a package.
+    """Get a package by searching a list of repositories.
 
     Args:
         name (str): Name of the package, eg 'maya'.
@@ -592,6 +595,28 @@ def get_package(name, version, paths=None):
         return next(it)
     except StopIteration:
         return None
+
+
+def get_package_from_repository(name, version, path):
+    """Get a package from a repository.
+
+    Args:
+        name (str): Name of the package, eg 'maya'.
+        version (Version or str): Version of the package, eg '1.0.0'
+
+    Returns:
+        `Package` object, or None if the package was not found.
+    """
+    repo = package_repository_manager.get_repository(path)
+
+    if isinstance(version, basestring):
+        version = Version(version)
+
+    package_resource = repo.get_package(name, version)
+    if package_resource is None:
+        return None
+
+    return Package(package_resource)
 
 
 def get_package_from_handle(package_handle):
@@ -889,8 +914,8 @@ def get_latest_package_from_string(txt, paths=None, error=False):
 
     Args:
         txt (str): Request, eg 'foo-1.2+'
-        paths (list of str, optional): paths to search for package families,
-            defaults to `config.packages_path`.
+        paths (list of str, optional): paths to search for packages, defaults
+            to `config.packages_path`.
         error (bool): If True, raise an error if no package is found.
 
     Returns:
