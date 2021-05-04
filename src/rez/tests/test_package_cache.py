@@ -1,11 +1,13 @@
 """
 Test package caching.
 """
-from rez.tests.util import TestBase, TempdirMixin, restore_os_environ
+from rez.tests.util import TestBase, TempdirMixin, restore_os_environ, \
+    install_dependent
 from rez.packages import get_package
 from rez.package_cache import PackageCache
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import PackageCacheError
+from rez.utils.filesystem import canonical_path
 import os
 import os.path
 import time
@@ -16,8 +18,8 @@ class TestPackageCache(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        cls.py_packages_path = cls.data_path("packages", "py_packages")
-        cls.solver_packages_path = cls.data_path("solver", "packages")
+        cls.py_packages_path = canonical_path(cls.data_path("packages", "py_packages"))
+        cls.solver_packages_path = canonical_path(cls.data_path("solver", "packages"))
 
         cls.package_cache_path = os.path.join(cls.root, "package_cache")
         os.mkdir(cls.package_cache_path)
@@ -116,6 +118,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
+    @install_dependent()
     def test_caching_on_resolve(self):
         """Test that cache is updated as expected on resolved env."""
         pkgcache = self._pkgcache()

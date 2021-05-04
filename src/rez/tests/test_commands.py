@@ -4,6 +4,7 @@ test package commands
 from rez.vendor.version.requirement import VersionedObject
 from rez.rex import Comment, EnvAction, Shebang, Setenv, Alias, Appendenv
 from rez.resolved_context import ResolvedContext
+from rez.utils.filesystem import canonical_path
 import unittest
 from rez.tests.util import TestBase
 import os
@@ -17,7 +18,7 @@ class TestCommands(TestBase):
 
     @classmethod
     def get_packages_path(cls):
-        return cls.data_path("commands", "packages")
+        return canonical_path(cls.data_path("commands", "packages"))
 
     @classmethod
     def setUpClass(cls):
