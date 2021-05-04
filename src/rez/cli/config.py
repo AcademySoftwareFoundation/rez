@@ -3,8 +3,14 @@ Print current rez settings.
 '''
 from __future__ import print_function
 
+import json
+
 
 def setup_parser(parser, completions=False):
+    parser.add_argument(
+        "--json", dest="json", action="store_true",
+        help="Output dict/list field values as JSON. Useful for setting "
+             "REZ_*_JSON environment variables. Ignored if FIELD not given")
     parser.add_argument(
         "--search-list", dest="search_list", action="store_true",
         help="list the config files searched")
@@ -46,8 +52,8 @@ def command(opts, parser, extra_arg_groups=None):
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
     if isinstance(data, (dict, list)):
-        txt = dump_yaml(data).strip()
-        print(txt)
+        txt = json.dumps(data) if opts.json else dump_yaml(data)
+        print(txt.strip())
     else:
         print(data)
 
