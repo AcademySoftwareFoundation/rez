@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.85.0 (2021-05-04)
+[Source](https://github.com/nerdvegas/rez/tree/2.85.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.84.0...2.85.0)
+
+**Merged pull requests:**
+
+- Let rez-selftest try using pytest [\#1051](https://github.com/nerdvegas/rez/pull/1051) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.84.0 (2021-04-16)
 [Source](https://github.com/nerdvegas/rez/tree/2.84.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.83.0...2.84.0)
 
