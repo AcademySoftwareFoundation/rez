@@ -277,7 +277,7 @@ class LocalBuildProcess(BuildProcessHelper):
                 #
                 self._install_include_modules(install_path)
 
-            return build_result
+            return build_result, context
 
     def _install_include_modules(self, install_path):
         # install 'include' sourcefiles, used by funcs decorated with @include
@@ -328,7 +328,7 @@ class LocalBuildProcess(BuildProcessHelper):
                 pkg_repo.on_variant_install_cancelled(variant.resource)
 
         try:
-            build_result = self._build_variant_base(
+            build_result, context = self._build_variant_base(
                 build_type=BuildType.local,
                 variant=variant,
                 install_path=install_path,
@@ -357,6 +357,9 @@ class LocalBuildProcess(BuildProcessHelper):
 
                 raise
 
+            variant = variant.parent.evaluate_directives(context,
+                                                         variant.index)
+
             # install variant into package repository (ie update target package.py)
             variant.install(install_path)
 
@@ -383,7 +386,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         # build and install variant
         try:
-            build_result = self._build_variant_base(
+            build_result, context = self._build_variant_base(
                 build_type=BuildType.central,
                 variant=variant,
                 install_path=release_path,
@@ -414,7 +417,12 @@ class LocalBuildProcess(BuildProcessHelper):
         # add release info to variant, and install it into package repository
         release_data = self.get_release_data()
         release_data["release_message"] = release_message
+
+        variant = variant.parent.evaluate_directives(context,
+                                                     variant.index)
+
         variant_ = variant.install(release_path, overrides=release_data)
+
         return variant_
 
     def _run_tests(self, variant, run_on, package_install_path):

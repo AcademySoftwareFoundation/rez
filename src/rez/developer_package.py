@@ -1,11 +1,14 @@
 from rez.config import config
 from rez.packages import Package, create_package
 from rez.serialise import load_from_file, FileFormat, set_objects
-from rez.utils.request_directives import bind_directives
 from rez.exceptions import PackageMetadataError, InvalidPackageError
 from rez.utils.execution import add_sys_paths
 from rez.utils.sourcecode import SourceCode
 from rez.utils.logging_ import print_info, print_error
+from rez.utils.request_directives import (
+    filter_directive_requires,
+    evaluate_directive_requires,
+)
 from rez.vendor.enum import Enum
 from rez.vendor.six import six
 from inspect import isfunction
@@ -37,6 +40,9 @@ class DeveloperPackage(Package):
         # include modules, derived from any present @include decorators
         self.includes = None
 
+        # directive requests
+        self.directives = None
+
     @property
     def root(self):
         if self.filepath:
@@ -59,8 +65,13 @@ class DeveloperPackage(Package):
         Returns:
             `Package` object.
         """
+        return cls._from_path(path, format=format)
+
+    @classmethod
+    def _from_path(cls, path, format=None, override=None):
         name = None
         data = None
+        override = override or dict()
 
         if format is None:
             formats = (FileFormat.py, FileFormat.yaml)
@@ -104,20 +115,23 @@ class DeveloperPackage(Package):
             raise PackageMetadataError(
                 "Error in %r - missing or non-string field 'name'" % filepath)
 
+        # parse directive requests
+        data, directives = filter_directive_requires(data)
+        data.update(override)
+
         package = create_package(name, data, package_cls=cls)
+
+        package.directives = directives
 
         # set filepath in case preprocessor needs to do something on disk (eg
         # check the git repo)
         package.filepath = filepath
 
         # preprocessing
-        result = package._get_preprocessed(data)
+        result = package._get_preprocessed(data, override)
 
         if result:
             package, data = result
-
-        # bind schema validated directive requires with package
-        bind_directives(package)
 
         # set filepath back in case preprocessor changed it
         package.filepath = filepath
@@ -156,6 +170,14 @@ class DeveloperPackage(Package):
         with set_objects(objects):
             return self.from_path(self.root)
 
+    # TODO: should have a better name
+    def evaluate_directives(self, build_context, variant_index=None):
+        variant = self.get_variant(variant_index)
+        override = evaluate_directive_requires(variant, build_context)
+        # TODO: if no directive, skip re-evaluate variant
+        package = self._from_path(self.root, override=override)
+        return package.get_variant(variant_index)
+
     def _validate_includes(self):
         if not self.includes:
             return
@@ -177,7 +199,7 @@ class DeveloperPackage(Package):
                     "@include decorator requests module '%s', but the file "
                     "%s does not exist." % (name, filepath))
 
-    def _get_preprocessed(self, data):
+    def _get_preprocessed(self, data, override=None):
         """
         Returns:
             (DeveloperPackage, new_data) 2-tuple IF the preprocess function
@@ -186,6 +208,8 @@ class DeveloperPackage(Package):
         from rez.serialise import process_python_objects
         from rez.utils.data_utils import get_dict_diff_str
         from copy import deepcopy
+
+        override = override or dict()
 
         def _get_package_level():
             return getattr(self, "preprocess", None)
@@ -283,9 +307,16 @@ class DeveloperPackage(Package):
         if preprocessed_data == data:
             return None
 
+        # parse directive requests
+        preprocessed_data, directives = \
+            filter_directive_requires(preprocessed_data)
+        preprocessed_data.update(override)
+
         # recreate package from modified package data
         package = create_package(self.name, preprocessed_data,
                                  package_cls=self.__class__)
+
+        package.directives = directives
 
         # print summary of changed package attributes
         txt = get_dict_diff_str(

@@ -11,7 +11,9 @@ def requires():
             'soft_lock_dep',
         ]
     else:
-        return []
+        return [
+            'soft_dep-1//harden(2)',
+        ]
 
 
 build_command = False

@@ -4,15 +4,13 @@ Test directive requirement request/build
 import os
 import shutil
 import unittest
-from rez.tests.util import TestBase, TempdirMixin, install_dependent
+from rez.tests.util import TestBase, TempdirMixin
 from rez.resolved_context import ResolvedContext
 from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.package_repository import package_repository_manager
 from rez.package_py_utils import expand_requirement
 from rez.packages import get_package
-from rez.utils.request_directives import \
-    parse_directive, anonymous_directive_string
 from rez.exceptions import BuildContextResolveError
 
 
@@ -97,15 +95,6 @@ class TestBuildDirectives(_TestBuildDirectivesBase):
 
 class TestBuildNoLateExpansion(_TestBuildDirectivesBase):
 
-    def setUp(self):
-        _TestBuildDirectivesBase.setUp(self)
-        os.environ["__REZ_SELFTEST_DISABLE_LATE_EXPAND"] = "1"
-
-    def tearDown(self):
-        _TestBuildDirectivesBase.tearDown(self)
-        del os.environ["__REZ_SELFTEST_DISABLE_LATE_EXPAND"]
-
-    @install_dependent()
     def test_build_soft_without_late_expand(self):
         self._test_build("soft_dep", "1.0.0")
         self._test_build("soft_dep", "1.1.0")
@@ -138,37 +127,6 @@ class TestRequestDirectives(TestBase):
         self.assertEqual("bar<2.2.3", expand_on_mem("bar<**"))
         self.assertEqual("bar-2.2.3", expand_on_mem("bar-**"))
         self.assertEqual("bar-1.2+", expand_on_mem("bar-1.*+"))
-
-    def test_wildcard_to_directive(self):
-        requests = [
-            ("foo-**", "foo//harden", None),
-            ("foo==**", "foo//harden", None),
-            ("foo-*", "foo//harden(1)", None),
-            ("foo-1.**", "foo-1//harden", None),
-            ("foo-1.0.*", "foo-1.0//harden(3)", None),
-            ("foo==*", "foo//harden(1)", None),
-            ("foo==1.*", "foo==1//harden(2)", None),
-            ("foo-1.*+", "foo-1+//harden(2)", None),
-            ("foo>1.*", "foo>1//harden(2)", None),
-            ("foo>=1.*", "foo-1+//harden(2)", None),
-            ("foo<**", "foo//harden", None),  # but meaningless
-            # unsupported
-            ("foo-2.*|1", None, "multi-rank hardening"),
-            ("foo<=4,>2.*", None, "multi-rank hardening"),
-            ("foo-1..2.*", None, "multi-rank hardening"),
-            ("foo-1|2.*", None, "multi-rank hardening"),
-            ("foo-1.*+<2.*.*", None, "multi-rank hardening"),
-            ("foo-1.*+<3|==5.*.*", None, "multi-rank hardening"),
-        ]
-
-        for case, expected, message in requests:
-            request = parse_directive(case)
-
-            if expected is None:
-                self.assertEqual(case, request, message)
-            else:
-                directive = anonymous_directive_string(request) or ""
-                self.assertEqual(expected, "//".join([request, directive]), case)
 
 
 if __name__ == '__main__':
