@@ -2,6 +2,7 @@
 from rez.vendor.six import six
 from rez.vendor.schema.schema import Schema, Optional, Use, And
 from rez.utils.formatting import PackageRequest
+from rez.exceptions import PackageMetadataError
 
 
 basestring = six.string_types[0]
@@ -105,8 +106,9 @@ def _validate_partial(schema, data):
 class DirectiveBase(object):
     """Base class of directive request handler"""
 
-    def __init__(self, request_str):
-        self.request = PackageRequest(request_str)
+    def __init__(self, request_str, raw_request_str=None):
+        self._raw_request_str = raw_request_str
+        self._request = PackageRequest(request_str)
 
     @classmethod
     def name(cls):
@@ -116,8 +118,11 @@ class DirectiveBase(object):
     def create(cls, request):
         raise NotImplementedError
 
+    def get_raw_request_string(self):
+        return self._raw_request_str
+
     def get_pre_build_request(self):
-        return self.request
+        return self._request
 
     def get_post_build_request(self, build_context):
         raise NotImplementedError
@@ -126,8 +131,8 @@ class DirectiveBase(object):
 class HardenDirective(DirectiveBase):
     """Harden directive request version to specific rank"""
 
-    def __init__(self, request_str, rank=None):
-        super(HardenDirective, self).__init__(request_str)
+    def __init__(self, request_str, raw_request_str=None, rank=None):
+        super(HardenDirective, self).__init__(request_str, raw_request_str)
         self._can_harden_request()
         self.rank = rank
 
@@ -150,17 +155,19 @@ class HardenDirective(DirectiveBase):
             if arg_str:
                 rank = int(arg_str[1:-1].strip())
 
-            return cls(request_, rank=rank)
+            return cls(request_, request_str, rank=rank)
 
     def _can_harden_request(self):
-        # TODO: raise error if not possible, eg it's a conflict
-        #  request (uses !)
-        pass
+        if self._request.conflict:
+            raise PackageMetadataError("Cannot harden conflict request.")
 
     def get_post_build_request(self, build_context):
-        pkg_name = self.request.name
+        pkg_name = self._request.name
         variant = build_context.get_resolved_package(pkg_name)
-        request_str = "%s-%s" % (pkg_name, variant.version.trim(self.rank))
+        version = variant.version
+        if self.rank is not None:
+            version = version.trim(self.rank)
+        request_str = "%s-%s" % (pkg_name, version)
         return PackageRequest(request_str)
 
 
