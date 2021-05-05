@@ -192,25 +192,9 @@ class LocalBuildProcess(BuildProcessHelper):
                             variant_install_path, e.__class__.__name__, e
                         )
 
-            # Re-evaluate the variant, so that variables such as 'building' and
-            # 'build_variant_index' are set, and any early-bound package attribs
-            # are re-evaluated wrt these vars. This is done so that attribs such as
-            # 'requires' can change depending on whether a build is occurring or not.
-            #
-            # Note that this re-evaluated variant is ONLY used here, for the purposes
-            # of creating the build context. The variant that is actually installed
-            # is the one evaluated where 'building' is False.
-            #
-            re_evaluated_package = variant.parent.get_reevaluated({
-                "building": True,
-                "build_variant_index": variant.index or 0,
-                "build_variant_requires": variant.variant_requires
-            })
-            re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
-
             # create build environment (also creates build.rxt file)
             context, rxt_filepath = self.create_build_context(
-                variant=re_evaluated_variant,
+                variant=variant,
                 build_type=build_type,
                 build_path=variant_build_path)
 
@@ -277,7 +261,7 @@ class LocalBuildProcess(BuildProcessHelper):
                 #
                 self._install_include_modules(install_path)
 
-            return build_result, context
+            return build_result
 
     def _install_include_modules(self, install_path):
         # install 'include' sourcefiles, used by funcs decorated with @include
@@ -328,7 +312,7 @@ class LocalBuildProcess(BuildProcessHelper):
                 pkg_repo.on_variant_install_cancelled(variant.resource)
 
         try:
-            build_result, context = self._build_variant_base(
+            build_result = self._build_variant_base(
                 build_type=BuildType.local,
                 variant=variant,
                 install_path=install_path,
@@ -357,9 +341,6 @@ class LocalBuildProcess(BuildProcessHelper):
 
                 raise
 
-            variant = variant.parent.evaluate_directives(context,
-                                                         variant.index)
-
             # install variant into package repository (ie update target package.py)
             variant.install(install_path)
 
@@ -386,7 +367,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         # build and install variant
         try:
-            build_result, context = self._build_variant_base(
+            build_result = self._build_variant_base(
                 build_type=BuildType.central,
                 variant=variant,
                 install_path=release_path,
@@ -417,12 +398,7 @@ class LocalBuildProcess(BuildProcessHelper):
         # add release info to variant, and install it into package repository
         release_data = self.get_release_data()
         release_data["release_message"] = release_message
-
-        variant = variant.parent.evaluate_directives(context,
-                                                     variant.index)
-
         variant_ = variant.install(release_path, overrides=release_data)
-
         return variant_
 
     def _run_tests(self, variant, run_on, package_install_path):

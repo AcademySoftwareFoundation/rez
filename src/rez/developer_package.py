@@ -65,13 +65,8 @@ class DeveloperPackage(Package):
         Returns:
             `Package` object.
         """
-        return cls._from_path(path, format=format)
-
-    @classmethod
-    def _from_path(cls, path, format=None, override=None):
         name = None
         data = None
-        override = override or dict()
 
         if format is None:
             formats = (FileFormat.py, FileFormat.yaml)
@@ -117,7 +112,6 @@ class DeveloperPackage(Package):
 
         # parse directive requests
         data, directives = filter_directive_requires(data)
-        data.update(override)
 
         package = create_package(name, data, package_cls=cls)
 
@@ -128,7 +122,7 @@ class DeveloperPackage(Package):
         package.filepath = filepath
 
         # preprocessing
-        result = package._get_preprocessed(data, override)
+        result = package._get_preprocessed(data)
 
         if result:
             package, data = result
@@ -170,13 +164,33 @@ class DeveloperPackage(Package):
         with set_objects(objects):
             return self.from_path(self.root)
 
-    # TODO: should have a better name
-    def evaluate_directives(self, build_context, variant_index=None):
-        variant = self.get_variant(variant_index)
-        override = evaluate_directive_requires(variant, build_context)
-        # TODO: if no directive, skip re-evaluate variant
-        package = self._from_path(self.root, override=override)
-        return package.get_variant(variant_index)
+    def re_evaluate_variant(self, variant, build_context):
+        """Re-evaluate variant with resolved build context
+
+        This doesn't return new variant, but swapping the given variant's
+        resource in-place with re-created one.
+
+        Args:
+            variant (`Variant`): A variant of this package
+            build_context (`ResolvedContext`): build resolved context
+
+        Returns:
+            None
+        """
+        data = self.validated_data()
+
+        data = evaluate_directive_requires(data,
+                                           self.directives,
+                                           build_context)
+        # re-evaluate variant
+        #
+        package_cls = type(self)
+        re_evaluated_package = create_package(self.name, data, package_cls)
+        re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
+        # swapping resource
+        variant._parent = re_evaluated_package
+        variant.context = re_evaluated_package.context
+        variant.wrapped = re_evaluated_variant.wrapped
 
     def _validate_includes(self):
         if not self.includes:
@@ -199,7 +213,7 @@ class DeveloperPackage(Package):
                     "@include decorator requests module '%s', but the file "
                     "%s does not exist." % (name, filepath))
 
-    def _get_preprocessed(self, data, override=None):
+    def _get_preprocessed(self, data):
         """
         Returns:
             (DeveloperPackage, new_data) 2-tuple IF the preprocess function
@@ -208,8 +222,6 @@ class DeveloperPackage(Package):
         from rez.serialise import process_python_objects
         from rez.utils.data_utils import get_dict_diff_str
         from copy import deepcopy
-
-        override = override or dict()
 
         def _get_package_level():
             return getattr(self, "preprocess", None)
@@ -310,7 +322,6 @@ class DeveloperPackage(Package):
         # parse directive requests
         preprocessed_data, directives = \
             filter_directive_requires(preprocessed_data)
-        preprocessed_data.update(override)
 
         # recreate package from modified package data
         package = create_package(self.name, preprocessed_data,

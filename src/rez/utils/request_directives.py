@@ -41,17 +41,15 @@ def filter_directive_requires(data):
     return data, _directives
 
 
-def evaluate_directive_requires(variant, build_context):
-    package = variant.parent
+def evaluate_directive_requires(data, directives, build_context):
 
     def evaluate_directive(request):
-        request = PackageRequest(request)
-        directive = package.directives.get(request.name)
+        directive = directives.get(request.name)
         if directive:
             request = directive.get_post_build_request(build_context)
-        return str(request)
+        return request
 
-    evaluation_schema = And(basestring, Use(evaluate_directive))
+    evaluation_schema = And(PackageRequest, Use(evaluate_directive))
 
     requires_evaluation_schema = Schema({
         Optional("requires"):               [evaluation_schema],
@@ -60,9 +58,10 @@ def evaluate_directive_requires(variant, build_context):
         Optional("variants"):               [[evaluation_schema]],
     })
 
-    validated = _validate_partial(requires_evaluation_schema, package.data)
+    validated = _validate_partial(requires_evaluation_schema, data)
+    data.update(validated)
 
-    return validated
+    return data
 
 
 def _validate_partial(schema, data):

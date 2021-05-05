@@ -223,9 +223,26 @@ class BuildProcessHelper(BuildProcess):
         )
 
     def create_build_context(self, variant, build_type, build_path):
-        """Create a context to build the variant within."""
-        request = variant.get_requires(build_requires=True,
-                                       private_build_requires=True)
+        """Create a context to build the variant within.
+        """
+        # Re-evaluate the variant, so that variables such as 'building' and
+        # 'build_variant_index' are set, and any early-bound package attribs
+        # are re-evaluated wrt these vars. This is done so that attribs such as
+        # 'requires' can change depending on whether a build is occurring or not.
+        #
+        # Note that this re-evaluated variant is ONLY used here, for the purposes
+        # of creating the build context. The variant that is actually installed
+        # is the one evaluated where 'building' is False.
+        #
+        re_evaluated_package = variant.parent.get_reevaluated({
+            "building": True,
+            "build_variant_index": variant.index or 0,
+            "build_variant_requires": variant.variant_requires
+        })
+        re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
+
+        request = re_evaluated_variant.get_requires(build_requires=True,
+                                                    private_build_requires=True)
 
         req_strs = map(str, request)
         quoted_req_strs = map(quote, req_strs)
@@ -264,6 +281,15 @@ class BuildProcessHelper(BuildProcess):
 
         if context.status != ResolverStatus.solved:
             raise BuildContextResolveError(context)
+
+        # Re-evaluate the variant again, but swapping the variant resource
+        #   in-place with re-created one.
+        #
+        #   And here we re-evaluate the variant with resolved context to
+        #   harden directive requests.
+        #
+        variant.parent.re_evaluate_variant(variant, context)
+
         return context, rxt_filepath
 
     def pre_release(self):
