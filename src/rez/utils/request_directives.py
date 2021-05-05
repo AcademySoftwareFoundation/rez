@@ -8,6 +8,15 @@ basestring = six.string_types[0]
 
 
 def filter_directive_requires(data):
+    """Filtering raw developer package data with directive extracted
+
+    Args:
+        data (`dict`): Package data that is not yet been validated
+
+    Returns:
+        data (`dict`): filtered package data
+        directives (`dict`): request-name, directive object paired dict
+    """
     _directives = dict()
 
     def extract_directive(request):
@@ -42,6 +51,16 @@ def filter_directive_requires(data):
 
 
 def evaluate_directive_requires(data, directives, build_context):
+    """Evaluate directive request with build resolved context
+
+    Args:
+        data (`dict`): Package validated data
+        directives (`dict`): request-name, directive object paired dict
+        build_context (`ResolvedContext`): A context resolved for build
+
+    Returns:
+        data (`dict`): evaluated package data
+    """
 
     def evaluate_directive(request):
         directive = directives.get(request.name)
