@@ -7,29 +7,12 @@ including:
 """
 
 # these imports just forward the symbols into this module's namespace
-from rez.utils.request_directives import parse_directive
 from rez.utils.execution import Popen
 from rez.exceptions import InvalidPackageError
 from rez.vendor.six import six
-import os
 
 
 basestring = six.string_types[0]
-
-
-def test_late_expand_requirement(request):
-    """Test used only, for switching late requirement expansion function"""
-    if os.getenv("__REZ_SELFTEST_DISABLE_LATE_EXPAND"):
-        return expand_requirement(request)
-    return late_expand_requirement(request)
-
-
-def late_expand_requirement(request):
-    """Expands a requirement string after resolve, if possible
-    """
-    request_ = parse_directive(request)
-    # should we prompt warning when it ends up early expand ?
-    return expand_requirement(request_)
 
 
 def expand_requirement(request, paths=None):
@@ -71,30 +54,87 @@ def expand_requirement(request, paths=None):
 
     from rez.vendor.version.version import VersionRange
     from rez.vendor.version.requirement import Requirement
-    from rez.vendor.version.util import dewildcard
     from rez.packages import get_latest_package
+    from uuid import uuid4
 
-    with dewildcard(request) as deer:
-        req = deer.victim
+    wildcard_map = {}
+    expanded_versions = {}
+    request_ = request
 
-        def expand(version, rank):
-            range_ = VersionRange(str(version))
-            package = get_latest_package(name=req.name,
-                                         range_=range_,
-                                         paths=paths)
-            if package is None:
-                return version
-            if rank:
-                return package.version.trim(rank)
-            else:
-                return package.version
+    # replace wildcards with valid version tokens that can be replaced again
+    # afterwards. This produces a horrendous, but both valid and temporary,
+    # version string.
+    #
+    while "**" in request_:
+        uid = "_%s_" % uuid4().hex
+        request_ = request_.replace("**", uid, 1)
+        wildcard_map[uid] = "**"
 
-        deer.on_wildcard(expand)
+    while '*' in request_:
+        uid = "_%s_" % uuid4().hex
+        request_ = request_.replace('*', uid, 1)
+        wildcard_map[uid] = '*'
+
+    # create the requirement, then expand wildcards
+    #
+    req = Requirement(request_, invalid_bound_error=False)
+
+    def expand_version(version):
+        rank = len(version)
+        wildcard_found = False
+
+        while version and str(version[-1]) in wildcard_map:
+            token = wildcard_map[str(version[-1])]
+            version = version.trim(len(version) - 1)
+
+            if token == "**":
+                if wildcard_found:  # catches bad syntax '**.*'
+                    return None
+                else:
+                    wildcard_found = True
+                    rank = 0
+                    break
+
+            wildcard_found = True
+
+        if not wildcard_found:
+            return None
+
+        range_ = VersionRange(str(version))
+        package = get_latest_package(name=req.name, range_=range_, paths=paths)
+
+        if package is None:
+            return version
+
+        if rank:
+            return package.version.trim(rank)
+        else:
+            return package.version
+
+    def visit_version(version):
+        # requirements like 'foo-1' are actually represented internally as
+        # 'foo-1+<1_' - '1_' is the next possible version after '1'. So we have
+        # to detect this case and remap the uid-ified wildcard back here too.
+        #
+        for v, expanded_v in expanded_versions.items():
+            if version == next(v):
+                return next(expanded_v)
+
+        version_ = expand_version(version)
+        if version_ is None:
+            return None
+
+        expanded_versions[version] = version_
+        return version_
+
+    if req.range_ is not None:
+        req.range_.visit_versions(visit_version)
 
     result = str(req)
 
     # do some cleanup so that long uids aren't left in invalid wildcarded strings
-    result = deer.restore(result)
+    for uid, token in wildcard_map.items():
+        result = result.replace(uid, token)
 
     # cast back to a Requirement again, then back to a string. This will catch
     # bad verison ranges, but will also put OR'd version ranges into the correct
