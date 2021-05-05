@@ -225,8 +225,7 @@ class TestPackages(TestBase, TempdirMixin):
         package = get_developer_package(path)
 
         self.assertEqual(package.description, "This.")
-        # expansion delayed
-        self.assertEqual(package.requires, [PackageRequest('versioned')])
+        self.assertEqual(package.requires, [PackageRequest('versioned-3')])
         self.assertEqual(package.authors, ["tweedle-dee", "tweedle-dum"])
         self.assertFalse(hasattr(package, "added_by_global_preprocess"))
         self.assertEqual(package.added_by_local_preprocess, True)
