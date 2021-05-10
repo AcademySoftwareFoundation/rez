@@ -16,7 +16,7 @@ def filter_directive_requires(data):
         data (`dict`): Package data that is not yet been validated
 
     Returns:
-        data (`dict`): filtered package data
+        validated (`dict`): filtered package data
         directives (`dict`): request-name, directive object paired dict
     """
     _directives = dict()
@@ -47,9 +47,8 @@ def filter_directive_requires(data):
     })
 
     validated = _validate_partial(requires_filtering_schema, data)
-    data.update(validated)
 
-    return data, _directives
+    return validated, _directives
 
 
 def evaluate_directive_requires(data, directives, build_context):
@@ -61,7 +60,7 @@ def evaluate_directive_requires(data, directives, build_context):
         build_context (`ResolvedContext`): A context resolved for build
 
     Returns:
-        data (`dict`): evaluated package data
+        validated (`dict`): evaluated package data
     """
 
     def evaluate_directive(request):
@@ -80,9 +79,8 @@ def evaluate_directive_requires(data, directives, build_context):
     })
 
     validated = _validate_partial(requires_evaluation_schema, data)
-    data.update(validated)
 
-    return data
+    return validated
 
 
 def _validate_partial(schema, data):

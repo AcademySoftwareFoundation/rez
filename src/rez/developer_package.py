@@ -110,8 +110,12 @@ class DeveloperPackage(Package):
             raise PackageMetadataError(
                 "Error in %r - missing or non-string field 'name'" % filepath)
 
+        # preserve for preprocess function
+        raw_data = data.copy()
+
         # parse directive requests
-        data, directives = filter_directive_requires(data)
+        filtered_data, directives = filter_directive_requires(data)
+        data.update(filtered_data)
 
         package = create_package(name, data, package_cls=cls)
 
@@ -122,7 +126,7 @@ class DeveloperPackage(Package):
         package.filepath = filepath
 
         # preprocessing
-        result = package._get_preprocessed(data)
+        result = package._get_preprocessed(raw_data)
 
         if result:
             package, data = result
@@ -179,9 +183,11 @@ class DeveloperPackage(Package):
         """
         data = self.validated_data()
 
-        data = evaluate_directive_requires(data,
-                                           self.directives,
-                                           build_context)
+        evaluated = evaluate_directive_requires(data,
+                                                self.directives,
+                                                build_context)
+        data.update(evaluated)
+
         # re-evaluate variant
         #
         package_cls = type(self)
@@ -319,9 +325,13 @@ class DeveloperPackage(Package):
         if preprocessed_data == data:
             return None
 
+        # preserve for dict-diff, no need to differing filtered directives
+        raw_preprocessed_data = preprocessed_data.copy()
+
         # parse directive requests
-        preprocessed_data, directives = \
+        filtered_data, directives = \
             filter_directive_requires(preprocessed_data)
+        preprocessed_data.update(filtered_data)
 
         # recreate package from modified package data
         package = create_package(self.name, preprocessed_data,
@@ -332,7 +342,7 @@ class DeveloperPackage(Package):
         # print summary of changed package attributes
         txt = get_dict_diff_str(
             data,
-            preprocessed_data,
+            raw_preprocessed_data,
             title="Package attributes were changed in preprocessing:"
         )
         print_info(txt)
