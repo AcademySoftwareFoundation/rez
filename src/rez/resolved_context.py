@@ -1408,11 +1408,14 @@ class ResolvedContext(object):
 
         self._execute(executor)
 
-        if post_actions_callback:
-            post_actions_callback(executor)
-
         executor.env.REZ_SHELL_INIT_TIMESTAMP = str(int(time.time()))
         executor.env.REZ_SHELL_INTERACTIVE = "1" if command is None else "0"
+
+        if post_actions_callback:
+            header_comment(executor, "post-actions-callback")
+            post_actions_callback(executor)
+
+        self._execute_bundle_post_actions_callback(executor)
 
         # write out the native context file
         context_code = executor.get_output()
@@ -1692,6 +1695,31 @@ class ResolvedContext(object):
         r._update_package_cache()
 
         return r
+
+    def _execute_bundle_post_actions_callback(self, executor):
+        """
+        In bundles, you can drop a 'post_commands.py' file (rex) alongside the
+        'bundle.yaml' file, and it will be sourced after all package commands.
+        """
+        if not self.load_path:
+            return
+
+        with self._detect_bundle(self.load_path):
+            bundle_dir = self._get_bundle_path()
+
+        if not bundle_dir:
+            return
+
+        rex_filepath = os.path.join(bundle_dir, "post_commands.py")
+        if not os.path.exists(rex_filepath):
+            return
+
+        # load the rex code an execute it within the executor
+        with open(rex_filepath) as f:
+            rex_py = f.read()
+
+        header_comment(executor, "bundle post-commands")
+        executor.execute_code(rex_py)
 
     @classmethod
     @contextmanager
