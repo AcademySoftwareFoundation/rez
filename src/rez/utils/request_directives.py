@@ -1,6 +1,7 @@
 
 from rez.vendor.six import six
 from rez.vendor.schema.schema import Schema, Optional, Use, And
+from rez.package_resources import late_bound
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError
 
@@ -39,9 +40,9 @@ def filter_directive_requires(data):
     filtering_schema = And(basestring, Use(extract_directive))
 
     requires_filtering_schema = Schema({
-        Optional("requires"):               [filtering_schema],
-        Optional("build_requires"):         [filtering_schema],
-        Optional("private_build_requires"): [filtering_schema],
+        Optional("requires"):               late_bound([filtering_schema]),
+        Optional("build_requires"):         late_bound([filtering_schema]),
+        Optional("private_build_requires"): late_bound([filtering_schema]),
         Optional("variants"):               [[filtering_schema]],
     })
 
