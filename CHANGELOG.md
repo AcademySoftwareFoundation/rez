@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.87.0 (2021-05-11)
+[Source](https://github.com/nerdvegas/rez/tree/2.87.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.86.1...2.87.0)
+
+**Merged pull requests:**
+
+- added bundle support for a post_commands.py file [\#1073](https://github.com/nerdvegas/rez/pull/1073) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add post-context rex file in bundles [\#1071](https://github.com/nerdvegas/rez/issues/1071)
+
 ## 2.86.1 (2021-05-04)
 [Source](https://github.com/nerdvegas/rez/tree/2.86.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.86.0...2.86.1)
 
