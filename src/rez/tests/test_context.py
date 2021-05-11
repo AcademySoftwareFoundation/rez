@@ -125,6 +125,11 @@ class TestContext(TestBase, TempdirMixin):
         """Test that a bundled context behaves identically."""
 
         def _test_bundle(path):
+            # TESTING (WINDOWS)
+            from rez.package_repository import package_repository_manager
+            package_repository_manager.clear_caches()
+            # /END
+
             # load the bundled context
             r2 = ResolvedContext.load(os.path.join(path, "context.rxt"))
 

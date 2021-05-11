@@ -5,6 +5,7 @@ from rez.exceptions import ContextBundleError
 from rez.utils.logging_ import print_info, print_warning
 from rez.utils.yaml import save_yaml
 from rez.package_copy import copy_package
+from rez.utils.platform_ import platform_
 
 
 def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
@@ -63,6 +64,11 @@ class _ContextBundler(object):
 
         self.logs = []
 
+        # dict with:
+        # key: package name
+        # value: (Variant, Variant) (src and dest variants)
+        self.copied_variants = {}
+
     def bundle(self):
         if os.path.exists(self.dest_dir):
             raise ContextBundleError("Dest dir must not exist: %s" % self.dest_dir)
@@ -74,6 +80,7 @@ class _ContextBundler(object):
         self._init_bundle()
         relocated_package_names = self._copy_variants()
         self._write_retargeted_context(relocated_package_names)
+        self._apply_lib_patching()
         self._finalize_bundle()
 
     @property
@@ -126,11 +133,10 @@ class _ContextBundler(object):
 
             assert "copied" in result
             assert len(result["copied"]) == 1
-            self._info(
-                "Copied %s into %s",
-                result["copied"][0][0].uri,
-                result["copied"][0][1].uri
-            )
+            src_variant, dest_variant = result["copied"][0]
+
+            self.copied_variants[package.name] = (src_variant, dest_variant)
+            self._info("Copied %s into %s", src_variant, dest_variant)
 
             relocated_package_names.append(package.name)
 
@@ -149,3 +155,20 @@ class _ContextBundler(object):
 
         if self.verbose:
             print_info("Bundled context written to to %s", rxt_filepath)
+
+    def _apply_lib_patching(self):
+        # TODO
+        if platform_.name in ("osx", "windows"):
+            return
+
+        self._apply_lib_patching_linux()
+
+    def _apply_lib_patching_linux(self):
+        """Fix elfs that reference elfs outside of the bundle.
+
+        Finds elf files, inspects their runpath/rpath, then looks to see if
+        those paths map to package also inside the bundle. If they do, they
+        are removed from the lib's rpath, and the remapped path is appended
+        to LD_LIBRARY_PATH instead (this occurs via the 'post_commands.py' file
+        in the bundle).
+        """
