@@ -130,7 +130,11 @@ class TestContext(TestBase, TempdirMixin):
 
             # check the pkg we contain is in the bundled pkg repo
             variant = r2.resolved_packages[0]
-            self.assertTrue(is_subdirectory(variant.root, path))
+            self.assertTrue(
+                is_subdirectory(variant.root, path),
+                "Expected variant root %r of variant %r to be a subdirectory of %r"
+                % (variant.root, variant.uri, path)
+            )
 
             self._test_execute_command_environ(r2)
 
