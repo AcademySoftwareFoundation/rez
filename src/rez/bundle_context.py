@@ -12,7 +12,7 @@ from rez.util import which
 
 
 def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
-                   quiet=False, verbose=False):
+                   quiet=False, patch_libs=False, verbose=False):
     """Bundle a context and its variants into a relocatable dir.
 
     This creates a copy of a context with its variants retargeted to a local
@@ -35,6 +35,9 @@ def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
         skip_non_relocatable (bool): If True, leave non-relocatable packages
             unchanged. Normally this will raise a `PackageCopyError`.
         quiet (bool): Suppress all output
+        patch_libs (bool): If True, modify libs and executables within the
+            bundle to patch any references to external packages back to their
+            equivalents within the bundle. See the wiki for more details on this.
         verbose (bool): Verbose mode (quiet will override)
     """
     bundler = _ContextBundler(
@@ -42,6 +45,8 @@ def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
         dest_dir=dest_dir,
         force=force,
         skip_non_relocatable=skip_non_relocatable,
+        patch_libs=patch_libs,
+        quiet=quiet,
         verbose=verbose
     )
 
@@ -52,7 +57,7 @@ class _ContextBundler(object):
     """Performs context bundling.
     """
     def __init__(self, context, dest_dir, force=False, skip_non_relocatable=False,
-                 quiet=False, verbose=False):
+                 quiet=False, patch_libs=False, verbose=False):
         if quiet:
             verbose = False
         if force:
@@ -63,6 +68,7 @@ class _ContextBundler(object):
         self.force = force
         self.skip_non_relocatable = skip_non_relocatable
         self.quiet = quiet
+        self.patch_libs = patch_libs
         self.verbose = verbose
 
         self.logs = []
@@ -83,10 +89,20 @@ class _ContextBundler(object):
             label = self.context.load_path or "context"
             print_info("Bundling %s into %s...", label, self.dest_dir)
 
+        # initialize the bundle
         self._init_bundle()
+
+        # copy the variants from the context into the bundle
         relocated_package_names = self._copy_variants()
+
+        # write a copy of the context, with refs changed to bundled variants
         self._write_retargeted_context(relocated_package_names)
-        self._patch_libs()
+
+        # apply patching to retarget dynamic linker to bundled packages
+        if self.patch_libs:
+            self._patch_libs()
+
+        # finalize the bundle
         self._finalize_bundle()
 
     @property
@@ -231,7 +247,10 @@ class _ContextBundler(object):
             try:
                 rpaths = get_rpaths(elf)
             except RuntimeError as e:
-                # there can be lots of false positives (not an elf), ignore them
+
+                # there can be lots of false positives (not an elf) due to
+                # executable shebanged scripts. Ignore these.
+                #
                 msg = str(e)
                 if "Not an ELF file" in msg or \
                         "Failed to read file header" in msg:
