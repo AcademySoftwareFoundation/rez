@@ -151,7 +151,8 @@ class LocalBuildProcess(BuildProcessHelper):
         #
         last_dir = get_existing_path(variant_install_path,
                                      topmost_path=install_path)
-        if last_dir:
+
+        if last_dir and config.make_package_temporarily_writable:
             ctxt = make_path_writable(last_dir)
         else:
             ctxt = with_noop()
