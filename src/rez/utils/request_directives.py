@@ -51,34 +51,45 @@ def filter_directive_requires(data):
     return validated, _directives
 
 
-def evaluate_directive_requires(data, directives, build_context):
-    """Evaluate directive request with build resolved context
+def expand_directive_requires(data, directives, build_context, variant_index):
+    """Expand directive request with build resolved context
 
     Args:
         data (`dict`): Package validated data
         directives (`dict`): request-name, directive object paired dict
         build_context (`ResolvedContext`): A context resolved for build
+        variant_index (None or `int`): Variant index
 
     Returns:
         validated (`dict`): evaluated package data
     """
 
-    def evaluate_directive(request):
+    def expand_directive(request):
         directive = directives.get(request.name)
         if directive:
             request = directive.get_post_build_request(build_context)
         return request
 
-    evaluation_schema = And(PackageRequest, Use(evaluate_directive))
+    expansion_schema = And(PackageRequest, Use(expand_directive))
 
-    requires_evaluation_schema = Schema({
-        Optional("requires"):               [evaluation_schema],
-        Optional("build_requires"):         [evaluation_schema],
-        Optional("private_build_requires"): [evaluation_schema],
-        Optional("variants"):               [[evaluation_schema]],
+    requires_expansion_schema = Schema({
+        Optional("requires"):               [expansion_schema],
+        Optional("build_requires"):         [expansion_schema],
+        Optional("private_build_requires"): [expansion_schema],
+        Optional("variants"):               [[expansion_schema]],
     })
 
-    validated = _validate_partial(requires_evaluation_schema, data)
+    validated = _validate_partial(requires_expansion_schema, data)
+
+    if variant_index is not None and "variants" in validated:
+        # for example:
+        #   variants = [["foo-1"], ["foo-2"]]
+        # both variant required "foo" will get harden into same version,
+        # owning to schema validation could not know which variant it's
+        # validating, so we need to restore original value for other variant.
+        variants = data["variants"][:]
+        variants[variant_index] = validated["variants"][variant_index]
+        validated["variants"] = variants
 
     return validated
 

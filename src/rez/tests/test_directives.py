@@ -45,7 +45,8 @@ class _TestBuildDirectivesBase(TestBase, TempdirMixin):
         buildsys = create_build_system(working_dir)
         return create_build_process(process_type="local",
                                     working_dir=working_dir,
-                                    build_system=buildsys)
+                                    build_system=buildsys,
+                                    quiet=True)
 
     @classmethod
     def _create_context(cls, *pkgs):

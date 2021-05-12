@@ -282,13 +282,9 @@ class BuildProcessHelper(BuildProcess):
         if context.status != ResolverStatus.solved:
             raise BuildContextResolveError(context)
 
-        # Re-evaluate the variant again, but swapping the variant resource
-        #   in-place with re-created one.
-        #
-        #   And here we re-evaluate the variant with resolved context to
-        #   harden directive requests.
-        #
-        variant.parent.re_evaluate_variant(variant, context)
+        # Expand variant requirements with resolved context to e.g. harden
+        #   directive requests.
+        variant.parent.expand_requirements_on_resolved(variant, context)
 
         return context, rxt_filepath
 

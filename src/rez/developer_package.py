@@ -2,12 +2,13 @@ from rez.config import config
 from rez.packages import Package, create_package
 from rez.serialise import load_from_file, FileFormat, set_objects
 from rez.exceptions import PackageMetadataError, InvalidPackageError
+from rez.utils.data_utils import cached_property
 from rez.utils.execution import add_sys_paths
 from rez.utils.sourcecode import SourceCode
 from rez.utils.logging_ import print_info, print_error
 from rez.utils.request_directives import (
     filter_directive_requires,
-    evaluate_directive_requires,
+    expand_directive_requires,
 )
 from rez.vendor.enum import Enum
 from rez.vendor.six import six
@@ -168,11 +169,8 @@ class DeveloperPackage(Package):
         with set_objects(objects):
             return self.from_path(self.root)
 
-    def re_evaluate_variant(self, variant, build_context):
-        """Re-evaluate variant with resolved build context
-
-        This doesn't return new variant, but swapping the given variant's
-        resource in-place with re-created one.
+    def expand_requirements_on_resolved(self, variant, build_context):
+        """Expand variant requirements with resolved build context
 
         Args:
             variant (`Variant`): A variant of this package
@@ -183,20 +181,20 @@ class DeveloperPackage(Package):
         """
         data = self.validated_data()
 
-        evaluated = evaluate_directive_requires(data,
-                                                self.directives,
-                                                build_context)
-        data.update(evaluated)
+        expanded = expand_directive_requires(data,
+                                             self.directives,
+                                             build_context,
+                                             variant.index)
+        # update resource data
+        for key, value in expanded.items():
+            if key in self.arbitrary_keys():
+                self.resource._data[key] = value
+            else:
+                setattr(self.resource, key, value)
 
-        # re-evaluate variant
-        #
-        package_cls = type(self)
-        re_evaluated_package = create_package(self.name, data, package_cls)
-        re_evaluated_variant = re_evaluated_package.get_variant(variant.index)
-        # swapping resource
-        variant._parent = re_evaluated_package
-        variant.context = re_evaluated_package.context
-        variant.wrapped = re_evaluated_variant.wrapped
+        # un-cache related attributes
+        if "variants" in expanded:
+            cached_property.uncache(variant.resource, "variant_requires")
 
     def _validate_includes(self):
         if not self.includes:
