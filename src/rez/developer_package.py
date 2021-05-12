@@ -179,6 +179,9 @@ class DeveloperPackage(Package):
         Returns:
             None
         """
+        if not self.directives:
+            return
+
         data = self.validated_data()
 
         expanded = expand_directive_requires(data,
