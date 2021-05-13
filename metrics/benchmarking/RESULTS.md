@@ -32,3 +32,4 @@ by hand; the 'benchmark' Github workflow does this automatically.
 | 2.86.1 | 3.7 | Linux-5.4.0-1046-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) CPU E5-2673 v4 @ 2.30GHz | 2 | 1.60 | 2.96 | 3.04 |
 | 2.87.0 | 2.7 | Linux-5.4.0-1046-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) CPU E5-2673 v4 @ 2.30GHz | 2 | 1.79 | 3.09 | 3.05 |
 | 2.87.0 | 3.7 | Linux-5.4.0-1046-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) CPU E5-2673 v4 @ 2.30GHz | 2 | 1.74 | 3.01 | 3.00 |
+| 2.88.0 | 2.7 | Linux-5.4.0-1046-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) CPU E5-2673 v3 @ 2.40GHz | 2 | 1.85 | 3.13 | 3.14 |
