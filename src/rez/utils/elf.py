@@ -1,6 +1,7 @@
 """
 Functions that wrap readelf/patchelf utils on linux.
 """
+import os
 import pipes
 import subprocess
 
@@ -31,16 +32,31 @@ def get_rpaths(elfpath):
 
 def patch_rpaths(elfpath, rpaths):
     """Replace an elf's rpath header with those provided.
-
-    Note that if `rpaths` is longer than the existing header, you're gonna be
-    in trouble. This function doesn't protect you from doing that.
     """
+
+    # this is a hack to get around https://github.com/nerdvegas/rez/issues/1074
+    # I actually hit a case where patchelf was installed as a rez suite tool,
+    # causing '$ORIGIN' to be expanded early (to empty string).
+    # TODO remove this hack when bug is fixed
+    #
+    env = os.environ.copy()
+    env["ORIGIN"] = "$ORIGIN"
+
     with make_path_writable(elfpath):
-        _run("patchelf", "--set-rpath", ':'.join(rpaths), elfpath)
+        if rpaths:
+            _run("patchelf", "--set-rpath", ':'.join(rpaths), elfpath, env=env)
+        else:
+            _run("patchelf", "--remove-rpath")
 
 
-def _run(*nargs):
-    proc = subprocess.Popen(nargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def _run(*nargs, **popen_kwargs):
+    proc = subprocess.Popen(
+        nargs,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        **popen_kwargs
+    )
+
     out, err = proc.communicate()
 
     if proc.returncode:

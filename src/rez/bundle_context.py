@@ -73,9 +73,6 @@ class _ContextBundler(object):
 
         self.logs = []
 
-        # literal python code to be written to post_commands.py
-        self.rex_lines = []
-
         # dict with:
         # key: package name
         # value: (Variant, Variant) (src and dest variants)
@@ -145,13 +142,6 @@ class _ContextBundler(object):
         bundle_metafile = os.path.join(self.dest_dir, "bundle.yaml")
         save_yaml(bundle_metafile, logs=self.logs)
 
-        # write post-commands rex code
-        if self.rex_lines:
-            filepath = os.path.join(self.dest_dir, "post_commands.py")
-            with open(filepath, 'w') as f:
-                for line in self.rex_lines:
-                    f.write(line + '\n')
-
     def _copy_variants(self):
         relocated_package_names = []
 
@@ -208,17 +198,8 @@ class _ContextBundler(object):
         """Fix elfs that reference elfs outside of the bundle.
 
         Finds elf files, inspects their runpath/rpath, then looks to see if
-        those paths map to packages also inside the bundle. If they do, they
-        are removed from the lib's rpath, and the remapped path is appended
-        to LD_LIBRARY_PATH instead (this occurs via the 'post_commands.py' file
-        in the bundle).
-
-        This approach is not perfect unfortunately. For example, each elf has
-        its own searchpath - deferring to LD_LIBRARY_PATH instead is just one
-        searchpath, so it's simply not possible to guarantee the same lib search
-        order as there was previously. We can't patch the rpath headers in-place
-        to achieve this either, since the existing rpath can't be made longer,
-        and there's no guarantee that the replacement would be shorter.
+        those paths map to packages also inside the bundle. If they do, those
+        rpath entries are remapped to form "$ORIGIN/{relative-path}".
         """
         from rez.utils.elf import get_rpaths, patch_rpaths
 
@@ -241,8 +222,6 @@ class _ContextBundler(object):
             )
             return
 
-        ld_library_path = set()
-
         for elf in elfs:
             try:
                 rpaths = get_rpaths(elf)
@@ -259,67 +238,74 @@ class _ContextBundler(object):
                 self._warning(msg)
                 continue
 
-            kept_rpaths = []
+            if not rpaths:
+                continue  # nothing to do
 
-            # find rpaths that remap to bundled packages
+            # remap rpath entries where equivalent bundled path is found
+            new_rpaths = []
+
             for rpath in rpaths:
 
                 # leave relpaths as-is, can't do sensible remapping.
                 # Note that os.path.isabs('$ORIGIN/...') equates to False
                 #
                 if not os.path.isabs(rpath):
-                    kept_rpaths.append(rpath)
+                    new_rpaths.append(rpath)
                     continue
 
-                remapped_rpath = None
+                new_rpath = None
 
-                for pkg_name, (src_variant, _) in self.copied_variants.items():
+                for (src_variant, dest_variant) in self.copied_variants.values():
                     if is_subdirectory(rpath, src_variant.root):
+
+                        # rpath is within the payload of another package that
+                        # is present in the bundle. Here we remap to
+                        # '$ORIGIN/{relpath}' form
+                        #
                         relpath = os.path.relpath(rpath, src_variant.root)
-                        root_ref = "{resolve.%s.root}" % pkg_name
-                        remapped_rpath = os.path.join(root_ref, relpath)
+                        new_rpath_abs = os.path.join(dest_variant.root, relpath)
+
+                        elfpath = os.path.dirname(elf)
+                        new_rel_rpath = os.path.relpath(new_rpath_abs, elfpath)
+
+                        new_rpath = os.path.join("$ORIGIN", new_rel_rpath)
                         break
 
-                # we effectively remap searchpath via LD_LIBRARY_PATH
-                if remapped_rpath:
-                    ld_library_path.add(remapped_rpath)
+                if new_rpath:
+                    new_rpaths.append(new_rpath)
                     self._info(
-                        "Remapped rpath %s in file %s to %s (via LD_LIBRARY_PATH)",
-                        rpath, elf, remapped_rpath
+                        "Remapped rpath %s in file %s to %s",
+                        rpath, elf, new_rpath
                     )
                 else:
-                    kept_rpaths.append(rpath)
+                    new_rpaths.append(rpath)
 
-            if kept_rpaths == rpaths:
-                if rpaths:
-                    self._info(
-                        "Left rpaths unchanged in %s: %s",
-                        elf, ':'.join(rpaths)
-                    )
-            else:
-                if not patchelf:
-                    self._warning(
-                        "Could not patch rpaths in %s from [%s] to [%s]: cannot find "
-                        "'patchelf' utility.",
-                        elf, ':'.join(rpaths), ':'.join(kept_rpaths)
-                    )
-                    continue
-
-                # use patchelf to set to the subset of non-remapped paths
-                try:
-                    patch_rpaths(elf, kept_rpaths)
-                except RuntimeError as e:
-                    self._warning(str(e))
-                    continue
-
+            if new_rpaths == rpaths:
                 self._info(
-                    "Patched rpaths in file %s from [%s] to [%s]",
-                    elf, ':'.join(rpaths), ':'.join(kept_rpaths)
+                    "Left rpaths unchanged in %s: [%s]",
+                    elf, ':'.join(rpaths)
                 )
+                continue
 
-        # write post-commands so that LD_LIBRARY_PATH is appended
-        for ldpath in ld_library_path:
-            self.rex_lines.append("env.LD_LIBRARY_PATH.append('%s')" % ldpath)
+            # use patchelf to replace rpath
+            if not patchelf:
+                self._warning(
+                    "Could not patch rpaths in %s from [%s] to [%s]: cannot "
+                    "find 'patchelf' utility.",
+                    elf, ':'.join(rpaths), ':'.join(new_rpaths)
+                )
+                continue
+
+            try:
+                patch_rpaths(elf, new_rpaths)
+            except RuntimeError as e:
+                self._warning(str(e))
+                continue
+
+            self._info(
+                "Patched rpaths in file %s from [%s] to [%s]",
+                elf, ':'.join(rpaths), ':'.join(new_rpaths)
+            )
 
     def _find_files(self, executable=False, filename_substrs=None):
         found_files = []
