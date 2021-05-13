@@ -86,21 +86,14 @@ atexit.register(TempDirs.clear_all)
 def make_path_writable(path):
     """Temporarily make `path` writable, if possible.
 
-    Does nothing if:
-        - config setting 'make_package_temporarily_writable' is False;
-        - this can't be done (eg we don't own `path`).
-
     Args:
         path (str): Path to make temporarily writable
     """
-    from rez.config import config
-
     try:
         orig_mode = os.stat(path).st_mode
         new_mode = orig_mode
 
-        if config.make_package_temporarily_writable and \
-                not os.access(path, os.W_OK):
+        if not os.access(path, os.W_OK):
             new_mode = orig_mode | stat.S_IWUSR
 
         # make writable

@@ -218,7 +218,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
 
         if verbose:
             print_info("Copied source variant %s to target variant %s",
-                       src_variant, dest_variant)
+                       src_variant.uri, dest_variant.uri)
 
         copied.append((src_variant, dest_variant))
 
@@ -278,7 +278,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         variant_install_path,
         topmost_path=os.path.dirname(dest_pkg_payload_path))
 
-    if last_dir:
+    if last_dir and config.make_package_temporarily_writable:
         ctxt = make_path_writable(last_dir)
     else:
         ctxt = with_noop()
@@ -316,14 +316,11 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
             if name in skip_files:
                 filepath = os.path.join(variant_root, name)
 
-                if verbose:
-                    if is_varianted:
-                        msg = ("Did not copy %s - this is part of an "
-                               "overlapping variant's root path.")
-                    else:
-                        msg = "Did not copy package definition file %s"
-
-                    print_info(msg, filepath)
+                if verbose and is_varianted:
+                    print_info(
+                        "Did not copy %s - this is part of an overlapping "
+                        "variant's root path.", filepath
+                    )
 
                 continue
 
