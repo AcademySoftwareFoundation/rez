@@ -42,3 +42,40 @@ A bundle directory looks like this:
 
 Package references in the rxt file are relative (unlike in a standard context,
 where they're absolute), and this makes the bundle relocatable.
+
+
+## Patching Libraries
+
+Depending on how compiled libraries and executables within a rez package were
+built, it's possible that the dynamic linker will attempt to resolve them to
+libraries found outside of the bundle. For example, this is possible in linux
+if an elf contains an absolute searchpath in its rpath/runpath header to a
+library in another package.
+
+Rez bundling performs a library patching step that applies various fixes to
+solve this issue (use `--no-lib-patch` if you want to skip this step). This step
+is platform-specific and is covered in the following sections. Note that in all
+cases, references to libraries outside of the bundle will remain intact, if there
+is no equivalent path found within the bundle (for example, if the reference is
+to a system library not provided by a rez package).
+
+### Linux
+
+On linux, rpath/runpath headers are altered if paths are found that map to a
+subdirectory within another package in the bundle. To illustrate what happens,
+consider the following example, where packages from `/sw/packages` have been
+bundled into the local directory `./mybundle`:
+
+```
+]$ # a lib in an original non-bundled package
+]$ patchelf --print-rpath /sw/packages/foo/1.0.0/bin/foo
+/sw/packages/bah/2.1.1/lib
+]$
+]$ # the same lib in our bundle. We assume that package 'bah' is in the bundle
+]$ # also, since foo links to one of its libs
+]$ patchelf --print-rpath ./mybundle/packages/foo/1.0.0/bin/foo
+$ORIGIN/../../../bah/2.1.1/lib
+```
+
+Remapped rpaths make use of the special `$ORIGIN` variable, which refers to
+the directory containing the current file.
