@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.88.0 (2021-05-13)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.87.0...2.88.0)
+
+**Notes**
+
+This is currently implemented for linux only.
+
+**Closed issues:**
+
+- fix linking within bundles [\#1072](https://github.com/nerdvegas/rez/issues/1072)
+
 ## 2.87.0 (2021-05-11)
 [Source](https://github.com/nerdvegas/rez/tree/2.87.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.86.1...2.87.0)
 
