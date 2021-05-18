@@ -153,9 +153,16 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
-        callback = functools.partial(self._add_build_actions,
+        actions_callback = functools.partial(self._add_build_actions,
                                      context=context,
                                      package=self.package,
+                                     variant=variant,
+                                     build_type=build_type,
+                                     install=install,
+                                     build_path=build_path,
+                                     install_path=install_path)
+
+        post_actions_callback = functools.partial(self._add_pre_build_commands,
                                      variant=variant,
                                      build_type=build_type,
                                      install=install,
@@ -166,7 +173,8 @@ class CMakeBuildSystem(BuildSystem):
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
-                                              post_actions_callback=callback)
+                                              actions_callback=actions_callback,
+                                              post_actions_callback=post_actions_callback)
         ret = {}
         if retcode:
             ret["success"] = False
@@ -214,7 +222,8 @@ class CMakeBuildSystem(BuildSystem):
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
-                                              post_actions_callback=callback)
+                                              actions_callback=actions_callback,
+                                              post_actions_callback=post_actions_callback)
 
         if not retcode and install and "install" not in cmd:
             cmd.append("install")
@@ -224,7 +233,8 @@ class CMakeBuildSystem(BuildSystem):
             retcode, _, _ = context.execute_shell(command=cmd,
                                                   block=True,
                                                   cwd=build_path,
-                                                  post_actions_callback=callback)
+                                                  actions_callback=actions_callback,
+                                                  post_actions_callback=post_actions_callback)
 
         ret["success"] = (not retcode)
         return ret
@@ -250,6 +260,18 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_INSTALL_PYC = '1' if settings.install_pyc else '0'
 
+    @classmethod
+    def _add_pre_build_commands(cls, executor, variant, build_type, 
+                                install, build_path, install_path=None):
+
+        cls.add_pre_build_commands(
+            executor=executor,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
 
 def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
                             install_path=None):
