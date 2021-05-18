@@ -5,7 +5,7 @@
 
 **Merged pull requests:**
 
-- Fix #1065 [\#1067](https://github.com/nerdvegas/rez/pull/1067) ([davidlatwe](https://github.com/davidlatwe))
+- switch to cached root in variant binding [\#1076](https://github.com/nerdvegas/rez/pull/1076) ([nerdvegas](https://github.com/nerdvegas))
 
 **Closed issues:**
 
