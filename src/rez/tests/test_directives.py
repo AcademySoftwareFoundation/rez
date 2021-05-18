@@ -8,6 +8,7 @@ from rez.build_system import create_build_system
 from rez.package_repository import package_repository_manager
 from rez.package_py_utils import expand_requirement
 from rez.packages import get_package
+from rez.vendor.schema.schema import SchemaError
 from rez.exceptions import BuildContextResolveError
 from rez.tests.util import TestBase, TempdirMixin
 from rez.tests.ghostwriter import DeveloperRepository, early, late
@@ -113,6 +114,22 @@ class TestBuildDirectives(_TestBuildDirectivesBase):
 
         soft = get_package("soft", "1", paths=[self.install_root])
         self.assertEqual("dep-1.0", str(soft.requires[0]))
+
+    def test_empty_early_requires(self):
+        _k = {"build_command": False}
+
+        @early()
+        def requires():
+            return [] if building else ["bar-1//harden"]
+
+        self.dev_repo.add("bar", version="1.0.0", **_k)
+        self.dev_repo.add("foo", version="1.0.0", requires=requires, **_k)
+
+        self._test_build("bar", "1.0.0")
+        self._test_build("foo", "1.0.0")
+        foo = get_package("foo", "1.0.0", paths=[self.install_root])
+        # no harden, because there were no requires when building is True
+        self.assertEqual("bar-1", str(foo.requires[0]))
 
 
 class TestBuildNoLateExpansion(_TestBuildDirectivesBase):

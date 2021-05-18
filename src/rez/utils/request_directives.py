@@ -174,11 +174,24 @@ class HardenDirective(DirectiveBase):
     def get_post_build_request(self, build_context):
         pkg_name = self._request.name
         variant = build_context.get_resolved_package(pkg_name)
-        version = variant.version
-        if self.rank is not None:
-            version = version.trim(self.rank)
-        request_str = "%s-%s" % (pkg_name, version)
-        return PackageRequest(request_str)
+
+        if variant is None:
+            # this may happen when requires is early bound and requested
+            # package is not in build requires, e.g.
+            #
+            #   @early()
+            #   def requires():
+            #       return [] if building else ["foo-1//harden"]
+            #
+            return self._request
+
+        else:
+            version = variant.version
+            if self.rank is not None:
+                version = version.trim(self.rank)
+
+            request_str = "%s-%s" % (pkg_name, version)
+            return PackageRequest(request_str)
 
 
 _directive_classes = (
