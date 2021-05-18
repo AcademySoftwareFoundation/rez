@@ -12,7 +12,7 @@ from rez.package_serialise import (
 )
 
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 __all__ = [
     "DeveloperRepository",
@@ -129,8 +129,9 @@ class DeveloperRepository(object):
         if version and isinstance(version, str):
             pkg_base_path = os.path.join(pkg_base_path, version)
 
+        if not os.path.isdir(pkg_base_path):
+            os.makedirs(pkg_base_path)
         filepath = os.path.join(pkg_base_path, "package.py")
-        os.makedirs(pkg_base_path, exist_ok=True)
         with open(filepath, "w") as f:
             dump_developer_package_data(data, buf=f, format_=FileFormat.py)
 
