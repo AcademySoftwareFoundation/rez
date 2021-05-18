@@ -8,10 +8,9 @@ from rez.build_system import create_build_system
 from rez.package_repository import package_repository_manager
 from rez.package_py_utils import expand_requirement
 from rez.packages import get_package
-from rez.vendor.schema.schema import SchemaError
 from rez.exceptions import BuildContextResolveError
 from rez.tests.util import TestBase, TempdirMixin
-from rez.tests.ghostwriter import DeveloperRepository, early, late
+from rez.tests.ghostwriter import DeveloperRepository, early
 
 
 class _TestBuildDirectivesBase(TestBase, TempdirMixin):
