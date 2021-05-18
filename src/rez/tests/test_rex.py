@@ -4,7 +4,7 @@ test the rex command generator API
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv, expandable, \
     literal
-from rez.rex_bindings import VersionBinding, VariantsBinding, \
+from rez.rex_bindings import VersionBinding, VariantBinding, VariantsBinding, \
     RequirementsBinding, EphemeralsBinding, intersects
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
@@ -425,7 +425,13 @@ class TestRex(TestBase):
             for package in family.iter_packages()
             for variant in package.iter_variants()
         ]
-        resolve = VariantsBinding(resolved_packages)
+
+        variant_bindings = dict(
+            (variant.name, VariantBinding(variant))
+            for variant in resolved_packages
+        )
+        resolve = VariantsBinding(variant_bindings)
+
         self.assertTrue(intersects(resolve.foo, "1"))
         self.assertFalse(intersects(resolve.foo, "0"))
         self.assertTrue(intersects(resolve.maya, "2019+"))

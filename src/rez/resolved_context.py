@@ -1313,7 +1313,7 @@ class ResolvedContext(object):
                                   parent_environ=parent_environ,
                                   command='',  # don't run any command
                                   block=False,
-                                  actions_callback=_actions_callback,
+                                  post_actions_callback=_actions_callback,
                                   **Popen_args)
 
     @_on_success
@@ -1404,6 +1404,7 @@ class ResolvedContext(object):
         executor.env.REZ_CONTEXT_FILE = context_file
 
         if actions_callback:
+            header_comment(executor, "pre-actions-callback")
             actions_callback(executor)
 
         self._execute(executor)
@@ -1960,13 +1961,34 @@ class ResolvedContext(object):
             executor.setenv("REZ_RAW_REQUEST", request_str_)
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
+        # create variant bindings. Note that here we remap root for cases where
+        # the variant has been cached into the package cache
+        #
+        variant_bindings = {}
+
+        if self.package_caching and \
+                config.cache_packages_path and \
+                config.read_package_cache:
+            pkgcache = self._get_package_cache()
+        else:
+            pkgcache = None
+
+        for pkg in resolved_pkgs:
+            if pkgcache:
+                cached_root = pkgcache.get_cached_root(pkg)
+            else:
+                cached_root = None
+
+            variant_binding = VariantBinding(pkg, cached_root=cached_root)
+            variant_bindings[pkg.name] = variant_binding
+
         # binds objects such as 'request', which are accessible before a resolve
         pre_resolve_bindings = self._get_pre_resolve_bindings()
         for k, v in pre_resolve_bindings.items():
             executor.bind(k, v)
 
-        executor.bind('resolve', VariantsBinding(resolved_pkgs))
-        executor.bind('ephemerals', EphemeralsBinding(ephemerals))
+        executor.bind("resolve", VariantsBinding(variant_bindings))
+        executor.bind("ephemerals", EphemeralsBinding(ephemerals))
 
         #
         # -- apply each resolved package to the execution context
@@ -1978,21 +2000,7 @@ class ResolvedContext(object):
         # raised on bad commands code, not a SourceCodeError
         exc_type = SourceCodeError if config.catch_rex_errors else _NeverError
 
-        # retarget variant roots wrt package caching
-        pkg_roots = {}
-        if self.package_caching and \
-                config.cache_packages_path and \
-                config.read_package_cache:
-
-            pkgcache = self._get_package_cache()
-            if pkgcache:
-                for pkg in resolved_pkgs:
-                    cached_root = pkgcache.get_cached_root(pkg)
-                    if cached_root:
-                        pkg_roots[pkg.name] = cached_root
-
         # set basic package variables and create per-package bindings
-        pkg_bindings = {}
         for pkg in resolved_pkgs:
             minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
@@ -2006,18 +2014,15 @@ class ResolvedContext(object):
             executor.setenv(prefix + "_PATCH_VERSION", patch_version)
             executor.setenv(prefix + "_BASE", pkg.base)
 
-            pkg_root = pkg_roots.get(pkg.name)
-            if pkg_root:
-                executor.setenv(prefix + "_ROOT", pkg_root)
+            variant_binding = variant_bindings[pkg.name]
+
+            if variant_binding._is_in_package_cache():
+                # set to cached payload rather than original
+                executor.setenv(prefix + "_ROOT", variant_binding.root)
                 # store extra var to indicate that root retarget occurred
                 executor.setenv(prefix + "_ORIG_ROOT", pkg.root)
             else:
                 executor.setenv(prefix + "_ROOT", pkg.root)
-
-            pkg_bindings[pkg.name] = dict(
-                version=VersionBinding(pkg.version),
-                variant=VariantBinding(pkg)
-            )
 
         # package commands
         for attr in ("pre_commands", "commands", "post_commands"):
@@ -2031,10 +2036,11 @@ class ResolvedContext(object):
                     header_comment(executor, attr)
 
                 minor_header_comment(executor, "%s from package %s" % (attr, pkg.qualified_name))
-                pkg_bindings_ = pkg_bindings[pkg.name]
-                executor.bind('this', pkg_bindings_["variant"])
-                executor.bind("version", pkg_bindings_["version"])
-                executor.bind('root', pkg_roots.get(pkg.name, pkg.root))
+                variant_binding = variant_bindings[pkg.name]
+
+                executor.bind('this', variant_binding)
+                executor.bind("version", VersionBinding(pkg.version))
+                executor.bind('root', variant_binding.root)
                 executor.bind('base', pkg.base)
 
                 exc = None

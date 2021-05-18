@@ -11,6 +11,7 @@ from rez.utils.filesystem import canonical_path
 import os
 import os.path
 import time
+import subprocess
 
 
 class TestPackageCache(TestBase, TempdirMixin):
@@ -140,14 +141,30 @@ class TestPackageCache(TestBase, TempdirMixin):
         # Retry 50 times with 0.1 sec interval, 5 secs is more than enough for
         # the very small variant to be copied to cache.
         #
-        path = None
+        cached_root = None
         for _ in range(50):
             time.sleep(0.1)
-            path = pkgcache.get_cached_root(variant)
-            if path:
+            cached_root = pkgcache.get_cached_root(variant)
+            if cached_root:
                 break
 
-        self.assertNotEqual(path, None)
+        self.assertNotEqual(cached_root, None)
 
-        expected_payload_file = os.path.join(path, "stuff.txt")
+        expected_payload_file = os.path.join(cached_root, "stuff.txt")
         self.assertTrue(os.path.exists(expected_payload_file))
+
+        # check that refs to root point to cache location in rex code
+        for ref in ("resolve.timestamped.root", "'{resolve.timestamped.root}'"):
+            proc = c.execute_rex_code(
+                code="info(%s)" % ref,
+                stdout=subprocess.PIPE
+            )
+
+            out, _ = proc.communicate()
+            root = out.strip()
+
+            self.assertEqual(
+                root, cached_root,
+                "Reference %r should resolve to %s, but resolves to %s"
+                % (ref, cached_root, root)
+            )

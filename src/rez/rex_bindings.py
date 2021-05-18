@@ -108,10 +108,20 @@ class VersionBinding(Binding):
 
 class VariantBinding(Binding):
     """Binds a packages.Variant object."""
-    def __init__(self, variant):
+    def __init__(self, variant, cached_root=None):
         doc = dict(version=VersionBinding(variant.version))
         super(VariantBinding, self).__init__(doc)
         self.__variant = variant
+        self.__cached_root = cached_root
+
+    @property
+    def root(self):
+        """
+        This is here to support package caching. This ensures that references
+        such as 'resolve.mypkg.root' resolve to the cached payload location,
+        if the package is cached.
+        """
+        return self.__cached_root or self.__variant.root
 
     def __getattr__(self, attr):
         try:
@@ -122,6 +132,9 @@ class VariantBinding(Binding):
                 raise
 
             return value
+
+    def _is_in_package_cache(self):
+        return (self.__cached_root is not None)
 
     def _attr_error(self, attr):
         raise AttributeError("package %s has no attribute '%s'"
@@ -154,11 +167,10 @@ class RO_MappingBinding(Binding):
 
 
 class VariantsBinding(RO_MappingBinding):
-    """Binds a list of packages.Variant objects, under the package name of
-    each variant."""
-    def __init__(self, variants):
-        doc = dict((x.name, VariantBinding(x)) for x in variants)
-        super(VariantsBinding, self).__init__(doc)
+    """Binds a list of packages.VariantBinding objects, under the package name
+    of each variant."""
+    def __init__(self, variant_bindings):
+        super(VariantsBinding, self).__init__(variant_bindings)
 
     def _attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
