@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.88.1 (2021-05-18)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.0...2.88.1)
+
+**Merged pull requests:**
+
+- Fix #1065 [\#1067](https://github.com/nerdvegas/rez/pull/1067) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- windows package cache root switch does only work with "{root}" not this.root  [\#1065](https://github.com/nerdvegas/rez/issues/1065)
+
 ## 2.88.0 (2021-05-13)
 [Source](https://github.com/nerdvegas/rez/tree/2.88.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.87.0...2.88.0)
 
