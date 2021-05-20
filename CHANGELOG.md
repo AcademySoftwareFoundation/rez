@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.88.2 (2021-05-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.1...2.88.2)
+
+**Merged pull requests:**
+
+- added rez_version to context tracking amqp message [\#1079](https://github.com/nerdvegas/rez/pull/1079) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.88.1 (2021-05-18)
 [Source](https://github.com/nerdvegas/rez/tree/2.88.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.0...2.88.1)
 
