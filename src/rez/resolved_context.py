@@ -1825,6 +1825,11 @@ class ResolvedContext(object):
             return
 
         data = {
+            # note that this is the version of rez used to source the context,
+            # which may not match the version used to _create_ the context
+            #
+            "rez_version": __version__,
+
             "host": socket.gethostname(),
             "user": getpass.getuser()
         }
