@@ -55,95 +55,95 @@ stack - if the stack is then empty, then there is no solution.
 
 The pseudocode for a solve looks like this (and yes, you will have to read the
 solver code for full appreciation of what's going on here):
+```python
+def solve(requests):
+    phase = create_initial_phase(requests)
+    phase_stack = stack()
+    phase_stack.push(phase)
 
-    def solve(requests):
-        phase = create_initial_phase(requests)
-        phase_stack = stack()
-        phase_stack.push(phase)
+    while not solved():
+        phase = phase_stack.pop()
 
-        while not solved():
-            phase = phase_stack.pop()
+        if phase.failed:
+            phase = phase_stack.pop()  # discard previous failed phase
 
-            if phase.failed:
-                phase = phase_stack.pop()  # discard previous failed phase
+        if phase.exhausted:
+            phase, next_phase = phase.split()
+            phase_stack.push(next_phase)
 
-            if phase.exhausted:
-                phase, next_phase = phase.split()
-                phase_stack.push(next_phase)
+        new_phase = solve_phase(phase)
 
-            new_phase = solve_phase(phase)
+        if new_phase.failed:
+            phase_stack.push(new_phase)  # we keep last fail on the stack
+        elif new_phase.solved:
+            # some housekeeping here, like checking for cycles
+            final_phase = finalise_phase(new_phase)
+            phase_stack.push(final_phase)
+        else:
+            phase_stack.push(new_phase)  # phase is exhausted
 
-            if new_phase.failed:
-                phase_stack.push(new_phase)  # we keep last fail on the stack
-            elif new_phase.solved:
-                # some housekeeping here, like checking for cycles
-                final_phase = finalise_phase(new_phase)
-                phase_stack.push(final_phase)
-            else:
-                phase_stack.push(new_phase)  # phase is exhausted
+def solve_phase(phase):
+    while True:
+        changed_scopes = []
+        added_scopes = []
+        widened_scopes = []
 
-    def solve_phase(phase):
         while True:
-            changed_scopes = []
-            added_scopes = []
-            widened_scopes = []
+            extractions = []
 
-            while True:
-                extractions = []
+            foreach phase.scope as scope:
+                extractions |= collect_extractions(scope)
 
-                foreach phase.scope as scope:
-                    extractions |= collect_extractions(scope)
-
-                if not extractions:
-                    break
-
-                merge(extractions)
-                if in_conflict(extractions):
-                    set_fail()
-                    return
-
-                foreach phase.scope as scope:
-                    intersect(scope, extractions)
-
-                    if failed(scope):
-                        set_fail()
-                        return
-
-                    if was_intersected(scope):
-                        changed_scopes.add(scope)
-
-                        if was_widened(scope):
-                            widened_scopes.add(scope)
-
-                # get those extractions involving new packages
-                new_extractions = get_new_extractions(extractions)
-
-                # add them as new scopes
-                foreach request in new_extractions:
-                    scope = new_scope(request)
-                    added_scopes.add(scope)
-                    phase.add(scope)
-
-            if no (changed_scopes or added_scopes or widened_scopes):
+            if not extractions:
                 break
 
-            pending_reductions = convert_to_reduction_set(
-                changed_scopes, added_scopes, widened_scopes)
+            merge(extractions)
+            if in_conflict(extractions):
+                set_fail()
+                return
 
-            while pending_reductions:
-                scope_a, scope_b = pending_reductions.pop()
-                scope_a.reduce_by(scope_b)
+            foreach phase.scope as scope:
+                intersect(scope, extractions)
 
-                if totally_reduced(scope_a):
+                if failed(scope):
                     set_fail()
                     return
 
-                # scope_a changed so other scopes need to reduce against it again
-                if was_reduced(scope_a):
-                    foreach phase.scope as scope:
-                        if scope is not scope_a:
-                            pending_reductions.add(scope, scope_a)
+                if was_intersected(scope):
+                    changed_scopes.add(scope)
 
+                    if was_widened(scope):
+                        widened_scopes.add(scope)
+
+            # get those extractions involving new packages
+            new_extractions = get_new_extractions(extractions)
+
+            # add them as new scopes
+            foreach request in new_extractions:
+                scope = new_scope(request)
+                added_scopes.add(scope)
+                phase.add(scope)
+
+        if not (changed_scopes or added_scopes or widened_scopes):
+            break
+
+        pending_reductions = convert_to_reduction_set(
+            changed_scopes, added_scopes, widened_scopes)
+
+        while pending_reductions:
+            scope_a, scope_b = pending_reductions.pop()
+            scope_a.reduce_by(scope_b)
+
+            if totally_reduced(scope_a):
+                set_fail()
+                return
+
+            # scope_a changed so other scopes need to reduce against it again
+            if was_reduced(scope_a):
+                foreach phase.scope as scope:
+                    if scope is not scope_a:
+                        pending_reductions.add(scope, scope_a)
+```
 There are 2 notable points missing from the pseudocode, related to optimisations:
 
 * Scopes keep a set of package families so that they can quickly skip unnecessary
