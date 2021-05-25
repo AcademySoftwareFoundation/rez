@@ -29,7 +29,8 @@ from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
     RezError, _NeverError, PackageCacheError, PackageNotFoundError
 from rez.utils.graph_utils import write_dot, write_compacted, \
-    read_graph_from_string, failure_detail_from_graph
+    read_graph_from_string
+from rez.utils.resolve_graph import failure_detail_from_graph
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
