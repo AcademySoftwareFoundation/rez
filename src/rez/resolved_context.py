@@ -873,6 +873,9 @@ class ResolvedContext(object):
             _pr()
             _pr(failure_detail_from_graph(self.graph(as_dot=False)))
             _pr()
+            _pr("To see a graph of the failed resolution, add --fail-graph "
+                "in your rez-env or rez-build command.")
+            _pr()
 
             return
 
