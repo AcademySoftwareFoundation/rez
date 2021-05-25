@@ -148,6 +148,7 @@ def command(opts, parser, extra_arg_groups=None):
     builder = create_build_process(opts.process,
                                    working_dir,
                                    build_system=buildsys,
+                                   maximize_fail_graph=opts.fail_graph,
                                    verbose=True)
 
     try:

@@ -29,7 +29,8 @@ def get_build_process_types():
 
 def create_build_process(process_type, working_dir, build_system, package=None,
                          vcs=None, ensure_latest=True, skip_repo_errors=False,
-                         ignore_existing_tag=False, verbose=False, quiet=False):
+                         ignore_existing_tag=False, maximize_fail_graph=False,
+                         verbose=False, quiet=False):
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
     process_types = get_build_process_types()
@@ -45,6 +46,7 @@ def create_build_process(process_type, working_dir, build_system, package=None,
                ensure_latest=ensure_latest,
                skip_repo_errors=skip_repo_errors,
                ignore_existing_tag=ignore_existing_tag,
+               maximize_fail_graph=maximize_fail_graph,
                verbose=verbose,
                quiet=quiet)
 
@@ -71,7 +73,8 @@ class BuildProcess(object):
 
     def __init__(self, working_dir, build_system, package=None, vcs=None,
                  ensure_latest=True, skip_repo_errors=False,
-                 ignore_existing_tag=False, verbose=False, quiet=False):
+                 ignore_existing_tag=False, maximize_fail_graph=False,
+                 verbose=False, quiet=False):
         """Create a BuildProcess.
 
         Args:
@@ -89,6 +92,11 @@ class BuildProcess(object):
             ignore_existing_tag: Perform the release even if the repository is
                 already tagged at the current version. If the config setting
                 plugins.release_vcs.check_tag is False, this has no effect.
+            maximize_fail_graph (bool): If True, context resolving process will
+                try reordering package requests to maximize fail graph output.
+                Reordering requests doesn't affect resolution result, but may
+                increase iteration time of a resolve that is going to fail and
+                provide more info.
             verbose (bool): Verbose mode.
             quiet (bool): Quiet mode (overrides `verbose`).
         """
@@ -99,6 +107,7 @@ class BuildProcess(object):
         self.ensure_latest = ensure_latest
         self.skip_repo_errors = skip_repo_errors
         self.ignore_existing_tag = ignore_existing_tag
+        self.maximize_fail_graph = maximize_fail_graph
 
         if vcs and vcs.pkg_root != self.working_dir:
             raise BuildProcessError(
@@ -254,6 +263,7 @@ class BuildProcessHelper(BuildProcess):
         context = ResolvedContext(request,
                                   package_paths=packages_path,
                                   package_filter=package_filter,
+                                  maximize_fail_graph=self.maximize_fail_graph,
                                   building=True)
         if self.verbose:
             context.print_info()
