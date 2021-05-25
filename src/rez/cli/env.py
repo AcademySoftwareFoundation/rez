@@ -209,7 +209,8 @@ def command(opts, parser, extra_arg_groups=None):
             caching=(not opts.no_cache),
             suppress_passive=opts.no_passive,
             print_stats=opts.stats,
-            package_caching=(not opts.no_pkg_cache)
+            package_caching=(not opts.no_pkg_cache),
+            maximize_fail_graph=opts.fail_graph,
         )
 
     success = (context.status == ResolverStatus.solved)
