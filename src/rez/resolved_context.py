@@ -21,7 +21,7 @@ from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding, EphemeralsBinding, intersects
 from rez import package_order
-from rez.packages import get_variant, iter_packages
+from rez.packages import get_variant, iter_packages, get_latest_package
 from rez.package_filter import PackageFilterList
 from rez.package_order import PackageOrderList
 from rez.package_cache import PackageCache
@@ -158,7 +158,8 @@ class ResolvedContext(object):
                  package_filter=None, package_orderers=None, max_fails=-1,
                  add_implicit_packages=True, time_limit=-1, callback=None,
                  package_load_callback=None, buf=None, suppress_passive=False,
-                 print_stats=False, package_caching=None):
+                 print_stats=False, package_caching=None,
+                 maximize_fail_graph=False):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -197,6 +198,10 @@ class ResolvedContext(object):
             package_caching (bool|None): If True, apply package caching settings
                 as per the config. If None, enable as determined by config
                 setting 'package_cache_during_build'.
+            maximize_fail_graph (bool): If True, will try reordering package
+                requests to maximize fail graph output. Reordering requests
+                doesn't affect resolution result, but may increase iteration
+                time of a resolve that is going to fail and provide more info.
         """
         self.load_path = None
 
@@ -289,6 +294,8 @@ class ResolvedContext(object):
             self.num_loaded_packages += 1
 
         request = self.requested_packages(include_implicit=True)
+        if maximize_fail_graph:
+            request = self._request_sorted_by_coverage(request)
 
         resolver = Resolver(context=self,
                             package_requests=request,
@@ -2128,6 +2135,48 @@ class ResolvedContext(object):
         for path in suite_paths:
             tools_path = os.path.join(path, "bin")
             executor.env.PATH.append(tools_path)
+
+    def _request_sorted_by_coverage(self, request):
+        """Sorting package request by each requires over request coverage
+
+        This is for maximizing failing resolve's iteration. Package that
+        has requirements covering overall request the most, has the best
+        chance to increase context resolve iteration before failure. So
+        we sort package request in that order as a "best guess" for max
+        iteration.
+
+        The max coverage, for example:
+
+            * foo, requires=[]
+            * bar, requires=[foo]
+            * baz, requires=[foo, bar]
+
+        When running `rez-env foo bar baz`, the request "baz" would get
+        package baz which has requirement [foo, bar], which, covered 2
+        request in overall request [foo, bar, baz]. So when asking fail
+        graph (assuming the above request can't be resolved), the request
+        will be reordered as [baz, bar, foo].
+
+        See original issue https://github.com/nerdvegas/rez/issues/865 for
+        more detail.
+
+        Args:
+            request: List of `PackageRequest` objects.
+
+        Returns:
+            List of sorted `PackageRequest` objects.
+        """
+        def requests_coverage(req_):
+            coverage = 0
+            pkg = get_latest_package(req_.name, range_=req_.range)
+            if pkg:
+                required = set()
+                for _variant in pkg.iter_variants():
+                    required.update(r.name for r in _variant.get_requires())
+                coverage = sum(r.name in required for r in request)
+            return coverage
+
+        return sorted(request, key=requests_coverage, reverse=True)
 
 
 # Copyright 2013-2016 Allan Johns.
