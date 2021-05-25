@@ -381,7 +381,7 @@ def _cycled_detail_from_graph(graph, cycled_edge):
 
             node = down
 
-        line = "  %s ?" % _get_node_label(graph, visited[0])  # init request
+        line = "  %s" % _get_node_label(graph, visited[0])  # init request
         for node in visited[1:]:
             # should be more readable if opt-out requests
             if not _is_request_node(graph, node):
@@ -408,7 +408,7 @@ def _conflicted_detail_from_graph(graph, conflicted_edge):
 
             node = down
 
-        line = "  %s ?" % _get_node_label(graph, visited[0])  # init request
+        line = "  %s" % _get_node_label(graph, visited[0])  # init request
         for node in visited[1:]:
             # should be more readable if opt-out requests
             if not _is_request_node(graph, node):
@@ -416,7 +416,7 @@ def _conflicted_detail_from_graph(graph, conflicted_edge):
 
             # show conflicted request at the end
             if _is_request_node(graph, node) and node in conflicted_edge:
-                line += " >>> %s" % _get_node_label(graph, node)
+                line += " --> %s" % _get_node_label(graph, node)
                 break
 
         messages.append(line)
