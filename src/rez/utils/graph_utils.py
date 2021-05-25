@@ -350,7 +350,7 @@ def failure_detail_from_graph(graph):
     cycled_edge = next((k for k, v in graph.edge_properties.items()
                         if v["label"] == "CYCLE"), None)
     if cycled_edge:
-        return _cycled_detail_from_graph(graph)
+        return _cycled_detail_from_graph(graph, cycled_edge)
 
     # find conflict
     conflicted_edge = next((k for k, v in graph.edge_properties.items()
@@ -362,7 +362,7 @@ def failure_detail_from_graph(graph):
     return ""
 
 
-def _cycled_detail_from_graph(graph):
+def _cycled_detail_from_graph(graph, cycled_edge):
     """Find all initial requests, and walk down till circle back"""
 
     messages = ["Resolve paths starting from initial requests to cycle:"]
@@ -373,8 +373,8 @@ def _cycled_detail_from_graph(graph):
         while True:
             visited.append(node)
             down = next((ne for ne in graph.node_neighbors[node]), None)
-            if down in visited and not _is_request_node(graph, down):
-                visited.append(down)  # circle back
+            if down in cycled_edge:
+                visited.append(down)
                 break
             if down is None:
                 break
