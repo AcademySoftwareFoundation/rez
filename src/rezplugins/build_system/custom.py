@@ -207,20 +207,6 @@ class CustomBuildSystem(BuildSystem):
             install_path=install_path
         )
 
-    @classmethod
-    def _add_pre_build_commands(cls, executor, variant, build_type, 
-                                install, build_path, install_path=None):
-
-        cls.add_pre_build_commands(
-            executor=executor,
-            variant=variant,
-            build_type=build_type,
-            install=install,
-            build_path=build_path,
-            install_path=install_path
-        )
-
-
 def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
                             install_path=None):
     # This spawns a shell that the user can run the build command in directly
@@ -238,7 +224,7 @@ def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
                                  build_path=build_path,
                                  install_path=install_path)
 
-    post_actions_callback = functools.partial(CustomBuildSystem._add_pre_build_commands,
+    post_actions_callback = functools.partial(CustomBuildSystem.add_pre_build_commands,
                                  variant=variant,
                                  build_type=BuildType.local,
                                  install=install,

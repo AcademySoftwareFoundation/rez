@@ -162,7 +162,7 @@ class CMakeBuildSystem(BuildSystem):
                                      build_path=build_path,
                                      install_path=install_path)
 
-        post_actions_callback = functools.partial(self._add_pre_build_commands,
+        post_actions_callback = functools.partial(self.add_pre_build_commands,
                                      variant=variant,
                                      build_type=build_type,
                                      install=install,
@@ -259,19 +259,6 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.CMAKE_MODULE_PATH.append(cmake_path.replace('\\', '/'))
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_INSTALL_PYC = '1' if settings.install_pyc else '0'
-
-    @classmethod
-    def _add_pre_build_commands(cls, executor, variant, build_type, 
-                                install, build_path, install_path=None):
-
-        cls.add_pre_build_commands(
-            executor=executor,
-            variant=variant,
-            build_type=build_type,
-            install=install,
-            build_path=build_path,
-            install_path=install_path
-        )
 
 def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
                             install_path=None):
