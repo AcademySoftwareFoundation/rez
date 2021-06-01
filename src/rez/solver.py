@@ -1580,6 +1580,7 @@ class _ResolvePhase(_Common):
         failure_nodes = set()
         request_nodes = {}  # (request, node_id)
         scope_nodes = {}  # (package_name, node_id)
+        scope_requests = {}  # (node_id, request)
 
         # -- graph creation basics
 
@@ -1670,6 +1671,7 @@ class _ResolvePhase(_Common):
 
             id_ = _add_node(label, color, style)
             scope_nodes[scope.package_name] = id_
+            scope_requests[id_] = scope.package_request
             return id_
 
         def _add_reduct_node(request):
@@ -1738,10 +1740,19 @@ class _ResolvePhase(_Common):
         if fr:
             if isinstance(fr, DependencyConflicts):
                 for conflict in fr.conflicts:
-                    id1 = _add_request_node(conflict.dependency)
-                    id2 = scope_nodes.get(conflict.conflicting_request.name)
-                    if id2 is None:
-                        id2 = _add_request_node(conflict.conflicting_request)
+                    conflicting_request = conflict.conflicting_request
+                    scope_n = scope_nodes.get(conflicting_request.name)
+                    scope_r = scope_requests.get(scope_n)
+
+                    if scope_n is not None \
+                            and scope_r.conflicts_with(conflicting_request):
+                        # confirmed that scope node is in conflict
+                        id1 = _add_request_node(conflicting_request)
+                        id2 = scope_n
+                    else:
+                        id1 = _add_request_node(conflict.dependency)
+                        id2 = scope_n or _add_request_node(conflicting_request)
+
                     _add_conflict_edge(id1, id2)
 
                     failure_nodes.add(id1)
