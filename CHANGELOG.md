@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.88.4 (2021-06-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.3...2.88.4)
+
+**Merged pull requests:**
+
+- Fix conflict fail graph #865 [\#1087](https://github.com/nerdvegas/rez/pull/1087) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- fail-graph not showing true root of the conflict [\#865](https://github.com/nerdvegas/rez/issues/865)
+
 ## 2.88.3 (2021-06-01)
 [Source](https://github.com/nerdvegas/rez/tree/2.88.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.2...2.88.3)
 
