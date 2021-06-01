@@ -66,6 +66,57 @@ subcommands = {
 }
 
 
+def load_plugin_cmd():
+    """Load subcommand from command type plugin
+
+    The command type plugin module should have attribute `command_behavior`,
+    and the value must be a dict if provided. For example:
+
+        # in your command plugin module
+        command_behavior = {
+            "hidden": False,   # (bool): default False
+            "arg_mode": None,  #  (str): "passthrough", "grouped", default None
+        }
+
+    If the attribute not present, default behavior will be given.
+
+    """
+    from rez.config import config
+    from rez.utils.logging_ import print_debug
+    from rez.plugin_managers import plugin_manager
+
+    ext_plugins = dict()
+
+    for plugin_name in plugin_manager.get_plugins("command"):
+        module = plugin_manager.get_plugin_module("command", plugin_name)
+
+        behavior = getattr(module, "command_behavior", None)
+        if behavior is None:
+            behavior = dict()
+
+            if config.debug("plugins"):
+                print_debug("Attribute 'command_behavior' not found in plugin "
+                            "module %s, registering with default behavior."
+                            % module.__name__)
+        try:
+            data = behavior.copy()
+            data.update({"module_name": module.__name__})
+            ext_plugins[plugin_name] = data
+
+        except Exception:
+            if config.debug("plugins"):
+                import traceback
+                from rez.vendor.six.six import StringIO
+                out = StringIO()
+                traceback.print_exc(file=out)
+                print_debug(out.getvalue())
+
+    return ext_plugins
+
+
+subcommands.update(load_plugin_cmd())
+
+
 class LazySubParsersAction(_SubParsersAction):
     """Argparse Action which calls the `setup_subparser` function provided to
     `LazyArgumentParser`.

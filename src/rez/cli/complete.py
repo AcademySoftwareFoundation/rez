@@ -80,7 +80,8 @@ def command(opts, parser, extra_arg_groups=None):
 
     # create parser for subcommand
     from rez.backport.importlib import import_module
-    module_name = "rez.cli.%s" % subcommand
+    data = subcommands[subcommand]
+    module_name = data.get("module_name", "rez.cli.%s" % subcommand)
     mod = import_module(module_name)
     parser = argparse.ArgumentParser()
     mod.setup_parser(parser, completions=True)
