@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.89.0 (2021-06-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.89.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.4...2.89.0)
+
+**Merged pull requests:**
+
+- Improve context resolve failure info [\#1083](https://github.com/nerdvegas/rez/pull/1083) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.88.4 (2021-06-01)
 [Source](https://github.com/nerdvegas/rez/tree/2.88.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.3...2.88.4)
 
