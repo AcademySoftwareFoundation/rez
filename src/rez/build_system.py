@@ -281,9 +281,6 @@ class BuildSystem(object):
     def add_standard_build_actions(cls, executor, context, variant, build_type,
                                    install, build_path, install_path=None):
         """Perform build actions common to every build system.
-
-        This includes:
-        - Setting a standard list on env-vars;
         """
         # set env vars
         env_vars = cls.get_standard_vars(
@@ -300,11 +297,8 @@ class BuildSystem(object):
 
     @classmethod
     def add_pre_build_commands(cls, executor, variant, build_type,
-                                   install, build_path, install_path=None):
-        """Perform build commands common to every build system.
-
-        This includes:
-        - Executing pre_build_commands(), if the package has one.
+                               install, build_path, install_path=None):
+        """Execute pre_build_commands if present.
         """
         from rez.utils.data_utils import RO_AttrDictWrapper
 

@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.88.3 (2021-06-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.2...2.88.3)
+
+**Merged pull requests:**
+
+- Refactor: Split add_standard_build_actions introducing add_pre_build_commands [\#1077](https://github.com/nerdvegas/rez/pull/1077) ([Tilix4](https://github.com/Tilix4))
+
+**Closed issues:**
+
+- include could not find load file: RezBuild error on Windows [\#974](https://github.com/nerdvegas/rez/issues/974)
+
 ## 2.88.2 (2021-05-20)
 [Source](https://github.com/nerdvegas/rez/tree/2.88.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.1...2.88.2)
 
