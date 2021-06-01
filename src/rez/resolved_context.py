@@ -28,7 +28,9 @@ from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
     RezError, _NeverError, PackageCacheError, PackageNotFoundError
-from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
+from rez.utils.graph_utils import write_dot, write_compacted, \
+    read_graph_from_string
+from rez.utils.resolve_graph import failure_detail_from_graph
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -807,13 +809,13 @@ class ResolvedContext(object):
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
         if self.status_ in (ResolverStatus.failed, ResolverStatus.aborted):
-            _pr("The context failed to resolve:\n%s"
-                % self.failure_description, critical)
-            return
+            res_status = "resolve failed,"
+        else:
+            res_status = "resolved"
 
         t_str = _rt(self.created)
-        _pr("resolved by %s@%s, on %s, using Rez v%s"
-            % (self.user, self.host, t_str, self.rez_version))
+        _pr("%s by %s@%s, on %s, using Rez v%s"
+            % (res_status, self.user, self.host, t_str, self.rez_version))
         if self.requested_timestamp:
             t_str = _rt(self.requested_timestamp)
             _pr("packages released after %s were ignored" % t_str)
@@ -862,6 +864,21 @@ class ResolvedContext(object):
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
         _pr()
+
+        # show resolved, or not
+        #
+        if self.status_ in (ResolverStatus.failed, ResolverStatus.aborted):
+            _pr("The context failed to resolve:\n%s"
+                % self.failure_description, critical)
+
+            _pr()
+            _pr(failure_detail_from_graph(self.graph(as_dot=False)))
+            _pr()
+            _pr("To see a graph of the failed resolution, add --fail-graph "
+                "in your rez-env or rez-build command.")
+            _pr()
+
+            return
 
         _pr("resolved packages:", heading)
         rows = []
