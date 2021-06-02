@@ -481,11 +481,14 @@ class FileSystemPackageRepository(PackageRepository):
     def name(cls):
         return "filesystem"
 
-    def __init__(self, location, resource_pool):
+    def __init__(self, location, resource_pool, disable_memcache=None,
+                 disable_pkg_ignore=False):
         """Create a filesystem package repository.
 
         Args:
             location (str): Path containing the package repository.
+            disable_memcache (bool): Don't use memcache memcache if True
+            disable_pkg_ignore (bool): If True, .ignore* files have no effect
         """
 
         # ensure that differing case doesn't get interpreted as different repos
@@ -500,7 +503,12 @@ class FileSystemPackageRepository(PackageRepository):
         if os.path.exists(settings_filepath):
             local_settings.update(load_yaml(settings_filepath))
 
-        self.disable_memcache = local_settings.get("disable_memcache", False)
+        self.disable_pkg_ignore = disable_pkg_ignore
+
+        if disable_memcache is None:
+            self.disable_memcache = local_settings.get("disable_memcache", False)
+        else:
+            self.disable_memcache = disable_memcache
 
         # TODO allow these settings to be overridden in settings.yaml also
         global _settings
@@ -537,8 +545,6 @@ class FileSystemPackageRepository(PackageRepository):
                 debug=config.debug_memcache
             )
             self._get_version_dirs = decorator2(self._get_version_dirs)
-
-        self._disable_pkg_ignore = False
 
     def _uid(self):
         t = ["filesystem", self.location]
@@ -650,7 +656,11 @@ class FileSystemPackageRepository(PackageRepository):
     def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
         # find package, even if already ignored
         if not allow_missing:
-            repo_copy = self._copy(disable_pkg_ignore=True)
+            repo_copy = self._copy(
+                disable_pkg_ignore=True,
+                disable_memcache=True
+            )
+
             if not repo_copy.get_package(pkg_name, pkg_version):
                 return -1
 
@@ -700,7 +710,10 @@ class FileSystemPackageRepository(PackageRepository):
             return False
 
         # check for combined-style package, this is not supported
-        repo_copy = self._copy(disable_pkg_ignore=True)
+        repo_copy = self._copy(
+            disable_pkg_ignore=True,
+            disable_memcache=True
+        )
 
         pkg = repo_copy.get_package(pkg_name, pkg_version)
         assert pkg
@@ -908,16 +921,12 @@ class FileSystemPackageRepository(PackageRepository):
 
         return variant
 
-    def _copy(self, disable_pkg_ignore=False):
+    def _copy(self, **kwargs):
         """
         Make a copy of the repo that does not share resources with this one.
         """
         pool = ResourcePool(cache_size=None)
-        repo_copy = self.__class__(self.location, pool)
-
-        if disable_pkg_ignore:
-            repo_copy._disable_pkg_ignore = True
-
+        repo_copy = self.__class__(self.location, pool, **kwargs)
         return repo_copy
 
     @contextmanager
@@ -1018,7 +1027,7 @@ class FileSystemPackageRepository(PackageRepository):
     def _get_version_dirs(self, root):
         # Ignore a version if there is a .ignore<version> file next to it
         def ignore_dir(name):
-            if self._disable_pkg_ignore:
+            if self.disable_pkg_ignore:
                 return False
             else:
                 path = os.path.join(root, self.ignore_prefix + name)
@@ -1420,7 +1429,11 @@ class FileSystemPackageRepository(PackageRepository):
         #
         new_variant = None
 
-        repo_copy = self._copy(disable_pkg_ignore=True)
+        repo_copy = self._copy(
+            disable_pkg_ignore=True,
+            disable_memcache=True
+        )
+
         pkg = repo_copy.get_package(variant_name, variant_version)
 
         if pkg is not None:
