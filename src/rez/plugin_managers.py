@@ -67,15 +67,15 @@ def extend_path(path, name):
     for dir_ in config.plugin_path:
         append_if_valid(dir_)
     # Extend new-style plugins
-    for dir_ in plugin_manager.sys_module_paths:
+    for dir_ in plugin_manager.rezplugins_module_paths:
         append_if_valid(dir_)
 
     return path
 
 
-def uncache_sys_module_paths(instance=None):
+def uncache_rezplugins_module_paths(instance=None):
     instance = instance or plugin_manager
-    cached_property.uncache(instance, "sys_module_paths")
+    cached_property.uncache(instance, "rezplugins_module_paths")
 
 
 class RezPluginType(object):
@@ -296,11 +296,16 @@ class RezPluginManager(object):
         self._plugin_types = {}
 
     @cached_property
-    def sys_module_paths(self):
+    def rezplugins_module_paths(self):
         paths = []
         for importer, name, ispkg in pkgutil.iter_modules():
-            if ispkg:
-                paths.append(os.path.join(importer.path, name))
+            if not ispkg:
+                continue
+
+            module_path = os.path.join(importer.path, name)
+            if os.path.isdir(os.path.join(module_path, "rezplugins")):
+                paths.append(module_path)
+
         return paths
 
     # -- plugin types

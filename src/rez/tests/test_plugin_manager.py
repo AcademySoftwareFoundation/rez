@@ -2,7 +2,7 @@
 test rezplugins manager behaviors
 """
 from rez.tests.util import TestBase, TempdirMixin, restore_sys_path
-from rez.plugin_managers import plugin_manager, uncache_sys_module_paths
+from rez.plugin_managers import plugin_manager, uncache_rezplugins_module_paths
 from rez.package_repository import package_repository_manager
 import sys
 import unittest
@@ -19,7 +19,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
         package_repository_manager.clear_caches()
         package_repository_manager.pool.resource_classes.clear()
         # for resetting new-style plugins
-        uncache_sys_module_paths()
+        uncache_rezplugins_module_paths()
 
         plugin_types = []
         for singleton in plugin_manager._plugin_types.values():
