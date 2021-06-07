@@ -28,6 +28,7 @@ class TestCompletion(TestBase):
         _eq("plugin", ["plugins",
                        "plugin_path"])
         _eq("plugins", ["plugins",
+                        "plugins.command",
                         "plugins.package_repository",
                         "plugins.build_process",
                         "plugins.build_system",
