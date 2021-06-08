@@ -323,7 +323,7 @@ def make_tmp_name(name):
     disk at context exit time, it is deleted.
     """
     path, base = os.path.split(name)
-    tmp_base = ".tmp-%s-%s" % (base, uuid4().hex)
+    tmp_base = "_tmp-%s-%s" % (base, uuid4().hex)
     tmp_name = os.path.join(path, tmp_base)
 
     try:
