@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.90.1 (2021-06-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.0...2.90.1)
+
+**Merged pull requests:**
+
+- Avoid hidden folder/files as it introduces problems on certain fileystems [\#1088](https://github.com/nerdvegas/rez/pull/1088) ([bfloch](https://github.com/bfloch))
+
 ## 2.90.0 (2021-06-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.90.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.89.1...2.90.0)
 
