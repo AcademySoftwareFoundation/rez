@@ -707,8 +707,9 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
         if filepath:
             filepaths.extend(filepath.split(os.pathsep))
 
-        filepath = os.path.expanduser("~/.rezconfig")
-        filepaths.append(filepath)
+        if os.getenv("REZ_DISABLE_HOME_CONFIG", "").lower() not in ("1", "t", "true"):
+            filepath = os.path.expanduser("~/.rezconfig")
+            filepaths.append(filepath)
 
         return Config(filepaths, overrides)
 
