@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.90.0 (2021-06-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.89.1...2.90.0)
+
+**Merged pull requests:**
+
+- Extension plugins [\#1040](https://github.com/nerdvegas/rez/pull/1040) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.89.1 (2021-06-02)
 [Source](https://github.com/nerdvegas/rez/tree/2.89.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.89.0...2.89.1)
 
