@@ -8,7 +8,8 @@ precedence):
 2) The setting is then overridden if it is present in another settings file(s)
    pointed at by the $REZ_CONFIG_FILE environment variable. Note that multiple
    files are supported, separated by os.pathsep;
-3) The setting is further overriden if it is present in $HOME/.rezconfig;
+3) The setting is further overriden if it is present in $HOME/.rezconfig,
+  UNLESS $REZ_DISABLE_HOME_CONFIG is 1;
 4) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be

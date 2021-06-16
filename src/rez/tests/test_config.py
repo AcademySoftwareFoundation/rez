@@ -256,6 +256,10 @@ class TestConfig(TestBase):
             if not key.startswith("REZ_")
         }
 
+        env.update({
+            "REZ_DISABLE_HOME_CONFIG": "1"
+        })
+
         test_configs = {
             "packages_path": ["/foo bar/baz", "/foo bar/baz hey", "/home/foo bar/baz"],
             "platform_map": {"foo": {"bar": "baz"}},
