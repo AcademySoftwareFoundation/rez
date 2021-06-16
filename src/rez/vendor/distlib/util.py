@@ -215,9 +215,13 @@ def parse_requirement(req):
                         if not ver_remaining or ver_remaining[0] != ',':
                             break
                         ver_remaining = ver_remaining[1:].lstrip()
+
+                        # https://github.com/nerdvegas/rez/pull/1092
                         # Some packages have a trailing comma which would break the matching
                         if not ver_remaining:
                             break
+                        # /end pull/1092
+
                         m = COMPARE_OP.match(ver_remaining)
                         if not m:
                             raise SyntaxError('invalid constraint: %s' % ver_remaining)

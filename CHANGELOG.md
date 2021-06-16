@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.90.2 (2021-06-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.1...2.90.2)
+
+**Merged pull requests:**
+
+- Allow trailing comma in Legacy Metadata [\#1092](https://github.com/nerdvegas/rez/pull/1092) ([bfloch](https://github.com/bfloch))
+
 ## 2.90.1 (2021-06-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.90.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.0...2.90.1)
 
