@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.90.3 (2021-06-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.2...2.90.3)
+
+**Merged pull requests:**
+
+- fixed missing __ne__ op in resource handle [\#1096](https://github.com/nerdvegas/rez/pull/1096) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- regression: rez-test Could not resolve to variant [\#1095](https://github.com/nerdvegas/rez/issues/1095)
+
 ## 2.90.2 (2021-06-16)
 [Source](https://github.com/nerdvegas/rez/tree/2.90.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.1...2.90.2)
 
