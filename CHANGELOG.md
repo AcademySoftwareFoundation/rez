@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.91.0 (2021-06-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.91.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.3...2.91.0)
+
+**Merged pull requests:**
+
+- added env-var to disable cofig reads from ~/.rezconfig.py [\#1098](https://github.com/nerdvegas/rez/pull/1098) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- config selftest can fail [\#1097](https://github.com/nerdvegas/rez/issues/1097)
+
 ## 2.90.3 (2021-06-16)
 [Source](https://github.com/nerdvegas/rez/tree/2.90.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.2...2.90.3)
 
