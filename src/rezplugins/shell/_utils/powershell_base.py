@@ -273,7 +273,7 @@ class PowerShellBase(Shell):
         value = EscapedString.disallow(value)
         # TODO: Find a way to properly escape paths in alias() calls that also
         # contain args
-        cmd = "function {key}() {{ {value} $args }}"
+        cmd = "function {key}() {{ {value} @args }}"
         self._addline(cmd.format(key=key, value=value))
 
     def comment(self, value):
