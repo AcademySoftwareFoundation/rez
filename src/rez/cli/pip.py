@@ -20,9 +20,6 @@ def setup_parser(parser, completions=False):
         "-i", "--install", action="store_true",
         help="install the package")
     parser.add_argument(
-        "-s", "--search", action="store_true",
-        help="search for the package on PyPi")
-    parser.add_argument(
         "-r", "--release", action="store_true",
         help="install as released package; if not set, package is installed "
         "locally only")
@@ -52,11 +49,6 @@ def command(opts, parser, extra_arg_groups=None):
 
     if not (opts.search or opts.install):
         parser.error("Expected one of: --install, --search")
-
-    if opts.search:
-        with run_pip_command(["search", opts.PACKAGE]) as p:
-            p.wait()
-        return
 
     if opts.pip_ver:
         with warnings.catch_warnings():
