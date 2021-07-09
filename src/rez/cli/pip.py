@@ -44,7 +44,7 @@ def command(opts, parser, extra_arg_groups=None):
         # Prevent other rez.* loggers from printing debugs
         logging.getLogger('rez').setLevel(logging.INFO)
 
-    from rez.pip import pip_install_package, run_pip_command
+    from rez.pip import pip_install_package
     import warnings
 
     if not (opts.search or opts.install):
