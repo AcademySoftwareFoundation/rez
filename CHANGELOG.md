@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.92.0 (2021-07-13)
+[Source](https://github.com/nerdvegas/rez/tree/2.92.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.91.0...2.92.0)
+
+**Merged pull requests:**
+
+- PR: Ensure that "ViewGraphButton" menu instance is not garbage collected. [\#1103](https://github.com/nerdvegas/rez/pull/1103) ([KelSolaar](https://github.com/KelSolaar))
+- Remove the -s flag to rez-pip because "pip search" is decommissioned [\#1105](https://github.com/nerdvegas/rez/pull/1105) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+**Closed issues:**
+
+- Deprecate rez-pip -s flag because pip-search is disabled and will likely not return [\#1104](https://github.com/nerdvegas/rez/issues/1104)
+
 ## 2.91.0 (2021-06-16)
 [Source](https://github.com/nerdvegas/rez/tree/2.91.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.3...2.91.0)
 
