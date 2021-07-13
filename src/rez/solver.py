@@ -18,7 +18,7 @@ from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
-    PackageFamilyNotFoundError, RezSystemError
+    PackageFamilyNotFoundError, RezSystemError, PackageRequestError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
@@ -962,11 +962,22 @@ class _PackageScope(_Common):
         self.package_request = None
         self.variant_slice = None
         self.pr = solver.pr
+
         self.is_ephemeral = (package_request.name.startswith('.'))
+        self.is_provides = (package_request.name.startswith(".provides."))
+
+        # we store 'provides' scopes as the package being provided, this
+        # simplifies the solver
+        #
+        if self.is_provides:
+            self.package_name = package_request.name[len(".provides."):]
+            self.package_request = Requirement.construct(
+                self.package_name, package_request.range)
 
         if package_request.conflict or self.is_ephemeral:
             # these cases don't actually contain variants
             self.package_request = package_request
+
         else:
             self.variant_slice = solver._get_variant_slice(
                 package_request.name, package_request.range)
@@ -990,6 +1001,24 @@ class _PackageScope(_Common):
             of the given range removed. If there were no removals, self is
             returned. If all variants were removed, None is returned.
         """
+
+        # a package is getting added to the solve, that is already 'provided'
+        if self.is_provides:
+            intersect_range = range_ & self.package_request.range
+
+            # if (eg) python-3 is added, but python-2 is already 'provided',
+            # treat this as a conflict
+            #
+            if intersect_range is None:
+                if self.pr:
+                    self.pr(
+                        "%s intersected with range '%s' resulted in conflict",
+                        self, range_
+                    )
+                return None
+
+            # any overlap with a provides gives way to that provide
+            return self
 
         # ephemerals are just a range intersection
         if self.is_ephemeral:
@@ -1184,7 +1213,10 @@ class _PackageScope(_Common):
 
     def __str__(self):
         if self.variant_slice is None:
-            return str(self.package_request)
+            if self.is_provides:
+                return ".provides." + str(self.package_request)
+            else:
+                return str(self.package_request)
         else:
             return str(self.variant_slice)
 
@@ -1316,6 +1348,8 @@ class _ResolvePhase(_Common):
                 req_fams = []
 
                 with self.solver.timed(self.solver.intersection_test_time):
+
+                    # standard intersections
                     for i, scope in enumerate(scopes):
                         extracted_req = extracted_requests.get(scope.package_name)
 
@@ -1358,7 +1392,8 @@ class _ResolvePhase(_Common):
                 # add new scopes
                 new_extracted_reqs = [
                     x for x in extracted_requests.requirements
-                    if x.name not in req_fams]
+                    if x.name not in req_fams
+                ]
 
                 if new_extracted_reqs:
                     self.pr.subheader("ADDING:")
