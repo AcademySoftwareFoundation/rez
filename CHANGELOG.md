@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.93.0 (2021-07-13)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.92.0...2.93.0)
+
+**Merged pull requests:**
+
+- added minimal cli test [\#1106](https://github.com/nerdvegas/rez/pull/1106) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.92.0 (2021-07-13)
 [Source](https://github.com/nerdvegas/rez/tree/2.92.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.91.0...2.92.0)
 
