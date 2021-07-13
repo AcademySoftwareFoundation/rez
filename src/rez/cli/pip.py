@@ -47,8 +47,9 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.pip import pip_install_package
     import warnings
 
-    if not (opts.search or opts.install):
-        parser.error("Expected one of: --install, --search")
+    # a bit weird, but there used to be more options. Leave like this for now
+    if not opts.install:
+        parser.error("Expected one of: --install")
 
     if opts.pip_ver:
         with warnings.catch_warnings():
