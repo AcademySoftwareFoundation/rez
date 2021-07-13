@@ -57,3 +57,4 @@ by hand; the 'benchmark' Github workflow does this automatically.
 | 2.91.0 | 2.7 | Linux-5.8.0-1033-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) CPU E5-2673 v3 @ 2.40GHz | 2 | 1.81 | 3.14 | 3.19 |
 | 2.91.0 | 3.7 | Linux-5.8.0-1033-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.49 | 2.80 | 2.88 |
 | 2.92.0 | 2.7 | Linux-5.8.0-1036-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.53 | 2.65 | 2.68 |
+| 2.92.0 | 3.7 | Linux-5.8.0-1036-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.61 | 2.70 | 2.77 |
