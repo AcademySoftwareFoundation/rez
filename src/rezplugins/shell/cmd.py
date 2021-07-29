@@ -204,7 +204,7 @@ class CMD(Shell):
 
         if startup_sequence["command"] is not None:
             _record_shell(executor, files=startup_sequence["files"])
-            shell_command = startup_sequence["command"]
+            shell_command = self.escape_string(startup_sequence["command"])
         else:
             _record_shell(executor, files=startup_sequence["files"], print_msg=(not quiet))
 

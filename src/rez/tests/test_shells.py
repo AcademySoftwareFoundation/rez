@@ -197,6 +197,21 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
+    def test_rez_env_output_special_chars(self):
+        # here we are making sure that running a command with special chars
+        # via rez-env prints exactly what we expect.
+
+        # Assumes that the shell has an echo command, build-in or alias
+        cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "<hey>"]
+        process = subprocess.Popen(
+            cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, universal_newlines=True
+        )
+        sh_out = process.communicate()
+        self.assertEqual(sh_out[0].strip(), "<hey>")
+
+    @per_available_shell()
+    @install_dependent()
     def test_rez_command(self):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
