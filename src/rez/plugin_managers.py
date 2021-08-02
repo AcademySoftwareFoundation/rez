@@ -8,6 +8,7 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.vendor.six import six
 from rez.exceptions import RezPluginError
+from zipimport import zipimporter
 import pkgutil
 import os.path
 import sys
@@ -302,9 +303,22 @@ class RezPluginManager(object):
             if not ispkg:
                 continue
 
-            module_path = os.path.join(importer.path, name)
-            if os.path.isdir(os.path.join(module_path, "rezplugins")):
-                paths.append(module_path)
+            if isinstance(importer, zipimporter):
+                init_path = os.path.join(name, "rezplugins", "__init__.pyc")
+                try:
+                    importer.get_data(init_path)
+                except (IOError, OSError):
+                    continue
+                else:
+                    module_path = os.path.join(importer.archive, name)
+
+            else:
+                module_path = os.path.join(importer.path, name)
+                init_path = os.path.join(module_path, "rezplugins", "__init__.py")
+                if not os.path.isfile(init_path):
+                    continue
+
+            paths.append(module_path)
 
         return paths
 
