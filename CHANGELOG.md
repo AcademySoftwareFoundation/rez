@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.93.2 (2021-08-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.1...2.93.2)
+
+**Merged pull requests:**
+
+- Prevent alias (windows function) to store all arguments in one string instead of an array of strings [\#1101](https://github.com/nerdvegas/rez/pull/1101) ([aguiot](https://github.com/aguiot))
+
 ## 2.93.1 (2021-08-03)
 [Source](https://github.com/nerdvegas/rez/tree/2.93.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.0...2.93.1)
 
