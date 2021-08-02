@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.93.1 (2021-08-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.0...2.93.1)
+
+**Merged pull requests:**
+
+- handling archived lib when scanning rezplugins (fix #1108) [\#1109](https://github.com/nerdvegas/rez/pull/1109) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- PluginManager.rezplugins_module_paths breaks with zipped Python [\#1108](https://github.com/nerdvegas/rez/issues/1108)
+
 ## 2.93.0 (2021-07-13)
 [Source](https://github.com/nerdvegas/rez/tree/2.93.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.92.0...2.93.0)
 
