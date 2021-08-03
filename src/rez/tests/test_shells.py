@@ -195,6 +195,12 @@ class TestShells(TestBase, TempdirMixin):
             sh_out = process.communicate()
             self.assertEqual(sh_out[0].strip(), txt)
 
+        # please note - it's no coincidence that there are no substrings like
+        # '$you' here. These would expand to the equivalent env-var (as
+        # intended), which would be an empty string. We're not testing that
+        # here though.
+        #
+
         _test("hey")  # simple case
         _test("hey you")  # with a space
         _test("<hey>")  # special characters
