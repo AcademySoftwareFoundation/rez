@@ -7,6 +7,7 @@ from rez.shells import Shell
 from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
+from rez.util import shlex_join
 from rez.vendor.six import six
 from functools import partial
 import os
@@ -354,9 +355,7 @@ class CMD(Shell):
 
     @classmethod
     def join(cls, command):
-        # TODO: This may disappear in future [1]
-        # [1] https://bugs.python.org/issue10838
-        return subprocess.list2cmdline(command)
+        return shlex_join(command)
 
     @classmethod
     def line_terminator(cls):

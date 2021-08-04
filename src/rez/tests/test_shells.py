@@ -10,6 +10,7 @@ from rez.rex import literal, expandable
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
+from rez.util import shlex_join
 from rez.bind import hello_world
 import unittest
 import subprocess
@@ -193,7 +194,7 @@ class TestShells(TestBase, TempdirMixin):
                 stderr=subprocess.PIPE, universal_newlines=True
             )
             sh_out = process.communicate()
-            self.assertEqual(sh_out[0].strip(), txt)
+            self.assertEqual(sh_out[0].strip(), shlex_join([txt]))
 
         # please note - it's no coincidence that there are no substrings like
         # '$you' here. These would expand to the equivalent env-var (as

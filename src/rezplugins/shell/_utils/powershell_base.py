@@ -8,6 +8,7 @@ from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
+from rez.util import shlex_join
 
 
 class PowerShellBase(Shell):
@@ -304,9 +305,7 @@ class PowerShellBase(Shell):
 
     @classmethod
     def join(cls, command):
-        # TODO: This may disappear in future [1]
-        # [1] https://bugs.python.org/issue10838
-        return list2cmdline(command)
+        return shlex_join(command)
 
     @classmethod
     def line_terminator(cls):
