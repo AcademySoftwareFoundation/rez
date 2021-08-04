@@ -1,6 +1,6 @@
 import os
 import re
-from subprocess import PIPE, list2cmdline
+from subprocess import PIPE
 
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
