@@ -157,7 +157,8 @@ class TestPackageCache(TestBase, TempdirMixin):
         for ref in ("resolve.timestamped.root", "'{resolve.timestamped.root}'"):
             proc = c.execute_rex_code(
                 code="info(%s)" % ref,
-                stdout=subprocess.PIPE
+                stdout=subprocess.PIPE,
+                universal_newlines=True
             )
 
             out, _ = proc.communicate()
