@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.93.3 (2021-08-05)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.2...2.93.3)
+
+**Merged pull requests:**
+
+- fixed always-0 exitcode in pytest-based selftest [\#1118](https://github.com/nerdvegas/rez/pull/1118) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- failed tests in pytest-enabled rez-selftest are not getting picked up [\#1117](https://github.com/nerdvegas/rez/issues/1117)
+
 ## 2.93.2 (2021-08-03)
 [Source](https://github.com/nerdvegas/rez/tree/2.93.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.1...2.93.2)
 
