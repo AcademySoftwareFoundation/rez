@@ -124,7 +124,8 @@ def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
     if extra_arg_groups:
         argv += extra_arg_groups[0]
 
-    main(args=argv)
+    exitcode = main(args=argv)
+    sys.exit(exitcode)
 
 
 # Copyright 2013-2016 Allan Johns.
