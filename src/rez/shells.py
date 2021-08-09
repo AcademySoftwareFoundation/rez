@@ -285,7 +285,7 @@ class Shell(ActionInterpreter):
         Returns:
             A string object representing the command.
         """
-        raise NotImplementedError
+        return shlex_join(command)
 
 
 class UnixShell(Shell):
@@ -515,10 +515,6 @@ class UnixShell(Shell):
     @classmethod
     def get_all_key_tokens(cls, key):
         return ["${%s}" % key, "$%s" % key]
-
-    @classmethod
-    def join(cls, command):
-        return shlex_join(command)
 
     @classmethod
     def line_terminator(cls):

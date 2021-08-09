@@ -353,12 +353,6 @@ class CMD(Shell):
         return ["%{}%".format(key)]
 
     @classmethod
-    def join(cls, command):
-        # TODO: This may disappear in future [1]
-        # [1] https://bugs.python.org/issue10838
-        return subprocess.list2cmdline(command)
-
-    @classmethod
     def line_terminator(cls):
         return "\r\n"
 
