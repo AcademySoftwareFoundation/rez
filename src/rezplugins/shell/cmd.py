@@ -353,6 +353,11 @@ class CMD(Shell):
         return ["%{}%".format(key)]
 
     @classmethod
+    def join(cls, command):
+        inst = cls()
+        return ' '.join(inst.escape_string(x) for x in command)
+
+    @classmethod
     def line_terminator(cls):
         return "\r\n"
 

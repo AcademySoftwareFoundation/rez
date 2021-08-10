@@ -184,7 +184,7 @@ class TestShells(TestBase, TempdirMixin):
     @per_available_shell()
     @install_dependent()
     def test_rez_env_output(self):
-        def _test(txt, edge_cases={}):
+        def _test(txt):
             # Assumes that the shell has an echo command, build-in or alias
             binpath = os.path.join(system.rez_bin_path, "rez-env")
             args = [binpath, "--", "echo", txt]
@@ -194,9 +194,7 @@ class TestShells(TestBase, TempdirMixin):
                 stderr=subprocess.PIPE, universal_newlines=True
             )
             sh_out = process.communicate()
-
-            expected = edge_cases.get(config.default_shell, txt)
-            self.assertEqual(sh_out[0].strip(), expected)
+            self.assertEqual(sh_out[0].strip(), txt)
 
         # please note - it's no coincidence that there are no substrings like
         # '$you' here. These would expand to the equivalent env-var (as
@@ -205,7 +203,7 @@ class TestShells(TestBase, TempdirMixin):
         #
 
         _test("hey")  # simple case
-        _test("hey you", {"cmd": '"hey you"'})  # with a space
+        _test("hey you")  # with a space
         _test("<hey>")  # special characters
         _test("!hey>$")  # more special characters
         _test("'hey'")  # single quotes
