@@ -3,7 +3,6 @@ test shell invocation
 """
 from __future__ import print_function
 
-from rez.config import config
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
