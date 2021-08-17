@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.94.0 (2021-08-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.94.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.3...2.94.0)
+
+**Merged pull requests:**
+
+- quoting fix [\#1115](https://github.com/nerdvegas/rez/pull/1115) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- bug in command quoting [\#1114](https://github.com/nerdvegas/rez/issues/1114)
+
 ## 2.93.3 (2021-08-05)
 [Source](https://github.com/nerdvegas/rez/tree/2.93.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.2...2.93.3)
 
