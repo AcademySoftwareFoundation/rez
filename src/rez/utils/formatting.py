@@ -73,6 +73,19 @@ class PackageRequest(Requirement):
         if s.startswith('.'):
             self.ephemeral = True
             is_valid_package_name(self.name[1:], True)
+
+            # not provides is not supported, eg:
+            # rez-env foo !.provides.python-3
+            # This could be read as 'I want foo but not the version that
+            # provides python-3.*' however, due to the way the solver works,
+            # this is not supported.
+            #
+            if s.startswith(".provides.") and self.conflict:
+                raise PackageRequestError(
+                    "Conflict or weak request operator is not supported "
+                    "in 'provides' construct"
+                )
+
         else:
             self.ephemeral = False
             is_valid_package_name(self.name, True)

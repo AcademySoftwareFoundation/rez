@@ -966,15 +966,18 @@ class _PackageScope(_Common):
         self.is_ephemeral = (package_request.name.startswith('.'))
         self.is_provides = (package_request.name.startswith(".provides."))
 
-        # we store 'provides' scopes as the package being provided, this
-        # simplifies the solver
+        # we store 'provides' scopes as the package being provided, but with
+        # is_provides=true. We have to do it this way, because the solver
+        # is based on the premise that package requests are narrowed - it
+        # cannot represent a request for one package narrowing a different
+        # package request.
         #
         if self.is_provides:
             self.package_name = package_request.name[len(".provides."):]
             self.package_request = Requirement.construct(
                 self.package_name, package_request.range)
 
-        if package_request.conflict or self.is_ephemeral:
+        elif package_request.conflict or self.is_ephemeral:
             # these cases don't actually contain variants
             self.package_request = package_request
 
@@ -1003,6 +1006,8 @@ class _PackageScope(_Common):
         """
 
         # a package is getting added to the solve, that is already 'provided'
+        # by this scope
+        #
         if self.is_provides:
             intersect_range = range_ & self.package_request.range
 
@@ -1214,7 +1219,9 @@ class _PackageScope(_Common):
     def __str__(self):
         if self.variant_slice is None:
             if self.is_provides:
-                return ".provides." + str(self.package_request)
+                # TODO temp?
+                #return ".provides." + str(self.package_request)
+                return "provides(%s)" % self.package_request
             else:
                 return str(self.package_request)
         else:
@@ -1720,11 +1727,12 @@ class _ResolvePhase(_Common):
 
         # create scope nodes
         for scope in self.scopes:
+
+            # special case - a scope that matches an initial conflict request,
+            # we switch nodes so the request node becomes a scope node
             if scope.is_conflict:
                 id1 = request_nodes.get(scope.package_request)
                 if id1 is not None:
-                    # special case - a scope that matches an initial conflict request,
-                    # we switch nodes so the request node becomes a scope node
                     scope_nodes[scope.package_name] = id1
                     del request_nodes[scope.package_request]
                     continue
@@ -1738,6 +1746,7 @@ class _ResolvePhase(_Common):
                 id2 = scope_nodes.get(request.name)
                 if id2 is not None:
                     _add_edge(id1, id2)
+                    pass
 
         # for solved scopes, create (scope -> requirement) edge
         for scope in self.scopes:
