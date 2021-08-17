@@ -6,7 +6,7 @@ import json
 from rez.config import config
 from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
     TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.vendor.version.version import Version
 
