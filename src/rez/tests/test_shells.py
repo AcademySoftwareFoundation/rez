@@ -183,17 +183,31 @@ class TestShells(TestBase, TempdirMixin):
     @per_available_shell()
     @install_dependent()
     def test_rez_env_output(self):
-        # here we are making sure that running a command via rez-env prints
-        # exactly what we expect.
+        def _test(txt):
+            # Assumes that the shell has an echo command, build-in or alias
+            binpath = os.path.join(system.rez_bin_path, "rez-env")
+            args = [binpath, "--", "echo", txt]
 
-        # Assumes that the shell has an echo command, build-in or alias
-        cmd = [os.path.join(system.rez_bin_path, "rez-env"), "--", "echo", "hey"]
-        process = subprocess.Popen(
-            cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, universal_newlines=True
-        )
-        sh_out = process.communicate()
-        self.assertEqual(sh_out[0].strip(), "hey")
+            process = subprocess.Popen(
+                args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, universal_newlines=True
+            )
+            sh_out = process.communicate()
+            self.assertEqual(sh_out[0].strip(), txt)
+
+        # please note - it's no coincidence that there are no substrings like
+        # '$you' here. These would expand to the equivalent env-var (as
+        # intended), which would be an empty string. We're not testing that
+        # here though.
+        #
+
+        _test("hey")  # simple case
+        _test("hey you")  # with a space
+        _test("<hey>")  # special characters
+        _test("!hey>$")  # more special characters
+        _test("'hey'")  # single quotes
+        _test('"hey"')  # double quotes
+        _test("hey ?yeah> 'you'..^!")  # throw lots of stuff at it
 
     @per_available_shell()
     @install_dependent()

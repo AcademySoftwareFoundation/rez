@@ -1,6 +1,6 @@
 import os
 import re
-from subprocess import PIPE, list2cmdline
+from subprocess import PIPE
 
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
@@ -301,12 +301,6 @@ class PowerShellBase(Shell):
     @classmethod
     def get_all_key_tokens(cls, key):
         return ["${Env:%s}" % key, "$Env:%s" % key]
-
-    @classmethod
-    def join(cls, command):
-        # TODO: This may disappear in future [1]
-        # [1] https://bugs.python.org/issue10838
-        return list2cmdline(command)
 
     @classmethod
     def line_terminator(cls):
