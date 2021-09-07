@@ -495,8 +495,8 @@ def _get_distribution_files_mapping(distribution, targetdir):
 
         # Special case - dist-info files. These are all in a '<pkgname>-<version>.dist-info'
         # dir. We keep this dir and place it in the root dir of the rez package.
-        #
-        if topdir.endswith(".dist-info"):
+        # This behavior can be disable with config `pip_override_dist_info_remap = False`
+        if config.get("pip_install_override_dist_info_remap", True) and topdir.endswith(".dist-info"):
             return (rel_src, rel_src)
 
         # Remapping of other installed files according to manifest

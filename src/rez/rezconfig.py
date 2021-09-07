@@ -918,6 +918,10 @@ pip_install_remaps = [
     },
 ]
 
+# If this is False, *.dist-info/* files will be placed in {root}/python/*.dist-info/*.
+# If this is True, *.dist-info/* files will be placed in {root}/*.dist-info/*.
+pip_install_override_dist_info_remap = True
+
 # Optional variables. A dict type config for storing arbitrary data that can be
 # accessed by the [optionvars](Package-Commands#optionvars) function in packages
 # *commands*.

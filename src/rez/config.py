@@ -354,6 +354,7 @@ config_schema = Schema({
     "memcached_uri":                                OptionalStrList,
     "pip_extra_args":                               OptionalStrList,
     "pip_install_remaps":                           PipInstallRemaps,
+    "pip_install_override_dist_info_remap":         Bool,
     "local_packages_path":                          Str,
     "release_packages_path":                        Str,
     "dot_image_format":                             Str,
