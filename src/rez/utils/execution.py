@@ -58,9 +58,12 @@ class Popen(_PopenBase):
                 AttributeError,
                 UnsupportedOperation  # https://github.com/nerdvegas/rez/pull/966
             ):
-                file_no = sys.__stdin__.fileno()
+                if sys.__stdin__ is None:
+                    file_no = None
+                else:
+                    file_no = sys.__stdin__.fileno()
 
-            if file_no not in (0, 1, 2):
+            if file_no is None or file_no not in (0, 1, 2):
                 kwargs["stdin"] = subprocess.PIPE
 
         # Add support for the new py3 "text" arg, which is equivalent to
