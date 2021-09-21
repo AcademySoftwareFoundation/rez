@@ -494,10 +494,11 @@ def _get_distribution_files_mapping(distribution, targetdir):
         topdir = rel_src.split(os.sep)[0]
 
         # Special case - dist-info files. These are all in a '<pkgname>-<version>.dist-info'
-        # dir. We keep this dir and place it in the root dir of the rez package.
+        # dir. We keep this dir and place it in the root 'python' dir of the rez package.
         #
         if topdir.endswith(".dist-info"):
-            return (rel_src, rel_src)
+            rel_dest = os.path.join("python", rel_src)
+            return (rel_src, rel_dest)
 
         # Remapping of other installed files according to manifest
         if topdir == os.pardir:
