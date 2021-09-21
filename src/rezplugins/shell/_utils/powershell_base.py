@@ -3,11 +3,13 @@ import re
 from subprocess import PIPE
 
 from rez.config import config
+from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
+from rez.util import shlex_join
 
 
 class PowerShellBase(Shell):
@@ -305,3 +307,11 @@ class PowerShellBase(Shell):
     @classmethod
     def line_terminator(cls):
         return "\n"
+
+    @classmethod
+    def join(cls, command):
+        if isinstance(command, six.string_types):
+            return command
+
+        # add call operator in case executable gets quotes applied
+        return "& " + shlex_join(command)
