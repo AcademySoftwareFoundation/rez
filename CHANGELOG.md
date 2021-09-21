@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.95.0 (2021-09-21)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.94.0...2.95.0)
+
+**Merged pull requests:**
+
+- Fix  fileno() error in Maya2022 [\#1124](https://github.com/nerdvegas/rez/pull/1124) ([yanshil](https://github.com/yanshil))
+- copy dist-info to python subdur in rez-pip [\#1128](https://github.com/nerdvegas/rez/pull/1128) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-pip installs dist-info dir to root, causes probs with some pkgs [\#892](https://github.com/nerdvegas/rez/issues/892)
+
 ## 2.94.0 (2021-08-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.94.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.3...2.94.0)
 
