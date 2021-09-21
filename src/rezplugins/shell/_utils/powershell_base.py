@@ -314,4 +314,6 @@ class PowerShellBase(Shell):
             return command
 
         # add call operator in case executable gets quotes applied
+        # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_operators?view=powershell-7.1#call-operator-
+        #
         return "& " + shlex_join(command)
