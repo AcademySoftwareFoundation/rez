@@ -181,7 +181,7 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
-    @per_available_shell(exclude=["cmd", "powershell", "csh", "tcsh"])
+    @per_available_shell(exclude=["cmd", "powershell", "pwsh", "csh", "tcsh"])
     @install_dependent()
     def test_rez_env_output(self):
         target_shell = config.default_shell  # overridden by test util
