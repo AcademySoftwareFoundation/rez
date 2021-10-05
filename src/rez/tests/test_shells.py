@@ -181,7 +181,7 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
-    @per_available_shell()
+    @per_available_shell(exclude=["cmd", "powershell", "csh", "tcsh"])
     @install_dependent()
     def test_rez_env_output(self):
         target_shell = config.default_shell  # overridden by test util
@@ -197,7 +197,7 @@ class TestShells(TestBase, TempdirMixin):
             )
             sh_out = process.communicate()
             if sh_out[1]:
-                raise Exception("Command failed:\n%s" % sh_out[1])
+                raise Exception("Command %r failed:\n%s" % (txt, sh_out[1]))
             self.assertEqual(sh_out[0].strip(), txt)
 
         # please note - it's no coincidence that there are no substrings like
