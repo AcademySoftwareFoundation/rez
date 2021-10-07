@@ -360,6 +360,28 @@ class TestRex(TestBase):
                        'BAH': 'omg',
                        'FOO': os.pathsep.join(['omg', '${BAH}', 'like']) + ', $SHE said, omg'})
 
+    def test_10(self):
+        """Test env __contains__"""
+
+        def _test(func, env, expected):
+            ex = self._create_executor(env=env)
+            self.assertEqual(expected, ex.execute_function(func))
+
+        def _rex_1():
+            return {
+                "A": "A" in env.keys(),
+                "B": "B" in env.keys(),
+            }
+
+        def _rex_2():
+            return {
+                "A": "A" in env,
+                "B": "B" in env,
+            }
+
+        _test(_rex_1, {"A": "foo"}, {"A": True, "B": False})
+        _test(_rex_2, {"A": "foo"}, {"A": True, "B": False})
+
     def test_version_binding(self):
         """Test the Rex binding of the Version class."""
         v = VersionBinding(Version("1.2.3alpha"))
