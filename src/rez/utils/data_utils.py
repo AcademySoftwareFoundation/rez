@@ -354,6 +354,9 @@ class AttrDictWrapper(MutableMapping):
     def __delitem__(self, key):
         del self._data[key]
 
+    def __contains__(self, key):
+        return key in self._data
+
     def __iter__(self):
         return iter(self._data)
 
