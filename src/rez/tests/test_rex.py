@@ -361,7 +361,7 @@ class TestRex(TestBase):
                        'FOO': os.pathsep.join(['omg', '${BAH}', 'like']) + ', $SHE said, omg'})
 
     def test_10(self):
-        """Test env __contains__"""
+        """Test env __contains__ and __bool__"""
 
         def _test(func, env, expected):
             ex = self._create_executor(env=env)
@@ -379,8 +379,12 @@ class TestRex(TestBase):
                 "B": "B" in env,
             }
 
-        _test(_rex_1, {"A": "foo"}, {"A": True, "B": False})
-        _test(_rex_2, {"A": "foo"}, {"A": True, "B": False})
+        def _rex_3():
+            return env.get("B") or "not b"
+
+        _test(_rex_1, env={"A": "foo"}, expected={"A": True, "B": False})
+        _test(_rex_2, env={"A": "foo"}, expected={"A": True, "B": False})
+        _test(_rex_3, env={}, expected="not b")
 
     def test_version_binding(self):
         """Test the Rex binding of the Version class."""
