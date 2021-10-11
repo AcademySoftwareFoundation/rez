@@ -198,8 +198,10 @@ def program_dependent(program_name, *program_names):
     return decorator
 
 
-def per_available_shell():
+def per_available_shell(exclude=None):
     """Function decorator that runs the function over all available shell types."""
+    exclude = exclude or []
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -216,6 +218,10 @@ def per_available_shell():
             ]
 
             for shell in shells:
+                if not only_shell and shell in exclude:
+                    print("\nshell excluded from this test: %s..." % shell)
+                    continue
+
                 print("\ntesting in shell: %s..." % shell)
                 config.override("default_shell", shell)
 

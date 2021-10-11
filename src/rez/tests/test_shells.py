@@ -11,6 +11,7 @@ from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.bind import hello_world
+from rez.config import config
 import unittest
 import subprocess
 import tempfile
@@ -180,19 +181,23 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
-    @per_available_shell()
+    @per_available_shell(exclude=["cmd", "powershell", "pwsh", "csh", "tcsh"])
     @install_dependent()
     def test_rez_env_output(self):
+        target_shell = config.default_shell  # overridden by test util
+
         def _test(txt):
             # Assumes that the shell has an echo command, build-in or alias
             binpath = os.path.join(system.rez_bin_path, "rez-env")
-            args = [binpath, "--", "echo", txt]
+            args = [binpath, "--shell", target_shell, "--", "echo", txt]
 
             process = subprocess.Popen(
                 args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, universal_newlines=True
             )
             sh_out = process.communicate()
+            if sh_out[1]:
+                raise Exception("Command %r failed:\n%s" % (txt, sh_out[1]))
             self.assertEqual(sh_out[0].strip(), txt)
 
         # please note - it's no coincidence that there are no substrings like
