@@ -10,10 +10,10 @@ import logging
 import uuid
 from rez.vendor.enum import Enum
 
-import rez.vendor.pika.frame as frame
-import rez.vendor.pika.exceptions as exceptions
-import rez.vendor.pika.spec as spec
-import rez.vendor.pika.validators as validators
+from rez.vendor.pika import frame
+from rez.vendor.pika import exceptions
+from rez.vendor.pika import spec
+from rez.vendor.pika import validators
 from rez.vendor.pika.compat import unicode_type, dictkeys, is_integer
 from rez.vendor.pika.exchange_type import ExchangeType
 

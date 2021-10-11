@@ -1,7 +1,7 @@
 """Handle AMQP Heartbeats"""
 import logging
 
-import rez.vendor.pika.exceptions as pika_exceptions
+import rez.vendor.pika.exceptions
 from rez.vendor.pika import frame
 
 LOGGER = logging.getLogger(__name__)
@@ -153,7 +153,7 @@ class HeartbeatChecker(object):
         # close the AMQP connection since lack of heartbeat suggests that the
         # stream is dead.
         self._connection._terminate_stream(  # pylint: disable=W0212
-            pika_exceptions.AMQPHeartbeatTimeout(text))
+            rez.vendor.pika.exceptions.AMQPHeartbeatTimeout(text))
 
     @property
     def _has_received_data(self):

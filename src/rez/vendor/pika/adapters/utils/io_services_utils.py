@@ -16,8 +16,8 @@ import traceback
 
 from rez.vendor.pika.adapters.utils.nbio_interface import (AbstractIOReference,
                                                            AbstractStreamTransport)
-import rez.vendor.pika.compat as pika_compat
-import pika.diagnostic_utils as pika_diagnostic_utils
+import rez.vendor.pika.compat
+import rez.vendor.pika.diagnostic_utils
 
 # "Try again" error codes for non-blocking socket I/O - send()/recv().
 # NOTE: POSIX.1 allows either error to be returned for this case and doesn't require
@@ -38,7 +38,7 @@ _CONNECTION_IN_PROGRESS_SOCK_ERROR_CODES = (
 _LOGGER = logging.getLogger(__name__)
 
 # Decorator that logs exceptions escaping from the decorated function
-_log_exceptions = pika_diagnostic_utils.create_log_exception_decorator(_LOGGER)  # pylint: disable=C0103
+_log_exceptions = rez.vendor.pika.diagnostic_utils.create_log_exception_decorator(_LOGGER)  # pylint: disable=C0103
 
 
 def check_callback_arg(callback, name):
@@ -77,7 +77,7 @@ def _retry_on_sigint(func):
         while True:
             try:
                 return func(*args, **kwargs)
-            except pika_compat.SOCKET_ERROR as error:
+            except rez.vendor.pika.compat.SOCKET_ERROR as error:
                 if error.errno == errno.EINTR:
                     continue
                 else:
@@ -300,8 +300,8 @@ class _AsyncSocketConnector(object):
 
         try:
             self._sock.connect(self._addr)
-        except (Exception, pika_compat.SOCKET_ERROR) as error:  # pylint: disable=W0703
-            if (isinstance(error, pika_compat.SOCKET_ERROR) and
+        except (Exception, rez.vendor.pika.compat.SOCKET_ERROR) as error:  # pylint: disable=W0703
+            if (isinstance(error, rez.vendor.pika.compat.SOCKET_ERROR) and
                     error.errno in _CONNECTION_IN_PROGRESS_SOCK_ERROR_CODES):
                 # Connection establishment is pending
                 pass
@@ -348,7 +348,7 @@ class _AsyncSocketConnector(object):
             error_msg = os.strerror(error_code)
             _LOGGER.error('Socket failed to connect: %s; error=%s (%s)',
                           self._sock, error_code, error_msg)
-            result = pika_compat.SOCKET_ERROR(error_code, error_msg)
+            result = rez.vendor.pika.compat.SOCKET_ERROR(error_code, error_msg)
 
         self._report_completion(result)
 
@@ -883,7 +883,7 @@ class _AsyncTransportBase(  # pylint: disable=W0223
                          self._state, self._sock)
             try:
                 self._sock.shutdown(socket.SHUT_RDWR)
-            except pika_compat.SOCKET_ERROR:
+            except rez.vendor.pika.compat.SOCKET_ERROR:
                 pass
             self._sock.close()
             self._sock = None
@@ -1063,8 +1063,8 @@ class _AsyncPlaintextTransport(_AsyncTransportBase):
                     _LOGGER.info('protocol.eof_received() elected to close: %s',
                                  self._sock)
                     self._initiate_abort(None)
-        except (Exception, pika_compat.SOCKET_ERROR) as error:  # pylint: disable=W0703
-            if (isinstance(error, pika_compat.SOCKET_ERROR) and
+        except (Exception, rez.vendor.pika.compat.SOCKET_ERROR) as error:  # pylint: disable=W0703
+            if (isinstance(error, rez.vendor.pika.compat.SOCKET_ERROR) and
                     error.errno in _TRY_IO_AGAIN_SOCK_ERROR_CODES):
                 _LOGGER.debug('Recv would block on %s', self._sock)
             else:
@@ -1101,8 +1101,8 @@ class _AsyncPlaintextTransport(_AsyncTransportBase):
         try:
             # Transmit buffered data to remote socket
             self._produce()
-        except (Exception, pika_compat.SOCKET_ERROR) as error:  # pylint: disable=W0703
-            if (isinstance(error, pika_compat.SOCKET_ERROR) and
+        except (Exception, rez.vendor.pika.compat.SOCKET_ERROR) as error:  # pylint: disable=W0703
+            if (isinstance(error, rez.vendor.pika.compat.SOCKET_ERROR) and
                     error.errno in _TRY_IO_AGAIN_SOCK_ERROR_CODES):
                 _LOGGER.debug('Send would block on %s', self._sock)
             else:

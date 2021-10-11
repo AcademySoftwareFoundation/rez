@@ -13,10 +13,10 @@ testing and lessening the maintenance burden.
 """
 import abc
 
-import rez.vendor.pika.compat as pika_compat
+import rez.vendor.pika.compat
 
 
-class AbstractIOServices(pika_compat.AbstractBase):
+class AbstractIOServices(rez.vendor.pika.compat.AbstractBase):
     """Interface to I/O services required by `pika.adapters.BaseConnection` and
     related utilities.
 
@@ -210,7 +210,7 @@ class AbstractIOServices(pika_compat.AbstractBase):
         raise NotImplementedError
 
 
-class AbstractFileDescriptorServices(pika_compat.AbstractBase):
+class AbstractFileDescriptorServices(rez.vendor.pika.compat.AbstractBase):
     """Interface definition of common non-blocking file descriptor services
     required by some utility implementations.
 
@@ -276,7 +276,7 @@ class AbstractFileDescriptorServices(pika_compat.AbstractBase):
         raise NotImplementedError
 
 
-class AbstractTimerReference(pika_compat.AbstractBase):
+class AbstractTimerReference(rez.vendor.pika.compat.AbstractBase):
     """Reference to asynchronous operation"""
 
     @abc.abstractmethod
@@ -286,7 +286,7 @@ class AbstractTimerReference(pika_compat.AbstractBase):
         raise NotImplementedError
 
 
-class AbstractIOReference(pika_compat.AbstractBase):
+class AbstractIOReference(rez.vendor.pika.compat.AbstractBase):
     """Reference to asynchronous I/O operation"""
 
     @abc.abstractmethod
@@ -299,7 +299,7 @@ class AbstractIOReference(pika_compat.AbstractBase):
         raise NotImplementedError
 
 
-class AbstractStreamProtocol(pika_compat.AbstractBase):
+class AbstractStreamProtocol(rez.vendor.pika.compat.AbstractBase):
     """Stream protocol interface. It's compatible with a subset of
     `asyncio.protocols.Protocol` for compatibility with asyncio-based
     `AbstractIOServices` implementation.
@@ -373,7 +373,7 @@ class AbstractStreamProtocol(pika_compat.AbstractBase):
     #     raise NotImplementedError
 
 
-class AbstractStreamTransport(pika_compat.AbstractBase):
+class AbstractStreamTransport(rez.vendor.pika.compat.AbstractBase):
     """Stream transport interface. It's compatible with a subset of
     `asyncio.transports.Transport` for compatibility with asyncio-based
     `AbstractIOServices` implementation.

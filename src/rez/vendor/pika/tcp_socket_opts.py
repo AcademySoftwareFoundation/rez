@@ -2,7 +2,7 @@
 
 import logging
 import socket
-import rez.vendor.pika.compat as pika_compat
+import rez.vendor.pika.compat
 
 LOGGER = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ _SUPPORTED_TCP_OPTIONS = {}
 try:
     _SUPPORTED_TCP_OPTIONS['TCP_USER_TIMEOUT'] = socket.TCP_USER_TIMEOUT
 except AttributeError:
-    if pika_compat.LINUX_VERSION and pika_compat.LINUX_VERSION >= (2, 6, 37):
+    if rez.vendor.pika.compat.LINUX_VERSION and rez.vendor.pika.compat.LINUX_VERSION >= (2, 6, 37):
         # this is not the timeout value, but the number corresponding
         # to the constant in tcp.h
         # https://github.com/torvalds/linux/blob/master/include/uapi/linux/tcp.h#
@@ -42,6 +42,6 @@ def set_sock_opts(tcp_options, sock):
     for key, value in tcp_options.items():
         option = _SUPPORTED_TCP_OPTIONS.get(key)
         if option:
-            sock.setsockopt(pika_compat.SOL_TCP, option, value)
+            sock.setsockopt(rez.vendor.pika.compat.SOL_TCP, option, value)
         else:
             LOGGER.warning('Unsupported TCP option %s:%s', key, value)

@@ -11,9 +11,9 @@ import functools
 import logging
 import socket
 
-import rez.vendor.pika.compat as pika_compat
-import rez.vendor.pika.exceptions as pika_exceptions
-import pika.tcp_socket_opts as pika_tcp_socket_opts
+import rez.vendor.pika.compat
+import rez.vendor.pika.exceptions
+import rez.vendor.pika.tcp_socket_opts
 from rez.vendor.pika import __version__
 
 _LOG = logging.getLogger(__name__)
@@ -170,9 +170,9 @@ class AMQPConnector(object):
         # Create socket and initiate TCP/IP connection
         self._state = self._STATE_TCP
         self._sock = socket.socket(*self._addr_record[:3])
-        self._sock.setsockopt(pika_compat.SOL_TCP, socket.TCP_NODELAY, 1)
-        pika_tcp_socket_opts.set_sock_opts(self._conn_params.tcp_options,
-                                           self._sock)
+        self._sock.setsockopt(rez.vendor.pika.compat.SOL_TCP, socket.TCP_NODELAY, 1)
+        rez.vendor.pika.tcp_socket_opts.set_sock_opts(self._conn_params.tcp_options,
+                                                      self._sock)
         self._sock.setblocking(False)
 
         addr = self._addr_record[4]
@@ -489,7 +489,7 @@ class AMQPConnector(object):
         self._report_completion_and_cleanup(result)
 
 
-class AbstractAMQPConnectionWorkflow(pika_compat.AbstractBase):
+class AbstractAMQPConnectionWorkflow(rez.vendor.pika.compat.AbstractBase):
     """Interface for implementing a custom TCP/[SSL]/AMQP connection workflow.
 
     """
@@ -852,7 +852,7 @@ class AMQPConnectionWorkflow(AbstractAMQPConnectionWorkflow):
                 _LOG.debug('Ending AMQP connection workflow after first failed '
                            'AMQP handshake due to _until_first_amqp_attempt.')
                 if isinstance(conn_or_exc.exception,
-                              pika_exceptions.ConnectionOpenAborted):
+                              rez.vendor.pika.exceptions.ConnectionOpenAborted):
                     error = AMQPConnectionWorkflowAborted
                 else:
                     error = AMQPConnectionWorkflowFailed(

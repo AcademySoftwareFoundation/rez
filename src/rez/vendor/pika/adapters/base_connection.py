@@ -7,7 +7,7 @@ import abc
 import functools
 import logging
 
-import rez.vendor.pika.exceptions as pika_exceptions
+import rez.vendor.pika.exceptions
 
 from rez.vendor.pika.adapters.utils import connection_workflow, nbio_interface
 from rez.vendor.pika import connection
@@ -329,7 +329,7 @@ class BaseConnection(connection.Connection):
                         and isinstance(
                             conn_or_exc.exceptions[-1], connection_workflow.
                             AMQPConnectorSocketConnectError)):
-                    conn_or_exc = pika_exceptions.AMQPConnectionError(
+                    conn_or_exc = rez.vendor.pika.exceptions.AMQPConnectionError(
                         conn_or_exc)
 
             self._handle_connection_workflow_failure(conn_or_exc)
@@ -417,10 +417,10 @@ class BaseConnection(connection.Connection):
         if error is None:
             # Either result of `eof_received()` or abort
             if self._got_eof:
-                error = pika_exceptions.StreamLostError(
+                error = rez.vendor.pika.exceptions.StreamLostError(
                     'Transport indicated EOF')
         else:
-            error = pika_exceptions.StreamLostError(
+            error = rez.vendor.pika.exceptions.StreamLostError(
                 'Stream connection lost: {!r}'.format(error))
 
         LOGGER.log(logging.DEBUG if error is None else logging.ERROR,

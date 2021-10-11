@@ -23,9 +23,10 @@ import functools
 import logging
 import threading
 
+import rez.vendor.pika.connection
 import rez.vendor.pika.compat as compat
 import rez.vendor.pika.exceptions as exceptions
-import rez.vendor.pika.spec as pika_spec
+import rez.vendor.pika.spec
 import rez.vendor.pika.validators as validators
 from rez.vendor.pika.adapters.utils import connection_workflow
 
@@ -414,9 +415,9 @@ class BlockingConnection(object):
         """
 
         if configs is None:
-            configs = (pika.connection.Parameters(),)
+            configs = (rez.vendor.pika.connection.Parameters(),)
 
-        if isinstance(configs, pika.connection.Parameters):
+        if isinstance(configs, rez.vendor.pika.connection.Parameters):
             configs = (configs,)
 
         if not configs:
@@ -1233,14 +1234,14 @@ class BlockingChannel(object):
 
         self._impl.add_callback(
             self._basic_consume_ok_result.signal_once,
-            replies=[pika_spec.Basic.ConsumeOk],
+            replies=[rez.vendor.pika.spec.Basic.ConsumeOk],
             one_shot=False)
 
         self._impl.add_on_close_callback(self._on_channel_closed)
 
         self._impl.add_callback(
             self._basic_getempty_result.set_value_once,
-            replies=[pika_spec.Basic.GetEmpty],
+            replies=[rez.vendor.pika.spec.Basic.GetEmpty],
             one_shot=False)
 
         LOGGER.info("Created channel=%s", self.channel_number)
@@ -1351,8 +1352,8 @@ class BlockingChannel(object):
         assert channel is self._impl, (channel.channel_number,
                                        self.channel_number)
 
-        assert isinstance(method, pika_spec.Basic.Return), method
-        assert isinstance(properties, pika_spec.BasicProperties), (properties)
+        assert isinstance(method, rez.vendor.pika.spec.Basic.Return), method
+        assert isinstance(properties, rez.vendor.pika.spec.BasicProperties), (properties)
 
         LOGGER.warning(
             "Published message was returned: _delivery_confirmation=%s; "
@@ -2212,7 +2213,7 @@ class BlockingChannel(object):
                 conf_method = (
                     self._message_confirmation_result.value.method_frame.method)
 
-                if isinstance(conf_method, pika_spec.Basic.Nack):
+                if isinstance(conf_method, rez.vendor.pika.spec.Basic.Nack):
                     # Broker was unable to process the message due to internal
                     # error
                     LOGGER.warning(
@@ -2229,7 +2230,7 @@ class BlockingChannel(object):
 
                 else:
                     assert isinstance(conf_method,
-                                      pika_spec.Basic.Ack), (conf_method)
+                                      rez.vendor.pika.spec.Basic.Ack), (conf_method)
 
                     if self._puback_return is not None:
                         # Unroutable message was returned

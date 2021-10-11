@@ -11,7 +11,7 @@ import select
 import time
 import threading
 
-import rez.vendor.pika.compat as pika_compat
+import rez.vendor.pika.compat
 
 from rez.vendor.pika.adapters.utils import nbio_interface
 from rez.vendor.pika.adapters.base_connection import BaseConnection
@@ -27,7 +27,7 @@ SELECT_TYPE = None
 # platforms select.error is an aliases for OSError. We don't want the lambda
 # for select.error to win over one for OSError.
 _SELECT_ERROR_CHECKERS = {}
-if pika_compat.PY3:
+if rez.vendor.pika.compat.PY3:
     # InterruptedError is undefined in PY2
     # pylint: disable=E0602
     _SELECT_ERROR_CHECKERS[InterruptedError] = lambda e: True
@@ -254,7 +254,7 @@ class _Timer(object):
             raise ValueError(
                 'call_later: delay must be non-negative, but got %r' % (delay,))
 
-        now = pika_compat.time_now()
+        now = rez.vendor.pika.compat.time_now()
 
         timeout = _Timeout(now + delay, callback)
 
@@ -296,7 +296,7 @@ class _Timer(object):
 
         """
         if self._timeout_heap:
-            now = pika_compat.time_now()
+            now = rez.vendor.pika.compat.time_now()
             interval = max(0, self._timeout_heap[0].deadline - now)
         else:
             interval = None
@@ -309,7 +309,7 @@ class _Timer(object):
 
         """
         if self._timeout_heap:
-            now = pika_compat.time_now()
+            now = rez.vendor.pika.compat.time_now()
 
             # Remove ready timeouts from the heap now to prevent IO starvation
             # from timeouts added during callback processing
@@ -489,7 +489,7 @@ class IOLoop(AbstractSelectorIOLoop):
 
         """
         # Avoid I/O starvation by postponing new callbacks to the next iteration
-        for _ in pika_compat.xrange(len(self._callbacks)):
+        for _ in rez.vendor.pika.compat.xrange(len(self._callbacks)):
             callback = self._callbacks.popleft()
             LOGGER.debug('process_timeouts: invoking callback=%r', callback)
             callback()
@@ -579,7 +579,7 @@ class IOLoop(AbstractSelectorIOLoop):
         self._poller.poll()
 
 
-class _PollerBase(pika_compat.AbstractBase):  # pylint: disable=R0902
+class _PollerBase(rez.vendor.pika.compat.AbstractBase):  # pylint: disable=R0902
     """Base class for select-based IOLoop implementations"""
 
     # Drop out of the poll loop every _MAX_POLL_TIMEOUT secs as a worst case;
@@ -667,7 +667,7 @@ class _PollerBase(pika_compat.AbstractBase):  # pylint: disable=R0902
                 # Send byte to interrupt the poll loop, use send() instead of
                 # os.write for Windows compatibility
                 self._w_interrupt.send(b'X')
-            except pika_compat.SOCKET_ERROR as err:
+            except rez.vendor.pika.compat.SOCKET_ERROR as err:
                 if err.errno != errno.EWOULDBLOCK:
                     raise
             except Exception as err:
@@ -892,7 +892,7 @@ class _PollerBase(pika_compat.AbstractBase):  # pylint: disable=R0902
 
         self._processing_fd_event_map = fd_event_map
 
-        for fileno in pika_compat.dictkeys(fd_event_map):
+        for fileno in rez.vendor.pika.compat.dictkeys(fd_event_map):
             if fileno not in fd_event_map:
                 # the fileno has been removed from the map under our feet.
                 continue
@@ -913,7 +913,7 @@ class _PollerBase(pika_compat.AbstractBase):  # pylint: disable=R0902
         so use a pair of simple TCP sockets instead. The sockets will be
         closed and garbage collected by python when the ioloop itself is.
         """
-        return pika_compat._nonblocking_socketpair()  # pylint: disable=W0212
+        return rez.vendor.pika.compat._nonblocking_socketpair()  # pylint: disable=W0212
 
     def _read_interrupt(self, _interrupt_fd, _events):
         """ Read the interrupt byte(s). We ignore the event mask as we can ony
@@ -925,7 +925,7 @@ class _PollerBase(pika_compat.AbstractBase):  # pylint: disable=R0902
         try:
             # NOTE Use recv instead of os.read for windows compatibility
             self._r_interrupt.recv(512)  # pylint: disable=E1101
-        except pika_compat.SOCKET_ERROR as err:
+        except rez.vendor.pika.compat.SOCKET_ERROR as err:
             if err.errno != errno.EAGAIN:
                 raise
 
@@ -1195,7 +1195,7 @@ class PollPoller(_PollerBase):
             # POLLOUT and it doesn't seem to set POLLERR along with POLLHUP when
             # socket connection fails, for example. So, we need to at least add
             # POLLERR when we see POLLHUP
-            if (event & select.POLLHUP) and pika_compat.ON_OSX:
+            if (event & select.POLLHUP) and rez.vendor.pika.compat.ON_OSX:
                 event |= select.POLLERR
 
             fd_event_map[fileno] |= event

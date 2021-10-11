@@ -12,15 +12,16 @@ import numbers
 import platform
 import ssl
 
-import rez.vendor.pika.callback as pika_callback
-import rez.vendor.pika.channel as pika_channel
-import rez.vendor.pika.compat as pika_compat
-import rez.vendor.pika.credentials as pika_credentials
-import rez.vendor.pika.exceptions as exceptions
-import rez.vendor.pika.frame as frame
-import rez.vendor.pika.heartbeat as pika_heartbeat
-import rez.vendor.pika.spec as spec
-import rez.vendor.pika.validators as validators
+import rez.vendor.pika
+import rez.vendor.pika.callback
+import rez.vendor.pika.channel
+import rez.vendor.pika.compat
+import rez.vendor.pika.credentials
+from rez.vendor.pika import exceptions
+from rez.vendor.pika import frame
+import rez.vendor.pika.heartbeat
+from rez.vendor.pika import spec
+from rez.vendor.pika import validators
 from rez.vendor.pika.compat import (
     xrange,
     url_unquote,
@@ -50,9 +51,9 @@ class Parameters(object):  # pylint: disable=R0902
     DEFAULT_PASSWORD = 'guest'
 
     DEFAULT_BLOCKED_CONNECTION_TIMEOUT = None
-    DEFAULT_CHANNEL_MAX = pika_channel.MAX_CHANNELS
+    DEFAULT_CHANNEL_MAX = rez.vendor.pika.channel.MAX_CHANNELS
     DEFAULT_CLIENT_PROPERTIES = None
-    DEFAULT_CREDENTIALS = pika_credentials.PlainCredentials(
+    DEFAULT_CREDENTIALS = rez.vendor.pika.credentials.PlainCredentials(
         DEFAULT_USERNAME, DEFAULT_PASSWORD)
     DEFAULT_CONNECTION_ATTEMPTS = 1
     DEFAULT_FRAME_MAX = spec.FRAME_MAX_SIZE
@@ -191,9 +192,9 @@ class Parameters(object):  # pylint: disable=R0902
         """
         if not isinstance(value, numbers.Integral):
             raise TypeError('channel_max must be an int, but got %r' % (value,))
-        if value < 1 or value > pika_channel.MAX_CHANNELS:
+        if value < 1 or value > rez.vendor.pika.channel.MAX_CHANNELS:
             raise ValueError('channel_max must be <= %i and > 0, but got %r' %
-                             (pika_channel.MAX_CHANNELS, value))
+                             (rez.vendor.pika.channel.MAX_CHANNELS, value))
         self._channel_max = value
 
     @property
@@ -263,9 +264,9 @@ class Parameters(object):  # pylint: disable=R0902
             from  `pika.credentials.VALID_TYPES`
 
         """
-        if not isinstance(value, tuple(pika_credentials.VALID_TYPES)):
+        if not isinstance(value, tuple(rez.vendor.pika.credentials.VALID_TYPES)):
             raise TypeError('credentials must be an object of type: %r, but '
-                            'got %r' % (pika_credentials.VALID_TYPES, value))
+                            'got %r' % (rez.vendor.pika.credentials.VALID_TYPES, value))
         # Copy the mutable object to avoid accidental side-effects
         self._credentials = copy.deepcopy(value)
 
@@ -737,7 +738,7 @@ class URLParameters(Parameters):
         if url[0:4].lower() == 'amqp':
             url = 'http' + url[4:]
 
-        parts = pika_compat.urlparse(url)
+        parts = rez.vendor.pika.compat.urlparse(url)
 
         if parts.scheme == 'https':
             # Create default context which will get overridden by the
@@ -761,7 +762,7 @@ class URLParameters(Parameters):
                          if self.ssl_options else self.DEFAULT_PORT)
 
         if parts.username is not None:
-            self.credentials = pika_credentials.PlainCredentials(
+            self.credentials = rez.vendor.pika.credentials.PlainCredentials(
                 url_unquote(parts.username), url_unquote(parts.password))
 
         # Get the Virtual Host
@@ -769,7 +770,7 @@ class URLParameters(Parameters):
             self.virtual_host = url_unquote(parts.path.split('/')[1])
 
         # Handle query string values, validating and assigning them
-        self._all_url_query_values = pika_compat.url_parse_qs(parts.query)
+        self._all_url_query_values = rez.vendor.pika.compat.url_parse_qs(parts.query)
 
         for name, value in dict_iteritems(self._all_url_query_values):
             try:
@@ -928,7 +929,7 @@ class URLParameters(Parameters):
                 cxt.set_ciphers(opt_ciphers)
 
             server_hostname = opts.get('server_hostname')
-            self.ssl_options = pika.SSLOptions(
+            self.ssl_options = SSLOptions(
                 context=cxt, server_hostname=server_hostname)
 
     def _set_url_tcp_options(self, value):
@@ -960,7 +961,7 @@ class SSLOptions(object):
         self.server_hostname = server_hostname
 
 
-class Connection(pika_compat.AbstractBase):
+class Connection(rez.vendor.pika.compat.AbstractBase):
     """This is the core class that implements communication with RabbitMQ. This
     class should not be invoked directly but rather through the use of an
     adapter such as SelectConnection or BlockingConnection.
@@ -1056,7 +1057,7 @@ class Connection(pika_compat.AbstractBase):
         self._internal_connection_workflow = internal_connection_workflow
 
         # Define our callback dictionary
-        self.callbacks = pika_callback.CallbackManager()
+        self.callbacks = rez.vendor.pika.callback.CallbackManager()
 
         # Attributes that will be properly initialized by _init_connection_state
         # and/or during connection handshake.
@@ -1522,7 +1523,7 @@ class Connection(pika_compat.AbstractBase):
                 'publisher_confirms': True
             },
             'information': 'See http://pika.rtfd.org',
-            'version': pika.__version__
+            'version': rez.vendor.pika.__version__
         }
 
         if self.params.client_properties:
@@ -1556,7 +1557,7 @@ class Connection(pika_compat.AbstractBase):
 
         """
         LOGGER.debug('Creating channel %s', channel_number)
-        return pika_channel.Channel(self, channel_number, on_open_callback)
+        return rez.vendor.pika.channel.Channel(self, channel_number, on_open_callback)
 
     def _create_heartbeat_checker(self):
         """Create a heartbeat checker instance if there is a heartbeat interval
@@ -1568,7 +1569,7 @@ class Connection(pika_compat.AbstractBase):
         if self.params.heartbeat is not None and self.params.heartbeat > 0:
             LOGGER.debug('Creating a HeartbeatChecker: %r',
                          self.params.heartbeat)
-            return pika_heartbeat.HeartbeatChecker(self, self.params.heartbeat)
+            return rez.vendor.pika.heartbeat.HeartbeatChecker(self, self.params.heartbeat)
 
         return None
 
@@ -1658,7 +1659,7 @@ class Connection(pika_compat.AbstractBase):
         :rtype: int
 
         """
-        limit = self.params.channel_max or pika_channel.MAX_CHANNELS
+        limit = self.params.channel_max or rez.vendor.pika.channel.MAX_CHANNELS
         if len(self._channels) >= limit:
             raise exceptions.NoFreeChannels()
 
