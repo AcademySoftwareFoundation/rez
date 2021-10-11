@@ -181,13 +181,14 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
+    # TODO get these shells working again
     @per_available_shell(exclude=["cmd", "powershell", "pwsh", "csh", "tcsh"])
     @install_dependent()
     def test_rez_env_output(self):
         target_shell = config.default_shell  # overridden by test util
 
         def _test(txt):
-            # Assumes that the shell has an echo command, build-in or alias
+            # Assumes that the shell has an echo command, built-in or alias
             binpath = os.path.join(system.rez_bin_path, "rez-env")
             args = [binpath, "--shell", target_shell, "--", "echo", txt]
 
@@ -196,8 +197,13 @@ class TestShells(TestBase, TempdirMixin):
                 stderr=subprocess.PIPE, universal_newlines=True
             )
             sh_out = process.communicate()
+
+            # because powershell may not exit with !0 on error, depending on
+            # how it's been configured
+            #
             if sh_out[1]:
                 raise Exception("Command %r failed:\n%s" % (txt, sh_out[1]))
+
             self.assertEqual(sh_out[0].strip(), txt)
 
         # please note - it's no coincidence that there are no substrings like
