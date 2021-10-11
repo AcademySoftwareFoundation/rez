@@ -182,7 +182,7 @@ class TestShells(TestBase, TempdirMixin):
             os.remove(path)
 
     # TODO get these shells working again
-    @per_available_shell(exclude=["cmd", "powershell", "pwsh", "csh", "tcsh"])
+    @per_available_shell(exclude=["cmd", "csh", "tcsh"])
     @install_dependent()
     def test_rez_env_output(self):
         target_shell = config.default_shell  # overridden by test util

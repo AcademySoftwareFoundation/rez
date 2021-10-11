@@ -15,7 +15,6 @@ jobs:
       matrix:
         python-version:
           - '2.7'
-          - '3.6'
           - '3.7'
         method:
           - 'python ./install.py'

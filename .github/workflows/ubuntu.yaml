@@ -29,7 +29,6 @@ jobs:
           - '20.04'
         python-version:
           - '2.7'
-          - '3.6'
           - '3.7'
       fail-fast: false
 
