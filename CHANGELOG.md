@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.95.1 (2021-10-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.0...2.95.1)
+
+**Merged pull requests:**
+
+- Better shell specific testing [\#1136](https://github.com/nerdvegas/rez/pull/1136) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- rez-env output test is not testing on specified shell [\#1135](https://github.com/nerdvegas/rez/issues/1135)
+
 ## 2.95.0 (2021-09-21)
 [Source](https://github.com/nerdvegas/rez/tree/2.95.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.94.0...2.95.0)
 
