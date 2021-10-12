@@ -278,6 +278,8 @@ class Shell(ActionInterpreter):
     @classmethod
     def join(cls, command):
         """
+        Note: Default to unix sh/bash- friendly behaviour.
+
         Args:
             command:
                 A sequence of program arguments to be joined into a single
@@ -285,7 +287,22 @@ class Shell(ActionInterpreter):
         Returns:
             A string object representing the command.
         """
-        return shlex_join(command)
+        replacements = [
+            # escape ` as \`
+            ('`', "\\`"),
+
+            # use double quotes, and put double quotes into single quotes -
+            # the string $"b is then quoted as "$"'"'"b". This mimics py3.8+
+            # shlex.join function, except with double instead of single quotes.
+            #
+            # We do this because a command like rez-env -- echo 'hey $FOO' needs
+            # to be interpreted as echo "hey $FOO" in the runtime - ie we would
+            # expect $FOO to get expanded.
+            #
+            ('"', '"\'"\'"')
+        ]
+
+        return shlex_join(command, replacements=replacements)
 
 
 class UnixShell(Shell):

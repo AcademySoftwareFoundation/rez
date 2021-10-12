@@ -41,33 +41,35 @@ def dedup(seq):
             yield item
 
 
-_find_unsafe = re.compile(r'[^\w@%+=:,./-]').search
+_find_unsafe = re.compile(r'[^\w@%+=`:,./-]').search
 
 
-def double_quote(s):
-    """A backport of shlex.quote (py 3.8+) that double-quotes instead of single.
-
-    We need this in order to escape commands in resolved shells. For example,
-    the command `rez-env -- echo 'hey $YOU'` needs to execute the equivalent
-    command `echo "hey $YOU"` within the runtime. The single quotes in the
-    initial command are only used to stop early expansion of $YOU, but within
-    the rez env, we default to expansion.
+def shlex_join(value, unsafe_regex=None, replacements=None,
+               enclose_with='"'):
+    """Join args into a valid shell command.
     """
-    if not s:
-        return "''"
-    if _find_unsafe(s) is None:
-        return s
 
-    # use double quotes, and put double quotes into single quotes
-    # the string $"b is then quoted as "$"'"'"b"
-    return '"' + s.replace('"', '"\'"\'"') + '"'
-
-
-def shlex_join(value):
-    if is_non_string_iterable(value):
-        return ' '.join(double_quote(x) for x in value)
-    else:
+    # historic backwards compatibility, unsure why this is here
+    if not is_non_string_iterable(value):
         return str(value)
+
+    unsafe_regex = unsafe_regex or _find_unsafe
+
+    def escape_word(s):
+        if not s:
+            return "''"
+        if unsafe_regex(s) is None:
+            return s
+
+        for from_, to_ in (replacements or []):
+            if isinstance(from_, six.string_types):
+                s = s.replace(from_, to_)
+            else:
+                s = from_.sub(to_, s)  # assume from_ is re.compile
+
+        return enclose_with + s + enclose_with
+
+    return ' '.join(escape_word(x) for x in value)
 
 
 # returns path to first program in the list to be successfully found

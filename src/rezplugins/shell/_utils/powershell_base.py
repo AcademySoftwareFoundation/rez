@@ -313,7 +313,17 @@ class PowerShellBase(Shell):
         if isinstance(command, six.string_types):
             return command
 
+        replacements = [
+            # escape ` as ``
+            ('`', "``"),
+
+            # escape " as `"
+            ('"', '`"')
+        ]
+
+        joined = shlex_join(command, replacements=replacements)
+
         # add call operator in case executable gets quotes applied
         # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_operators?view=powershell-7.1#call-operator-
         #
-        return "& " + shlex_join(command)
+        return "& " + joined
