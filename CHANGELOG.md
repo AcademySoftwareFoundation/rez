@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.95.3 (2021-10-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.2...2.95.3)
+
+**Merged pull requests:**
+
+- fix regression in v2.94.0 wrt windows string escape on rxt command [\#1139](https://github.com/nerdvegas/rez/pull/1139) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+-  (double-dash) removes double quotes on Windows [\#1133](https://github.com/nerdvegas/rez/issues/1133)
+
 ## 2.95.2 (2021-10-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.95.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.1...2.95.2)
 
