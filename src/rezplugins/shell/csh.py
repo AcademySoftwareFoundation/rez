@@ -4,7 +4,10 @@ CSH shell
 import pipes
 import os.path
 import subprocess
+import re
+
 from rez.config import config
+from rez.util import shlex_join
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
@@ -107,6 +110,25 @@ class CSH(UnixShell):
                 txt = '"%s"' % txt
             result += txt
         return result
+
+    @classmethod
+    def join(cls, command):
+        replacements = [
+            # escape ! as \!
+            ('!', "\\!"),
+
+            # see Shell.join()
+            ('"', '"\'"\'"'),
+
+            # similar to above, but for backticks
+            ('`', '"\'`\'"'),
+
+            # escape $ if not part of a valid var ref like $FOO, ${FOO}
+            (re.compile(r"\$([^a-zA-Z{])"), '"\'$\'"\\1'),
+            (re.compile(r"\$$"), '"\'$\'"')  # edge case, $ at end
+        ]
+
+        return shlex_join(command, replacements=replacements)
 
     def _bind_interactive_rez(self):
         if config.set_prompt and self.settings.prompt:

@@ -77,7 +77,6 @@ jobs:
       matrix:
         python-version:
           - '2.7.17'
-          - '3.6.8'
           - '3.7.5'
       fail-fast: false
 
