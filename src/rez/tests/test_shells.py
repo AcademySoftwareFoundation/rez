@@ -182,7 +182,7 @@ class TestShells(TestBase, TempdirMixin):
             os.remove(path)
 
     # TODO get these shells working again
-    @per_available_shell(exclude=["cmd", "powershell", "pwsh", "csh", "tcsh"])
+    @per_available_shell(exclude=["cmd"])
     @install_dependent()
     def test_rez_env_output(self):
         target_shell = config.default_shell  # overridden by test util
@@ -218,7 +218,8 @@ class TestShells(TestBase, TempdirMixin):
         _test("!hey>$")  # more special characters
         _test("'hey'")  # single quotes
         _test('"hey"')  # double quotes
-        _test("hey ?yeah> 'you'..^!")  # throw lots of stuff at it
+        _test("hey `")  # backtick
+        _test("hey $ ?yeah> 'you'..^!")  # throw lots of stuff at it
 
     @per_available_shell()
     @install_dependent()
