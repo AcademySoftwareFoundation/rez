@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.95.2 (2021-10-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.1...2.95.2)
+
+**Merged pull requests:**
+
+- powershell quoted command fix [\#1130](https://github.com/nerdvegas/rez/pull/1130) ([nerdvegas](https://github.com/nerdvegas))
+- CLI: display detailed version info with --version [\#1134](https://github.com/nerdvegas/rez/pull/1134) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- Rez pip fails to execute in Windows after 2.94.0 [\#1120](https://github.com/nerdvegas/rez/issues/1120)
+
 ## 2.95.1 (2021-10-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.95.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.0...2.95.1)
 
