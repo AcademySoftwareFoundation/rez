@@ -181,7 +181,10 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
-    # TODO get these shells working again
+    # TODO fix cmd shell command string escape
+    # as per https://github.com/nerdvegas/rez/pull/1130, then remove this
+    # exclusion
+    #
     @per_available_shell(exclude=["cmd"])
     @install_dependent()
     def test_rez_env_output(self):

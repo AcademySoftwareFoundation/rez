@@ -354,8 +354,12 @@ class CMD(Shell):
 
     @classmethod
     def join(cls, command):
-        inst = cls()
-        return ' '.join(inst.escape_string(x) for x in command)
+        # TODO: This needs to be properly fixed, see other shell impls
+        # at https://github.com/nerdvegas/rez/pull/1130
+        #
+        # TODO: This may disappear in future [1]
+        # [1] https://bugs.python.org/issue10838
+        return subprocess.list2cmdline(command)
 
     @classmethod
     def line_terminator(cls):
