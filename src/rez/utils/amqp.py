@@ -99,42 +99,6 @@ def _publish_message(host, amqp_settings, routing_key, data):
     finally:
         conn.close()
 
-    """
-    try:
-        conn = Connection(**remove_nones(
-            host=host,
-            userid=amqp_settings.get("userid"),
-            password=amqp_settings.get("password"),
-            connect_timeout=amqp_settings.get("connect_timeout")
-        ))
-    except socket.error as e:
-        print_error("Cannot connect to the message broker: %s" % (e))
-        return False
-
-    channel = conn.channel()
-
-    # build the message
-    msg = basic_message.Message(**remove_nones(
-        body=json.dumps(data),
-        delivery_mode=amqp_settings.get("message_delivery_mode"),
-        content_type="application/json",
-        content_encoding="utf-8"
-    ))
-
-    # publish the message
-    try:
-        channel.basic_publish(
-            msg,
-            amqp_settings["exchange_name"],
-            routing_key
-        )
-    except Exception as e:
-        print_error("Failed to publish message: %s" % (e))
-        return False
-    finally:
-        conn.close()
-    """
-
     return True
 
 
