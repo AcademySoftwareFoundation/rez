@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.97.0 (2021-10-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.97.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.96.0...2.97.0)
+
+**Merged pull requests:**
+
+- Improve rex env binding [\#1138](https://github.com/nerdvegas/rez/pull/1138) ([davidlatwe](https://github.com/davidlatwe))
+
 ## 2.96.0 (2021-10-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.96.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.3...2.96.0)
 
