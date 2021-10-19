@@ -1140,7 +1140,10 @@ class EnvironmentVariable(object):
                                self.value())
 
     def __nonzero__(self):
-        return bool(self.value())
+        try:
+            return bool(self.value())
+        except RexUndefinedVariableError:
+            return False
 
     __bool__ = __nonzero__  # py3 compat
 
