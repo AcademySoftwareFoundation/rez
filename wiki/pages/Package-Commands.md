@@ -334,7 +334,7 @@ The *env* object also provides the following functions:
 
 Appends a value to an environment variable. By default this will use the *os.pathsep* delimiter
 between list items, but this can be overridden using the config setting *env_var_separators*. See
-[here](#variable-prepending-and-appending) for further information on the behavior of this function.
+[here](#variable-appending-and-prepending) for further information on the behavior of this function.
 
 #### env.prepend
 *Function*
