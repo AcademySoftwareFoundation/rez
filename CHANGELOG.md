@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.96.0 (2021-10-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.96.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.3...2.96.0)
+
+**Merged pull requests:**
+
+- pika [\#1140](https://github.com/nerdvegas/rez/pull/1140) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.95.3 (2021-10-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.95.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.2...2.95.3)
 
