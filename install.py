@@ -131,19 +131,22 @@ def copy_completion_scripts(dest_dir):
     return None
 
 
-def install(dest_dir, print_welcome=False):
+def install(dest_dir, edit=False, print_welcome=False):
     """Install rez into the given directory.
 
     Args:
         dest_dir (str): Full path to the install directory.
+        edit (bool):
+        print_welcome (bool):
     """
-    print("installing rez to %s..." % dest_dir)
+    print("%sinstalling rez to %s..."
+          % ("(edit mode) " if edit else "", dest_dir))
 
     # create the virtualenv
     create_virtual_environment(dest_dir)
 
     # install rez from source
-    install_rez_from_source(dest_dir)
+    install_rez_from_source(dest_dir, edit=edit)
 
     # patch the rez binaries
     patch_rez_binaries(dest_dir)
@@ -157,6 +160,14 @@ def install(dest_dir, print_welcome=False):
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
         f.write(_rez_version)
+
+    # save rez-bin dir for editable installation, for rez development
+    if edit:
+        egg_info = os.path.join("src", "rez.egg-info")
+        egg_link = os.path.join(egg_info, ".rez_production_entry")
+        if os.path.isdir(egg_info):
+            with open(egg_link, "w") as f:
+                f.write(dest_bin_dir)
 
     # done
     if print_welcome:
@@ -201,11 +212,14 @@ def install(dest_dir, print_welcome=False):
         print('')
 
 
-def install_rez_from_source(dest_dir):
+def install_rez_from_source(dest_dir, edit=False):
     _, py_executable = get_virtualenv_py_executable(dest_dir)
 
     # install via pip
-    run_command([py_executable, "-m", "pip", "install", "."])
+    cmd = [py_executable, "-m", "pip", "install"]
+    if edit:
+        cmd += ["--edit"]
+    run_command(cmd + ["."])
 
 
 def install_as_rez_package(repo_path):
@@ -260,6 +274,10 @@ if __name__ == "__main__":
         "only (no cli tools), and DIR is expected to be the path to a rez "
         "package repository (and will default to ~/packages instead).")
     parser.add_argument(
+        '-e', '--edit', action="store_true",
+        help="Install rez in editable (development) mode."
+    )
+    parser.add_argument(
         "DIR", nargs='?',
         help="Destination directory. If '{version}' is present, it will be "
         "expanded to the rez version. Default: /opt/rez")
@@ -293,4 +311,4 @@ if __name__ == "__main__":
     if opts.as_rez_package:
         install_as_rez_package(dest_dir)
     else:
-        install(dest_dir, print_welcome=True)
+        install(dest_dir, edit=opts.edit, print_welcome=True)

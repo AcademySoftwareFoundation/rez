@@ -196,47 +196,10 @@ class System(object):
         """Get path containing rez binaries, or None if no binaries are
         available, or Rez is not a production install.
         """
-
-        # Rez install layout will be like:
-        #
-        # /<install>/lib/python2.7/site-packages/rez  <- module path
-        # /<install>/(bin or Scripts)/rez/rez  <- rez executable
-        #
-        import rez
-        module_path = rez.__path__[0]
-
-        parts = module_path.split(os.path.sep)
-        parts_lower = module_path.lower().split(os.path.sep)
-
-        # find last 'lib' or 'lib64' dir in rez module path
-        # Note: On Windows it can be 'Lib' (hence lowercase check).
-        # Note: Occasionally a rez install will use the python lib stored in
-        # lib64 instead of lib, I don't know why.
-        #
-        rev_parts = list(reversed(parts_lower))
-        try:
-            i = rev_parts.index("lib")
-        except ValueError:
-            try:
-                i = rev_parts.index("lib64")
-            except ValueError:
-                return None
-
-        i = len(parts) - 1 - i  # unreverse the index
-
-        # find rez bin path and look for the production install marker file
-        if platform.system() == "Windows":
-            bin_dirname = "Scripts"
-        else:
-            bin_dirname = "bin"
-
-        binpath = os.path.sep.join(parts[:i] + [bin_dirname, "rez"])
-
-        validation_file = os.path.join(binpath, ".rez_production_install")
-        if os.path.exists(validation_file):
-            return os.path.realpath(binpath)
-
-        return None
+        return (
+            find_rez_bin_in_venv_layout()
+            or find_rez_bin_in_edit_mode()
+        )
 
     @property
     def is_production_rez_install(self):
@@ -314,6 +277,83 @@ class System(object):
             b = not b
 
         return ''.join(valid_toks)
+
+
+def find_rez_bin_in_venv_layout():
+    """Find Rez binary tools in production rez venv directory layout
+
+    The venv layout is defined in Rez's production install script. By using
+    rez module location as starting point, compute the assumed Rez bin tool
+    location and return it if exists.
+
+    """
+    import rez
+
+    # Rez install layout will be like:
+    #
+    # /<install>/lib/python2.7/site-packages/rez  <- module path
+    # /<install>/(bin or Scripts)/rez/rez  <- rez executable
+    #
+    module_path = rez.module_root_path
+
+    parts = module_path.split(os.path.sep)
+    parts_lower = module_path.lower().split(os.path.sep)
+
+    # find last 'lib' or 'lib64' dir in rez module path
+    # Note: On Windows it can be 'Lib' (hence lowercase check).
+    # Note: Occasionally a rez install will use the python lib stored in
+    # lib64 instead of lib, I don't know why.
+    #
+    rev_parts = list(reversed(parts_lower))
+    try:
+        i = rev_parts.index("lib")
+    except ValueError:
+        try:
+            i = rev_parts.index("lib64")
+        except ValueError:
+            return None
+
+    i = len(parts) - 1 - i  # unreverse the index
+
+    # find rez bin path and look for the production install marker file
+    if platform.system() == "Windows":
+        bin_dirname = "Scripts"
+    else:
+        bin_dirname = "bin"
+
+    binpath = os.path.sep.join(parts[:i] + [bin_dirname, "rez"])
+
+    validation_file = os.path.join(binpath, ".rez_production_install")
+    if os.path.exists(validation_file):
+        return os.path.realpath(binpath)
+
+
+def find_rez_bin_in_edit_mode():
+    """Find Rez binary tools from egg-info in editable installation
+
+    If Rez is being installed in editable (development) mode, the Rez binary
+    tools' location is written in source egg-info by production installation
+    script.
+
+    """
+    import rez
+
+    src_dir = os.path.dirname(rez.module_root_path)
+    egg_link = os.path.join(src_dir, "rez.egg-info", ".rez_production_entry")
+    setup_py = os.path.join(src_dir, "..", "setup.py")
+
+    # verify if the module root is pointing to valid source
+    if os.path.isfile(egg_link) and os.path.isfile(setup_py):
+
+        with open(egg_link, "r") as f:
+            binpath = f.readline().strip()
+
+        if not (binpath and os.path.isdir(binpath)):
+            return
+
+        validation_file = os.path.join(binpath, ".rez_production_install")
+        if os.path.exists(validation_file):
+            return os.path.realpath(binpath)
 
 
 # singleton
