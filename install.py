@@ -136,8 +136,9 @@ def install(dest_dir, edit=False, print_welcome=False):
 
     Args:
         dest_dir (str): Full path to the install directory.
-        edit (bool):
-        print_welcome (bool):
+        edit (bool): Install Rez in editable mode if True. Default False.
+        print_welcome (bool): Print welcome message at the end of installation.
+            Default False.
     """
     print("%sinstalling rez to %s..."
           % ("(edit mode) " if edit else "", dest_dir))
