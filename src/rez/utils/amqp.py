@@ -65,18 +65,22 @@ def _publish_message(host, amqp_settings, routing_key, data):
 
     set_pika_log_level()
 
-    host, port = parse_host_and_port(url=host)
+    conn_kwargs = dict()
 
-    creds = PlainCredentials(
-        username=amqp_settings.get("userid"),
-        password=amqp_settings.get("password")
-    )
+    host, port = parse_host_and_port(url=host)
+    conn_kwargs["host"] = host
+    if port is not None:
+        conn_kwargs["port"] = port
+
+    if amqp_settings.get("userid"):
+        conn_kwargs["credentials"] = PlainCredentials(
+            username=amqp_settings.get("userid"),
+            password=amqp_settings.get("password")
+        )
 
     params = ConnectionParameters(
-        host=host,
-        port=port,
-        credentials=creds,
-        socket_timeout=amqp_settings.get("connect_timeout")
+        socket_timeout=amqp_settings.get("connect_timeout"),
+        **conn_kwargs
     )
 
     props = BasicProperties(
