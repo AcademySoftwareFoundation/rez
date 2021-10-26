@@ -2,6 +2,7 @@ import atexit
 import socket
 import time
 import threading
+import logging
 
 from rez.utils import json
 from rez.utils.logging_ import print_error
@@ -10,6 +11,7 @@ from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
 from rez.vendor.pika.connection import ConnectionParameters
 from rez.vendor.pika.credentials import PlainCredentials
 from rez.vendor.pika.spec import BasicProperties
+from rez.config import config
 
 
 _lock = threading.Lock()
@@ -60,6 +62,8 @@ def _publish_message(host, amqp_settings, routing_key, data):
     if host == "stdout":
         print("Published to %s: %s" % (routing_key, data))
         return True
+
+    set_pika_log_level()
 
     host, port = parse_host_and_port(url=host)
 
@@ -139,3 +143,12 @@ def parse_host_and_port(url):
     port = _url.port
 
     return host, port
+
+
+def set_pika_log_level():
+    mod_name = "rez.vendor.pika"
+
+    if config.debug("context_tracking"):
+        logging.getLogger(mod_name).setLevel(logging.DEBUG)
+    else:
+        logging.getLogger(mod_name).setLevel(logging.WARNING)
