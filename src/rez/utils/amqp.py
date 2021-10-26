@@ -5,7 +5,7 @@ import threading
 
 from rez.utils import json
 from rez.utils.logging_ import print_error
-from rez.vendor.six.six.moves import queue
+from rez.vendor.six.six.moves import queue, urllib
 from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
 from rez.vendor.pika.connection import ConnectionParameters
 from rez.vendor.pika.credentials import PlainCredentials
@@ -61,6 +61,8 @@ def _publish_message(host, amqp_settings, routing_key, data):
         print("Published to %s: %s" % (routing_key, data))
         return True
 
+    host, port = parse_host_and_port(url=host)
+
     creds = PlainCredentials(
         username=amqp_settings.get("userid"),
         password=amqp_settings.get("password")
@@ -68,6 +70,7 @@ def _publish_message(host, amqp_settings, routing_key, data):
 
     params = ConnectionParameters(
         host=host,
+        port=port,
         credentials=creds,
         socket_timeout=amqp_settings.get("connect_timeout")
     )
@@ -126,3 +129,13 @@ def on_exit():
 
     while _num_pending and (time.time() - t) < maxtime:
         time.sleep(timeinc)
+
+
+def parse_host_and_port(url):
+    _url = urllib.parse.urlsplit(url)
+    if not _url.scheme:
+        _url = urllib.parse.urlsplit("//" + url)
+    host = _url.hostname
+    port = _url.port
+
+    return host, port
