@@ -2,14 +2,16 @@ import atexit
 import socket
 import time
 import threading
+import logging
 
 from rez.utils import json
 from rez.utils.logging_ import print_error
-from rez.vendor.six.six.moves import queue
+from rez.vendor.six.six.moves import queue, urllib
 from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
 from rez.vendor.pika.connection import ConnectionParameters
 from rez.vendor.pika.credentials import PlainCredentials
 from rez.vendor.pika.spec import BasicProperties
+from rez.config import config
 
 
 _lock = threading.Lock()
@@ -61,15 +63,24 @@ def _publish_message(host, amqp_settings, routing_key, data):
         print("Published to %s: %s" % (routing_key, data))
         return True
 
-    creds = PlainCredentials(
-        username=amqp_settings.get("userid"),
-        password=amqp_settings.get("password")
-    )
+    set_pika_log_level()
+
+    conn_kwargs = dict()
+
+    host, port = parse_host_and_port(url=host)
+    conn_kwargs["host"] = host
+    if port is not None:
+        conn_kwargs["port"] = port
+
+    if amqp_settings.get("userid"):
+        conn_kwargs["credentials"] = PlainCredentials(
+            username=amqp_settings.get("userid"),
+            password=amqp_settings.get("password")
+        )
 
     params = ConnectionParameters(
-        host=host,
-        credentials=creds,
-        socket_timeout=amqp_settings.get("connect_timeout")
+        socket_timeout=amqp_settings.get("connect_timeout"),
+        **conn_kwargs
     )
 
     props = BasicProperties(
@@ -126,3 +137,22 @@ def on_exit():
 
     while _num_pending and (time.time() - t) < maxtime:
         time.sleep(timeinc)
+
+
+def parse_host_and_port(url):
+    _url = urllib.parse.urlsplit(url)
+    if not _url.scheme:
+        _url = urllib.parse.urlsplit("//" + url)
+    host = _url.hostname
+    port = _url.port
+
+    return host, port
+
+
+def set_pika_log_level():
+    mod_name = "rez.vendor.pika"
+
+    if config.debug("context_tracking"):
+        logging.getLogger(mod_name).setLevel(logging.DEBUG)
+    else:
+        logging.getLogger(mod_name).setLevel(logging.WARNING)

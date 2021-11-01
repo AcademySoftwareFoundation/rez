@@ -715,6 +715,9 @@ debug_resolve_memcache = False
 # "memcached -vv" as the server)
 debug_memcache = False
 
+# Print debugging info when AMPQ is used in context tracking
+debug_context_tracking = False
+
 # Turn on all debugging messages
 debug_all = False
 
