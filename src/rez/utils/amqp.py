@@ -67,6 +67,11 @@ def _publish_message(host, amqp_settings, routing_key, data):
 
     conn_kwargs = dict()
 
+    # name the conn like 'rez.publish.{host}'
+    conn_kwargs["client_properties"] = {
+        "connection_name": "rez.publish.%s" % socket.gethostname()
+    }
+
     host, port = parse_host_and_port(url=host)
     conn_kwargs["host"] = host
     if port is not None:
