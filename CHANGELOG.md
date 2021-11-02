@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.98.0 (2021-11-02)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.97.0...2.98.0)
+
+**Merged pull requests:**
+
+- Fix pika connector [\#1145](https://github.com/nerdvegas/rez/pull/1145) ([davidlatwe](https://github.com/davidlatwe))
+- Issue 1148 pika conn name [\#1149](https://github.com/nerdvegas/rez/pull/1149) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Pika could not take port from `context_tracking_host` [\#1144](https://github.com/nerdvegas/rez/issues/1144)
+- name amqp connection [\#1148](https://github.com/nerdvegas/rez/issues/1148)
+
 ## 2.97.0 (2021-10-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.97.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.96.0...2.97.0)
 
