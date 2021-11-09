@@ -718,11 +718,10 @@ class Python(ActionInterpreter):
         if "SYSTEMROOT" in env:
             return
 
-        # not enough info to set SYSTEMROOT
-        if 'SYSTEMROOT' not in os.environ:
-            return
+        if "SYSTEMROOT" not in os.environ:
+            return  # not enough info to set SYSTEMROOT
 
-        env['SYSTEMROOT'] = os.environ['SYSTEMROOT']
+        env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
 
 
 #===============================================================================
