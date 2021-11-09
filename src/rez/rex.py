@@ -704,7 +704,7 @@ class Python(ActionInterpreter):
 
     @classmethod
     def _adjust_env_for_platform(cls, env):
-        """ Make required platform-specific adjustments to env.
+        """ Make adjustments to env specific to a platform
         """
         if platform_.name != "windows":
             return
