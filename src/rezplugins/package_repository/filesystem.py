@@ -490,13 +490,12 @@ class FileSystemPackageRepository(PackageRepository):
             disable_memcache (bool): Don't use memcache memcache if True
             disable_pkg_ignore (bool): If True, .ignore* files have no effect
         """
-        super(FileSystemPackageRepository, self).__init__(
-            # ensure that differing case doesn't get interpreted as different repos
-            # on case-insensitive platforms (eg windows)
-            location=canonical_path(location, platform_),
 
-            resource_pool=resource_pool
-        )
+        # ensure that differing case doesn't get interpreted as different repos
+        # on case-insensitive platforms (eg windows)
+        location = canonical_path(location, platform_)
+
+        super(FileSystemPackageRepository, self).__init__(location, resource_pool)
 
         # load settings optionally defined in a settings.yaml
         local_settings = {}
