@@ -215,10 +215,10 @@ class DependencyConflict(_Common):
 
 class FailureReason(_Common):
     def involved_requirements(self):
-        raise NotImplementedError
+        return []
 
     def description(self):
-        raise NotImplementedError
+        return ""
 
 
 class TotalReduction(FailureReason):
