@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.98.2 (2021-11-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.1...2.98.2)
+
+Added unmodified whichcraft vendored lib.
+See:
+* https://github.com/cookiecutter/whichcraft/blob/master/whichcraft.py
+* https://github.com/nerdvegas/rez/pull/1155
+
 ## 2.98.1 (2021-11-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.98.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.0...2.98.1)
 
