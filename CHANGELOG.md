@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.98.1 (2021-11-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.0...2.98.1)
+
+**Merged pull requests:**
+
+- Issue 1119 code removal [\#1151](https://github.com/nerdvegas/rez/pull/1151) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.98.0 (2021-11-02)
 [Source](https://github.com/nerdvegas/rez/tree/2.98.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.97.0...2.98.0)
 
