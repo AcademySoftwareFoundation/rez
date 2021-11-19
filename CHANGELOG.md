@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.98.3 (2021-11-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.2...2.98.3)
+
+**Merged pull requests:**
+
+- modified whichcraft for rez [\#1157](https://github.com/nerdvegas/rez/pull/1157) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-pip not working ? [\#904](https://github.com/nerdvegas/rez/issues/904)
+- NoneType Error When Using `rez pip` on Windows [\#1024](https://github.com/nerdvegas/rez/issues/1024)
+
 ## 2.98.2 (2021-11-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.98.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.1...2.98.2)
 
