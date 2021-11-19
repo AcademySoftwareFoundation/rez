@@ -237,7 +237,7 @@ if __name__ == "__main__":
         "-s", "--step", choices=("push", "tag", "release_notes"),
         help="Just run one step of the release process")
     parser.add_argument(
-        "-c", "--changelog", nargs='+', metavar="ISSUE", type=int,
+        "-c", "--changelog", nargs='*', metavar="ISSUE", type=int,
         help="Generate changelog entry to be added to CHANGELOG.md")
     parser.add_argument(
         "-v", "--verbose", action="store_true",
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     opts = parser.parse_args()
     verbose = opts.verbose
 
-    if opts.changelog:
+    if opts.changelog is not None:
         issue_nums = opts.changelog
         generate_changelog_entry(issue_nums)
         sys.exit(0)
