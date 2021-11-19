@@ -324,7 +324,8 @@ def is_pure_python_package(installed_dist):
     wheel_data = Parser().parsestr(wheel_data)
 
     # see https://www.python.org/dev/peps/pep-0427/#what-s-the-deal-with-purelib-vs-platlib
-    return (wheel_data.get("Root-Is-Purelib", "").lower() == "true")
+    is_purelib = wheel_data.get("Root-Is-Purelib", "").lower()
+    return (is_purelib == "true")
 
 
 def get_rez_requirements(installed_dist, python_version, name_casings=None):

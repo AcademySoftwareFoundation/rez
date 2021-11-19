@@ -278,6 +278,30 @@ class BuildSystem(object):
         return vars_
 
     @classmethod
+    def add_pre_build_commands(cls, executor, variant, build_type, install,
+                               build_path, install_path=None):
+        """Execute pre_build_commands function if present."""
+
+        from rez.utils.data_utils import RO_AttrDictWrapper as ROA
+
+        # bind build-related values into a 'build' namespace
+        build_ns = {
+            "build_type": build_type.name,
+            "install": install,
+            "build_path": build_path,
+            "install_path": install_path
+        }
+
+        # execute pre_build_commands()
+        pre_build_commands = getattr(variant, "pre_build_commands")
+
+        if pre_build_commands:
+            with executor.reset_globals():
+                executor.bind("this", variant)
+                executor.bind("build", ROA(build_ns))
+                executor.execute_code(pre_build_commands)
+
+    @classmethod
     def add_standard_build_actions(cls, executor, context, variant, build_type,
                                    install, build_path, install_path=None):
         """Perform build actions common to every build system.
@@ -294,31 +318,6 @@ class BuildSystem(object):
 
         for var, value in env_vars.items():
             executor.env[var] = value
-
-    @classmethod
-    def add_pre_build_commands(cls, executor, variant, build_type,
-                               install, build_path, install_path=None):
-        """Execute pre_build_commands if present.
-        """
-        from rez.utils.data_utils import RO_AttrDictWrapper
-
-        # bind build-related values into a 'build' namespace
-        build_ns = {
-            "build_type": build_type.name,
-            "install": install,
-            "build_path": build_path,
-            "install_path": install_path
-        }
-
-        # execute pre_build_commands()
-        pre_build_commands = getattr(variant, "pre_build_commands")
-
-        if pre_build_commands:
-            with executor.reset_globals():
-                executor.bind("this", variant)
-                executor.bind("build", RO_AttrDictWrapper(build_ns))
-
-                executor.execute_code(pre_build_commands)
 
 
 # Copyright 2013-2016 Allan Johns.

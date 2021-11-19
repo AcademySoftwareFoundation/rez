@@ -6,11 +6,11 @@ from rez.vendor.six import six
 from rez.utils.yaml import dump_yaml
 from rez.vendor.enum import Enum
 from contextlib import contextmanager
-from io import UnsupportedOperation
 import subprocess
 import sys
 import stat
 import os
+import io
 
 
 @contextmanager
@@ -54,14 +54,13 @@ class Popen(_PopenBase):
         if "stdin" not in kwargs:
             try:
                 file_no = sys.stdin.fileno()
-            except (
-                AttributeError,
-                UnsupportedOperation  # https://github.com/nerdvegas/rez/pull/966
-            ):
-                if sys.__stdin__ is None:
-                    file_no = None
-                else:
-                    file_no = sys.__stdin__.fileno()
+
+            # https://github.com/nerdvegas/rez/pull/966
+            except (AttributeError, io.UnsupportedOperation):
+                file_no = None
+
+            if file_no is None and sys.__stdin__ is not None:
+                file_no = sys.__stdin__.fileno()
 
             if file_no not in (0, 1, 2):
                 kwargs["stdin"] = subprocess.PIPE
