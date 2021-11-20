@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     with open(opts.FILE) as f:
         txt = f.read()
-    lines = txt.split('\n')
+    lines = txt.rstrip().split('\n')
 
     result = find_existing_copyright()
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         lines = copyright_lines + ['', ''] + lines
 
     # output
-    new_txt = '\n'.join(lines)
+    new_txt = '\n'.join(lines) + '\n'
 
     if not opts.overwrite_file:
         print(new_txt)
