@@ -89,6 +89,10 @@ if __name__ == "__main__":
         copyright_lines = new_copyright.strip().split('\n')
         lines = copyright_lines + ['', ''] + lines
 
+    # strip empty leading lines
+    while lines and not lines[0]:
+        lines = lines[1:]
+
     # strip trailing empty lines
     while lines and not lines[-1]:
         lines = lines[:-1]

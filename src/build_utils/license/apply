@@ -5,13 +5,13 @@ if [ ! -f "LICENSE" ]; then
     exit 1
 fi
 
-# remove copyrights
+# remove copyright
 find ./src/rez/data -name '*.py' > .lic.tmp
+find ./src/rez/backport -name '*.py' >> .lic.tmp
 cat .lic.tmp | xargs -i ./src/build_utils/license/change_copyright -so {}
 
 # add copyright
-find ./src/rez/backport -name '*.py' > .lic.tmp
-find ./src/rez/bind -name '*.py' >> .lic.tmp
+find ./src/rez/bind -name '*.py' > .lic.tmp
 find ./src/rez/cli -name '*.py' >> .lic.tmp
 find ./src/rez/tests -name '*.py' >> .lic.tmp
 find ./src/rez/utils -name '*.py' >> .lic.tmp

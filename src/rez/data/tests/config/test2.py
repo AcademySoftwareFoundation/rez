@@ -1,4 +1,3 @@
-
 release_hooks = ["foo"]
 
 plugins = {
