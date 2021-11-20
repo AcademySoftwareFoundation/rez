@@ -10,6 +10,6 @@ echo '' > .lic.tmp
 # remove any copyrights
 find ./src/rez/data -name '*.py' >> .lic.tmp
 
-cat .lic.tmp | xargs -i echo ./src/build_utils/license/change_copyright -s
+cat .lic.tmp | xargs -i echo ./src/build_utils/license/change_copyright -so {}
 
 #rm -f .lic.tmp
