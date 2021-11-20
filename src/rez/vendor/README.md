@@ -1,7 +1,5 @@
 This folder contains all the libraries on which rez depends to run.
 
-Libraries that are required to install Rez can be found in [src/build_utils](../../build_utils).
-
 The dependencies list found here is used to track which version we use so that when we
 revisit the install procedure, it will be much simpler to do any change in the vendored
 libraries (updating them, un-vendoring some, etc).
@@ -18,17 +16,6 @@ Note that the latest versions column is just to give us an idea of how far back 
 <th>Latest</th>
 <th>Note</th>
 </tr>
-
-<!-- ######################################################### -->
-<tr><td>
-    amqp
-</td><td>
-    1.4.9 (Jan 8, 2016)
-</td><td>
-    2.4.2 (Mar 3, 2019)
-</td><td>
-    -
-</td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
@@ -163,7 +150,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     1.4.2.dev0 (Oct 28, 2020)
 </td><td>
-    
+
 * Updated (July 2019) in order to update pyparsing lib which in turn is
 required by the packaging library. Updated (Aug 2019) for py3.
 
