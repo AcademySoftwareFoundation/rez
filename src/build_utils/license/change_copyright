@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # dumb script to update copyright notice in a py sourcefile
 #
 from __future__ import print_function
@@ -78,8 +80,9 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if not isinstance(result, tuple):
-        print("No/other copyright", file=sys.stderr)
+        print("No/other copyright, skipping %s" % opts.FILE, file=sys.stderr)
         sys.exit(1)
+
     i_start, i_end = result
 
     if opts.print_existing:
@@ -97,7 +100,7 @@ if __name__ == "__main__":
     # add new copyright at top of file
     if not opts.strip_copyright:
         copyright_lines = new_copyright.strip().split('\n')
-        lines = copyright_lines + [''] + lines
+        lines = copyright_lines + ['', ''] + lines
 
     # output
     new_txt = '\n'.join(lines)

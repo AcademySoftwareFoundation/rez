@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ ! -f "LICENSE" ]; then
+    echo "must run from root of rez project" 1>&2
+    exit 1
+fi
+
+echo '' > .lic.tmp
+
+# remove any copyrights
+find ./src/rez/data -name '*.py' >> .lic.tmp
+
+cat .lic.tmp | xargs -i echo ./src/build_utils/license/change_copyright -s
+
+#rm -f .lic.tmp
