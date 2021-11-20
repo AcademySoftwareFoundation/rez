@@ -19,17 +19,6 @@ Note that the latest versions column is just to give us an idea of how far back 
 
 <!-- ######################################################### -->
 <tr><td>
-    amqp
-</td><td>
-    1.4.9 (Jan 8, 2016)
-</td><td>
-    2.4.2 (Mar 3, 2019)
-</td><td>
-    -
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
     argcomplete
 </td><td>
     ?
