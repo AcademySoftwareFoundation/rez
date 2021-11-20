@@ -22,6 +22,7 @@ find ./src/rezplugins -name '*.py' >> .lic.tmp
 find ./src/support -name '*.py' >> .lic.tmp
 find ./src/rez -maxdepth 1 -name '*.py' >> .lic.tmp
 find ./ -maxdepth 1 -name '*.py' >> .lic.tmp
+find ./example_extensions -name '*.py' >> .lic.tmp
 find ./src/rezplugins/build_system/cmake_files -name '*.cmake' >> .lic.tmp
 cat .lic.tmp | xargs -i ./src/build_utils/license/change_copyright -o {}
 
