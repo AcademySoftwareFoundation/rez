@@ -1,5 +1,21 @@
 # Change Log
 
+## 2.100.0 (2021-11-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.100.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.3...2.100.0)
+
+**Notes**
+
+IMPORTANT - This release changes the license from LGPL-3.0 to Apache-2.0.
+More: https://www.apache.org/licenses/LICENSE-2.0
+
+**Merged pull requests:**
+
+- Issue 1119 license change [\#1158](https://github.com/nerdvegas/rez/pull/1158) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Rez License Change: LGPLv3 to Apache2.0 [\#1119](https://github.com/nerdvegas/rez/issues/1119)
+
 ## 2.98.3 (2021-11-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.98.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.2...2.98.3)
 
