@@ -6,13 +6,11 @@ if [ ! -f "LICENSE" ]; then
 fi
 
 # remove copyrights
-echo '' > .lic.tmp
-find ./src/rez/data -name '*.py' >> .lic.tmp
+find ./src/rez/data -name '*.py' > .lic.tmp
 cat .lic.tmp | xargs -i echo ./src/build_utils/license/change_copyright -so {}
 
 # add copyright
-echo '' > .lic.tmp
-find ./src/rez/backport -name '*.py' >> .lic.tmp
+find ./src/rez/backport -name '*.py' > .lic.tmp
 find ./src/rez/bind -name '*.py' >> .lic.tmp
 find ./src/rez/cli -name '*.py' >> .lic.tmp
 find ./src/rez/tests -name '*.py' >> .lic.tmp
@@ -20,9 +18,9 @@ find ./src/rez/utils -name '*.py' >> .lic.tmp
 find ./src/rez/vendor/version -name '*.py' >> .lic.tmp
 find ./src/rez/bind -name '*.py' >> .lic.tmp
 find ./src/rez -maxdepth 1 -name '*.py' >> .lic.tmp
+find ./src/rezgui -name '*.py' >> .lic.tmp
+find ./src/rezplugins -name '*.py' >> .lic.tmp
+find ./src/support -name '*.py' >> .lic.tmp
+cat .lic.tmp | xargs -i echo ./src/build_utils/license/change_copyright -o {}
 
-
-
-find ./src/rez/bind -name '*.py' >> .lic.tmp
-
-#rm -f .lic.tmp
+rm -f .lic.tmp
