@@ -7,7 +7,7 @@ fi
 
 # remove copyrights
 find ./src/rez/data -name '*.py' > .lic.tmp
-cat .lic.tmp | xargs -i echo ./src/build_utils/license/change_copyright -so {}
+cat .lic.tmp | xargs -i ./src/build_utils/license/change_copyright -so {}
 
 # add copyright
 find ./src/rez/backport -name '*.py' > .lic.tmp
@@ -21,6 +21,6 @@ find ./src/rez -maxdepth 1 -name '*.py' >> .lic.tmp
 find ./src/rezgui -name '*.py' >> .lic.tmp
 find ./src/rezplugins -name '*.py' >> .lic.tmp
 find ./src/support -name '*.py' >> .lic.tmp
-cat .lic.tmp | xargs -i echo ./src/build_utils/license/change_copyright -o {}
+cat .lic.tmp | xargs -i ./src/build_utils/license/change_copyright -o {}
 
 rm -f .lic.tmp
