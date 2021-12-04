@@ -14,6 +14,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 <th>Package</th>
 <th>Version</th>
 <th>Latest</th>
+<th>License</th>
 <th>Note</th>
 </tr>
 
@@ -24,6 +25,8 @@ Note that the latest versions column is just to give us an idea of how far back 
     ?
 </td><td>
     1.9.5 (Apr 2, 2019)
+</td><td>
+    ?
 </td><td>
     Our version seems patched.
 </td></tr>
@@ -36,6 +39,8 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     1.3.0 (Feb 1, 2019)
 </td><td>
+    ?
+</td><td>
     -
 </td></tr>
 
@@ -46,6 +51,8 @@ Note that the latest versions column is just to give us an idea of how far back 
     19.1.0 (Mar 3, 2019)
 </td><td>
     19.1.0 (Mar 3, 2019)
+</td><td>
+    ?
 </td><td>
     Added (July 2019) to enable the use of packaging lib that depends on it.
 </td></tr>
@@ -58,6 +65,8 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     0.4.1 (Nov 25, 2018)
 </td><td>
+    ?
+</td><td>
     -
 </td></tr>
 
@@ -68,6 +77,8 @@ Note that the latest versions column is just to give us an idea of how far back 
     0.2.9.post0 (May 14, 2019)
 </td><td>
     0.3.0 (No official release yet)
+</td><td>
+    ?
 </td><td>
     Updated (June 2019) to enable wheel distribution based installations.
 </td></tr>
@@ -80,12 +91,16 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     1.5.0 (Mar 31, 2020)
 </td><td>
+    ?
+</td><td>
 -
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
     enum
+</td><td>
+    ?
 </td><td>
     ?
 </td><td>
@@ -103,6 +118,8 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     0.12.2 (Nov 25, 2015)
 </td><td>
+    ?
+</td><td>
     -
 </td></tr>
 
@@ -113,6 +130,8 @@ Note that the latest versions column is just to give us an idea of how far back 
     1.59 (Dec 15, 2017)
 </td><td>
     1.59 (Dec 15, 2017)
+</td><td>
+    ?
 </td><td>
     We could try to move to a more maintained package like pymemcache from
     pinterest. NOTE: A port to redis may be a better option, people are more
@@ -128,8 +147,24 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     19.0 (Jan 20, 2019)
 </td><td>
+    ?
+</td><td>
     Added (July 2019) to enable PEP440 compatible versions handling.
 </td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
+    pika
+</td><td>
+    1.2.0
+</td><td>
+    1.2.0
+</td><td>
+    ?
+</td><td>
+    -
+</td></tr>
+
 
 <!-- ######################################################### -->
 <tr><td>
@@ -138,6 +173,8 @@ Note that the latest versions column is just to give us an idea of how far back 
     1.5 (Mar 6, 2019)
 </td><td>
     1.5 (Mar 6, 2019)
+</td><td>
+    ?
 </td><td>
     Upgraded from 1.2 to 1.5 as of Oct 16 2019
 </td></tr>
@@ -149,6 +186,8 @@ Note that the latest versions column is just to give us an idea of how far back 
     1.4.2.dev0 (Oct 28, 2020)
 </td><td>
     1.4.2.dev0 (Oct 28, 2020)
+</td><td>
+    ?
 </td><td>
 
 * Updated (July 2019) in order to update pyparsing lib which in turn is
@@ -165,6 +204,8 @@ required by the packaging library. Updated (Aug 2019) for py3.
 </td><td>
     1.8.2 (Jul 14, 2012)
 </td><td>
+    ?
+</td><td>
     -
 </td></tr>
 
@@ -175,6 +216,8 @@ required by the packaging library. Updated (Aug 2019) for py3.
     2.4.0 (Apr 8, 2019)
 </td><td>
     2.4.0 (Apr 8, 2019)
+</td><td>
+    ?
 </td><td>
     Updated (July 2019) along with pydot to allow for packaging lib to be used.
 </td></tr>
@@ -187,6 +230,8 @@ required by the packaging library. Updated (Aug 2019) for py3.
 </td><td>
     0.7.0 (Feb 27, 2019)
 </td><td>
+    ?
+</td><td>
     Our version is patched.
 </td></tr>
 
@@ -197,6 +242,8 @@ required by the packaging library. Updated (Aug 2019) for py3.
     1.12.0 (Dec 9, 2018)
 </td><td>
     1.12.0 (Dec 9, 2018)
+</td><td>
+    ?
 </td><td>
     Updated (July 2019) to coincide with packaging lib addition that depends on.
     Also now required to support py2/3 interoperability.
@@ -210,7 +257,22 @@ required by the packaging library. Updated (Aug 2019) for py3.
 </td><td>
     2.1.0 (Mar 5, 2019)
 </td><td>
+    ?
+</td><td>
     Used in the resolver. Updating would possibly give us some speed improvements.
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
+    whichcraft
+</td><td>
+    0.6.1
+</td><td>
+    0.6.1
+</td><td>
+    ?
+</td><td>
+    -
 </td></tr>
 
 <!-- ######################################################### -->
@@ -220,6 +282,8 @@ required by the packaging library. Updated (Aug 2019) for py3.
     5.1 (May 30, 2011)
 </td><td>
     5.1.2  (Jul 5, 2018)
+</td><td>
+    ?
 </td><td>
     No changes but must maintain separate version between py2 and py3 for time being.
 </td></tr>
@@ -232,18 +296,9 @@ required by the packaging library. Updated (Aug 2019) for py3.
 </td><td>
     5.1.2  (Jul 31, 2018)
 </td><td>
+    ?
+</td><td>
     No changes but must maintain separate version between py2 and py3 for time being.
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
-    version
-</td><td>
-    -
-</td><td>
-    -
-</td><td>
-    Part of rez (TODO: Mve out of vendor).
 </td></tr>
 
 </table>
