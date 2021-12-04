@@ -47,7 +47,7 @@
       "placode", 
       "wave-2"
     ], 
-    "resolve_time": 0.11403179168701172
+    "resolve_time": 0.11837315559387207
   }, 
   {
     "status": "success", 
@@ -70,11 +70,11 @@
       "integer-1.6.6", 
       "coincidence"
     ], 
-    "resolve_time": 0.01996016502380371
+    "resolve_time": 0.02070903778076172
   }, 
   {
     "status": "failed", 
-    "resolve_time": 0.012983083724975586, 
+    "resolve_time": 0.013698816299438477, 
     "request": [
       "~diam==linux", 
       "~understatement==x86_64", 
@@ -100,7 +100,7 @@
       "~aftershave==CentOS-7", 
       "chest-0.0.1"
     ], 
-    "resolve_time": 0.004395961761474609
+    "resolve_time": 0.004678010940551758
   }, 
   {
     "status": "success", 
@@ -184,7 +184,7 @@
       "integer-1+<2", 
       "grasshopper-2.36.1"
     ], 
-    "resolve_time": 0.34888696670532227
+    "resolve_time": 2.1822338104248047
   }, 
   {
     "status": "success", 
@@ -244,7 +244,7 @@
       "~crucifixion-3.39", 
       "~basketball-19.05"
     ], 
-    "resolve_time": 0.06674003601074219
+    "resolve_time": 0.0678398609161377
   }, 
   {
     "status": "success", 
@@ -303,7 +303,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.1+<4"
     ], 
-    "resolve_time": 0.06313800811767578
+    "resolve_time": 0.06518006324768066
   }, 
   {
     "status": "success", 
@@ -324,7 +324,7 @@
       "~aftershave==CentOS-7", 
       "integer"
     ], 
-    "resolve_time": 0.0246121883392334
+    "resolve_time": 0.025336027145385742
   }, 
   {
     "status": "success", 
@@ -386,7 +386,7 @@
       "integer", 
       "veldt-0.2.1"
     ], 
-    "resolve_time": 0.20982599258422852
+    "resolve_time": 0.21692109107971191
   }, 
   {
     "status": "success", 
@@ -431,7 +431,7 @@
       "~aftershave==CentOS-7", 
       "pelican-0"
     ], 
-    "resolve_time": 0.10548806190490723
+    "resolve_time": 0.10754704475402832
   }, 
   {
     "status": "success", 
@@ -459,7 +459,7 @@
       "~aftershave==CentOS-7", 
       "resist==5.4.1"
     ], 
-    "resolve_time": 0.04455280303955078
+    "resolve_time": 0.04554104804992676
   }, 
   {
     "status": "success", 
@@ -480,7 +480,7 @@
       "~aftershave==CentOS-7", 
       "integer-1.6.16"
     ], 
-    "resolve_time": 0.01989603042602539
+    "resolve_time": 0.01987290382385254
   }, 
   {
     "status": "success", 
@@ -548,7 +548,7 @@
       "~aftershave==CentOS-7", 
       "hiring==2.10.5"
     ], 
-    "resolve_time": 2.0622189044952393
+    "resolve_time": 0.24409008026123047
   }, 
   {
     "status": "success", 
@@ -625,7 +625,7 @@
       "joke", 
       "civilisation-1"
     ], 
-    "resolve_time": 0.35390591621398926
+    "resolve_time": 0.34583091735839844
   }, 
   {
     "status": "success", 
@@ -700,7 +700,7 @@
       "~aftershave==CentOS-7", 
       "grasshopper-1"
     ], 
-    "resolve_time": 0.31620097160339355
+    "resolve_time": 0.3179340362548828
   }, 
   {
     "status": "success", 
@@ -796,7 +796,7 @@
       "joke", 
       "batting-1"
     ], 
-    "resolve_time": 0.474761962890625
+    "resolve_time": 0.48521900177001953
   }, 
   {
     "status": "success", 
@@ -878,7 +878,7 @@
       "investor-3.1+<4", 
       "presentation-0.1.1+<1"
     ], 
-    "resolve_time": 0.365872859954834
+    "resolve_time": 0.37517690658569336
   }, 
   {
     "status": "success", 
@@ -974,7 +974,7 @@
       "joke", 
       "batting==1.46.0"
     ], 
-    "resolve_time": 0.3767738342285156
+    "resolve_time": 0.3828871250152588
   }, 
   {
     "status": "success", 
@@ -1058,7 +1058,7 @@
       "integer-1+<2", 
       "grasshopper-2.37.0"
     ], 
-    "resolve_time": 0.31035780906677246
+    "resolve_time": 0.31957006454467773
   }, 
   {
     "status": "success", 
@@ -1167,7 +1167,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.39+<4"
     ], 
-    "resolve_time": 0.3528859615325928
+    "resolve_time": 0.3625779151916504
   }, 
   {
     "status": "success", 
@@ -1238,7 +1238,7 @@
       "fool-2018.6.8394", 
       "shrimp-3.1.0"
     ], 
-    "resolve_time": 0.22809815406799316
+    "resolve_time": 0.2330489158630371
   }, 
   {
     "status": "success", 
@@ -1347,7 +1347,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 0.35089802742004395
+    "resolve_time": 0.35940980911254883
   }, 
   {
     "status": "success", 
@@ -1456,7 +1456,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.39+<4"
     ], 
-    "resolve_time": 0.3374960422515869
+    "resolve_time": 0.3450160026550293
   }, 
   {
     "status": "success", 
@@ -1540,7 +1540,7 @@
       "integer-1+<2", 
       "grasshopper-2.34.1"
     ], 
-    "resolve_time": 0.3122680187225342
+    "resolve_time": 0.3181278705596924
   }, 
   {
     "status": "success", 
@@ -1597,7 +1597,7 @@
       "~aftershave==CentOS-7", 
       "studio"
     ], 
-    "resolve_time": 0.18160390853881836
+    "resolve_time": 0.18822407722473145
   }, 
   {
     "status": "success", 
@@ -1710,7 +1710,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.4454970359802246
+    "resolve_time": 0.45589208602905273
   }, 
   {
     "status": "success", 
@@ -1789,7 +1789,7 @@
       "~aftershave==CentOS-7", 
       "native"
     ], 
-    "resolve_time": 0.31346607208251953
+    "resolve_time": 0.32163000106811523
   }, 
   {
     "status": "success", 
@@ -1869,7 +1869,7 @@
       "grasshopper-2.36.1", 
       "replica-1.2.1"
     ], 
-    "resolve_time": 0.27674007415771484
+    "resolve_time": 0.28434085845947266
   }, 
   {
     "status": "success", 
@@ -1953,7 +1953,7 @@
       "integer-1+<2", 
       "grasshopper-2.31.3"
     ], 
-    "resolve_time": 0.3135240077972412
+    "resolve_time": 0.3204770088195801
   }, 
   {
     "status": "success", 
@@ -2011,7 +2011,7 @@
       "~aftershave==CentOS-7", 
       "congressman"
     ], 
-    "resolve_time": 0.18661093711853027
+    "resolve_time": 0.18928813934326172
   }, 
   {
     "status": "success", 
@@ -2077,7 +2077,7 @@
       "~aftershave==CentOS-7", 
       "act-0"
     ], 
-    "resolve_time": 0.24415898323059082
+    "resolve_time": 0.24733710289001465
   }, 
   {
     "status": "success", 
@@ -2171,7 +2171,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 0.25283098220825195
+    "resolve_time": 0.25446605682373047
   }, 
   {
     "status": "success", 
@@ -2240,7 +2240,7 @@
       "~aftershave==CentOS-7", 
       "gallery-0.1.16"
     ], 
-    "resolve_time": 0.2464311122894287
+    "resolve_time": 0.25533580780029297
   }, 
   {
     "status": "success", 
@@ -2324,7 +2324,7 @@
       "integer-1+<2", 
       "grasshopper-2.35.0"
     ], 
-    "resolve_time": 0.31174492835998535
+    "resolve_time": 0.3193080425262451
   }, 
   {
     "status": "success", 
@@ -2408,7 +2408,7 @@
       "integer-1+<2", 
       "grasshopper-2.34.4"
     ], 
-    "resolve_time": 0.3128829002380371
+    "resolve_time": 0.3202660083770752
   }, 
   {
     "status": "success", 
@@ -2506,7 +2506,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 0.30756402015686035
+    "resolve_time": 0.31590795516967773
   }, 
   {
     "status": "success", 
@@ -2610,7 +2610,7 @@
       "~aftershave==CentOS-7", 
       "crucifixion-3.40.2"
     ], 
-    "resolve_time": 0.5474419593811035
+    "resolve_time": 0.5625419616699219
   }, 
   {
     "status": "success", 
@@ -2620,7 +2620,7 @@
       "~understatement==x86_64", 
       "~aftershave==CentOS-7"
     ], 
-    "resolve_time": 0.0008671283721923828
+    "resolve_time": 0.0009098052978515625
   }, 
   {
     "status": "success", 
@@ -2742,7 +2742,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.39"
     ], 
-    "resolve_time": 0.5457789897918701
+    "resolve_time": 0.5539920330047607
   }, 
   {
     "status": "success", 
@@ -2905,7 +2905,7 @@
       "crucifixion-3", 
       "elf-0"
     ], 
-    "resolve_time": 0.9526100158691406
+    "resolve_time": 0.970844030380249
   }, 
   {
     "status": "success", 
@@ -3015,7 +3015,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.1+<4"
     ], 
-    "resolve_time": 0.34795308113098145
+    "resolve_time": 0.3527200222015381
   }, 
   {
     "status": "success", 
@@ -3099,7 +3099,7 @@
       "integer-1+<2", 
       "grasshopper-2.35.1"
     ], 
-    "resolve_time": 0.3140408992767334
+    "resolve_time": 0.3184850215911865
   }, 
   {
     "status": "success", 
@@ -3163,7 +3163,7 @@
       "~aftershave==CentOS-7", 
       "locket-1.2.2"
     ], 
-    "resolve_time": 0.21529698371887207
+    "resolve_time": 0.21895480155944824
   }, 
   {
     "status": "success", 
@@ -3267,7 +3267,7 @@
       "~aftershave==CentOS-7", 
       "crucifixion-3.40.1"
     ], 
-    "resolve_time": 0.5423929691314697
+    "resolve_time": 0.5531010627746582
   }, 
   {
     "status": "success", 
@@ -3360,7 +3360,7 @@
       "~aftershave==CentOS-7", 
       "jackfruit"
     ], 
-    "resolve_time": 0.5552120208740234
+    "resolve_time": 0.5626311302185059
   }, 
   {
     "status": "success", 
@@ -3485,7 +3485,7 @@
       "~aftershave==CentOS-7", 
       "cooking==1.7.1"
     ], 
-    "resolve_time": 0.6710669994354248
+    "resolve_time": 0.6823940277099609
   }, 
   {
     "status": "success", 
@@ -3569,7 +3569,7 @@
       "integer-1+<2", 
       "grasshopper-2.33.1"
     ], 
-    "resolve_time": 0.3109250068664551
+    "resolve_time": 0.3177928924560547
   }, 
   {
     "status": "success", 
@@ -3636,7 +3636,7 @@
       "~aftershave==CentOS-7", 
       "timber-0"
     ], 
-    "resolve_time": 0.25128889083862305
+    "resolve_time": 0.2584550380706787
   }, 
   {
     "status": "success", 
@@ -3694,7 +3694,7 @@
       "~aftershave==CentOS-7", 
       "monitor-0.5"
     ], 
-    "resolve_time": 0.18652606010437012
+    "resolve_time": 0.19126009941101074
   }, 
   {
     "status": "success", 
@@ -3799,7 +3799,7 @@
       "crucifixion-3.40.2", 
       "turmeric-0.3.0"
     ], 
-    "resolve_time": 0.5330820083618164
+    "resolve_time": 0.5448980331420898
   }, 
   {
     "status": "success", 
@@ -3920,7 +3920,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3+<3.39"
     ], 
-    "resolve_time": 0.5312559604644775
+    "resolve_time": 0.5410699844360352
   }, 
   {
     "status": "success", 
@@ -4062,7 +4062,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.7220058441162109
+    "resolve_time": 0.7265350818634033
   }, 
   {
     "status": "success", 
@@ -4225,7 +4225,7 @@
       "crucifixion-3", 
       "elf-0"
     ], 
-    "resolve_time": 0.9249849319458008
+    "resolve_time": 0.9292490482330322
   }, 
   {
     "status": "success", 
@@ -4368,7 +4368,7 @@
       "~crucifixion-3.40.2+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.5872259140014648
+    "resolve_time": 0.5893228054046631
   }, 
   {
     "status": "success", 
@@ -4509,7 +4509,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.6735930442810059
+    "resolve_time": 0.6790480613708496
   }, 
   {
     "status": "success", 
@@ -4634,7 +4634,7 @@
       "~aftershave==CentOS-7", 
       "cooking==1.8.3"
     ], 
-    "resolve_time": 0.6261820793151855
+    "resolve_time": 0.6308720111846924
   }, 
   {
     "status": "success", 
@@ -4806,7 +4806,7 @@
       "~crucifixion-3.40.2+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.8458590507507324
+    "resolve_time": 0.862037181854248
   }, 
   {
     "status": "success", 
@@ -4989,7 +4989,7 @@
       "horror-4.3.1", 
       "adapter-5.1.0"
     ], 
-    "resolve_time": 1.0411951541900635
+    "resolve_time": 1.0565211772918701
   }, 
   {
     "status": "success", 
@@ -5073,7 +5073,7 @@
       "~aftershave==CentOS-7", 
       "jackfruit-0.19.1"
     ], 
-    "resolve_time": 0.48519015312194824
+    "resolve_time": 0.5011129379272461
   }, 
   {
     "status": "success", 
@@ -5218,7 +5218,7 @@
       "draw-11", 
       "crucifixion-3"
     ], 
-    "resolve_time": 0.7731060981750488
+    "resolve_time": 0.7839601039886475
   }, 
   {
     "status": "success", 
@@ -5383,7 +5383,7 @@
       "elf-0", 
       "employee-2.0"
     ], 
-    "resolve_time": 0.9322419166564941
+    "resolve_time": 3.5135490894317627
   }, 
   {
     "status": "success", 
@@ -5535,7 +5535,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 3.3727591037750244
+    "resolve_time": 0.8904387950897217
   }, 
   {
     "status": "success", 
@@ -5658,7 +5658,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.1+<4"
     ], 
-    "resolve_time": 0.6228630542755127
+    "resolve_time": 0.6368820667266846
   }, 
   {
     "status": "success", 
@@ -5779,7 +5779,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 0.6050519943237305
+    "resolve_time": 0.6256258487701416
   }, 
   {
     "status": "success", 
@@ -5931,7 +5931,7 @@
       "~wave-2", 
       "~paranoia-4.8.6.m1"
     ], 
-    "resolve_time": 0.848452091217041
+    "resolve_time": 0.8680899143218994
   }, 
   {
     "status": "success", 
@@ -6084,7 +6084,7 @@
       "~wave-2", 
       "~paranoia-4.8.6.m1"
     ], 
-    "resolve_time": 0.8329751491546631
+    "resolve_time": 0.8592469692230225
   }, 
   {
     "status": "success", 
@@ -6151,7 +6151,7 @@
       "~aftershave==CentOS-7", 
       "timber-0.16+<1"
     ], 
-    "resolve_time": 0.22637701034545898
+    "resolve_time": 0.2330789566040039
   }, 
   {
     "status": "success", 
@@ -6425,7 +6425,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 1.8791978359222412
+    "resolve_time": 1.9260759353637695
   }, 
   {
     "status": "success", 
@@ -6638,7 +6638,7 @@
       "~pentagon-2.16", 
       "~crucifixion-3+<3.39"
     ], 
-    "resolve_time": 1.5166869163513184
+    "resolve_time": 1.5460278987884521
   }, 
   {
     "status": "success", 
@@ -6906,7 +6906,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 1.8094360828399658
+    "resolve_time": 1.8444020748138428
   }, 
   {
     "status": "success", 
@@ -7042,7 +7042,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.6932590007781982
+    "resolve_time": 0.7137079238891602
   }, 
   {
     "status": "success", 
@@ -7240,7 +7240,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.1+<4"
     ], 
-    "resolve_time": 1.3976500034332275
+    "resolve_time": 1.4450531005859375
   }, 
   {
     "status": "success", 
@@ -7386,7 +7386,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.7659099102020264
+    "resolve_time": 0.7902581691741943
   }, 
   {
     "status": "success", 
@@ -7492,7 +7492,7 @@
       "~aftershave==CentOS-7", 
       "detour-0"
     ], 
-    "resolve_time": 0.6674580574035645
+    "resolve_time": 0.6916358470916748
   }, 
   {
     "status": "success", 
@@ -7766,7 +7766,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 1.8368051052093506
+    "resolve_time": 1.8966588973999023
   }, 
   {
     "status": "success", 
@@ -7866,7 +7866,7 @@
       "~aftershave==CentOS-7", 
       "fear==1.34.2"
     ], 
-    "resolve_time": 0.4619889259338379
+    "resolve_time": 0.4783031940460205
   }, 
   {
     "status": "success", 
@@ -8142,7 +8142,7 @@
       "~pineapple-3+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 1.8565521240234375
+    "resolve_time": 1.9161758422851562
   }, 
   {
     "status": "success", 
@@ -8370,7 +8370,7 @@
       "~pentagon-2.16", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 1.6301329135894775
+    "resolve_time": 1.670604944229126
   }, 
   {
     "status": "success", 
@@ -8533,7 +8533,7 @@
       "draw-11.3.5", 
       "elf-0"
     ], 
-    "resolve_time": 0.9129769802093506
+    "resolve_time": 0.9247739315032959
   }, 
   {
     "status": "success", 
@@ -8655,7 +8655,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.39+<4"
     ], 
-    "resolve_time": 0.6087350845336914
+    "resolve_time": 0.6187641620635986
   }, 
   {
     "status": "success", 
@@ -8767,7 +8767,7 @@
       "shoe", 
       "pecan-2.0.0.alpha"
     ], 
-    "resolve_time": 0.7051079273223877
+    "resolve_time": 0.7100019454956055
   }, 
   {
     "status": "success", 
@@ -8890,7 +8890,7 @@
       "~aftershave==CentOS-7", 
       "increase"
     ], 
-    "resolve_time": 0.9447522163391113
+    "resolve_time": 0.9557468891143799
   }, 
   {
     "status": "success", 
@@ -9132,7 +9132,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.6185660362243652
+    "resolve_time": 2.6685800552368164
   }, 
   {
     "status": "success", 
@@ -9407,7 +9407,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 1.8556499481201172
+    "resolve_time": 1.8640458583831787
   }, 
   {
     "status": "success", 
@@ -9646,7 +9646,7 @@
       "~crucifixion-3.39.7", 
       "~wave-2"
     ], 
-    "resolve_time": 4.377382040023804
+    "resolve_time": 4.501189947128296
   }, 
   {
     "status": "success", 
@@ -9835,7 +9835,7 @@
       "~pentagon-2.16", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 1.276336908340454
+    "resolve_time": 1.294374942779541
   }, 
   {
     "status": "success", 
@@ -10124,7 +10124,7 @@
       "~crucifixion-3+<3.39", 
       "~wave-2"
     ], 
-    "resolve_time": 2.4417080879211426
+    "resolve_time": 2.513532876968384
   }, 
   {
     "status": "success", 
@@ -10259,7 +10259,7 @@
       "~crucifixion-3.40.2+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 0.6992650032043457
+    "resolve_time": 0.7222950458526611
   }, 
   {
     "status": "success", 
@@ -10450,7 +10450,7 @@
       "~crucifixion-3.39", 
       "~basketball-19.05"
     ], 
-    "resolve_time": 1.3068621158599854
+    "resolve_time": 1.337968111038208
   }, 
   {
     "status": "success", 
@@ -10554,7 +10554,7 @@
       "~aftershave==CentOS-7", 
       "crucifixion"
     ], 
-    "resolve_time": 0.5729010105133057
+    "resolve_time": 0.5893499851226807
   }, 
   {
     "status": "success", 
@@ -10665,7 +10665,7 @@
       "~aftershave==CentOS-7", 
       "shoe"
     ], 
-    "resolve_time": 0.6943380832672119
+    "resolve_time": 0.7069940567016602
   }, 
   {
     "status": "success", 
@@ -10939,7 +10939,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 2.003857135772705
+    "resolve_time": 2.0557079315185547
   }, 
   {
     "status": "success", 
@@ -11069,7 +11069,7 @@
       "lecture-2.86", 
       "infarction-0.49"
     ], 
-    "resolve_time": 0.8555610179901123
+    "resolve_time": 0.8839550018310547
   }, 
   {
     "status": "success", 
@@ -11304,7 +11304,7 @@
       "~crucifixion-3", 
       "~wave-2"
     ], 
-    "resolve_time": 2.308424949645996
+    "resolve_time": 2.366128921508789
   }, 
   {
     "status": "success", 
@@ -11500,7 +11500,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 1.3730518817901611
+    "resolve_time": 1.4713151454925537
   }, 
   {
     "status": "success", 
@@ -11697,7 +11697,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.39+<4"
     ], 
-    "resolve_time": 1.3802249431610107
+    "resolve_time": 1.4986679553985596
   }, 
   {
     "status": "success", 
@@ -11965,7 +11965,7 @@
       "~pineapple-3+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 1.802659034729004
+    "resolve_time": 1.9369230270385742
   }, 
   {
     "status": "success", 
@@ -12117,7 +12117,7 @@
       "~wave-2", 
       "~paranoia-4.8.6.m1"
     ], 
-    "resolve_time": 0.8268420696258545
+    "resolve_time": 0.8652870655059814
   }, 
   {
     "status": "success", 
@@ -12408,7 +12408,7 @@
       "~crucifixion-3.39", 
       "~wave-2"
     ], 
-    "resolve_time": 2.3007218837738037
+    "resolve_time": 2.5000429153442383
   }, 
   {
     "status": "success", 
@@ -12623,7 +12623,7 @@
       "~pentagon-2.16", 
       "~crucifixion-3.40.1+<4"
     ], 
-    "resolve_time": 1.4026479721069336
+    "resolve_time": 1.4640040397644043
   }, 
   {
     "status": "success", 
@@ -12836,7 +12836,7 @@
       "~pentagon-2.16", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 1.3963849544525146
+    "resolve_time": 1.4352869987487793
   }, 
   {
     "status": "success", 
@@ -13123,7 +13123,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.3854610919952393
+    "resolve_time": 2.4860999584198
   }, 
   {
     "status": "success", 
@@ -13366,7 +13366,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.3897528648376465
+    "resolve_time": 2.47000789642334
   }, 
   {
     "status": "success", 
@@ -13479,7 +13479,7 @@
       "~aftershave==CentOS-7", 
       "lecture-2.84.1"
     ], 
-    "resolve_time": 0.7558689117431641
+    "resolve_time": 3.4495959281921387
   }, 
   {
     "status": "success", 
@@ -13769,7 +13769,7 @@
       "~crucifixion-3.39", 
       "~wave-2"
     ], 
-    "resolve_time": 4.896265029907227
+    "resolve_time": 2.3575150966644287
   }, 
   {
     "status": "success", 
@@ -13995,7 +13995,7 @@
       "~crucifixion-3.40.2+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 1.9237499237060547
+    "resolve_time": 1.9778029918670654
   }, 
   {
     "status": "success", 
@@ -14120,7 +14120,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 0.6256208419799805
+    "resolve_time": 0.6577792167663574
   }, 
   {
     "status": "success", 
@@ -14359,7 +14359,7 @@
       "~crucifixion-3.39.7", 
       "~wave-2"
     ], 
-    "resolve_time": 1.7582991123199463
+    "resolve_time": 1.814551830291748
   }, 
   {
     "status": "success", 
@@ -14446,7 +14446,7 @@
       "~aftershave==CentOS-7", 
       "implement-0"
     ], 
-    "resolve_time": 0.38404202461242676
+    "resolve_time": 0.39844417572021484
   }, 
   {
     "status": "success", 
@@ -14680,7 +14680,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 1.7182371616363525
+    "resolve_time": 1.7696399688720703
   }, 
   {
     "status": "success", 
@@ -14803,7 +14803,7 @@
       "~aftershave==CentOS-7", 
       "increase-0"
     ], 
-    "resolve_time": 0.9330229759216309
+    "resolve_time": 0.9712560176849365
   }, 
   {
     "status": "success", 
@@ -15092,7 +15092,7 @@
       "~crucifixion-3.40.2+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.2305798530578613
+    "resolve_time": 2.3038558959960938
   }, 
   {
     "status": "success", 
@@ -15279,7 +15279,7 @@
       "dead-7+<10", 
       "profit-4"
     ], 
-    "resolve_time": 1.683380126953125
+    "resolve_time": 1.7397611141204834
   }, 
   {
     "status": "success", 
@@ -15522,7 +15522,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.3811490535736084
+    "resolve_time": 2.438547134399414
   }, 
   {
     "status": "success", 
@@ -15796,7 +15796,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 1.837425947189331
+    "resolve_time": 1.8761849403381348
   }, 
   {
     "status": "success", 
@@ -16045,7 +16045,7 @@
       "~pineapple-3", 
       "~wave-2"
     ], 
-    "resolve_time": 2.434030055999756
+    "resolve_time": 2.4715259075164795
   }, 
   {
     "status": "success", 
@@ -16333,7 +16333,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.4576430320739746
+    "resolve_time": 2.539726972579956
   }, 
   {
     "status": "success", 
@@ -16525,7 +16525,7 @@
       "~crucifixion-3.39", 
       "~basketball-19.05"
     ], 
-    "resolve_time": 1.2434310913085938
+    "resolve_time": 1.3122761249542236
   }, 
   {
     "status": "success", 
@@ -16716,7 +16716,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3"
     ], 
-    "resolve_time": 1.3822550773620605
+    "resolve_time": 1.453495979309082
   }, 
   {
     "status": "success", 
@@ -16878,7 +16878,7 @@
       "~aftershave==CentOS-7", 
       "objective"
     ], 
-    "resolve_time": 3.1772260665893555
+    "resolve_time": 3.330864906311035
   }, 
   {
     "status": "success", 
@@ -17064,7 +17064,7 @@
       "~disk-4.4+<5", 
       "~crucifixion-3.40.2+<4"
     ], 
-    "resolve_time": 1.2534189224243164
+    "resolve_time": 1.318458080291748
   }, 
   {
     "status": "success", 
@@ -17464,7 +17464,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 7.427222013473511
+    "resolve_time": 7.85273814201355
   }, 
   {
     "status": "success", 
@@ -17871,7 +17871,7 @@
       "~pineapple-3+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.654474973678589
+    "resolve_time": 4.900688171386719
   }, 
   {
     "status": "success", 
@@ -18228,7 +18228,7 @@
       "~crucifixion-3", 
       "~wave-2"
     ], 
-    "resolve_time": 3.7731940746307373
+    "resolve_time": 3.941169023513794
   }, 
   {
     "status": "success", 
@@ -18516,7 +18516,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.292067050933838
+    "resolve_time": 2.379483938217163
   }, 
   {
     "status": "success", 
@@ -18831,7 +18831,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 3.7439308166503906
+    "resolve_time": 3.9241108894348145
   }, 
   {
     "status": "success", 
@@ -19152,7 +19152,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 3.4660048484802246
+    "resolve_time": 3.648664951324463
   }, 
   {
     "status": "success", 
@@ -19441,7 +19441,7 @@
       "~crucifixion-3.40.1+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.2971129417419434
+    "resolve_time": 2.3716819286346436
   }, 
   {
     "status": "success", 
@@ -19840,7 +19840,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.683783054351807
+    "resolve_time": 4.936858892440796
   }, 
   {
     "status": "success", 
@@ -20238,7 +20238,7 @@
       "~pineapple-3+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.691687107086182
+    "resolve_time": 4.8998589515686035
   }, 
   {
     "status": "success", 
@@ -20636,7 +20636,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.519968032836914
+    "resolve_time": 7.440658092498779
   }, 
   {
     "status": "success", 
@@ -21038,7 +21038,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 7.240660905838013
+    "resolve_time": 4.777642011642456
   }, 
   {
     "status": "success", 
@@ -21442,7 +21442,7 @@
       "~wave-2", 
       "stealth-3.7.2"
     ], 
-    "resolve_time": 4.49887490272522
+    "resolve_time": 4.742805004119873
   }, 
   {
     "status": "success", 
@@ -21799,7 +21799,7 @@
       "~crucifixion-3.39+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 3.6855008602142334
+    "resolve_time": 3.848327875137329
   }, 
   {
     "status": "success", 
@@ -22197,7 +22197,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.48695707321167
+    "resolve_time": 4.716942071914673
   }, 
   {
     "status": "success", 
@@ -22513,7 +22513,7 @@
       "~crucifixion-3.39.7+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.8516390323638916
+    "resolve_time": 2.9533488750457764
   }, 
   {
     "status": "success", 
@@ -22915,7 +22915,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.722909927368164
+    "resolve_time": 4.966770172119141
   }, 
   {
     "status": "success", 
@@ -23156,7 +23156,7 @@
       "~crucifixion-3.40.2+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 2.3885159492492676
+    "resolve_time": 2.4799699783325195
   }, 
   {
     "status": "success", 
@@ -23638,7 +23638,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.648053884506226
+    "resolve_time": 7.9657769203186035
   }, 
   {
     "status": "success", 
@@ -24120,7 +24120,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 9.860319137573242
+    "resolve_time": 10.406014919281006
   }, 
   {
     "status": "success", 
@@ -24518,7 +24518,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.914284944534302
+    "resolve_time": 5.059267997741699
   }, 
   {
     "status": "success", 
@@ -25002,7 +25002,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 6.534403085708618
+    "resolve_time": 6.809458017349243
   }, 
   {
     "status": "success", 
@@ -25483,7 +25483,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 6.823058128356934
+    "resolve_time": 7.122653007507324
   }, 
   {
     "status": "success", 
@@ -25803,7 +25803,7 @@
       "~crucifixion-3.40.2+<4", 
       "~wave-2"
     ], 
-    "resolve_time": 3.4651131629943848
+    "resolve_time": 3.5825068950653076
   }, 
   {
     "status": "success", 
@@ -26201,7 +26201,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.4824090003967285
+    "resolve_time": 4.679549932479858
   }, 
   {
     "status": "success", 
@@ -26686,7 +26686,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.023822069168091
+    "resolve_time": 10.20437502861023
   }, 
   {
     "status": "success", 
@@ -27167,7 +27167,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 9.982244968414307
+    "resolve_time": 7.533361911773682
   }, 
   {
     "status": "success", 
@@ -27569,7 +27569,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.594299077987671
+    "resolve_time": 4.7655110359191895
   }, 
   {
     "status": "success", 
@@ -27969,7 +27969,7 @@
       "~wave-2", 
       "pimple"
     ], 
-    "resolve_time": 4.539224863052368
+    "resolve_time": 4.67268705368042
   }, 
   {
     "status": "success", 
@@ -28369,7 +28369,7 @@
       "~wave-2", 
       "stealth"
     ], 
-    "resolve_time": 4.561923027038574
+    "resolve_time": 4.661700010299683
   }, 
   {
     "status": "success", 
@@ -28854,7 +28854,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.036520004272461
+    "resolve_time": 7.210384845733643
   }, 
   {
     "status": "success", 
@@ -29336,7 +29336,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.022121906280518
+    "resolve_time": 7.296360015869141
   }, 
   {
     "status": "success", 
@@ -29820,7 +29820,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 9.878966093063354
+    "resolve_time": 10.446107149124146
   }, 
   {
     "status": "success", 
@@ -29907,7 +29907,7 @@
       "~aftershave==CentOS-7", 
       "spank-4"
     ], 
-    "resolve_time": 0.39599609375
+    "resolve_time": 0.40169811248779297
   }, 
   {
     "status": "success", 
@@ -30305,7 +30305,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.56498908996582
+    "resolve_time": 4.739047050476074
   }, 
   {
     "status": "success", 
@@ -30787,7 +30787,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.1877121925354
+    "resolve_time": 7.36217999458313
   }, 
   {
     "status": "success", 
@@ -31273,7 +31273,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.199188947677612
+    "resolve_time": 7.314128160476685
   }, 
   {
     "status": "success", 
@@ -31752,7 +31752,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 6.851826906204224
+    "resolve_time": 7.069011926651001
   }, 
   {
     "status": "success", 
@@ -32233,7 +32233,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.086864948272705
+    "resolve_time": 7.227419853210449
   }, 
   {
     "status": "success", 
@@ -32547,7 +32547,7 @@
       "~crucifixion-3", 
       "~wave-2"
     ], 
-    "resolve_time": 6.405907154083252
+    "resolve_time": 6.664270877838135
   }, 
   {
     "status": "success", 
@@ -32949,7 +32949,7 @@
       "~wave-2", 
       "stealth"
     ], 
-    "resolve_time": 4.62007999420166
+    "resolve_time": 4.7226409912109375
   }, 
   {
     "status": "success", 
@@ -33433,7 +33433,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 6.933617115020752
+    "resolve_time": 7.138016939163208
   }, 
   {
     "status": "success", 
@@ -33915,7 +33915,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.104892015457153
+    "resolve_time": 7.358268976211548
   }, 
   {
     "status": "success", 
@@ -34315,7 +34315,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.453741073608398
+    "resolve_time": 4.592782020568848
   }, 
   {
     "status": "success", 
@@ -34715,7 +34715,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.461260795593262
+    "resolve_time": 4.604129791259766
   }, 
   {
     "status": "success", 
@@ -35197,7 +35197,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.040920972824097
+    "resolve_time": 10.073771953582764
   }, 
   {
     "status": "success", 
@@ -35679,7 +35679,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 9.977757930755615
+    "resolve_time": 7.315767049789429
   }, 
   {
     "status": "success", 
@@ -36164,7 +36164,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.172834157943726
+    "resolve_time": 7.3247740268707275
   }, 
   {
     "status": "success", 
@@ -36647,7 +36647,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.0806989669799805
+    "resolve_time": 7.265880823135376
   }, 
   {
     "status": "success", 
@@ -37126,7 +37126,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 6.991182088851929
+    "resolve_time": 7.231450080871582
   }, 
   {
     "status": "success", 
@@ -37608,7 +37608,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.0507519245147705
+    "resolve_time": 7.2798988819122314
   }, 
   {
     "status": "success", 
@@ -38093,7 +38093,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 9.92094087600708
+    "resolve_time": 10.418876886367798
   }, 
   {
     "status": "success", 
@@ -38578,7 +38578,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.195835113525391
+    "resolve_time": 7.378034830093384
   }, 
   {
     "status": "success", 
@@ -39063,7 +39063,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.09707498550415
+    "resolve_time": 7.189114093780518
   }, 
   {
     "status": "success", 
@@ -39520,7 +39520,7 @@
       "~product-2.0.1", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 5.870923042297363
+    "resolve_time": 6.030203104019165
   }, 
   {
     "status": "success", 
@@ -40005,7 +40005,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.0127410888671875
+    "resolve_time": 7.269721984863281
   }, 
   {
     "status": "success", 
@@ -40490,7 +40490,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.05546498298645
+    "resolve_time": 10.196006059646606
   }, 
   {
     "status": "success", 
@@ -40972,7 +40972,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 10.015475034713745
+    "resolve_time": 7.46172308921814
   }, 
   {
     "status": "success", 
@@ -41457,7 +41457,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.166384935379028
+    "resolve_time": 7.352574110031128
   }, 
   {
     "status": "success", 
@@ -41939,7 +41939,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.065104007720947
+    "resolve_time": 7.29913592338562
   }, 
   {
     "status": "success", 
@@ -42421,7 +42421,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.05715799331665
+    "resolve_time": 7.35407280921936
   }, 
   {
     "status": "success", 
@@ -42903,7 +42903,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.025384902954102
+    "resolve_time": 7.21143102645874
   }, 
   {
     "status": "success", 
@@ -43385,7 +43385,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 9.887658834457397
+    "resolve_time": 10.317226886749268
   }, 
   {
     "status": "success", 
@@ -43867,7 +43867,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.149855136871338
+    "resolve_time": 7.376153945922852
   }, 
   {
     "status": "success", 
@@ -44349,7 +44349,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.059741020202637
+    "resolve_time": 7.270090818405151
   }, 
   {
     "status": "success", 
@@ -44831,7 +44831,7 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.017857074737549
+    "resolve_time": 7.3296098709106445
   }, 
   {
     "status": "success", 
@@ -45229,7 +45229,7 @@
       "~disk-4.4+<5", 
       "~wave-2"
     ], 
-    "resolve_time": 4.4983038902282715
+    "resolve_time": 4.6280198097229
   }, 
   {
     "status": "success", 
@@ -45711,6 +45711,6 @@
       "~wave-2", 
       "~spawn-3.52.04+<3.999"
     ], 
-    "resolve_time": 7.01938796043396
+    "resolve_time": 10.295475959777832
   }
 ]
