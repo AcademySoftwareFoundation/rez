@@ -26,7 +26,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     1.9.5 (Apr 2, 2019)
 </td><td>
-    ?
+    Apache 2.0
 </td><td>
     Our version seems patched.
 </td></tr>
@@ -39,7 +39,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     1.3.0 (Feb 1, 2019)
 </td><td>
-    ?
+    MIT
 </td><td>
     -
 </td></tr>
@@ -52,7 +52,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     19.1.0 (Mar 3, 2019)
 </td><td>
-    ?
+    MIT
 </td><td>
     Added (July 2019) to enable the use of packaging lib that depends on it.
 </td></tr>
@@ -65,7 +65,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     0.4.1 (Nov 25, 2018)
 </td><td>
-    ?
+    BSD 3-Clause
 </td><td>
     -
 </td></tr>
@@ -78,7 +78,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     0.3.0 (No official release yet)
 </td><td>
-    ?
+    PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 </td><td>
     Updated (June 2019) to enable wheel distribution based installations.
 </td></tr>
@@ -91,7 +91,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     1.5.0 (Mar 31, 2020)
 </td><td>
-    ?
+    Apache 2.0
 </td><td>
 -
 </td></tr>
@@ -104,7 +104,7 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     ?
 </td><td>
-    ?
+    BSD
 </td><td>
     By looking at the code, it's probably enum34. If so, the latest version is
     1.1.6 (May 15, 2016)
@@ -120,7 +120,9 @@ Note that the latest versions column is just to give us an idea of how far back 
 </td><td>
     ?
 </td><td>
-    -
+    https://github.com/openstack-archive/pylockfile<br>
+    Deprecated project, recommends upgrading to
+    https://github.com/harlowja/fasteners
 </td></tr>
 
 <!-- ######################################################### -->
