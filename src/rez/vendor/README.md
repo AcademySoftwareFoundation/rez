@@ -178,9 +178,9 @@ pydot
 MIT
 </td><td>
 https://github.com/pydot/pydot<br>
+
 * Updated (July 2019) in order to update pyparsing lib which in turn is
 required by the packaging library. Updated (Aug 2019) for py3.
-
 * Updated (Nov 2020) for finding right dot executable on Windows + Anaconda,
 see [pydot/pydot#205](https://github.com/pydot/pydot/issues/205) for detail.
 Also, pydot has not bumping version for a long time, log down commit change
