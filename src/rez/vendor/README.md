@@ -1,10 +1,16 @@
-This folder contains all the libraries on which rez depends to run.
 
-The dependencies list found here is used to track which version we use so that when we
-revisit the install procedure, it will be much simpler to do any change in the vendored
-libraries (updating them, un-vendoring some, etc).
+Rez contains a set of embedded dependencies, listed in the table below. The reason
+they're embedded into the project is because rez itself is often used as a rez
+package, which means its dependencies would need to be rez packages also. Were these
+to be sourced from pip, we would need to convert them from pip packages into rez
+packages. This is doable (via the `rez-pip` tool and API) but represents a
+significantly larger barrier of entry to installation.
 
-Note that the latest versions column is just to give us an idea of how far back we are.
+Embedding requirements like this is not ideal however, and a move to external
+requirements is not off the cards. We would need to update the process for
+installing rez as a rez package (currently done via `install.py -p`), and ensure
+that the rez-to-pip conversion process for its dependencies is seamless and well
+tested.
 
 
 # Vendored Packages
