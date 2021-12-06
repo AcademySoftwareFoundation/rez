@@ -17,7 +17,7 @@ sending a pull request. Please follow these guidelines:
 8.  Add relevant tests to demonstrate that your changes work;
 9.  Add relevant documentation [here](wiki/pages) to document your changes, if applicable. Those
     markdown files prefixed with `_` are internal and should not be changed.
-10. If you changes add a new rez config setting, update [rezconfig.py](src/rez/rezconfig.py) and
+10. If your changes add a new rez config setting, update [rezconfig.py](src/rez/rezconfig.py) and
     document the setting. The comments in this file are extracted and turned into Wiki content. Pay
     attention to the comment formatting and follow the existing style closely.
 
@@ -30,7 +30,7 @@ base image. Any changes to the following Docker images sources should be a separ
 - `.github/docker/rez-win-py/**`
 - `.github/workflows/windows-docker-image.yaml`
 
-The base and Python images will be automatically rebuild.
+The base and Python images will be automatically rebuilt.
 Any future commits will pickup the correct image via `windows-docker.yaml`
 
 ## Reporting Bugs
