@@ -81,9 +81,12 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
                 "Save the changes to %s before closing?\n"
                 "If you don't save the context, your changes will be lost."
                 % id_str,
-                buttons=QtWidgets.QMessageBox.Save
+                buttons=(
+                    QtWidgets.QMessageBox.Save
                     | QtWidgets.QMessageBox.Discard
-                    | QtWidgets.QMessageBox.Cancel)
+                    | QtWidgets.QMessageBox.Cancel
+                )
+            )
 
             if ret == QtWidgets.QMessageBox.Save:
                 if self.is_saveable():
@@ -96,8 +99,7 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
                 return (ret == QtWidgets.QMessageBox.Discard)
 
         # should never get here
-        assert False
-        return False
+        raise RuntimeError("Should never get here")
 
     def is_save_as_able(self):
         return not self.context_model.is_stale()
