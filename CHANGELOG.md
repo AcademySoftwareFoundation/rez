@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.100.2 (2021-12-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.100.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.1...2.100.2)
+
+**Merged pull requests:**
+
+- sonarcloud flagged bugs (4) [\#1167](https://github.com/nerdvegas/rez/pull/1167) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix 4 sonarcloud-flagged bugs [\#1166](https://github.com/nerdvegas/rez/issues/1166)
+
 ## 2.100.1 (2021-12-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.100.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.0...2.100.1)
 
