@@ -33,6 +33,7 @@ import os
 import re
 import stat
 import platform
+import uuid
 
 from rez.vendor.six import six
 from rez.utils.platform_ import platform_
@@ -398,32 +399,38 @@ def copy_or_replace(src, dst):
     '''
     try:
         shutil.copy(src, dst)
+        return
+
     except (OSError, IOError) as e:
         # It's possible that the file existed, but was owned by someone
         # else - in that situation, shutil.copy might then fail when it
         # tries to copy perms.
         # However, it's possible that we have write perms to the dir -
         # in which case, we can just delete and replace
-        import errno
+        #
+        if e.errno != errno.EPERM:
+            raise
 
-        if e.errno == errno.EPERM:
-            import tempfile
-            # try copying into a temporary location beside the old
-            # file - if we have perms to do that, we should have perms
-            # to then delete the old file, and move the new one into
-            # place
-            if os.path.isdir(dst):
-                dst = os.path.join(dst, os.path.basename(src))
+    # try copying into a temporary location beside the old file - if we have
+    # perms to do that, we should have perms to then delete the old file, and
+    # move the new one into place
+    #
+    if os.path.isdir(dst):
+        dst = os.path.join(dst, os.path.basename(src))
 
-            dst_dir, dst_name = os.path.split(dst)
-            dst_temp = tempfile.mktemp(prefix=dst_name + '.', dir=dst_dir)
-            shutil.copy(src, dst_temp)
-            if not os.path.isfile(dst_temp):
-                raise RuntimeError(
-                    "shutil.copy completed successfully, but path"
-                    " '%s' still did not exist" % dst_temp)
-            os.remove(dst)
-            shutil.move(dst_temp, dst)
+    dst_dir, dst_name = os.path.split(dst)
+    tmp_filename = ".%s.%s" % (uuid.uuid4().hex, dst_name)
+    dst_temp = os.path.join(dst_dir, tmp_filename)
+
+    shutil.copy(src, dst_temp)
+
+    if not os.path.isfile(dst_temp):
+        raise RuntimeError(
+            "shutil.copy completed successfully, but path"
+            " '%s' still did not exist" % dst_temp
+        )
+    os.remove(dst)
+    shutil.move(dst_temp, dst)
 
 
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
