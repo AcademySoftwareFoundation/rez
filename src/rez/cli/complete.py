@@ -98,8 +98,8 @@ def command(opts, parser, extra_arg_groups=None):
     data = subcommands[subcommand]
     module_name = data.get("module_name", "rez.cli.%s" % subcommand)
     mod = import_module(module_name)
-    parser = argparse.ArgumentParser()
-    mod.setup_parser(parser, completions=True)
+    sub_parser = argparse.ArgumentParser()
+    mod.setup_parser(sub_parser, completions=True)
 
     # have to massage input a little so argcomplete behaves
     cmd = "rez-%s" % subcommand
@@ -108,7 +108,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     # generate the completions
     from rez.cli._complete_util import RezCompletionFinder
-    completer = RezCompletionFinder(parser=parser,
+    completer = RezCompletionFinder(parser=sub_parser,
                                     comp_line=comp_line,
                                     comp_point=comp_point)
     words = completer.completions

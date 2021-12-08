@@ -46,6 +46,5 @@ jobs:
           -not -path './support/*'
           -not -path './rez/backport/*'
           -not -path './rezgui/*'
-          | xargs flake8 --ignore
-          E241,E265,E266,E741,E742,E722,F821,W503
+          | xargs flake8
         working-directory: src
