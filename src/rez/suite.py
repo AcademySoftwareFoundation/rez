@@ -672,8 +672,9 @@ class Suite(object):
                         rows.append(row)
                         colors.append(col)
 
+        _pr = Printer(buf)
+
         if rows:
-            _pr = Printer(buf)
             for col, line in zip(colors, columnise(rows)):
                 _pr(line, col)
         else:

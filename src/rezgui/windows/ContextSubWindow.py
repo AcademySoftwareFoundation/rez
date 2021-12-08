@@ -98,7 +98,6 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
             else:
                 return (ret == QtWidgets.QMessageBox.Discard)
 
-        # should never get here
         raise RuntimeError("Should never get here")  # NOSONAR
 
     def is_save_as_able(self):

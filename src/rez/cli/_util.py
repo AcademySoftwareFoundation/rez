@@ -141,7 +141,7 @@ class LazySubParsersAction(_SubParsersAction):
 
         # this bit is taken directly from argparse:
         try:
-            parser = self._name_parser_map[parser_name]
+            parser = self._name_parser_map[parser_name]  # NOSONAR
         except KeyError:
             tup = parser_name, ', '.join(self._name_parser_map)
             msg = 'unknown parser %r (choices: %s)' % tup
