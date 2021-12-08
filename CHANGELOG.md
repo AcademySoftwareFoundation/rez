@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.100.1 (2021-12-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.100.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.0...2.100.1)
+
+**Merged pull requests:**
+
+- remove use of tempfile.mktemp [\#1165](https://github.com/nerdvegas/rez/pull/1165) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- (sonarcloud) vulnerability [\#1164](https://github.com/nerdvegas/rez/issues/1164)
+
 ## 2.100.0 (2021-11-20)
 [Source](https://github.com/nerdvegas/rez/tree/2.100.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.3...2.100.0)
 
