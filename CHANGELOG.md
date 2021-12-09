@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.102.0 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.102.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.101.0...2.102.0)
+
+**Merged pull requests:**
+
+- Update sortedcontainers for Python 3.10 compatibility [\#1169](https://github.com/nerdvegas/rez/pull/1169) ([stilllman](https://github.com/stilllman))
+
+**Closed issues:**
+
+- Incompatibility with Python 3.10 [\#1168](https://github.com/nerdvegas/rez/issues/1168)
+
 ## 2.101.0 (2021-12-09)
 [Source](https://github.com/nerdvegas/rez/tree/2.101.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.2...2.101.0)
 
