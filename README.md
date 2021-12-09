@@ -8,7 +8,14 @@
 [![Flake8](https://github.com/nerdvegas/rez/workflows/flake8/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Aflake8+branch%3Amaster)
 [![Wiki](https://github.com/nerdvegas/rez/workflows/wiki/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Awiki+event%3Arelease)
 [![Pypi](https://github.com/nerdvegas/rez/workflows/pypi/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Apypi+event%3Arelease)
-[![Benchmark](https://github.com/nerdvegas/rez/workflows/benchmark/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Abenchmark+event%3Arelease)
+[![Benchmark](https://github.com/nerdvegas/rez/workflows/benchmark/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
+[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-white.svg)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=bugs)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
 
 
 - [What Is Rez?](#what-is-rez)
