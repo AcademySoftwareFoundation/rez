@@ -12,7 +12,7 @@
       "wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.11416864395141602,
+    "resolve_time": 0.0890953540802002,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -58,7 +58,7 @@
       "coincidence"
     ],
     "status": "success",
-    "resolve_time": 0.019202470779418945,
+    "resolve_time": 0.015668392181396484,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -83,7 +83,7 @@
       "cooking==1.8.2"
     ],
     "status": "failed",
-    "resolve_time": 0.010848045349121094
+    "resolve_time": 0.00903010368347168
   },
   {
     "request": [
@@ -93,7 +93,7 @@
       "chest-0.0.1"
     ],
     "status": "success",
-    "resolve_time": 0.004155158996582031,
+    "resolve_time": 0.003450155258178711,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -111,7 +111,7 @@
       "grasshopper-2.36.1"
     ],
     "status": "success",
-    "resolve_time": 0.3438694477081299,
+    "resolve_time": 0.293224573135376,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -226,7 +226,7 @@
       "~basketball-19.05"
     ],
     "status": "success",
-    "resolve_time": 0.07132315635681152,
+    "resolve_time": 0.062485694885253906,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -285,7 +285,7 @@
       "~crucifixion-3.40.1+<4"
     ],
     "status": "success",
-    "resolve_time": 0.06821298599243164,
+    "resolve_time": 0.05664539337158203,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -313,7 +313,7 @@
       "integer"
     ],
     "status": "success",
-    "resolve_time": 0.02181243896484375,
+    "resolve_time": 0.021718740463256836,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -335,7 +335,7 @@
       "veldt-0.2.1"
     ],
     "status": "success",
-    "resolve_time": 0.19199800491333008,
+    "resolve_time": 0.17771196365356445,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -396,7 +396,7 @@
       "pelican-0"
     ],
     "status": "success",
-    "resolve_time": 0.0973348617553711,
+    "resolve_time": 0.08292698860168457,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -441,7 +441,7 @@
       "resist==5.4.1"
     ],
     "status": "success",
-    "resolve_time": 0.039110660552978516,
+    "resolve_time": 0.03582286834716797,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -469,7 +469,7 @@
       "integer-1.6.16"
     ],
     "status": "success",
-    "resolve_time": 0.017993688583374023,
+    "resolve_time": 0.014499664306640625,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -490,7 +490,7 @@
       "hiring==2.10.5"
     ],
     "status": "success",
-    "resolve_time": 0.23973369598388672,
+    "resolve_time": 0.20186066627502441,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -559,7 +559,7 @@
       "civilisation-1"
     ],
     "status": "success",
-    "resolve_time": 0.3399193286895752,
+    "resolve_time": 0.2883944511413574,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -635,7 +635,7 @@
       "grasshopper-1"
     ],
     "status": "success",
-    "resolve_time": 0.2842593193054199,
+    "resolve_time": 0.27622509002685547,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -711,7 +711,7 @@
       "batting-1"
     ],
     "status": "success",
-    "resolve_time": 0.4628572463989258,
+    "resolve_time": 0.43923211097717285,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -807,7 +807,7 @@
       "presentation-0.1.1+<1"
     ],
     "status": "success",
-    "resolve_time": 0.3893885612487793,
+    "resolve_time": 0.324265718460083,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -889,7 +889,7 @@
       "batting==1.46.0"
     ],
     "status": "success",
-    "resolve_time": 0.3641390800476074,
+    "resolve_time": 0.36163759231567383,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -985,7 +985,7 @@
       "grasshopper-2.37.0"
     ],
     "status": "success",
-    "resolve_time": 0.3049643039703369,
+    "resolve_time": 0.28235864639282227,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1097,7 +1097,7 @@
       "~crucifixion-3.39+<4"
     ],
     "status": "success",
-    "resolve_time": 0.37168097496032715,
+    "resolve_time": 0.3123302459716797,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1181,7 +1181,7 @@
       "shrimp-3.1.0"
     ],
     "status": "success",
-    "resolve_time": 0.20510649681091309,
+    "resolve_time": 0.19916415214538574,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1276,7 +1276,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 0.3574099540710449,
+    "resolve_time": 0.31749534606933594,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1386,7 +1386,7 @@
       "~crucifixion-3.39+<4"
     ],
     "status": "success",
-    "resolve_time": 0.33259129524230957,
+    "resolve_time": 0.2970542907714844,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1467,7 +1467,7 @@
       "grasshopper-2.34.1"
     ],
     "status": "success",
-    "resolve_time": 0.30696964263916016,
+    "resolve_time": 0.2750973701477051,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1550,7 +1550,7 @@
       "studio"
     ],
     "status": "success",
-    "resolve_time": 0.18134450912475586,
+    "resolve_time": 0.1580667495727539,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1639,7 +1639,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.4191863536834717,
+    "resolve_time": 0.3878026008605957,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1720,7 +1720,7 @@
       "native"
     ],
     "status": "success",
-    "resolve_time": 0.3161320686340332,
+    "resolve_time": 0.26714253425598145,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1800,7 +1800,7 @@
       "replica-1.2.1"
     ],
     "status": "success",
-    "resolve_time": 0.2731668949127197,
+    "resolve_time": 0.24890542030334473,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1880,7 +1880,7 @@
       "grasshopper-2.31.3"
     ],
     "status": "success",
-    "resolve_time": 0.30114221572875977,
+    "resolve_time": 0.27385783195495605,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -1963,7 +1963,7 @@
       "congressman"
     ],
     "status": "success",
-    "resolve_time": 0.1691875457763672,
+    "resolve_time": 0.15256500244140625,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2021,7 +2021,7 @@
       "act-0"
     ],
     "status": "success",
-    "resolve_time": 0.22242093086242676,
+    "resolve_time": 0.20940566062927246,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2116,7 +2116,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 0.2537541389465332,
+    "resolve_time": 0.24520230293273926,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2181,7 +2181,7 @@
       "gallery-0.1.16"
     ],
     "status": "success",
-    "resolve_time": 0.24776911735534668,
+    "resolve_time": 0.23502111434936523,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2251,7 +2251,7 @@
       "grasshopper-2.35.0"
     ],
     "status": "success",
-    "resolve_time": 0.3049168586730957,
+    "resolve_time": 0.28307604789733887,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2335,7 +2335,7 @@
       "grasshopper-2.34.4"
     ],
     "status": "success",
-    "resolve_time": 0.29676342010498047,
+    "resolve_time": 0.30379605293273926,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2450,7 +2450,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 0.29137468338012695,
+    "resolve_time": 0.2694566249847412,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2516,7 +2516,7 @@
       "crucifixion-3.40.2"
     ],
     "status": "success",
-    "resolve_time": 0.5246353149414062,
+    "resolve_time": 0.5090885162353516,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2619,7 +2619,7 @@
       "~aftershave==CentOS-7"
     ],
     "status": "success",
-    "resolve_time": 0.0007884502410888672,
+    "resolve_time": 0.0008461475372314453,
     "resolved_packages": []
   },
   {
@@ -2660,7 +2660,7 @@
       "~crucifixion-3.39"
     ],
     "status": "success",
-    "resolve_time": 0.5638344287872314,
+    "resolve_time": 0.4869809150695801,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2754,7 +2754,7 @@
       "elf-0"
     ],
     "status": "success",
-    "resolve_time": 1.0101385116577148,
+    "resolve_time": 0.8759677410125732,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -2945,7 +2945,7 @@
       "~crucifixion-3.40.1+<4"
     ],
     "status": "success",
-    "resolve_time": 0.3430013656616211,
+    "resolve_time": 0.31644725799560547,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3026,7 +3026,7 @@
       "grasshopper-2.35.1"
     ],
     "status": "success",
-    "resolve_time": 0.2999746799468994,
+    "resolve_time": 0.2900075912475586,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3109,7 +3109,7 @@
       "locket-1.2.2"
     ],
     "status": "success",
-    "resolve_time": 0.20769858360290527,
+    "resolve_time": 0.17813849449157715,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3173,7 +3173,7 @@
       "crucifixion-3.40.1"
     ],
     "status": "success",
-    "resolve_time": 0.5322787761688232,
+    "resolve_time": 0.4647183418273926,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3277,7 +3277,7 @@
       "jackfruit"
     ],
     "status": "success",
-    "resolve_time": 0.5186362266540527,
+    "resolve_time": 0.47557854652404785,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3370,7 +3370,7 @@
       "cooking==1.7.1"
     ],
     "status": "success",
-    "resolve_time": 0.7132329940795898,
+    "resolve_time": 0.5935986042022705,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3496,7 +3496,7 @@
       "grasshopper-2.33.1"
     ],
     "status": "success",
-    "resolve_time": 0.32082033157348633,
+    "resolve_time": 0.2581453323364258,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3579,7 +3579,7 @@
       "timber-0"
     ],
     "status": "success",
-    "resolve_time": 0.23501920700073242,
+    "resolve_time": 0.20872282981872559,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3646,7 +3646,7 @@
       "monitor-0.5"
     ],
     "status": "success",
-    "resolve_time": 0.17522192001342773,
+    "resolve_time": 0.16310548782348633,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3705,7 +3705,7 @@
       "turmeric-0.3.0"
     ],
     "status": "success",
-    "resolve_time": 0.5028281211853027,
+    "resolve_time": 0.4459998607635498,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3838,7 +3838,7 @@
       "~crucifixion-3+<3.39"
     ],
     "status": "success",
-    "resolve_time": 0.5092287063598633,
+    "resolve_time": 0.4493527412414551,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -3963,7 +3963,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.7250034809112549,
+    "resolve_time": 0.6182548999786377,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -4074,7 +4074,7 @@
       "elf-0"
     ],
     "status": "success",
-    "resolve_time": 0.904573917388916,
+    "resolve_time": 0.803490400314331,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -4269,7 +4269,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.5912051200866699,
+    "resolve_time": 0.5094997882843018,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -4410,7 +4410,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.6462445259094238,
+    "resolve_time": 2.3463621139526367,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -4519,7 +4519,7 @@
       "cooking==1.8.3"
     ],
     "status": "success",
-    "resolve_time": 0.6863908767700195,
+    "resolve_time": 0.5416746139526367,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -4681,7 +4681,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.7006001472473145,
+    "resolve_time": 0.7315449714660645,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -4842,7 +4842,7 @@
       "adapter-5.1.0"
     ],
     "status": "success",
-    "resolve_time": 1.0261266231536865,
+    "resolve_time": 0.9036128520965576,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -4999,7 +4999,7 @@
       "jackfruit-0.19.1"
     ],
     "status": "success",
-    "resolve_time": 0.44748449325561523,
+    "resolve_time": 0.41887807846069336,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -5084,7 +5084,7 @@
       "crucifixion-3"
     ],
     "status": "success",
-    "resolve_time": 0.782320499420166,
+    "resolve_time": 0.6858155727386475,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -5231,7 +5231,7 @@
       "employee-2.0"
     ],
     "status": "success",
-    "resolve_time": 0.9277999401092529,
+    "resolve_time": 0.9229955673217773,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -5425,7 +5425,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.8255655765533447,
+    "resolve_time": 0.7854256629943848,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -5576,7 +5576,7 @@
       "~crucifixion-3.40.1+<4"
     ],
     "status": "success",
-    "resolve_time": 0.598067045211792,
+    "resolve_time": 0.5502629280090332,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -5697,7 +5697,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 0.5828197002410889,
+    "resolve_time": 0.5371670722961426,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -5822,7 +5822,7 @@
       "~paranoia-4.8.6.m1"
     ],
     "status": "success",
-    "resolve_time": 0.8443317413330078,
+    "resolve_time": 0.7854118347167969,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -5975,7 +5975,7 @@
       "~paranoia-4.8.6.m1"
     ],
     "status": "success",
-    "resolve_time": 0.8009827136993408,
+    "resolve_time": 0.7628717422485352,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -6094,7 +6094,7 @@
       "timber-0.16+<1"
     ],
     "status": "success",
-    "resolve_time": 0.21152567863464355,
+    "resolve_time": 0.20206904411315918,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -6200,7 +6200,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.9401171207427979,
+    "resolve_time": 1.8020529747009277,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -6464,7 +6464,7 @@
       "~crucifixion-3+<3.39"
     ],
     "status": "success",
-    "resolve_time": 1.5113677978515625,
+    "resolve_time": 1.3319604396820068,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -6682,7 +6682,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.867286205291748,
+    "resolve_time": 1.634291410446167,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -6948,7 +6948,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.6661932468414307,
+    "resolve_time": 0.583324670791626,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -7083,7 +7083,7 @@
       "~crucifixion-3.40.1+<4"
     ],
     "status": "success",
-    "resolve_time": 1.3732783794403076,
+    "resolve_time": 1.2483630180358887,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -7285,7 +7285,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.7469189167022705,
+    "resolve_time": 0.667292594909668,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -7396,7 +7396,7 @@
       "detour-0"
     ],
     "status": "success",
-    "resolve_time": 0.6150491237640381,
+    "resolve_time": 0.5523993968963623,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -7541,7 +7541,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.8756296634674072,
+    "resolve_time": 1.6651272773742676,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -7776,7 +7776,7 @@
       "fear==1.34.2"
     ],
     "status": "success",
-    "resolve_time": 0.4478912353515625,
+    "resolve_time": 0.3832235336303711,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -7917,7 +7917,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.9176340103149414,
+    "resolve_time": 1.742182731628418,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -8181,7 +8181,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 1.6044094562530518,
+    "resolve_time": 1.4380877017974854,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -8382,7 +8382,7 @@
       "elf-0"
     ],
     "status": "success",
-    "resolve_time": 0.9566292762756348,
+    "resolve_time": 0.820608377456665,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -8573,7 +8573,7 @@
       "~crucifixion-3.39+<4"
     ],
     "status": "success",
-    "resolve_time": 0.592975378036499,
+    "resolve_time": 0.4993093013763428,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -8666,7 +8666,7 @@
       "pecan-2.0.0.alpha"
     ],
     "status": "success",
-    "resolve_time": 0.6737966537475586,
+    "resolve_time": 0.6538035869598389,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -8777,7 +8777,7 @@
       "increase"
     ],
     "status": "success",
-    "resolve_time": 0.8786189556121826,
+    "resolve_time": 0.8503403663635254,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -8942,7 +8942,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.546875476837158,
+    "resolve_time": 4.150365591049194,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -9182,7 +9182,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.9573633670806885,
+    "resolve_time": 1.6958529949188232,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -9455,7 +9455,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.8616480827331543,
+    "resolve_time": 1.6027052402496338,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -9686,7 +9686,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 1.249122142791748,
+    "resolve_time": 1.0754647254943848,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -9900,7 +9900,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.4922854900360107,
+    "resolve_time": 2.140831232070923,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -10164,7 +10164,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 0.6512279510498047,
+    "resolve_time": 0.5676064491271973,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -10301,7 +10301,7 @@
       "~basketball-19.05"
     ],
     "status": "success",
-    "resolve_time": 1.2479705810546875,
+    "resolve_time": 1.0941047668457031,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -10460,7 +10460,7 @@
       "crucifixion"
     ],
     "status": "success",
-    "resolve_time": 0.5385663509368896,
+    "resolve_time": 0.4922661781311035,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -10564,7 +10564,7 @@
       "shoe"
     ],
     "status": "success",
-    "resolve_time": 0.645841121673584,
+    "resolve_time": 0.5857038497924805,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -10714,7 +10714,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.0039520263671875,
+    "resolve_time": 1.888890266418457,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -10950,7 +10950,7 @@
       "infarction-0.49"
     ],
     "status": "success",
-    "resolve_time": 0.8508110046386719,
+    "resolve_time": 0.7045068740844727,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -11114,7 +11114,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.2160446643829346,
+    "resolve_time": 1.9468722343444824,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -11343,7 +11343,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 1.327955722808838,
+    "resolve_time": 1.196054458618164,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -11540,7 +11540,7 @@
       "~crucifixion-3.39+<4"
     ],
     "status": "success",
-    "resolve_time": 1.372661828994751,
+    "resolve_time": 1.2076380252838135,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -11741,7 +11741,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.9347572326660156,
+    "resolve_time": 1.6312696933746338,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -12008,7 +12008,7 @@
       "~paranoia-4.8.6.m1"
     ],
     "status": "success",
-    "resolve_time": 0.7870490550994873,
+    "resolve_time": 0.7005879878997803,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -12184,7 +12184,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.3668060302734375,
+    "resolve_time": 2.2121505737304688,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -12449,7 +12449,7 @@
       "~crucifixion-3.40.1+<4"
     ],
     "status": "success",
-    "resolve_time": 1.446031093597412,
+    "resolve_time": 1.332507610321045,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -12662,7 +12662,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 1.4266228675842285,
+    "resolve_time": 1.2922258377075195,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -12897,7 +12897,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.3528265953063965,
+    "resolve_time": 4.086949348449707,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -13176,7 +13176,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.342165470123291,
+    "resolve_time": 2.133867025375366,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -13376,7 +13376,7 @@
       "lecture-2.84.1"
     ],
     "status": "success",
-    "resolve_time": 0.7219152450561523,
+    "resolve_time": 0.6332583427429199,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -13545,7 +13545,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.341921806335449,
+    "resolve_time": 2.035555124282837,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -13809,7 +13809,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.8417537212371826,
+    "resolve_time": 1.6300458908081055,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -14035,7 +14035,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 0.5878839492797852,
+    "resolve_time": 0.5362999439239502,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -14169,7 +14169,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.7820885181427002,
+    "resolve_time": 1.5082995891571045,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -14369,7 +14369,7 @@
       "implement-0"
     ],
     "status": "success",
-    "resolve_time": 0.3751194477081299,
+    "resolve_time": 0.3206758499145508,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -14492,7 +14492,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.7060799598693848,
+    "resolve_time": 1.4845054149627686,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -14690,7 +14690,7 @@
       "increase-0"
     ],
     "status": "success",
-    "resolve_time": 0.8914079666137695,
+    "resolve_time": 0.754387617111206,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -14868,7 +14868,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.262829065322876,
+    "resolve_time": 1.9889750480651855,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -15104,7 +15104,7 @@
       "profit-4"
     ],
     "status": "success",
-    "resolve_time": 1.6318607330322266,
+    "resolve_time": 1.454885482788086,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -15332,7 +15332,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.252636194229126,
+    "resolve_time": 2.011080741882324,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -15571,7 +15571,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 1.9598743915557861,
+    "resolve_time": 1.6605780124664307,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -15846,7 +15846,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.3396973609924316,
+    "resolve_time": 2.050044298171997,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -16110,7 +16110,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.4954402446746826,
+    "resolve_time": 2.1595911979675293,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -16376,7 +16376,7 @@
       "~basketball-19.05"
     ],
     "status": "success",
-    "resolve_time": 1.2822918891906738,
+    "resolve_time": 1.1031663417816162,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -16559,7 +16559,7 @@
       "~crucifixion-3"
     ],
     "status": "success",
-    "resolve_time": 1.3266346454620361,
+    "resolve_time": 3.2386772632598877,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -16726,7 +16726,7 @@
       "objective"
     ],
     "status": "success",
-    "resolve_time": 4.879623174667358,
+    "resolve_time": 2.5230014324188232,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -16917,7 +16917,7 @@
       "~crucifixion-3.40.2+<4"
     ],
     "status": "success",
-    "resolve_time": 1.2575554847717285,
+    "resolve_time": 1.1501860618591309,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -17146,7 +17146,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.814565896987915,
+    "resolve_time": 4.142728567123413,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -17550,7 +17550,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.6888649463653564,
+    "resolve_time": 4.112591028213501,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -17938,7 +17938,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 3.8367252349853516,
+    "resolve_time": 3.4142422676086426,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -18293,7 +18293,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.4191431999206543,
+    "resolve_time": 2.1328284740448,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -18561,7 +18561,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 3.758924722671509,
+    "resolve_time": 3.382767915725708,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -18880,7 +18880,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 3.4578065872192383,
+    "resolve_time": 3.1276793479919434,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -19218,7 +19218,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.3034276962280273,
+    "resolve_time": 2.089186429977417,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -19522,7 +19522,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.721267223358154,
+    "resolve_time": 4.270425319671631,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -19916,7 +19916,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 6.6854424476623535,
+    "resolve_time": 6.543910503387451,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -20319,7 +20319,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.643850326538086,
+    "resolve_time": 4.086895942687988,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -20719,7 +20719,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.5238564014434814,
+    "resolve_time": 3.972405433654785,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -21122,7 +21122,7 @@
       "stealth-3.7.2"
     ],
     "status": "success",
-    "resolve_time": 4.466562032699585,
+    "resolve_time": 4.063533544540405,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -21509,7 +21509,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 3.843085527420044,
+    "resolve_time": 3.2478628158569336,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -21880,7 +21880,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.61669921875,
+    "resolve_time": 4.194337844848633,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -22265,7 +22265,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.912642240524292,
+    "resolve_time": 2.682469606399536,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -22596,7 +22596,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.656741142272949,
+    "resolve_time": 4.2884674072265625,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -22966,7 +22966,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 2.302795648574829,
+    "resolve_time": 2.062014579772949,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -23251,7 +23251,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.872340679168701,
+    "resolve_time": 8.958459377288818,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -23733,7 +23733,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.087933540344238,
+    "resolve_time": 6.382914304733276,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -24195,7 +24195,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.779060125350952,
+    "resolve_time": 4.318387985229492,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -24614,7 +24614,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.5066282749176025,
+    "resolve_time": 6.064185857772827,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -25098,7 +25098,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.904526233673096,
+    "resolve_time": 6.224716901779175,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -25531,7 +25531,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 3.434230327606201,
+    "resolve_time": 3.053159236907959,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -25884,7 +25884,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.5407538414001465,
+    "resolve_time": 4.060749292373657,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -26298,7 +26298,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.143087387084961,
+    "resolve_time": 8.50316333770752,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -26780,7 +26780,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.060648202896118,
+    "resolve_time": 6.765441179275513,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -27250,7 +27250,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.609796524047852,
+    "resolve_time": 4.143589735031128,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -27651,7 +27651,7 @@
       "pimple"
     ],
     "status": "success",
-    "resolve_time": 4.600168943405151,
+    "resolve_time": 4.227733135223389,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -28051,7 +28051,7 @@
       "stealth"
     ],
     "status": "success",
-    "resolve_time": 4.6489174365997314,
+    "resolve_time": 4.066243410110474,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -28466,7 +28466,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.050566673278809,
+    "resolve_time": 6.399895429611206,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -28949,7 +28949,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.914785385131836,
+    "resolve_time": 8.54105830192566,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -29432,7 +29432,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.219210147857666,
+    "resolve_time": 6.46577525138855,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -29830,7 +29830,7 @@
       "spank-4"
     ],
     "status": "success",
-    "resolve_time": 0.3839545249938965,
+    "resolve_time": 0.32491135597229004,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -29988,7 +29988,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.614442825317383,
+    "resolve_time": 4.1145994663238525,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -30400,7 +30400,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.918743133544922,
+    "resolve_time": 6.278538465499878,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -30885,7 +30885,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.062452077865601,
+    "resolve_time": 6.253145456314087,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -31363,7 +31363,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.834178447723389,
+    "resolve_time": 6.266326427459717,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -31846,7 +31846,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.21952509880066,
+    "resolve_time": 8.566738605499268,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -32275,7 +32275,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 3.6358282566070557,
+    "resolve_time": 3.170060873031616,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -32630,7 +32630,7 @@
       "stealth"
     ],
     "status": "success",
-    "resolve_time": 4.598777770996094,
+    "resolve_time": 4.236664533615112,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -33048,7 +33048,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.858196258544922,
+    "resolve_time": 6.413187265396118,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -33528,7 +33528,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.065229892730713,
+    "resolve_time": 6.554321527481079,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -33997,7 +33997,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.4860053062438965,
+    "resolve_time": 4.189491271972656,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -34397,7 +34397,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.61264705657959,
+    "resolve_time": 4.162144422531128,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -34810,7 +34810,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.173145294189453,
+    "resolve_time": 9.012310028076172,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -35292,7 +35292,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.977680206298828,
+    "resolve_time": 6.779565811157227,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -35776,7 +35776,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.991458177566528,
+    "resolve_time": 6.590516805648804,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -36260,7 +36260,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.000504016876221,
+    "resolve_time": 6.9834630489349365,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -36741,7 +36741,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.886322021484375,
+    "resolve_time": 6.701558589935303,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -37221,7 +37221,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.963545799255371,
+    "resolve_time": 8.749205827713013,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -37705,7 +37705,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.126847505569458,
+    "resolve_time": 6.673678636550903,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -38190,7 +38190,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.029826641082764,
+    "resolve_time": 6.81522274017334,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -38675,7 +38675,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.926092863082886,
+    "resolve_time": 6.7905731201171875,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -39157,7 +39157,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 5.991669178009033,
+    "resolve_time": 5.840980052947998,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -39617,7 +39617,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.893172025680542,
+    "resolve_time": 6.729508876800537,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -40102,7 +40102,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.23185420036316,
+    "resolve_time": 9.230128288269043,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -40585,7 +40585,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.139698028564453,
+    "resolve_time": 6.949567794799805,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -41069,7 +41069,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.01418662071228,
+    "resolve_time": 6.655646324157715,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -41552,7 +41552,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.941220998764038,
+    "resolve_time": 6.804716110229492,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -42034,7 +42034,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.987073183059692,
+    "resolve_time": 6.791055679321289,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -42516,7 +42516,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.144763946533203,
+    "resolve_time": 9.030234575271606,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -42998,7 +42998,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.025359630584717,
+    "resolve_time": 6.848344564437866,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -43480,7 +43480,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.966489315032959,
+    "resolve_time": 6.743805885314941,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -43962,7 +43962,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 6.95036506652832,
+    "resolve_time": 6.689081907272339,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -44444,7 +44444,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 7.006276607513428,
+    "resolve_time": 6.760348796844482,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -44912,7 +44912,7 @@
       "~wave-2"
     ],
     "status": "success",
-    "resolve_time": 4.451768398284912,
+    "resolve_time": 4.413912773132324,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
@@ -45324,7 +45324,7 @@
       "~spawn-3.52.04+<3.999"
     ],
     "status": "success",
-    "resolve_time": 9.08895468711853,
+    "resolve_time": 9.089687824249268,
     "resolved_packages": [
       "diam/linux/package.py[]",
       "understatement/x86_64/package.py[]",
