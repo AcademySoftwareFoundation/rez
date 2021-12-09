@@ -84,9 +84,14 @@ jobs:
           ref: master
           path: src
 
+      - name: Install Dependencies
+        run: |
+          apt-get install gnuplot
+
       - name: Store Benchmark Result
         run: |
-          python ./src/.github/scripts/store_benchmark.py
+          python ./.github/scripts/store_benchmark.py
+        working-directory: src
 
       - name: Setup git config
         run: |
