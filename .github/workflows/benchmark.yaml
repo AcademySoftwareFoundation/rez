@@ -86,7 +86,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          apt-get install gnuplot
+          sudo apt-get install -y gnuplot
 
       - name: Store Benchmark Result
         run: |
