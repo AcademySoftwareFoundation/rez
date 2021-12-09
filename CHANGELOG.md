@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.101.0 (2021-12-09)
+[Source](https://github.com/nerdvegas/rez/tree/2.101.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.2...2.101.0)
+
+**Merged pull requests:**
+
+- benchmarking updates [\#1171](https://github.com/nerdvegas/rez/pull/1171) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.100.2 (2021-12-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.100.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.1...2.100.2)
 

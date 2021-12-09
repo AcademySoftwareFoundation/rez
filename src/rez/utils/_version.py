@@ -14,4 +14,4 @@
 
 
 # Update this value to version up Rez. Do not place anything else in this file.
-_rez_version = "2.100.2"
+_rez_version = "2.101.0"
