@@ -1760,10 +1760,16 @@ class _ResolvePhase(_Common):
                     scope_r = scope_requests.get(scope_n)
 
                     if scope_n is not None \
+                            and scope_r is not None \
                             and scope_r.conflicts_with(conflicting_request):
                         # confirmed that scope node is in conflict
                         id1 = _add_request_node(conflicting_request)
                         id2 = scope_n
+                    elif scope_n is not None and scope_r is None:
+                        # occurs when an existing conflict request conflicts
+                        # with a pkg requirement
+                        id1 = scope_n
+                        id2 = _add_request_node(conflict.dependency)
                     else:
                         id1 = _add_request_node(conflict.dependency)
                         id2 = scope_n or _add_request_node(conflicting_request)
