@@ -16,6 +16,9 @@ from rez.utils._version import _rez_version  # noqa
 # max number of result artifacts to store
 MAX_ARTIFACTS = 100
 
+# behave differently outside of github actions, for testing
+in_gh = (os.getenv("IN_GITHUB_WORKFLOW") == "1")
+
 benchmarking_dir = os.path.join("metrics", "benchmarking")
 artifacts_dir = os.path.join(benchmarking_dir, "artifacts")
 gnuplot_error = None
@@ -39,9 +42,11 @@ gnuplot_script = \
 """
 set xtics rotate
 set term png
+set border 1
 set output 'solvetimes.png'
 plot "solvetimes.dat" using 2:xtic(1) title 'Mean' with lines, \
-  "solvetimes.dat" using 2:3 title 'Stddev' with errorbars
+  "solvetimes.dat" using 3:xtic(1) title 'Median' with lines lc "gray", \
+  "solvetimes.dat" using 2:4 title 'Stddev' with errorbars
 """  # noqa
 
 
@@ -110,11 +115,12 @@ def generate_gnuplot():
                 continue
 
             f.write(
-                "%s-py%s %f %f\n"
+                "%s-py%s %f %f %f\n"
                 % (
                     summary["rez_version"],
                     summary["py_version"],
                     summary["mean"],
+                    summary["median"],
                     summary["stddev"]
                 )
             )
@@ -168,7 +174,7 @@ def update_markdown():
     # insert previously generated gnuplot image
     if os.path.exists(os.path.join(benchmarking_dir, "solvetimes.png")):
         variables["gnuplot_image"] = (
-            '![Solve times graph](solvetimes.png "Solve times")'
+            '<p align="center"><img src="solvetimes.png" /></p>'
         )
     else:
         variables["gnuplot_image"] = (
@@ -197,7 +203,9 @@ def _iter_summaries():
 
 
 if __name__ == "__main__":
-    store_result()
-    remove_old_results()
+    if in_gh:
+        store_result()
+        remove_old_results()
+
     generate_gnuplot()
     update_markdown()
