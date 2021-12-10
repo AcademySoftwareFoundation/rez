@@ -84,11 +84,14 @@ jobs:
           ref: master
           path: src
 
-      # Note --ignore-missing due to
+      # Note failing due to
       # https://github.com/actions/virtual-environments/issues/675
+      #
+      # We'll just skip on failure, this just means the gnuplot doesn't render
+      #
       - name: Install gnuplot
         run: |
-          sudo apt-get install -y --ignore-missing gnuplot
+          sudo apt-get install -y gnuplot || /bin/true
 
       - name: Store Benchmark Result
         run: |
