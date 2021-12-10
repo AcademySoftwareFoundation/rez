@@ -174,7 +174,7 @@ def update_markdown():
     # insert previously generated gnuplot image
     if os.path.exists(os.path.join(benchmarking_dir, "solvetimes.png")):
         variables["gnuplot_image"] = (
-            '![Solve times graph](solvetimes.png "Solve times")'
+            '<p align="center"><img src="solvetimes.png" /></p>'
         )
     else:
         variables["gnuplot_image"] = (
