@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.103.1 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.0...2.103.1)
+
+**Merged pull requests:**
+
+- fix pwsh shell not exiting with correct error code [\#1174](https://github.com/nerdvegas/rez/pull/1174) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Build passes when build_command fails while using powershell as default_shell on windows [\#1099](https://github.com/nerdvegas/rez/issues/1099)
+
 ## 2.103.0 (2021-12-10)
 [Source](https://github.com/nerdvegas/rez/tree/2.103.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.102.1...2.103.0)
 
