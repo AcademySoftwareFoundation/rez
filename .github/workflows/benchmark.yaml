@@ -84,9 +84,11 @@ jobs:
           ref: master
           path: src
 
-      - name: Install Dependencies
+      # Note --ignore-missing due to
+      # https://github.com/actions/virtual-environments/issues/675
+      - name: Install gnuplot
         run: |
-          sudo apt-get install -y gnuplot
+          sudo apt-get install -y --ignore-missing gnuplot
 
       - name: Store Benchmark Result
         run: |
