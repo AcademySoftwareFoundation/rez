@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.103.0 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.102.1...2.103.0)
+
+**Merged pull requests:**
+
+- fix 'NoneType' object has no attribute 'conflicts_with' [\#1173](https://github.com/nerdvegas/rez/pull/1173) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- AttributeError: 'NoneType' object has no attribute 'conflicts_with' when rez-env a package [\#1150](https://github.com/nerdvegas/rez/issues/1150)
+
 ## 2.102.1 (2021-12-10)
 [Source](https://github.com/nerdvegas/rez/tree/2.102.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.102.0...2.102.1)
 
