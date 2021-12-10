@@ -64,14 +64,21 @@ def store_result():
     os.makedirs(destpath)
 
     # take the files that the artifact download created, and move them into
-    # the versioned directory
+    # the versioned directory. Note that the GH workflow is currently running
+    # with cwd=./src, but these artifacts are in the dir above
+    #
     artifact_files = [
         "resolves.json",
         "summary.json"
     ]
 
+    results_path = os.path.dirname(os.getcwd())
+
     for filename in artifact_files:
-        os.rename(filename, os.path.join(destpath, filename))
+        os.rename(
+            os.path.join(results_path, filename),
+            os.path.join(destpath, filename)
+        )
 
 
 def remove_old_results():
