@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.102.1 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.102.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.102.0...2.102.1)
+
+**Merged pull requests:**
+
+- rez-pip fix for packages with underscores in name [\#1172](https://github.com/nerdvegas/rez/pull/1172) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-pip error with inconsistency between underscores and dashes [\#1159](https://github.com/nerdvegas/rez/issues/1159)
+
 ## 2.102.0 (2021-12-10)
 [Source](https://github.com/nerdvegas/rez/tree/2.102.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.101.0...2.102.0)
 
