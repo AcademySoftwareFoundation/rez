@@ -505,7 +505,7 @@ def convert_distlib_to_setuptools(installed_dist):
     setuptools_dists = pkg_resources.find_distributions(path)
 
     for setuptools_dist in setuptools_dists:
-        if setuptools_dist.key == installed_dist.key:
+        if setuptools_dist.key == pkg_resources.safe_name(installed_dist.key):
             return setuptools_dist
 
     return None
