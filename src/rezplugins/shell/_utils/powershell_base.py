@@ -204,7 +204,19 @@ class PowerShellBase(Shell):
             executor.command(shell_command)
 
         # Forward exit call to parent PowerShell process
-        executor.command("exit $LastExitCode")
+        #
+        # Note that in powershell, $LASTEXITCODE is only set after running an
+        # executable - in other cases (such as when a command is not found),
+        # only the bool $? var is set.
+        #
+        executor.command(
+            "if(! $?) {\n"
+            "  if ($LASTEXITCODE) {\n"
+            "    exit $LASTEXITCODE\n"
+            "  }\n"
+            "  exit 1\n"
+            "}"
+        )
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir,
