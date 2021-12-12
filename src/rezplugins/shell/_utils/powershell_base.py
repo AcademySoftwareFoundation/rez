@@ -282,14 +282,15 @@ class PowerShellBase(Shell):
 
     def setenv(self, key, value):
         value = self.escape_string(value)
-        self._addline('$Env:{0} = "{1}"'.format(key, value))
+        self._addline('Set-Item -Path "env:{0}" -Value "{0}"'.format(key, value))
 
     def appendenv(self, key, value):
         value = self.escape_string(value)
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
-            '$Env:{0} = "${{Env:{0}}}{1}{2}"'.format(key, os.path.pathsep, value)
+            'Set-Item -Path "env:{0}" -Value ((Get-ChildItem "env:{0}").Value + "{1}{2}")'.format(
+                key, os.path.pathsep, value)
         )
 
     def unsetenv(self, key):
