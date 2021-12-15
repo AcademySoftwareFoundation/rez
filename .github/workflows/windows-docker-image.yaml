@@ -45,7 +45,7 @@ jobs:
       # https://github.community/t5/GitHub-Actions/Fallback-via-if-failure-without-failing-the-job/m-p/36596#M2636
       #
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Build docker image if needed
         run: |
@@ -87,7 +87,7 @@ jobs:
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Pull base docker image
         run: |
