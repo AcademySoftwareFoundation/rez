@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.103.2 (2021-12-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.1...2.103.2)
+
+**Merged pull requests:**
+
+- Uses Set-Item rather than $Env: to configure powershell environment variables. [\#1176](https://github.com/nerdvegas/rez/pull/1176) ([hutchinson](https://github.com/hutchinson))
+
+**Closed issues:**
+
+- Environment variables containing brackets break powershell shell [\#1175](https://github.com/nerdvegas/rez/issues/1175)
+
 ## 2.103.1 (2021-12-10)
 [Source](https://github.com/nerdvegas/rez/tree/2.103.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.0...2.103.1)
 
