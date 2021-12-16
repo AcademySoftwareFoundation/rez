@@ -62,6 +62,15 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None, env=None):
         # have to try others.
         if any(cmd.lower().endswith(ext.lower()) for ext in pathext):
             files = [cmd]
+        # See if the file is a symlink. A symlink can be an executable on 
+        # windows without an extension. If it is, see if its target's extension
+        # matches any of the expted path extensions.
+        elif any(
+            os.path.realpath(os.path.join(p, cmd)).lower().endswith(ext.lower())
+            for ext in pathext
+            for p in path
+        ):
+            files = [cmd]
         else:
             files = [cmd + ext.lower() for ext in pathext]
     else:
