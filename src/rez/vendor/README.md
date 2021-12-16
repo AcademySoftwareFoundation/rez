@@ -238,18 +238,6 @@ Also now required to support py2/3 interoperability.
 
 <!-- ######################################################### -->
 <tr><td>
-sortedcontainers
-</td><td>
-2.4.0 (May 17, 2021)
-</td><td>
-Apache 2.0
-</td><td>
-https://github.com/grantjenks/python-sortedcontainers<br>
-Used in the resolver.
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
 whichcraft
 </td><td>
 0.6.1

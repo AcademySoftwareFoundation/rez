@@ -38,8 +38,8 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
-from rez.vendor.sortedcontainers.sortedset import SortedSet
 from contextlib import contextmanager
+from itertools import product, chain
 import copy
 import time
 import sys
@@ -1419,47 +1419,46 @@ class _ResolvePhase(_Common):
                 changed_scopes_i = set(range(num_scopes))
                 prev_num_scopes = num_scopes
 
-            # create set of pending reductions from the list of changed scopes
-            # and list of added scopes. We use a sorted set because the solver
-            # must be deterministic, ie its behavior must always be the same for
-            # a given solve. A normal set does not guarantee order.
+            # Create set of pending reductions from the list of changed scopes
+            # and list of added scopes. Each item is an (x, y) tuple, where
+            # scope[x] will reduce by scope[y].package_request.
             #
-            # Each item is an (x, y) tuple, where scope[x] will reduce by
-            # scope[y].package_request.
-            #
-            pending_reducts = SortedSet()
             all_scopes_i = range(num_scopes)
+            prev_scopes_i = range(prev_num_scopes)
             added_scopes_i = range(prev_num_scopes, num_scopes)
 
-            for x in range(prev_num_scopes):
+            pending_reducts = set(chain(
+
                 # existing scopes must reduce against changed scopes
-                for y in changed_scopes_i:
-                    if x != y:
-                        pending_reducts.add((x, y))
+                product(prev_scopes_i, changed_scopes_i),
 
                 # existing scopes must reduce against newly added scopes
-                for y in added_scopes_i:
-                    pending_reducts.add((x, y))
+                product(prev_scopes_i, added_scopes_i),
 
-            # newly added scopes must reduce against all other scopes
-            for x in added_scopes_i:
-                for y in all_scopes_i:
-                    if x != y:
-                        pending_reducts.add((x, y))
+                # newly added scopes must reduce against all other scopes
+                product(added_scopes_i, all_scopes_i),
 
-            # 'widened' scopes (see earlier comment in this func) must reduce
-            # against all other scopes
-            for x in widened_scopes_i:
-                for y in all_scopes_i:
-                    if x != y:
-                        pending_reducts.add((x, y))
+                # 'widened' scopes (see earlier comment in this func) must reduce
+                # against all other scopes
+                #
+                product(widened_scopes_i, all_scopes_i)
+            ))
 
             # iteratively reduce until there are no more pending reductions.
             # Note that if a scope is reduced, then other scopes need to reduce
             # against it once again.
+            #
             with self.solver.timed(self.solver.reduction_test_time):
+
+                # A different order here wouldn't cause an invalid solve, however
+                # rez solves must be deterministic, so this is why we sort.
+                #
+                pending_reducts = sorted(pending_reducts)
+
                 while pending_reducts:
                     x, y = pending_reducts.pop()
+                    if x == y:
+                        continue
 
                     new_scope, reductions = scopes[x].reduce_by(
                         scopes[y].package_request)
@@ -1474,7 +1473,7 @@ class _ResolvePhase(_Common):
                         # other scopes need to reduce against x again
                         for j in all_scopes_i:
                             if j != x:
-                                pending_reducts.add((j, x))
+                                pending_reducts.append((j, x))
 
             changed_scopes_i = set()
 
