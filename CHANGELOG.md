@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.103.3 (2021-12-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.2...2.103.3)
+
+**Merged pull requests:**
+
+- removed sortedcontainers vendored lib [\#1180](https://github.com/nerdvegas/rez/pull/1180) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.103.2 (2021-12-15)
 [Source](https://github.com/nerdvegas/rez/tree/2.103.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.1...2.103.2)
 
