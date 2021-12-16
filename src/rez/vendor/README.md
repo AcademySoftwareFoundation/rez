@@ -256,7 +256,8 @@ whichcraft
 </td><td>
 BSD 3-Clause
 </td><td>
-https://github.com/cookiecutter/whichcraft
+https://github.com/cookiecutter/whichcraft<br>
+unmodified version added in commit f5b0ea0
 </td></tr>
 
 <!-- ######################################################### -->
