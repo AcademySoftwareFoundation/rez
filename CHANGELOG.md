@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.103.4 (2021-12-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.3...2.103.4)
+
+**Merged pull requests:**
+
+- reimplement which [\#1182](https://github.com/nerdvegas/rez/pull/1182) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Whichcraft not caring about executable symlinks on windows that do not have the extension of an executable [\#1178](https://github.com/nerdvegas/rez/issues/1178)
+
 ## 2.103.3 (2021-12-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.103.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.2...2.103.3)
 
