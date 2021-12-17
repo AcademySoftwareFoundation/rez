@@ -35,8 +35,8 @@ sys.path.insert(0, src_path)
 # though rez is not yet built.
 #
 from rez.utils._version import _rez_version  # noqa: E402
+from rez.utils.which import which  # noqa: E402
 from rez.cli._entry_points import get_specifications  # noqa: E402
-from rez.backport.shutilwhich import which  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
 # switch to builtin venv in python 3.7+

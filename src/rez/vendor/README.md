@@ -238,18 +238,6 @@ Also now required to support py2/3 interoperability.
 
 <!-- ######################################################### -->
 <tr><td>
-whichcraft
-</td><td>
-0.6.1
-</td><td>
-BSD 3-Clause
-</td><td>
-https://github.com/cookiecutter/whichcraft<br>
-unmodified version added in commit f5b0ea0
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
 yaml lib (PyYAML)
 </td><td>
 5.1 (May 30, 2011)

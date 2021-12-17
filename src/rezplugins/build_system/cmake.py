@@ -26,7 +26,7 @@ from rez.utils.execution import create_forwarding_script
 from rez.packages import get_developer_package
 from rez.utils.platform_ import platform_
 from rez.config import config
-from rez.backport.shutilwhich import which
+from rez.utils.which import which
 from rez.vendor.schema.schema import Or
 from rez.vendor.six import six
 from rez.shells import create_shell
