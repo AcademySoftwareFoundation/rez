@@ -89,7 +89,8 @@ def shlex_join(value, unsafe_regex=None, replacements=None,
 
 # returns path to first program in the list to be successfully found
 def which(*programs, **shutilwhich_kwargs):
-    from rez.backport.shutilwhich import which as which_
+    from rez.utils.which import which as which_
+
     for prog in programs:
         path = which_(prog, **shutilwhich_kwargs)
         if path:
