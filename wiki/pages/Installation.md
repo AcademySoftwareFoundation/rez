@@ -26,30 +26,49 @@ source /opt/rez/completion/complete.sh
 
 ## Installation Via Pip
 
-It is possible to install rez with pip, like so:
+It is possible to install rez with pip, like so (from source root directory):
 
 ```
-]$ pip install rez
+]$ pip install --target /opt/rez .
 ```
 
-However, this comes with a caveat - rez command line tools _are not guaranteed
-to work correctly_ once inside a rez environment (ie after using the `rez-env`
-command). The reasons are given in the next section.
+The `.` (dot) can also be replaced with link to the GitHub repository, 
+e.g. choose from:
+
+  - `git+https://github.com/nerdvegas/rez.git` if you have git installed
+  - `https://github.com/nerdvegas/rez/archive/master.zip`
+  - `https://github.com/nerdvegas/rez/archive/master.tar.gz`
+
+> [[media/icons/warning.png]] The [PyPi rez](https://pypi.org/project/rez) is 
+> not up to date as of writing. Avoid `pip install rez`
+
+The environment variables to activate `rez` will be slightly different:
+
+1. Add `/opt/rez` to `PYTHONPATH` for API e.g. `python -c 'import rez`
+2. Add `/opt/rez/bin` to `PATH` for CLI, e.g. `rez-env`
+  > [[media/icons/warning.png]] For these pip based installs, rez command line
+  > tools **are not guaranteed to work correctly** inside a rez environment,
+  > i.e. `rez-env` then running `rez-context` inside sub-shell.
+  >
+  > See [Why Not Pip For Production?](#why-not-pip-for-production) below.
+  > You will also be warned with the following message in the terminal:
+  > ```
+  > Pip-based rez installation detected. Please be aware that rez command line
+  > tools are not guaranteed to function correctly in this case. See
+  > https://github.com/nerdvegas/rez/wiki/Installation#why-not-pip-for-production
+  > for further details.
+  > ```
+
+Alternatively, if you already have `rez` setup and have `pip>=19` available,
+you can then install `rez` as a `rez` package by using:
+
+    ]$ rez-pip --install .
 
 Pip installation is adequate however, if all you require is the rez API, or you
-don't require its command line tools to be available within a resolved environment.
+don't require its command line tools (`rez-context`, `rez-search`, `rez-view`,
+etc) to be available within a resolved environment.
 
-Note that running pip-installed rez command line tools will print a warning like so:
-
-```
-Pip-based rez installation detected. Please be aware that rez command line tools
-are not guaranteed to function correctly in this case. See
-https://github.com/nerdvegas/rez/wiki/Installation#why-not-pip-for-production
-for futher details.
-```
-
-
-## Why Not Pip For Production?
+### Why Not Pip For Production?
 
 Rez is not a normal python package. Although it can successfully be installed
 using standard mechanisms such as pip, this comes with a number of caveats.
