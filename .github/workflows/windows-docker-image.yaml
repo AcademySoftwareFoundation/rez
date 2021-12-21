@@ -70,9 +70,9 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
-          Write-Host -ForegroundColor Yellow "Pulling DockerHub image ${docker_image}..."
+          Write-Output "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} | Out-Null
+          docker pull ${docker_image} 2>$null
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
@@ -146,7 +146,7 @@ jobs:
 
           Write-Output "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} | Out-Null
+          docker pull ${docker_image} 2>$null
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
