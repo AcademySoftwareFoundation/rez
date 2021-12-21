@@ -68,7 +68,7 @@ jobs:
         run: |
           ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${docker_image} = ${gh_user}/rez-win-base:${last_docker_base_rev}
+          ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
           Write-Output "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
@@ -128,7 +128,7 @@ jobs:
         run: |
           ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${docker_image} = ${gh_user}/rez-win-base:${last_docker_base_rev}
+          ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
           Write-Output "Pulling DockerHub image ${docker_image}..."
           docker pull ${docker_image}
@@ -142,7 +142,7 @@ jobs:
           ${last_docker_py_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image_notag} = "${gh_user}/rez-win-py-${{ matrix.python-version }}"
-          ${docker_image} = ${docker_image_notag}:${last_docker_py_rev}
+          ${docker_image} = "${docker_image_notag}:${last_docker_py_rev}"
 
           Write-Output "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
