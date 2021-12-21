@@ -70,7 +70,7 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
-          Write-Output "Pulling DockerHub image ${docker_image}..."
+          Write-Host -ForegroundColor Yellow "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
           docker pull ${docker_image} | Out-Null
           $ErrorActionPreference = "Stop"
