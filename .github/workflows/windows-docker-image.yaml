@@ -77,7 +77,21 @@ jobs:
             cd .github\docker\rez-win-base
             docker build --tag ${gh_user}/rez-win-base:${last_docker_base_rev} .
             docker push ${gh_user}/rez-win-base:${last_docker_base_rev}
+
+            # store inspection as artifact for ease of debugging
+            docker inspect ${gh_user}/rez-win-base:${last_docker_base_rev} > inspect.json
           }
+
+      - id: inspect_json
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github\docker\rez-win-base\inspect.json
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: "rez-win-base.json"
+          path: .github\docker\rez-win-base\inspect.json
+        if: steps.inspect_json.outputs.files_exists == 'true'
 
   # ----------------------------------------------------------------------------
   # Create python images off base image
