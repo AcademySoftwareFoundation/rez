@@ -68,18 +68,24 @@ jobs:
         run: |
           ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          ${docker_image} = ${gh_user}/rez-win-base:${last_docker_base_rev}
 
+          Write-Output "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${gh_user}/rez-win-base:${last_docker_base_rev} | Out-Null
+          docker pull ${docker_image} | Out-Null
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-base
-            docker build --tag ${gh_user}/rez-win-base:${last_docker_base_rev} .
-            docker push ${gh_user}/rez-win-base:${last_docker_base_rev}
+
+            Write-Output "Building DockerHub image ${docker_image}..."
+            docker build --tag ${docker_image} .
+
+            Write-Output "Pushing DockerHub image ${docker_image}..."
+            docker push ${docker_image}
 
             # store inspection as artifact for ease of debugging
-            docker inspect ${gh_user}/rez-win-base:${last_docker_base_rev} > inspect.json
+            docker inspect ${docker_image} > inspect.json
           }
 
       - id: inspect_json
@@ -122,24 +128,47 @@ jobs:
         run: |
           ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          docker pull ${gh_user}/rez-win-base:${last_docker_base_rev}
+          ${docker_image} = ${gh_user}/rez-win-base:${last_docker_base_rev}
+
+          Write-Output "Pulling DockerHub image ${docker_image}..."
+          docker pull ${docker_image}
 
           # so rez-win-py/Dockerfile can reference base image
-          docker tag ${gh_user}/rez-win-base:${last_docker_base_rev} rez-win-base:${last_docker_base_rev}
+          docker tag ${docker_image} rez-win-base:${last_docker_base_rev}
 
       - name: Build py Docker image if needed
         run: |
           ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${last_docker_py_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${docker_image} = "${gh_user}/rez-win-py-${{ matrix.python-version }}"
+          ${docker_image_notag} = "${gh_user}/rez-win-py-${{ matrix.python-version }}"
+          ${docker_image} = ${docker_image_notag}:${last_docker_py_rev}
 
+          Write-Output "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${docker_image}:${last_docker_py_rev} | Out-Null
+          docker pull ${docker_image} | Out-Null
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-py
-            docker build --tag ${docker_image} --tag ${docker_image}:${last_docker_py_rev} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${last_docker_base_rev} .
-            docker push ${docker_image}:${last_docker_py_rev}
+
+            Write-Output "Building DockerHub image ${docker_image}..."
+            docker build --tag ${docker_image} --tag ${docker_image_notag} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${last_docker_base_rev} .
+
+            Write-Output "Pushing DockerHub image ${docker_image}..."
+            docker push ${docker_image}
+
+            # store inspection as artifact for ease of debugging
+            docker inspect ${docker_image} > inspect.json
           }
+
+      - id: inspect_json
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github\docker\rez-win-py\inspect.json
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: "rez-win-py-${{ matrix.python-version }}.json"
+          path: .github\docker\rez-win-py\inspect.json
+        if: steps.inspect_json.outputs.files_exists == 'true'
