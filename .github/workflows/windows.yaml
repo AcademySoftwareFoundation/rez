@@ -48,8 +48,8 @@ jobs:
         run: |
           ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
 
-          Write-Output "Pulling latest DockerHub image ${docker_image}..."
+          echo "Pulling latest DockerHub image ${docker_image}..."
           docker pull ${docker_image}
 
-          Write-Output "Running DockerHub image ${docker_image}..."
+          echo "Running DockerHub image ${docker_image}..."
           docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}

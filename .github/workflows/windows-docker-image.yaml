@@ -70,18 +70,18 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
-          Write-Output "Pulling DockerHub image ${docker_image}..."
+          echo "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} 2>$null
+          docker pull ${docker_image} 2>$null || echo "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-base
 
-            Write-Output "Building DockerHub image ${docker_image}..."
+            echo "Building DockerHub image ${docker_image}..."
             docker build --tag ${docker_image} .
 
-            Write-Output "Pushing DockerHub image ${docker_image}..."
+            echo "Pushing DockerHub image ${docker_image}..."
             docker push ${docker_image}
 
             # store inspection as artifact for ease of debugging
@@ -130,7 +130,7 @@ jobs:
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
-          Write-Output "Pulling DockerHub image ${docker_image}..."
+          echo "Pulling DockerHub image ${docker_image}..."
           docker pull ${docker_image}
 
           # so rez-win-py/Dockerfile can reference base image
@@ -144,18 +144,18 @@ jobs:
           ${docker_image_notag} = "${gh_user}/rez-win-py-${{ matrix.python-version }}"
           ${docker_image} = "${docker_image_notag}:${last_docker_py_rev}"
 
-          Write-Output "Pulling DockerHub image ${docker_image}..."
+          echo "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} 2>$null
+          docker pull ${docker_image} 2>$null || echo "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-py
 
-            Write-Output "Building DockerHub image ${docker_image}..."
+            echo "Building DockerHub image ${docker_image}..."
             docker build --tag ${docker_image} --tag ${docker_image_notag} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${last_docker_base_rev} .
 
-            Write-Output "Pushing DockerHub image ${docker_image}..."
+            echo "Pushing DockerHub image ${docker_image}..."
             docker push ${docker_image}
 
             # store inspection as artifact for ease of debugging
