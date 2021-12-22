@@ -37,7 +37,7 @@ on:
     # A, _if_ A was triggered, otherwise run B regardless."
     #
     branches:
-      - issue_1181-win-docker  # TEMP
+      - issue_1181-win-docker  # TEMP1
     paths:
       - '.github/docker/rez-win-base/**'
       - '.github/docker/rez-win-py/**'
