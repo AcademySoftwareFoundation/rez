@@ -36,14 +36,14 @@ RUN ${PYTHON_INSTALL_PATH} = 'C:\Python';                                       
 # ------------------------------------------------------------------------------------------------------------
 # Verify Python
 #
-RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1];                                       `
-    $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1];                         `
-    if (-not $?) {exit 1};                                                                                                  `
-    $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1];                                       `
-    $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1];                         `
+RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1]; `
+    $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1]; `
+    if (-not $?) {exit 1}; `
+    $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1]; `
+    $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1]; `
     if (-not ($python_explicit_ver -eq $python_relative_ver -and $python_explicit_ver -eq ${ENV:PYTHON_VERSION})) {exit 1}; `
-    choco install --yes choco-cleaner;                                                                                      `
-    C:\ProgramData\chocolatey\bin\choco-cleaner.ps1;                                                                        `
+    choco install --yes choco-cleaner; `
+    C:\ProgramData\chocolatey\bin\choco-cleaner.bat; `
     choco uninstall --yes choco-cleaner
 
 COPY entrypoint.ps1 /entrypoint.ps1

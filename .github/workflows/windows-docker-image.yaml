@@ -67,7 +67,12 @@ jobs:
       - name: Build base docker image if needed
         id: build_image
         run: |
-          ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${last_docker_base_rev} = $( `
+            git log -n 1 --author-date-order --pretty=format:%H -- `
+            .\.github\docker\rez-win-base\ `
+            .\.github\workflows\windows-docker-image.yaml `
+          ).SubString(0, 8)
+
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
@@ -87,7 +92,7 @@ jobs:
 
             # store inspection as artifact for ease of debugging
             docker inspect ${docker_image} > inspect.json
-            Write-Output "::set-output base_rev=${last_docker_base_rev}"
+            Write-Output "::set-output name=base_rev::${last_docker_base_rev}"
           }
 
       - id: inspect_json
@@ -128,7 +133,12 @@ jobs:
 
       - name: Pull base docker image
         run: |
-          ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${last_docker_base_rev} = $( `
+            git log -n 1 --author-date-order --pretty=format:%H -- `
+            .\.github\docker\rez-win-base\ `
+            .\.github\workflows\windows-docker-image.yaml `
+          ).SubString(0, 8)
+
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
@@ -140,8 +150,19 @@ jobs:
 
       - name: Build py Docker image if needed
         run: |
-          ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
-          ${last_docker_py_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-py\ .\.github\docker\rez-win-base\ .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
+          ${last_docker_base_rev} = $( `
+            git log -n 1 --author-date-order --pretty=format:%H -- `
+            .\.github\docker\rez-win-base\ `
+            .\.github\workflows\windows-docker-image.yaml `
+          ).SubString(0, 8)
+
+          ${last_docker_py_rev} = $( `
+            git log -n 1 --author-date-order --pretty=format:%H -- `
+            .\.github\docker\rez-win-py\ `
+            .\.github\docker\rez-win-base\ `
+            .\.github\workflows\windows-docker-image.yaml `
+          ).SubString(0, 8)
+
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           ${docker_image_notag} = "${gh_user}/rez-win-py-${{ matrix.python-version }}"
           ${docker_image} = "${docker_image_notag}:${last_docker_py_rev}"
@@ -155,10 +176,17 @@ jobs:
             cd .github\docker\rez-win-py
 
             Write-Output "Building DockerHub image ${docker_image}..."
-            docker build --tag ${docker_image} --tag ${docker_image_notag}:latest --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${last_docker_base_rev} .
+            docker build `
+              --tag ${docker_image} `
+              --build-arg PYTHON_VERSION="${{ matrix.python-version }}" `
+              --build-arg BASE_TAG=${last_docker_base_rev} .
 
             Write-Output "Pushing DockerHub image ${docker_image}..."
             docker push ${docker_image}
+
+            Write-Output "Tagging and pushing ${docker_image_notag}:latest..."
+            docker tag ${docker_image} ${docker_image_notag}:latest
+            docker push ${docker_image_notag}:latest
 
             # store inspection as artifact for ease of debugging
             docker inspect ${docker_image} > inspect.json
