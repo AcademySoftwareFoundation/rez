@@ -149,6 +149,7 @@ jobs:
           docker tag ${docker_image} rez-win-base:${last_docker_base_rev}
 
       - name: Build py Docker image if needed
+        id: build_image
         run: |
           ${last_docker_base_rev} = $( `
             git log -n 1 --author-date-order --pretty=format:%H -- `
@@ -190,6 +191,7 @@ jobs:
 
             # store inspection as artifact for ease of debugging
             docker inspect ${docker_image} > inspect.json
+            Write-Output "::set-output name=py_rev::${last_docker_py_rev}"
           }
 
       - id: inspect_json
@@ -199,6 +201,6 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: "rez-win-py-${{ matrix.python-version }}.json"
+          name: "rez-win-py-${{ matrix.python-version }}-${{ steps.build_image.outputs.py_rev }}.json"
           path: .github\docker\rez-win-py\inspect.json
         if: steps.inspect_json.outputs.files_exists == 'true'
