@@ -49,3 +49,4 @@ jobs:
 
           Write-Output "Running DockerHub image ${docker_image}..."
           docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}
+
