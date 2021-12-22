@@ -153,7 +153,7 @@ jobs:
             cd .github\docker\rez-win-py
 
             Write-Output "Building DockerHub image ${docker_image}..."
-            docker build --tag ${docker_image} --tag ${docker_image_notag} --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${last_docker_base_rev} .
+            docker build --tag ${docker_image} --tag ${docker_image_notag}:latest --build-arg PYTHON_VERSION="${{ matrix.python-version }}" --build-arg BASE_TAG=${last_docker_base_rev} .
 
             Write-Output "Pushing DockerHub image ${docker_image}..."
             docker push ${docker_image}
