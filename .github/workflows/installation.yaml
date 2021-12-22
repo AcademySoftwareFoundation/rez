@@ -2,8 +2,7 @@ name: installation
 on:
   push:
     paths-ignore:
-      - '.github/docker/**'
-      - '.github/workflows/windows-docker-image.yaml'
+      - '.github/**'
       - 'src/rez/utils/_version.py'
       - 'wiki/**'
       - 'metrics/**'
