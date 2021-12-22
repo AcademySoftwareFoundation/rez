@@ -65,6 +65,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build base docker image if needed
+        id: build_image
         run: |
           ${last_docker_base_rev} = $( git log -n 1 --author-date-order --pretty=format:%H -- .\.github\docker\rez-win-base\  .\.github\workflows\windows-docker-image.yaml ).SubString(0, 8)
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
@@ -86,6 +87,7 @@ jobs:
 
             # store inspection as artifact for ease of debugging
             docker inspect ${docker_image} > inspect.json
+            Write-Output "::set-output base_rev=${last_docker_base_rev}"
           }
 
       - id: inspect_json
@@ -95,7 +97,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: "rez-win-base.json"
+          name: "rez-win-base-${{ steps.build_image.outputs.base_rev }}.json"
           path: .github\docker\rez-win-base\inspect.json
         if: steps.inspect_json.outputs.files_exists == 'true'
 
