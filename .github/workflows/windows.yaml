@@ -40,12 +40,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: "Pull Docker image nerdvegas/rez-win-py-${{ matrix.python-version }}:latest"
+        run: |
+          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
+          docker pull ${docker_image}:latest
+
       - name: Run Docker image (installs and tests rez)
         run: |
           ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
 
-          Write-Output "Pulling latest DockerHub image ${docker_image}..."
-          docker pull ${docker_image}
+          # show tagged image name to help debugging
+          ${docker_image_tagged} = $( `
+            docker inspect ${docker_image} --format "{{range .RepoTags}}{{println .}}{{end}}" `
+            | grep -vw latest `
+            | grep nerdvegas `
+          )
+          Write-Output "Running DockerHub image ${docker_image_tagged}..."
 
-          Write-Output "Running DockerHub image ${docker_image}..."
-          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}
+          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}:latest
