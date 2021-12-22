@@ -6,20 +6,17 @@
 name: core
 on:
   pull_request:
-    paths-ignore:
-      - '.github/**'
-      - 'src/rez/utils/_version.py'
-      - 'wiki/**'
-      - 'metrics/**'
-      - '**.md'
+    paths:
+      - 'src/**'
+      - '.github/workflows/core.yaml'
+      - '!src/rez/utils/_version.py'
+      - '!**.md'
   push:
-    paths-ignore:
-      - '.github/docker/**'
-      - '.github/workflows/windows-docker-image.yaml'
-      - 'src/rez/utils/_version.py'
-      - 'wiki/**'
-      - 'metrics/**'
-      - '**.md'
+    paths:
+      - 'src/**'
+      - '.github/workflows/core.yaml'
+      - '!src/rez/utils/_version.py'
+      - '!**.md'
 
 jobs:
   main:

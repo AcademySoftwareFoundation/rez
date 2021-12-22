@@ -1,22 +1,15 @@
 name: flake8
 on:
   pull_request:
-    paths-ignore:
-      - '.github/**'
-      - 'src/rez/utils/_version.py'
-      - 'wiki/**'
-      - 'metrics/**'
-      - 'data/**'
-      - '**.md'
+    paths:
+      - 'src/**.py'
+      - '.github/workflows/flake8.yaml'
+      - '!src/rez/utils/_version.py'
   push:
-    paths-ignore:
-      - '.github/docker/**'
-      - '.github/workflows/windows-docker-image.yaml'
-      - 'src/rez/utils/_version.py'
-      - 'wiki/**'
-      - 'metrics/**'
-      - 'data/**'
-      - '**.md'
+    paths:
+      - 'src/**.py'
+      - '.github/workflows/flake8.yaml'
+      - '!src/rez/utils/_version.py'
 
 jobs:
   lint:
