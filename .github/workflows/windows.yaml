@@ -51,9 +51,7 @@ jobs:
 
           # show tagged image name to help debugging
           ${docker_image_tagged} = $( `
-            docker inspect ${docker_image} --format "{{range .RepoTags}}{{println .}}{{end}}" `
-            | grep -vw latest `
-            | grep nerdvegas `
+            docker inspect ${docker_image} --format "{{.RepoTags}}" `
           )
           Write-Output "Running DockerHub image ${docker_image_tagged}..."
 
