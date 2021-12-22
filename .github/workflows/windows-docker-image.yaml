@@ -71,8 +71,8 @@ jobs:
           ${docker_image} = "${gh_user}/rez-win-base:${last_docker_base_rev}"
 
           Write-Output "Pulling DockerHub image ${docker_image}..."
-          $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "SilentlyContinue"
+          docker pull ${docker_image} || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
@@ -145,8 +145,8 @@ jobs:
           ${docker_image} = "${docker_image_notag}:${last_docker_py_rev}"
 
           Write-Output "Pulling DockerHub image ${docker_image}..."
-          $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "SilentlyContinue"
+          docker pull ${docker_image} || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
