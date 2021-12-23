@@ -3,12 +3,12 @@
 # Tag of base image to use
 ARG BASE_TAG
 
+# Base image windows version
+FROM rez-win-base:$BASE_TAG
+
 # Tag applied to this image
 ARG PY_TAG
 ENV _PY_TAG=$PY_TAG
-
-# Base image windows version
-FROM rez-win-base:$BASE_TAG
 
 # NOTE: Any " requires \" in the Dockerfile for windows.
 # NOTE: The order matters. ARG after the shell command will allow access via
