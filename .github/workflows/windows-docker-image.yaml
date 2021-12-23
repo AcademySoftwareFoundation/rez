@@ -180,8 +180,9 @@ jobs:
             docker build `
               --tag ${docker_image} `
               --build-arg PYTHON_VERSION="${{ matrix.python-version }}" `
-              --build-arg BASE_TAG=${last_docker_base_rev} . `
-              --build-arg PY_TAG=${last_docker_py_rev} .
+              --build-arg BASE_TAG=${last_docker_base_rev} `
+              --build-arg PY_TAG=${last_docker_py_rev} `
+              .
 
             Write-Output "Pushing DockerHub image ${docker_image}..."
             docker push ${docker_image}
