@@ -48,11 +48,4 @@ jobs:
       - name: Run Docker image (installs and tests rez)
         run: |
           ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
-
-          # show tagged image name to help debugging
-          ${docker_image_tagged} = $( `
-            docker inspect ${docker_image} --format "{{.RepoTags}}" `
-          )
-          Write-Output "Running DockerHub image ${docker_image_tagged}..."
-
           docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}:latest

@@ -3,6 +3,9 @@
 # Tag of base image to use
 ARG BASE_TAG
 
+# Tag applied to this image
+ENV PY_TAG
+
 # Base image windows version
 FROM rez-win-base:$BASE_TAG
 

@@ -10,6 +10,12 @@ $ErrorActionPreference = "Stop"
 #
 ${ENV:PYTHONIOENCODING} = "UTF-8"
 
+# Print name of image being run, for debugging purposes. We can't show the
+# literal image name here, because it just uses 'latest' tagged image (see
+# explanation in windows-docker-image.yaml - on.push)
+#
+Write-Output "Running rez tests from docker image rez-win-py:${ENV:PY_TAG}"
+
 # Verify Python
 #
 python --version
