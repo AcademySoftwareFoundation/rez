@@ -20,6 +20,8 @@ from rez import module_root_path
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
+from rez.package_repository import package_repository_manager as prm
+from rezplugins.package_repository.memory import MemoryPackageRepository
 import tempfile
 import threading
 import time
@@ -335,3 +337,30 @@ def restore_os_environ():
 
         os.environ.clear()
         os.environ.update(original)
+
+
+class MemoryPkgRepo(object):
+    """In-memory package maker repository for testing"""
+
+    def __init__(self, path):
+        assert path.startswith("memory@")
+        self._repo = prm.get_repository(path)  # type: MemoryPackageRepository
+        self._path = path
+
+    @property
+    def path(self):
+        return self._path
+
+    def add(self, name, **kwargs):
+        """Add package into repo"""
+        version = kwargs.get("version", "_NO_VERSION")
+        if name not in self._repo.data:
+            self._repo.data[name] = dict()
+        self._repo.data[name].update({
+            version: dict(name=name, **kwargs)
+        })
+
+    def flush(self):
+        """Flush this repository"""
+        self._repo.data.clear()
+        self._repo.clear_caches()
