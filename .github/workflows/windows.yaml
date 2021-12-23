@@ -49,3 +49,4 @@ jobs:
         run: |
           ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
           docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}:latest
+
