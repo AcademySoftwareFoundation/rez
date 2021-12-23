@@ -40,6 +40,9 @@ mkdir build
 python .\checkout\install.py build
 if (-not $?) {exit 1}
 
+# Install pytest for better rez-selftest output
+.\build\Scripts\rez\rez-python -m pip install pytest-cov
+
 # Run Rez Tests
 #
 .\build\Scripts\rez\rez-selftest.exe
