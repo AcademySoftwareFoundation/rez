@@ -4,7 +4,8 @@
 ARG BASE_TAG
 
 # Tag applied to this image
-ENV PY_TAG
+ARG PY_TAG
+ENV _PY_TAG=$PY_TAG
 
 # Base image windows version
 FROM rez-win-base:$BASE_TAG

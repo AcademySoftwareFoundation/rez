@@ -14,7 +14,7 @@ ${ENV:PYTHONIOENCODING} = "UTF-8"
 # literal image name here, because it just uses 'latest' tagged image (see
 # explanation in windows-docker-image.yaml - on.push)
 #
-Write-Output "Running rez tests from docker image rez-win-py:${ENV:PY_TAG}"
+Write-Output "Using docker image rez-win-py:${ENV:_PY_TAG}"
 
 # Verify Python
 #
