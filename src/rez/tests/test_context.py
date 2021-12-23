@@ -17,8 +17,8 @@
 test resolved contexts
 """
 from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
-    TestBase
-from rez.resolved_context import ResolvedContext
+    TestBase, MemoryPkgRepo
+from rez.resolved_context import ResolvedContext, ResolverStatus
 from rez.bundle_context import bundle_context
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
@@ -40,8 +40,10 @@ class TestContext(TestBase, TempdirMixin):
         os.makedirs(cls.packages_path)
         hello_world.bind(cls.packages_path)
 
+        cls.mem_repo = MemoryPkgRepo("memory@any")
+
         cls.settings = dict(
-            packages_path=[cls.packages_path],
+            packages_path=[cls.packages_path, cls.mem_repo.path],
             package_filter=None,
             implicit_packages=[],
             warn_untimestamped=False,
@@ -50,6 +52,10 @@ class TestContext(TestBase, TempdirMixin):
     @classmethod
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
+
+    def tearDown(self):
+        self.mem_repo.flush()
+        super(TestContext, self).tearDown()
 
     def test_create_context(self):
         """Test creation of context."""
@@ -192,6 +198,21 @@ class TestContext(TestBase, TempdirMixin):
             )
 
             _test_bundle(bundle_path3)
+
+    def test_issue_1150_reproduce(self):
+        """Test nerdvegas/rez#1150 (a regression from #1087) is fixed"""
+
+        self.mem_repo.add("foo", version="1")
+        self.mem_repo.add("foo", version="2")
+        self.mem_repo.add("bar", version="1", requires=["foo-2"])
+
+        # "AttributeError: 'NoneType' object has no attribute 'conflicts_with'"
+        # raised here, when the resolver is generating fail graph.
+        context = ResolvedContext(["bar", "~foo-1"])
+
+        # After the issue fixed, a resolved-context object generated and able
+        # to present the conflict graph.
+        self.assertEqual(ResolverStatus.failed, context.status)
 
 
 if __name__ == '__main__':
