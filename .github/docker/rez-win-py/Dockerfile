@@ -27,14 +27,14 @@ ARG PYTHON_VERSION
 # Python 2.x uses msi while 3.x has an exe with separate arguments
 # Verifies the installation by running python explicitly and via `python`
 #
-RUN ${PYTHON_INSTALL_PATH} = 'C:\Python';                                                                                            `
-    ${PYTHON_MAJOR_VERSION} = ${ENV:PYTHON_VERSION}.Split('.')[0];                                                                   `
-    if (${PYTHON_MAJOR_VERSION} -eq "2") {                                                                                           `
-        ${INSTALLARGS} = \"'/qn /norestart ADDLOCAL=ALL ALLUSERS=1 TARGETDIR=`\"\" + ${PYTHON_INSTALL_PATH} + \"`\"'\";              `
-    } else {                                                                                                                         `
-        ${INSTALLARGS} = \"'/quiet InstallAllUsers=1 PrependPath=1 TargetDir=`\"\" + ${PYTHON_INSTALL_PATH} + \"`\"'\";              `
-    }                                                                                                                                `
-    choco install python${PYTHON_MAJOR_VERSION} --yes --version=\"${ENV:PYTHON_VERSION}\" --override --installargs=${INSTALLARGS};   `
+RUN ${PYTHON_INSTALL_PATH} = 'C:\Python'; `
+    ${PYTHON_MAJOR_VERSION} = ${ENV:PYTHON_VERSION}.Split('.')[0]; `
+    if (${PYTHON_MAJOR_VERSION} -eq "2") { `
+        ${INSTALLARGS} = \"'/qn /norestart ADDLOCAL=ALL ALLUSERS=1 TARGETDIR=`\"\" + ${PYTHON_INSTALL_PATH} + \"`\"'\"; `
+    } else { `
+        ${INSTALLARGS} = \"'/quiet InstallAllUsers=1 PrependPath=1 TargetDir=`\"\" + ${PYTHON_INSTALL_PATH} + \"`\"'\"; `
+    } `
+    choco install python${PYTHON_MAJOR_VERSION} --yes --version=\"${ENV:PYTHON_VERSION}\" --override --installargs=${INSTALLARGS}; `
     if (-not $?) {exit 1};
 
 # ------------------------------------------------------------------------------------------------------------

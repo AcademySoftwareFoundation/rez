@@ -176,7 +176,7 @@ jobs:
           if ($LastExitCode -ne 0) {
             cd .github\docker\rez-win-py
 
-            Write-Output "Building DockerHub image ${docker_image}..."
+            Write-Output "Building DockerHub image ${docker_image} from rez-win-base:${last_docker_base_rev}..."
             docker build `
               --tag ${docker_image} `
               --build-arg PYTHON_VERSION="${{ matrix.python-version }}" `
