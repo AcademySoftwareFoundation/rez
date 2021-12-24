@@ -33,11 +33,12 @@ on:
     # can't use workflow dependencies either (see 'workflow_run' github actions
     # event) because that causes a workflow to run _only when_ another workflow
     # has completed - however we only want to rebuild the image when required,
-    # not every time. Github needs to add a way to "run workflow B _after_ workflow
-    # A, _if_ A was triggered, otherwise run B regardless."
+    # not every time the windows workflow runs. Github needs to add a way to
+    # "run workflow B _after_ workflow A, _if_ A was triggered, otherwise run B
+    # regardless."
     #
     branches:
-      - issue_1181-win-docker  # TEMP1
+      - master
     paths:
       - '.github/docker/rez-win-base/**'
       - '.github/docker/rez-win-py/**'
