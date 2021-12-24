@@ -5,11 +5,13 @@ on:
       - 'src/**.py'
       - '.github/workflows/flake8.yaml'
       - '!src/rez/utils/_version.py'
+      - '!src/rez/data/**'
   push:
     paths:
       - 'src/**.py'
       - '.github/workflows/flake8.yaml'
       - '!src/rez/utils/_version.py'
+      - '!src/rez/data/**'
 
 jobs:
   lint:
