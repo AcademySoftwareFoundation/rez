@@ -405,7 +405,7 @@ this with a global preprocessing function like this:
         except KeyError:
             pass
 
-        data["config"] = data["config"] or {}
+        data["config"] = data.get("config", {})
         data["config"]["release_packages_path"] = "/software/packages/external"
 
 The *"with scope(...)"* statement is just a fancy way of defining a dict, so you can do the same
