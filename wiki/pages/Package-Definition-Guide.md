@@ -361,7 +361,7 @@ preprocessing function, see the
 
 Consider the following preprocessing function, defined in a *package.py*:
 
-    def preprocess(package, data):
+    def preprocess(this, data):
         from rez.package_py_utils import InvalidPackageError
         import re
 
@@ -395,7 +395,7 @@ Let's say we have a scenario where we want to install third party packages to a 
 path, and that we set the arbitrary attribute *external* to True for these packages. We could do
 this with a global preprocessing function like this:
 
-    def preprocess(package, data):
+    def preprocess(this, data):
         if not data.get("external"):
             return
 
