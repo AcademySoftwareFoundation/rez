@@ -1,11 +1,11 @@
 name: installation
 on:
   push:
-    paths-ignore:
-      - 'src/rez/utils/_version.py'
-      - 'wiki/**'
-      - 'metrics/**'
-      - '**.md'
+    paths:
+      - 'src/**'
+      - '.github/workflows/installation.yaml'
+      - '!src/rez/utils/_version.py'
+      - '!**.md'
 
 jobs:
   main:
