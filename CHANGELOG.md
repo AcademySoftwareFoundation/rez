@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.0 (2022-02-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.4...2.104.0)
+
+**Merged pull requests:**
+
+- windows CI upgrade [\#1185](https://github.com/nerdvegas/rez/pull/1185) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- windows gh actions issue [\#1181](https://github.com/nerdvegas/rez/issues/1181)
+
 ## 2.103.4 (2021-12-17)
 [Source](https://github.com/nerdvegas/rez/tree/2.103.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.3...2.103.4)
 
