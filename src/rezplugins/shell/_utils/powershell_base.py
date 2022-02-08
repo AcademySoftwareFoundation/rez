@@ -1,30 +1,13 @@
-# Copyright Contributors to the Rez project
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 import os
 import re
-from subprocess import PIPE
+from subprocess import PIPE, list2cmdline
 
 from rez.config import config
-from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
-from rez.util import shlex_join
 
 
 class PowerShellBase(Shell):
@@ -88,26 +71,24 @@ class PowerShellBase(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # detect system paths using registry
-        def gen_expected_regex(parts):
-            whitespace = r"[\s]+"
-            return whitespace.join(parts)
-
         # TODO: Research if there is an easier way to pull system PATH from
         # registry in powershell
         paths = []
 
         cmd = [
-            "REG", "QUERY",
-            ("HKLM\\SYSTEM\\CurrentControlSet\\"
-             "Control\\Session Manager\\Environment"), "/v", "PATH"
+            "powershell",
+            '(Get-ItemProperty "HKLM:SYSTEM/CurrentControlSet/Control/Session Manager/Environment").Path',
         ]
 
-        expected = gen_expected_regex([
-            ("HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\"
-             "Control\\\\Session Manager\\\\Environment"), "PATH",
-            "REG_(EXPAND_)?SZ", "(.*)"
-        ])
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
+                  shell=True, text=True)
+        out_, _ = p.communicate()
+        out_ = out_.strip()
+
+        if p.returncode == 0:
+            paths.extend(out_.split(os.pathsep))
+
+        cmd = ["powershell", "(Get-ItemProperty -Path HKCU:Environment).Path"]
 
         p = Popen(cmd, stdout=PIPE, stderr=PIPE,
                   shell=True, text=True)
@@ -115,26 +96,7 @@ class PowerShellBase(Shell):
         out_ = out_.strip()
 
         if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cmd = ["REG", "QUERY", "HKCU\\Environment", "/v", "PATH"]
-
-        expected = gen_expected_regex([
-            "HKEY_CURRENT_USER\\\\Environment", "PATH", "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                  shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
+            paths.extend(out_.split(os.pathsep))
 
         cls.syspaths = [x for x in paths if x]
 
@@ -204,19 +166,7 @@ class PowerShellBase(Shell):
             executor.command(shell_command)
 
         # Forward exit call to parent PowerShell process
-        #
-        # Note that in powershell, $LASTEXITCODE is only set after running an
-        # executable - in other cases (such as when a command is not found),
-        # only the bool $? var is set.
-        #
-        executor.command(
-            "if(! $?) {\n"
-            "  if ($LASTEXITCODE) {\n"
-            "    exit $LASTEXITCODE\n"
-            "  }\n"
-            "  exit 1\n"
-            "}"
-        )
+        executor.command("exit $LastExitCode")
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir,
@@ -282,15 +232,14 @@ class PowerShellBase(Shell):
 
     def setenv(self, key, value):
         value = self.escape_string(value)
-        self._addline('Set-Item -Path "Env:{0}" -Value "{1}"'.format(key, value))
+        self._addline('$Env:{0} = "{1}"'.format(key, value))
 
     def appendenv(self, key, value):
         value = self.escape_string(value)
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
-            'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem "Env:{0}").Value + "{1}{2}")'.format(
-                key, os.path.pathsep, value)
+            '$Env:{0} = "${{Env:{0}}}{1}{2}"'.format(key, os.path.pathsep, value)
         )
 
     def unsetenv(self, key):
@@ -303,9 +252,8 @@ class PowerShellBase(Shell):
         value = EscapedString.disallow(value)
         # TODO: Find a way to properly escape paths in alias() calls that also
         # contain args
-        #
-        cmd = "function %s() { %s @args }" % (key, value)
-        self._addline(cmd)
+        cmd = "function {key}() {{ {value} $args }}"
+        self._addline(cmd.format(key=key, value=value))
 
     def comment(self, value):
         for line in value.split('\n'):
@@ -334,25 +282,11 @@ class PowerShellBase(Shell):
         return ["${Env:%s}" % key, "$Env:%s" % key]
 
     @classmethod
-    def line_terminator(cls):
-        return "\n"
+    def join(cls, command):
+        # TODO: This may disappear in future [1]
+        # [1] https://bugs.python.org/issue10838
+        return list2cmdline(command)
 
     @classmethod
-    def join(cls, command):
-        if isinstance(command, six.string_types):
-            return command
-
-        replacements = [
-            # escape ` as ``
-            ('`', "``"),
-
-            # escape " as `"
-            ('"', '`"')
-        ]
-
-        joined = shlex_join(command, replacements=replacements)
-
-        # add call operator in case executable gets quotes applied
-        # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_operators?view=powershell-7.1#call-operator-
-        #
-        return "& " + joined
+    def line_terminator(cls):
+        return "\n"
