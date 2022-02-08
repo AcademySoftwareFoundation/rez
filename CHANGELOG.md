@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.1 (2022-02-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.0...2.104.1)
+
+**Merged pull requests:**
+
+- Fix aliases in windows powershell/pwsh [\#1192](https://github.com/nerdvegas/rez/pull/1192) ([koaleksa](https://github.com/koaleksa))
+
+**Closed issues:**
+
+- Aliases broken on windows when using powershell [\#1191](https://github.com/nerdvegas/rez/issues/1191)
+
 ## 2.104.0 (2022-02-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.4...2.104.0)
 
