@@ -14,8 +14,6 @@ jobs:
   build:
     name: Build Wiki Artifact
     runs-on: ubuntu-latest
-    env:
-      TEMP_WIKI_DIR: "wiki/.rez-gen-wiki-tmp"
 
     steps:
       - uses: actions/checkout@v2
@@ -32,16 +30,14 @@ jobs:
           rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
 
           python update-wiki.py \
-            --keep-temp \
-            --no-push \
             --github-release=${rezver} \
-            --wiki-dir="${{ github.workspace }}"/"${{ env.TEMP_WIKI_DIR }}" \
-            --wiki-url="${{ env.CLONE_URL }}"
+            --wiki-url="${{ env.CLONE_URL }}" \
+            --out="${{ github.workspace }}"/out
 
       - uses: actions/upload-artifact@v2
         with:
           name: wiki-markdown
-          path: ${{ env.TEMP_WIKI_DIR }}
+          path: out
 
   publish:
     name: Publish to GitHub Wiki

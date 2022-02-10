@@ -27,7 +27,6 @@ import argparse
 from collections import defaultdict
 import errno
 from io import open
-import inspect
 import os
 import re
 import subprocess
@@ -35,12 +34,17 @@ import shutil
 import sys
 
 
+# py3.7+ only
+if sys.version_info[:2] < (3, 7):
+    print("update-wiki.py: ust use python-3.7 or greater", file=sys.stderr)
+    sys.exit(1)
+
+
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
-TMP_NAME = ".rez-gen-wiki-tmp"  # See also: .gitignore
-TEMP_WIKI_DIR = os.getenv("TEMP_WIKI_DIR", os.path.join(THIS_DIR, TMP_NAME))
+OUT_DIR = "out"
 GITHUB_RELEASE = os.getenv("GITHUB_REF", "Unknown")
 GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "nerdvegas/rez")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "master")
@@ -453,7 +457,7 @@ def process_markdown_files():
 
     def do_replace(filename, token_md):
         srcfile = os.path.join(pagespath, "_%s.md" % filename)
-        destfile = os.path.join(TEMP_WIKI_DIR, "%s.md" % filename)
+        destfile = os.path.join(OUT_DIR, "%s.md" % filename)
 
         # with open(srcfile) as f:
         with open(srcfile, encoding='utf-8') as f:
@@ -488,8 +492,7 @@ def process_markdown_files():
     do_replace(
         "Command-Line-Tools",
         {
-            "__GENERATED_MD__": make_cli_markdown(src_path),
-            "__WIKI_PY_URL__": make_cli_source_link(),
+            "__GENERATED_MD__": make_cli_markdown(src_path)
         }
     )
 
@@ -525,7 +528,7 @@ def process_markdown_files():
         print("Processing ", name, "...", sep="")
 
         src = os.path.join(pagespath, name)
-        dest = os.path.join(TEMP_WIKI_DIR, name)
+        dest = os.path.join(OUT_DIR, name)
 
         if name in no_toc:
             shutil.copyfile(src, dest)
@@ -541,28 +544,6 @@ def process_markdown_files():
 ################################################################################
 # Command-Line-Tools.md functions and formatter classes
 ################################################################################
-
-def make_cli_source_link():
-    """Create a markdown link to ``make_cli_markdown`` function on GitHub.
-
-    Returns:
-        str: Formatted link to ``make_cli_markdown`` function on GitHub.
-    """
-    link = (
-        "[`{path}:{func.__name__}()`]"
-        "(https://github.com/{repo}/blob/{branch}/{path}#L{start}-L{end})"
-    )
-
-    lines, start = inspect.getsourcelines(make_cli_markdown)
-    return link.format(
-        func=make_cli_markdown,
-        path=os.path.relpath(THIS_FILE, REZ_SOURCE_DIR),
-        repo=GITHUB_REPO,
-        branch=GITHUB_BRANCH,
-        start=start,
-        end=start + len(lines),
-    )
-
 
 def make_cli_markdown(src_path):
     """Generate the formatted markdown for each rez cli tool.
@@ -729,18 +710,6 @@ class UpdateWikiParser(argparse.ArgumentParser):
             )
         )
         self.add_argument(
-            "--no-push",
-            action="store_false",
-            dest="push",
-            help="Don't git commit and push new changes.",
-        )
-        self.add_argument(
-            "--keep-temp",
-            action="store_true",
-            dest="keep",
-            help="Don't remove temporary wiki repository directory.",
-        )
-        self.add_argument(
             "--github-repo",
             default=GITHUB_REPO,
             dest="repo",
@@ -777,13 +746,10 @@ class UpdateWikiParser(argparse.ArgumentParser):
             )
         )
         self.add_argument(
-            "--wiki-dir",
-            default=TEMP_WIKI_DIR,
+            "--out",
+            default="out",
             dest="dir",
-            help=(
-                "Use this EMPTY directory to temporarily store cloned wiki. "
-                "Overrides environment variable TEMP_WIKI_DIR."
-            )
+            help="Output dir"
         )
 
 
@@ -802,34 +768,20 @@ if __name__ == "__main__":
     GITHUB_REPO = args.repo
     GITHUB_BRANCH = args.branch
     GITHUB_WORKFLOW = args.workflow
-    TEMP_WIKI_DIR = os.path.abspath(args.dir)
-    if not os.path.exists(TEMP_WIKI_DIR):
-        os.makedirs(TEMP_WIKI_DIR)
+    OUT_DIR = os.path.abspath(args.dir)
+
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
 
     subprocess.check_call(
-        ["git", "clone", "--no-checkout", CLONE_URL, TEMP_WIKI_DIR]
+        ["git", "clone", "--no-checkout", CLONE_URL, OUT_DIR]
     )
     shutil.copytree(
         os.path.join(THIS_DIR, 'media'),
-        os.path.join(TEMP_WIKI_DIR, 'media'),
+        os.path.join(OUT_DIR, 'media'),
     )
     os.environ['REZ_SOURCE_DIR'] = REZ_SOURCE_DIR
 
     # python utils/process.py  # Replaced by...
-    os.chdir(TEMP_WIKI_DIR)
+    os.chdir(OUT_DIR)
     process_markdown_files()
-
-    # bash utils/update.sh  # Replaced by...
-    subprocess.check_call(['git', 'add', '.'])
-    if not args.push:
-        subprocess.call(['git', 'status'])
-    elif subprocess.call(['git', 'diff', '--quiet', '--staged']):
-        # --quiet implies --exit-code, exits with 1 if there were differences
-        subprocess.check_call(['git', 'commit', '-m', 'doc update'])
-        subprocess.check_call(['git', 'push'])
-    else:
-        print("No changes to commit and push.")
-
-    os.chdir(THIS_DIR)
-    if not args.keep:
-        shutil.rmtree(TEMP_WIKI_DIR, ignore_errors=True)
