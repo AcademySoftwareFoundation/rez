@@ -1,22 +1,5 @@
-# -*- coding: utf-8 -*-
-"""Python implementation of old ``update-wiki.sh`` merged with ``process.py``.
-
-*From ``update-wiki.sh``*
-
-This script calls git heavily to:
-1. Takes the content from this repo;
-2. Then writes it into a local clone of https://github.com/nerdvegas/rez.wiki.git;
-3. Then follows the procedure outlined in README from 2.
-
-This process exists because GitHub does not support contributions to wiki
-repositories - this is a workaround.
-
-See Also:
-    Original wiki update script files:
-
-    - ``wiki/update-wiki.sh`` at rez 2.50.0, which calls
-    - ``utils/process.py`` from nerdvegas/rez.wiki at d632328, and
-    - ``utils/update.sh`` from nerdvegas/rez.wiki at d632328
+"""
+Script to generate wiki content.
 """
 from __future__ import absolute_import
 from __future__ import division
