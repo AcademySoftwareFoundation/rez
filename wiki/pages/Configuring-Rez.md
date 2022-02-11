@@ -2,7 +2,7 @@
 
 Rez has a good number of configurable settings. The default settings, and
 documentation for every setting, can be found
-[here](https://github.com/__GITHUB_REPO__/blob/master/src/rez/rezconfig.py).
+[here](https://github.com/__GITHUB_REPO__/blob/__GITHUB_BRANCH__/src/rez/rezconfig.py).
 
 Settings are determined in the following way:
 
