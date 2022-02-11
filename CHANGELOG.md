@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.2 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.1...2.104.2)
+
+**Merged pull requests:**
+
+- Issue 1206 wiki gpl rm [\#1207](https://github.com/nerdvegas/rez/pull/1207) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- remove GPL3 code from update-wiki.py [\#1206](https://github.com/nerdvegas/rez/issues/1206)
+
 ## 2.104.1 (2022-02-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.0...2.104.1)
 
