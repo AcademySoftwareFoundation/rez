@@ -45,295 +45,48 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
 OUT_DIR = "out"
-GITHUB_RELEASE = os.getenv("GITHUB_REF", "Unknown")
-GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "nerdvegas/rez")
-GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "master")
-GITHUB_WORKFLOW = os.getenv("GITHUB_WORKFLOW", "Wiki")
-CLONE_URL = os.getenv(
-    "CLONE_URL",
-    "git@github.com:{0}.wiki.git".format(GITHUB_REPO)
-)
+GITHUB_RELEASE = "unknown-release"
+GITHUB_REPO = "unknown/rez"
+GITHUB_BRANCH = "master"
+GITHUB_WORKFLOW = "Wiki"
+CLONE_URL = None
 
 
-################################################################################
-# https://github.com/rasbt/markdown-toclify
-################################################################################
+def add_toc(txt):
+    """Add github-style ToC to start of md content.
+    """
+    lines = txt.split('\n')
+    toc_lines = []
+    mindepth = None
 
-VALIDS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-&'
-
-
-def read_lines(in_file):
-    """Returns a list of lines from a input markdown file."""
-
-    with open(in_file, 'r') as inf:
-        in_contents = inf.read().split('\n')
-    return in_contents
-
-
-def remove_lines(lines, remove=('[[back to top]', '<a class="mk-toclify"')):
-    """Removes existing [back to top] links and <a id> tags."""
-
-    if not remove:
-        return lines[:]
-
-    out = []
-    for l in lines:
-        if l.startswith(remove):
+    for line in lines:
+        if not line.startswith('#'):
             continue
-        out.append(l)
-    return out
+
+        parts = line.split()
+
+        hashblock = parts[0]
+        if set(hashblock) != set(["#"]):
+            continue
+
+        depth = len(hashblock)
+        if mindepth is None:
+            mindepth = depth
+        depth -= mindepth
+
+        toc_lines.append("%s- [%s](#%s)" % (
+            ' ' * 4 * depth,
+            ' '.join(parts[1:]),
+            '-'.join(x.lower() for x in parts[1:])
+        ))
+
+    if not toc_lines:
+        return txt
+
+    return '\n'.join(toc_lines) + "\n\n" + txt
 
 
-def dashify_headline(line):
-    """
-    Takes a header line from a Markdown document and
-    returns a tuple of the
-        '#'-stripped version of the head line,
-        a string version for <a id=''></a> anchor tags,
-        and the level of the headline as integer.
-    E.g.,
-    >>> dashify_headline('### some header lvl3')
-    ('Some header lvl3', 'some-header-lvl3', 3)
-    """
-    stripped_right = line.rstrip('#')
-    stripped_both = stripped_right.lstrip('#')
-    level = len(stripped_right) - len(stripped_both)
-    stripped_wspace = stripped_both.strip()
-
-    # character replacements
-    replaced_colon = stripped_wspace.replace('.', '')
-    replaced_slash = replaced_colon.replace('/', '')
-    rem_nonvalids = ''.join([c if c in VALIDS
-                             else '-' for c in replaced_slash])
-
-    lowered = rem_nonvalids.lower()
-    dashified = re.sub(r'(-)\1+', r'\1', lowered)  # remove duplicate dashes
-    dashified = dashified.strip('-')  # strip dashes from start and end
-
-    # exception '&' (double-dash in github)
-    dashified = dashified.replace('-&-', '--')
-
-    return [stripped_wspace, dashified, level]
-
-
-def tag_and_collect(file_lines, id_tag=True, back_links=False, exclude_h=None):
-    """
-    Gets headlines from the markdown document and creates anchor tags.
-    Keyword arguments:
-        lines: a list of sublists where every sublist
-            represents a line from a Markdown document.
-        id_tag: if true, creates inserts a the <a id> tags (not req. by GitHub)
-        back_links: if true, adds "back to top" links below each headline
-        exclude_h: header levels to exclude. E.g., [2, 3]
-            excludes level 2 and 3 headings.
-    Returns a tuple of 2 lists:
-        1st list:
-            A modified version of the input list where
-            <a id="some-header"></a> anchor tags where inserted
-            above the header lines (if github is False).
-        2nd list:
-            A list of 3-value sublists, where the first value
-            represents the heading, the second value the string
-            that was inserted assigned to the IDs in the anchor tags,
-            and the third value is an integer that reprents the headline level.
-            E.g.,
-            [['some header lvl3', 'some-header-lvl3', 3], ...]
-    """
-    out_contents = []
-    headlines = []
-
-    for line in file_lines:
-        saw_headline = False
-        orig_len = len(line)
-
-        if re.match(r'^\#{1,6} ', line):
-            line = line.lstrip()
-
-            # comply with new markdown standards
-
-            # not a headline if '#' not followed by whitespace '##no-header':
-            if not line.lstrip('#').startswith(' '):
-                continue
-            # not a headline if more than 6 '#':
-            if len(line) - len(line.lstrip('#')) > 6:
-                continue
-            # headers can be indented by at most 3 spaces:
-            if orig_len - len(line) > 3:
-                continue
-
-            # ignore empty headers
-            if not set(line) - {'#', ' '}:
-                continue
-
-            saw_headline = True
-            dashified = dashify_headline(line)
-
-            if not exclude_h or not dashified[-1] in exclude_h:
-                if id_tag:
-                    id_tag = '<a class="mk-toclify" id="{dashified[1]}"></a>'
-                    out_contents.append(id_tag.format(dashified=dashified))
-                headlines.append(dashified)
-
-        out_contents.append(line)
-        if back_links and saw_headline:
-            out_contents.append('[[back to top](#table-of-contents)]')
-    return out_contents, headlines
-
-
-def positioning_headlines(headlines):
-    """
-    Strips unnecessary whitespaces/tabs if first header is not left-aligned
-    """
-    left_just = False
-    for row in headlines:
-        if row[-1] == 1:
-            left_just = True
-            break
-    if not left_just:
-        for row in headlines:
-            row[-1] -= 1
-    return headlines
-
-
-def create_toc(headlines, hyperlink=True, top_link=False, no_toc_header=False):
-    """
-    Creates the table of contents from the headline list
-    that was returned by the tag_and_collect function.
-    Keyword Arguments:
-        headlines: list of lists
-            e.g., ['Some header lvl3', 'some-header-lvl3', 3]
-        hyperlink: Creates hyperlinks in Markdown format if True,
-            e.g., '- [Some header lvl1](#some-header-lvl1)'
-        top_link: if True, add a id tag for linking the table
-            of contents itself (for the back-to-top-links)
-        no_toc_header: suppresses TOC header if True.
-    Returns  a list of headlines for a table of contents
-    in Markdown format,
-    e.g., ['        - [Some header lvl3](#some-header-lvl3)', ...]
-    """
-    processed = []
-    if not no_toc_header:
-        if top_link:
-            processed.append('<a class="mk-toclify" id="table-of-contents"></a>\n')
-        processed.append('# Table of Contents')
-
-    for line in headlines:
-        indent = (line[2] - 1) * '    '
-        if hyperlink:
-            item = '%s- [%s](#%s)' % (indent, line[0], line[1])
-        else:
-            item = '%s- %s' % (indent, line[0])
-        processed.append(item)
-    processed.append('\n')
-    return processed
-
-
-def build_markdown(toc_headlines, body, spacer=0, placeholder=None):
-    """
-    Returns a string with the Markdown output contents incl.
-    the table of contents.
-    Keyword arguments:
-        toc_headlines: lines for the table of contents
-            as created by the create_toc function.
-        body: contents of the Markdown file including
-            ID-anchor tags as returned by the
-            tag_and_collect function.
-        spacer: Adds vertical space after the table
-            of contents. Height in pixels.
-        placeholder: If a placeholder string is provided, the placeholder
-            will be replaced by the TOC instead of inserting the TOC at
-            the top of the document
-    """
-    if spacer:
-        spacer_line = ['\n<div style="height:%spx;"></div>\n' % (spacer)]
-        toc_markdown = "\n".join(toc_headlines + spacer_line)
-    else:
-        toc_markdown = "\n".join(toc_headlines)
-
-    body_markdown = "\n".join(body).strip()
-
-    if placeholder:
-        markdown = body_markdown.replace(placeholder, toc_markdown)
-    else:
-        markdown = toc_markdown + body_markdown
-
-    return markdown
-
-
-def output_markdown(markdown_cont, output_file):
-    """
-    Writes to an output file if `outfile` is a valid path.
-    """
-    if output_file:
-        with open(output_file, 'w') as out:
-            out.write(markdown_cont)
-
-
-def markdown_toclify(input_file, output_file=None, github=False,
-                     back_to_top=False, no_link=False,
-                     no_toc_header=False, spacer=0, placeholder=None,
-                     exclude_h=None):
-    """ Function to add table of contents to markdown files.
-    Parameters
-    -----------
-      input_file: str
-        Path to the markdown input file.
-      output_file: str (defaul: None)
-        Path to the markdown output file.
-      github: bool (default: False)
-        Uses GitHub TOC syntax if True.
-      back_to_top: bool (default: False)
-        Inserts back-to-top links below headings if True.
-      no_link: bool (default: False)
-        Creates the table of contents without internal links if True.
-      no_toc_header: bool (default: False)
-        Suppresses the Table of Contents header if True
-      spacer: int (default: 0)
-        Inserts horizontal space (in pixels) after the table of contents.
-      placeholder: str (default: None)
-        Inserts the TOC at the placeholder string instead
-        of inserting the TOC at the top of the document.
-      exclude_h: list (default None)
-        Excludes header levels, e.g., if [2, 3], ignores header
-        levels 2 and 3 in the TOC.
-    Returns
-    -----------
-    cont: str
-      Markdown contents including the TOC.
-    """
-    raw_contents = read_lines(input_file)
-    cleaned_contents = remove_lines(raw_contents, remove=('[[back to top]', '<a class="mk-toclify"'))
-    processed_contents, raw_headlines = tag_and_collect(
-        cleaned_contents,
-        id_tag=not github,
-        back_links=back_to_top,
-        exclude_h=exclude_h,
-    )
-
-    leftjustified_headlines = positioning_headlines(raw_headlines)
-    processed_headlines = create_toc(leftjustified_headlines,
-                                     hyperlink=not no_link,
-                                     top_link=not no_link and not github,
-                                     no_toc_header=no_toc_header)
-
-    if no_link:
-        processed_contents = cleaned_contents
-
-    cont = build_markdown(toc_headlines=processed_headlines,
-                          body=processed_contents,
-                          spacer=spacer,
-                          placeholder=placeholder)
-
-    if output_file:
-        output_markdown(cont, output_file)
-    return cont
-
-
-################################################################################
-# rez-specific functions
-################################################################################
-
-def convert_rezconfig_src_to_md(txt):
+def creating_configuring_rez_md(txt):
     lines = txt.split('\n')
 
     start = None
@@ -459,7 +212,6 @@ def process_markdown_files():
         srcfile = os.path.join(pagespath, "_%s.md" % filename)
         destfile = os.path.join(OUT_DIR, "%s.md" % filename)
 
-        # with open(srcfile) as f:
         with open(srcfile, encoding='utf-8') as f:
             txt = f.read()
 
@@ -479,7 +231,7 @@ def process_markdown_files():
     do_replace(
         "Configuring-Rez",
         {
-            "__REZCONFIG_MD__": convert_rezconfig_src_to_md(txt),
+            "__REZCONFIG_MD__": creating_configuring_rez_md(txt),
             "__GITHUB_REPO__": GITHUB_REPO,
         }
     )
@@ -492,7 +244,7 @@ def process_markdown_files():
     do_replace(
         "Command-Line-Tools",
         {
-            "__GENERATED_MD__": make_cli_markdown(src_path)
+            "__GENERATED_MD__": create_clitools_markdown(src_path)
         }
     )
 
@@ -534,18 +286,19 @@ def process_markdown_files():
             shutil.copyfile(src, dest)
             continue
 
-        content = markdown_toclify(input_file=src,
-                                   no_toc_header=True,
-                                   github=True)
+        with open(src) as f:
+            txt = f.read()
 
-        output_markdown(content, dest)
+        content = add_toc(txt)
+        with open(dest, 'w') as out:
+            out.write(content)
 
 
 ################################################################################
 # Command-Line-Tools.md functions and formatter classes
 ################################################################################
 
-def make_cli_markdown(src_path):
+def create_clitools_markdown(src_path):
     """Generate the formatted markdown for each rez cli tool.
 
     Hot-import rez cli library to get parsers.
@@ -704,50 +457,35 @@ class UpdateWikiParser(argparse.ArgumentParser):
             "--github-release",
             dest="release",
             default=GITHUB_RELEASE,
-            help=(
-                "GitHub release the wiki is generated from. "
-                "Overrides environment variable GITHUB_REF."
-            )
+            help="GitHub release the wiki is generated from"
         )
         self.add_argument(
             "--github-repo",
             default=GITHUB_REPO,
             dest="repo",
-            help=(
-                "Url to GitHub repository without leading github.com/. "
-                "Overrides environment variable GITHUB_REPOSITORY."
-            )
+            help="Url to GitHub repository without leading github.com/"
         )
         self.add_argument(
             "--github-branch",
             default=GITHUB_BRANCH,
             dest="branch",
-            help=(
-                "Name of git branch that is generating the Wiki. "
-                "Overrides environment variable GITHUB_BRANCH."
-            )
+            help="Name of git branch that is generating the Wiki"
         )
         self.add_argument(
             "--github-workflow",
             default=GITHUB_WORKFLOW,
             dest="workflow",
-            help=(
-                "Name of GitHub workflow that is generating the Wiki. "
-                "Overrides environment variable GITHUB_WORKFLOW."
-            )
+            help="Name of GitHub workflow that is generating the Wiki"
         )
         self.add_argument(
             "--wiki-url",
             default=CLONE_URL,
             dest="url",
-            help=(
-                "Use this url to git clone wiki from. "
-                "Overrides environment variable CLONE_URL."
-            )
+            help="Use this url to git clone wiki from"
         )
         self.add_argument(
             "--out",
-            default="out",
+            default=OUT_DIR,
             dest="dir",
             help="Output dir"
         )
@@ -769,6 +507,9 @@ if __name__ == "__main__":
     GITHUB_BRANCH = args.branch
     GITHUB_WORKFLOW = args.workflow
     OUT_DIR = os.path.abspath(args.dir)
+
+    if not CLONE_URL:
+        CLONE_URL = "git@github.com:%s.wiki.git" % GITHUB_REPO
 
     if not os.path.exists(OUT_DIR):
         os.makedirs(OUT_DIR)
