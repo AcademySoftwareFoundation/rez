@@ -405,26 +405,7 @@ class MarkdownHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
 
 class UpdateWikiParser(argparse.ArgumentParser):
-    """Parser flags, using global variables as defaults."""
-    INIT_DEFAULTS = {
-        "prog": "update-wiki",
-        "description": "Update GitHub Wiki",
-        "formatter_class": argparse.ArgumentDefaultsHelpFormatter,
-    }
-
     def __init__(self, **kwargs):
-        """Setup default arguments and parser description/program name.
-
-        If no parser description/program name are given, default ones will
-        be assigned.
-
-        Args:
-            kwargs (dict[str]):
-                Same key word arguments taken by
-                ``argparse.ArgumentParser.__init__()``
-        """
-        for key, value in self.INIT_DEFAULTS.items():
-            kwargs.setdefault(key, value)
         super(UpdateWikiParser, self).__init__(**kwargs)
 
         self.add_argument(
