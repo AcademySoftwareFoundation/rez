@@ -18,11 +18,13 @@ import re
 from subprocess import PIPE, list2cmdline
 
 from rez.config import config
+from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
+from rez.util import shlex_join
 
 
 class PowerShellBase(Shell):
