@@ -190,17 +190,10 @@ def create_contributors_md(src_path):
 
 
 def process_markdown_files():
-    no_toc = [
-        "Credits.md",
-        "Command-Line-Tools.md",
-        "Home.md",
-        "_Footer.md",
-        "_Sidebar.md",
-    ]
-
     pagespath = os.path.join(THIS_DIR, "pages")
+    processed_files = {}
 
-    src_path = os.getenv("REZ_SOURCE_DIR")
+    src_path = REZ_SOURCE_DIR
     if src_path is None:
         print(
             "Must provide REZ_SOURCE_DIR which points at root of "
@@ -208,9 +201,8 @@ def process_markdown_files():
         )
         sys.exit(1)
 
-    def do_replace(filename, token_md):
-        srcfile = os.path.join(pagespath, "_%s.md" % filename)
-        destfile = os.path.join(OUT_DIR, "%s.md" % filename)
+    def apply_replacements(filename, token_md):
+        srcfile = os.path.join(pagespath, filename)
 
         with open(srcfile, encoding='utf-8') as f:
             txt = f.read()
@@ -218,45 +210,56 @@ def process_markdown_files():
         for token, md in token_md.items():
             txt = txt.replace(token, md)
 
-        print("Writing ", destfile, "...", sep="")
-        with open(destfile, 'w', encoding='utf-8') as f:
-            f.write(txt)
+        return txt
 
-    # generate markdown from rezconfig.py, add to _Configuring-Rez.md and write
-    # out to Configuring-Rez.md
+    # generate Configuring-Rez.md
     filepath = os.path.join(src_path, "src", "rez", "rezconfig.py")
     with open(filepath) as f:
         txt = f.read()
 
-    do_replace(
-        "Configuring-Rez",
+    processed_files["Configuring-Rez.md"] = apply_replacements(
+        "Configuring-Rez.md",
         {
             "__REZCONFIG_MD__": creating_configuring_rez_md(txt),
             "__GITHUB_REPO__": GITHUB_REPO,
+            "__GITHUB_BRANCH__": GITHUB_BRANCH
         }
     )
 
-    # generate markdown contributors list, add to _Credits.md and write out to
-    # Credits.md
+    # generate Credits.md
     md = create_contributors_md(src_path)
-    do_replace("Credits", {"__CONTRIBUTORS_MD__": md})
+    processed_files["Credits.md"] = apply_replacements(
+        "Credits.md",
+        {
+            "__CONTRIBUTORS_MD__": md
+        }
+    )
 
-    do_replace(
-        "Command-Line-Tools",
+    # generate Command-Line-Tools.md
+    processed_files["Command-Line-Tools.md"] = apply_replacements(
+        "Command-Line-Tools.md",
         {
             "__GENERATED_MD__": create_clitools_markdown(src_path)
         }
     )
 
-    do_replace("_Footer", {"__GITHUB_REPO__": GITHUB_REPO})
+    # generate _Footer.md
+    processed_files["_Footer.md"] = apply_replacements(
+        "_Footer.md",
+        {
+            "__GITHUB_REPO__": GITHUB_REPO
+        }
+    )
 
+    # generate _Sidebar.md
     try:
         from urllib import quote
     except ImportError:
         from urllib.parse import quote
+
     user, repo_name = GITHUB_REPO.split('/')
-    do_replace(
-        "_Sidebar",
+    processed_files["_Sidebar.md"] = apply_replacements(
+        "_Sidebar.md",
         {
             "__GITHUB_RELEASE__": GITHUB_RELEASE,
             "__GITHUB_REPO__": GITHUB_REPO,
@@ -267,36 +270,24 @@ def process_markdown_files():
         }
     )
 
-    # process each md file:
-    # * adds TOC;
-    # * replaces short-form content links like '[[here:Blah.md#Header]]' with full form;
-    # * copies to the root dir.
-    #
-    skip_regex = r'^_(?!(Sidebar|Footer))|(?<!.md)$'
+    # load the remaining files, which don't have replacements
     for name in os.listdir(pagespath):
-        if re.match(skip_regex, name):
+        if name in processed_files:
             continue
 
-        print("Processing ", name, "...", sep="")
-
-        src = os.path.join(pagespath, name)
-        dest = os.path.join(OUT_DIR, name)
-
-        if name in no_toc:
-            shutil.copyfile(src, dest)
-            continue
-
-        with open(src) as f:
+        srcfile = os.path.join(pagespath, name)
+        with open(srcfile, encoding='utf-8') as f:
             txt = f.read()
 
-        content = add_toc(txt)
-        with open(dest, 'w') as out:
-            out.write(content)
+        processed_files[name] = txt
 
+    # iterate over every file, add a ToC, and write it out
+    for name, txt in processed_files.items():
+        destfile = os.path.join(OUT_DIR, name)
+        txt = add_toc(txt)
+        with open(destfile, 'w') as out:
+            out.write(txt)
 
-################################################################################
-# Command-Line-Tools.md functions and formatter classes
-################################################################################
 
 def create_clitools_markdown(src_path):
     """Generate the formatted markdown for each rez cli tool.
@@ -521,8 +512,6 @@ if __name__ == "__main__":
         os.path.join(THIS_DIR, 'media'),
         os.path.join(OUT_DIR, 'media'),
     )
-    os.environ['REZ_SOURCE_DIR'] = REZ_SOURCE_DIR
 
-    # python utils/process.py  # Replaced by...
     os.chdir(OUT_DIR)
     process_markdown_files()

@@ -30,7 +30,7 @@ jobs:
           rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
 
           python update-wiki.py \
-            --github-repo="${{ github.repository }}/rez" \
+            --github-repo="${{ github.repository }}" \
             --github-release=${rezver} \
             --wiki-url="${{ env.CLONE_URL }}" \
             --out="${{ github.workspace }}/out"

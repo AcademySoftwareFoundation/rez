@@ -1,5 +1,3 @@
-
-
 ## Contributors
 
 <p align="center">
