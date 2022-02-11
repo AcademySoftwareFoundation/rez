@@ -27,6 +27,12 @@ except ImportError:
     print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
 
+try:
+    from setuptools_rust import Binding, RustExtension
+except ImportError:
+    print("install failed - requires setuptools-rust", file=sys.stderr)
+    sys.exit(1)
+
 
 if sys.version_info < (2, 7):
     print("install failed - requires python v2.7 or greater", file=sys.stderr)
@@ -107,7 +113,11 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Rust",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Software Development",
         "Topic :: System :: Software Distribution"
-    ]
+    ],
+    rust_extensions=[RustExtension("rez.rez", binding=Binding.RustCPython, path="rust/rez_python/Cargo.toml")],
 )
