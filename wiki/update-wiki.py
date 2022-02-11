@@ -19,7 +19,7 @@ import sys
 
 # py3.7+ only
 if sys.version_info[:2] < (3, 7):
-    print("update-wiki.py: ust use python-3.7 or greater", file=sys.stderr)
+    print("update-wiki.py: use python-3.7 or greater", file=sys.stderr)
     sys.exit(1)
 
 
