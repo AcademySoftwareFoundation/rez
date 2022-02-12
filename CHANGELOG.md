@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.104.4 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.3...2.104.4)
+
+**Merged pull requests:**
+
+- remove nerdvegas refs in wiki [\#1212](https://github.com/nerdvegas/rez/pull/1212) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.104.3 (2022-02-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.2...2.104.3)
 
