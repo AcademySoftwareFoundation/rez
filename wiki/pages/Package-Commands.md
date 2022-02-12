@@ -511,7 +511,7 @@ error is detected and it is not possible to configure a valid environment.
         ...
 
 This object provided system information, such as current platform, arch and os. See
-[the source](https://github.com/nerdvegas/rez/blob/master/src/rez/system.py) for more info.
+[the source](https://github.com/__GITHUB_REPO__/blob/__GITHUB_BRANCH__/src/rez/system.py) for more info.
 
 ### test
 *Dict-like object*

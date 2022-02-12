@@ -173,6 +173,7 @@ def create_contributors_md(src_path):
 
 def process_markdown_files():
     pagespath = os.path.join(THIS_DIR, "pages")
+    user, repo_name = GITHUB_REPO.split('/')
     processed_files = {}
 
     src_path = REZ_SOURCE_DIR
@@ -183,14 +184,25 @@ def process_markdown_files():
         )
         sys.exit(1)
 
-    def apply_replacements(filename, token_md):
+    def apply_replacements(filename, replacements=None):
         srcfile = os.path.join(pagespath, filename)
 
         with open(srcfile, encoding='utf-8') as f:
             txt = f.read()
 
-        for token, md in token_md.items():
-            txt = txt.replace(token, md)
+        # add standard replacements
+        repls = {
+            "__GITHUB_RELEASE__": GITHUB_RELEASE,
+            "__GITHUB_REPO__": GITHUB_REPO,
+            "__GITHUB_USER__": user,
+            "__GITHUB_BRANCH__": GITHUB_BRANCH,
+            "__REPO_NAME__": repo_name
+        }
+
+        repls.update(replacements or {})
+
+        for src_txt, repl_txt in repls.items():
+            txt = txt.replace(src_txt, repl_txt)
 
         return txt
 
@@ -202,9 +214,7 @@ def process_markdown_files():
     processed_files["Configuring-Rez.md"] = apply_replacements(
         "Configuring-Rez.md",
         {
-            "__REZCONFIG_MD__": creating_configuring_rez_md(txt),
-            "__GITHUB_REPO__": GITHUB_REPO,
-            "__GITHUB_BRANCH__": GITHUB_BRANCH
+            "__REZCONFIG_MD__": creating_configuring_rez_md(txt)
         }
     )
 
@@ -225,43 +235,10 @@ def process_markdown_files():
         }
     )
 
-    # generate _Footer.md
-    processed_files["_Footer.md"] = apply_replacements(
-        "_Footer.md",
-        {
-            "__GITHUB_REPO__": GITHUB_REPO
-        }
-    )
-
-    # generate _Sidebar.md
-    try:
-        from urllib import quote
-    except ImportError:
-        from urllib.parse import quote
-
-    user, repo_name = GITHUB_REPO.split('/')
-    processed_files["_Sidebar.md"] = apply_replacements(
-        "_Sidebar.md",
-        {
-            "__GITHUB_RELEASE__": GITHUB_RELEASE,
-            "__GITHUB_REPO__": GITHUB_REPO,
-            "___GITHUB_USER___": user,
-            "__REPO_NAME__": repo_name,
-            "__WORKFLOW__": quote(GITHUB_WORKFLOW, safe=""),
-            "__BRANCH__": quote(GITHUB_BRANCH, safe=""),
-        }
-    )
-
-    # load the remaining files, which don't have replacements
+    # all other markdown files
     for name in os.listdir(pagespath):
-        if name in processed_files:
-            continue
-
-        srcfile = os.path.join(pagespath, name)
-        with open(srcfile, encoding='utf-8') as f:
-            txt = f.read()
-
-        processed_files[name] = txt
+        if name not in processed_files:
+            processed_files[name] = apply_replacements(name)
 
     # iterate over every file, add a ToC, and write it out
     for name, txt in processed_files.items():
