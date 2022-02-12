@@ -1,5 +1,16 @@
-[workspace]
-members = [
-    "rust/rez",
-    "rust/rez_python",
-]
+[package]
+name = "rez"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.maturin]
+python-source = "src"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "_rez"
+path = "rust/src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.15.1", features = ["extension-module"] }
