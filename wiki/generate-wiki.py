@@ -235,20 +235,6 @@ def process_markdown_files():
         }
     )
 
-    # generate _Sidebar.md
-    try:
-        from urllib import quote
-    except ImportError:
-        from urllib.parse import quote
-
-    processed_files["_Sidebar.md"] = apply_replacements(
-        "_Sidebar.md",
-        {
-            "__WORKFLOW__": quote(GITHUB_WORKFLOW, safe=""),
-            "__BRANCH__": quote(GITHUB_BRANCH, safe="")
-        }
-    )
-
     # all other markdown files
     for name in os.listdir(pagespath):
         if name not in processed_files:
