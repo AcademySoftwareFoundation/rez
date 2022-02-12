@@ -1,10 +1,3 @@
-[[media/rez_banner_128.png]]
-
-- [What Is Rez?](#what-is-rez)
-- [The Basics](#the-basics)
-- [Examples](#examples)
-
-
 ## What Is Rez?
 
 Rez is a cross-platform package manager with a difference. Using Rez you can create

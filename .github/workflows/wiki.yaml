@@ -7,8 +7,6 @@ on:
       - '.github/workflows/wiki.yaml'
       - 'wiki/**'
       - src/rez/rezconfig.py
-env:
-  CLONE_URL: "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git"
 
 jobs:
   build:
@@ -29,10 +27,9 @@ jobs:
         run: |
           rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
 
-          python update-wiki.py \
+          python generate-wiki.py \
             --github-repo="${{ github.repository }}" \
             --github-release=${rezver} \
-            --wiki-url="${{ env.CLONE_URL }}" \
             --out="${{ github.workspace }}/out"
 
       - uses: actions/upload-artifact@v2
@@ -47,20 +44,22 @@ jobs:
     if: github.event_name == 'release'
 
     steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: wiki-markdown
-          path: .
-
       - name: Setup git config
         run: |
           git config --global user.name "github.com/${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@${{ github.sha }}"
 
-      - name: Git commit and push
+      - name: Clone latest wiki repo
         run: |
-          git commit \
-            -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-            && git remote set-url origin "${{ env.CLONE_URL }}" \
-            && git push origin master \
-            || echo "Nothing new to commit"
+          git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git .
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: wiki-markdown
+          path: .
+
+      - name: Push wiki updates to git
+        run: |
+          git add --all
+          git commit -m "Generated from GitHub ${{ github.workflow }} Workflow"
+          git push origin master || echo "Nothing new to commit"
