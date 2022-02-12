@@ -597,7 +597,7 @@ requirements, or with requirements that do not translate well to directories on 
 ### help
 *String or List of String*
 
-    help = "https://github.com/nerdvegas/rez/wiki"
+    help = "https://github.com/__GITHUB_REPO__/wiki"
 
 URL for package webpage, or, if a string containing spaces, a command to run. You can show the help
 for a package using the *rez-help* command line tool. If this value is a list, then this represents
@@ -862,7 +862,7 @@ of these attributes have been added.
     changelog = \
         """
         commit 22abe31541ceebced8d4e209e3f6c44d8d0bea1c
-        Author: allan johns <nerdvegas at gee mail dot com>
+        Author: allan johns <>
         Date:   Sun May 15 15:39:10 2016 -0700
 
             first commit
@@ -901,8 +901,8 @@ setting 'TODO_ADD_THIS'). A package may not have a release message.
     revision = \
         {'branch': 'master',
          'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
-         'fetch_url': 'git@github.com:nerdvegas/dummy.git',
-         'push_url': 'git@github.com:nerdvegas/dummy.git',
+         'fetch_url': 'git@github.com:foo/dummy.git',
+         'push_url': 'git@github.com:foo/dummy.git',
          'tracking_branch': 'origin/master'}
 
 Information about the source control revision containing the source code that was released. The
