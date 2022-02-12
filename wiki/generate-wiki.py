@@ -28,7 +28,6 @@ THIS_DIR = os.path.dirname(THIS_FILE)
 REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
 OUT_DIR = "out"
-GITHUB_RELEASE = "unknown-release"
 GITHUB_REPO = "unknown/rez"
 GITHUB_BRANCH = "master"
 GITHUB_WORKFLOW = "Wiki"
@@ -192,7 +191,6 @@ def process_markdown_files():
 
         # add standard replacements
         repls = {
-            "__GITHUB_RELEASE__": GITHUB_RELEASE,
             "__GITHUB_REPO__": GITHUB_REPO,
             "__GITHUB_USER__": user,
             "__GITHUB_BRANCH__": GITHUB_BRANCH,
@@ -385,12 +383,6 @@ class UpdateWikiParser(argparse.ArgumentParser):
         super(UpdateWikiParser, self).__init__(**kwargs)
 
         self.add_argument(
-            "--github-release",
-            dest="release",
-            default=GITHUB_RELEASE,
-            help="GitHub release the wiki is generated from"
-        )
-        self.add_argument(
             "--github-repo",
             default=GITHUB_REPO,
             dest="repo",
@@ -426,7 +418,6 @@ if __name__ == "__main__":
         raise
 
     args = UpdateWikiParser().parse_args()
-    GITHUB_RELEASE = args.release
     GITHUB_REPO = args.repo
     GITHUB_BRANCH = args.branch
     GITHUB_WORKFLOW = args.workflow

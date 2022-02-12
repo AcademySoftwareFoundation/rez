@@ -1,5 +1,3 @@
-**Release: __GITHUB_RELEASE__**
-
 - [[Home]]
 
 :beginner: Introduction:

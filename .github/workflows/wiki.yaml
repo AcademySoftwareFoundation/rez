@@ -25,11 +25,8 @@ jobs:
       - name: Build Wiki
         working-directory: wiki
         run: |
-          rezver=$(cat ./src/rez/utils/_version.py | grep -w _rez_version | tr '"' ' ' | awk '{print $NF}')
-
           python generate-wiki.py \
             --github-repo="${{ github.repository }}" \
-            --github-release=${rezver} \
             --out="${{ github.workspace }}/out"
 
       - uses: actions/upload-artifact@v2
