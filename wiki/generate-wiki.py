@@ -32,7 +32,6 @@ GITHUB_RELEASE = "unknown-release"
 GITHUB_REPO = "unknown/rez"
 GITHUB_BRANCH = "master"
 GITHUB_WORKFLOW = "Wiki"
-CLONE_URL = None
 
 
 def add_toc(txt):
@@ -433,12 +432,6 @@ class UpdateWikiParser(argparse.ArgumentParser):
             help="Name of GitHub workflow that is generating the Wiki"
         )
         self.add_argument(
-            "--wiki-url",
-            default=CLONE_URL,
-            dest="url",
-            help="Use this url to git clone wiki from"
-        )
-        self.add_argument(
             "--out",
             default=OUT_DIR,
             dest="dir",
@@ -456,22 +449,15 @@ if __name__ == "__main__":
         raise
 
     args = UpdateWikiParser().parse_args()
-    CLONE_URL = args.url
     GITHUB_RELEASE = args.release
     GITHUB_REPO = args.repo
     GITHUB_BRANCH = args.branch
     GITHUB_WORKFLOW = args.workflow
     OUT_DIR = os.path.abspath(args.dir)
 
-    if not CLONE_URL:
-        CLONE_URL = "git@github.com:%s.wiki.git" % GITHUB_REPO
-
     if not os.path.exists(OUT_DIR):
         os.makedirs(OUT_DIR)
 
-    subprocess.check_call(
-        ["git", "clone", "--no-checkout", CLONE_URL, OUT_DIR]
-    )
     shutil.copytree(
         os.path.join(THIS_DIR, 'media'),
         os.path.join(OUT_DIR, 'media'),
