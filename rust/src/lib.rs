@@ -12,7 +12,7 @@ pub fn foo() -> PyResult<()> {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn _rez(_py: Python, m: &PyModule) -> PyResult<()> {
+fn rez(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(foo, m)?)?;
     Ok(())
 }
