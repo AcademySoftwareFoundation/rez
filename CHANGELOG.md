@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.3 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.2...2.104.3)
+
+**Merged pull requests:**
+
+- fixed wiki bugs [\#1211](https://github.com/nerdvegas/rez/pull/1211) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix nuked wiki [\#1210](https://github.com/nerdvegas/rez/issues/1210)
+
 ## 2.104.2 (2022-02-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.1...2.104.2)
 
