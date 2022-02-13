@@ -13,4 +13,6 @@ path = "rust/src/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
+nom = "7.1.0"
 pyo3 = { version = "0.15.1", features = ["extension-module"] }
+thiserror = "1.0.30"
