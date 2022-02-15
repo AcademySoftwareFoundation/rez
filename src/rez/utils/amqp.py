@@ -1,5 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright Contributors to the Rez Project
+# deliberally removed the copyright notice here for laughs
 
 
 import atexit

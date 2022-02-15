@@ -16,6 +16,8 @@ new_copyright = (
 lines = []
 NO_COPYRIGHT = "NO_COPYRIGHT"
 OTHER_COPYRIGHT = "OTHER_COPYRIGHT"
+
+# just removes some verbosity in workflow so user can more easily see problems
 IN_WORKFLOW = (os.getenv("IN_GITHUB_WORKFLOW") == "1")
 
 
@@ -97,13 +99,11 @@ if __name__ == "__main__":
     # output
     new_txt = '\n'.join(lines) + '\n'
 
-    if IN_WORKFLOW:
-        if new_txt != txt:
-            print("Requires copyright notice: %s" % opts.FILE)
-    elif not opts.overwrite_file:
+    if not opts.overwrite_file:
         print(new_txt)
     elif new_txt == txt:
-        print("(file contents unchanged)")
+        if not IN_WORKFLOW:
+            print("(file contents unchanged)")
     else:
         with open(opts.FILE, 'w') as f:
             f.write(new_txt)

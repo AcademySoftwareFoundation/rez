@@ -1,8 +1,4 @@
 #!/bin/bash
-#
-# Note: This just reports problem files (those that should have copyright)
-# when run from the 'spdx' github workflow.
-#
 
 if [ ! -f "LICENSE" ]; then
     echo "must run from root of rez project" 1>&2
