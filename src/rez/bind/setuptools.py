@@ -1,10 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
-
-# SPDX-License-Identifier: Apache-2.0
-
-
 """
 Binds the python setuptools module as a rez package.
 """
@@ -20,7 +16,6 @@ def bind(path, version_range=None, opts=None, parser=None):
     #
     # python version 2.7.5 can't run ./easy_install.  Try the alternative(s): ...
     #
-    #tools = ["easy_install"]
     tools = []
 
     variants = _pymodule.bind(name,

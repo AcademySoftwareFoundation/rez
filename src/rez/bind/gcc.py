@@ -1,10 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
-
-# SPDX-License-Identifier: Apache-2.0
-
-
 from __future__ import absolute_import
 from rez.bind._utils import find_exe, extract_version, make_dirs, log
 from rez.package_maker import make_package

@@ -1,10 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
-
-# SPDX-License-Identifier: Apache-2.0
-
-
 """
 Binds a python executable as a rez package.
 """
