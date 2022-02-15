@@ -96,6 +96,8 @@ if __name__ == "__main__":
 
     if not opts.overwrite_file:
         print(new_txt)
+    elif new_txt == txt:
+        print("(file contents unchanged)")
     else:
         with open(opts.FILE, 'w') as f:
             f.write(new_txt)
