@@ -5,6 +5,7 @@
 from __future__ import print_function
 import argparse
 import sys
+import os
 
 
 new_copyright = (
@@ -15,6 +16,7 @@ new_copyright = (
 lines = []
 NO_COPYRIGHT = "NO_COPYRIGHT"
 OTHER_COPYRIGHT = "OTHER_COPYRIGHT"
+IN_WORKFLOW = (os.getenv("IN_GITHUB_WORKFLOW") == "1")
 
 
 def find_existing_copyright():
@@ -65,7 +67,8 @@ if __name__ == "__main__":
     result = find_existing_copyright()
 
     if result == OTHER_COPYRIGHT:
-        print("Other copyright, skipping %s" % opts.FILE, file=sys.stderr)
+        if not IN_WORKFLOW:
+            print("Other copyright, skipping %s" % opts.FILE, file=sys.stderr)
         sys.exit(1)
 
     # strip existing copyright
@@ -94,7 +97,10 @@ if __name__ == "__main__":
     # output
     new_txt = '\n'.join(lines) + '\n'
 
-    if not opts.overwrite_file:
+    if IN_WORKFLOW:
+        if new_txt != txt:
+            print("Requires copyright notice: %s" % opts.FILE)
+    elif not opts.overwrite_file:
         print(new_txt)
     elif new_txt == txt:
         print("(file contents unchanged)")
