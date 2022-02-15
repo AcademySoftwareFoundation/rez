@@ -44,7 +44,7 @@ Note that running pip-installed rez command line tools will print a warning like
 ```
 Pip-based rez installation detected. Please be aware that rez command line tools
 are not guaranteed to function correctly in this case. See
-https://github.com/nerdvegas/rez/wiki/Installation#why-not-pip-for-production
+https://github.com/__GITHUB_REPO__/wiki/Installation#why-not-pip-for-production
 for futher details.
 ```
 

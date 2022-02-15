@@ -1,3 +1,0 @@
-Auto-generated from __WIKI_PY_URL__
-
-__GENERATED_MD__
