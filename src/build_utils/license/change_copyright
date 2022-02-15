@@ -18,15 +18,21 @@ OTHER_COPYRIGHT = "OTHER_COPYRIGHT"
 
 
 def find_existing_copyright():
+    i_comment_start = None
     i_start = None
 
     for i, line in enumerate(lines):
-        if line.startswith('#') and "Copyright" in line:
-            if "Allan" in line or "Rez" in line:
-                i_start = i
-                break
-            else:
-                return OTHER_COPYRIGHT
+        if line.startswith('#'):
+            if i_comment_start is None:
+                i_comment_start = i
+
+            if "Copyright" in line:
+                if "Rez" in line:
+                    i_start = i_comment_start
+                else:
+                    return OTHER_COPYRIGHT
+        else:
+            i_comment_start = None
 
     if i_start is None:
         return NO_COPYRIGHT
