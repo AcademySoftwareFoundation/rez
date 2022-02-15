@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.5 (2022-02-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.4...2.104.5)
+
+**Merged pull requests:**
+
+- switched to SPDX copyright notices [\#1213](https://github.com/nerdvegas/rez/pull/1213) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- replace copyrights with SPDX form [\#1201](https://github.com/nerdvegas/rez/issues/1201)
+
 ## 2.104.4 (2022-02-12)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.3...2.104.4)
 
