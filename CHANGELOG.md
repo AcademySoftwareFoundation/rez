@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.6 (2022-02-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.6) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.5...2.104.6)
+
+**Merged pull requests:**
+
+- Issue 1214 spdx enforce [\#1215](https://github.com/nerdvegas/rez/pull/1215) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add workflow to enforce copyright [\#1214](https://github.com/nerdvegas/rez/issues/1214)
+
 ## 2.104.5 (2022-02-15)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.4...2.104.5)
 
