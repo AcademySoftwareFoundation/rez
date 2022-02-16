@@ -31,5 +31,3 @@ jobs:
             echo "Run ./src/build_utils/license/apply_copyright to apply." 1>&2
             exit 1
           fi
-        env:
-          IN_GITHUB_WORKFLOW: 1

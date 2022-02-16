@@ -17,7 +17,7 @@ from rez.utils._version import _rez_version  # noqa
 MAX_ARTIFACTS = 100
 
 # behave differently outside of github actions, for testing
-in_gh = (os.getenv("IN_GITHUB_WORKFLOW") == "1")
+in_gh = (os.getenv("GITHUB_ACTIONS") == "true")
 
 benchmarking_dir = os.path.join("metrics", "benchmarking")
 artifacts_dir = os.path.join(benchmarking_dir, "artifacts")

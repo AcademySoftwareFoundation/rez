@@ -18,7 +18,7 @@ NO_COPYRIGHT = "NO_COPYRIGHT"
 OTHER_COPYRIGHT = "OTHER_COPYRIGHT"
 
 # just removes some verbosity in workflow so user can more easily see problems
-IN_WORKFLOW = (os.getenv("IN_GITHUB_WORKFLOW") == "1")
+IN_WORKFLOW = (os.getenv("GITHUB_ACTIONS") == "true")
 
 
 def find_existing_copyright():

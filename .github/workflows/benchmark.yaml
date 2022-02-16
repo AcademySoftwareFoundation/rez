@@ -98,8 +98,6 @@ jobs:
         run: |
           python ./.github/scripts/store_benchmark.py
         working-directory: src
-        env:
-          IN_GITHUB_WORKFLOW: 1
 
       - name: Setup git config
         run: |
