@@ -58,5 +58,6 @@ jobs:
       - name: Push wiki updates to git
         run: |
           git add --all
-          git commit -m "Generated from GitHub ${{ github.workflow }} Workflow"
-          git push origin master || echo "Nothing new to commit"
+          ( git commit -m "Generated from GitHub ${{ github.workflow }} Workflow" \
+            && git push origin master \
+          ) || echo "Nothing new to commit"
