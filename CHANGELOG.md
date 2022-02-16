@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.7 (2022-02-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.7) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.6...2.104.7)
+
+**Merged pull requests:**
+
+- fixed logic fail in wiki workflow [\#1220](https://github.com/nerdvegas/rez/pull/1220) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix wiki regression in v2.104.6 [\#1219](https://github.com/nerdvegas/rez/issues/1219)
+
 ## 2.104.6 (2022-02-16)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.6) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.5...2.104.6)
 
