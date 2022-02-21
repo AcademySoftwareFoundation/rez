@@ -19,7 +19,7 @@ Misc stuff not covered in the ASWF list
     - (exists but requires review)
   - [ ] A [CONTRIBUTING.md](../CONTRIBUTING.md) file explaining to other developers and your community of users how to contribute to the project. The file should explain what types of contributions are needed and how the process works, along with how to disclose security issues responsibly ( may also point to a [SECURITY.md](../SECURITY.md) file ).
     - (exists but requires review)
-  - [ ] A [CODEOWNERS](../CODEOWNERS) or [COMMITTERS](../COMMITERS.csv) file to define individuals or teams that are responsible for code in a repository; document current project owners and current and emeritus committers.
+  - [ ] A [CODEOWNERS](../CODEOWNERS) or [COMMITTERS](../COMMITERS.csv) file to define individuals or teams that are responsible for code in a repository; document current project owners and current and emeritus committers. https://github.com/nerdvegas/rez/issues/1226
   - [ ] A [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) file that sets the ground rules for participants’ behavior associated and helps to facilitate a friendly, welcoming environment. By default, projects should leverage the Linux Foundation Code of Conduct unless an alternate Code of Conduct was previously approved.
   - [ ] A [RELEASE.md](process/release.md) file that provides documentation on the release methodology, cadence, criteria, etc.
     - (exists but requires review)
