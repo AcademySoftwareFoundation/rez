@@ -3,6 +3,15 @@ This is a temp document for keeping track of ASWF adoption progress.
 Copied and modified from
 https://github.com/AcademySoftwareFoundation/aswf-sample-project/blob/main/tsc/project_intake.md
 
+# Internal Checklist
+
+Misc stuff not covered in the ASWF list
+
+- [ ] Move from master to main branch https://github.com/nerdvegas/rez/issues/1203
+- [ ] Remove hardcoded references to `nerdvegas` where possible (some of these won't make sense to do until after gh migration) https://github.com/nerdvegas/rez/issues/1205
+- [ ] Update Github slack integration https://github.com/nerdvegas/rez/issues/1204
+
+# ASWF Onboarding Checklist
 - Existing Project Governance
   - [X] A [LICENSE](../LICENSE) file in every code repository, with the license chosen an OSI-approved license.
   - [ ] Any third-party components/dependencies included are listed along with thier licenses ( [THIRD_PARTY.md](../THIRD_PARTY.md) )
