@@ -14,7 +14,7 @@ Misc stuff not covered in the ASWF list
 # ASWF Onboarding Checklist
 - Existing Project Governance
   - [X] A [LICENSE](../LICENSE) file in every code repository, with the license chosen an OSI-approved license.
-  - [ ] Any third-party components/dependencies included are listed along with thier licenses ( [THIRD_PARTY.md](../THIRD_PARTY.md) ) https://github.com/nerdvegas/rez/issues/1227 (test)[#1227]
+  - [ ] Any third-party components/dependencies included are listed along with thier licenses ( [THIRD_PARTY.md](../THIRD_PARTY.md) ) https://github.com/nerdvegas/rez/issues/1227 [test](#1227)
   - [ ] A [README.md](../README.md) file welcoming new community members to the project and explaining why the project is useful and how to get started.
     - (exists but requires review)
   - [ ] A [CONTRIBUTING.md](../CONTRIBUTING.md) file explaining to other developers and your community of users how to contribute to the project. The file should explain what types of contributions are needed and how the process works, along with how to disclose security issues responsibly ( may also point to a [SECURITY.md](../SECURITY.md) file ).
