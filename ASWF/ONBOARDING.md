@@ -7,23 +7,23 @@ https://github.com/AcademySoftwareFoundation/aswf-sample-project/blob/main/tsc/p
 
 Misc stuff not covered in the ASWF list
 
-- [ ] Move from master to main branch https://github.com/nerdvegas/rez/issues/1203
-- [ ] Remove hardcoded references to `nerdvegas` where possible (some of these won't make sense to do until after gh migration) https://github.com/nerdvegas/rez/issues/1205
-- [ ] Update Github slack integration https://github.com/nerdvegas/rez/issues/1204
+- [ ] Move from master to main branch [#1203](/../../issues/1203)
+- [ ] Remove hardcoded references to `nerdvegas` where possible (some of these won't make sense to do until after gh migration) [#1205](/../../issues/1205)
+- [ ] Update Github slack integration [#1204](/../../issues/1204)
 
 # ASWF Onboarding Checklist
 - Existing Project Governance
   - [X] A [LICENSE](../LICENSE) file in every code repository, with the license chosen an OSI-approved license.
-  - [ ] Any third-party components/dependencies included are listed along with thier licenses ( [THIRD_PARTY.md](../THIRD_PARTY.md) ) https://github.com/nerdvegas/rez/issues/1227 [#1227](/../../issues/1227)
+  - [ ] Any third-party components/dependencies included are listed along with thier licenses ( [THIRD_PARTY.md](../THIRD_PARTY.md) ) [#1227](/../../issues/1227)
   - [ ] A [README.md](../README.md) file welcoming new community members to the project and explaining why the project is useful and how to get started.
     - (exists but requires review)
   - [ ] A [CONTRIBUTING.md](../CONTRIBUTING.md) file explaining to other developers and your community of users how to contribute to the project. The file should explain what types of contributions are needed and how the process works, along with how to disclose security issues responsibly ( may also point to a [SECURITY.md](../SECURITY.md) file ).
     - (exists but requires review)
-  - [ ] A [CODEOWNERS](../CODEOWNERS) or [COMMITTERS](../COMMITERS.csv) file to define individuals or teams that are responsible for code in a repository; document current project owners and current and emeritus committers. https://github.com/nerdvegas/rez/issues/1226
-  - [ ] A [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) file that sets the ground rules for participants’ behavior associated and helps to facilitate a friendly, welcoming environment. By default, projects should leverage the Linux Foundation Code of Conduct unless an alternate Code of Conduct was previously approved. https://github.com/nerdvegas/rez/issues/1227
+  - [ ] A [CODEOWNERS](../CODEOWNERS) or [COMMITTERS](../COMMITERS.csv) file to define individuals or teams that are responsible for code in a repository; document current project owners and current and emeritus committers. [#1226](/../../issues/1226)
+  - [ ] A [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) file that sets the ground rules for participants’ behavior associated and helps to facilitate a friendly, welcoming environment. By default, projects should leverage the Linux Foundation Code of Conduct unless an alternate Code of Conduct was previously approved. [#1227](/../../issues/1227)
   - [ ] A [RELEASE.md](process/release.md) file that provides documentation on the release methodology, cadence, criteria, etc.
     - (exists but requires review)
-  - [ ] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance. https://github.com/nerdvegas/rez/issues/1229
+  - [ ] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance. [#1229](/../../issues/1229)
   - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
 - Infrastructure/Assets
   - [ ] License scan completed and no issues found
