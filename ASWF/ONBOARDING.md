@@ -1,7 +1,7 @@
 
 This is a temp document for keeping track of ASWF adoption progress.
 Copied and modified from
-https://github.com/AcademySoftwareFoundation/aswf-sample-project/blob/main/tsc/project_intake.md
+https://github.com/AcademySoftwareFoundation/asfw-sample-project/blob/main/tsc/project_intake.md
 
 # Internal Checklist
 
@@ -37,8 +37,8 @@ Misc stuff not covered in the ASWF list
     - [X] Move to [ASWF groups.io](https://lists.aswf.io) ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
   - [X] Slack ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to setup project channel on [ASWF Slack](https://slack.aswf.io)
   - [ ] Website
-  - [ ] CI/build environment
-    - [ ] Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
+  - [X] CI/build environment
+  - [ ] Trademarks/mark ownership rights ( complete 'LF Projects - Form of Trademark and Account Assignment' - create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) - only needed if project using existing name )
   - [ ] Domain name ( create [issue with the LF IT staff](https://jira.linuxfoundation.org/plugins/servlet/theme/portal/2/group/19) to setup/transfer )
   - [ ] Zoom account access ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to get access to credentials )
   - [ ] Social media accounts or other project accounts ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to transfer )
