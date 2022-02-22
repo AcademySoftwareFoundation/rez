@@ -97,8 +97,7 @@ class PowerShellBase(Shell):
 
         cmd = ["powershell", "(Get-ItemProperty -Path HKCU:Environment).Path"]
 
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                  shell=True, text=True)
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE, text=True)
         out_, _ = p.communicate()
         out_ = out_.strip()
 
