@@ -24,7 +24,7 @@ Misc stuff not covered in the ASWF list
   - [ ] A [RELEASE.md](process/release.md) file that provides documentation on the release methodology, cadence, criteria, etc.
     - (exists but requires review)
   - [ ] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance. [#1229](/../../issues/1229)
-  - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project.
+  - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project. [#1230](/../../issues/1230)
 - Infrastructure/Assets
   - [ ] License scan completed and no issues found
   - [ ] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
