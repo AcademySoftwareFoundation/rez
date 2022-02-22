@@ -35,7 +35,7 @@ environments reference these existing packages. This means that configured envir
 are lightweight, and very fast to create, often taking just a few seconds to configure
 despite containing hundreds of packages.
 
-See [the wiki](wiki) for full documentation.
+See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
 
 <p align="center">
 <a href="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png">
@@ -212,5 +212,4 @@ like any other package:
   the related tests are skipped. A fix requires multiple changes that are on
   the roadmap. Users have successfully implemented workarounds to utilize
   CMake with Rez under Windows, but the goal is to provide a seamless experience
-  on any platform in the future. For details checkout
-  https://github.com/nerdvegas/rez/issues/703
+  on any platform in the future. For details see this [issue](/../../issues/703)

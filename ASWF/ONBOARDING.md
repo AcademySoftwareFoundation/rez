@@ -9,6 +9,8 @@ Misc stuff not covered in the ASWF list
 
 - [ ] Move from master to main branch [#1203](/../../issues/1203)
 - [ ] Remove hardcoded references to `nerdvegas` where possible (some of these won't make sense to do until after gh migration) [#1205](/../../issues/1205)
+  - TODO: inline links in comments (will need a script to batch convert)
+  - TODO: README.md
 - [ ] Update Github slack integration [#1204](/../../issues/1204)
 
 # ASWF Onboarding Checklist
