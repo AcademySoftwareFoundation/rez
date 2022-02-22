@@ -35,7 +35,7 @@ environments reference these existing packages. This means that configured envir
 are lightweight, and very fast to create, often taking just a few seconds to configure
 despite containing hundreds of packages.
 
-See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
+See [the wiki](wiki) for full documentation.
 
 <p align="center">
 <a href="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png">
