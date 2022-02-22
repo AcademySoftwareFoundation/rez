@@ -3,6 +3,7 @@
 
 
 import os
+import re
 from subprocess import PIPE
 
 from rez.config import config
@@ -21,6 +22,17 @@ class PowerShellBase(Shell):
     """
     expand_env_vars = True
     syspaths = None
+
+    # Make sure that the $Env:VAR formats come before the $VAR formats since
+    # PowerShell Environment variables are ambiguous with Unix paths.
+    # Note: This is used in other parts of Rez
+    ENV_VAR_REGEX = re.compile(
+        "|".join([
+            "\\$[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)",       # $Env:ENVVAR
+            "\\${[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)}",     # ${Env:ENVVAR}
+            Shell.ENV_VAR_REGEX.pattern,                        # Generic form
+        ])
+    )
 
     @staticmethod
     def _escape_quotes(s):
