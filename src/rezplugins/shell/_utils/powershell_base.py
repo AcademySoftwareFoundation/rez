@@ -82,27 +82,22 @@ class PowerShellBase(Shell):
         # registry in powershell
         paths = []
 
-        cmd = [
-            "powershell",
-            '(Get-ItemProperty "HKLM:SYSTEM/CurrentControlSet/Control/Session Manager/Environment").Path',
-        ]
+        cmds = [
+            [
+                "powershell",
+                '(Get-ItemProperty "HKLM:SYSTEM/CurrentControlSet/Control/Session Manager/Environment").Path',
+            ],[
+                "powershell", "(Get-ItemProperty -Path HKCU:Environment).Path"]
+            ]
 
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                  shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
+        for cmd in cmds:
+            p = Popen(cmd, stdout=PIPE, stderr=PIPE,
+                    shell=True, text=True)
+            out_, _ = p.communicate()
+            out_ = out_.strip()
 
-        if p.returncode == 0:
-            paths.extend(out_.split(os.pathsep))
-
-        cmd = ["powershell", "(Get-ItemProperty -Path HKCU:Environment).Path"]
-
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            paths.extend(out_.split(os.pathsep))
+            if p.returncode == 0:
+                paths.extend(out_.split(os.pathsep))
 
         cls.syspaths = [x for x in paths if x]
 
