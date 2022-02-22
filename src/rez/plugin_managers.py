@@ -158,7 +158,7 @@ class RezPluginType(object):
                     print_debug("loading %s plugin at %s: %s..."
                                 % (self.type_name, path, modname))
                 try:
-                    # nerdvegas/rez#218
+                    # https://github.com/nerdvegas/rez/pull/218
                     # load_module will force reload the module if it's
                     # already loaded, so check for that
                     plugin_module = sys.modules.get(modname)

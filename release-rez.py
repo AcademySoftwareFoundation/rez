@@ -11,7 +11,6 @@ from __future__ import print_function
 import argparse
 import os
 from datetime import date
-from getpass import getpass
 from pipes import quote
 import subprocess
 import sys
@@ -29,8 +28,18 @@ sys.path.insert(0, src_path)
 from rez.utils._version import _rez_version
 
 
-github_baseurl = "github.com/repos/nerdvegas/rez"
-github_baseurl2 = "github.com/nerdvegas/rez"
+def get_github_repo_owner():
+    out = subprocess.check_output(["git", "remote", "-v"])
+
+    # eg git@github.com:jbloggs/rez.git, https://github.com/jbloggs/rez.git
+    remote_url = out.split()[1]
+    parts = remote_url.replace('/', ' ').replace(':', ' ').split()
+    return parts[-2]
+
+
+_repo_owner = get_github_repo_owner()
+github_baseurl = "github.com/repos/%s/rez" % _repo_owner
+github_baseurl2 = "github.com/%s/rez" % _repo_owner
 verbose = False
 
 # https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line

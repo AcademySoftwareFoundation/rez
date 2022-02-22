@@ -212,5 +212,4 @@ like any other package:
   the related tests are skipped. A fix requires multiple changes that are on
   the roadmap. Users have successfully implemented workarounds to utilize
   CMake with Rez under Windows, but the goal is to provide a seamless experience
-  on any platform in the future. For details checkout
-  https://github.com/nerdvegas/rez/issues/703
+  on any platform in the future. For details see this [issue](/../../issues/703)
