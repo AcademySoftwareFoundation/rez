@@ -93,7 +93,7 @@ class PowerShellBase(Shell):
 
         for cmd in cmds:
             p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                      shell=True, text=True)
+                      text=True)
             out_, _ = p.communicate()
             out_ = out_.strip()
 
