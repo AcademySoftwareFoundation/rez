@@ -137,7 +137,7 @@ def find_python_in_context(context):
     # accidentally find a system python install.
     #
     context = context.copy()
-    context.append_sys_path = False  # GitHub nerdvegas/rez/issue/826
+    context.append_sys_path = False  # https://github.com/nerdvegas/rez/issues/826
 
     python_package = context.get_resolved_package("python")
     assert python_package
