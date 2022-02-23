@@ -20,4 +20,4 @@ impl VersionError {
     }
 }
 
-pub(crate) trait Common: ToString + Eq {}
+pub trait Common: ToString + Eq {}

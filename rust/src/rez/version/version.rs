@@ -1,6 +1,8 @@
 use super::utils::{Common, VersionError};
 use std::cmp::Eq;
 use std::collections::VecDeque;
+use std::hash::Hash;
+use std::ops::Index;
 use std::str::FromStr;
 use std::string::ToString;
 
@@ -11,7 +13,7 @@ macro_rules! regex {
     }};
 }
 
-trait Comparable: Common + Ord {}
+pub trait Comparable: Common + Ord {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct ReversedComparable<T: Comparable> {
@@ -50,7 +52,7 @@ impl<T: Comparable> ReversedComparable<T> {
     }
 }
 
-trait VersionToken: Comparable + FromStr + Iterator {}
+pub trait VersionToken: Comparable + FromStr + Iterator {}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct NumericToken {
@@ -256,8 +258,199 @@ impl AlphanumericVersionToken {
     }
 }
 
-#[derive(Debug)]
-pub struct Version {}
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+enum VersionState {
+    Finite,
+    Infinite,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct Version<T: VersionToken> {
+    state: VersionState,
+    tokens: Vec<T>,
+    seps: Vec<String>,
+}
+
+impl<T: VersionToken> Common for Version<T> {}
+
+impl<T: VersionToken> Comparable for Version<T> {}
+
+impl<T: VersionToken> Default for Version<T> {
+    fn default() -> Self {
+        Self {
+            state: VersionState::Finite,
+            tokens: Vec::new(),
+            seps: Vec::new(),
+        }
+    }
+}
+
+impl<T: VersionToken> ToString for Version<T> {
+    fn to_string(&self) -> String {
+        if self.state == VersionState::Infinite {
+            "[INF]".to_string()
+        } else {
+            let mut seps = self.seps.clone();
+            seps.push("".to_string());
+
+            let joined_tokens: String = self
+                .tokens
+                .iter()
+                .map(|t| t.to_string())
+                .zip(seps)
+                .map(|(x, y)| x + &y)
+                .collect();
+
+            joined_tokens
+        }
+    }
+}
+
+impl<T> Iterator for Version<T>
+where
+    <T as FromStr>::Err: std::fmt::Display,
+    T: VersionToken + std::clone::Clone + Iterator<Item = T>,
+{
+    type Item = Version<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.tokens.is_empty() {
+            let mut other = self.clone();
+
+            // TODO: What to do if the tokens vec is empty?
+            let mut token = other.tokens.pop().unwrap();
+            other.tokens.push(token.next().unwrap());
+
+            Some(other)
+        } else {
+            Some(Self::infinity())
+        }
+    }
+}
+
+impl<T> Index<usize> for Version<T>
+where
+    T: VersionToken,
+{
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.tokens[index]
+    }
+}
+
+impl<T> Hash for Version<T>
+where
+    T: VersionToken,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for token in &self.tokens {
+            token.to_string().hash(state);
+        }
+    }
+}
+
+impl<T> Version<T>
+where
+    <T as FromStr>::Err: std::fmt::Display,
+    T: VersionToken + std::clone::Clone,
+{
+    pub fn new(version: &str) -> Result<Self, VersionError> {
+        let mut tokens = Vec::new();
+
+        let raw_tokens: Vec<&str> = Self::regex()
+            .find_iter(version)
+            .map(|m| m.as_str())
+            .collect();
+
+        if raw_tokens.is_empty() {
+            return Err(VersionError::new(version));
+        }
+
+        let seps: Vec<String> = Self::regex()
+            .split(version)
+            .map(|s| s.to_string())
+            .collect();
+
+        // Note: The unwraps for the seps below should not panic, since we are
+        // guaranteeing that the seps vec has something in it.
+        if seps.is_empty() {
+            return Err(VersionError::new(version));
+        }
+
+        if !seps[0].is_empty()
+            || !seps.iter().last().unwrap().is_empty()
+            || seps.iter().map(|s| s.len()).max().unwrap() > 1
+        {
+            return Err(VersionError::new(&format!(
+                "Invalid version syntax: '{}'",
+                version
+            )));
+        }
+
+        for raw_token in raw_tokens {
+            match T::from_str(raw_token) {
+                Ok(t) => tokens.push(t),
+                Err(err) => {
+                    return Err(VersionError::new(&format!(
+                        "Invalid version '{}': {}",
+                        version, err
+                    )))
+                }
+            }
+        }
+
+        Ok(Self {
+            state: VersionState::Finite,
+            tokens,
+            seps: seps[1..].to_vec(),
+        })
+    }
+
+    pub fn infinity() -> Self {
+        let mut version = Self::default();
+        version.state = VersionState::Infinite;
+
+        version
+    }
+
+    pub fn major(&self) -> &T {
+        &self.tokens[0]
+    }
+
+    pub fn minor(&self) -> &T {
+        &self.tokens[1]
+    }
+
+    pub fn patch(&self) -> &T {
+        &self.tokens[2]
+    }
+
+    pub fn as_tuple(&self) -> (&T, &T, &T) {
+        (self.major(), self.minor(), self.patch())
+    }
+
+    pub fn len(&self) -> usize {
+        self.tokens.len()
+    }
+
+    pub fn trim(self, len: usize) -> Self {
+        let mut other = Self::default();
+        other.tokens = self.tokens[..len].to_vec();
+        // TODO: What to do if len <= 0?
+        other.seps = self.seps[..len - 1].to_vec();
+
+        other
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tokens.is_empty()
+    }
+
+    fn regex() -> &'static regex::Regex {
+        regex!(r#"[a-zA-Z0-9_]+"#)
+    }
+}
 
 #[derive(Debug)]
 pub struct VersionRange {}
