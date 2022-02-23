@@ -55,7 +55,7 @@ impl<T: Comparable> ReversedComparable<T> {
 pub trait VersionToken: Comparable + FromStr + Iterator {}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct NumericToken {
+pub struct NumericToken {
     n: u64,
 }
 
@@ -139,7 +139,7 @@ impl SubToken {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct AlphanumericVersionToken {
+pub struct AlphanumericVersionToken {
     subtokens: Option<Vec<SubToken>>,
 }
 
@@ -353,7 +353,8 @@ where
 impl<T> Version<T>
 where
     <T as FromStr>::Err: std::fmt::Display,
-    T: VersionToken + std::clone::Clone,
+    T: VersionToken,
+    // T: VersionToken + std::clone::Clone,
 {
     pub fn new(version: &str) -> Result<Self, VersionError> {
         let mut tokens = Vec::new();
@@ -406,7 +407,26 @@ where
             seps: seps[1..].to_vec(),
         })
     }
+}
 
+impl<T> Version<T>
+where
+    T: VersionToken + std::clone::Clone,
+{
+    pub fn trim(self, len: usize) -> Self {
+        let mut other = Self::default();
+        other.tokens = self.tokens[..len].to_vec();
+        // TODO: What to do if len <= 0?
+        other.seps = self.seps[..len - 1].to_vec();
+
+        other
+    }
+}
+
+impl<T> Version<T>
+where
+    T: VersionToken,
+{
     pub fn infinity() -> Self {
         let mut version = Self::default();
         version.state = VersionState::Infinite;
@@ -434,21 +454,111 @@ where
         self.tokens.len()
     }
 
-    pub fn trim(self, len: usize) -> Self {
-        let mut other = Self::default();
-        other.tokens = self.tokens[..len].to_vec();
-        // TODO: What to do if len <= 0?
-        other.seps = self.seps[..len - 1].to_vec();
-
-        other
-    }
-
     pub fn is_empty(&self) -> bool {
         self.tokens.is_empty()
     }
 
     fn regex() -> &'static regex::Regex {
         regex!(r#"[a-zA-Z0-9_]+"#)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+struct LowerBound<T: VersionToken> {
+    version: Version<T>,
+    inclusive: bool,
+}
+
+impl<T: VersionToken> Common for LowerBound<T> {}
+
+impl<T: VersionToken> Comparable for LowerBound<T> {}
+
+impl<T: VersionToken> ToString for LowerBound<T> {
+    fn to_string(&self) -> String {
+        if !self.version.is_empty() {
+            if self.inclusive {
+                format!("{}+", self.version.to_string())
+            } else {
+                format!(">{}", self.version.to_string())
+            }
+        } else {
+            if self.inclusive {
+                "".to_string()
+            } else {
+                ">".to_string()
+            }
+        }
+    }
+}
+
+impl<T: VersionToken> Hash for LowerBound<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.version.hash(state);
+        self.inclusive.hash(state);
+    }
+}
+
+impl<T: VersionToken> LowerBound<T> {
+    pub fn new(version: Version<T>, inclusive: bool) -> Self {
+        Self { version, inclusive }
+    }
+
+    pub fn min() -> Self {
+        Self::new(Version::default(), true)
+    }
+
+    pub fn contains_version(&self, version: Version<T>) -> bool {
+        (version > self.version) || (self.inclusive && (version == self.version))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+struct UpperBound<T: VersionToken> {
+    version: Version<T>,
+    inclusive: bool,
+}
+
+impl<T: VersionToken> Common for UpperBound<T> {}
+
+impl<T: VersionToken> Comparable for UpperBound<T> {}
+
+impl<T: VersionToken> ToString for UpperBound<T> {
+    fn to_string(&self) -> String {
+        if self.inclusive {
+            format!("<={}", self.version.to_string())
+        } else {
+            format!("<{}", self.version.to_string())
+        }
+    }
+}
+
+impl<T: VersionToken> Hash for UpperBound<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.version.hash(state);
+        self.inclusive.hash(state);
+    }
+}
+
+impl<T: VersionToken> UpperBound<T> {
+    pub fn new(version: Version<T>, inclusive: bool) -> Result<Self, VersionError> {
+        let upper_bound = Self { version, inclusive };
+
+        if upper_bound.version.is_empty() && !inclusive {
+            return Err(VersionError::new(&format!(
+                "Invalid upper bound: '{}'",
+                upper_bound.to_string()
+            )));
+        }
+
+        Ok(upper_bound)
+    }
+
+    pub fn infinity() -> Self {
+        Self::new(Version::infinity(), true).unwrap()
+    }
+
+    pub fn contains_version(&self, version: Version<T>) -> bool {
+        (version < self.version) || (self.inclusive && (version == self.version))
     }
 }
 
