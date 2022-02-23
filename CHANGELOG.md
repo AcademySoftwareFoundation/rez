@@ -1,5 +1,67 @@
 # Change Log
 
+## 2.104.7 (2022-02-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.7) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.6...2.104.7)
+
+**Merged pull requests:**
+
+- fixed logic fail in wiki workflow [\#1220](https://github.com/nerdvegas/rez/pull/1220) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix wiki regression in v2.104.6 [\#1219](https://github.com/nerdvegas/rez/issues/1219)
+
+## 2.104.6 (2022-02-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.6) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.5...2.104.6)
+
+**Merged pull requests:**
+
+- Issue 1214 spdx enforce [\#1215](https://github.com/nerdvegas/rez/pull/1215) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add workflow to enforce copyright [\#1214](https://github.com/nerdvegas/rez/issues/1214)
+
+## 2.104.5 (2022-02-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.4...2.104.5)
+
+**Merged pull requests:**
+
+- switched to SPDX copyright notices [\#1213](https://github.com/nerdvegas/rez/pull/1213) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- replace copyrights with SPDX form [\#1201](https://github.com/nerdvegas/rez/issues/1201)
+
+## 2.104.4 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.3...2.104.4)
+
+**Merged pull requests:**
+
+- remove nerdvegas refs in wiki [\#1212](https://github.com/nerdvegas/rez/pull/1212) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.104.3 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.2...2.104.3)
+
+**Merged pull requests:**
+
+- fixed wiki bugs [\#1211](https://github.com/nerdvegas/rez/pull/1211) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix nuked wiki [\#1210](https://github.com/nerdvegas/rez/issues/1210)
+
+## 2.104.2 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.1...2.104.2)
+
+**Merged pull requests:**
+
+- Issue 1206 wiki gpl rm [\#1207](https://github.com/nerdvegas/rez/pull/1207) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- remove GPL3 code from update-wiki.py [\#1206](https://github.com/nerdvegas/rez/issues/1206)
+
 ## 2.104.1 (2022-02-08)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.0...2.104.1)
 

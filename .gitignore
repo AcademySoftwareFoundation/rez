@@ -5,6 +5,7 @@ src/rez.egg-info/
 *~
 .rez-gen-wiki-tmp
 LATEST_CHANGELOG.md
+wiki/out
 
 # Compiled Rust objects
 target/

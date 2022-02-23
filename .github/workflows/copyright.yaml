@@ -1,0 +1,33 @@
+name: copyright
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - '!**.md'
+  push:
+    paths:
+      - 'src/**'
+      - '!**.md'
+
+jobs:
+  main:
+    name: Enforce copyright notices
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+
+      - name: Run copyright checker
+        run: |
+          bash ./src/build_utils/license/apply_copyright
+          if [[ "$(git status | grep modified)" != "" ]]; then
+            echo "Some sourcefiles are missing copyright notice!" 1>&2
+            echo "Run ./src/build_utils/license/apply_copyright to apply." 1>&2
+            exit 1
+          fi

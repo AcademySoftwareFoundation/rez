@@ -5,40 +5,38 @@
 from __future__ import print_function
 import argparse
 import sys
+import os
 
 
-new_copyright = \
-"""
-# Copyright Contributors to the Rez project
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""
+new_copyright = (
+    "# SPDX-License-Identifier: Apache-2.0\n"
+    "# Copyright Contributors to the Rez Project"
+)
 
 lines = []
 NO_COPYRIGHT = "NO_COPYRIGHT"
 OTHER_COPYRIGHT = "OTHER_COPYRIGHT"
 
+# just removes some verbosity in workflow so user can more easily see problems
+IN_WORKFLOW = (os.getenv("GITHUB_ACTIONS") == "true")
+
 
 def find_existing_copyright():
+    i_comment_start = None
     i_start = None
 
     for i, line in enumerate(lines):
-        if line.startswith('#') and "Copyright" in line:
-            if "Allan" in line or "Rez" in line:
-                i_start = i
-                break
-            else:
-                return OTHER_COPYRIGHT
+        if line.startswith('#'):
+            if i_comment_start is None:
+                i_comment_start = i
+
+            if "Copyright" in line:
+                if "Rez" in line:
+                    i_start = i_comment_start
+                else:
+                    return OTHER_COPYRIGHT
+        else:
+            i_comment_start = None
 
     if i_start is None:
         return NO_COPYRIGHT
@@ -71,7 +69,8 @@ if __name__ == "__main__":
     result = find_existing_copyright()
 
     if result == OTHER_COPYRIGHT:
-        print("Other copyright, skipping %s" % opts.FILE, file=sys.stderr)
+        if not IN_WORKFLOW:
+            print("Other copyright, skipping %s" % opts.FILE, file=sys.stderr)
         sys.exit(1)
 
     # strip existing copyright
@@ -102,6 +101,9 @@ if __name__ == "__main__":
 
     if not opts.overwrite_file:
         print(new_txt)
+    elif new_txt == txt:
+        if not IN_WORKFLOW:
+            print("(file contents unchanged)")
     else:
         with open(opts.FILE, 'w') as f:
             f.write(new_txt)

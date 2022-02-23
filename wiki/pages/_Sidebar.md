@@ -1,5 +1,3 @@
-**Release:** [__GITHUB_RELEASE__][release]
-
 - [[Home]]
 
 :beginner: Introduction:
@@ -28,7 +26,7 @@
 
 :information_source: Others:
 
-- [API Reference](https://___GITHUB_USER___.github.io/__REPO_NAME__/)
+- [API Reference](https://__GITHUB_USER__.github.io/__REPO_NAME__/)
 - [[Glossary]]
 - [[FAQ]]
 - [[Notes]]
@@ -47,10 +45,3 @@
 - [[Troubleshooting]]
 
 </details>
-
-[![][wiki-badge]][wiki-actions]
-
-[release]: https://github.com/__GITHUB_REPO__/releases/tag/__GITHUB_RELEASE__
-[wiki-badge]: https://github.com/__GITHUB_REPO__/workflows/__WORKFLOW__/badge.svg?branch=__BRANCH__
-[wiki-actions]: https://github.com/__GITHUB_REPO__/actions?query=workflow%3A__WORKFLOW__+branch%3A__BRANCH__
-
