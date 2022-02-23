@@ -261,3 +261,7 @@ pub struct Version {}
 
 #[derive(Debug)]
 pub struct VersionRange {}
+
+fn reverse_sort_key<T: Comparable>(comparable: T) -> ReversedComparable<T> {
+    ReversedComparable::new(comparable)
+}
