@@ -194,7 +194,12 @@ def install(dest_dir, print_welcome=False):
 
             if shell:
                 shell = os.path.basename(shell)
-                ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
+                if "csh" in shell: # csh and tcsh
+                    ext = "csh"
+                elif "zsh" in shell:
+                    ext = "zsh"
+                else:
+                    ext = "sh"
 
                 print("You may also want to source the completion script (for %s):" % shell)
                 print("source {0}/complete.{1}".format(completion_path, ext))
