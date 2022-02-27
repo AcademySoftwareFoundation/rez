@@ -52,7 +52,9 @@ impl<T: Comparable> ReversedComparable<T> {
     }
 }
 
-pub trait VersionToken: Comparable + FromStr + Iterator {}
+pub trait VersionToken: Comparable + FromStr + Iterator {
+    fn next_version(&self) -> Option<Self>;
+}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NumericToken {
@@ -63,7 +65,11 @@ impl Common for NumericToken {}
 
 impl Comparable for NumericToken {}
 
-impl VersionToken for NumericToken {}
+impl VersionToken for NumericToken {
+    fn next_version(&self) -> Option<Self> {
+        Some(Self { n: self.n + 1 })
+    }
+}
 
 impl ToString for NumericToken {
     fn to_string(&self) -> String {
@@ -93,7 +99,7 @@ impl Iterator for NumericToken {
     type Item = NumericToken;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(Self { n: self.n + 1 })
+        self.next_version()
     }
 }
 
@@ -147,7 +153,33 @@ impl Common for AlphanumericVersionToken {}
 
 impl Comparable for AlphanumericVersionToken {}
 
-impl VersionToken for AlphanumericVersionToken {}
+impl VersionToken for AlphanumericVersionToken {
+    fn next_version(&self) -> Option<Self> {
+        let mut other = Self::new(None).unwrap();
+
+        // TODO: Not sure if we should return out of the iterator at this point,
+        // or just fail.
+        let mut subtokens = match &self.subtokens {
+            Some(subtokens) => subtokens.to_vec(),
+            None => return None,
+        };
+
+        match subtokens.iter_mut().last() {
+            Some(subtoken) => {
+                if subtoken.n.is_none() {
+                    *subtoken = SubToken::from_str(&format!("{}_", subtoken.s)).unwrap()
+                } else {
+                    subtokens.push(SubToken::from_str("_").unwrap())
+                }
+            }
+            None => return None,
+        };
+
+        other.subtokens = Some(subtokens);
+
+        Some(other)
+    }
+}
 
 impl ToString for AlphanumericVersionToken {
     fn to_string(&self) -> String {
@@ -174,29 +206,7 @@ impl Iterator for AlphanumericVersionToken {
     type Item = AlphanumericVersionToken;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut other = Self::new(None).unwrap();
-
-        // TODO: Not sure if we should return out of the iterator at this point,
-        // or just fail.
-        let mut subtokens = match &self.subtokens {
-            Some(subtokens) => subtokens.to_vec(),
-            None => return None,
-        };
-
-        match subtokens.iter_mut().last() {
-            Some(subtoken) => {
-                if subtoken.n.is_none() {
-                    *subtoken = SubToken::from_str(&format!("{}_", subtoken.s)).unwrap()
-                } else {
-                    subtokens.push(SubToken::from_str("_").unwrap())
-                }
-            }
-            None => return None,
-        };
-
-        other.subtokens = Some(subtokens);
-
-        Some(other)
+        self.next_version()
     }
 }
 
@@ -314,17 +324,7 @@ where
     type Item = Version<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.tokens.is_empty() {
-            let mut other = self.clone();
-
-            // TODO: What to do if the tokens vec is empty?
-            let mut token = other.tokens.pop().unwrap();
-            other.tokens.push(token.next().unwrap());
-
-            Some(other)
-        } else {
-            Some(Self::infinity())
-        }
+        self.next_version()
     }
 }
 
@@ -463,6 +463,26 @@ where
     }
 }
 
+impl<T> Version<T>
+where
+    T: VersionToken + Clone,
+{
+    pub fn next_version(&self) -> Option<Self> {
+        if !self.tokens.is_empty() {
+            let mut other = self.to_owned();
+            // let mut other = self.to_owned();
+
+            // TODO: What to do if the tokens vec is empty?
+            let token = other.tokens.pop().unwrap();
+            other.tokens.push(token.next_version().unwrap());
+
+            Some(other)
+        } else {
+            Some(Self::infinity())
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 struct LowerBound<T: VersionToken> {
     version: Version<T>,
@@ -507,8 +527,8 @@ impl<T: VersionToken> LowerBound<T> {
         Self::new(Version::default(), true)
     }
 
-    pub fn contains_version(&self, version: Version<T>) -> bool {
-        (version > self.version) || (self.inclusive && (version == self.version))
+    pub fn contains_version(&self, version: &Version<T>) -> bool {
+        (version > &self.version) || (self.inclusive && (version == &self.version))
     }
 }
 
@@ -557,8 +577,160 @@ impl<T: VersionToken> UpperBound<T> {
         Self::new(Version::infinity(), true).unwrap()
     }
 
-    pub fn contains_version(&self, version: Version<T>) -> bool {
-        (version < self.version) || (self.inclusive && (version == self.version))
+    pub fn contains_version(&self, version: &Version<T>) -> bool {
+        (version < &self.version) || (self.inclusive && (version == &self.version))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+struct Bound<T: VersionToken> {
+    lower: LowerBound<T>,
+    upper: UpperBound<T>,
+}
+
+impl<T: VersionToken> Common for Bound<T>
+where
+    T: VersionToken + Clone + Iterator<Item = T>,
+    <T as FromStr>::Err: std::fmt::Display,
+{
+}
+
+impl<T: VersionToken> Comparable for Bound<T>
+where
+    T: VersionToken + Clone + Iterator<Item = T>,
+    <T as FromStr>::Err: std::fmt::Display,
+{
+}
+
+impl<T> ToString for Bound<T>
+where
+    T: VersionToken + Clone + Iterator<Item = T>,
+    <T as FromStr>::Err: std::fmt::Display,
+{
+    fn to_string(&self) -> String {
+        if self.upper.version == Version::infinity() {
+            self.lower.to_string()
+        } else if self.lower.version == self.upper.version {
+            format!("=={}", self.lower.version.to_string())
+        } else if self.lower.inclusive && self.upper.inclusive {
+            if !self.lower.version.is_empty() {
+                format!(
+                    "{}..{}",
+                    self.lower.version.to_string(),
+                    self.upper.version.to_string()
+                )
+            } else {
+                format!("<={}", self.upper.version.to_string())
+            }
+        } else if self.lower.inclusive
+            && !self.upper.inclusive
+            && Some(&self.lower.version.next_version().unwrap()) == Some(&self.upper.version)
+        {
+            self.lower.version.to_string()
+        } else {
+            format!("{}{}", self.lower.to_string(), self.upper.to_string())
+        }
+    }
+}
+
+impl<T: VersionToken> Hash for Bound<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.lower.hash(state);
+        self.upper.hash(state);
+    }
+}
+
+impl<T: VersionToken> Bound<T> {
+    pub fn new(lower: LowerBound<T>, upper: UpperBound<T>) -> Result<Self, VersionError> {
+        if lower.version > upper.version
+            || (lower.version == upper.version && !(lower.inclusive && upper.inclusive))
+        {
+            return Err(VersionError::new("Invalid bound"));
+        }
+
+        Ok(Self::new_unchecked(lower, upper))
+    }
+
+    pub fn new_unchecked(lower: LowerBound<T>, upper: UpperBound<T>) -> Self {
+        Self { lower, upper }
+    }
+
+    pub fn any() -> Self {
+        Self {
+            lower: LowerBound::min(),
+            upper: UpperBound::infinity(),
+        }
+    }
+
+    pub fn lower_bounded(&self) -> bool {
+        self.lower != LowerBound::min()
+    }
+
+    pub fn upper_bounded(&self) -> bool {
+        self.upper != UpperBound::infinity()
+    }
+
+    pub fn contains_version(&self, version: &Version<T>) -> bool {
+        self.version_containment(version) == 0
+    }
+
+    pub fn version_containment(&self, version: &Version<T>) -> i8 {
+        if !self.lower.contains_version(version) {
+            -1
+        } else if !self.upper.contains_version(version) {
+            1
+        } else {
+            0
+        }
+    }
+
+    pub fn contains_bound(&self, bound: &Self) -> bool {
+        self.lower <= bound.lower && self.upper >= bound.upper
+    }
+
+    pub fn intersects(&self, other: &Self) -> bool {
+        let lower = if self.lower > other.lower {
+            &self.lower
+        } else {
+            &other.lower
+        };
+        let upper = if self.upper < other.upper {
+            &self.upper
+        } else {
+            &other.upper
+        };
+
+        lower.version < upper.version
+            || (lower.version == upper.version) && (lower.inclusive && upper.inclusive)
+    }
+}
+
+impl<T> Bound<T>
+where
+    T: VersionToken + Clone,
+{
+    pub fn intersection(&self, other: &Self) -> Option<Self> {
+        let lower = if self.lower > other.lower {
+            &self.lower
+        } else {
+            &other.lower
+        };
+        let upper = if self.upper < other.upper {
+            &self.upper
+        } else {
+            &other.upper
+        };
+
+        if lower.version < upper.version
+            || (lower.version == upper.version && (lower.inclusive && upper.inclusive))
+        {
+            Some(Self {
+                lower: lower.to_owned(),
+                upper: upper.to_owned(),
+            })
+        } else {
+            None
+        }
     }
 }
 
