@@ -203,8 +203,9 @@ def find_pip_from_context(python_version, pip_version=None):
     py_exe = find_python_in_context(context)
 
     if not py_exe:
-        raise RezSystemError("Failed to locate Python executable from context {}".format(context))
-    
+        print_debug("Failed to locate python executable from context")
+        return None, None, context
+
     proc = context.execute_command(
         # -E and -s are used to isolate the environment as much as possible.
         # See python --help for more details. We absolutely don't want to get
