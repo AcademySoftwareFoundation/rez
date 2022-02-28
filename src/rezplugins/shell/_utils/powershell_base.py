@@ -25,6 +25,7 @@ class PowerShellBase(Shell):
 
     # Make sure that the $Env:VAR formats come before the $VAR formats since
     # PowerShell Environment variables are ambiguous with Unix paths.
+    # Note: This is used in other parts of Rez
     ENV_VAR_REGEX = re.compile(
         "|".join([
             "\\$[Ee][Nn][Vv]:([a-zA-Z_]+[a-zA-Z0-9_]*?)",       # $Env:ENVVAR
@@ -77,53 +78,27 @@ class PowerShellBase(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # detect system paths using registry
-        def gen_expected_regex(parts):
-            whitespace = r"[\s]+"
-            return whitespace.join(parts)
-
         # TODO: Research if there is an easier way to pull system PATH from
         # registry in powershell
         paths = []
 
-        cmd = [
-            "REG", "QUERY",
-            ("HKLM\\SYSTEM\\CurrentControlSet\\"
-             "Control\\Session Manager\\Environment"), "/v", "PATH"
+        cmds = [
+            [
+                "powershell",
+                '(Get-ItemProperty "HKLM:SYSTEM/CurrentControlSet/Control/Session Manager/Environment").Path',
+            ], [
+                "powershell", "(Get-ItemProperty -Path HKCU:Environment).Path"
+            ]
         ]
 
-        expected = gen_expected_regex([
-            ("HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\"
-             "Control\\\\Session Manager\\\\Environment"), "PATH",
-            "REG_(EXPAND_)?SZ", "(.*)"
-        ])
+        for cmd in cmds:
+            p = Popen(cmd, stdout=PIPE, stderr=PIPE,
+                      text=True)
+            out_, _ = p.communicate()
+            out_ = out_.strip()
 
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                  shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cmd = ["REG", "QUERY", "HKCU\\Environment", "/v", "PATH"]
-
-        expected = gen_expected_regex([
-            "HKEY_CURRENT_USER\\\\Environment", "PATH", "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                  shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
+            if p.returncode == 0:
+                paths.extend(out_.split(os.pathsep))
 
         cls.syspaths = [x for x in paths if x]
 
