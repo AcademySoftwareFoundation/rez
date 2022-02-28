@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.9 (2022-03-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.9) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.8...2.104.9)
+
+**Merged pull requests:**
+
+- Implement #1196 [\#1199](https://github.com/nerdvegas/rez/pull/1199) ([instinct-vfx](https://github.com/instinct-vfx))
+
+**Closed issues:**
+
+- Switch `get_syspaths` from `REG` to `Get-ItemProperty` in Powershell shell plugins [\#1196](https://github.com/nerdvegas/rez/issues/1196)
+
 ## 2.104.8 (2022-03-01)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.8) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.7...2.104.8)
 
