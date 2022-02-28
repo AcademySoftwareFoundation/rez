@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.104.8 (2022-03-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.8) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.7...2.104.8)
+
+**Merged pull requests:**
+
+- Re-enable py3 workflow in windows.yaml [\#1232](https://github.com/nerdvegas/rez/pull/1232) ([instinct-vfx](https://github.com/instinct-vfx))
+- fix: address zsh install message displaying wrong completion script [\#1235](https://github.com/nerdvegas/rez/pull/1235) ([maxnbk](https://github.com/maxnbk))
+- Explicit fail when python executable is not found [\#1236](https://github.com/nerdvegas/rez/pull/1236) ([aboellinger](https://github.com/aboellinger))
+
+**Closed issues:**
+
+- Typo on install message [\#1186](https://github.com/nerdvegas/rez/issues/1186)
+
 ## 2.104.7 (2022-02-16)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.7) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.6...2.104.7)
 
