@@ -365,10 +365,10 @@ Consider the following preprocessing function, defined in a *package.py*:
         from rez.package_py_utils import InvalidPackageError
         import re
 
-        if not re.match("[a-z]+$", package.name):
+        if not re.match("[a-z]+$", this.name):
             raise InvalidPackageError("Invalid name, only lowercase letters allowed")
 
-        if not package.authors:
+        if not this.authors:
             from preprocess_utils import get_git_committers
             data["authors"] = get_git_committers()
 
