@@ -203,7 +203,6 @@ def find_pip_from_context(python_version, pip_version=None):
     py_exe = find_python_in_context(context)
 
     if not py_exe:
-        print_debug("Failed to locate python executable from context")
         return None, None, context
 
     proc = context.execute_command(
