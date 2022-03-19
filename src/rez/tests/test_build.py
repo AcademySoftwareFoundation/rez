@@ -118,7 +118,12 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build("translate_lib", "2.2.0")
         context = self._create_context("translate_lib==2.2.0")
         environ = context.get_environ()
-        find_file_in_path('translate_lib.cmake', environ['CMAKE_MODULE_PATH'])
+        root = environ['REZ_TRANSLATE_LIB_ROOT']
+        self.assertTrue(find_file_in_path('translate_lib.cmake', environ['CMAKE_MODULE_PATH']))
+        # is testing symlinks
+        self.assertTrue(find_file_in_path('an_unspaced_document', os.path.join(root, 'docs')))
+        # is testing spaces in symlinks per issue #553
+        self.assertTrue(find_file_in_path('a spaced document', os.path.join(root, 'docs')))
 
     def _test_build_sup_world(self):
         """Build, install, test the sup_world package."""
@@ -156,6 +161,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_anti()
 
     @program_dependent("cmake")
+    @install_dependent()
     def test_build_cmake(self):
         """Test a cmake-based package."""
         if platform_.name == "windows":
