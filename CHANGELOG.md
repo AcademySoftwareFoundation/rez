@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.105.0 (2022-03-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.105.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.10...2.105.0)
+
+**Merged pull requests:**
+
+- add package filter tests, fix 1237 [\#1238](https://github.com/nerdvegas/rez/pull/1238) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-test breaks with packages that do not have a timestamp attribute [\#1237](https://github.com/nerdvegas/rez/issues/1237)
+
 ## 2.104.10 (2022-03-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.10) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.9...2.104.10)
 
