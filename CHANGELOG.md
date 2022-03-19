@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.104.10 (2022-03-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.10) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.9...2.104.10)
+
+**Merged pull requests:**
+
+- fix: make cmake install directives whitespace friendly [\#1244](https://github.com/nerdvegas/rez/pull/1244) ([maxnbk](https://github.com/maxnbk))
+
+**Closed issues:**
+
+- rez_install_files with LOCAL_SYMLINK fails when an input file has whitespaces in its name [\#553](https://github.com/nerdvegas/rez/issues/553)
+
 ## 2.104.9 (2022-03-01)
 [Source](https://github.com/nerdvegas/rez/tree/2.104.9) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.8...2.104.9)
 
