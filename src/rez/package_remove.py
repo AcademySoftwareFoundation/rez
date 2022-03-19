@@ -12,6 +12,23 @@ from rez.config import config
 basestring = six.string_types[0]
 
 
+def remove_package_family(name, path):
+    """Remove a package family from its repository.
+
+    A family can only be deleted if it's empty, or if all packages it contains
+    are hidden. Raises a `PackageRepositoryError` if not empty.
+
+    Args:
+        name (str): Name of package family.
+        path (str): Package repository path containing the package family.
+
+    Returns:
+        bool: True if the package family was removed, False if not found.
+    """
+    repo = package_repository_manager.get_repository(path)
+    return repo.remove_package_family(name)
+
+
 def remove_package(name, version, path):
     """Remove a package from its repository.
 

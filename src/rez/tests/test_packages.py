@@ -7,11 +7,14 @@ test package iteration, serialization etc
 """
 from rez.packages import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package, get_variant_from_uri, \
-    get_package_from_uri, get_package_from_repository
+    get_package_from_uri, get_package_from_repository, \
+    get_package_family_from_repository
+from rez.exceptions import PackageRepositoryError
 from rez.package_py_utils import expand_requirement
 from rez.package_resources import package_release_keys
 from rez.package_move import move_package
-from rez.package_remove import remove_package, remove_packages_ignored_since
+from rez.package_remove import remove_package, remove_packages_ignored_since, \
+    remove_package_family
 from rez.package_repository import package_repository_manager
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
@@ -58,7 +61,10 @@ ALL_PACKAGES = set([
 ])
 
 
-ALL_FAMILIES = set(x.split('-')[0] for x in ALL_PACKAGES)
+ALL_FAMILIES = set(
+    [x.split('-')[0] for x in ALL_PACKAGES]
+    + ["empty"]
+)
 
 
 def _to_names(it):
@@ -543,6 +549,33 @@ class TestPackages(TestBase, TempdirMixin):
         repo = package_repository_manager.get_repository(repo_path)
         i = repo.unignore_package(pkg_name, pkg_version)
         self.assertEqual(i, -1)
+
+    def test_package_family_remove(self):
+        """Test package family remove."""
+        pkg_name = "pydad"
+
+        # copy packages to a temp repo
+        repo_path = os.path.join(self.root, "tmp6_packages")
+        shutil.copytree(self.solver_packages_path, repo_path)
+
+        # verify that source fam exists
+        src_fam = get_package_family_from_repository(pkg_name, repo_path)
+        self.assertNotEqual(src_fam, None)
+
+        # remove it, will fail as not empty
+        with self.assertRaises(PackageRepositoryError):
+            remove_package_family(pkg_name, repo_path)
+
+        # remove all pydad packages
+        versions = [pkg.version for pkg in src_fam.iter_packages()]
+        for version in versions:
+            self.assertTrue(remove_package(pkg_name, version, repo_path))
+
+        # now it should remove successfully
+        self.assertTrue(remove_package_family(pkg_name, repo_path))
+
+        # verify that the fam no longer exists
+        self.assertFalse(remove_package_family(pkg_name, repo_path))
 
     def test_remove_packages_ignored_since(self):
         pkg_name = "pydad"
