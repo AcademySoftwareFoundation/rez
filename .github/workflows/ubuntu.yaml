@@ -37,6 +37,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: apt-get update
+        run: |
+          sudo apt-get update
+
       - name: Verify cmake
         run: |
           cmake --version

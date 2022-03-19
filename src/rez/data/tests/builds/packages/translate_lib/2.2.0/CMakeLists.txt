@@ -18,6 +18,15 @@ rez_install_files(
 	DESTINATION include/translate
 )
 
+# install docs
+FILE(GLOB_RECURSE doc_files "docs/*")
+rez_install_files(
+	${doc_files}
+	RELATIVE src
+	DESTINATION docs
+	LOCAL_SYMLINK # Testing for github issue #553
+)
+
 # install cmake file
 rez_install_cmake(
 	DESTINATION 	cmake
