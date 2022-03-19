@@ -499,7 +499,8 @@ class TimestampRule(Rule):
     """
     name = "timestamp"
 
-    def __init__(self, timestamp, family=None, reverse=False):
+    def __init__(self, timestamp, family=None, reverse=False,
+                 match_untimestamped=False):
         """Create a timestamp rule.
 
         Args:
@@ -507,13 +508,18 @@ class TimestampRule(Rule):
             family (str): Package family to apply the rule to.
             reverse (bool): If True, reverse the logic so that packages released
                 *after* the timestamp are matched.
+            match_untimestamped (bool): Defines behaviour on non-timestamped
+                packages.
         """
         self.timestamp = timestamp
         self.reverse = reverse
+        self.match_untimestamped = match_untimestamped
         self._family = family
 
     def match(self, package):
-        if self.reverse:
+        if not package.timestamp:
+            return self.match_untimestamped
+        elif self.reverse:
             return (package.timestamp > self.timestamp)
         else:
             return (package.timestamp <= self.timestamp)
