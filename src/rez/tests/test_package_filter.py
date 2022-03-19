@@ -7,7 +7,9 @@ Test cases for package_filter.py (package filtering)
 """
 from rez.tests.util import TestBase
 from rez.packages import iter_packages
-from rez.package_filter import PackageFilter, PackageFilterList, GlobRule
+from rez.vendor.version.requirement import Requirement
+from rez.package_filter import PackageFilter, PackageFilterList, GlobRule, \
+    RegexRule, RangeRule, TimestampRule
 
 
 class TestPackageFilter(TestBase):
@@ -71,7 +73,7 @@ class TestPackageFilter(TestBase):
         )
 
     def test_glob_filter(self):
-        """Very simply filter test
+        """Test the glob filter.
         """
         fltr = PackageFilter()
         fltr.add_exclusion(GlobRule("timestamped-*.5"))
@@ -86,6 +88,54 @@ class TestPackageFilter(TestBase):
                 "1.2.0",
                 "2.0.0",
                 "2.1.0"
+            ]
+        )
+
+    def test_regex_filter(self):
+        """Test the regex filter.
+        """
+        fltr = PackageFilter()
+        fltr.add_exclusion(RegexRule("timestamped-1.[1|2].*"))
+
+        self._test(
+            fltr,
+            "timestamped",
+            [
+                "1.0.5",
+                "1.0.6",
+                "2.0.0",
+                "2.1.0",
+                "2.1.5"
+            ]
+        )
+
+    def test_range_filter(self):
+        """Test the range filter.
+        """
+        fltr = PackageFilter()
+        fltr.add_exclusion(RangeRule(Requirement("timestamped-1.1+")))
+
+        self._test(
+            fltr,
+            "timestamped",
+            [
+                "1.0.5",
+                "1.0.6"
+            ]
+        )
+
+    def test_timestamp_filter(self):
+        """Test the timestamp filter.
+        """
+        fltr = PackageFilter()
+        fltr.add_exclusion(TimestampRule(6999, family="timestamped"))
+
+        self._test(
+            fltr,
+            "timestamped",
+            [
+                "2.1.0",
+                "2.1.5"
             ]
         )
 
