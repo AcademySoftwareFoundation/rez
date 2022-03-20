@@ -49,6 +49,10 @@ def setup_parser(parser, completions=False):
         "--paths", type=str, default=None,
         help="set package search path (use %r separator)" % os.pathsep)
     parser.add_argument(
+        "-d", "--dev-paths", type=str, default=None,
+        help="search packages from these dev paths if found, otherwise from formal search path,"
+             "normally for testing purpose, non-version packages (use %r separator)." % os.pathsep)
+    parser.add_argument(
         "-t", "--time", type=str,
         help="ignore packages released after the given time. Supported formats "
         "are: epoch time (eg 1393014494), or relative time (eg -10s, -5m, "
@@ -156,6 +160,13 @@ def command(opts, parser, extra_arg_groups=None):
     context = None
     request = opts.PKG
     t = get_epoch_time_from_str(opts.time) if opts.time else None
+
+    if opts.dev_paths:
+        for path in opts.dev_paths.split(os.pathsep):
+            path = os.path.abspath(path)
+            for idx, pkg in enumerate(request):
+                if pkg in os.listdir(path):
+                    request[idx] = '{}@{}'.format(pkg, os.path.join(path, pkg))
 
     if opts.paths is None:
         pkg_paths = (config.nonlocal_packages_path

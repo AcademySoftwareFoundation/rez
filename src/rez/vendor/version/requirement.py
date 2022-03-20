@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
-
+import os.path
 
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.util import _Common
@@ -132,6 +132,7 @@ class Requirement(_Common):
         self.negate_ = False
         self.conflict_ = False
         self._str = None
+        self._request_path = None
         self.sep_ = '-'
         if s is None:
             return
@@ -152,6 +153,8 @@ class Requirement(_Common):
             if req_str[0] in ('-', '@', '#'):
                 self.sep_ = req_str[0]
                 req_str = req_str[1:]
+                if os.path.exists(os.path.abspath(req_str)):
+                    self._request_path = req_str
 
             self.range_ = VersionRange(
                 req_str, invalid_bound_error=invalid_bound_error)
@@ -183,6 +186,10 @@ class Requirement(_Common):
     def name(self):
         """Name of the required object."""
         return self.name_
+
+    @property
+    def request_path(self):
+        return self._request_path
 
     @property
     def range(self):

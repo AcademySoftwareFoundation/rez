@@ -28,6 +28,7 @@ from bisect import bisect_left
 import copy
 import string
 import re
+import os
 
 
 re_token = re.compile(r"[a-zA-Z0-9_]+")
@@ -859,8 +860,14 @@ class VersionRange(_Comparable):
                 impossible range is given, such as '3+<2'.
         """
         self._str = None
+        self._is_a_folder = False
         self.bounds = []  # note: kept in ascending order
         if range_str is None:
+            return
+
+        if os.path.isdir(range_str):
+            self._is_a_folder = True
+            self._str = range_str
             return
 
         try:
@@ -883,6 +890,9 @@ class VersionRange(_Comparable):
         """Returns True if this is the "any" range, ie the empty string range
         that contains all versions."""
         return (len(self.bounds) == 1) and (self.bounds[0] == _Bound.any)
+
+    def is_a_folder(self):
+        return self._is_a_folder
 
     def lower_bounded(self):
         """Returns True if the range has a lower bound (that is not the empty

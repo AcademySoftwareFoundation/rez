@@ -464,14 +464,20 @@ class _PackageVariantList(_Common):
         self.package_name = package_name
         self.solver = solver
 
+        self.entries = []
+
+        request_package = solver.request_list.get(package_name)
+        if request_package and request_package.request_path:
+            # it seems DeveloperPackage can't be used in this way
+            # self.entries.append([get_developer_package(request_package.request_path), False])
+            paths = [os.path.dirname(os.path.abspath(request_package.request_path))]
+        else:
+            paths = self.solver.package_paths
         # note: we do not apply package filters here, because doing so might
         # cause package loads (eg, timestamp rules). We only apply filters
         # during an intersection, which minimises the amount of filtering.
         #
-        self.entries = []
-
-        for package in iter_packages(self.package_name,
-                                     paths=self.solver.package_paths):
+        for package in iter_packages(self.package_name, paths=paths):
             package.set_context(solver.context)
             self.entries.append([package, False])
 
@@ -497,7 +503,7 @@ class _PackageVariantList(_Common):
             if value is None:
                 continue  # package was blocked by package filters
 
-            if package.version not in range_:
+            if not range_.is_a_folder() and package.version not in range_:
                 continue
 
             if isinstance(value, list):
