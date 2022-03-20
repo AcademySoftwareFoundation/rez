@@ -620,7 +620,7 @@ class Python(ActionInterpreter):
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
-                sys.path = value.split(os.pathsep)
+                sys.path = [os.path.normpath(v) for v in value.split(os.pathsep)]
 
     def unsetenv(self, key):
         pass
@@ -632,13 +632,13 @@ class Python(ActionInterpreter):
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
-                sys.path.insert(0, value)
+                sys.path.insert(0, os.path.normpath(value))
 
     def appendenv(self, key, value):
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
-                sys.path.append(value)
+                sys.path.append(os.path.normpath(value))
 
     def info(self, value):
         if not self.passive:
