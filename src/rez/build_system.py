@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 import os.path
 
 from rez.build_process import BuildType
@@ -278,28 +282,11 @@ class BuildSystem(object):
         return vars_
 
     @classmethod
-    def add_standard_build_actions(cls, executor, context, variant, build_type,
-                                   install, build_path, install_path=None):
-        """Perform build actions common to every build system.
+    def add_pre_build_commands(cls, executor, variant, build_type, install,
+                               build_path, install_path=None):
+        """Execute pre_build_commands function if present."""
 
-        This includes:
-        - Setting a standard list on env-vars;
-        - Executing pre_build_commands(), if the package has one.
-        """
-        from rez.utils.data_utils import RO_AttrDictWrapper
-
-        # set env vars
-        env_vars = cls.get_standard_vars(
-            context=context,
-            variant=variant,
-            build_type=build_type,
-            install=install,
-            build_path=build_path,
-            install_path=install_path
-        )
-
-        for var, value in env_vars.items():
-            executor.env[var] = value
+        from rez.utils.data_utils import RO_AttrDictWrapper as ROA
 
         # bind build-related values into a 'build' namespace
         build_ns = {
@@ -315,22 +302,23 @@ class BuildSystem(object):
         if pre_build_commands:
             with executor.reset_globals():
                 executor.bind("this", variant)
-                executor.bind("build", RO_AttrDictWrapper(build_ns))
-
+                executor.bind("build", ROA(build_ns))
                 executor.execute_code(pre_build_commands)
 
+    @classmethod
+    def add_standard_build_actions(cls, executor, context, variant, build_type,
+                                   install, build_path, install_path=None):
+        """Perform build actions common to every build system.
+        """
+        # set env vars
+        env_vars = cls.get_standard_vars(
+            context=context,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
 
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+        for var, value in env_vars.items():
+            executor.env[var] = value

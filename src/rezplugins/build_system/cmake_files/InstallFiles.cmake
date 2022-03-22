@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 #
 # install_files_
 # rez_install_files
@@ -130,14 +134,14 @@ macro (install_files_)
 	# install files
 	#
 	foreach(f ${INSTF_DEFAULT_ARGS})
-		get_target_filepath(${f} ${rel_dir} ${dest_dir} target_fpath)
-		get_filename_component(target_path ${target_fpath} PATH)
+		get_target_filepath("${f}" "${rel_dir}" "${dest_dir}" target_fpath)
+		get_filename_component(target_path "${target_fpath}" PATH)
         if(REZ_BUILD_TYPE STREQUAL "central" OR NOT INSTF_LOCAL_SYMLINK)
-		    install(FILES ${f} DESTINATION ${target_path} PERMISSIONS ${perms})
+		    install(FILES "${f}" DESTINATION "${target_path}" PERMISSIONS ${perms})
         else()
             install( CODE "message (STATUS  \"Symlink : ${CMAKE_INSTALL_PREFIX}/${target_fpath} -> ${f}\" )" )
-            install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_INSTALL_PREFIX}/${target_path})" )
-            install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${f} ${CMAKE_INSTALL_PREFIX}/${target_fpath})" )
+            install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory \"${CMAKE_INSTALL_PREFIX}/${target_path}\")" )
+            install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"${f}\" \"${CMAKE_INSTALL_PREFIX}/${target_fpath}\")" )
         endif(REZ_BUILD_TYPE STREQUAL "central" OR NOT INSTF_LOCAL_SYMLINK)
 
 	endforeach(f ${INSTF_DEFAULT_ARGS})

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Utilities related to managing data types.
 """
@@ -354,6 +358,9 @@ class AttrDictWrapper(MutableMapping):
     def __delitem__(self, key):
         del self._data[key]
 
+    def __contains__(self, key):
+        return key in self._data
+
     def __iter__(self):
         return iter(self._data)
 
@@ -666,19 +673,3 @@ class LazyAttributeMeta(type):
                 return self._validate_key_impl(key, attr, key_schema)
 
         return cached_property(getter, name=attribute)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Rez configuration settings. Do not change this file.
 
@@ -8,7 +12,8 @@ precedence):
 2) The setting is then overridden if it is present in another settings file(s)
    pointed at by the $REZ_CONFIG_FILE environment variable. Note that multiple
    files are supported, separated by os.pathsep;
-3) The setting is further overriden if it is present in $HOME/.rezconfig;
+3) The setting is further overriden if it is present in $HOME/.rezconfig,
+  UNLESS $REZ_DISABLE_HOME_CONFIG is 1;
 4) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
@@ -714,6 +719,9 @@ debug_resolve_memcache = False
 # "memcached -vv" as the server)
 debug_memcache = False
 
+# Print debugging info when AMPQ is used in context tracking
+debug_context_tracking = False
+
 # Turn on all debugging messages
 debug_all = False
 
@@ -1176,19 +1184,3 @@ use_pyqt = False
 
 # Turn GUI threading on/off. You would only turn off for debugging purposes.
 gui_threads = True
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

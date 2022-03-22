@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Provides wrappers for various types for binding to Rex. We do not want to bind
 object instances directly in Rex, because this would create an indirect
@@ -108,10 +112,20 @@ class VersionBinding(Binding):
 
 class VariantBinding(Binding):
     """Binds a packages.Variant object."""
-    def __init__(self, variant):
+    def __init__(self, variant, cached_root=None):
         doc = dict(version=VersionBinding(variant.version))
         super(VariantBinding, self).__init__(doc)
         self.__variant = variant
+        self.__cached_root = cached_root
+
+    @property
+    def root(self):
+        """
+        This is here to support package caching. This ensures that references
+        such as 'resolve.mypkg.root' resolve to the cached payload location,
+        if the package is cached.
+        """
+        return self.__cached_root or self.__variant.root
 
     def __getattr__(self, attr):
         try:
@@ -122,6 +136,9 @@ class VariantBinding(Binding):
                 raise
 
             return value
+
+    def _is_in_package_cache(self):
+        return (self.__cached_root is not None)
 
     def _attr_error(self, attr):
         raise AttributeError("package %s has no attribute '%s'"
@@ -154,11 +171,10 @@ class RO_MappingBinding(Binding):
 
 
 class VariantsBinding(RO_MappingBinding):
-    """Binds a list of packages.Variant objects, under the package name of
-    each variant."""
-    def __init__(self, variants):
-        doc = dict((x.name, VariantBinding(x)) for x in variants)
-        super(VariantsBinding, self).__init__(doc)
+    """Binds a list of packages.VariantBinding objects, under the package name
+    of each variant."""
+    def __init__(self, variant_bindings):
+        super(VariantsBinding, self).__init__(variant_bindings)
 
     def _attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
@@ -273,19 +289,3 @@ def intersects(obj, range_):
         )
 
     return range1.intersects(range2)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -1,5 +1,535 @@
 # Change Log
 
+## 2.105.0 (2022-03-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.105.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.10...2.105.0)
+
+**Merged pull requests:**
+
+- add package filter tests, fix 1237 [\#1238](https://github.com/nerdvegas/rez/pull/1238) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-test breaks with packages that do not have a timestamp attribute [\#1237](https://github.com/nerdvegas/rez/issues/1237)
+
+## 2.104.10 (2022-03-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.10) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.9...2.104.10)
+
+**Merged pull requests:**
+
+- fix: make cmake install directives whitespace friendly [\#1244](https://github.com/nerdvegas/rez/pull/1244) ([maxnbk](https://github.com/maxnbk))
+
+**Closed issues:**
+
+- rez_install_files with LOCAL_SYMLINK fails when an input file has whitespaces in its name [\#553](https://github.com/nerdvegas/rez/issues/553)
+
+## 2.104.9 (2022-03-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.9) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.8...2.104.9)
+
+**Merged pull requests:**
+
+- Implement #1196 [\#1199](https://github.com/nerdvegas/rez/pull/1199) ([instinct-vfx](https://github.com/instinct-vfx))
+
+**Closed issues:**
+
+- Switch `get_syspaths` from `REG` to `Get-ItemProperty` in Powershell shell plugins [\#1196](https://github.com/nerdvegas/rez/issues/1196)
+
+## 2.104.8 (2022-03-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.8) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.7...2.104.8)
+
+**Merged pull requests:**
+
+- Re-enable py3 workflow in windows.yaml [\#1232](https://github.com/nerdvegas/rez/pull/1232) ([instinct-vfx](https://github.com/instinct-vfx))
+- fix: address zsh install message displaying wrong completion script [\#1235](https://github.com/nerdvegas/rez/pull/1235) ([maxnbk](https://github.com/maxnbk))
+- Explicit fail when python executable is not found [\#1236](https://github.com/nerdvegas/rez/pull/1236) ([aboellinger](https://github.com/aboellinger))
+
+**Closed issues:**
+
+- Typo on install message [\#1186](https://github.com/nerdvegas/rez/issues/1186)
+
+## 2.104.7 (2022-02-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.7) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.6...2.104.7)
+
+**Merged pull requests:**
+
+- fixed logic fail in wiki workflow [\#1220](https://github.com/nerdvegas/rez/pull/1220) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix wiki regression in v2.104.6 [\#1219](https://github.com/nerdvegas/rez/issues/1219)
+
+## 2.104.6 (2022-02-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.6) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.5...2.104.6)
+
+**Merged pull requests:**
+
+- Issue 1214 spdx enforce [\#1215](https://github.com/nerdvegas/rez/pull/1215) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add workflow to enforce copyright [\#1214](https://github.com/nerdvegas/rez/issues/1214)
+
+## 2.104.5 (2022-02-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.5) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.4...2.104.5)
+
+**Merged pull requests:**
+
+- switched to SPDX copyright notices [\#1213](https://github.com/nerdvegas/rez/pull/1213) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- replace copyrights with SPDX form [\#1201](https://github.com/nerdvegas/rez/issues/1201)
+
+## 2.104.4 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.3...2.104.4)
+
+**Merged pull requests:**
+
+- remove nerdvegas refs in wiki [\#1212](https://github.com/nerdvegas/rez/pull/1212) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.104.3 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.2...2.104.3)
+
+**Merged pull requests:**
+
+- fixed wiki bugs [\#1211](https://github.com/nerdvegas/rez/pull/1211) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix nuked wiki [\#1210](https://github.com/nerdvegas/rez/issues/1210)
+
+## 2.104.2 (2022-02-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.1...2.104.2)
+
+**Merged pull requests:**
+
+- Issue 1206 wiki gpl rm [\#1207](https://github.com/nerdvegas/rez/pull/1207) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- remove GPL3 code from update-wiki.py [\#1206](https://github.com/nerdvegas/rez/issues/1206)
+
+## 2.104.1 (2022-02-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.0...2.104.1)
+
+**Merged pull requests:**
+
+- Fix aliases in windows powershell/pwsh [\#1192](https://github.com/nerdvegas/rez/pull/1192) ([koaleksa](https://github.com/koaleksa))
+
+**Closed issues:**
+
+- Aliases broken on windows when using powershell [\#1191](https://github.com/nerdvegas/rez/issues/1191)
+
+## 2.104.0 (2022-02-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.104.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.4...2.104.0)
+
+**Merged pull requests:**
+
+- windows CI upgrade [\#1185](https://github.com/nerdvegas/rez/pull/1185) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- windows gh actions issue [\#1181](https://github.com/nerdvegas/rez/issues/1181)
+
+## 2.103.4 (2021-12-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.3...2.103.4)
+
+**Merged pull requests:**
+
+- reimplement which [\#1182](https://github.com/nerdvegas/rez/pull/1182) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Whichcraft not caring about executable symlinks on windows that do not have the extension of an executable [\#1178](https://github.com/nerdvegas/rez/issues/1178)
+
+## 2.103.3 (2021-12-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.2...2.103.3)
+
+**Merged pull requests:**
+
+- removed sortedcontainers vendored lib [\#1180](https://github.com/nerdvegas/rez/pull/1180) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.103.2 (2021-12-15)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.1...2.103.2)
+
+**Merged pull requests:**
+
+- Uses Set-Item rather than $Env: to configure powershell environment variables. [\#1176](https://github.com/nerdvegas/rez/pull/1176) ([hutchinson](https://github.com/hutchinson))
+
+**Closed issues:**
+
+- Environment variables containing brackets break powershell shell [\#1175](https://github.com/nerdvegas/rez/issues/1175)
+
+## 2.103.1 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.103.0...2.103.1)
+
+**Merged pull requests:**
+
+- fix pwsh shell not exiting with correct error code [\#1174](https://github.com/nerdvegas/rez/pull/1174) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Build passes when build_command fails while using powershell as default_shell on windows [\#1099](https://github.com/nerdvegas/rez/issues/1099)
+
+## 2.103.0 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.103.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.102.1...2.103.0)
+
+**Merged pull requests:**
+
+- fix 'NoneType' object has no attribute 'conflicts_with' [\#1173](https://github.com/nerdvegas/rez/pull/1173) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- AttributeError: 'NoneType' object has no attribute 'conflicts_with' when rez-env a package [\#1150](https://github.com/nerdvegas/rez/issues/1150)
+
+## 2.102.1 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.102.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.102.0...2.102.1)
+
+**Merged pull requests:**
+
+- rez-pip fix for packages with underscores in name [\#1172](https://github.com/nerdvegas/rez/pull/1172) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-pip error with inconsistency between underscores and dashes [\#1159](https://github.com/nerdvegas/rez/issues/1159)
+
+## 2.102.0 (2021-12-10)
+[Source](https://github.com/nerdvegas/rez/tree/2.102.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.101.0...2.102.0)
+
+**Merged pull requests:**
+
+- Update sortedcontainers for Python 3.10 compatibility [\#1169](https://github.com/nerdvegas/rez/pull/1169) ([stilllman](https://github.com/stilllman))
+
+**Closed issues:**
+
+- Incompatibility with Python 3.10 [\#1168](https://github.com/nerdvegas/rez/issues/1168)
+
+## 2.101.0 (2021-12-09)
+[Source](https://github.com/nerdvegas/rez/tree/2.101.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.2...2.101.0)
+
+**Merged pull requests:**
+
+- benchmarking updates [\#1171](https://github.com/nerdvegas/rez/pull/1171) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.100.2 (2021-12-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.100.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.1...2.100.2)
+
+**Merged pull requests:**
+
+- sonarcloud flagged bugs (4) [\#1167](https://github.com/nerdvegas/rez/pull/1167) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- fix 4 sonarcloud-flagged bugs [\#1166](https://github.com/nerdvegas/rez/issues/1166)
+
+## 2.100.1 (2021-12-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.100.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.100.0...2.100.1)
+
+**Merged pull requests:**
+
+- remove use of tempfile.mktemp [\#1165](https://github.com/nerdvegas/rez/pull/1165) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- (sonarcloud) vulnerability [\#1164](https://github.com/nerdvegas/rez/issues/1164)
+
+## 2.100.0 (2021-11-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.100.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.3...2.100.0)
+
+**Notes**
+
+IMPORTANT - This release changes the license from LGPL-3.0 to Apache-2.0.
+More: https://www.apache.org/licenses/LICENSE-2.0
+
+**Merged pull requests:**
+
+- Issue 1119 license change [\#1158](https://github.com/nerdvegas/rez/pull/1158) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Rez License Change: LGPLv3 to Apache2.0 [\#1119](https://github.com/nerdvegas/rez/issues/1119)
+
+## 2.98.3 (2021-11-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.2...2.98.3)
+
+**Merged pull requests:**
+
+- modified whichcraft for rez [\#1157](https://github.com/nerdvegas/rez/pull/1157) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-pip not working ? [\#904](https://github.com/nerdvegas/rez/issues/904)
+- NoneType Error When Using `rez pip` on Windows [\#1024](https://github.com/nerdvegas/rez/issues/1024)
+
+## 2.98.2 (2021-11-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.1...2.98.2)
+
+Added unmodified whichcraft vendored lib.
+See:
+* https://github.com/cookiecutter/whichcraft/blob/master/whichcraft.py
+* https://github.com/nerdvegas/rez/pull/1155
+
+## 2.98.1 (2021-11-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.98.0...2.98.1)
+
+**Merged pull requests:**
+
+- Issue 1119 code removal [\#1151](https://github.com/nerdvegas/rez/pull/1151) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.98.0 (2021-11-02)
+[Source](https://github.com/nerdvegas/rez/tree/2.98.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.97.0...2.98.0)
+
+**Merged pull requests:**
+
+- Fix pika connector [\#1145](https://github.com/nerdvegas/rez/pull/1145) ([davidlatwe](https://github.com/davidlatwe))
+- Issue 1148 pika conn name [\#1149](https://github.com/nerdvegas/rez/pull/1149) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Pika could not take port from `context_tracking_host` [\#1144](https://github.com/nerdvegas/rez/issues/1144)
+- name amqp connection [\#1148](https://github.com/nerdvegas/rez/issues/1148)
+
+## 2.97.0 (2021-10-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.97.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.96.0...2.97.0)
+
+**Merged pull requests:**
+
+- Improve rex env binding [\#1138](https://github.com/nerdvegas/rez/pull/1138) ([davidlatwe](https://github.com/davidlatwe))
+
+## 2.96.0 (2021-10-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.96.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.3...2.96.0)
+
+**Merged pull requests:**
+
+- pika [\#1140](https://github.com/nerdvegas/rez/pull/1140) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.95.3 (2021-10-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.2...2.95.3)
+
+**Merged pull requests:**
+
+- fix regression in v2.94.0 wrt windows string escape on rxt command [\#1139](https://github.com/nerdvegas/rez/pull/1139) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+-  (double-dash) removes double quotes on Windows [\#1133](https://github.com/nerdvegas/rez/issues/1133)
+
+## 2.95.2 (2021-10-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.1...2.95.2)
+
+**Merged pull requests:**
+
+- powershell quoted command fix [\#1130](https://github.com/nerdvegas/rez/pull/1130) ([nerdvegas](https://github.com/nerdvegas))
+- CLI: display detailed version info with --version [\#1134](https://github.com/nerdvegas/rez/pull/1134) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- Rez pip fails to execute in Windows after 2.94.0 [\#1120](https://github.com/nerdvegas/rez/issues/1120)
+
+## 2.95.1 (2021-10-12)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.95.0...2.95.1)
+
+**Merged pull requests:**
+
+- Better shell specific testing [\#1136](https://github.com/nerdvegas/rez/pull/1136) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- rez-env output test is not testing on specified shell [\#1135](https://github.com/nerdvegas/rez/issues/1135)
+
+## 2.95.0 (2021-09-21)
+[Source](https://github.com/nerdvegas/rez/tree/2.95.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.94.0...2.95.0)
+
+**Merged pull requests:**
+
+- Fix  fileno() error in Maya2022 [\#1124](https://github.com/nerdvegas/rez/pull/1124) ([yanshil](https://github.com/yanshil))
+- copy dist-info to python subdur in rez-pip [\#1128](https://github.com/nerdvegas/rez/pull/1128) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-pip installs dist-info dir to root, causes probs with some pkgs [\#892](https://github.com/nerdvegas/rez/issues/892)
+
+## 2.94.0 (2021-08-17)
+[Source](https://github.com/nerdvegas/rez/tree/2.94.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.3...2.94.0)
+
+**Merged pull requests:**
+
+- quoting fix [\#1115](https://github.com/nerdvegas/rez/pull/1115) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- bug in command quoting [\#1114](https://github.com/nerdvegas/rez/issues/1114)
+
+## 2.93.3 (2021-08-05)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.2...2.93.3)
+
+**Merged pull requests:**
+
+- fixed always-0 exitcode in pytest-based selftest [\#1118](https://github.com/nerdvegas/rez/pull/1118) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- failed tests in pytest-enabled rez-selftest are not getting picked up [\#1117](https://github.com/nerdvegas/rez/issues/1117)
+
+## 2.93.2 (2021-08-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.1...2.93.2)
+
+**Merged pull requests:**
+
+- Prevent alias (windows function) to store all arguments in one string instead of an array of strings [\#1101](https://github.com/nerdvegas/rez/pull/1101) ([aguiot](https://github.com/aguiot))
+
+## 2.93.1 (2021-08-03)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.93.0...2.93.1)
+
+**Merged pull requests:**
+
+- handling archived lib when scanning rezplugins (fix #1108) [\#1109](https://github.com/nerdvegas/rez/pull/1109) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- PluginManager.rezplugins_module_paths breaks with zipped Python [\#1108](https://github.com/nerdvegas/rez/issues/1108)
+
+## 2.93.0 (2021-07-13)
+[Source](https://github.com/nerdvegas/rez/tree/2.93.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.92.0...2.93.0)
+
+**Merged pull requests:**
+
+- added minimal cli test [\#1106](https://github.com/nerdvegas/rez/pull/1106) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.92.0 (2021-07-13)
+[Source](https://github.com/nerdvegas/rez/tree/2.92.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.91.0...2.92.0)
+
+**Merged pull requests:**
+
+- PR: Ensure that "ViewGraphButton" menu instance is not garbage collected. [\#1103](https://github.com/nerdvegas/rez/pull/1103) ([KelSolaar](https://github.com/KelSolaar))
+- Remove the -s flag to rez-pip because "pip search" is decommissioned [\#1105](https://github.com/nerdvegas/rez/pull/1105) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+**Closed issues:**
+
+- Deprecate rez-pip -s flag because pip-search is disabled and will likely not return [\#1104](https://github.com/nerdvegas/rez/issues/1104)
+
+## 2.91.0 (2021-06-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.91.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.3...2.91.0)
+
+**Merged pull requests:**
+
+- added env-var to disable cofig reads from ~/.rezconfig.py [\#1098](https://github.com/nerdvegas/rez/pull/1098) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- config selftest can fail [\#1097](https://github.com/nerdvegas/rez/issues/1097)
+
+## 2.90.3 (2021-06-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.2...2.90.3)
+
+**Merged pull requests:**
+
+- fixed missing __ne__ op in resource handle [\#1096](https://github.com/nerdvegas/rez/pull/1096) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- regression: rez-test Could not resolve to variant [\#1095](https://github.com/nerdvegas/rez/issues/1095)
+
+## 2.90.2 (2021-06-16)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.1...2.90.2)
+
+**Merged pull requests:**
+
+- Allow trailing comma in Legacy Metadata [\#1092](https://github.com/nerdvegas/rez/pull/1092) ([bfloch](https://github.com/bfloch))
+
+## 2.90.1 (2021-06-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.90.0...2.90.1)
+
+**Merged pull requests:**
+
+- Avoid hidden folder/files as it introduces problems on certain fileystems [\#1088](https://github.com/nerdvegas/rez/pull/1088) ([bfloch](https://github.com/bfloch))
+
+## 2.90.0 (2021-06-08)
+[Source](https://github.com/nerdvegas/rez/tree/2.90.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.89.1...2.90.0)
+
+**Merged pull requests:**
+
+- Extension plugins [\#1040](https://github.com/nerdvegas/rez/pull/1040) ([davidlatwe](https://github.com/davidlatwe))
+
+## 2.89.1 (2021-06-02)
+[Source](https://github.com/nerdvegas/rez/tree/2.89.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.89.0...2.89.1)
+
+**Merged pull requests:**
+
+- disable memcache when ignoring hidden pkgs [\#1090](https://github.com/nerdvegas/rez/pull/1090) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez-rm --ignored-since faulty in combo with memcached enabled [\#1089](https://github.com/nerdvegas/rez/issues/1089)
+
+## 2.89.0 (2021-06-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.89.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.4...2.89.0)
+
+**Merged pull requests:**
+
+- Improve context resolve failure info [\#1083](https://github.com/nerdvegas/rez/pull/1083) ([davidlatwe](https://github.com/davidlatwe))
+
+## 2.88.4 (2021-06-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.4) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.3...2.88.4)
+
+**Merged pull requests:**
+
+- Fix conflict fail graph #865 [\#1087](https://github.com/nerdvegas/rez/pull/1087) ([davidlatwe](https://github.com/davidlatwe))
+
+**Closed issues:**
+
+- fail-graph not showing true root of the conflict [\#865](https://github.com/nerdvegas/rez/issues/865)
+
+## 2.88.3 (2021-06-01)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.3) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.2...2.88.3)
+
+**Merged pull requests:**
+
+- Refactor: Split add_standard_build_actions introducing add_pre_build_commands [\#1077](https://github.com/nerdvegas/rez/pull/1077) ([Tilix4](https://github.com/Tilix4))
+
+**Closed issues:**
+
+- include could not find load file: RezBuild error on Windows [\#974](https://github.com/nerdvegas/rez/issues/974)
+
+## 2.88.2 (2021-05-20)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.2) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.1...2.88.2)
+
+**Merged pull requests:**
+
+- added rez_version to context tracking amqp message [\#1079](https://github.com/nerdvegas/rez/pull/1079) ([nerdvegas](https://github.com/nerdvegas))
+
+## 2.88.1 (2021-05-18)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.88.0...2.88.1)
+
+**Merged pull requests:**
+
+- switch to cached root in variant binding [\#1076](https://github.com/nerdvegas/rez/pull/1076) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- windows package cache root switch does only work with "{root}" not this.root  [\#1065](https://github.com/nerdvegas/rez/issues/1065)
+
+## 2.88.0 (2021-05-13)
+[Source](https://github.com/nerdvegas/rez/tree/2.88.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.87.0...2.88.0)
+
+**Notes**
+
+This is currently implemented for linux only.
+
+**Closed issues:**
+
+- fix linking within bundles [\#1072](https://github.com/nerdvegas/rez/issues/1072)
+
+## 2.87.0 (2021-05-11)
+[Source](https://github.com/nerdvegas/rez/tree/2.87.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.86.1...2.87.0)
+
+**Merged pull requests:**
+
+- added bundle support for a post_commands.py file [\#1073](https://github.com/nerdvegas/rez/pull/1073) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add post-context rex file in bundles [\#1071](https://github.com/nerdvegas/rez/issues/1071)
+
 ## 2.86.1 (2021-05-04)
 [Source](https://github.com/nerdvegas/rez/tree/2.86.1) | [Diff](https://github.com/nerdvegas/rez/compare/2.86.0...2.86.1)
 

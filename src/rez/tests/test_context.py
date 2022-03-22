@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 test resolved contexts
 """
@@ -130,7 +134,11 @@ class TestContext(TestBase, TempdirMixin):
 
             # check the pkg we contain is in the bundled pkg repo
             variant = r2.resolved_packages[0]
-            self.assertTrue(is_subdirectory(variant.root, path))
+            self.assertTrue(
+                is_subdirectory(variant.root, path),
+                "Expected variant root %r of variant %r to be a subdirectory of %r"
+                % (variant.root, variant.uri, path)
+            )
 
             self._test_execute_command_environ(r2)
 
@@ -177,19 +185,3 @@ class TestContext(TestBase, TempdirMixin):
 
 if __name__ == '__main__':
     unittest.main()
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

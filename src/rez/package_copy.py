@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from functools import partial
 import os.path
 import shutil
@@ -218,7 +222,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
 
         if verbose:
             print_info("Copied source variant %s to target variant %s",
-                       src_variant, dest_variant)
+                       src_variant.uri, dest_variant.uri)
 
         copied.append((src_variant, dest_variant))
 
@@ -278,7 +282,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         variant_install_path,
         topmost_path=os.path.dirname(dest_pkg_payload_path))
 
-    if last_dir:
+    if last_dir and config.make_package_temporarily_writable:
         ctxt = make_path_writable(last_dir)
     else:
         ctxt = with_noop()
@@ -316,14 +320,11 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
             if name in skip_files:
                 filepath = os.path.join(variant_root, name)
 
-                if verbose:
-                    if is_varianted:
-                        msg = ("Did not copy %s - this is part of an "
-                               "overlapping variant's root path.")
-                    else:
-                        msg = "Did not copy package definition file %s"
-
-                    print_info(msg, filepath)
+                if verbose and is_varianted:
+                    print_info(
+                        "Did not copy %s - this is part of an overlapping "
+                        "variant's root path.", filepath
+                    )
 
                 continue
 
@@ -428,19 +429,3 @@ def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
     with ctxt:
         safe_makedirs(dest_include_modules_path)
         additive_copytree(src_include_modules_path, dest_include_modules_path)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

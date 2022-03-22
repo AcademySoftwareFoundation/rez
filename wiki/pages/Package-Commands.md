@@ -334,7 +334,7 @@ The *env* object also provides the following functions:
 
 Appends a value to an environment variable. By default this will use the *os.pathsep* delimiter
 between list items, but this can be overridden using the config setting *env_var_separators*. See
-[here](#variable-prepending-and-appending) for further information on the behavior of this function.
+[here](#variable-appending-and-prepending) for further information on the behavior of this function.
 
 #### env.prepend
 *Function*
@@ -511,7 +511,7 @@ error is detected and it is not possible to configure a valid environment.
         ...
 
 This object provided system information, such as current platform, arch and os. See
-[the source](https://github.com/nerdvegas/rez/blob/master/src/rez/system.py) for more info.
+[the source](https://github.com/__GITHUB_REPO__/blob/__GITHUB_BRANCH__/src/rez/system.py) for more info.
 
 ### test
 *Dict-like object*

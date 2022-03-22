@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from __future__ import print_function, absolute_import
 
 from rez.packages import get_latest_package
@@ -133,7 +137,7 @@ def find_python_in_context(context):
     # accidentally find a system python install.
     #
     context = context.copy()
-    context.append_sys_path = False  # GitHub nerdvegas/rez/issue/826
+    context.append_sys_path = False  # https://github.com/nerdvegas/rez/issues/826
 
     python_package = context.get_resolved_package("python")
     assert python_package
@@ -197,6 +201,9 @@ def find_pip_from_context(python_version, pip_version=None):
         return None, None, None
 
     py_exe = find_python_in_context(context)
+
+    if not py_exe:
+        return None, None, context
 
     proc = context.execute_command(
         # -E and -s are used to isolate the environment as much as possible.
@@ -494,10 +501,11 @@ def _get_distribution_files_mapping(distribution, targetdir):
         topdir = rel_src.split(os.sep)[0]
 
         # Special case - dist-info files. These are all in a '<pkgname>-<version>.dist-info'
-        # dir. We keep this dir and place it in the root dir of the rez package.
+        # dir. We keep this dir and place it in the root 'python' dir of the rez package.
         #
         if topdir.endswith(".dist-info"):
-            return (rel_src, rel_src)
+            rel_dest = os.path.join("python", rel_src)
+            return (rel_src, rel_dest)
 
         # Remapping of other installed files according to manifest
         if topdir == os.pardir:
@@ -626,19 +634,3 @@ _verbose = config.debug("package_release")
 def _log(msg):
     if _verbose:
         print_debug(msg)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

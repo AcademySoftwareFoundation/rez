@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from __future__ import print_function
 
 from rez.exceptions import RezBindError, _NeverError

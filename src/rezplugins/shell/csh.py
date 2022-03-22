@@ -1,10 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 CSH shell
 """
 import pipes
 import os.path
 import subprocess
+import re
+
 from rez.config import config
+from rez.util import shlex_join
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
@@ -108,6 +115,25 @@ class CSH(UnixShell):
             result += txt
         return result
 
+    @classmethod
+    def join(cls, command):
+        replacements = [
+            # escape ! as \!
+            ('!', "\\!"),
+
+            # see Shell.join()
+            ('"', '"\'"\'"'),
+
+            # similar to above, but for backticks
+            ('`', '"\'`\'"'),
+
+            # escape $ if not part of a valid var ref like $FOO, ${FOO}
+            (re.compile(r"\$([^a-zA-Z{])"), '"\'$\'"\\1'),
+            (re.compile(r"\$$"), '"\'$\'"')  # edge case, $ at end
+        ]
+
+        return shlex_join(command, replacements=replacements)
+
     def _bind_interactive_rez(self):
         if config.set_prompt and self.settings.prompt:
             # TODO: Do more like in sh.py, much less error prone
@@ -146,19 +172,3 @@ class CSH(UnixShell):
 def register_plugin():
     if platform_.name != "windows":
         return CSH
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

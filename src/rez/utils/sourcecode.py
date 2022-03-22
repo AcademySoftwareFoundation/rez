@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug

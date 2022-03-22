@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Install a pip-compatible python package, and its dependencies, as rez packages.
 """
@@ -19,9 +23,6 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-i", "--install", action="store_true",
         help="install the package")
-    parser.add_argument(
-        "-s", "--search", action="store_true",
-        help="search for the package on PyPi")
     parser.add_argument(
         "-r", "--release", action="store_true",
         help="install as released package; if not set, package is installed "
@@ -47,16 +48,12 @@ def command(opts, parser, extra_arg_groups=None):
         # Prevent other rez.* loggers from printing debugs
         logging.getLogger('rez').setLevel(logging.INFO)
 
-    from rez.pip import pip_install_package, run_pip_command
+    from rez.pip import pip_install_package
     import warnings
 
-    if not (opts.search or opts.install):
-        parser.error("Expected one of: --install, --search")
-
-    if opts.search:
-        with run_pip_command(["search", opts.PACKAGE]) as p:
-            p.wait()
-        return
+    # a bit weird, but there used to be more options. Leave like this for now
+    if not opts.install:
+        parser.error("Expected one of: --install")
 
     if opts.pip_ver:
         with warnings.catch_warnings():
@@ -74,18 +71,3 @@ def command(opts, parser, extra_arg_groups=None):
         release=opts.release,
         prefix=opts.prefix,
         extra_args=opts.extra)
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

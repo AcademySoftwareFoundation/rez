@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -69,7 +69,7 @@ jobs:
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -84,9 +84,20 @@ jobs:
           ref: master
           path: src
 
+      # Note failing due to
+      # https://github.com/actions/virtual-environments/issues/675
+      #
+      # We'll just skip on failure, this just means the gnuplot doesn't render
+      #
+      - name: Install gnuplot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnuplot || /bin/true
+
       - name: Store Benchmark Result
         run: |
-          python ./src/.github/scripts/store_benchmark.py
+          python ./.github/scripts/store_benchmark.py
+        working-directory: src
 
       - name: Setup git config
         run: |

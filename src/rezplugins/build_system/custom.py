@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Package-defined build command
 """
@@ -159,15 +163,26 @@ class CustomBuildSystem(BuildSystem):
             pr("Running build command: %s" % cmd_str, heading)
 
         # run the build command
-        def _callback(executor):
-            self._add_build_actions(executor,
-                                    context=context,
-                                    package=self.package,
-                                    variant=variant,
-                                    build_type=build_type,
-                                    install=install,
-                                    build_path=build_path,
-                                    install_path=install_path)
+        post_actions_callback = functools.partial(
+            self.add_pre_build_commands,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
+
+        def _actions_callback(executor):
+            self._add_build_actions(
+                executor,
+                context=context,
+                package=self.package,
+                variant=variant,
+                build_type=build_type,
+                install=install,
+                build_path=build_path,
+                install_path=install_path
+            )
 
             if self.opts:
                 # write args defined in ./parse_build_args.py out as env vars
@@ -187,10 +202,14 @@ class CustomBuildSystem(BuildSystem):
 
                         executor.env[varname] = value
 
-        retcode, _, _ = context.execute_shell(command=command,
-                                              block=True,
-                                              cwd=build_path,
-                                              post_actions_callback=_callback)
+        retcode, _, _ = context.execute_shell(
+            command=command,
+            block=True,
+            cwd=build_path,
+            actions_callback=_actions_callback,
+            post_actions_callback=post_actions_callback
+        )
+
         ret["success"] = (not retcode)
         return ret
 
@@ -216,17 +235,33 @@ def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
     variant = package.get_variant(variant_index)
     config.override("prompt", "BUILD>")
 
-    callback = functools.partial(CustomBuildSystem._add_build_actions,
-                                 context=context,
-                                 package=package,
-                                 variant=variant,
-                                 build_type=BuildType.local,
-                                 install=install,
-                                 build_path=build_path,
-                                 install_path=install_path)
+    actions_callback = functools.partial(
+        CustomBuildSystem._add_build_actions,
+        context=context,
+        package=package,
+        variant=variant,
+        build_type=BuildType.local,
+        install=install,
+        build_path=build_path,
+        install_path=install_path
+    )
 
-    retcode, _, _ = context.execute_shell(block=True, cwd=build_path,
-                                          post_actions_callback=callback)
+    post_actions_callback = functools.partial(
+        CustomBuildSystem.add_pre_build_commands,
+        variant=variant,
+        build_type=BuildType.local,
+        install=install,
+        build_path=build_path,
+        install_path=install_path
+    )
+
+    retcode, _, _ = context.execute_shell(
+        block=True,
+        cwd=build_path,
+        actions_callback=actions_callback,
+        post_actions_callback=post_actions_callback
+    )
+
     sys.exit(retcode)
 
 

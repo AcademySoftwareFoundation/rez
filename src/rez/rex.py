@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from __future__ import print_function
 
 import os
@@ -1140,7 +1144,10 @@ class EnvironmentVariable(object):
                                self.value())
 
     def __nonzero__(self):
-        return bool(self.value())
+        try:
+            return bool(self.value())
+        except RexUndefinedVariableError:
+            return False
 
     __bool__ = __nonzero__  # py3 compat
 
@@ -1399,19 +1406,3 @@ class RexExecutor(object):
 
     def expand(self, value):
         return self.formatter.format(str(value), regex=self.interpreter.ENV_VAR_REGEX)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

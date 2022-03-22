@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Test cases for package_order.py (package ordering)
 """
@@ -6,7 +10,7 @@ import json
 from rez.config import config
 from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
     TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
-from rez.packages_ import iter_packages
+from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.vendor.version.version import Version
 
@@ -349,18 +353,3 @@ class TestPackageOrderPublic(TestBase):
             VersionSplitPackageOrder(first_version=Version("1.2.3")),
             from_pod(("version_split", {"first_version": "1.2.3"}))
         )
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

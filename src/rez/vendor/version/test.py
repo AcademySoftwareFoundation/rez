@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from rez.vendor.version.version import Version, AlphanumericVersionToken, \
     VersionRange, reverse_sort_key, _ReversedComparable
 from rez.vendor.version.requirement import Requirement, RequirementList

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 '''
 Bundle a context and its packages into a relocatable dir.
 '''
@@ -16,6 +20,9 @@ def setup_parser(parser, completions=False):
     group.add_argument(
         "-f", "--force", action="store_true",
         help="bundle package even if it isn't relocatable (use at your own risk)")
+    group.add_argument(
+        "-n", "--no-lib-patch", action="store_true",
+        help="don't apply library patching within the bundle")
     parser.add_argument(
         "RXT",
         help="context to bundle")
@@ -44,5 +51,6 @@ def command(opts, parser, extra_arg_groups=None):
         dest_dir=dest_dir,
         force=opts.force,
         skip_non_relocatable=opts.skip_non_relocatable,
-        verbose=opts.verbose
+        verbose=opts.verbose,
+        patch_libs=(not opts.no_lib_patch)
     )

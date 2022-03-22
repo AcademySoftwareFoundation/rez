@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 # Convenience variables to add colour to the MESSAGE output provided by CMake.
 # These variables make use of standard terminal escape sequences.  This only
 # affects the output during the cmake configuration step, and not execution of

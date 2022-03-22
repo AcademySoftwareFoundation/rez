@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.packages import get_latest_package_from_string

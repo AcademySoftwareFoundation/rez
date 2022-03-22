@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Builds packages on local host
 """
@@ -151,7 +155,8 @@ class LocalBuildProcess(BuildProcessHelper):
         #
         last_dir = get_existing_path(variant_install_path,
                                      topmost_path=install_path)
-        if last_dir:
+
+        if last_dir and config.make_package_temporarily_writable:
             ctxt = make_path_writable(last_dir)
         else:
             ctxt = with_noop()
@@ -477,19 +482,3 @@ class LocalBuildProcess(BuildProcessHelper):
 
 def register_plugin():
     return LocalBuildProcess
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

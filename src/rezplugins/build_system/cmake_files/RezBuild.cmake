@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 #
 # This module should be included for projects built within a rez-build context. Several macros are made
 # available (see those cmake filse for details): rez_find_packages, rez_install_cmake and rez_install_python.

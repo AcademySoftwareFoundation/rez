@@ -361,14 +361,14 @@ preprocessing function, see the
 
 Consider the following preprocessing function, defined in a *package.py*:
 
-    def preprocess(package, data):
+    def preprocess(this, data):
         from rez.package_py_utils import InvalidPackageError
         import re
 
-        if not re.match("[a-z]+$", package.name):
+        if not re.match("[a-z]+$", this.name):
             raise InvalidPackageError("Invalid name, only lowercase letters allowed")
 
-        if not package.authors:
+        if not this.authors:
             from preprocess_utils import get_git_committers
             data["authors"] = get_git_committers()
 
@@ -395,7 +395,7 @@ Let's say we have a scenario where we want to install third party packages to a 
 path, and that we set the arbitrary attribute *external* to True for these packages. We could do
 this with a global preprocessing function like this:
 
-    def preprocess(package, data):
+    def preprocess(this, data):
         if not data.get("external"):
             return
 
@@ -405,7 +405,7 @@ this with a global preprocessing function like this:
         except KeyError:
             pass
 
-        data["config"] = data["config"] or {}
+        data["config"] = data.get("config", {})
         data["config"]["release_packages_path"] = "/software/packages/external"
 
 The *"with scope(...)"* statement is just a fancy way of defining a dict, so you can do the same
@@ -597,7 +597,7 @@ requirements, or with requirements that do not translate well to directories on 
 ### help
 *String or List of String*
 
-    help = "https://github.com/nerdvegas/rez/wiki"
+    help = "https://github.com/__GITHUB_REPO__/wiki"
 
 URL for package webpage, or, if a string containing spaces, a command to run. You can show the help
 for a package using the *rez-help* command line tool. If this value is a list, then this represents
@@ -862,7 +862,7 @@ of these attributes have been added.
     changelog = \
         """
         commit 22abe31541ceebced8d4e209e3f6c44d8d0bea1c
-        Author: allan johns <nerdvegas at gee mail dot com>
+        Author: allan johns <>
         Date:   Sun May 15 15:39:10 2016 -0700
 
             first commit
@@ -901,8 +901,8 @@ setting 'TODO_ADD_THIS'). A package may not have a release message.
     revision = \
         {'branch': 'master',
          'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
-         'fetch_url': 'git@github.com:nerdvegas/dummy.git',
-         'push_url': 'git@github.com:nerdvegas/dummy.git',
+         'fetch_url': 'git@github.com:foo/dummy.git',
+         'push_url': 'git@github.com:foo/dummy.git',
          'tracking_branch': 'origin/master'}
 
 Information about the source control revision containing the source code that was released. The

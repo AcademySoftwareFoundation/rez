@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Misc useful stuff.
 TODO: Move this into rez.utils.?
@@ -6,6 +10,7 @@ import collections
 import atexit
 import os
 import os.path
+import re
 from rez.exceptions import RezError
 from rez.vendor.progress.bar import Bar
 from rez.vendor.six import six
@@ -40,21 +45,41 @@ def dedup(seq):
             yield item
 
 
-def shlex_join(value):
-    import pipes
+_find_unsafe = re.compile(r'[^\w@%+=`:,./-]').search
 
-    def quote(s):
-        return pipes.quote(s) if '$' not in s else s
 
-    if is_non_string_iterable(value):
-        return ' '.join(quote(x) for x in value)
-    else:
+def shlex_join(value, unsafe_regex=None, replacements=None,
+               enclose_with='"'):
+    """Join args into a valid shell command.
+    """
+
+    # historic backwards compatibility, unsure why this is here
+    if not is_non_string_iterable(value):
         return str(value)
+
+    unsafe_regex = unsafe_regex or _find_unsafe
+
+    def escape_word(s):
+        if not s:
+            return "''"
+        if unsafe_regex(s) is None:
+            return s
+
+        for from_, to_ in (replacements or []):
+            if isinstance(from_, six.string_types):
+                s = s.replace(from_, to_)
+            else:
+                s = from_.sub(to_, s)  # assume from_ is re.compile
+
+        return enclose_with + s + enclose_with
+
+    return ' '.join(escape_word(x) for x in value)
 
 
 # returns path to first program in the list to be successfully found
 def which(*programs, **shutilwhich_kwargs):
-    from rez.backport.shutilwhich import which as which_
+    from rez.utils.which import which as which_
+
     for prog in programs:
         path = which_(prog, **shutilwhich_kwargs)
         if path:
@@ -138,18 +163,3 @@ def is_non_string_iterable(arg):
         isinstance(arg, iterable_class)
         and not isinstance(arg, six.string_types)
     )
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

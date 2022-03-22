@@ -1,23 +1,23 @@
 name: flake8
 on:
   pull_request:
-    paths-ignore:
-      - '.github/docker/**'
-      - '.github/workflows/windows-docker-image.yaml'
-      - 'src/rez/utils/_version.py'
-      - 'wiki/**'
-      - 'metrics/**'
-      - 'data/**'
-      - '**.md'
+    paths:
+      - 'src/rez/**.py'
+      - 'src/rezplugins/**.py'
+      - '.github/workflows/flake8.yaml'
+      - '!src/rez/utils/_version.py'
+      - '!src/rez/data/**'
+      - '!src/rez/vendor/**'
+      - '!src/rez/backport/**'
   push:
-    paths-ignore:
-      - '.github/docker/**'
-      - '.github/workflows/windows-docker-image.yaml'
-      - 'src/rez/utils/_version.py'
-      - 'wiki/**'
-      - 'metrics/**'
-      - 'data/**'
-      - '**.md'
+    paths:
+      - 'src/rez/**.py'
+      - 'src/rezplugins/**.py'
+      - '.github/workflows/flake8.yaml'
+      - '!src/rez/utils/_version.py'
+      - '!src/rez/data/**'
+      - '!src/rez/vendor/**'
+      - '!src/rez/backport/**'
 
 jobs:
   lint:
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.7
 
@@ -40,12 +40,11 @@ jobs:
       - name: Run flake8
         run: >-
           find -name '*.py'
-          -not -path './build_utils/*'
           -not -path './rez/vendor/*'
           -not -path './rez/data/*'
-          -not -path './support/*'
           -not -path './rez/backport/*'
+          -not -path './build_utils/*'
+          -not -path './support/*'
           -not -path './rezgui/*'
-          | xargs flake8 --ignore
-          E241,E265,E266,E741,E742,E722,F821,W503
+          | xargs flake8
         working-directory: src

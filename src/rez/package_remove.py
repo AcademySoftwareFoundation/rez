@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from rez.package_repository import package_repository_manager
 from rez.vendor.version.version import Version
 from rez.utils.logging_ import print_info

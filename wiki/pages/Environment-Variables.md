@@ -89,6 +89,8 @@ operation of rez.
 * **REZ_(CONFIG_ENTRY)_JSON** - Same as the previous env-var, except that the format
   is a JSON string. This means that some more complex settings can be overridden,
   that aren't supported in the non-JSON case (*package_filter* is an example).
+* **REZ_DISABLE_HOME_CONFIG** - If 1/t/true, The default `~/.rezconfig.py` config
+  file is skipped.
 * **EDITOR** - On Linux and OSX systems, this will set the default editor to use
   if and when rez requires one (an example is on release if the *prompt_release_message*
   config setting is true).

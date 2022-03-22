@@ -1,0 +1,17 @@
+{
+  "total_run_time": 527.581084728241,
+  "num_success_resolves": 188,
+  "num_error_resolves": 0,
+  "num_failed_resolves": 1,
+  "rez_version": "2.90.1",
+  "rez_solver_version": 2,
+  "py_version": "3.7",
+  "platform": "Linux-5.4.0-1047-azure-x86_64-with-debian-bullseye-sid",
+  "num_cpu": 2,
+  "cpu": "Intel(R) Xeon(R) CPU E5-2673 v3 @ 2.40GHz",
+  "median": 1.504713773727417,
+  "mean": 2.8026510033201664,
+  "min": 0.0008261203765869141,
+  "max": 10.357159614562988,
+  "stddev": 2.858179429609351
+}

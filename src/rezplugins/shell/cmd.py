@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Windows Command Prompt (DOS) shell.
 """
@@ -354,6 +358,9 @@ class CMD(Shell):
 
     @classmethod
     def join(cls, command):
+        # TODO: This needs to be properly fixed, see other shell impls
+        # at https://github.com/nerdvegas/rez/pull/1130
+        #
         # TODO: This may disappear in future [1]
         # [1] https://bugs.python.org/issue10838
         return subprocess.list2cmdline(command)
@@ -384,19 +391,3 @@ class CMD(Shell):
 def register_plugin():
     if platform_.name == "windows":
         return CMD
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

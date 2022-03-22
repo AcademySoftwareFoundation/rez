@@ -23,13 +23,13 @@ ARG PWSH_VERSION=6.2.2
 # - PowerShellCore
 #
 ENV chocolateyUseWindowsCompression false
-RUN iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'));             `
-    choco feature disable --name showDownloadProgress;                                                 `
-    choco install git.install --yes --version=${ENV:GIT_VERSION};                                      `
+RUN iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); `
+    choco feature disable --name showDownloadProgress; `
+    choco install git.install --yes --version=${ENV:GIT_VERSION}; `
     choco install cmake --yes --version=${ENV:CMAKE_VERSION} --installargs 'ADD_CMAKE_TO_PATH=System'; `
-    choco install pwsh --yes --version=${PWSH_VERSION};                                                `
-    choco install --yes choco-cleaner;                                                                 `
-    C:\ProgramData\chocolatey\bin\choco-cleaner.ps1;                                                   `
+    choco install pwsh --yes --version=${PWSH_VERSION}; `
+    choco install --yes choco-cleaner; `
+    C:\ProgramData\chocolatey\bin\choco-cleaner.bat; `
     choco uninstall --yes choco-cleaner
 
 ENTRYPOINT ["powershell.exe", "-NoLogo", "-ExecutionPolicy", "ByPass"]

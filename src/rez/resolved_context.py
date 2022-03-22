@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from __future__ import print_function
 
 from rez import __version__, module_root_path
@@ -16,7 +20,7 @@ from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
-from rez.backport.shutilwhich import which
+from rez.utils.which import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding, EphemeralsBinding, intersects
@@ -28,7 +32,9 @@ from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
     RezError, _NeverError, PackageCacheError, PackageNotFoundError
-from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
+from rez.utils.graph_utils import write_dot, write_compacted, \
+    read_graph_from_string
+from rez.utils.resolve_graph import failure_detail_from_graph
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -807,13 +813,13 @@ class ResolvedContext(object):
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
         if self.status_ in (ResolverStatus.failed, ResolverStatus.aborted):
-            _pr("The context failed to resolve:\n%s"
-                % self.failure_description, critical)
-            return
+            res_status = "resolve failed,"
+        else:
+            res_status = "resolved"
 
         t_str = _rt(self.created)
-        _pr("resolved by %s@%s, on %s, using Rez v%s"
-            % (self.user, self.host, t_str, self.rez_version))
+        _pr("%s by %s@%s, on %s, using Rez v%s"
+            % (res_status, self.user, self.host, t_str, self.rez_version))
         if self.requested_timestamp:
             t_str = _rt(self.requested_timestamp)
             _pr("packages released after %s were ignored" % t_str)
@@ -862,6 +868,21 @@ class ResolvedContext(object):
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
         _pr()
+
+        # show resolved, or not
+        #
+        if self.status_ in (ResolverStatus.failed, ResolverStatus.aborted):
+            _pr("The context failed to resolve:\n%s"
+                % self.failure_description, critical)
+
+            _pr()
+            _pr(failure_detail_from_graph(self.graph(as_dot=False)))
+            _pr()
+            _pr("To see a graph of the failed resolution, add --fail-graph "
+                "in your rez-env or rez-build command.")
+            _pr()
+
+            return
 
         _pr("resolved packages:", heading)
         rows = []
@@ -1313,7 +1334,7 @@ class ResolvedContext(object):
                                   parent_environ=parent_environ,
                                   command='',  # don't run any command
                                   block=False,
-                                  actions_callback=_actions_callback,
+                                  post_actions_callback=_actions_callback,
                                   **Popen_args)
 
     @_on_success
@@ -1404,15 +1425,19 @@ class ResolvedContext(object):
         executor.env.REZ_CONTEXT_FILE = context_file
 
         if actions_callback:
+            header_comment(executor, "pre-actions-callback")
             actions_callback(executor)
 
         self._execute(executor)
 
-        if post_actions_callback:
-            post_actions_callback(executor)
-
         executor.env.REZ_SHELL_INIT_TIMESTAMP = str(int(time.time()))
         executor.env.REZ_SHELL_INTERACTIVE = "1" if command is None else "0"
+
+        if post_actions_callback:
+            header_comment(executor, "post-actions-callback")
+            post_actions_callback(executor)
+
+        self._execute_bundle_post_actions_callback(executor)
 
         # write out the native context file
         context_code = executor.get_output()
@@ -1693,6 +1718,31 @@ class ResolvedContext(object):
 
         return r
 
+    def _execute_bundle_post_actions_callback(self, executor):
+        """
+        In bundles, you can drop a 'post_commands.py' file (rex) alongside the
+        'bundle.yaml' file, and it will be sourced after all package commands.
+        """
+        if not self.load_path:
+            return
+
+        with self._detect_bundle(self.load_path):
+            bundle_dir = self._get_bundle_path()
+
+        if not bundle_dir:
+            return
+
+        rex_filepath = os.path.join(bundle_dir, "post_commands.py")
+        if not os.path.exists(rex_filepath):
+            return
+
+        # load the rex code an execute it within the executor
+        with open(rex_filepath) as f:
+            rex_py = f.read()
+
+        header_comment(executor, "bundle post-commands")
+        executor.execute_code(rex_py)
+
     @classmethod
     @contextmanager
     def _detect_bundle(cls, path):
@@ -1796,6 +1846,11 @@ class ResolvedContext(object):
             return
 
         data = {
+            # note that this is the version of rez used to source the context,
+            # which may not match the version used to _create_ the context
+            #
+            "rez_version": __version__,
+
             "host": socket.gethostname(),
             "user": getpass.getuser()
         }
@@ -1932,13 +1987,34 @@ class ResolvedContext(object):
             executor.setenv("REZ_RAW_REQUEST", request_str_)
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
+        # create variant bindings. Note that here we remap root for cases where
+        # the variant has been cached into the package cache
+        #
+        variant_bindings = {}
+
+        if self.package_caching and \
+                config.cache_packages_path and \
+                config.read_package_cache:
+            pkgcache = self._get_package_cache()
+        else:
+            pkgcache = None
+
+        for pkg in resolved_pkgs:
+            if pkgcache:
+                cached_root = pkgcache.get_cached_root(pkg)
+            else:
+                cached_root = None
+
+            variant_binding = VariantBinding(pkg, cached_root=cached_root)
+            variant_bindings[pkg.name] = variant_binding
+
         # binds objects such as 'request', which are accessible before a resolve
         pre_resolve_bindings = self._get_pre_resolve_bindings()
         for k, v in pre_resolve_bindings.items():
             executor.bind(k, v)
 
-        executor.bind('resolve', VariantsBinding(resolved_pkgs))
-        executor.bind('ephemerals', EphemeralsBinding(ephemerals))
+        executor.bind("resolve", VariantsBinding(variant_bindings))
+        executor.bind("ephemerals", EphemeralsBinding(ephemerals))
 
         #
         # -- apply each resolved package to the execution context
@@ -1950,21 +2026,7 @@ class ResolvedContext(object):
         # raised on bad commands code, not a SourceCodeError
         exc_type = SourceCodeError if config.catch_rex_errors else _NeverError
 
-        # retarget variant roots wrt package caching
-        pkg_roots = {}
-        if self.package_caching and \
-                config.cache_packages_path and \
-                config.read_package_cache:
-
-            pkgcache = self._get_package_cache()
-            if pkgcache:
-                for pkg in resolved_pkgs:
-                    cached_root = pkgcache.get_cached_root(pkg)
-                    if cached_root:
-                        pkg_roots[pkg.name] = cached_root
-
         # set basic package variables and create per-package bindings
-        pkg_bindings = {}
         for pkg in resolved_pkgs:
             minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
@@ -1978,18 +2040,15 @@ class ResolvedContext(object):
             executor.setenv(prefix + "_PATCH_VERSION", patch_version)
             executor.setenv(prefix + "_BASE", pkg.base)
 
-            pkg_root = pkg_roots.get(pkg.name)
-            if pkg_root:
-                executor.setenv(prefix + "_ROOT", pkg_root)
+            variant_binding = variant_bindings[pkg.name]
+
+            if variant_binding._is_in_package_cache():
+                # set to cached payload rather than original
+                executor.setenv(prefix + "_ROOT", variant_binding.root)
                 # store extra var to indicate that root retarget occurred
                 executor.setenv(prefix + "_ORIG_ROOT", pkg.root)
             else:
                 executor.setenv(prefix + "_ROOT", pkg.root)
-
-            pkg_bindings[pkg.name] = dict(
-                version=VersionBinding(pkg.version),
-                variant=VariantBinding(pkg)
-            )
 
         # package commands
         for attr in ("pre_commands", "commands", "post_commands"):
@@ -2003,10 +2062,11 @@ class ResolvedContext(object):
                     header_comment(executor, attr)
 
                 minor_header_comment(executor, "%s from package %s" % (attr, pkg.qualified_name))
-                pkg_bindings_ = pkg_bindings[pkg.name]
-                executor.bind('this', pkg_bindings_["variant"])
-                executor.bind("version", pkg_bindings_["version"])
-                executor.bind('root', pkg_roots.get(pkg.name, pkg.root))
+                variant_binding = variant_bindings[pkg.name]
+
+                executor.bind('this', variant_binding)
+                executor.bind("version", VersionBinding(pkg.version))
+                executor.bind('root', variant_binding.root)
                 executor.bind('base', pkg.base)
 
                 exc = None
@@ -2089,19 +2149,3 @@ class ResolvedContext(object):
         for path in suite_paths:
             tools_path = os.path.join(path, "bin")
             executor.env.PATH.append(tools_path)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

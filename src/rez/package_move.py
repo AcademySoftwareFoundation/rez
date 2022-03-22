@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from rez.exceptions import PackageMoveError
 from rez.package_copy import copy_package
 from rez.package_repository import package_repository_manager

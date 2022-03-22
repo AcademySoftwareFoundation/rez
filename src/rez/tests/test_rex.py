@@ -1,10 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 test the rex command generator API
 """
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv, expandable, \
     literal
-from rez.rex_bindings import VersionBinding, VariantsBinding, \
+from rez.rex_bindings import VersionBinding, VariantBinding, VariantsBinding, \
     RequirementsBinding, EphemeralsBinding, intersects
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
@@ -360,6 +364,32 @@ class TestRex(TestBase):
                        'BAH': 'omg',
                        'FOO': os.pathsep.join(['omg', '${BAH}', 'like']) + ', $SHE said, omg'})
 
+    def test_10(self):
+        """Test env __contains__ and __bool__"""
+
+        def _test(func, env, expected):
+            ex = self._create_executor(env=env)
+            self.assertEqual(expected, ex.execute_function(func))
+
+        def _rex_1():
+            return {
+                "A": "A" in env.keys(),
+                "B": "B" in env.keys(),
+            }
+
+        def _rex_2():
+            return {
+                "A": "A" in env,
+                "B": "B" in env,
+            }
+
+        def _rex_3():
+            return env.get("B") or "not b"
+
+        _test(_rex_1, env={"A": "foo"}, expected={"A": True, "B": False})
+        _test(_rex_2, env={"A": "foo"}, expected={"A": True, "B": False})
+        _test(_rex_3, env={}, expected="not b")
+
     def test_version_binding(self):
         """Test the Rex binding of the Version class."""
         v = VersionBinding(Version("1.2.3alpha"))
@@ -425,7 +455,13 @@ class TestRex(TestBase):
             for package in family.iter_packages()
             for variant in package.iter_variants()
         ]
-        resolve = VariantsBinding(resolved_packages)
+
+        variant_bindings = dict(
+            (variant.name, VariantBinding(variant))
+            for variant in resolved_packages
+        )
+        resolve = VariantsBinding(variant_bindings)
+
         self.assertTrue(intersects(resolve.foo, "1"))
         self.assertFalse(intersects(resolve.foo, "0"))
         self.assertTrue(intersects(resolve.maya, "2019+"))
@@ -444,7 +480,7 @@ class TestRex(TestBase):
 
         request = RequirementsBinding([])
         bar_on = intersects(request.get("foo.bar", "foo.bar-0"), "1")
-        self.assertFalse(bar_on)  # workaround, see PR nerdvegas/rez#1030
+        self.assertFalse(bar_on)  # workaround, see https://github.com/nerdvegas/rez/pull/1030
 
         # request.get_range
         request = RequirementsBinding([Requirement("foo.bar-1")])
@@ -480,7 +516,7 @@ class TestRex(TestBase):
 
         ephemerals = EphemeralsBinding([])
         bar_on = intersects(ephemerals.get("foo.bar", "foo.bar-0"), "1")
-        self.assertFalse(bar_on)  # workaround, see PR nerdvegas/rez#1030
+        self.assertFalse(bar_on)  # workaround, see https://github.com/nerdvegas/rez/pull/1030
 
         ephemerals = EphemeralsBinding([])
         self.assertRaises(RuntimeError,  # no default
@@ -514,19 +550,3 @@ class TestRex(TestBase):
 
 if __name__ == '__main__':
     unittest.main()
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

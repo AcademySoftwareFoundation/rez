@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Python packaging related utilities.
 """
@@ -324,7 +328,8 @@ def is_pure_python_package(installed_dist):
     wheel_data = Parser().parsestr(wheel_data)
 
     # see https://www.python.org/dev/peps/pep-0427/#what-s-the-deal-with-purelib-vs-platlib
-    return (wheel_data.get("Root-Is-Purelib", "").lower() == "true")
+    is_purelib = wheel_data.get("Root-Is-Purelib", "").lower()
+    return (is_purelib == "true")
 
 
 def get_rez_requirements(installed_dist, python_version, name_casings=None):
@@ -489,7 +494,7 @@ def convert_distlib_to_setuptools(installed_dist):
     setuptools_dists = pkg_resources.find_distributions(path)
 
     for setuptools_dist in setuptools_dists:
-        if setuptools_dist.key == installed_dist.key:
+        if setuptools_dist.key == pkg_resources.safe_name(installed_dist.key):
             return setuptools_dist
 
     return None

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 test configuration settings
 """
@@ -256,6 +260,10 @@ class TestConfig(TestBase):
             if not key.startswith("REZ_")
         }
 
+        env.update({
+            "REZ_DISABLE_HOME_CONFIG": "1"
+        })
+
         test_configs = {
             "packages_path": ["/foo bar/baz", "/foo bar/baz hey", "/home/foo bar/baz"],
             "platform_map": {"foo": {"bar": "baz"}},
@@ -287,19 +295,3 @@ class TestConfig(TestBase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 This script uses venv/virtualenv to create a standalone, production-ready Rez
 installation in the specified directory.
@@ -20,8 +24,8 @@ sys.path.insert(0, src_path)
 # though rez is not yet built.
 #
 from rez.utils._version import _rez_version  # noqa: E402
+from rez.utils.which import which  # noqa: E402
 from rez.cli._entry_points import get_specifications  # noqa: E402
-from rez.backport.shutilwhich import which  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
 # switch to builtin venv in python 3.7+
@@ -190,7 +194,12 @@ def install(dest_dir, print_welcome=False):
 
             if shell:
                 shell = os.path.basename(shell)
-                ext = "csh" if "csh" in shell else "sh"  # Basic selection logic
+                if "csh" in shell: # csh and tcsh
+                    ext = "csh"
+                elif "zsh" in shell:
+                    ext = "zsh"
+                else:
+                    ext = "sh"
 
                 print("You may also want to source the completion script (for %s):" % shell)
                 print("source {0}/complete.{1}".format(completion_path, ext))

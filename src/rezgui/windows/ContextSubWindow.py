@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from Qt import QtCore, QtWidgets
 from rezgui.objects.App import app
 from rezgui.widgets.ContextManagerWidget import ContextManagerWidget
@@ -66,9 +70,12 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
                 "Save the changes to %s before closing?\n"
                 "If you don't save the context, your changes will be lost."
                 % id_str,
-                buttons=QtWidgets.QMessageBox.Save
+                buttons=(
+                    QtWidgets.QMessageBox.Save
                     | QtWidgets.QMessageBox.Discard
-                    | QtWidgets.QMessageBox.Cancel)
+                    | QtWidgets.QMessageBox.Cancel
+                )
+            )
 
             if ret == QtWidgets.QMessageBox.Save:
                 if self.is_saveable():
@@ -80,9 +87,7 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
             else:
                 return (ret == QtWidgets.QMessageBox.Discard)
 
-        # should never get here
-        assert False
-        return False
+        raise RuntimeError("Should never get here")  # NOSONAR
 
     def is_save_as_able(self):
         return not self.context_model.is_stale()
@@ -144,19 +149,3 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
     def _update_window_title(self):
         title = self.widget().get_title()
         self.setWindowTitle(title)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

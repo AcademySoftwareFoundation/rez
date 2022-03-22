@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from Qt import QtCore, QtWidgets
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
@@ -13,16 +17,16 @@ class ViewGraphButton(QtWidgets.QToolButton, ContextViewMixin):
         # If not None, prunes the graph to this package
         self.package_name = None
 
-        menu = QtWidgets.QMenu()
-        self.action_1 = add_menu_action(menu, "View Resolve Graph...",
+        self.menu = QtWidgets.QMenu()
+        self.action_1 = add_menu_action(self.menu, "View Resolve Graph...",
                                         self._view_resolve_graph, "graph")
-        self.action_2 = add_menu_action(menu, "View Dependency Graph...",
+        self.action_2 = add_menu_action(self.menu, "View Dependency Graph...",
                                         self._view_dependency_graph)
 
         self.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
         self.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         self.setDefaultAction(self.action_1)
-        self.setMenu(menu)
+        self.setMenu(self.menu)
 
         self.refresh()
 
@@ -56,19 +60,3 @@ class ViewGraphButton(QtWidgets.QToolButton, ContextViewMixin):
         graph = self.context().get_dependency_graph()
         graph_str = write_dot(graph)
         view_graph(graph_str, self.window(), prune_to=self.package_name)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

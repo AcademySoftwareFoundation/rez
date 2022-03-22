@@ -1,13 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 import atexit
 import socket
 import time
 import threading
+import logging
 
 from rez.utils import json
-from rez.utils.data_utils import remove_nones
 from rez.utils.logging_ import print_error
-from rez.vendor.amqp import Connection, basic_message
-from rez.vendor.six.six.moves import queue
+from rez.vendor.six.six.moves import queue, urllib
+from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
+from rez.vendor.pika.connection import ConnectionParameters
+from rez.vendor.pika.credentials import PlainCredentials
+from rez.vendor.pika.spec import BasicProperties
+from rez.config import config
 
 
 _lock = threading.Lock()
@@ -59,33 +67,51 @@ def _publish_message(host, amqp_settings, routing_key, data):
         print("Published to %s: %s" % (routing_key, data))
         return True
 
+    set_pika_log_level()
+
+    conn_kwargs = dict()
+
+    # name the conn like 'rez.publish.{host}'
+    conn_kwargs["client_properties"] = {
+        "connection_name": "rez.publish.%s" % socket.gethostname()
+    }
+
+    host, port = parse_host_and_port(url=host)
+    conn_kwargs["host"] = host
+    if port is not None:
+        conn_kwargs["port"] = port
+
+    if amqp_settings.get("userid"):
+        conn_kwargs["credentials"] = PlainCredentials(
+            username=amqp_settings.get("userid"),
+            password=amqp_settings.get("password")
+        )
+
+    params = ConnectionParameters(
+        socket_timeout=amqp_settings.get("connect_timeout"),
+        **conn_kwargs
+    )
+
+    props = BasicProperties(
+        content_type="application/json",
+        content_encoding="utf-8",
+        delivery_mode=amqp_settings.get("message_delivery_mode")
+    )
+
     try:
-        conn = Connection(**remove_nones(
-            host=host,
-            userid=amqp_settings.get("userid"),
-            password=amqp_settings.get("password"),
-            connect_timeout=amqp_settings.get("connect_timeout")
-        ))
+        conn = BlockingConnection(params)
     except socket.error as e:
-        print_error("Cannot connect to the message broker: %s" % (e))
+        print_error("Cannot connect to the message broker: %s" % e)
         return False
 
-    channel = conn.channel()
-
-    # build the message
-    msg = basic_message.Message(**remove_nones(
-        body=json.dumps(data),
-        delivery_mode=amqp_settings.get("message_delivery_mode"),
-        content_type="application/json",
-        content_encoding="utf-8"
-    ))
-
-    # publish the message
     try:
+        channel = conn.channel()
+
         channel.basic_publish(
-            msg,
-            amqp_settings["exchange_name"],
-            routing_key
+            exchange=amqp_settings["exchange_name"],
+            routing_key=routing_key,
+            body=json.dumps(data),
+            properties=props
         )
     except Exception as e:
         print_error("Failed to publish message: %s" % (e))
@@ -120,3 +146,22 @@ def on_exit():
 
     while _num_pending and (time.time() - t) < maxtime:
         time.sleep(timeinc)
+
+
+def parse_host_and_port(url):
+    _url = urllib.parse.urlsplit(url)
+    if not _url.scheme:
+        _url = urllib.parse.urlsplit("//" + url)
+    host = _url.hostname
+    port = _url.port
+
+    return host, port
+
+
+def set_pika_log_level():
+    mod_name = "rez.vendor.pika"
+
+    if config.debug("context_tracking"):
+        logging.getLogger(mod_name).setLevel(logging.DEBUG)
+    else:
+        logging.getLogger(mod_name).setLevel(logging.WARNING)

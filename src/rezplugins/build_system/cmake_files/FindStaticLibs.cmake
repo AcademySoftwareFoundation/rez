@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 #
 # This is a utility function to get around problems when using pkg-config in combination with static
 # library linking. Cmake has a 'pkg_check_modules' function, which runs pkgconfig and returns the

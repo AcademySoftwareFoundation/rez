@@ -1,4 +1,3 @@
-
 def get_authors():
     return [
         "tweedle-dee",

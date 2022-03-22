@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Manages loading of all types of Rez plugins.
 """
@@ -8,6 +12,8 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.vendor.six import six
 from rez.exceptions import RezPluginError
+from zipimport import zipimporter
+import pkgutil
 import os.path
 import sys
 
@@ -52,20 +58,29 @@ def extend_path(path, name):
     init_py = "__init__" + os.extsep + "py"
     path = path[:]
 
-    for dir_ in config.plugin_path:
-        if not os.path.isdir(dir_):
-            if config.debug("plugins"):
-                print_debug("skipped nonexistant rez plugin path: %s" % dir_)
-            continue
+    def append_if_valid(dir_):
+        if os.path.isdir(dir_):
+            subdir = os.path.normcase(os.path.join(dir_, pname))
+            initfile = os.path.join(subdir, init_py)
+            if subdir not in path and os.path.isfile(initfile):
+                path.append(subdir)
 
-        subdir = os.path.join(dir_, pname)
-        # XXX This may still add duplicate entries to path on
-        # case-insensitive filesystems
-        initfile = os.path.join(subdir, init_py)
-        if subdir not in path and os.path.isfile(initfile):
-            path.append(subdir)
+        elif config.debug("plugins"):
+            print_debug("skipped nonexistant rez plugin path: %s" % dir_)
+
+    # Extend old-style plugins
+    for dir_ in config.plugin_path:
+        append_if_valid(dir_)
+    # Extend new-style plugins
+    for dir_ in plugin_manager.rezplugins_module_paths:
+        append_if_valid(dir_)
 
     return path
+
+
+def uncache_rezplugins_module_paths(instance=None):
+    instance = instance or plugin_manager
+    cached_property.uncache(instance, "rezplugins_module_paths")
 
 
 class RezPluginType(object):
@@ -112,42 +127,66 @@ class RezPluginType(object):
             else package.__path__
 
         # reverse plugin path order, so that custom plugins have a chance to
-        # override the builtin plugins (from /rezplugins).
+        # be found before the builtin plugins (from /rezplugins).
         paths = reversed(paths)
 
         for path in paths:
             if config.debug("plugins"):
                 print_debug("searching plugin path %s...", path)
 
-            for loader, modname, ispkg in pkgutil.iter_modules(
+            for importer, modname, ispkg in pkgutil.iter_modules(
                     [path], package.__name__ + '.'):
 
-                if loader is None:
+                if importer is None:
                     continue
 
                 plugin_name = modname.split('.')[-1]
-                if plugin_name.startswith('_'):
+                if plugin_name.startswith('_') or plugin_name == 'rezconfig':
+                    continue
+
+                if plugin_name in self.plugin_modules:
+                    # same named plugins will have identical module name,
+                    # which will just reuse previous imported module from
+                    # `sys.modules` below. skipping the rest of the process
+                    # for good.
+                    if config.debug("plugins"):
+                        print_warning("skipped same named %s plugin at %s: %s"
+                                      % (self.type_name, path, modname))
                     continue
 
                 if config.debug("plugins"):
                     print_debug("loading %s plugin at %s: %s..."
                                 % (self.type_name, path, modname))
                 try:
+                    # https://github.com/nerdvegas/rez/pull/218
                     # load_module will force reload the module if it's
                     # already loaded, so check for that
-                    module = sys.modules.get(modname)
-                    if module is None:
-                        module = loader.find_module(modname).load_module(modname)
-                    if hasattr(module, 'register_plugin') and \
-                            hasattr(module.register_plugin, '__call__'):
-                        plugin_class = module.register_plugin()
+                    plugin_module = sys.modules.get(modname)
+                    if plugin_module is None:
+                        loader = importer.find_module(modname)
+                        plugin_module = loader.load_module(modname)
+
+                    elif os.path.dirname(plugin_module.__file__) != path:
+                        if config.debug("plugins"):
+                            # this should not happen but if it does, tell why.
+                            print_warning(
+                                "plugin module %s is not loaded from current "
+                                "load path but reused from previous imported "
+                                "path: %s" % (modname, plugin_module.__file__))
+
+                    if (hasattr(plugin_module, "register_plugin")
+                            and callable(plugin_module.register_plugin)):
+
+                        plugin_class = plugin_module.register_plugin()
                         if plugin_class is not None:
-                            self.register_plugin(plugin_name, plugin_class, module)
+                            self.register_plugin(plugin_name,
+                                                 plugin_class,
+                                                 plugin_module)
                         else:
                             if config.debug("plugins"):
                                 print_warning(
-                                    "'register_plugin' function at %s: %s did not return a class."
-                                    % (path, modname))
+                                    "'register_plugin' function at %s: %s did "
+                                    "not return a class." % (path, modname))
                     else:
                         if config.debug("plugins"):
                             print_warning(
@@ -260,6 +299,32 @@ class RezPluginManager(object):
     """
     def __init__(self):
         self._plugin_types = {}
+
+    @cached_property
+    def rezplugins_module_paths(self):
+        paths = []
+        for importer, name, ispkg in pkgutil.iter_modules():
+            if not ispkg:
+                continue
+
+            if isinstance(importer, zipimporter):
+                init_path = os.path.join(name, "rezplugins", "__init__.pyc")
+                try:
+                    importer.get_data(init_path)
+                except (IOError, OSError):
+                    continue
+                else:
+                    module_path = os.path.join(importer.archive, name)
+
+            else:
+                module_path = os.path.join(importer.path, name)
+                init_path = os.path.join(module_path, "rezplugins", "__init__.py")
+                if not os.path.isfile(init_path):
+                    continue
+
+            paths.append(module_path)
+
+        return paths
 
     # -- plugin types
 
@@ -380,6 +445,12 @@ class BuildProcessPluginType(RezPluginType):
     type_name = "build_process"
 
 
+class CommandPluginType(RezPluginType):
+    """Support for different custom Rez applications/subcommands.
+    """
+    type_name = "command"
+
+
 plugin_manager = RezPluginManager()
 
 
@@ -389,19 +460,4 @@ plugin_manager.register_plugin_type(ReleaseHookPluginType)
 plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+plugin_manager.register_plugin_type(CommandPluginType)

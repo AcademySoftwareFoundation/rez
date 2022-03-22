@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from Qt import QtWidgets
 from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
@@ -312,19 +316,3 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
         widget = get_icon_widget(name, tooltip)
         layout.insertWidget(0, widget)
         self.lock_icon = (widget, name, tooltip)
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

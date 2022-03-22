@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from rez.packages import iter_packages
 from rez.exceptions import ConfigurationError
 from rez.config import config
@@ -495,7 +499,8 @@ class TimestampRule(Rule):
     """
     name = "timestamp"
 
-    def __init__(self, timestamp, family=None, reverse=False):
+    def __init__(self, timestamp, family=None, reverse=False,
+                 match_untimestamped=False):
         """Create a timestamp rule.
 
         Args:
@@ -503,13 +508,18 @@ class TimestampRule(Rule):
             family (str): Package family to apply the rule to.
             reverse (bool): If True, reverse the logic so that packages released
                 *after* the timestamp are matched.
+            match_untimestamped (bool): Defines behaviour on non-timestamped
+                packages.
         """
         self.timestamp = timestamp
         self.reverse = reverse
+        self.match_untimestamped = match_untimestamped
         self._family = family
 
     def match(self, package):
-        if self.reverse:
+        if not package.timestamp:
+            return self.match_untimestamped
+        elif self.reverse:
             return (package.timestamp > self.timestamp)
         else:
             return (package.timestamp <= self.timestamp)
@@ -545,19 +555,3 @@ class TimestampRule(Rule):
             parts.append(self._family)
         parts.append(str(self.timestamp))
         return "%s(%s)" % (label, ':'.join(parts))
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -1,9 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join, is_non_string_iterable
-from rez.backport.shutilwhich import which
+from rez.utils.which import which
 from rez.utils.logging_ import print_warning
 from rez.utils.execution import Popen
 from rez.system import system
@@ -278,6 +282,8 @@ class Shell(ActionInterpreter):
     @classmethod
     def join(cls, command):
         """
+        Note: Default to unix sh/bash- friendly behaviour.
+
         Args:
             command:
                 A sequence of program arguments to be joined into a single
@@ -285,7 +291,22 @@ class Shell(ActionInterpreter):
         Returns:
             A string object representing the command.
         """
-        raise NotImplementedError
+        replacements = [
+            # escape ` as \`
+            ('`', "\\`"),
+
+            # use double quotes, and put double quotes into single quotes -
+            # the string $"b is then quoted as "$"'"'"b". This mimics py3.8+
+            # shlex.join function, except with double instead of single quotes.
+            #
+            # We do this because a command like rez-env -- echo 'hey $FOO' needs
+            # to be interpreted as echo "hey $FOO" in the runtime - ie we would
+            # expect $FOO to get expanded.
+            #
+            ('"', '"\'"\'"')
+        ]
+
+        return shlex_join(command, replacements=replacements)
 
 
 class UnixShell(Shell):
@@ -517,24 +538,5 @@ class UnixShell(Shell):
         return ["${%s}" % key, "$%s" % key]
 
     @classmethod
-    def join(cls, command):
-        return shlex_join(command)
-
-    @classmethod
     def line_terminator(cls):
         return "\n"
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

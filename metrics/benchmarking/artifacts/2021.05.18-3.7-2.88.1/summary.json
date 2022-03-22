@@ -1,0 +1,17 @@
+{
+  "total_run_time": 543.5299191474915,
+  "num_success_resolves": 188,
+  "num_error_resolves": 0,
+  "num_failed_resolves": 1,
+  "rez_version": "2.88.1",
+  "rez_solver_version": 2,
+  "py_version": "3.7",
+  "platform": "Linux-5.4.0-1047-azure-x86_64-with-debian-bullseye-sid",
+  "num_cpu": 2,
+  "cpu": "Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz",
+  "median": 1.570080041885376,
+  "mean": 2.88730104045665,
+  "min": 0.0008590221405029297,
+  "max": 10.341387510299683,
+  "stddev": 2.959348755448426
+}

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from rez.config import config
 from rez.packages import Package, create_package
 from rez.serialise import load_from_file, FileFormat, set_objects

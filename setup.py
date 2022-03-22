@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 from __future__ import print_function, with_statement
 
 import fnmatch
@@ -59,7 +63,7 @@ setup(
     url="https://github.com/nerdvegas/rez",
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
-    license="LGPL",
+    license="Apache License 2.0",
     entry_points={
         "console_scripts": get_specifications().values()
     },
@@ -86,15 +90,12 @@ setup(
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
-        "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+        "License :: OSI Approved :: Apache Software License",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Topic :: Software Development",
         "Topic :: System :: Software Distribution"
     ]

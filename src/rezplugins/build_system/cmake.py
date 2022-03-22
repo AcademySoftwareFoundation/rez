@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 CMake-based build system
 """
@@ -11,7 +15,7 @@ from rez.utils.execution import create_forwarding_script
 from rez.packages import get_developer_package
 from rez.utils.platform_ import platform_
 from rez.config import config
-from rez.backport.shutilwhich import which
+from rez.utils.which import which
 from rez.vendor.schema.schema import Or
 from rez.vendor.six import six
 from rez.shells import create_shell
@@ -153,20 +157,35 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
-        callback = functools.partial(self._add_build_actions,
-                                     context=context,
-                                     package=self.package,
-                                     variant=variant,
-                                     build_type=build_type,
-                                     install=install,
-                                     build_path=build_path,
-                                     install_path=install_path)
+        actions_callback = functools.partial(
+            self._add_build_actions,
+            context=context,
+            package=self.package,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
+
+        post_actions_callback = functools.partial(
+            self.add_pre_build_commands,
+            variant=variant,
+            build_type=build_type,
+            install=install,
+            build_path=build_path,
+            install_path=install_path
+        )
 
         # run the build command and capture/print stderr at the same time
-        retcode, _, _ = context.execute_shell(command=cmd,
-                                              block=True,
-                                              cwd=build_path,
-                                              post_actions_callback=callback)
+        retcode, _, _ = context.execute_shell(
+            command=cmd,
+            block=True,
+            cwd=build_path,
+            actions_callback=actions_callback,
+            post_actions_callback=post_actions_callback
+        )
+
         ret = {}
         if retcode:
             ret["success"] = False
@@ -211,20 +230,26 @@ class CMakeBuildSystem(BuildSystem):
 
         # execute make within the build env
         _pr("\nExecuting: %s" % ' '.join(cmd))
-        retcode, _, _ = context.execute_shell(command=cmd,
-                                              block=True,
-                                              cwd=build_path,
-                                              post_actions_callback=callback)
+        retcode, _, _ = context.execute_shell(
+            command=cmd,
+            block=True,
+            cwd=build_path,
+            actions_callback=actions_callback,
+            post_actions_callback=post_actions_callback
+        )
 
         if not retcode and install and "install" not in cmd:
             cmd.append("install")
 
             # execute make install within the build env
             _pr("\nExecuting: %s" % ' '.join(cmd))
-            retcode, _, _ = context.execute_shell(command=cmd,
-                                                  block=True,
-                                                  cwd=build_path,
-                                                  post_actions_callback=callback)
+            retcode, _, _ = context.execute_shell(
+                command=cmd,
+                block=True,
+                cwd=build_path,
+                actions_callback=actions_callback,
+                post_actions_callback=post_actions_callback
+            )
 
         ret["success"] = (not retcode)
         return ret
@@ -259,36 +284,35 @@ def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
     variant = package.get_variant(variant_index)
     config.override("prompt", "BUILD>")
 
-    callback = functools.partial(CMakeBuildSystem._add_build_actions,
-                                 context=context,
-                                 package=package,
-                                 variant=variant,
-                                 build_type=BuildType.local,
-                                 install=install,
-                                 build_path=build_path,
-                                 install_path=install_path)
+    actions_callback = functools.partial(
+        CMakeBuildSystem._add_build_actions,
+        context=context,
+        package=package,
+        variant=variant,
+        build_type=BuildType.local,
+        install=install,
+        build_path=build_path,
+        install_path=install_path
+    )
 
-    retcode, _, _ = context.execute_shell(block=True,
-                                          cwd=build_path,
-                                          post_actions_callback=callback)
+    post_actions_callback = functools.partial(
+        CMakeBuildSystem.add_pre_build_commands,
+        variant=variant,
+        build_type=BuildType.local,
+        install=install,
+        build_path=build_path,
+        install_path=install_path
+    )
+
+    retcode, _, _ = context.execute_shell(
+        block=True,
+        cwd=build_path,
+        actions_callback=actions_callback,
+        post_actions_callback=post_actions_callback
+    )
+
     sys.exit(retcode)
 
 
 def register_plugin():
     return CMakeBuildSystem
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

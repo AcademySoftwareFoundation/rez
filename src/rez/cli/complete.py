@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Prints package completion strings.
 """
@@ -80,10 +84,11 @@ def command(opts, parser, extra_arg_groups=None):
 
     # create parser for subcommand
     from rez.backport.importlib import import_module
-    module_name = "rez.cli.%s" % subcommand
+    data = subcommands[subcommand]
+    module_name = data.get("module_name", "rez.cli.%s" % subcommand)
     mod = import_module(module_name)
-    parser = argparse.ArgumentParser()
-    mod.setup_parser(parser, completions=True)
+    sub_parser = argparse.ArgumentParser()
+    mod.setup_parser(sub_parser, completions=True)
 
     # have to massage input a little so argcomplete behaves
     cmd = "rez-%s" % subcommand
@@ -92,25 +97,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     # generate the completions
     from rez.cli._complete_util import RezCompletionFinder
-    completer = RezCompletionFinder(parser=parser,
+    completer = RezCompletionFinder(parser=sub_parser,
                                     comp_line=comp_line,
                                     comp_point=comp_point)
     words = completer.completions
     words = [w.decode() if hasattr(w, 'decode') else w for w in words]
     print(' '.join(words))
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

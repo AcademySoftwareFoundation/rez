@@ -1,10 +1,3 @@
-[[media/rez_banner_128.png]]
-
-- [What Is Rez?](#what-is-rez)
-- [The Basics](#the-basics)
-- [Examples](#examples)
-
-
 ## What Is Rez?
 
 Rez is a cross-platform package manager with a difference. Using Rez you can create
@@ -16,15 +9,15 @@ are lightweight, and very fast to create, often taking just a few seconds to con
 despite containing hundreds of packages.
 
 <p align="center">
-<a href="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png">
-<img src="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png"></a>
+<a href="https://github.com/__GITHUB_REPO__/wiki/media/other_pkg_mgr.png">
+<img src="https://github.com/__GITHUB_REPO__/wiki/media/other_pkg_mgr.png"></a>
 <br><i>Typical package managers install packages into an environment</i>
 </p>
 
 <br>
 <p align="center">
-<a href="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png">
-<img src="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png"></a>
+<a href="https://github.com/__GITHUB_REPO__/wiki/media/rez_pkg_mgr.png">
+<img src="https://github.com/__GITHUB_REPO__/wiki/media/rez_pkg_mgr.png"></a>
 <br><i>Rez installs packages once, and configures environments dynamically</i>
 </p>
 
@@ -68,7 +61,7 @@ and when re-evaluated later will reconstruct the same environment once more.
 ## Examples
 
 This example places the user into a resolved shell containing the requested packages,
-using the [rez-env](https://github.com/nerdvegas/rez/wiki/Command-Line-Tools#rez-env) tool:
+using the [rez-env](Command-Line-Tools#rez-env) tool:
 
     ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
 

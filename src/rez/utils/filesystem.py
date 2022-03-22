@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 Filesystem-related utilities.
 """
@@ -18,6 +22,7 @@ import os
 import re
 import stat
 import platform
+import uuid
 
 from rez.vendor.six import six
 from rez.utils.platform_ import platform_
@@ -86,21 +91,14 @@ atexit.register(TempDirs.clear_all)
 def make_path_writable(path):
     """Temporarily make `path` writable, if possible.
 
-    Does nothing if:
-        - config setting 'make_package_temporarily_writable' is False;
-        - this can't be done (eg we don't own `path`).
-
     Args:
         path (str): Path to make temporarily writable
     """
-    from rez.config import config
-
     try:
         orig_mode = os.stat(path).st_mode
         new_mode = orig_mode
 
-        if config.make_package_temporarily_writable and \
-                not os.access(path, os.W_OK):
+        if not os.access(path, os.W_OK):
             new_mode = orig_mode | stat.S_IWUSR
 
         # make writable
@@ -330,7 +328,12 @@ def make_tmp_name(name):
     disk at context exit time, it is deleted.
     """
     path, base = os.path.split(name)
-    tmp_base = ".tmp-%s-%s" % (base, uuid4().hex)
+
+    # there's a reason this isn't a hidden file:
+    # https://github.com/nerdvegas/rez/pull/1088
+    #
+    tmp_base = "_tmp-%s-%s" % (base, uuid4().hex)
+
     tmp_name = os.path.join(path, tmp_base)
 
     try:
@@ -385,32 +388,38 @@ def copy_or_replace(src, dst):
     '''
     try:
         shutil.copy(src, dst)
+        return
+
     except (OSError, IOError) as e:
         # It's possible that the file existed, but was owned by someone
         # else - in that situation, shutil.copy might then fail when it
         # tries to copy perms.
         # However, it's possible that we have write perms to the dir -
         # in which case, we can just delete and replace
-        import errno
+        #
+        if e.errno != errno.EPERM:
+            raise
 
-        if e.errno == errno.EPERM:
-            import tempfile
-            # try copying into a temporary location beside the old
-            # file - if we have perms to do that, we should have perms
-            # to then delete the old file, and move the new one into
-            # place
-            if os.path.isdir(dst):
-                dst = os.path.join(dst, os.path.basename(src))
+    # try copying into a temporary location beside the old file - if we have
+    # perms to do that, we should have perms to then delete the old file, and
+    # move the new one into place
+    #
+    if os.path.isdir(dst):
+        dst = os.path.join(dst, os.path.basename(src))
 
-            dst_dir, dst_name = os.path.split(dst)
-            dst_temp = tempfile.mktemp(prefix=dst_name + '.', dir=dst_dir)
-            shutil.copy(src, dst_temp)
-            if not os.path.isfile(dst_temp):
-                raise RuntimeError(
-                    "shutil.copy completed successfully, but path"
-                    " '%s' still did not exist" % dst_temp)
-            os.remove(dst)
-            shutil.move(dst_temp, dst)
+    dst_dir, dst_name = os.path.split(dst)
+    tmp_filename = ".%s.%s" % (uuid.uuid4().hex, dst_name)
+    dst_temp = os.path.join(dst_dir, tmp_filename)
+
+    shutil.copy(src, dst_temp)
+
+    if not os.path.isfile(dst_temp):
+        raise RuntimeError(
+            "shutil.copy completed successfully, but path"
+            " '%s' still did not exist" % dst_temp
+        )
+    os.remove(dst)
+    shutil.move(dst_temp, dst)
 
 
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
@@ -688,19 +697,3 @@ def windows_long_path(dos_path):
         path = "\\\\?\\" + path
 
     return path
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
