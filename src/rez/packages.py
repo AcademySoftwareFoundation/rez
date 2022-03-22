@@ -598,6 +598,24 @@ def get_package(name, version, paths=None):
         return None
 
 
+def get_package_family_from_repository(name, path):
+    """Get a package family from a repository.
+
+    Args:
+        name (str): Name of the package, eg 'maya'.
+
+    Returns:
+        `PackageFamily` object, or None if the family was not found.
+    """
+    repo = package_repository_manager.get_repository(path)
+
+    family_resource = repo.get_package_family(name)
+    if family_resource is None:
+        return None
+
+    return PackageFamily(family_resource)
+
+
 def get_package_from_repository(name, version, path):
     """Get a package from a repository.
 

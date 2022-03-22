@@ -735,6 +735,36 @@ class FileSystemPackageRepository(PackageRepository):
 
         return True
 
+    def remove_package_family(self, pkg_name, force=False):
+        # get a non-cached copy and see if fam exists
+        repo_copy = self._copy(
+            disable_pkg_ignore=True,
+            disable_memcache=True
+        )
+
+        fam = repo_copy.get_package_family(pkg_name)
+        if fam is None:
+            return False
+
+        # check that the pkg fam is empty
+        if not force:
+            empty = True
+            for _ in repo_copy.iter_packages(fam):
+                empty = False
+                break
+
+            if not empty:
+                raise PackageRepositoryError(
+                    "Cannot remove non-empty package family %r" % pkg_name
+                )
+
+        # delete the fam dir
+        fam_dir = os.path.join(self.location, pkg_name)
+        shutil.rmtree(fam_dir)
+
+        self._on_changed(pkg_name)
+        return True
+
     def remove_ignored_since(self, days, dry_run=False, verbose=False):
         now = int(time.time())
         num_removed = 0
@@ -1464,7 +1494,9 @@ class FileSystemPackageRepository(PackageRepository):
         # stats are required to determine if a resolve cache entry is stale.
         #
         family_path = os.path.join(self.location, pkg_name)
-        os.utime(family_path, None)
+
+        if os.path.exists(family_path):
+            os.utime(family_path, None)
 
         # clear internal caches, otherwise change may not be visible
         self.clear_caches()

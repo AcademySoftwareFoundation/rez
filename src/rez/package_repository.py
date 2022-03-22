@@ -269,6 +269,18 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def remove_package_family(self, pkg_name, force=False):
+        """Remove an empty package family.
+
+        Args:
+            pkg_name (str): Package name
+            force (bool): If Trur, delete even if not empty.
+
+        Returns:
+            bool: True if the family was removed, False if it wasn't found.
+        """
+        raise NotImplementedError
+
     def remove_ignored_since(self, days, dry_run=False, verbose=False):
         """Remove packages ignored for >= specified number of days.
 
