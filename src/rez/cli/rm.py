@@ -17,9 +17,11 @@ def setup_parser(parser, completions=False):
         "even if the package is currently ignored.")
     group.add_argument(
         "-f", "--family",
-        help="remove the entire specified package family (eg 'python'). This "
-        "is only supported if the family is empty, or all its packages are "
-        "hidden")
+        help="remove the specified package family (eg 'python'). This is only "
+        "supported if the family is empty")
+    group.add_argument(
+        "--force-family", action="store_true",
+        help="like -f, but delete package family even if not empty")
     group.add_argument(
         "-i", "--ignored-since", type=int, metavar="DAYS",
         help="remove all packages that have been ignored for >= DAYS")
@@ -52,9 +54,10 @@ def remove_package(opts, parser):
         sys.exit(1)
 
 
-def remove_package_family(opts, parser):
+def remove_package_family(opts, parser, force=False):
     from rez.vendor.version.requirement import VersionedObject
     from rez.package_remove import remove_package_family
+    from rez.exceptions import PackageRepositoryError
 
     if opts.dry_run:
         parser.error("--dry-run is not supported with --family")
@@ -66,7 +69,14 @@ def remove_package_family(opts, parser):
     if obj.version:
         parser.error("Expected package name, not version")
 
-    if remove_package_family(obj.name, opts.PATH):
+    success = False
+    try:
+        success = remove_package_family(obj.name, opts.PATH, force=force)
+    except PackageRepositoryError as e:
+        print("Error: %s" % e, file=sys.stderr)
+        sys.exit(1)
+
+    if success:
         print("Package family removed.")
     else:
         print("Package family not found.", file=sys.stderr)
@@ -102,6 +112,8 @@ def command(opts, parser, extra_arg_groups=None):
         remove_package(opts, parser)
     elif opts.family:
         remove_package_family(opts, parser)
+    elif opts.force_family:
+        remove_package_family(opts, parser, force=True)
     elif opts.ignored_since is not None:
         remove_ignored_since(opts, parser)
     else:

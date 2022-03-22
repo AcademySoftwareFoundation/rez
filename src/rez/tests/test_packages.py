@@ -577,6 +577,21 @@ class TestPackages(TestBase, TempdirMixin):
         # verify that the fam no longer exists
         self.assertFalse(remove_package_family(pkg_name, repo_path))
 
+        pkg_name2 = "pymum"
+
+        # get another fam
+        src_fam2 = get_package_family_from_repository(pkg_name2, repo_path)
+        self.assertNotEqual(src_fam2, None)
+
+        # force remove another fam
+        self.assertTrue(remove_package_family(pkg_name2, repo_path, force=True))
+
+        # verify that the fam no longer exists
+        self.assertEqual(
+            get_package_family_from_repository(pkg_name2, repo_path),
+            None
+        )
+
     def test_remove_packages_ignored_since(self):
         pkg_name = "pydad"
         pkg_version = Version("2")

@@ -269,14 +269,12 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def remove_package_family(self, pkg_name):
+    def remove_package_family(self, pkg_name, force=False):
         """Remove an empty package family.
 
-        Non-empty families CANNOT be removed. You need to remove all packages
-        via `remove_package` beforehand.
-
-        Please note that a package family IS considered empty if all packages
-        it contains are hidden.
+        Args:
+            pkg_name (str): Package name
+            force (bool): If Trur, delete even if not empty.
 
         Returns:
             bool: True if the family was removed, False if it wasn't found.

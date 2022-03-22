@@ -735,23 +735,28 @@ class FileSystemPackageRepository(PackageRepository):
 
         return True
 
-    def remove_package_family(self, pkg_name):
-        # get a non-cached copy and se if fam exists
-        repo_copy = self._copy(disable_memcache=True)
+    def remove_package_family(self, pkg_name, force=False):
+        # get a non-cached copy and see if fam exists
+        repo_copy = self._copy(
+            disable_pkg_ignore=True,
+            disable_memcache=True
+        )
+
         fam = repo_copy.get_package_family(pkg_name)
         if fam is None:
             return False
 
-        # check that the pkg fam is empty, or contains only hidden packages
-        empty = True
-        for _ in repo_copy.iter_packages(fam):
-            empty = False
-            break
+        # check that the pkg fam is empty
+        if not force:
+            empty = True
+            for _ in repo_copy.iter_packages(fam):
+                empty = False
+                break
 
-        if not empty:
-            raise PackageRepositoryError(
-                "Cannot remove non-empty package family %r" % pkg_name
-            )
+            if not empty:
+                raise PackageRepositoryError(
+                    "Cannot remove non-empty package family %r" % pkg_name
+                )
 
         # delete the fam dir
         fam_dir = os.path.join(self.location, pkg_name)
