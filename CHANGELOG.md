@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.106.0 (2022-03-23)
+[Source](https://github.com/nerdvegas/rez/tree/2.106.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.105.0...2.106.0)
+
+**Merged pull requests:**
+
+- added package fam removal func, and tests [\#1252](https://github.com/nerdvegas/rez/pull/1252) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add ability to delete package family [\#1248](https://github.com/nerdvegas/rez/issues/1248)
+
 ## 2.105.0 (2022-03-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.105.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.104.10...2.105.0)
 
