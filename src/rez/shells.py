@@ -176,6 +176,11 @@ class Shell(ActionInterpreter):
         Returns:
             str: Full filepath of executable.
         """
+        settings = config.plugins.shell[cls.name()]
+
+        if settings.executable_fullpath:
+            return settings.executable_fullpath
+
         exe = which(name)
 
         if not exe and check_syspaths:

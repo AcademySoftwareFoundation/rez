@@ -16,6 +16,7 @@ from functools import partial
 import os
 import re
 import subprocess
+from ._utils.windows import get_syspaths_from_registry
 
 
 basestring = six.string_types[0]
@@ -83,64 +84,7 @@ class CMD(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # detect system paths using registry
-        def gen_expected_regex(parts):
-            whitespace = r"[\s]+"
-            return whitespace.join(parts)
-
-        paths = []
-
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = Popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKCU\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_CURRENT_USER\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = Popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cls.syspaths = [x for x in paths if x]
+        cls.syspaths = get_syspaths_from_registry()
         return cls.syspaths
 
     def _bind_interactive_rez(self):
