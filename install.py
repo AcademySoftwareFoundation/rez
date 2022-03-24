@@ -25,7 +25,6 @@ sys.path.insert(0, src_path)
 #
 from rez.utils._version import _rez_version  # noqa: E402
 from rez.utils.which import which  # noqa: E402
-from rez.utils.platform_ import platform_  # noqa: E402
 from rez.cli._entry_points import get_specifications  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
@@ -85,20 +84,16 @@ def patch_rez_binaries(dest_dir):
     specs = get_specifications()
 
     # delete rez bin files written into virtualenv
-    if not platform_.os.startswith("windows"):
-        for name in specs.keys():
-            filepath = os.path.join(virtualenv_bin_path, name)
+    for name in specs.keys():
+        basepath = os.path.join(virtualenv_bin_path, name)
+        filepaths = [
+            basepath,
+            basepath + "-script.py",
+            basepath + ".exe"
+        ]
+        for filepath in filepaths:
             if os.path.isfile(filepath):
                 os.remove(filepath)
-    else:
-        for name in specs.keys():
-            filepaths = [
-                os.path.join(virtualenv_bin_path, name) + "-script.py",
-                os.path.join(virtualenv_bin_path, name) + ".exe"
-            ]
-            for filepath in filepaths:
-                if os.path.isfile(filepath):
-                    os.remove(filepath)
 
     # write patched bins instead. These go into 'bin/rez' subdirectory, which
     # gives us a bin dir containing only rez binaries. This is what we want -
