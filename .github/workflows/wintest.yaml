@@ -35,4 +35,6 @@ jobs:
           docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
+          echo "hello"
+
           Write-Output "DUN IT"
