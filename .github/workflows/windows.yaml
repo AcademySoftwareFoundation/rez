@@ -30,7 +30,7 @@ jobs:
 
     outputs:
       # boo! https://github.community/t/bug-jobs-output-should-return-a-list-for-a-matrix-job/128626
-      image_name_2019: ${{ steps.image_name.outputs.image_name }}
+      image_name_2019: ${{ steps.image_name_2019.outputs.image_name }}
 
     steps:
       - name: Login to docker repository
@@ -42,14 +42,14 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Determine image name
-        id: image_name
+        id: image_name_${{ matrix.os-version }}
         run: |
           ${rev} = $( `
             git log -n 1 --author-date-order --pretty=format:%H -- `
             .\.github\docker\rez-win-base\ `
           ).SubString(0, 8)
 
-          Write-Output "::set-output name=image_name_${{ matrix.os-version }}::${gh_user}/rez-win-${{ matrix.os-version }}-base:${rev}"
+          Write-Output "::set-output name=image_name::${gh_user}/rez-win-${{ matrix.os-version }}-base:${rev}"
 
   testjob:
     runs-on: ubuntu-latest
