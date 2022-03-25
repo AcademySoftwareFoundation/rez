@@ -40,6 +40,8 @@ jobs:
       - name: Check image exists
         id: main
         run: |
+          $ErrorActionPreference = "continue"
+
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
 
           # base image name on latest commit
@@ -55,7 +57,7 @@ jobs:
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
           Write-Output "Checking for image ${docker_image}..."
-          $ErrorActionPreference = "Continue"
+          #$ErrorActionPreference = "Continue"
           docker manifest inspect ${docker_image}
           #$ErrorActionPreference = "Stop"
 
