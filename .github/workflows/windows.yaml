@@ -60,7 +60,7 @@ jobs:
           #ls fdgfdgfdgfd
           #$ErrorActionPreference = "Stop"
           try {
-            docker manifest inspect ${docker_image} > $null
+            pwsh -c 'docker manifest inspect ${docker_image} > $null'
             #ls flubberguts
             #docker manifest inspect python:latest
           }
