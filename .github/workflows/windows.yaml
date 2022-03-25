@@ -64,6 +64,11 @@ jobs:
           - '2019'
 
     steps:
+      - id: vars
+        run: |
+          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          Write-Output "::set-output name=docker_image::${docker_image}"
+
       - name: Login to docker repository
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
@@ -72,11 +77,9 @@ jobs:
       - name: Pull base image
         id: pull
         run: |
-          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
-
-          Write-Output "Pulling image ${docker_image}..."
+          Write-Output "Pulling image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
+          docker pull ${{ steps.vars.outputs.docker_image }} 2>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
@@ -97,15 +100,16 @@ jobs:
       - name: Build base image
         if: steps.pull.outputs.image_exists == 'false'
         run: |
-          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
-
+          Write-Output "Building DockerHub image ${{ steps.vars.outputs.docker_image }}..."
           cd .github\docker\rez-win-base
+          docker build --tag ${{ steps.vars.outputs.docker_image }} .
 
-          Write-Output "Building DockerHub image ${docker_image}..."
-          docker build --tag ${docker_image} .
-
-          Write-Output "Pushing DockerHub image ${docker_image}..."
-          docker push ${docker_image}
+      - name: Push base image
+        if: steps.pull.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Pushing DockerHub image ${{ steps.vars.outputs.docker_image }}..."
+          cd .github\docker\rez-win-base
+          docker push ${{ steps.vars.outputs.docker_image }}
 
 
 
