@@ -87,11 +87,11 @@ jobs:
           exit 0
 
       - name: Checkout
-        if: steps.pull.image_exists == "false"
+        if: steps.pull.image_exists == 'false'
         uses: actions/checkout@v2
 
       - name: Build base image
-        if: steps.pull.image_exists == "false"
+        if: steps.pull.image_exists == 'false'
         run: |
           ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${needs.image_tags.outputs.base}"
 
