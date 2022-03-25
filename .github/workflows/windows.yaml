@@ -60,8 +60,12 @@ jobs:
           #ls fdgfdgfdgfd
           #$ErrorActionPreference = "Stop"
           try {
-            docker manifest inspect ${docker_image}
-          } catch {}
+            #docker manifest inspect ${docker_image}
+            ls flubberguts
+          }
+          catch {
+             Write-Output "WHY DONT WE GET HERE"
+          }
 
           #if ($LastExitCode -ne 0) {
           #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
