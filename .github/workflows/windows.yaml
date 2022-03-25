@@ -38,7 +38,7 @@ jobs:
             git log -n 1 --author-date-order --pretty=format:%H -- \
             ./.github/docker/rez-win-base \
           )
-          echo "::set-output name=tag::${rev}"
+          echo "::set-output name=base::${rev}"
 
       - name: Determine python image tag
         id: py
@@ -48,7 +48,7 @@ jobs:
             ./.github/docker/rez-win-base \
             ./.github/docker/rez-win-py \
           )
-          echo "::set-output name=tag::${rev}"
+          echo "::set-output name=py::${rev}"
 
   base_image:
     name: Pull or build base docker image
