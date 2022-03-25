@@ -40,7 +40,7 @@ jobs:
       - name: Check image exists
         id: main
         run: |
-          $ErrorActionPreference = "continue"
+          $ErrorActionPreference = "stop"
 
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
 
