@@ -57,7 +57,7 @@ jobs:
           Write-Output "Checking for image ${docker_image}..."
           $ErrorActionPreference = "Continue"
           docker manifest inspect ${docker_image} 2>$null || Write-Output "(no such image)"
-          $ErrorActionPreference = "Stop"
+          #$ErrorActionPreference = "Stop"
 
           #if ($LastExitCode -ne 0) {
           #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
