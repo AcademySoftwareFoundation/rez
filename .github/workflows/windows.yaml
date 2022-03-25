@@ -1,11 +1,3 @@
-#
-# Picks up docker image from hub.docker.com as repository.
-#
-# Pulls without login (public repository only).
-# Requires username/repository to match the github repository.
-# For example: nerdvegas/rez -> User/Repository: nerdvegas
-#
-
 name: windows
 
 on:
@@ -13,39 +5,72 @@ on:
     paths:
       - 'src/**'
       - '.github/workflows/windows.yaml'
+      - '.github/docker/rez-win-base/**'
+      - '.github/docker/rez-win-py/**'
       - '!src/rez/utils/_version.py'
       - '!**.md'
   push:
     paths:
       - 'src/**'
       - '.github/workflows/windows.yaml'
+      - '.github/docker/rez-win-base/**'
+      - '.github/docker/rez-win-py/**'
       - '!src/rez/utils/_version.py'
       - '!**.md'
 
 jobs:
-  main:
-    runs-on: windows-2019
+  check_base_image:
+    name: Check for up-to-date base docker image
+    runs-on: windows-${{ matrix.os-version }}
 
     strategy:
       matrix:
-        # Needs to match python version of images (see windows-docker-image.yaml)
-        python-version:
-          - '2.7.17'
-          # TODO add back once failing windows py3 builds are investigated
-          - '3.7.5'
-      fail-fast: false
+        os-version:
+          - '2019'
 
     steps:
+      - run: |
+          docker --version
 
-      - name: Checkout
-        uses: actions/checkout@v2
 
-      - name: "Pull Docker image nerdvegas/rez-win-py-${{ matrix.python-version }}:latest"
-        run: |
-          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
-          docker pull ${docker_image}:latest
 
-      - name: Run Docker image (installs and tests rez)
-        run: |
-          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
-          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}:latest
+
+
+
+
+
+
+#
+# Picks up docker image from hub.docker.com as repository.
+#
+# Pulls without login (public repository only).
+# Requires username/repository to match the github repository.
+# For example: nerdvegas/rez -> User/Repository: nerdvegas
+#
+#jobs:
+#  main:
+#    runs-on: windows-2019
+#
+#    strategy:
+#      matrix:
+#        # Needs to match python version of images (see windows-docker-image.yaml)
+#        python-version:
+#          - '2.7.17'
+#          # TODO add back once failing windows py3 builds are investigated
+#          - '3.7.5'
+#      fail-fast: false
+#
+#    steps:
+#
+#      - name: Checkout
+#        uses: actions/checkout@v2
+#
+#      - name: "Pull Docker image nerdvegas/rez-win-py-${{ matrix.python-version }}:latest"
+#        run: |
+#          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
+#          docker pull ${docker_image}:latest
+#
+#      - name: Run Docker image (installs and tests rez)
+#        run: |
+#          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
+#          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}:latest
