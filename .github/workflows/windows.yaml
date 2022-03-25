@@ -55,7 +55,7 @@ jobs:
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
           Write-Output "Checking for image ${docker_image}..."
-          $ErrorActionPreference = "Continue"
+          $ErrorActionPreference = "SilentlyContinue"
           docker manifest inspect ${docker_image} 2>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
