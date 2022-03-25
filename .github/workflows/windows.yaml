@@ -28,14 +28,35 @@ jobs:
         os-version:
           - '2019'
 
+    outputs:
+      # boo! https://github.community/t/bug-jobs-output-should-return-a-list-for-a-matrix-job/128626
+      image_name_2019: ${{ steps.image_name.outputs.image_name }}
+
+    steps:
+      - name: Login to docker repository
+        run: |
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Determine image name
+        id: image_name
+        run: |
+          ${rev} = $( `
+            git log -n 1 --author-date-order --pretty=format:%H -- `
+            .\.github\docker\rez-win-base\ `
+          ).SubString(0, 8)
+
+          Write-Output "::set-output name=image_name_${{ matrix.os-version }}::${gh_user}/rez-win-${{ matrix.os-version }}-base:${rev}"
+
+  testjob:
+    runs-on: ubuntu-latest
+    needs: check_base_image
     steps:
       - run: |
-          docker --version
-
-
-
-
-
+          echo "IMAGE NAME IS ${{ needs.check_base_image.outputs.image_name_2019 }}"
 
 
 
