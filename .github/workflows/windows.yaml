@@ -66,13 +66,15 @@ jobs:
     steps:
       - id: vars
         run: |
-          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          ${docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+
+          Write-Output "::set-output name=gh_user::${gh_user}"
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
         run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ steps.vars.outputs.gh_user }} --password-stdin
 
       - name: Pull base image
         id: pull
