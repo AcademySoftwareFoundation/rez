@@ -56,17 +56,9 @@ jobs:
 
           Write-Output "Checking for image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          #docker manifest inspect ${docker_image}
-          #ls fdgfdgfdgfd
-          #$ErrorActionPreference = "Stop"
-          try {
-            #pwsh -c "docker manifest inspect ${docker_image} 2>&1 > "'$null'
-            #ls flubberguts
-            docker pull python:dshfkjdsfhdsjfjhdsf
-          }
-          catch {
-             Write-Output "WHY DONT WE GET HERE"
-          }
+          docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "Stop"
+          #pwsh -c "docker manifest inspect ${docker_image} 2>&1 > "'$null'
 
           #if ($LastExitCode -ne 0) {
           #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
