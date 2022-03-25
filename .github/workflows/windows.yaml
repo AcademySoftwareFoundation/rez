@@ -38,6 +38,7 @@ jobs:
             git log -n 1 --author-date-order --pretty=format:%H -- \
             ./.github/docker/rez-win-base \
           )
+          echo "base rev is ${rev}"
           echo "::set-output name=base::${rev}"
 
       - name: Determine python image tag
