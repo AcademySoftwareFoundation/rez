@@ -61,7 +61,8 @@ jobs:
           #$ErrorActionPreference = "Stop"
           try {
             #docker manifest inspect ${docker_image}
-            ls flubberguts
+            #ls flubberguts
+            docker manifest inspect python:latest
           }
           catch {
              Write-Output "WHY DONT WE GET HERE"
