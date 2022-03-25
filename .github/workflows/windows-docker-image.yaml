@@ -37,8 +37,8 @@ on:
     # "run workflow B _after_ workflow A, _if_ A was triggered, otherwise run B
     # regardless."
     #
-    branches:
-      - master
+    #branches:
+    #  - master
     paths:
       - '.github/docker/rez-win-base/**'
       - '.github/docker/rez-win-py/**'
