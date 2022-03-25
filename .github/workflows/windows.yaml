@@ -55,16 +55,16 @@ jobs:
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
           Write-Output "Checking for image ${docker_image}..."
-          $ErrorActionPreference = "SilentlyContinue"
+          $ErrorActionPreference = "Continue"
           docker manifest inspect ${docker_image} 2>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
-          if ($LastExitCode -ne 0) {
-            Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
-          }
-          else {
-            Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::true"
-          }
+          #if ($LastExitCode -ne 0) {
+          #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
+          #}
+          #else {
+          #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::true"
+          #}
 
   testjob:
     runs-on: ubuntu-latest
