@@ -19,62 +19,100 @@ on:
       - '!**.md'
 
 jobs:
-  check_base_image:
-    name: Check for latest base docker image
-    runs-on: windows-${{ matrix.os-version }}
-
-    strategy:
-      matrix:
-        os-version:
-          - '2019'
+  image_tags:
+    name: Determine image tags based on latest commits
+    runs-on: ubuntu-latest
 
     outputs:
-      # boo! https://github.community/t/bug-jobs-output-should-return-a-list-for-a-matrix-job/128626
-      image_name_2019: ${{ steps.main.outputs.image_name_2019 }}
-      image_exists_2019: ${{ steps.main.outputs.image_exists_2019 }}
+      base: ${{ steps.base.tag }}
+      py: ${{ steps.py.tag }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Determine base image tag
+        id: base
+        run: |
+          ${rev} = $( `
+            git log -n 1 --author-date-order --pretty=format:%H -- `
+            .\.github\docker\rez-win-base\ `
+          ).SubString(0, 8)
+          Write-Output "::set-output tag=${rev}"
+
+      - name: Determine python image tag
+        id: py
+        run: |
+          ${rev} = $( `
+            git log -n 1 --author-date-order --pretty=format:%H -- `
+            .\.github\docker\rez-win-base\ `
+            .\.github\docker\rez-win-py\ `
+          ).SubString(0, 8)
+          Write-Output "::set-output tag=${rev}"
+
+  base_image:
+    name: Pull or build base docker image
+    runs-on: windows-${{ matrix.os-version }}
+    needs: image_tags
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version:
+          - '2019'
+
+    steps:
       - name: Login to docker repository
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
-      - name: Check image exists
-        id: main
+      - name: Pull base image
+        id: pull
         run: |
-          # base image name on latest commit
-          ${rev} = $( `
-            git log -n 1 --author-date-order --pretty=format:%H -- `
-            .\.github\docker\rez-win-base\ `
-          ).SubString(0, 8)
+          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${needs.image_tags.outputs.base}"
 
-          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${rev}"
-          Write-Output "::set-output name=image_name_${{ matrix.os-version }}::${docker_image}"
-
-          Write-Output "Checking for image ${docker_image}..."
+          Write-Output "Pulling image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker manifest inspect ${docker_image} 2>&1 > $null || Write-Output "(no such image)"
+          docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
-            Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
+            Write-Output "::set-output name=image_exists::false"
           }
           else {
-            Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::true"
+            Write-Output "::set-output name=image_exists::true"
           }
 
           exit 0
 
-  testjob:
-    runs-on: ubuntu-latest
-    needs: check_base_image
-    steps:
-      - run: |
-          echo "IMAGE NAME IS ${{ needs.check_base_image.outputs.image_name_2019 }}"
-          echo "IMAGE EXISTS IS ${{ needs.check_base_image.outputs.image_exists_2019 }}"
+      - name: Checkout
+        if: steps.pull.image_exists == "false"
+        uses: actions/checkout@v2
+
+      - name: Build base image
+        if: steps.pull.image_exists == "false"
+        run: |
+          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${needs.image_tags.outputs.base}"
+
+          cd .github\docker\rez-win-base
+
+          Write-Output "Building DockerHub image ${docker_image}..."
+          docker build --tag ${docker_image} .
+
+          Write-Output "Pushing DockerHub image ${docker_image}..."
+          docker push ${docker_image}
+
+
+
+
+#  testjob:
+#    runs-on: ubuntu-latest
+#    needs: check_base_image
+#    steps:
+#      - run: |
+#          echo "IMAGE NAME IS ${{ needs.check_base_image.outputs.image_name_2019 }}"
+#          echo "IMAGE EXISTS IS ${{ needs.check_base_image.outputs.image_exists_2019 }}"
 
 
 
