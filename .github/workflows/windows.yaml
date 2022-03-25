@@ -70,7 +70,7 @@ jobs:
       - name: Pull base image
         id: pull
         run: |
-          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${needs.image_tags.outputs.base}"
+          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
           Write-Output "Pulling image ${docker_image}..."
           $ErrorActionPreference = "Continue"
@@ -79,9 +79,11 @@ jobs:
 
           if ($LastExitCode -ne 0) {
             Write-Output "::set-output name=image_exists::false"
+            Write-Output "NEQ ZERO"
           }
           else {
             Write-Output "::set-output name=image_exists::true"
+            Write-Output "EQ ZERO"
           }
 
           exit 0
@@ -93,7 +95,7 @@ jobs:
       - name: Build base image
         if: steps.pull.image_exists == 'false'
         run: |
-          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${needs.image_tags.outputs.base}"
+          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
           cd .github\docker\rez-win-base
 
