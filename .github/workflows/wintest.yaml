@@ -33,8 +33,9 @@ jobs:
           Write-Output "Pulling DockerHub image ${docker_image}..."
           $ErrorActionPreference = "Continue"
           docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
-          #$ErrorActionPreference = "Stop"
+          $ErrorActionPreference = "Stop"
 
           echo "hello"
 
           Write-Output "DUN IT"
+          exit 0
