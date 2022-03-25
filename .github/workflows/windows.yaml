@@ -60,9 +60,9 @@ jobs:
           #ls fdgfdgfdgfd
           #$ErrorActionPreference = "Stop"
           try {
-            pwsh -c "docker manifest inspect ${docker_image} 2>&1 > "'$null'
+            #pwsh -c "docker manifest inspect ${docker_image} 2>&1 > "'$null'
             #ls flubberguts
-            #docker manifest inspect python:latest
+            docker pull python:dshfkjdsfhdsjfjhdsf
           }
           catch {
              Write-Output "WHY DONT WE GET HERE"
