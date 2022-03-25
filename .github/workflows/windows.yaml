@@ -38,7 +38,7 @@ jobs:
             git log -n 1 --author-date-order --pretty=format:%H -- \
             ./.github/docker/rez-win-base \
           )
-          echo "::set-output tag=${rev}"
+          echo "::set-output name=tag::${rev}"
 
       - name: Determine python image tag
         id: py
@@ -48,7 +48,7 @@ jobs:
             ./.github/docker/rez-win-base \
             ./.github/docker/rez-win-py \
           )
-          echo "::set-output tag=${rev}"
+          echo "::set-output name=tag::${rev}"
 
   base_image:
     name: Pull or build base docker image
@@ -89,11 +89,11 @@ jobs:
           exit 0
 
       - name: Checkout
-        if: steps.pull.image_exists == 'false'
+        if: steps.pull.outputs.image_exists == 'false'
         uses: actions/checkout@v2
 
       - name: Build base image
-        if: steps.pull.image_exists == 'false'
+        if: steps.pull.outputs.image_exists == 'false'
         run: |
           ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
