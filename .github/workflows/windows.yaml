@@ -55,7 +55,7 @@ jobs:
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
           Write-Output "Checking for image ${docker_image}..."
-          #$ErrorActionPreference = "Continue"
+          $ErrorActionPreference = "Continue"
           #docker manifest inspect ${docker_image}
           #ls fdgfdgfdgfd
           #$ErrorActionPreference = "Stop"
