@@ -207,4 +207,3 @@ jobs:
           name: "rez-win-py-${{ matrix.python-version }}-${{ steps.build_image.outputs.py_rev }}.json"
           path: .github\docker\rez-win-py\inspect.json
         if: steps.inspect_json.outputs.files_exists == 'true'
-
