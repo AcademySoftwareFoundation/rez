@@ -37,35 +37,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Login to docker repository
+        run: |
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
+
       - name: Check image exists
         id: main
         run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-
           # base image name on latest commit
           ${rev} = $( `
             git log -n 1 --author-date-order --pretty=format:%H -- `
             .\.github\docker\rez-win-base\ `
           ).SubString(0, 8)
 
-          ${docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-base:${rev}"
+          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${rev}"
           Write-Output "::set-output name=image_name_${{ matrix.os-version }}::${docker_image}"
-
-          # log into docker
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${gh_user} --password-stdin
 
           Write-Output "Checking for image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${docker_image} 2>$null || Write-Output "(no such image)"
+          docker manifest inspect ${docker_image} 2>&1 > $null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
-          #pwsh -c "docker manifest inspect ${docker_image} 2>&1 > "'$null'
 
-          #if ($LastExitCode -ne 0) {
-          #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
-          #}
-          #else {
-          #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::true"
-          #}
+          if ($LastExitCode -ne 0) {
+            Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
+          }
+          else {
+            Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::true"
+          }
+
+          exit 0
 
   testjob:
     runs-on: ubuntu-latest
