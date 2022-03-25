@@ -40,8 +40,6 @@ jobs:
       - name: Check image exists
         id: main
         run: |
-          $ErrorActionPreference = "stop"
-
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
 
           # base image name on latest commit
@@ -59,8 +57,11 @@ jobs:
           Write-Output "Checking for image ${docker_image}..."
           #$ErrorActionPreference = "Continue"
           #docker manifest inspect ${docker_image}
-          ls fdgfdgfdgfd
+          #ls fdgfdgfdgfd
           #$ErrorActionPreference = "Stop"
+          try {
+            docker manifest inspect ${docker_image}
+          } catch {}
 
           #if ($LastExitCode -ne 0) {
           #  Write-Output "::set-output name=image_exists_${{ matrix.os-version }}::false"
