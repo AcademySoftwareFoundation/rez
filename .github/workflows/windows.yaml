@@ -34,20 +34,20 @@ jobs:
       - name: Determine base image tag
         id: base
         run: |
-          ${rev} = $( `
-            git log -n 1 --author-date-order --pretty=format:%H -- `
-            .\.github\docker\rez-win-base\ `
-          ).SubString(0, 8)
+          rev=$( \
+            git log -n 1 --author-date-order --pretty=format:%H -- \
+            ./.github/docker/rez-win-base \
+          )
           Write-Output "::set-output tag=${rev}"
 
       - name: Determine python image tag
         id: py
         run: |
-          ${rev} = $( `
-            git log -n 1 --author-date-order --pretty=format:%H -- `
-            .\.github\docker\rez-win-base\ `
-            .\.github\docker\rez-win-py\ `
-          ).SubString(0, 8)
+          rev=$( \
+            git log -n 1 --author-date-order --pretty=format:%H -- \
+            ./.github/docker/rez-win-base \
+            ./.github/docker/rez-win-py \
+          )
           Write-Output "::set-output tag=${rev}"
 
   base_image:
