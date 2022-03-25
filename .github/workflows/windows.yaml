@@ -56,7 +56,7 @@ jobs:
 
           Write-Output "Checking for image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker manifest inspect ${docker_image} 2>$null || Write-Output "(no such image)"
+          docker manifest inspect ${docker_image} 2>$null
           #$ErrorActionPreference = "Stop"
 
           #if ($LastExitCode -ne 0) {
