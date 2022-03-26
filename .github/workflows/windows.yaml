@@ -20,7 +20,7 @@ on:
 
 jobs:
   image_tags:
-    name: Determine image tags based on latest commits
+    name: Image tag is hash of sourcefile contents
     runs-on: ubuntu-latest
 
     outputs:
@@ -34,23 +34,33 @@ jobs:
       - name: Determine base image tag
         id: base
         run: |
-          rev=$( \
-            git log -n 1 --author-date-order --pretty=format:%H -- \
+          tag=$( \
+            find \
             ./.github/docker/rez-win-base \
+            -type f \
+            | sort \
+            | xargs md5sum \
+            | md5sum - \
+            | awk '{print $1}' \
           )
-          echo "base rev is ${rev}"
-          echo "::set-output name=tag::${rev}"
+          echo "base tag is ${tag}"
+          echo "::set-output name=tag::${tag}"
 
       - name: Determine python image tag
         id: py
         run: |
-          rev=$( \
-            git log -n 1 --author-date-order --pretty=format:%H -- \
+          tag=$( \
+            find \
             ./.github/docker/rez-win-base \
             ./.github/docker/rez-win-py \
+            -type f \
+            | sort \
+            | xargs md5sum \
+            | md5sum - \
+            | awk '{print $1}' \
           )
-          echo "py rev is ${rev}"
-          echo "::set-output name=tag::${rev}"
+          echo "py tag is ${tag}"
+          echo "::set-output name=tag::${tag}"
 
   base_image:
     name: Pull or build base docker image
