@@ -20,7 +20,8 @@ on:
 
 jobs:
   image_tags:
-    name: Image tag is hash of sourcefile contents
+    # image tags are based on sourcefile contents
+    name: Calculate image tags
     runs-on: ubuntu-latest
 
     outputs:
