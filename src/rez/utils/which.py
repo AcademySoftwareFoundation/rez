@@ -72,8 +72,14 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None, env=None):
             # Account for cmd possibly being a symlink. A symlink can be an
             # executable on windows without an extension. If it is, see if its
             # target's extension matches any of the expected path extensions.
-            #
             realfile = os.path.realpath(os.path.join(normdir, cmd)).lower()
+
+            # On windows and python < 3.8
+            # os.path.realpath leaves symlink and junctions unchanged
+            # https://docs.python.org/3/library/os.path.html#os.path.realpath
+            if os.path.islink(realfile):
+                realfile = os.readlink(realfile).lower()
+
             if any(realfile.endswith(x) for x in pathext):
                 files = [cmd]
             else:
