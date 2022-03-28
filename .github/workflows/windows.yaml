@@ -189,7 +189,7 @@ jobs:
             --tag ${{ steps.vars.outputs.docker_image }} `
             --build-arg BASE_IMAGE_NAME="${{ steps.vars.outputs.base_docker_image }}" `
             --build-arg IMAGE_NAME="${{ steps.vars.outputs.docker_image }}" `
-            --build-arg PYTHON_VERSION="${{ matrix.python-version }}" `
+            --build-arg PYTHON_VERSION="${{ matrix.py-version }}" `
             .
 
       - name: Push py image
