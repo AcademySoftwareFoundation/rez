@@ -64,7 +64,7 @@ jobs:
           echo "::set-output name=tag::${tag}"
 
   base_image:
-    name: Pull or build base docker image
+    name: Build base docker image if required
     runs-on: windows-${{ matrix.os-version }}
     needs: image_tags
 
@@ -122,7 +122,7 @@ jobs:
           docker push ${{ steps.vars.outputs.docker_image }}
 
   py_image:
-    name: Pull or build py docker image
+    name: Build py docker image if required
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
@@ -180,7 +180,7 @@ jobs:
 
           docker build `
             --tag ${{ steps.vars.outputs.docker_image }} `
-            --build-arg BASE_IMAGE_NAME="${{ steps.vars.outputs.base_docker_image }}"
+            --build-arg BASE_IMAGE_NAME="${{ steps.vars.outputs.base_docker_image }}" `
             --build-arg IMAGE_NAME="${{ steps.vars.outputs.docker_image }}" `
             --build-arg PYTHON_VERSION="${{ matrix.python-version }}" `
             .
