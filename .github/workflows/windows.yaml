@@ -102,7 +102,6 @@ jobs:
           else {
             Write-Output "::set-output name=image_exists::true"
           }
-
           exit 0
 
       - name: Checkout
@@ -112,50 +111,82 @@ jobs:
       - name: Build base image
         if: steps.pull.outputs.image_exists == 'false'
         run: |
-          Write-Output "Building DockerHub image ${{ steps.vars.outputs.docker_image }}..."
+          Write-Output "Building image ${{ steps.vars.outputs.docker_image }}..."
           cd .github\docker\rez-win-base
           docker build --tag ${{ steps.vars.outputs.docker_image }} .
 
       - name: Push base image
         if: steps.pull.outputs.image_exists == 'false'
         run: |
-          Write-Output "Pushing DockerHub image ${{ steps.vars.outputs.docker_image }}..."
-          cd .github\docker\rez-win-base
+          Write-Output "Pushing image ${{ steps.vars.outputs.docker_image }}..."
           docker push ${{ steps.vars.outputs.docker_image }}
 
+  py_image:
+    name: Pull or build py docker image
+    runs-on: windows-${{ matrix.os-version }}
+    needs:
+      - image_tags
+      - base_image
 
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version:
+          - '2019'
+        py-version:
+          - '2.7.17'
+          - '3.7.5'
 
-#
-# Picks up docker image from hub.docker.com as repository.
-#
-# Pulls without login (public repository only).
-# Requires username/repository to match the github repository.
-# For example: nerdvegas/rez -> User/Repository: nerdvegas
-#
-#jobs:
-#  main:
-#    runs-on: windows-2019
-#
-#    strategy:
-#      matrix:
-#        # Needs to match python version of images (see windows-docker-image.yaml)
-#        python-version:
-#          - '2.7.17'
-#          # TODO add back once failing windows py3 builds are investigated
-#          - '3.7.5'
-#      fail-fast: false
-#
-#    steps:
-#
-#      - name: Checkout
-#        uses: actions/checkout@v2
-#
-#      - name: "Pull Docker image nerdvegas/rez-win-py-${{ matrix.python-version }}:latest"
-#        run: |
-#          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
-#          docker pull ${docker_image}:latest
-#
-#      - name: Run Docker image (installs and tests rez)
-#        run: |
-#          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
-#          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}:latest
+    steps:
+      - name: Set job vars
+        id: vars
+        run: |
+          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
+          ${base_docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+
+          Write-Output "::set-output name=gh_user::${gh_user}"
+          Write-Output "::set-output name=docker_image::${docker_image}"
+
+      - name: Login to docker repository
+        run: |
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ steps.vars.outputs.gh_user }} --password-stdin
+
+      - name: Pull py image
+        id: pull
+        run: |
+          Write-Output "Pulling image ${{ steps.vars.outputs.docker_image }}..."
+          $ErrorActionPreference = "Continue"
+          docker pull ${{ steps.vars.outputs.docker_image }} 2>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "Stop"
+
+          if ($LastExitCode -ne 0) {
+            Write-Output "::set-output name=image_exists::false"
+          }
+          else {
+            Write-Output "::set-output name=image_exists::true"
+          }
+          exit 0
+
+      - name: Checkout
+        if: steps.pull.outputs.image_exists == 'false'
+        uses: actions/checkout@v2
+
+      - name: Build py image
+        if: steps.pull.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Building image ${{ steps.vars.outputs.docker_image }} from ${{ steps.vars.outputs.base_docker_image }}..."
+          cd .github\docker\rez-win-py
+
+          docker build `
+            --tag ${{ steps.vars.outputs.docker_image }} `
+            --build-arg BASE_IMAGE_NAME="${{ steps.vars.outputs.base_docker_image }}"
+            --build-arg IMAGE_NAME="${{ steps.vars.outputs.docker_image }}" `
+            --build-arg PYTHON_VERSION="${{ matrix.python-version }}" `
+            .
+
+      - name: Push py image
+        if: steps.pull.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Pushing image ${{ steps.vars.outputs.docker_image }}..."
+          docker push ${{ steps.vars.outputs.docker_image }}
