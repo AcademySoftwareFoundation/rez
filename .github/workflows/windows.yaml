@@ -88,12 +88,12 @@ jobs:
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ steps.vars.outputs.gh_user }} --password-stdin
 
-      - name: Pull base image
-        id: pull
+      - name: Inspect base image
+        id: inspect
         run: |
-          Write-Output "Pulling image ${{ steps.vars.outputs.docker_image }}..."
+          Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${{ steps.vars.outputs.docker_image }} 2>$null || Write-Output "(no such image)"
+          docker manifest inspect ${{ steps.vars.outputs.docker_image }} *>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
@@ -105,18 +105,18 @@ jobs:
           exit 0
 
       - name: Checkout
-        if: steps.pull.outputs.image_exists == 'false'
+        if: steps.inspect.outputs.image_exists == 'false'
         uses: actions/checkout@v2
 
       - name: Build base image
-        if: steps.pull.outputs.image_exists == 'false'
+        if: steps.inspect.outputs.image_exists == 'false'
         run: |
           Write-Output "Building image ${{ steps.vars.outputs.docker_image }}..."
           cd .github\docker\rez-win-base
           docker build --tag ${{ steps.vars.outputs.docker_image }} .
 
       - name: Push base image
-        if: steps.pull.outputs.image_exists == 'false'
+        if: steps.inspect.outputs.image_exists == 'false'
         run: |
           Write-Output "Pushing image ${{ steps.vars.outputs.docker_image }}..."
           docker push ${{ steps.vars.outputs.docker_image }}
@@ -142,22 +142,23 @@ jobs:
         id: vars
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${base_docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${base_docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
           ${docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
 
           Write-Output "::set-output name=gh_user::${gh_user}"
+          Write-Output "::set-output name=base_docker_image::${base_docker_image}"
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ steps.vars.outputs.gh_user }} --password-stdin
 
-      - name: Pull py image
-        id: pull
+      - name: Inspect py image
+        id: inspect
         run: |
           Write-Output "Pulling image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
-          docker pull ${{ steps.vars.outputs.docker_image }} 2>$null || Write-Output "(no such image)"
+          docker manifest inspect ${{ steps.vars.outputs.docker_image }} *>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
@@ -169,13 +170,19 @@ jobs:
           exit 0
 
       - name: Checkout
-        if: steps.pull.outputs.image_exists == 'false'
+        if: steps.inspect.outputs.image_exists == 'false'
         uses: actions/checkout@v2
 
-      - name: Build py image
-        if: steps.pull.outputs.image_exists == 'false'
+      - name: Pull base image
+        if: steps.inspect.outputs.image_exists == 'false'
         run: |
-          Write-Output "Building image ${{ steps.vars.outputs.docker_image }} from ${{ steps.vars.outputs.base_docker_image }}..."
+          Write-Output "Pulling base image ${{ steps.vars.outputs.base_docker_image }}..."
+          docker pull ${{ steps.vars.outputs.base_docker_image }}
+
+      - name: Build py image
+        if: steps.inspect.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Building image ${{ steps.vars.outputs.docker_image }}..."
           cd .github\docker\rez-win-py
 
           docker build `
@@ -186,7 +193,7 @@ jobs:
             .
 
       - name: Push py image
-        if: steps.pull.outputs.image_exists == 'false'
+        if: steps.inspect.outputs.image_exists == 'false'
         run: |
           Write-Output "Pushing image ${{ steps.vars.outputs.docker_image }}..."
           docker push ${{ steps.vars.outputs.docker_image }}
