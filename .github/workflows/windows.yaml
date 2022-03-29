@@ -151,10 +151,6 @@ jobs:
         run: |
           echo "::set-output name=enabled::true"
 
-  # this job only exists to collapse a larger conditional into a single var. It
-  # gets referenced in many steps, we can't use a job-level if because main job
-  # needs to run after py_image job
-  #
   maybe_build:
     name: Determine if images potentially need to be built
     runs-on: ubuntu-latest
@@ -169,15 +165,28 @@ jobs:
       - id: main
         name: Set job var
         run: |
-          if [[ \
-            "${{ needs.dockerhub_access.outputs.enabled }}" == "true" \
-            && ( \
-              "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" \
-              || "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false" \
-            ) \
-          ]]; then \
-            echo "::set-output name=enabled::true"; \
+          if [[
+            "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" ||
+            "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false"
+          ]]; then
+            if [[ "${{ needs.dockerhub_access.outputs.enabled }}" == "true" ]]; then
+              echo "::set-output name=enabled::true"
+            else
+              echo "Docker image(s) need to be rebuilt, but you don't have dockerhub access." >&2
+              echo "See comments in .github/workflows/windows.yaml for instructions." >&2
+              exit 1
+            fi
           fi
+
+          #if [[ \
+          #  "${{ needs.dockerhub_access.outputs.enabled }}" == "true" \
+          #  && ( \
+          #    "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" \
+          #    || "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false" \
+          #  ) \
+          #]]; then \
+          #  echo "::set-output name=enabled::true"; \
+          #fi
 
   base_image:
     name: Build base docker image if required
