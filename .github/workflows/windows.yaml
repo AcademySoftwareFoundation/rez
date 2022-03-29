@@ -147,7 +147,7 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
-          DOCKERHUB_TOKEN: '' #${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' && env.DOCKERHUB_TOKEN != '' }}"
         run: |
           echo "::set-output name=enabled::true"
