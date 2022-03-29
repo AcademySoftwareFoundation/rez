@@ -146,7 +146,7 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
-            ${output_name} = image_exists_${{ matrix.os-version }}_${{ matrix.py-version }}
+            ${output_name} = "image_exists_${{ matrix.os-version }}_${{ matrix.py-version }}"
             ${output_name} = ${output_name} -replace '\.', '_'
             Write-Output "::set-output name=${output_name}::false"
           }
