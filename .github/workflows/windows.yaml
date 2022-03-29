@@ -79,7 +79,7 @@ jobs:
         id: vars
         run: |
           ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
           Write-Output "::set-output name=gh_user::${gh_user}"
           Write-Output "::set-output name=docker_image::${docker_image}"
