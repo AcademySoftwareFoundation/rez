@@ -156,7 +156,7 @@ jobs:
       - name: Inspect py image
         id: inspect
         run: |
-          Write-Output "Pulling image ${{ steps.vars.outputs.docker_image }}..."
+          Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
           docker manifest inspect ${{ steps.vars.outputs.docker_image }} *>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
@@ -197,3 +197,19 @@ jobs:
         run: |
           Write-Output "Pushing image ${{ steps.vars.outputs.docker_image }}..."
           docker push ${{ steps.vars.outputs.docker_image }}
+
+#  main:
+#    name: Run rez tests
+#    runs-on: windows-${{ matrix.os-version }}
+#    needs:
+#      - image_tags
+#      - py_image
+#
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os-version:
+#          - '2019'
+#        py-version:
+#          - '2.7.17'
+#          - '3.7.5'
