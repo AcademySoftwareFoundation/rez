@@ -93,29 +93,10 @@ jobs:
           echo "py tag is ${tag}"
           echo "::set-output name=tag::${tag}"
 
-  # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
-  dockerhub_access:
-    name: Check for dockerhub access
-    runs-on: ubuntu-latest
-
-    outputs:
-      enabled: ${{ steps.main.outputs.enabled }}
-
-    steps:
-      - id: main
-        name: Check dockerhub credentials
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
-        if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' }}"
-        run: |
-          echo "::set-output name=enabled::true"
-
   public_py_image:
     name: Check for up-to-date public py image
     runs-on: windows-${{ matrix.os-version }}
-    needs:
-      - image_tags
+    needs: image_tags
     env:
       PUB_NAMESPACE: nerdvegas  # TODO change to aswf
 
@@ -152,14 +133,56 @@ jobs:
           }
           exit 0
 
+  # this job only exists to collapse a larger conditional into a single var. It
+  # gets referenced in many steps, we can't use a job-level if because main job
+  # needs to run after py_image job
+  #
+  maybe_build:
+    name: Determine if images potentially need to be built
+    runs-on: ubuntu-latest
+    needs: public_py_image
+
+    outputs:
+      enabled: ${{ steps.main.outputs.enabled }}
+
+    steps:
+      - id: main
+        name: Set job var
+        run: |
+          if [[ \
+            "${{ needs.dockerhub_access.outputs.enabled }}" == "true" \
+            && ( \
+              "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" \
+              || "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false" \
+            ) \
+          ]]; then \
+            echo "::set-output name=enabled::true" \
+          fi
+
+  # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
+  dockerhub_access:
+    name: Check for dockerhub access
+    runs-on: ubuntu-latest
+
+    outputs:
+      enabled: ${{ steps.main.outputs.enabled }}
+
+    steps:
+      - id: main
+        name: Check dockerhub credentials
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
+        if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' }}"
+        run: |
+          echo "::set-output name=enabled::true"
+
   base_image:
     name: Build base docker image if required
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
-      - dockerhub_access
-      - public_py_image
-    if: needs.dockerhub_access.outputs.enabled == 'true' && ( needs.public_py_image.outputs.image_exists_2019_2_7_17 == 'false' || needs.public_py_image.outputs.image_exists_2019_3_7_5 == 'false' )
+      - maybe_build
 
     strategy:
       fail-fast: false
@@ -170,17 +193,20 @@ jobs:
     steps:
       - name: Set job vars
         id: vars
+        if: needs.maybe_build.outputs.enabled == 'true'
         run: |
           ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
+        if: needs.maybe_build.outputs.enabled == 'true'
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect base image
         id: inspect
+        if: needs.maybe_build.outputs.enabled == 'true'
         run: |
           Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
@@ -214,6 +240,7 @@ jobs:
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
+      - maybe_build
       - base_image
 
     strategy:
@@ -228,6 +255,7 @@ jobs:
     steps:
       - name: Set job vars
         id: vars
+        if: needs.maybe_build.outputs.enabled == 'true'
         run: |
           ${base_docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
           ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
@@ -236,11 +264,13 @@ jobs:
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
+        if: needs.maybe_build.outputs.enabled == 'true'
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect py image
         id: inspect
+        if: needs.maybe_build.outputs.enabled == 'true'
         run: |
           Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
