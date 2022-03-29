@@ -79,7 +79,7 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
-        if: "${{ DOCKERHUB_USER != '' }}"
+        if: "${{ env.DOCKERHUB_USER != '' }}"
         run: |
           echo "::set-output name=user::$DOCKERHUB_USER"
           echo "::set-output name=namespace::$DOCKERHUB_NAMESPACE"
