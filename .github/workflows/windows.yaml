@@ -112,7 +112,7 @@ jobs:
           echo "::set-output name=enabled::true"
 
   public_py_image:
-    name: Check for up-to-date public py images
+    name: Check for up-to-date public py image
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
