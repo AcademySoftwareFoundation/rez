@@ -80,7 +80,7 @@ jobs:
           _VAL: ${{ secrets.DOCKERHUB_USER }}
         if: ${{ env._VAL != '' }}
         run: |
-          echo "::set-output name=enabled:true"
+          echo "::set-output name=enabled::true"
 
   base_image:
     name: Build base docker image if required
