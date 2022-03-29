@@ -133,32 +133,6 @@ jobs:
           }
           exit 0
 
-  # this job only exists to collapse a larger conditional into a single var. It
-  # gets referenced in many steps, we can't use a job-level if because main job
-  # needs to run after py_image job
-  #
-  maybe_build:
-    name: Determine if images potentially need to be built
-    runs-on: ubuntu-latest
-    needs: public_py_image
-
-    outputs:
-      enabled: ${{ steps.main.outputs.enabled }}
-
-    steps:
-      - id: main
-        name: Set job var
-        run: |
-          if [[ \
-            "${{ needs.dockerhub_access.outputs.enabled }}" == "true" \
-            && ( \
-              "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" \
-              || "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false" \
-            ) \
-          ]]; then \
-            echo "::set-output name=enabled::true" \
-          fi
-
   # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
   dockerhub_access:
     name: Check for dockerhub access
@@ -176,6 +150,34 @@ jobs:
         if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' }}"
         run: |
           echo "::set-output name=enabled::true"
+
+  # this job only exists to collapse a larger conditional into a single var. It
+  # gets referenced in many steps, we can't use a job-level if because main job
+  # needs to run after py_image job
+  #
+  maybe_build:
+    name: Determine if images potentially need to be built
+    runs-on: ubuntu-latest
+    needs:
+      - public_py_image
+      - dockerhub_access
+
+    outputs:
+      enabled: ${{ steps.main.outputs.enabled }}
+
+    steps:
+      - id: main
+        name: Set job var
+        run: |
+          if [[ \
+            "${{ needs.dockerhub_access.outputs.enabled }}" == "true" \
+            && ( \
+              "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" \
+              || "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false" \
+            ) \
+          ]]; then \
+            echo "::set-output name=enabled::true" \
+          fi
 
   base_image:
     name: Build base docker image if required
