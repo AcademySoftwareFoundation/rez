@@ -139,7 +139,7 @@ jobs:
       - name: Inspect public py image
         id: inspect
         run: |
-          ${docker_image} = "${PUB_NAMESPACE}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          ${docker_image} = "${Env:PUB_NAMESPACE}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
           Write-Output "Inspecting image ${docker_image}..."
           $ErrorActionPreference = "Continue"
           docker manifest inspect ${docker_image} *>$null || Write-Output "(no such image)"
