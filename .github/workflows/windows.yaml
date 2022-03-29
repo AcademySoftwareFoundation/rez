@@ -73,13 +73,13 @@ jobs:
       enabled: ${{ steps.main.outputs.enabled }}
 
     steps:
-      id: main
-      name: Check for DOCKERHUB_USER secret
-      env:
-        _VAL: ${{ secrets.DOCKERHUB_USER }}
-      if: ${{ env._VAL != '' }}
-      run: |
-        echo "::set-output name=enabled:true"
+      - id: main
+        name: Check for DOCKERHUB_USER secret
+        env:
+          _VAL: ${{ secrets.DOCKERHUB_USER }}
+        if: ${{ env._VAL != '' }}
+        run: |
+          echo "::set-output name=enabled:true"
 
   base_image:
     name: Build base docker image if required
