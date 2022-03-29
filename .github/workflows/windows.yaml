@@ -176,7 +176,7 @@ jobs:
               || "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false" \
             ) \
           ]]; then \
-            echo "::set-output name=enabled::true" \
+            echo "::set-output name=enabled::true"; \
           fi
 
   base_image:
