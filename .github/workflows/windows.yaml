@@ -147,7 +147,8 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
-        if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' }}"
+          DOCKERHUB_TOKEN: '' #${{ secrets.DOCKERHUB_TOKEN }}
+        if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' && env.DOCKERHUB_TOKEN != '' }}"
         run: |
           echo "::set-output name=enabled::true"
 
@@ -177,16 +178,6 @@ jobs:
               exit 1
             fi
           fi
-
-          #if [[ \
-          #  "${{ needs.dockerhub_access.outputs.enabled }}" == "true" \
-          #  && ( \
-          #    "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" \
-          #    || "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false" \
-          #  ) \
-          #]]; then \
-          #  echo "::set-output name=enabled::true"; \
-          #fi
 
   base_image:
     name: Build base docker image if required
