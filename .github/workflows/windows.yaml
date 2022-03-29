@@ -139,10 +139,10 @@ jobs:
       - name: Inspect public py image
         id: inspect
         run: |
-          pub_docker_image = "${PUB_NAMESPACE}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
-          Write-Output "Inspecting image ${pub_docker_image}..."
+          ${docker_image} = "${PUB_NAMESPACE}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          Write-Output "Inspecting image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker manifest inspect ${pub_docker_image} *>$null || Write-Output "(no such image)"
+          docker manifest inspect ${docker_image} *>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
