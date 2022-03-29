@@ -68,6 +68,7 @@ jobs:
   # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
   dockerhub_access:
     name: Check for dockerhub access
+    runs-on: ubuntu-latest
 
     outputs:
       enabled: ${{ steps.main.outputs.enabled }}
