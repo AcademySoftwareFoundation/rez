@@ -336,15 +336,13 @@ jobs:
       - name: Set job vars
         id: vars
         run: |
+          ${docker_image_suffix} = "rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+
           if ("${{ matrix.use-public }}" -eq "false") {
-            ${ns} = "${{ secrets.DOCKERHUB_NAMESPACE }}"
-            ${adj} = "private"
+            ${docker_image} = "{{ secrets.DOCKERHUB_NAMESPACE }}/${docker_image_suffix}"
+            Write-Output "Using private image ${docker_image}..."
           }
           else {
-            ${ns} = ${Env:PUB_NAMESPACE}
-            ${adj} = "public"
+            ${docker_image} = "${Env:PUB_NAMESPACE}/${docker_image_suffix}"
+            Write-Output "Using public image ${docker_image}..."
           }
-
-          ${docker_image} = "${ns}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
-
-          Write-Output "Using ${adj} image ${docker_image}..."
