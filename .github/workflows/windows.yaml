@@ -65,32 +65,29 @@ jobs:
           echo "::set-output name=tag::${tag}"
 
   # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
-  dockerhub:
+  dockerhub_access:
     name: Check for dockerhub access
     runs-on: ubuntu-latest
 
     outputs:
-      user: ${{ steps.main.outputs.user }}
-      namespace: ${{ steps.main.outputs.namespace }}
+      enabled: ${{ steps.main.outputs.enabled }}
 
     steps:
       - id: main
         name: Check dockerhub credentials
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
         if: "${{ env.DOCKERHUB_USER != '' }}"
         run: |
-          echo "::set-output name=user::$DOCKERHUB_USER"
-          echo "::set-output name=namespace::$DOCKERHUB_NAMESPACE"
+          echo "::set-output name=enabled::true"
 
   base_image:
     name: Build base docker image if required
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
-      - dockerhub
-    if: needs.dockerhub.outputs.user != ''
+      - dockerhub_access
+    if: needs.dockerhub_access.outputs.enabled == 'true'
 
     strategy:
       fail-fast: false
