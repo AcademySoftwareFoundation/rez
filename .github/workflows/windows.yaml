@@ -14,7 +14,7 @@
 # with your account, and will be pushed to 'aswf' for others to use.
 #
 # This approach ensures that image rebuilds are avoided when possible, but are
-# supported from non-member forks who may have made changes to docker-related
+# supported from non-aswf-member forks who may have made changes to docker-related
 # source (such as Dockerfile) and need this workflow to run.
 #
 # Please note that if you need to rebuild images then you must supply the
@@ -23,8 +23,8 @@
 # DOCKERHUB_USER: Your dockerhub username.
 # DOCKERHUB_TOKEN: Your dockerhub access token.
 # DOCKERHUB_NAMESPACE: The namespace to publish to. If you are a member of the
-#   'aswf' dockerhub org, you should set this to 'aswf'. If not, you should set
-#   this to match your DOCKERHUB_USER.
+#   'aswf' dockerhub org, you should set this to 'aswf'. If not, you need to set
+#   this to match DOCKERHUB_USER.
 #
 ---
 name: windows
@@ -110,9 +110,7 @@ jobs:
           - '3.7.5'
 
     outputs:
-      # blame github for this silliness
       # https://github.community/t/bug-jobs-output-should-return-a-list-for-a-matrix-job/128626
-      #
       image_exists_2019_2_7_17: ${{ steps.inspect.outputs.image_exists_2019_2_7_17 }}
       image_exists_2019_3_7_5: ${{ steps.inspect.outputs.image_exists_2019_3_7_5 }}
 
@@ -139,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      enabled: ${{ steps.main.outputs.enabled }}
+      value: ${{ steps.main.outputs.value }}
 
     steps:
       - id: main
@@ -147,20 +145,20 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKENX }}
         if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' && env.DOCKERHUB_TOKEN != '' }}"
         run: |
-          echo "::set-output name=enabled::true"
+          echo "::set-output name=value::true"
 
   maybe_build:
-    name: Determine if images potentially need to be built
+    name: See if images may need to be built
     runs-on: ubuntu-latest
     needs:
       - public_py_image
       - dockerhub_access
 
     outputs:
-      enabled: ${{ steps.main.outputs.enabled }}
+      value: ${{ steps.main.outputs.value }}
 
     steps:
       - id: main
@@ -170,10 +168,10 @@ jobs:
             "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" ||
             "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false"
           ]]; then
-            if [[ "${{ needs.dockerhub_access.outputs.enabled }}" == "true" ]]; then
-              echo "::set-output name=enabled::true"
+            if [[ "${{ needs.dockerhub_access.outputs.value }}" == "true" ]]; then
+              echo "::set-output name=value::true"
             else
-              echo "Docker image(s) need to be rebuilt, but you don't have dockerhub access." >&2
+              echo "Docker image(s) need to be built, but you don't have dockerhub access." >&2
               echo "See comments in .github/workflows/windows.yaml for instructions." >&2
               exit 1
             fi
@@ -195,20 +193,20 @@ jobs:
     steps:
       - name: Set job vars
         id: vars
-        if: needs.maybe_build.outputs.enabled == 'true'
+        if: needs.maybe_build.outputs.value == 'true'
         run: |
           ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
-        if: needs.maybe_build.outputs.enabled == 'true'
+        if: needs.maybe_build.outputs.value == 'true'
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect base image
         id: inspect
-        if: needs.maybe_build.outputs.enabled == 'true'
+        if: needs.maybe_build.outputs.value == 'true'
         run: |
           Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
@@ -257,7 +255,7 @@ jobs:
     steps:
       - name: Set job vars
         id: vars
-        if: needs.maybe_build.outputs.enabled == 'true'
+        if: needs.maybe_build.outputs.value == 'true'
         run: |
           ${base_docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
           ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
@@ -266,13 +264,13 @@ jobs:
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
-        if: needs.maybe_build.outputs.enabled == 'true'
+        if: needs.maybe_build.outputs.value == 'true'
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect py image
         id: inspect
-        if: needs.maybe_build.outputs.enabled == 'true'
+        if: needs.maybe_build.outputs.value == 'true'
         run: |
           Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
