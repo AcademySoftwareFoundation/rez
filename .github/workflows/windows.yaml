@@ -64,31 +64,33 @@ jobs:
           echo "py tag is ${tag}"
           echo "::set-output name=tag::${tag}"
 
-  # assume that DOCKERHUB_USER secret defined = dockerhub access
   # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
-  dockerhub_access:
+  dockerhub:
     name: Check for dockerhub access
     runs-on: ubuntu-latest
 
     outputs:
-      enabled: ${{ steps.main.outputs.enabled }}
+      user: ${{ steps.main.outputs.user }}
+      namespace: ${{ steps.main.outputs.namespace }}
 
     steps:
       - id: main
-        name: Check for DOCKERHUB_USER secret
+        name: Check dockerhub credentials
         env:
-          _VAL: ${{ secrets.DOCKERHUB_USER }}
-        if: ${{ env._VAL != '' }}
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
+        if: "${{ DOCKERHUB_USER != '' }}"
         run: |
-          echo "::set-output name=enabled::true"
+          echo "::set-output name=user::$DOCKERHUB_USER"
+          echo "::set-output name=namespace::$DOCKERHUB_NAMESPACE"
 
   base_image:
     name: Build base docker image if required
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
-      - dockerhub_access
-    if: needs.dockerhub_access.outputs.enabled == 'true'
+      - dockerhub
+    if: needs.dockerhub.outputs.user != ''
 
     strategy:
       fail-fast: false
@@ -100,7 +102,7 @@ jobs:
       - name: Set job vars
         id: vars
         run: |
-          ${docker_image} = "${{ secrets.DOCKERHUB_USER }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
           Write-Output "::set-output name=docker_image::${docker_image}"
 
@@ -158,8 +160,8 @@ jobs:
       - name: Set job vars
         id: vars
         run: |
-          ${base_docker_image} = "${{ secrets.DOCKERHUB_USER }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
-          ${docker_image} = "${{ secrets.DOCKERHUB_USER }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          ${base_docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
 
           Write-Output "::set-output name=base_docker_image::${base_docker_image}"
           Write-Output "::set-output name=docker_image::${docker_image}"
