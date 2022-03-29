@@ -19,8 +19,9 @@ on:
       - '!**.md'
 
 jobs:
+
+  # image tags are based on sourcefile contents
   image_tags:
-    # image tags are based on sourcefile contents
     name: Calculate image tags
     runs-on: ubuntu-latest
 
@@ -63,10 +64,30 @@ jobs:
           echo "py tag is ${tag}"
           echo "::set-output name=tag::${tag}"
 
+  # assume that DOCKERHUB_USER secret defined = dockerhub access
+  # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
+  dockerhub_access:
+    name: Check for dockerhub access
+
+    outputs:
+      enabled: ${{ steps.main.outputs.enabled }}
+
+    steps:
+      id: main
+      name: Check for DOCKERHUB_USER secret
+      env:
+        _VAL: ${{ secrets.DOCKERHUB_USER }}
+      if: ${{ env._VAL != '' }}
+      run: |
+        echo "::set-output name=enabled:true"
+
   base_image:
     name: Build base docker image if required
     runs-on: windows-${{ matrix.os-version }}
-    needs: image_tags
+    needs:
+      - image_tags
+      - dockerhub_access
+    if: needs.dockerhub_access.outputs.enabled == 'true'
 
     strategy:
       fail-fast: false
@@ -78,15 +99,13 @@ jobs:
       - name: Set job vars
         id: vars
         run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${docker_image} = "rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${docker_image} = "${{ secrets.DOCKERHUB_USER }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
-          Write-Output "::set-output name=gh_user::${gh_user}"
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
         run: |
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ steps.vars.outputs.gh_user }} --password-stdin
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect base image
         id: inspect
@@ -98,9 +117,6 @@ jobs:
 
           if ($LastExitCode -ne 0) {
             Write-Output "::set-output name=image_exists::false"
-          }
-          else {
-            Write-Output "::set-output name=image_exists::true"
           }
           exit 0
 
@@ -141,17 +157,15 @@ jobs:
       - name: Set job vars
         id: vars
         run: |
-          ${gh_user} = ("${{ github.repository }}" -Split '/')[0]
-          ${base_docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
-          ${docker_image} = "${gh_user}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          ${base_docker_image} = "${{ secrets.DOCKERHUB_USER }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${docker_image} = "${{ secrets.DOCKERHUB_USER }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
 
-          Write-Output "::set-output name=gh_user::${gh_user}"
           Write-Output "::set-output name=base_docker_image::${base_docker_image}"
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
         run: |
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ steps.vars.outputs.gh_user }} --password-stdin
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect py image
         id: inspect
@@ -163,9 +177,6 @@ jobs:
 
           if ($LastExitCode -ne 0) {
             Write-Output "::set-output name=image_exists::false"
-          }
-          else {
-            Write-Output "::set-output name=image_exists::true"
           }
           exit 0
 
