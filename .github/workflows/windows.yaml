@@ -319,7 +319,7 @@ jobs:
       - public_py_image
       - py_image
     env:
-      PUB_NAMESPACE: nerdvegas_PUB  # TODO change to aswf
+      PUB_NAMESPACE: nerdvegas  # TODO change to aswf
 
     strategy:
       fail-fast: false
@@ -337,11 +337,14 @@ jobs:
         id: vars
         run: |
           if ("${{ matrix.use-public }}" -eq "false") {
-            ${ns} = ${Env:PUB_NAMESPACE}
+            ${ns} = "${{ secrets.DOCKERHUB_NAMESPACE }}"
+            ${adj} = "private"
           }
           else {
-            #${ns} = "${{ secrets.DOCKERHUB_NAMESPACE }}"
-            ${ns} = "PRIV_NS"
+            ${ns} = ${Env:PUB_NAMESPACE}
+            ${adj} = "public"
           }
 
-          Write-Output "NAMESPACE IS ${ns}"
+          ${docker_image} = "${ns}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+
+          Write-Output "Using ${adj} image ${docker_image}..."
