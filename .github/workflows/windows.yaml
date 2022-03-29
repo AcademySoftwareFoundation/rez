@@ -1,3 +1,32 @@
+#
+# This workflow builds base and python-version-specific docker images if
+# required, then runs the rez tests in the python image.
+#
+# The images are tagged with a hash of the relevant sourcefile contents (eg
+# Dockerfile). Images from the 'aswf' dockerhub org will be used if they are
+# up-to-date (note that this does not require a dockerhub account).
+#
+# If images require updating, and you do _not_ have a dockerhub account, the
+# workflow will fail. If you do have an account, the necessary images will be
+# created with your account, and the tests will run. If you have an account,
+# _and_ you are a member of the 'aswf' dockerhub org (which you indicate by
+# setting secrets.DOCKERHUB_NAMESPACE to 'aswf'), then the images will be built
+# with your account, and will be pushed to 'aswf' for others to use.
+#
+# This approach ensures that image rebuilds are avoided when possible, but are
+# supported from non-member forks who may have made changes to docker-related
+# source (such as Dockerfile) and need this workflow to run.
+#
+# Please note that if you need to rebuild images then you must supply the
+# following secrets:
+#
+# DOCKERHUB_USER: Your dockerhub username.
+# DOCKERHUB_TOKEN: Your dockerhub access token.
+# DOCKERHUB_NAMESPACE: The namespace to publish to. If you are a member of the
+#   'aswf' dockerhub org, you should set this to 'aswf'. If not, you should set
+#   this to match your DOCKERHUB_USER.
+#
+---
 name: windows
 
 on:
@@ -77,9 +106,49 @@ jobs:
         name: Check dockerhub credentials
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-        if: "${{ env.DOCKERHUB_USER != '' }}"
+          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
+        if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' }}"
         run: |
           echo "::set-output name=enabled::true"
+
+  public_py_image:
+    name: Check for up-to-date public py images
+    runs-on: windows-${{ matrix.os-version }}
+    needs:
+      - image_tags
+    env:
+      PUB_NAMESPACE: nerdvegas  # TODO change to aswf
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version:
+          - '2019'
+        py-version:
+          - '2.7.17'
+          - '3.7.5'
+
+    outputs:
+      # blame github for this silliness
+      # https://github.community/t/bug-jobs-output-should-return-a-list-for-a-matrix-job/128626
+      #
+      image_exists_2019_2_7_17: ${{ steps.inspect.outputs.image_exists_2019_2_7_17 }}
+      image_exists_2019_3_7_5: ${{ steps.inspect.outputs.image_exists_2019_3_7_5 }}
+
+    steps:
+      - name: Inspect public py image
+        id: inspect
+        run: |
+          pub_docker_image = "${PUB_NAMESPACE}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          Write-Output "Inspecting image ${pub_docker_image}..."
+          $ErrorActionPreference = "Continue"
+          docker manifest inspect ${pub_docker_image} *>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "Stop"
+
+          if ($LastExitCode -ne 0) {
+            Write-Output "::set-output name=image_exists_${{ matrix.os-version }}_${{ matrix.py-version | replace('.', '_' }}::false"
+          }
+          exit 0
 
   base_image:
     name: Build base docker image if required
@@ -87,7 +156,8 @@ jobs:
     needs:
       - image_tags
       - dockerhub_access
-    if: needs.dockerhub_access.outputs.enabled == 'true'
+      - public_py_image
+    if: needs.dockerhub_access.outputs.enabled == 'true' && ( needs.public_py_image.outputs.image_exists_2019_2_7_17 == 'false' || needs.public_py_image.outputs.image_exists_2019_3_7_5 == 'false' )
 
     strategy:
       fail-fast: false
