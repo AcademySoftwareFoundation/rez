@@ -70,6 +70,7 @@ jobs:
         run: |
           tag=$( \
             find \
+            ./.github/workflows/windows.yaml \
             ./.github/docker/rez-win-base \
             -type f \
             | sort \
@@ -85,6 +86,7 @@ jobs:
         run: |
           tag=$( \
             find \
+            ./.github/workflows/windows.yaml \
             ./.github/docker/rez-win-base \
             ./.github/docker/rez-win-py \
             -type f \
