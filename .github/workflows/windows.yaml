@@ -352,4 +352,16 @@ jobs:
           }
 
           ${docker_image} = "${ns}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+
+          Write-Output "::set-output name=docker_image::${docker_image}"
           Write-Output "Using image ${docker_image}..."
+
+      - name: Pull py image
+        run: |
+          docker pull ${{ steps.vars.outputs.docker_image }}
+
+      - name: Run Docker image (installs and tests rez)
+        run: |
+          docker run `
+            --mount type=bind,src=$pwd,dst=C:\checkout,readonly `
+            ${{ steps.vars.outputs.docker_image }}
