@@ -153,11 +153,6 @@ jobs:
     steps:
       - id: main
         name: Check dockerhub credentials
-        #env:
-        #  DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-        #  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
-        #  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        #if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' && env.DOCKERHUB_TOKEN != '' }}"
         run: |
           if [[
             ( "${{ secrets.DOCKERHUB_USERX }}" != "" ) &&
@@ -204,6 +199,8 @@ jobs:
       - image_tags
       - maybe_build
 
+    if: needs.maybe_build.outputs.value == 'true'
+
     strategy:
       fail-fast: false
       matrix:
@@ -213,20 +210,17 @@ jobs:
     steps:
       - name: Set job vars
         id: vars
-        if: needs.maybe_build.outputs.value == 'true'
         run: |
           ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
 
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
-        if: needs.maybe_build.outputs.value == 'true'
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect base image
         id: inspect
-        if: needs.maybe_build.outputs.value == 'true'
         run: |
           Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
@@ -275,7 +269,6 @@ jobs:
     steps:
       - name: Set job vars
         id: vars
-        if: needs.maybe_build.outputs.value == 'true'
         run: |
           ${base_docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
           ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
@@ -284,13 +277,11 @@ jobs:
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
-        if: needs.maybe_build.outputs.value == 'true'
         run: |
           '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
       - name: Inspect py image
         id: inspect
-        if: needs.maybe_build.outputs.value == 'true'
         run: |
           Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
           $ErrorActionPreference = "Continue"
@@ -338,6 +329,9 @@ jobs:
       - image_tags
       - public_py_image
       - py_image
+
+    # guarantees this job runs even if needed jobs are skipped
+    if: always()
 
     strategy:
       fail-fast: false
