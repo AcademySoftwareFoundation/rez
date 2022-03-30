@@ -47,6 +47,9 @@ on:
       - '!src/rez/utils/_version.py'
       - '!**.md'
 
+env:
+  PUB_NAMESPACE: nerdvegas  # TODO change to aswf
+
 jobs:
 
   # image tags are based on sourcefile contents
@@ -97,8 +100,6 @@ jobs:
     name: Check for up-to-date public py image
     runs-on: windows-${{ matrix.os-version }}
     needs: image_tags
-    env:
-      PUB_NAMESPACE: nerdvegas  # TODO change to aswf
 
     strategy:
       fail-fast: false
@@ -128,6 +129,16 @@ jobs:
             ${output_name} = "image_exists_${{ matrix.os-version }}_${{ matrix.py-version }}"
             ${output_name} = ${output_name} -replace '\.', '_'
             Write-Output "::set-output name=${output_name}::false"
+
+            if ("${{ secrets.DOCKERHUB_NAMESPACE }}" -eq "${Env:PUB_NAMESPACE}" ) {
+              Write-Output "Public image is stale - it will be rebuilt and used by the tests"
+            }
+            else {
+              Write-Output "Public image is stale - a private image will be built and used by the tests"
+            }
+          }
+          else {
+            Write-Output "Public image is up-to-date - it will be used by the tests"
           }
           exit 0
 
@@ -142,13 +153,22 @@ jobs:
     steps:
       - id: main
         name: Check dockerhub credentials
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' && env.DOCKERHUB_TOKEN != '' }}"
+        #env:
+        #  DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+        #  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE }}
+        #  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        #if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' && env.DOCKERHUB_TOKEN != '' }}"
         run: |
-          echo "::set-output name=value::true"
+          if [[
+            ( "${{ secrets.DOCKERHUB_USER }}" != "" ) &&
+            ( "${{ secrets.DOCKERHUB_NAMESPACE }}" != "" ) &&
+            ( "${{ secrets.DOCKERHUB_TOKEN }}" != "" )
+          ]]; then
+            echo "::set-output name=value::true"
+          else
+            echo \
+              "You do not have dockerhub access - on or more of secrets DOCKERHUB_USER, DOCKERHUB_NAMESPACE and DOCKERHUB_TOKEN are not defined. If an image needs to be rebuilt, the workflow will fail. You only need to worry about this if you've changed any files in .github/docker."
+          fi
 
   maybe_build:
     name: See if images may need to be built
@@ -318,8 +338,6 @@ jobs:
       - image_tags
       - public_py_image
       - py_image
-    env:
-      PUB_NAMESPACE: nerdvegas  # TODO change to aswf
 
     strategy:
       fail-fast: false
