@@ -155,7 +155,7 @@ jobs:
         name: Check dockerhub credentials
         run: |
           if [[
-            ( "${{ secrets.DOCKERHUB_USERX }}" != "" ) &&
+            ( "${{ secrets.DOCKERHUB_USER }}" != "" ) &&
             ( "${{ secrets.DOCKERHUB_NAMESPACE }}" != "" ) &&
             ( "${{ secrets.DOCKERHUB_TOKEN }}" != "" )
           ]]; then

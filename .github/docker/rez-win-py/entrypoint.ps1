@@ -2,7 +2,7 @@
 # Entrypoint that installs given python version and runs tests.
 #
 
-# dgdfgfdgfdrteryytru
+# wheee
 
 # Stop on errors; .exe has to be checked manually
 Set-StrictMode -Version latest
