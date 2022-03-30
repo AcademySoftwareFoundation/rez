@@ -2,8 +2,6 @@
 # Entrypoint that installs given python version and runs tests.
 #
 
-# flubber
-
 # Stop on errors; .exe has to be checked manually
 Set-StrictMode -Version latest
 $ErrorActionPreference = "Stop"

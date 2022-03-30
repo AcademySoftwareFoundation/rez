@@ -321,7 +321,7 @@ jobs:
       - public_py_image
       - py_image
 
-    # guarantees this job runs even if needed jobs are skipped
+    # forces this job to run even if needed jobs are skipped
     if: always()
 
     strategy:
