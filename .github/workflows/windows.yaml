@@ -201,6 +201,13 @@ jobs:
         os-version:
           - '2019'
 
+        # The windows version has to match the host system.
+        # 1809 -> 10.0.17763.805 -> windows-2019
+        # Compare: https://hub.docker.com/_/microsoft-windows-servercore
+        include:
+          - os-version: '2019'
+            windows-version: '1809-amd64'
+
     steps:
       - name: Set job vars
         id: vars
@@ -235,7 +242,10 @@ jobs:
         run: |
           Write-Output "Building image ${{ steps.vars.outputs.docker_image }}..."
           cd .github\docker\rez-win-base
-          docker build --tag ${{ steps.vars.outputs.docker_image }} .
+          docker build `
+            --tag ${{ steps.vars.outputs.docker_image }} `
+            --build-arg WINDOWS_VERSION="${{ matrix.windows-version }}" `
+            .
 
       - name: Push base image
         if: steps.inspect.outputs.image_exists == 'false'
