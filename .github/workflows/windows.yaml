@@ -349,6 +349,9 @@ jobs:
           Write-Output "::set-output name=docker_image::${docker_image}"
           Write-Output "Using image ${docker_image}..."
 
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Pull py image
         run: |
           docker pull ${{ steps.vars.outputs.docker_image }}
