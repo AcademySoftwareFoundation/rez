@@ -160,7 +160,7 @@ jobs:
         #if: "${{ env.DOCKERHUB_USER != '' && env.DOCKERHUB_NAMESPACE != '' && env.DOCKERHUB_TOKEN != '' }}"
         run: |
           if [[
-            ( "${{ secrets.DOCKERHUB_USER }}" != "" ) &&
+            ( "${{ secrets.DOCKERHUB_USERX }}" != "" ) &&
             ( "${{ secrets.DOCKERHUB_NAMESPACE }}" != "" ) &&
             ( "${{ secrets.DOCKERHUB_TOKEN }}" != "" )
           ]]; then
