@@ -112,8 +112,9 @@ jobs:
 
     outputs:
       # https://github.community/t/bug-jobs-output-should-return-a-list-for-a-matrix-job/128626
-      image_exists_2019_2_7_17: ${{ steps.inspect.outputs.image_exists_2019_2_7_17 }}
-      image_exists_2019_3_7_5: ${{ steps.inspect.outputs.image_exists_2019_3_7_5 }}
+      #image_exists_2019_2_7_17: ${{ steps.inspect.outputs.image_exists_2019_2_7_17 }}
+      #image_exists_2019_3_7_5: ${{ steps.inspect.outputs.image_exists_2019_3_7_5 }}
+      stale: ${{ steps.inspect.outputs.stale }}
 
     steps:
       - name: Inspect public py image
@@ -126,9 +127,10 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
-            ${output_name} = "image_exists_${{ matrix.os-version }}_${{ matrix.py-version }}"
-            ${output_name} = ${output_name} -replace '\.', '_'
-            Write-Output "::set-output name=${output_name}::false"
+            #${output_name} = "image_exists_${{ matrix.os-version }}_${{ matrix.py-version }}"
+            #${output_name} = ${output_name} -replace '\.', '_'
+            #Write-Output "::set-output name=${output_name}::false"
+            Write-Output "::set-output name=stale::true"
 
             if ("${{ secrets.DOCKERHUB_NAMESPACE }}" -eq "${Env:PUB_NAMESPACE}" ) {
               Write-Output "Public image is stale - it will be rebuilt and used by the tests"
@@ -179,10 +181,7 @@ jobs:
       - id: main
         name: Set job var
         run: |
-          if [[
-            "${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}" == "false" ||
-            "${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}" == "false"
-          ]]; then
+          if [[ "${{ needs.public_py_image.outputs.stale }}" == "true" ]]; then
             if [[ "${{ needs.dockerhub_access.outputs.value }}" == "true" ]]; then
               echo "::set-output name=value::true"
             else
@@ -254,7 +253,6 @@ jobs:
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
-      - maybe_build
       - base_image
 
     strategy:
@@ -336,25 +334,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os-version: '2019'
-            py-version: '2.7.17'
-            use-public: ${{ needs.public_py_image.outputs.image_exists_2019_2_7_17 }}
-          - os-version: '2019'
-            py-version: '3.7.5'
-            use-public: ${{ needs.public_py_image.outputs.image_exists_2019_3_7_5 }}
+        os-version:
+          - '2019'
+        py-version:
+          - '2.7.17'
+          - '3.7.5'
 
     steps:
       - name: Set job vars
         id: vars
         run: |
-          ${docker_image_suffix} = "rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
-
-          if ("${{ matrix.use-public }}" -eq "false") {
-            ${docker_image} = "{{ secrets.DOCKERHUB_NAMESPACE }}/${docker_image_suffix}"
-            Write-Output "Using private image ${docker_image}..."
+          if ("${{ needs.public_py_image.outputs.stale }}" -eq "true") {
+            ${ns} = "${{ secrets.DOCKERHUB_NAMESPACE }}"
           }
           else {
-            ${docker_image} = "${Env:PUB_NAMESPACE}/${docker_image_suffix}"
-            Write-Output "Using public image ${docker_image}..."
+            ${ns} = "${Env:PUB_NAMESPACE}"
           }
+
+          ${docker_image} = "${ns}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          Write-Output "Using image ${docker_image}..."
