@@ -96,6 +96,8 @@ jobs:
           echo "py tag is ${tag}"
           echo "::set-output name=tag::${tag}"
 
+  # note that we don't track staleness on a per-matrix-entry basis. Github actions
+  # job outputs wrt matrix is problematic and frankly not worth the hassle.
   public_py_image:
     name: Check for up-to-date public py image
     runs-on: windows-${{ matrix.os-version }}
@@ -111,9 +113,6 @@ jobs:
           - '3.7.5'
 
     outputs:
-      # https://github.community/t/bug-jobs-output-should-return-a-list-for-a-matrix-job/128626
-      #image_exists_2019_2_7_17: ${{ steps.inspect.outputs.image_exists_2019_2_7_17 }}
-      #image_exists_2019_3_7_5: ${{ steps.inspect.outputs.image_exists_2019_3_7_5 }}
       stale: ${{ steps.inspect.outputs.stale }}
 
     steps:
@@ -127,24 +126,10 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           if ($LastExitCode -ne 0) {
-            #${output_name} = "image_exists_${{ matrix.os-version }}_${{ matrix.py-version }}"
-            #${output_name} = ${output_name} -replace '\.', '_'
-            #Write-Output "::set-output name=${output_name}::false"
             Write-Output "::set-output name=stale::true"
-
-            if ("${{ secrets.DOCKERHUB_NAMESPACE }}" -eq "${Env:PUB_NAMESPACE}" ) {
-              Write-Output "Public image is stale - it will be rebuilt and used by the tests"
-            }
-            else {
-              Write-Output "Public image is stale - a private image will be built and used by the tests"
-            }
-          }
-          else {
-            Write-Output "Public image is up-to-date - it will be used by the tests"
           }
           exit 0
 
-  # https://stackoverflow.com/questions/70249519/how-to-check-if-a-secret-variable-is-empty-in-if-conditional-github-actions
   dockerhub_access:
     name: Check for dockerhub access
     runs-on: ubuntu-latest
@@ -184,11 +169,19 @@ jobs:
           if [[ "${{ needs.public_py_image.outputs.stale }}" == "true" ]]; then
             if [[ "${{ needs.dockerhub_access.outputs.value }}" == "true" ]]; then
               echo "::set-output name=value::true"
+
+              if [[ "${{ secrets.DOCKERHUB_NAMESPACE }}" == "$PUB_NAMESPACE" ]]; then
+                echo "Public images are stale - they will be rebuilt and used by the tests"
+              else
+                echo "Public images are stale - private images will be built and used by the tests"
+              fi
             else
               echo "Docker image(s) need to be built, but you don't have dockerhub access." >&2
               echo "See comments in .github/workflows/windows.yaml for instructions." >&2
               exit 1
             fi
+          else
+            echo "Public images are up-to-date - they will be used by the tests"
           fi
 
   base_image:
