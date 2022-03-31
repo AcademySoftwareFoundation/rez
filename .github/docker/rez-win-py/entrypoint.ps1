@@ -14,22 +14,25 @@ ${ENV:PYTHONIOENCODING} = "UTF-8"
 Write-Output "Using docker image ${ENV:_IMAGE_NAME}"
 
 # Verify Python
-#
 python --version
 if (-not $?) {exit 1}
 
 # Verify cmake
-#
 cmake.exe --version
 if (-not $?) {exit 1}
 
-#Verify pwsh
+# Verify pwsh
 pwsh --version
 if (-not $?) {exit 1}
 
-#Verify git
+# Verify git
 git --version
 if (-not $?) {exit 1}
+
+# Verify git-bash
+# Note the explicit path is to avoid potentially picking up C:\system32\bash.exe,
+# which would be bash in a WLS if present
+C:\git\bin\bash --version
 
 # Install rez
 # Note that the workflow's checkout has been bind mounted to /checkout
@@ -41,7 +44,6 @@ if (-not $?) {exit 1}
 .\build\Scripts\rez\rez-python -m pip install pytest-cov
 
 # Run Rez Tests
-#
 .\build\Scripts\rez\rez-selftest.exe
 
 # Pass on exit code to runner

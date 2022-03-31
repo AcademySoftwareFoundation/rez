@@ -32,20 +32,30 @@ RUN ${PYTHON_INSTALL_PATH} = 'C:\Python'; `
         ${INSTALLARGS} = \"'/quiet InstallAllUsers=1 PrependPath=1 TargetDir=`\"\" + ${PYTHON_INSTALL_PATH} + \"`\"'\"; `
     } `
     choco install python${PYTHON_MAJOR_VERSION} --yes --version=\"${ENV:PYTHON_VERSION}\" --override --installargs=${INSTALLARGS}; `
-    if (-not $?) {exit 1};
+    if (-not $?) {exit 1}
 
-# ------------------------------------------------------------------------------------------------------------
-# Verify Python
-#
+# Verify
 RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1]; `
     $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1]; `
     if (-not $?) {exit 1}; `
     $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" ")[1]; `
     $python_explicit_ver = (& C:\python\python.exe --version 2>&1).ToString().Trim().Split(" ")[1]; `
-    if (-not ($python_explicit_ver -eq $python_relative_ver -and $python_explicit_ver -eq ${ENV:PYTHON_VERSION})) {exit 1}; `
-    choco install --yes choco-cleaner; `
+    if (-not ($python_explicit_ver -eq $python_relative_ver -and $python_explicit_ver -eq ${ENV:PYTHON_VERSION})) {exit 1}
+
+
+# ------------------------------------------------------------------------------------------------------------
+# Git Bash (git for windows)
+#
+RUN choco install git --yes --params "/GitAndUnixToolsOnPath"
+
+
+# ------------------------------------------------------------------------------------------------------------
+# Cleanup
+#
+RUN choco install --yes choco-cleaner; `
     C:\ProgramData\chocolatey\bin\choco-cleaner.bat; `
     choco uninstall --yes choco-cleaner
+
 
 COPY entrypoint.ps1 /entrypoint.ps1
 
