@@ -2,11 +2,7 @@
 
 # Please Note: Any " requires \" in the Dockerfile for windows.
 
-# The windows version has to match the host system.
-# 1809 ->	10.0.17763.805 -> windows-2019
-# Compare: https://hub.docker.com/_/microsoft-windows-servercore
-ARG WINDOWS_VERSION=1809-amd64
-
+ARG WINDOWS_VERSION
 FROM mcr.microsoft.com/windows/servercore:$WINDOWS_VERSION
 
 SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "ByPass"]

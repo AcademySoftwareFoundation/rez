@@ -1,11 +1,32 @@
 #
-# Picks up docker image from hub.docker.com as repository.
+# This workflow builds base and python-version-specific docker images if
+# required, then runs the rez tests in the python image.
 #
-# Pulls without login (public repository only).
-# Requires username/repository to match the github repository.
-# For example: nerdvegas/rez -> User/Repository: nerdvegas
+# The images are tagged with a hash of the relevant sourcefile contents (eg
+# Dockerfile). Images from the 'aswf' dockerhub org will be used if they are
+# up-to-date (note that this does not require a dockerhub account).
 #
-
+# If images require updating, and you do _not_ have a dockerhub account, the
+# workflow will fail. If you do have an account, the necessary images will be
+# created with your account, and the tests will run. If you have an account,
+# _and_ you are a member of the 'aswf' dockerhub org (which you indicate by
+# setting secrets.DOCKERHUB_NAMESPACE to 'aswf'), then the images will be built
+# with your account, and will be pushed to 'aswf' for others to use.
+#
+# This approach ensures that image rebuilds are avoided when possible, but are
+# supported from non-aswf-member forks who may have made changes to docker-related
+# source (such as Dockerfile) and need this workflow to run.
+#
+# Please note that if you need to rebuild images then you must supply the
+# following secrets:
+#
+# DOCKERHUB_USER: Your dockerhub username.
+# DOCKERHUB_TOKEN: Your dockerhub access token.
+# DOCKERHUB_NAMESPACE: The namespace to publish to. If you are a member of the
+#   'aswf' dockerhub org, you should set this to 'aswf'. If not, you need to set
+#   this to match DOCKERHUB_USER.
+#
+---
 name: windows
 
 on:
@@ -13,39 +34,342 @@ on:
     paths:
       - 'src/**'
       - '.github/workflows/windows.yaml'
+      - '.github/docker/rez-win-base/**'
+      - '.github/docker/rez-win-py/**'
       - '!src/rez/utils/_version.py'
       - '!**.md'
   push:
     paths:
       - 'src/**'
       - '.github/workflows/windows.yaml'
+      - '.github/docker/rez-win-base/**'
+      - '.github/docker/rez-win-py/**'
       - '!src/rez/utils/_version.py'
       - '!**.md'
 
-jobs:
-  main:
-    runs-on: windows-2019
+env:
+  PUB_NAMESPACE: nerdvegas  # TODO change to aswf
 
-    strategy:
-      matrix:
-        # Needs to match python version of images (see windows-docker-image.yaml)
-        python-version:
-          - '2.7.17'
-          # TODO add back once failing windows py3 builds are investigated
-          - '3.7.5'
-      fail-fast: false
+jobs:
+
+  # image tags are based on sourcefile contents
+  image_tags:
+    name: Calculate image tags
+    runs-on: ubuntu-latest
+
+    outputs:
+      base: ${{ steps.base.outputs.tag }}
+      py: ${{ steps.py.outputs.tag }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Determine base image tag
+        id: base
+        run: |
+          tag=$( \
+            find \
+            ./.github/workflows/windows.yaml \
+            ./.github/docker/rez-win-base \
+            -type f \
+            | sort \
+            | xargs md5sum \
+            | md5sum - \
+            | awk '{print $1}' \
+          )
+          echo "base tag is ${tag}"
+          echo "::set-output name=tag::${tag}"
+
+      - name: Determine python image tag
+        id: py
+        run: |
+          tag=$( \
+            find \
+            ./.github/workflows/windows.yaml \
+            ./.github/docker/rez-win-base \
+            ./.github/docker/rez-win-py \
+            -type f \
+            | sort \
+            | xargs md5sum \
+            | md5sum - \
+            | awk '{print $1}' \
+          )
+          echo "py tag is ${tag}"
+          echo "::set-output name=tag::${tag}"
+
+  # note that we don't track staleness on a per-matrix-entry basis. Github actions
+  # job outputs wrt matrix is problematic and frankly not worth the hassle.
+  public_py_image:
+    name: Check for up-to-date public py image
+    runs-on: windows-${{ matrix.os-version }}
+    needs: image_tags
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version:
+          - '2019'
+        py-version:
+          - '2.7.17'
+          - '3.7.5'
+
+    outputs:
+      stale: ${{ steps.inspect.outputs.stale }}
+
+    steps:
+      - name: Inspect public py image
+        id: inspect
+        run: |
+          ${docker_image} = "${Env:PUB_NAMESPACE}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          Write-Output "Inspecting image ${docker_image}..."
+          $ErrorActionPreference = "Continue"
+          docker manifest inspect ${docker_image} *>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "Stop"
+
+          if ($LastExitCode -ne 0) {
+            Write-Output "::set-output name=stale::true"
+          }
+          exit 0
+
+  dockerhub_access:
+    name: Check for dockerhub access
+    runs-on: ubuntu-latest
+
+    outputs:
+      value: ${{ steps.main.outputs.value }}
+
+    steps:
+      - id: main
+        name: Check dockerhub credentials
+        run: |
+          if [[
+            ( "${{ secrets.DOCKERHUB_USER }}" != "" ) &&
+            ( "${{ secrets.DOCKERHUB_NAMESPACE }}" != "" ) &&
+            ( "${{ secrets.DOCKERHUB_TOKEN }}" != "" )
+          ]]; then
+            echo "::set-output name=value::true"
+          else
+            echo \
+              "You do not have dockerhub access - on or more of secrets DOCKERHUB_USER, DOCKERHUB_NAMESPACE and DOCKERHUB_TOKEN are not defined. If an image needs to be rebuilt, the workflow will fail. You only need to worry about this if you've changed any files in .github/docker."
+          fi
+
+  maybe_build:
+    name: See if images may need to be built
+    runs-on: ubuntu-latest
+    needs:
+      - public_py_image
+      - dockerhub_access
+
+    outputs:
+      value: ${{ steps.main.outputs.value }}
+
+    steps:
+      - id: main
+        name: Set job var
+        run: |
+          if [[ "${{ needs.public_py_image.outputs.stale }}" == "true" ]]; then
+            if [[ "${{ needs.dockerhub_access.outputs.value }}" == "true" ]]; then
+              echo "::set-output name=value::true"
+
+              if [[ "${{ secrets.DOCKERHUB_NAMESPACE }}" == "$PUB_NAMESPACE" ]]; then
+                echo "Public images are stale - they will be rebuilt and used by the tests"
+              else
+                echo "Public images are stale - private images will be built and used by the tests"
+              fi
+            else
+              echo "Docker image(s) need to be built, but you don't have dockerhub access." >&2
+              echo "See comments in .github/workflows/windows.yaml for instructions." >&2
+              exit 1
+            fi
+          else
+            echo "Public images are up-to-date - they will be used by the tests"
+          fi
+
+  base_image:
+    name: Build base docker image if required
+    runs-on: windows-${{ matrix.os-version }}
+    needs:
+      - image_tags
+      - maybe_build
+
+    if: needs.maybe_build.outputs.value == 'true'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version:
+          - '2019'
+
+        # The windows version has to match the host system.
+        # 1809 -> 10.0.17763.805 -> windows-2019
+        # Compare: https://hub.docker.com/_/microsoft-windows-servercore
+        include:
+          - os-version: '2019'
+            windows-version: '1809-amd64'
+
+    steps:
+      - name: Set job vars
+        id: vars
+        run: |
+          ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+
+          Write-Output "::set-output name=docker_image::${docker_image}"
+
+      - name: Login to docker repository
+        run: |
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
+
+      - name: Inspect base image
+        id: inspect
+        run: |
+          Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
+          $ErrorActionPreference = "Continue"
+          docker manifest inspect ${{ steps.vars.outputs.docker_image }} *>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "Stop"
+
+          if ($LastExitCode -ne 0) {
+            Write-Output "::set-output name=image_exists::false"
+          }
+          exit 0
+
+      - name: Checkout
+        if: steps.inspect.outputs.image_exists == 'false'
+        uses: actions/checkout@v2
+
+      - name: Build base image
+        if: steps.inspect.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Building image ${{ steps.vars.outputs.docker_image }}..."
+          cd .github\docker\rez-win-base
+          docker build `
+            --tag ${{ steps.vars.outputs.docker_image }} `
+            --build-arg WINDOWS_VERSION="${{ matrix.windows-version }}" `
+            .
+
+      - name: Push base image
+        if: steps.inspect.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Pushing image ${{ steps.vars.outputs.docker_image }}..."
+          docker push ${{ steps.vars.outputs.docker_image }}
+
+  py_image:
+    name: Build py docker image if required
+    runs-on: windows-${{ matrix.os-version }}
+    needs:
+      - image_tags
+      - base_image
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version:
+          - '2019'
+        py-version:
+          - '2.7.17'
+          - '3.7.5'
+
+    steps:
+      - name: Set job vars
+        id: vars
+        run: |
+          ${base_docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+
+          Write-Output "::set-output name=base_docker_image::${base_docker_image}"
+          Write-Output "::set-output name=docker_image::${docker_image}"
+
+      - name: Login to docker repository
+        run: |
+          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
+
+      - name: Inspect py image
+        id: inspect
+        run: |
+          Write-Output "Inspecting image ${{ steps.vars.outputs.docker_image }}..."
+          $ErrorActionPreference = "Continue"
+          docker manifest inspect ${{ steps.vars.outputs.docker_image }} *>$null || Write-Output "(no such image)"
+          $ErrorActionPreference = "Stop"
+
+          if ($LastExitCode -ne 0) {
+            Write-Output "::set-output name=image_exists::false"
+          }
+          exit 0
+
+      - name: Checkout
+        if: steps.inspect.outputs.image_exists == 'false'
+        uses: actions/checkout@v2
+
+      - name: Pull base image
+        if: steps.inspect.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Pulling base image ${{ steps.vars.outputs.base_docker_image }}..."
+          docker pull ${{ steps.vars.outputs.base_docker_image }}
+
+      - name: Build py image
+        if: steps.inspect.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Building image ${{ steps.vars.outputs.docker_image }}..."
+          cd .github\docker\rez-win-py
+
+          docker build `
+            --tag ${{ steps.vars.outputs.docker_image }} `
+            --build-arg BASE_IMAGE_NAME="${{ steps.vars.outputs.base_docker_image }}" `
+            --build-arg IMAGE_NAME="${{ steps.vars.outputs.docker_image }}" `
+            --build-arg PYTHON_VERSION="${{ matrix.py-version }}" `
+            .
+
+      - name: Push py image
+        if: steps.inspect.outputs.image_exists == 'false'
+        run: |
+          Write-Output "Pushing image ${{ steps.vars.outputs.docker_image }}..."
+          docker push ${{ steps.vars.outputs.docker_image }}
+
+  main:
+    name: Run rez tests
+    runs-on: windows-${{ matrix.os-version }}
+    needs:
+      - image_tags
+      - public_py_image
+      - py_image
+
+    # forces this job to run even if needed jobs are skipped
+    if: always()
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version:
+          - '2019'
+        py-version:
+          - '2.7.17'
+          - '3.7.5'
+
+    steps:
+      - name: Set job vars
+        id: vars
+        run: |
+          if ("${{ needs.public_py_image.outputs.stale }}" -eq "true") {
+            ${ns} = "${{ secrets.DOCKERHUB_NAMESPACE }}"
+          }
+          else {
+            ${ns} = "${Env:PUB_NAMESPACE}"
+          }
+
+          ${docker_image} = "${ns}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+
+          Write-Output "::set-output name=docker_image::${docker_image}"
+          Write-Output "Using image ${docker_image}..."
 
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: "Pull Docker image nerdvegas/rez-win-py-${{ matrix.python-version }}:latest"
+      - name: Pull py image
         run: |
-          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
-          docker pull ${docker_image}:latest
+          docker pull ${{ steps.vars.outputs.docker_image }}
 
       - name: Run Docker image (installs and tests rez)
         run: |
-          ${docker_image} = "nerdvegas/rez-win-py-${{ matrix.python-version }}"
-          docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${docker_image}:latest
+          docker run `
+            --mount type=bind,src=$pwd,dst=C:\checkout,readonly `
+            ${{ steps.vars.outputs.docker_image }}
