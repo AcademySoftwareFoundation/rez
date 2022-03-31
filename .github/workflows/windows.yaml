@@ -50,6 +50,13 @@ on:
 env:
   PUB_NAMESPACE: nerdvegas  # TODO change to aswf
 
+  # We don't take changes to this workfile yaml into account when determining
+  # image tags, because changes here very rarely cause changes to the images,
+  # and this causes lots of unnecessary image rebuilds. On the offchance a
+  # change is made here that _does_ affect the images, increment this value
+  #
+  IMAGE_TAG_SALT: 1
+
 jobs:
 
   # image tags are based on sourcefile contents
@@ -70,11 +77,10 @@ jobs:
         run: |
           tag=$( \
             find \
-            ./.github/workflows/windows.yaml \
             ./.github/docker/rez-win-base \
             -type f \
             | sort \
-            | xargs md5sum \
+            | ( xargs md5sum && echo $IMAGE_TAG_SALT ) \
             | md5sum - \
             | awk '{print $1}' \
           )
@@ -86,12 +92,11 @@ jobs:
         run: |
           tag=$( \
             find \
-            ./.github/workflows/windows.yaml \
             ./.github/docker/rez-win-base \
             ./.github/docker/rez-win-py \
             -type f \
             | sort \
-            | xargs md5sum \
+            | ( xargs md5sum && echo $IMAGE_TAG_SALT ) \
             | md5sum - \
             | awk '{print $1}' \
           )
@@ -198,9 +203,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os-version:
-          - '2019'
-
         # The windows version has to match the host system.
         # 1809 -> 10.0.17763.805 -> windows-2019
         # Compare: https://hub.docker.com/_/microsoft-windows-servercore

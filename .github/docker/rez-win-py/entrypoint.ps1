@@ -30,9 +30,8 @@ git --version
 if (-not $?) {exit 1}
 
 # Verify git-bash
-# Note the explicit path is to avoid potentially picking up C:\system32\bash.exe,
-# which would be bash in a WLS if present
-C:\git\bin\bash --version
+bash --version
+if (-not $?) {exit 1}
 
 # Install rez
 # Note that the workflow's checkout has been bind mounted to /checkout
