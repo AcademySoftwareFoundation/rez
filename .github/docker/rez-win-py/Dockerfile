@@ -46,7 +46,12 @@ RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" "
 # ------------------------------------------------------------------------------------------------------------
 # Git Bash (git for windows)
 #
-RUN choco install git --yes --params "/GitAndUnixToolsOnPath"; refreshenv
+
+# Verify
+RUN echo "gitbash bash.exe initially found at $(which bash)"
+
+RUN choco install git --yes --params "/GitAndUnixToolsOnPath"; `
+    refreshenv
 
 # Verify
 RUN echo "gitbash bash.exe found at $(which bash)"
