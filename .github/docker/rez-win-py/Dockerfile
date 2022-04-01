@@ -17,6 +17,7 @@ SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "ByPass"]
 #
 ARG PYTHON_VERSION
 
+
 # ------------------------------------------------------------------------------------------------------------
 # Python
 #
@@ -46,15 +47,12 @@ RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" "
 # ------------------------------------------------------------------------------------------------------------
 # Git Bash (git for windows)
 #
+RUN choco install git --yes --params "/GitAndUnixToolsOnPath"
 
 # Verify
-RUN Write-Output "bash is at $((Get-Command bash).Path)"
-
-RUN choco install git --yes --params "/GitAndUnixToolsOnPath"; `
-    refreshenv
-
-# Verify
-RUN Write-Output "bash.exe is at $((Get-Command bash).Path)"
+RUN refreshenv; `
+    Write-Output \"bash.exe is at $((Get-Command bash).Path)\"; `
+    bash --version
 
 
 # ------------------------------------------------------------------------------------------------------------
