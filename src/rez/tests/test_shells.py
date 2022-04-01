@@ -27,6 +27,10 @@ import os
 
 def _stdout(proc):
     out_, _ = proc.communicate()
+    if proc.returncode:
+        raise RuntimeError(
+            "The subprocess failed with exitcode %d" % proc.returncode
+        )
     return out_.strip()
 
 
