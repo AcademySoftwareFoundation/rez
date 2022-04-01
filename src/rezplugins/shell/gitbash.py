@@ -67,9 +67,11 @@ class GitBash(Bash):
         if p.returncode == 0:
             lines = out_.split('\n')
             line = [x for x in lines if "__PATHS_" in x.split()][0]
-            paths = [line.strip().split()[-1].split(os.pathsep)]
+            paths = line.strip().split()[-1].split(os.pathsep)
+        else:
+            paths = []
 
-        # combine with paths from registry and as determined by bash
+        # combine with paths from registry
         paths = get_syspaths_from_registry() + paths
 
         paths = dedup(paths)
