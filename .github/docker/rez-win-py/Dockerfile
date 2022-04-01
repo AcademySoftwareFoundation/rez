@@ -48,13 +48,13 @@ RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" "
 #
 
 # Verify
-RUN echo "gitbash bash.exe initially found at $(which bash)"
+RUN Write-Output "bash is at $((Get-Command bash).Path)"
 
 RUN choco install git --yes --params "/GitAndUnixToolsOnPath"; `
     refreshenv
 
 # Verify
-RUN echo "gitbash bash.exe found at $(which bash)"
+RUN Write-Output "bash.exe is at $((Get-Command bash).Path)"
 
 
 # ------------------------------------------------------------------------------------------------------------
