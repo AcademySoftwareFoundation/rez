@@ -376,4 +376,6 @@ jobs:
             --mount type=bind,src=$pwd,dst=C:\checkout,readonly `
             ${{ steps.vars.outputs.docker_image }}
         env:
-          _REZ_ENSURE_TEST_SHELLS: cmd,pwsh,gitbash
+          _REZ_ENSURE_TEST_SHELLS: cmd,pwsh
+          # TODO add gitbash when https://github.com/nerdvegas/rez/issues/1269 is done
+          #_REZ_ENSURE_TEST_SHELLS: cmd,pwsh,gitbash
