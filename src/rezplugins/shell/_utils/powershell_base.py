@@ -238,6 +238,16 @@ class PowerShellBase(Shell):
             result += txt
         return result
 
+    def normalize_path(self, path):
+        """
+        TODO: doesn't take into account escaped forward slashes, which would be
+        weird to have in a path, but is possible.
+        """
+        if platform_.name == "windows":
+            return path.replace('/', '\\')
+        else:
+            return path
+
     def _saferefenv(self, key):
         pass
 
@@ -246,10 +256,24 @@ class PowerShellBase(Shell):
 
     def setenv(self, key, value):
         value = self.escape_string(value)
+        value = self.normalize_if_path(key, value)
         self._addline('Set-Item -Path "Env:{0}" -Value "{1}"'.format(key, value))
+
+    def prependenv(self, key, value):
+        value = self.escape_string(value)
+        value = self.normalize_if_path(key, value)
+
+        # Be careful about ambiguous case in pwsh on Linux where pathsep is :
+        # so that the ${ENV:VAR} form has to be used to not collide.
+        self._addline(
+            'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem "Env:{0}").Value)'.format(
+                key, value, os.path.pathsep)
+        )
 
     def appendenv(self, key, value):
         value = self.escape_string(value)
+        value = self.normalize_if_path(key, value)
+
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
