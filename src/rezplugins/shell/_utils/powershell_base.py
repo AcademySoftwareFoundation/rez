@@ -238,6 +238,16 @@ class PowerShellBase(Shell):
             result += txt
         return result
 
+    def normalize_path(self, path):
+        """
+        TODO: doesn't take into account escaped forward slashes, which would be
+        weird to have in a path, but is possible.
+        """
+        if platform_.name == "windows":
+            return path.replace('/', '\\')
+        else:
+            return path
+
     def _saferefenv(self, key):
         pass
 

@@ -297,6 +297,13 @@ class CMD(Shell):
             result += txt
         return result
 
+    def normalize_path(self, path):
+        """
+        TODO: doesn't take into account escaped forward slashes, which would be
+        weird to have in a path, but is possible.
+        """
+        return path.replace('/', '\\')
+
     def _saferefenv(self, key):
         pass
 
