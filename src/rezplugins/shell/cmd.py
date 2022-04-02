@@ -305,6 +305,7 @@ class CMD(Shell):
 
     def setenv(self, key, value):
         value = self.escape_string(value)
+        value = self.normalize_if_path(key, value)
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):
