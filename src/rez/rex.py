@@ -580,11 +580,16 @@ class ActionInterpreter(object):
         return path
 
     def normalize_if_path(self, key, value):
-        """Normalize value if it's a path.
+        """Normalize value if it's a path(s).
+
+        Note that `value` may be more than one os.pathsep-separated paths.
         """
         if not any(fnmatch(key, x) for x in config.pathed_env_vars):
             return value
-        return self.normalize_path(value)
+
+        paths = value.split(os.pathsep)
+        paths = [self.normalize_path(x) for x in paths]
+        return os.pathsep.join(paths)
 
     # --- internal commands, not exposed to public rex API
 
@@ -1317,8 +1322,11 @@ class RexExecutor(object):
     def append_system_paths(self):
         """Append system paths to $PATH."""
         from rez.shells import Shell, create_shell
-        sh = self.interpreter if isinstance(self.interpreter, Shell) \
-            else create_shell()
+
+        if isinstance(self.interpreter, Shell):
+            sh = self.interpreter
+        else:
+            sh = create_shell()
 
         paths = sh.get_syspaths()
         paths_str = os.pathsep.join(paths)

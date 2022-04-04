@@ -16,7 +16,9 @@ from functools import partial
 import os
 import re
 import subprocess
-from ._utils.windows import get_syspaths_from_registry
+
+if platform_.name == "windows":
+    from ._utils.windows import get_syspaths_from_registry, to_windows_path
 
 
 basestring = six.string_types[0]
@@ -242,11 +244,7 @@ class CMD(Shell):
         return result
 
     def normalize_path(self, path):
-        """
-        TODO: doesn't take into account escaped forward slashes, which would be
-        weird to have in a path, but is possible.
-        """
-        return path.replace('/', '\\')
+        return to_windows_path(path)
 
     def _saferefenv(self, key):
         pass

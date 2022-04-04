@@ -83,6 +83,9 @@ class GitBash(Bash):
         cls.syspaths = paths
         return cls.syspaths
 
+    def normalize_path(self, path):
+        return to_posix_path(path)
+
 
 def register_plugin():
     if platform_.name == "windows":

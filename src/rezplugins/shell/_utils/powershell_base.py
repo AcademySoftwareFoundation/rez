@@ -15,6 +15,9 @@ from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
 
+if platform_.name == "windows":
+    from ._utils.windows import to_windows_path
+
 
 class PowerShellBase(Shell):
     """
@@ -244,7 +247,7 @@ class PowerShellBase(Shell):
         weird to have in a path, but is possible.
         """
         if platform_.name == "windows":
-            return path.replace('/', '\\')
+            return to_windows_path(path)
         else:
             return path
 
