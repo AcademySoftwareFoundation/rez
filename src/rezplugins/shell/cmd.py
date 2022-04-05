@@ -12,6 +12,7 @@ from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
+from ._utils.windows import to_windows_path
 from functools import partial
 import os
 import re
@@ -241,6 +242,9 @@ class CMD(Shell):
             result += txt
         return result
 
+    def normalize_path(self, path):
+        return to_windows_path(path)
+
     def _saferefenv(self, key):
         pass
 
@@ -249,6 +253,7 @@ class CMD(Shell):
 
     def setenv(self, key, value):
         value = self.escape_string(value)
+        value = self.normalize_if_path(key, value)
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):

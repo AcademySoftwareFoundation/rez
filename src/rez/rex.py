@@ -8,6 +8,7 @@ import os
 import sys
 import re
 import traceback
+from fnmatch import fnmatch
 from contextlib import contextmanager
 from string import Formatter
 
@@ -550,8 +551,45 @@ class ActionInterpreter(object):
 
         Args:
             value (str or `EscapedString`): String to escape.
+
+        Returns:
+            str: The escaped string.
         """
         return str(value)
+
+    def normalize_path(self, path):
+        """Normalize a path.
+
+        Change `path` to a valid filepath representation for this interpreter.
+
+        Note:
+            Assume that `path` has already been escaped at this point. This will
+            matter for edge cases, like a path on linux containing an escaped
+            back slash.
+
+        Args:
+            path (str): A filepath which may be in posix format, or windows
+                format, or some combination of the two. For eg, a string like
+                `{root}/bin` on windows will evaluate to `C:\\.../bin` - in this
+                case, the `cmd` shell would want to normalize this and convert
+                to all forward slashes.
+
+        Returns:
+            str: The normalized path.
+        """
+        return path
+
+    def normalize_if_path(self, key, value):
+        """Normalize value if it's a path(s).
+
+        Note that `value` may be more than one os.pathsep-separated paths.
+        """
+        if not any(fnmatch(key, x) for x in config.pathed_env_vars):
+            return value
+
+        paths = value.split(os.pathsep)
+        paths = [self.normalize_path(x) for x in paths]
+        return os.pathsep.join(paths)
 
     # --- internal commands, not exposed to public rex API
 
@@ -1284,8 +1322,11 @@ class RexExecutor(object):
     def append_system_paths(self):
         """Append system paths to $PATH."""
         from rez.shells import Shell, create_shell
-        sh = self.interpreter if isinstance(self.interpreter, Shell) \
-            else create_shell()
+
+        if isinstance(self.interpreter, Shell):
+            sh = self.interpreter
+        else:
+            sh = create_shell()
 
         paths = sh.get_syspaths()
         paths_str = os.pathsep.join(paths)
