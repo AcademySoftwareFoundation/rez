@@ -5,6 +5,7 @@
 """
 test the release system
 """
+from rez.config import config
 from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
@@ -104,8 +105,10 @@ class TestRelease(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_1(self):
+    def test_1(self, shell):
         """Basic release."""
+        config.override("default_shell", shell)
+
         # release should fail because release path does not exist
         self._setup_release()
         builder = self._create_builder()
@@ -165,9 +168,11 @@ class TestRelease(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_2_variant_add(self):
+    def test_2_variant_add(self, shell):
         """Test variant installation on release
         """
+        config.override("default_shell", shell)
+
         orig_src_path = self.src_path
         self.src_path = os.path.join(self.src_path, "variants")
         try:

@@ -179,7 +179,12 @@ class Shell(ActionInterpreter):
         settings = config.plugins.shell[cls.name()]
 
         if settings.executable_fullpath:
-            return settings.executable_fullpath
+            if not os.path.exists(settings.executable_fullpath):
+                raise RuntimeError(
+                    "Couldn't find executable '%s'." % settings.executable_fullpath
+                )
+            else:
+                return settings.executable_fullpath
 
         exe = which(name)
 
