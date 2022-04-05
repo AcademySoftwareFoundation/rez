@@ -1,14 +1,11 @@
 # escape=`
 
-# Tag of base image to use
-ARG BASE_TAG
+ARG BASE_IMAGE_NAME
+FROM $BASE_IMAGE_NAME
 
-# Base image windows version
-FROM rez-win-base:$BASE_TAG
-
-# Tag applied to this image
-ARG PY_TAG
-ENV _PY_TAG=$PY_TAG
+# Name of this image
+ARG IMAGE_NAME
+ENV _IMAGE_NAME=$IMAGE_NAME
 
 # NOTE: Any " requires \" in the Dockerfile for windows.
 # NOTE: The order matters. ARG after the shell command will allow access via

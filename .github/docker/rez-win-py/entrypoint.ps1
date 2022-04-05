@@ -10,11 +10,8 @@ $ErrorActionPreference = "Stop"
 #
 ${ENV:PYTHONIOENCODING} = "UTF-8"
 
-# Print name of image being run, for debugging purposes. We can't show the
-# literal image name here, because it just uses 'latest' tagged image (see
-# explanation in windows-docker-image.yaml - on.push)
-#
-Write-Output "Using docker image rez-win-py:${ENV:_PY_TAG}"
+# Print name of image being run, for debugging purposes
+Write-Output "Using docker image ${ENV:_IMAGE_NAME}"
 
 # Verify Python
 #
