@@ -54,4 +54,16 @@ jobs:
       # test class. This will be easier once ported to pytest.
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest --config --copy_package --formatter --imports --packages --resources_ --rex --schema --solver --version
+          ./build/bin/rez/rez-selftest -v \
+            --config \
+            --copy_package \
+            --formatter \
+            --imports \
+            --packages \
+            --packages_order \
+            --package_filter \
+            --resources_ \
+            --rex \
+            --schema \
+            --solver \
+            --version

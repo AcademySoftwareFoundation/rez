@@ -14,9 +14,7 @@ from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
-
-if platform_.name == "windows":
-    from ._utils.windows import to_windows_path
+from .windows import to_windows_path
 
 
 class PowerShellBase(Shell):

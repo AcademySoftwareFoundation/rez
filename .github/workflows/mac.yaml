@@ -55,6 +55,6 @@ jobs:
 
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest
+          ./build/bin/rez/rez-selftest -v
         env:
           _REZ_ENSURE_TEST_SHELLS: sh,csh,bash,tcsh,zsh,pwsh

@@ -14,9 +14,7 @@ from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.utils.logging_ import print_warning
 from rez.util import dedup
-
-if platform_.name == "windows":
-    from ._utils.windows import get_syspaths_from_registry, to_posix_path
+from ._utils.windows import get_syspaths_from_registry, to_posix_path
 
 
 class GitBash(Bash):

@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 from rez.utils.execution import Popen
+from rez.utils.platform_ import platform_
 
 
 def to_posix_path(path):
@@ -32,6 +33,9 @@ def to_windows_path(path):
 
 
 def get_syspaths_from_registry():
+
+    if platform_.name != "windows":
+        return []
 
     def gen_expected_regex(parts):
         whitespace = r"[\s]+"

@@ -8,7 +8,7 @@ test shell invocation
 from __future__ import print_function
 
 from rez.system import system
-from rez.shells import create_shell
+from rez.shells import create_shell, get_shell_class, get_shell_types
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
 from rez.plugin_managers import plugin_manager
@@ -57,43 +57,51 @@ class TestShells(TestBase, TempdirMixin):
     def _create_context(cls, pkgs):
         return ResolvedContext(pkgs, caching=False)
 
-    def test_shell_presence(self):
+    def test_aaa_shell_presence(self):
         """Ensure specific shell types are present as loaded plugins.
 
         The env var _REZ_ENSURE_TEST_SHELLS should be set by a CI system (such
         as github actions) to make sure the shells we expect to be installed,
         are installed, and are getting tested.
+
+        Note 'aaa' forces unittest to run this test first.
         """
         shells = os.getenv("_REZ_ENSURE_TEST_SHELLS", "").split(',')
         shells = set(x for x in shells if x)
 
         if not shells:
-            self.skipTest(
-                "Not ensuring presence of shells from explicit list"
-            )
+            self.skipTest("Not ensuring presence of shells from explicit list")
             return
 
-        available_shells = set(plugin_manager.get_plugins("shell"))
+        loaded_shells = set(get_shell_types())
 
         # check for missing shells
-        missing_shells = shells - available_shells
+        missing_shells = shells - loaded_shells
         if missing_shells:
-            raise Exception(
+            raise RuntimeError(
                 "The following shells should be available for testing but are "
                 "not present: %r" % list(missing_shells)
             )
 
+        # check for unavailable shells
+        for shell in shells:
+            if not get_shell_class(shell).is_available():
+                raise RuntimeError(
+                    "The shell %r is not available (executable not found)"
+                    % shell
+                )
+
         # check for shell plugins that failed to load
         for (name, reason) in plugin_manager.get_failed_plugins("shell"):
             if name in shells:
-                raise Exception(
+                raise RuntimeError(
                     "The shell plugin %r failed to load: %s"
                     % (name, reason)
                 )
 
     @per_available_shell()
-    def test_no_output(self):
-        sh = create_shell()
+    def test_no_output(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
             r = self._create_context(["hello_world"])
@@ -156,8 +164,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertListEqual(files, [py_script_file])
 
     @per_available_shell()
-    def test_command(self):
-        sh = create_shell()
+    def test_command(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
@@ -167,8 +175,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
-    def test_command_returncode(self):
-        sh = create_shell()
+    def test_command_returncode(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
@@ -181,8 +189,8 @@ class TestShells(TestBase, TempdirMixin):
                 self.assertEqual(p.returncode, 66)
 
     @per_available_shell()
-    def test_norc(self):
-        sh = create_shell()
+    def test_norc(self, shell):
+        sh = create_shell(shell)
         _, norc, _, command = sh.startup_capabilities(norc=True, command=True)
 
         if norc and command:
@@ -193,8 +201,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
-    def test_stdin(self):
-        sh = create_shell()
+    def test_stdin(self, shell):
+        sh = create_shell(shell)
         _, _, stdin, _ = sh.startup_capabilities(stdin=True)
 
         if stdin:
@@ -207,8 +215,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(stdout, "Hello Rez World!")
 
     @per_available_shell()
-    def test_rcfile(self):
-        sh = create_shell()
+    def test_rcfile(self, shell):
+        sh = create_shell(shell)
         rcfile, _, _, command = sh.startup_capabilities(rcfile=True, command=True)
 
         if rcfile and command:
@@ -230,13 +238,12 @@ class TestShells(TestBase, TempdirMixin):
     #
     @per_available_shell(exclude=["cmd"])
     @install_dependent()
-    def test_rez_env_output(self):
-        target_shell = config.default_shell  # overridden by test util
+    def test_rez_env_output(self, shell):
 
         def _test(txt):
             # Assumes that the shell has an echo command, built-in or alias
             binpath = os.path.join(system.rez_bin_path, "rez-env")
-            args = [binpath, "--shell", target_shell, "--", "echo", txt]
+            args = [binpath, "--shell", shell, "--", "echo", txt]
 
             process = subprocess.Popen(
                 args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -248,7 +255,7 @@ class TestShells(TestBase, TempdirMixin):
             # how it's been configured
             #
             if sh_out[1]:
-                raise Exception("Command %r failed:\n%s" % (txt, sh_out[1]))
+                raise RuntimeError("Command %r failed:\n%s" % (txt, sh_out[1]))
 
             self.assertEqual(sh_out[0].strip(), txt)
 
@@ -269,8 +276,8 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_rez_command(self):
-        sh = create_shell()
+    def test_rez_command(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
@@ -284,9 +291,12 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(p.returncode, 0)
 
     @per_available_shell()
-    def test_rex_code(self):
+    def test_rex_code(self, shell):
         """Test that Rex code run in the shell creates the environment variable
-        values that we expect."""
+        values that we expect.
+        """
+        config.override("default_shell", shell)
+
         def _execute_code(func, expected_output):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -388,7 +398,7 @@ class TestShells(TestBase, TempdirMixin):
 
         # Assertions for other environment variable types
         from rez.shells import create_shell
-        sh = create_shell()
+        sh = create_shell(shell)
         for token in sh.get_all_key_tokens("WHO"):
             expected_output += [
                 "hey Gary",
@@ -426,15 +436,16 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_rex_appending, expected_output)
 
     @per_available_shell()
-    def test_rex_code_alias(self):
+    def test_rex_code_alias(self, shell):
         """Ensure PATH changes do not influence the alias command.
 
         This is important for Windows because the doskey.exe might not be on
         the PATH anymore at the time it's executed. That's why we figure out
         the absolute path to doskey.exe before we modify PATH and continue to
         use the absolute path after the modifications.
-
         """
+        config.override("default_shell", shell)
+
         def _execute_code(func):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -455,13 +466,14 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_alias_after_path_manipulation)
 
     @per_available_shell()
-    def test_alias_command(self):
+    def test_alias_command(self, shell):
         """Testing alias can be passed in as command
 
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
-
         """
+        config.override("default_shell", shell)
+
         def _make_alias(ex):
             ex.alias('hi', 'echo "hi"')
 
@@ -474,12 +486,14 @@ class TestShells(TestBase, TempdirMixin):
         self.assertEqual(0, p.returncode)
 
     @per_available_shell()
-    def test_alias_command_with_args(self):
+    def test_alias_command_with_args(self, shell):
         """Testing alias can be passed in as command with args
 
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
         """
+        config.override("default_shell", shell)
+
         def _make_alias(ex):
             ex.alias('tell', 'echo')
 

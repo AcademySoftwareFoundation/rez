@@ -43,7 +43,7 @@ if (-not $?) {exit 1}
 .\build\Scripts\rez\rez-python -m pip install pytest-cov
 
 # Run Rez Tests
-.\build\Scripts\rez\rez-selftest.exe
+.\build\Scripts\rez\rez-selftest.exe -v
 
 # Pass on exit code to runner
 exit $LASTEXITCODE

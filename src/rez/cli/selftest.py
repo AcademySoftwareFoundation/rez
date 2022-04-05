@@ -14,10 +14,9 @@ from pkgutil import iter_modules
 
 try:
     import pytest  # noqa
+    use_pytest = True
 except ImportError:
     use_pytest = False
-else:
-    use_pytest = True
 
 cli_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 src_rez_dir = os.path.dirname(cli_dir)
@@ -34,9 +33,11 @@ def setup_parser(parser, completions=False):
         "all tests are run")
     parser.add_argument(
         "-s", "--only-shell", metavar="SHELL",
-        help="limit shell-dependent tests to the specified shell. Note: This "
-             "flag shadowed pytest '–capture=no' shorthand '-s', so the long "
-             "name must be used for disabling stdout/err capturing in pytest."
+        help="limit shell-dependent tests to the specified shell"
+    )
+    parser.add_argument(
+        "--no-capture", action="store_true",
+        help="don't capture stdout"
     )
 
     # make an Action that will append the appropriate test to the "--test" arg
@@ -80,7 +81,7 @@ def command(opts, parser, extra_arg_groups=None):
         cwd = os.getcwd()
         os.chdir(tests_dir)
         try:
-            run_pytest(module_tests, opts.tests, opts.verbose,
+            run_pytest(module_tests, opts.tests, opts.verbose, opts.no_capture,
                        extra_arg_groups)
         finally:
             os.chdir(cwd)
@@ -99,7 +100,7 @@ def run_unittest(module_tests, tests, verbosity):
     main(module=None, argv=argv, verbosity=verbosity)
 
 
-def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
+def run_pytest(module_tests, tests, verbosity, no_capture, extra_arg_groups):
     from pytest import main
 
     # parse test name, e.g.
@@ -125,6 +126,8 @@ def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
 
     if verbosity:
         argv += ["-" + ("v" * verbosity)]
+    if no_capture:
+        argv.append("-s")
     if extra_arg_groups:
         argv += extra_arg_groups[0]
 
