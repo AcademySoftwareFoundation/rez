@@ -49,11 +49,6 @@ RUN $python_relative_ver = (& python --version 2>&1).ToString().Trim().Split(" "
 #
 RUN choco install git --yes --params "/GitAndUnixToolsOnPath"
 
-# Verify
-RUN refreshenv; `
-    Write-Output \"bash.exe is at $((Get-Command bash).Path)\"; `
-    bash --version
-
 
 # ------------------------------------------------------------------------------------------------------------
 # Cleanup

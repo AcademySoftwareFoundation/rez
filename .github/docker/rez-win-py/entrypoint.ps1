@@ -14,22 +14,27 @@ ${ENV:PYTHONIOENCODING} = "UTF-8"
 Write-Output "Using docker image ${ENV:_IMAGE_NAME}"
 
 # Verify Python
+Write-Output "python found at $((Get-Command python).Path)"
 python --version
 if (-not $?) {exit 1}
 
 # Verify cmake
+Write-Output "cmake found at $((Get-Command cmake).Path)"
 cmake.exe --version
 if (-not $?) {exit 1}
 
 # Verify pwsh
+Write-Output "pwsh found at $((Get-Command pwsh).Path)"
 pwsh --version
 if (-not $?) {exit 1}
 
 # Verify git
+Write-Output "git found at $((Get-Command git).Path)"
 git --version
 if (-not $?) {exit 1}
 
 # Verify git-bash
+Write-Output "bash (via Git for windows) found at $((Get-Command bash).Path)"
 bash --version
 if (-not $?) {exit 1}
 
