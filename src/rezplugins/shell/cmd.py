@@ -12,6 +12,7 @@ from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
+from ._utils.windows import to_windows_path
 from functools import partial
 import os
 import re
@@ -298,11 +299,7 @@ class CMD(Shell):
         return result
 
     def normalize_path(self, path):
-        """
-        TODO: doesn't take into account escaped forward slashes, which would be
-        weird to have in a path, but is possible.
-        """
-        return path.replace('/', '\\')
+        return to_windows_path(path)
 
     def _saferefenv(self, key):
         pass

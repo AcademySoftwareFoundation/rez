@@ -528,7 +528,7 @@ env_var_separators = {
 # because some shells need to apply path normalization. For example, the command
 # `env.PATH.append("{root}/bin")` will be normalized to (eg) `C:\...\bin` in a
 # `cmd` shell on Windows. Note that wildcards are supported. If this setting is
-# not correctly configured, then your shell may not be guaranteed to work correctly.
+# not correctly configured, then your shell may not work correctly.
 pathed_env_vars = [
     "*PATH"
 ]

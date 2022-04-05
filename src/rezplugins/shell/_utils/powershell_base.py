@@ -14,6 +14,7 @@ from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
+from .windows import to_windows_path
 
 
 class PowerShellBase(Shell):
@@ -239,12 +240,8 @@ class PowerShellBase(Shell):
         return result
 
     def normalize_path(self, path):
-        """
-        TODO: doesn't take into account escaped forward slashes, which would be
-        weird to have in a path, but is possible.
-        """
         if platform_.name == "windows":
-            return path.replace('/', '\\')
+            return to_windows_path(path)
         else:
             return path
 
