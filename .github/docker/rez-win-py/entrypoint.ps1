@@ -39,6 +39,7 @@ if (-not $?) {exit 1}
 
 # Install pytest for better rez-selftest output
 .\build\Scripts\rez\rez-python -m pip install pytest-cov
+.\build\Scripts\rez\rez-python -m pip install parameterized
 
 # Run Rez Tests
 #
