@@ -72,4 +72,5 @@ jobs:
 
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest
+          ./build/bin/rez/rez-selftest -v
+

@@ -143,7 +143,7 @@ class TestRezSuites(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_executable(self):
+    def test_executable(self, shell):
         """Test suite tool can be executed
 
         Testing suite tool can be found and executed in multiple platforms.
@@ -158,6 +158,8 @@ class TestRezSuites(TestBase, TempdirMixin):
         ```
 
         """
+        config.override("default_shell", shell)
+
         c_pooh = ResolvedContext(["pooh"])
         s = Suite()
         s.add_context("pooh", c_pooh)

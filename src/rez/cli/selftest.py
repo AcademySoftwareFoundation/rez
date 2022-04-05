@@ -14,10 +14,10 @@ from pkgutil import iter_modules
 
 try:
     import pytest  # noqa
+    use_pytest = True
 except ImportError:
     use_pytest = False
-else:
-    use_pytest = True
+
 
 cli_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 src_rez_dir = os.path.dirname(cli_dir)
