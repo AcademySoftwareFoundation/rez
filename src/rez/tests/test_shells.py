@@ -396,6 +396,7 @@ class TestShells(TestBase, TempdirMixin):
 
         # Assertions for other environment variable types
         from rez.shells import create_shell
+
         sh = create_shell()
         for token in sh.get_all_key_tokens("WHO"):
             expected_output += [
@@ -427,8 +428,8 @@ class TestShells(TestBase, TempdirMixin):
 
         expected_output = [
             "hey",
-            os.pathsep.join(["hey", "$DAVE"]),
-            os.pathsep.join(["hey", "$DAVE", "Dave's not here man"])
+            sh.pathsep.join(["hey", "$DAVE"]),
+            sh.pathsep.join(["hey", "$DAVE", "Dave's not here man"])
         ]
 
         _execute_code(_rex_appending, expected_output)
