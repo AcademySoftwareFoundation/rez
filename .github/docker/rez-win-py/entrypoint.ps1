@@ -49,7 +49,7 @@ if (-not $?) {exit 1}
 .\build\Scripts\rez\rez-python -m pip install parameterized
 
 # Run Rez Tests
-.\build\Scripts\rez\rez-selftest.exe -v
+.\build\Scripts\rez\rez-selftest.exe -v --build
 
 # Pass on exit code to runner
 exit $LASTEXITCODE
