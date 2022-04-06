@@ -86,6 +86,9 @@ class GitBash(Bash):
         return cls.syspaths
 
     def normalize_path(self, path):
+        # TESTING
+        print("Normalized %s to %s" % (path, to_posix_path(path)))
+
         return to_posix_path(path)
 
 
