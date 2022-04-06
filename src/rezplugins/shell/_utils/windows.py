@@ -10,6 +10,9 @@ from rez.utils.execution import Popen
 
 SYSROOT = os.getenv("SYSTEMROOT")
 
+_drive_start_regex = re.compile(r"^([A-Za-z]):\\")
+_env_var_regex = re.compile(r"%([^%]*)%")
+
 
 def to_posix_path(path):
     """Convert (eg) "C:\foo" to "/c/foo"
@@ -17,14 +20,16 @@ def to_posix_path(path):
     TODO: doesn't take into account escaped bask slashes, which would be
     weird to have in a path, but is possible.
     """
-    # %SYSTEMROOT% ==> actual path
-    # TODO wth do we do if it's not defined?
-    if SYSROOT and path.upper().startswith(r"%SYSTEMROOT%"):
-        path = SYSROOT + path[len(r"%SYSTEMROOT%"):]
 
-    # C: ==> /c
-    if re.match("^[A-Za-z]:", path):
-        path = '/' + path[0].lower() + path[2:]
+    # expand refs like %SYSTEMROOT%, leave as-is if not in environ
+    def _repl(m):
+        varname = m.groups()[0]
+        return os.getenv(varname, m.group())
+
+    path = _env_var_regex.sub(_repl, path)
+
+    # C:\ ==> /C/
+    path = _drive_start_regex.sub("/\\1/", path)
 
     # backslash ==> fwdslash
     path = path.replace('\\', '/')

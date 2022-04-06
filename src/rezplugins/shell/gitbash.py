@@ -6,6 +6,7 @@
 Git Bash (for Windows) shell
 """
 import os
+import re
 import os.path
 import subprocess
 from rez.config import config
@@ -23,6 +24,8 @@ class GitBash(Bash):
     """Git Bash shell plugin.
     """
     pathsep = ':'
+
+    _drive_regex = re.compile(r"([A-Za-z]):\\")
 
     @classmethod
     def name(cls):
@@ -90,6 +93,26 @@ class GitBash(Bash):
         print("Normalized %s to %s" % (path, to_posix_path(path)))
 
         return to_posix_path(path)
+
+    def normalize_paths(self, value):
+        """
+        This is a bit tricky in the case of gitbash. The problem we hit is that
+        our pathsep is ':', _but_ pre-normalised paths also contain ':' (eg
+        C:\foo). In other words we have to deal with values like  'C:\foo:C:\bah'.
+
+        To get around this, we do the drive-colon replace here instead of in
+        normalize_path(), so we can then split the paths correctly. Note that
+        normalize_path() still does drive-colon replace also - it needs to
+        behave correctly if passed a string like C:\foo.
+        """
+
+        # C:\ ==> /c/
+        value2 = self._drive_regex.sub("/\\1/", value)
+
+        n = super(GitBash, self).normalize_paths(value2)
+
+        print("NORMALIZED %s to %s" % (value, n))
+        return n
 
 
 def register_plugin():
