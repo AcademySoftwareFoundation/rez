@@ -1342,6 +1342,16 @@ class RexExecutor(object):
         if system.rez_bin_path:
             self.env.PATH.append(system.rez_bin_path)
 
+    def normalize_path(self, path):
+        """Normalize a path.
+
+        Note that in many interpreters this will be unchanged.
+
+        Returns:
+            str: The normalized path.
+        """
+        return self.interpreter.normalize_path(path)
+
     @classmethod
     def compile_code(cls, code, filename=None, exec_namespace=None):
         """Compile and possibly execute rex code.
