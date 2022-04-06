@@ -17,7 +17,7 @@ def to_posix_path(path):
     TODO: doesn't take into account escaped bask slashes, which would be
     weird to have in a path, but is possible.
     """
-    return "posix(%s)" % path
+    return path.upper()
 
     # %SYSTEMROOT% ==> actual path
     # TODO wth do we do if it's not defined?
