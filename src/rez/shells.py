@@ -489,8 +489,7 @@ class UnixShell(Shell):
         # TESTING
         if executor.interpreter.name() == "gitbash":
             executor.command(
-                'if [[ $? != 0 ]]; then echo "PATH is %s"; exit 1; fi'
-                % ','.join(executor.interpreter.get_syspaths())
+                'if [[ $? != 0 ]]; then echo "PATH is $PATH"; exit 1; fi'
             )
 
         executor.command("exit %s" % self.last_command_status)

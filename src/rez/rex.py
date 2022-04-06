@@ -594,6 +594,10 @@ class ActionInterpreter(object):
 
         paths = value.split(self.pathsep)
         paths = [self.normalize_path(x) for x in paths]
+
+        if key == "PATH":
+            print("PATH %r NORMALIZED IS %r" % (value, self.pathsep.join(paths)))
+
         return self.pathsep.join(paths)
 
     # --- internal commands, not exposed to public rex API
