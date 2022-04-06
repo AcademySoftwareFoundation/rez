@@ -25,7 +25,7 @@ def to_posix_path(path):
     return path.upper()
 
     # C: ==> /c
-    if re.match("[A-Za-z]:", path):
+    if re.match("^[A-Za-z]:", path):
         path = '/' + path[0].lower() + path[2:]
 
     # backslash ==> fwdslash

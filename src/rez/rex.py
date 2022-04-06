@@ -587,9 +587,11 @@ class ActionInterpreter(object):
         if not any(fnmatch(key, x) for x in config.pathed_env_vars):
             return value
 
-        paths = value.split(os.pathsep)
-        paths = [self.normalize_path(x) for x in paths]
-        return os.pathsep.join(paths)
+        # TESTING
+        if os.pathsep in value:
+            raise RuntimeError("PATHSEP IN PATH")
+
+        return self.normalize_path(value)
 
     # --- internal commands, not exposed to public rex API
 
@@ -1328,9 +1330,8 @@ class RexExecutor(object):
         else:
             sh = create_shell()
 
-        paths = sh.get_syspaths()
-        paths_str = os.pathsep.join(paths)
-        self.env.PATH.append(paths_str)
+        for path in sh.get_syspaths():
+            self.env.PATH.append(path)
 
     def prepend_rez_path(self):
         """Prepend rez path to $PATH."""
