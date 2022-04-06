@@ -69,7 +69,8 @@ class GitBash(Bash):
         if p.returncode == 0:
             lines = out_.split('\n')
             line = [x for x in lines if "__PATHS_" in x.split()][0]
-            paths = line.strip().split()[-1].split(os.pathsep)
+            # note that we're on windows, but pathsep in bash is ':'
+            paths = line.strip().split()[-1].split(':')
         else:
             paths = []
 

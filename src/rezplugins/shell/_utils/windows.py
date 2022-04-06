@@ -17,12 +17,12 @@ def to_posix_path(path):
     TODO: doesn't take into account escaped bask slashes, which would be
     weird to have in a path, but is possible.
     """
-    return path.upper()
-
     # %SYSTEMROOT% ==> actual path
     # TODO wth do we do if it's not defined?
     if SYSROOT and path.upper().startswith(r"%SYSTEMROOT%"):
         path = SYSROOT + path[len(r"%SYSTEMROOT%"):]
+
+    return path.upper()
 
     # C: ==> /c
     if re.match("[A-Za-z]:", path):
