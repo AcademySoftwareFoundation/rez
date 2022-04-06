@@ -78,10 +78,12 @@ class GitBash(Bash):
 
         paths = dedup(paths)
         paths = [x for x in paths if x]
-        paths = [to_posix_path(x) for x in paths]
 
         cls.syspaths = paths
         return cls.syspaths
+
+    def normalize_path(self, path):
+        return to_posix_path(path)
 
 
 def register_plugin():

@@ -14,6 +14,15 @@ def to_posix_path(path):
     TODO: doesn't take into account escaped bask slashes, which would be
     weird to have in a path, but is possible.
     """
+
+    # %SYSTEMROOT% ==> actual path
+    if path.upper().startswith(r"%SYSTEMROOT%"):
+        sysroot = os.getenv("SYSTEMROOT")
+        if sysroot:
+            # TODO wth do we do if it's not defined?
+            path = sysroot + path[len(r"%SYSTEMROOT%"):]
+
+    # C:\ ==> /c/
     if re.match("[A-Z]:", path):
         path = '/' + path[0].lower() + path[2:]
     return path.replace('\\', '/')
