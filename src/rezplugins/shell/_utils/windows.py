@@ -34,8 +34,10 @@ def to_posix_path(path):
 
 def to_windows_path(path):
     """Convert (eg) "C:\foo/bin" to "C:\foo\bin"
+
     The mixed syntax results from strings in package commands such as
     "{root}/bin" being interpreted in a windows shell.
+
     TODO: doesn't take into account escaped forward slashes, which would be
     weird to have in a path, but is possible.
     """

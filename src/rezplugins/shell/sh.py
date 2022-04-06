@@ -104,8 +104,7 @@ class SH(UnixShell):
             self._addline(cmd % r"\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
-        value = self.escape_string(value)
-        value = self.normalize_if_path(key, value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('export %s=%s' % (key, value))
 
     def unsetenv(self, key):
@@ -120,7 +119,7 @@ class SH(UnixShell):
         value = self.escape_string(value)
         self._addline('. %s' % value)
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -131,6 +130,9 @@ class SH(UnixShell):
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
                 txt = txt.replace('\\', '\\\\')
                 txt = txt.replace('"', '\\"')
                 txt = '"%s"' % txt

@@ -543,12 +543,16 @@ class ActionInterpreter(object):
 
     # --- other
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         """Escape a string.
 
         Escape the given string so that special characters (such as quotes and
         whitespace) are treated properly. If `value` is a string, assume that
         this is an expandable string in this interpreter.
+
+        Note that `is_path` provided because of the special case where a
+        path-like envvar is set. In this case, path normalization, if it needs
+        to occur, has to be part of the string escaping process.
 
         Note:
             This default implementation returns the string with no escaping
@@ -556,21 +560,25 @@ class ActionInterpreter(object):
 
         Args:
             value (str or `EscapedString`): String to escape.
+            is_path (bool): True if the value is path-like.
 
         Returns:
             str: The escaped string.
         """
         return str(value)
 
+    @classmethod
+    def _is_pathed_key(cls, key):
+        return any(fnmatch(key, x) for x in config.pathed_env_vars)
+
     def normalize_path(self, path):
         """Normalize a path.
 
         Change `path` to a valid filepath representation for this interpreter.
 
-        Note:
-            Assume that `path` has already been escaped at this point. This will
-            matter for edge cases, like a path on linux containing an escaped
-            back slash.
+        IMPORTANT: Because var references like ${THIS} might be passed to funcs
+        like appendvar, `path` might be in this form. You need to take that
+        into account (ie, ensure normalization doesn't break such a var reference).
 
         Args:
             path (str): A filepath which may be in posix format, or windows
@@ -584,19 +592,16 @@ class ActionInterpreter(object):
         """
         return path
 
-    def normalize_if_path(self, key, value):
+    def normalize_paths(self, value):
         """Normalize value if it's a path(s).
 
         Note that `value` may be more than one pathsep-delimited paths.
         """
-        if not any(fnmatch(key, x) for x in config.pathed_env_vars):
-            return value
-
         paths = value.split(self.pathsep)
         paths = [self.normalize_path(x) for x in paths]
 
-        if key == "PATH":
-            print("PATH %r NORMALIZED IS %r" % (value, self.pathsep.join(paths)))
+        # TESTING
+        print("PATH %r NORMALIZED IS %r" % (value, self.pathsep.join(paths)))
 
         return self.pathsep.join(paths)
 
