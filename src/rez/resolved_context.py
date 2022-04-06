@@ -1960,7 +1960,7 @@ class ResolvedContext(object):
         implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         req_timestamp_str = str(self.requested_timestamp or 0)
-        package_paths_str = os.pathsep.join(
+        package_paths_str = executor.interpreter.pathsep.join(
             normalized(x) for x in self.package_paths
         )
 

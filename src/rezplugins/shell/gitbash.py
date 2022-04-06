@@ -22,6 +22,8 @@ if platform_.name == "windows":
 class GitBash(Bash):
     """Git Bash shell plugin.
     """
+    pathsep = ':'
+
     @classmethod
     def name(cls):
         return "gitbash"

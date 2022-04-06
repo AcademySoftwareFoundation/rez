@@ -22,8 +22,6 @@ def to_posix_path(path):
     if SYSROOT and path.upper().startswith(r"%SYSTEMROOT%"):
         path = SYSROOT + path[len(r"%SYSTEMROOT%"):]
 
-    return path.upper()
-
     # C: ==> /c
     if re.match("^[A-Za-z]:", path):
         path = '/' + path[0].lower() + path[2:]

@@ -233,7 +233,7 @@ class ActionManager(object):
             ('undefined', self.undefined)]
 
     def _env_sep(self, name):
-        return self._env_sep_map.get(name, os.pathsep)
+        return self._env_sep_map.get(name, self.interpreter.pathsep)
 
     def _is_verbose(self, command):
         if isinstance(self.verbose, (list, tuple)):
@@ -473,6 +473,11 @@ class ActionInterpreter(object):
     """
     expand_env_vars = False
 
+    # Path separator. There are cases (eg gitbash - git for windows) where the
+    # path separator does not match the system (ie os.pathsep)
+    #
+    pathsep = os.pathsep
+
     # RegEx that captures environment variables (generic form).
     # Extend/override to regex formats that can capture environment formats
     # in other interpreters like shells if needed
@@ -582,16 +587,14 @@ class ActionInterpreter(object):
     def normalize_if_path(self, key, value):
         """Normalize value if it's a path(s).
 
-        Note that `value` may be more than one os.pathsep-separated paths.
+        Note that `value` may be more than one pathsep-delimited paths.
         """
         if not any(fnmatch(key, x) for x in config.pathed_env_vars):
             return value
 
-        # TESTING
-        if os.pathsep in value:
-            raise RuntimeError("PATHSEP IN PATH")
-
-        return self.normalize_path(value)
+        paths = value.split(self.pathsep)
+        paths = [self.normalize_path(x) for x in paths]
+        return self.pathsep.join(paths)
 
     # --- internal commands, not exposed to public rex API
 
@@ -660,7 +663,7 @@ class Python(ActionInterpreter):
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
-                sys.path = value.split(os.pathsep)
+                sys.path = value.split(self.pathsep)
 
     def unsetenv(self, key):
         pass
