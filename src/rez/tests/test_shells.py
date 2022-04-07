@@ -380,8 +380,8 @@ class TestShells(TestBase, TempdirMixin):
 
         expected_output = [
             "hey",
-            os.pathsep.join(["hey", "$DAVE"]),
-            os.pathsep.join(["hey", "$DAVE", "Dave's not here man"])
+            sh.pathsep.join(["hey", "$DAVE"]),
+            sh.pathsep.join(["hey", "$DAVE", "Dave's not here man"])
         ]
 
         _execute_code(_rex_appending, expected_output)

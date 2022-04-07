@@ -274,7 +274,7 @@ class CMD(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         """Escape the <, >, ^, and & special characters reserved by Windows.
 
         Args:
@@ -294,6 +294,9 @@ class CMD(Shell):
                 # Note that cmd uses ^% while batch files use %% to escape %
                 txt = self._env_var_regex.sub(r"%%\1%%", txt)
             else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
                 txt = self._escaper(txt)
             result += txt
         return result
@@ -308,8 +311,7 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(value)
-        value = self.normalize_if_path(key, value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):

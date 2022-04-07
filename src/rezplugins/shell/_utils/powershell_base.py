@@ -226,7 +226,7 @@ class PowerShellBase(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -235,6 +235,9 @@ class PowerShellBase(Shell):
             if is_literal:
                 txt = self._escape_quotes(self._escape_vars(txt))
             else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
                 txt = self._escape_quotes(txt)
             result += txt
         return result
@@ -252,30 +255,27 @@ class PowerShellBase(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(value)
-        value = self.normalize_if_path(key, value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('Set-Item -Path "Env:{0}" -Value "{1}"'.format(key, value))
 
     def prependenv(self, key, value):
-        value = self.escape_string(value)
-        value = self.normalize_if_path(key, value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem "Env:{0}").Value)'.format(
-                key, value, os.path.pathsep)
+                key, value, self.pathsep)
         )
 
     def appendenv(self, key, value):
-        value = self.escape_string(value)
-        value = self.normalize_if_path(key, value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem "Env:{0}").Value + "{1}{2}")'.format(
-                key, os.path.pathsep, value)
+                key, self.pathsep, value)
         )
 
     def unsetenv(self, key):
