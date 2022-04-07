@@ -265,7 +265,7 @@ class PowerShellBase(Shell):
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem "Env:{0}").Value)'.format(
-                key, value, os.path.pathsep)
+                key, value, self.pathsep)
         )
 
     def appendenv(self, key, value):
@@ -275,7 +275,7 @@ class PowerShellBase(Shell):
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem "Env:{0}").Value + "{1}{2}")'.format(
-                key, os.path.pathsep, value)
+                key, self.pathsep, value)
         )
 
     def unsetenv(self, key):

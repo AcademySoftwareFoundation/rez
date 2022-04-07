@@ -14,6 +14,10 @@ _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _env_var_regex = re.compile(r"%([^%]*)%")
 
 
+_drive_start_regex = re.compile(r"^([A-Za-z]):\\")
+_env_var_regex = re.compile(r"%([^%]*)%")
+
+
 def to_posix_path(path):
     """Convert (eg) "C:\foo" to "/c/foo"
 

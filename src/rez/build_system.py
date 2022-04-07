@@ -310,7 +310,7 @@ class BuildSystem(object):
         # TODO I suspect variant root isn't correctly set to the cached root
         # when pkg caching is enabled (see use of VariantBinding in
         # ResolvedContext._execute).
-
+        #
         bound_variant = VariantBinding(
             variant,
             interpreter=executor.interpreter
