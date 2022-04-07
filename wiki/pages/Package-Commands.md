@@ -138,6 +138,27 @@ env.FOO = literal("${USER}")    | export FOO='${USER}'
 env.FOO = expandable("${USER}") | export FOO="${USER}"
 env.FOO = expandvars("${USER}") | export FOO="jbloggs"
 
+## Filepaths
+
+Rez expects POSIX-style filepath syntax in package commands, regardless of the shell or platform.
+Thus, even if you're on Windows, you should do this:
+
+    def commands():
+        env.PATH.append("{root}/bin")  # note the forward slash
+
+Where necessary, filepaths will be automatically normalized for you - that is, converted into
+the syntax expected by the shell. In order for this to work correctly however, rez needs to know
+what environment variables are actually paths. You determine this with the
+[pathed_env_vars](Configuring-Rez#pathed_env_vars) config setting. By default, any environment
+variable ending in `PATH` will be treated as a filepath or list of filepaths, and any
+set/append/prepend operation on it will cause those values to be path-normalized automatically.
+
+> [[media/icons/warning.png]] Avoid using `os.pathsep` or hardcoded lists of paths such as
+> `{root}/foo:{root}/bah`. Doing so can cause your package to be incompatible with some shells or
+> platforms. Even the seemingly innocuous `os.pathsep` is an issue, because there are some cases
+> (eg Git for Windows, aka git-bash) where the shell's path separator does not match the underlying
+> system's.
+
 ## Pre And Post Commands
 
 Occasionally it's useful for a package to run commands either before or after all other packages,
@@ -371,7 +392,7 @@ a request for `.foo.cli-0`:
 Prints to standard error.
 
 > [[media/icons/info.png]] This function just prints the error, it does not prevent the target
-environment from being constructed (use the [stop](#stop) command for that).
+> environment from being constructed (use the [stop](#stop) command for that).
 
 ### getenv
 *Function*
@@ -460,8 +481,8 @@ Use `get_range` to test with the [intersects](Package-Commands#intersects) funct
         info("maya 2019.* was asked for!")
 
 > [[media/icons/info.png]] If multiple requests are present that refer to the same package, the
-request is combined ahead of time. In other words, if requests *foo-4+* and *foo-<6* were both
-present, the single request *foo-4+<6* would be present in the *request* object.
+> request is combined ahead of time. In other words, if requests *foo-4+* and *foo-<6* were both
+> present, the single request *foo-4+<6* would be present in the *request* object.
 
 ### resolve
 *Dict-like object*
