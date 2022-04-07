@@ -135,10 +135,9 @@ class TestBuild(TestBase, TempdirMixin):
         stdout = proc.communicate()[0]
         self.assertEqual('hola amigo', stdout.strip())
 
-    # TESTING, REENABLE TESTS
     @per_available_shell()
     @install_dependent()
-    def __test_build_whack(self, shell):
+    def test_build_whack(self, shell):
         """Test that a broken build fails correctly.
         """
         config.override("default_shell", shell)
@@ -155,14 +154,14 @@ class TestBuild(TestBase, TempdirMixin):
         config.override("default_shell", shell)
 
         self._test_build_build_util()
-        #self._test_build_floob()
-        #self._test_build_foo()
-        #self._test_build_loco()
-        #self._test_build_bah()
+        self._test_build_floob()
+        self._test_build_foo()
+        self._test_build_loco()
+        self._test_build_bah()
 
     @per_available_shell()
     @install_dependent()
-    def __test_builds_anti(self, shell):
+    def test_builds_anti(self, shell):
         """Test we can build packages that contain anti packages
         """
         config.override("default_shell", shell)
@@ -173,7 +172,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @program_dependent("cmake")
     @install_dependent()
-    def __test_build_cmake(self):
+    def test_build_cmake(self):
         """Test a cmake-based package."""
         if platform_.name == "windows":
             self.skipTest("This test does not run on Windows due to temporary"
@@ -186,7 +185,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_sup_world()
 
     @program_dependent("make", "g++")
-    def __test_build_custom(self):
+    def test_build_custom(self):
         """Test a make-based package that uses the custom_build attribute."""
         from subprocess import PIPE
 
