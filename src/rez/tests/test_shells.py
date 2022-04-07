@@ -53,8 +53,8 @@ class TestShells(TestBase, TempdirMixin):
         return ResolvedContext(pkgs, caching=False)
 
     @per_available_shell()
-    def test_no_output(self):
-        sh = create_shell()
+    def test_no_output(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
             r = self._create_context(["hello_world"])
@@ -117,8 +117,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertListEqual(files, [py_script_file])
 
     @per_available_shell()
-    def test_command(self):
-        sh = create_shell()
+    def test_command(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
@@ -128,8 +128,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
-    def test_command_returncode(self):
-        sh = create_shell()
+    def test_command_returncode(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
@@ -142,8 +142,8 @@ class TestShells(TestBase, TempdirMixin):
                 self.assertEqual(p.returncode, 66)
 
     @per_available_shell()
-    def test_norc(self):
-        sh = create_shell()
+    def test_norc(self, shell):
+        sh = create_shell(shell)
         _, norc, _, command = sh.startup_capabilities(norc=True, command=True)
 
         if norc and command:
@@ -154,8 +154,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
-    def test_stdin(self):
-        sh = create_shell()
+    def test_stdin(self, shell):
+        sh = create_shell(shell)
         _, _, stdin, _ = sh.startup_capabilities(stdin=True)
 
         if stdin:
@@ -168,8 +168,8 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(stdout, "Hello Rez World!")
 
     @per_available_shell()
-    def test_rcfile(self):
-        sh = create_shell()
+    def test_rcfile(self, shell):
+        sh = create_shell(shell)
         rcfile, _, _, command = sh.startup_capabilities(rcfile=True, command=True)
 
         if rcfile and command:
@@ -191,13 +191,12 @@ class TestShells(TestBase, TempdirMixin):
     #
     @per_available_shell(exclude=["cmd"])
     @install_dependent()
-    def test_rez_env_output(self):
-        target_shell = config.default_shell  # overridden by test util
+    def test_rez_env_output(self, shell):
 
         def _test(txt):
             # Assumes that the shell has an echo command, built-in or alias
             binpath = os.path.join(system.rez_bin_path, "rez-env")
-            args = [binpath, "--shell", target_shell, "--", "echo", txt]
+            args = [binpath, "--shell", shell, "--", "echo", txt]
 
             process = subprocess.Popen(
                 args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -230,8 +229,8 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_rez_command(self):
-        sh = create_shell()
+    def test_rez_command(self, shell):
+        sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
@@ -245,9 +244,12 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(p.returncode, 0)
 
     @per_available_shell()
-    def test_rex_code(self):
+    def test_rex_code(self, shell):
         """Test that Rex code run in the shell creates the environment variable
-        values that we expect."""
+        values that we expect.
+        """
+        config.override("default_shell", shell)
+
         def _execute_code(func, expected_output):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -387,15 +389,16 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_rex_appending, expected_output)
 
     @per_available_shell()
-    def test_rex_code_alias(self):
+    def test_rex_code_alias(self, shell):
         """Ensure PATH changes do not influence the alias command.
 
         This is important for Windows because the doskey.exe might not be on
         the PATH anymore at the time it's executed. That's why we figure out
         the absolute path to doskey.exe before we modify PATH and continue to
         use the absolute path after the modifications.
-
         """
+        config.override("default_shell", shell)
+
         def _execute_code(func):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -416,13 +419,14 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_alias_after_path_manipulation)
 
     @per_available_shell()
-    def test_alias_command(self):
+    def test_alias_command(self, shell):
         """Testing alias can be passed in as command
 
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
-
         """
+        config.override("default_shell", shell)
+
         def _make_alias(ex):
             ex.alias('hi', 'echo "hi"')
 
@@ -435,12 +439,14 @@ class TestShells(TestBase, TempdirMixin):
         self.assertEqual(0, p.returncode)
 
     @per_available_shell()
-    def test_alias_command_with_args(self):
+    def test_alias_command_with_args(self, shell):
         """Testing alias can be passed in as command with args
 
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
         """
+        config.override("default_shell", shell)
+
         def _make_alias(ex):
             ex.alias('tell', 'echo')
 

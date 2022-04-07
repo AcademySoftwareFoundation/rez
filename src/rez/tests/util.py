@@ -20,6 +20,13 @@ import sys
 import json
 from contextlib import contextmanager
 
+# https://pypi.org/project/parameterized
+try:
+    from parameterized import parameterized
+    use_parameterized = True
+except ImportError:
+    use_parameterized = False
+
 
 class TestBase(unittest.TestCase):
     """Unit test base class."""
@@ -203,34 +210,35 @@ def program_dependent(program_name, *program_names):
 
 
 def per_available_shell(exclude=None):
-    """Function decorator that runs the function over all available shell types."""
+    """Function decorator that runs the function over all available shell types.
+    """
     exclude = exclude or []
+
+    shells = get_shell_types()
+
+    only_shell = os.getenv("__REZ_SELFTEST_SHELL")
+    if only_shell:
+        shells = [only_shell]
+
+    # filter to only those shells available
+    shells = [
+        x for x in shells
+        if get_shell_class(x).is_available()
+        and x not in (exclude or [])
+    ]
+
+    # https://pypi.org/project/parameterized
+    if use_parameterized:
+        return parameterized.expand(shells)
 
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            shells = get_shell_types()
-
-            only_shell = os.getenv("__REZ_SELFTEST_SHELL")
-            if only_shell:
-                shells = [only_shell]
-
-            # filter to only those shells available
-            shells = [
-                x for x in shells
-                if get_shell_class(x).is_available()
-            ]
-
+        def wrapper(self, shell=None):
             for shell in shells:
-                if not only_shell and shell in exclude:
-                    print("\nshell excluded from this test: %s..." % shell)
-                    continue
-
                 print("\ntesting in shell: %s..." % shell)
-                config.override("default_shell", shell)
 
                 try:
-                    func(self, *args, **kwargs)
+                    func(self, shell=shell)
                 except Exception as e:
                     # Add the shell to the exception message, if possible.
                     # In some IDEs the args do not exist at all.

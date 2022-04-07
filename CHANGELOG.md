@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.107.0 (2022-04-07)
+[Source](https://github.com/nerdvegas/rez/tree/2.107.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.106.0...2.107.0)
+
+**Merged pull requests:**
+
+- Feature/1271 improve shell parameterization in tests [\#1272](https://github.com/nerdvegas/rez/pull/1272) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- improve shell parameterization in tests [\#1271](https://github.com/nerdvegas/rez/issues/1271)
+
 ## 2.106.0 (2022-03-23)
 [Source](https://github.com/nerdvegas/rez/tree/2.106.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.105.0...2.106.0)
 
