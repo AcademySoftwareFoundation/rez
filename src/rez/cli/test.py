@@ -10,6 +10,10 @@ from __future__ import print_function
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
+        "--interactive",
+        help="Open a shell instead of executing the requested tests.",
+    )
+    parser.add_argument(
         "-l", "--list", action="store_true",
         help="list package's tests and exit")
     parser.add_argument(
@@ -102,6 +106,11 @@ def command(opts, parser, extra_arg_groups=None):
                 file=sys.stderr
             )
             sys.exit(0)
+
+    if opts.interactive:
+        return_code = runner.run_test_env(opts.interactive)
+
+        sys.exit(return_code)
 
     exitcode = 0
 
