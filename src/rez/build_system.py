@@ -234,10 +234,9 @@ class BuildSystem(object):
         raise NotImplementedError
 
     @classmethod
-    def get_standard_vars(cls, context, variant, build_type, install,
+    def set_standard_vars(cls, executor, context, variant, build_type, install,
                           build_path, install_path=None):
-        """Returns a standard set of environment variables that can be set
-        for the build system to use
+        """Set some standard env vars that all build systems can rely on.
         """
         from rez.config import config
 
@@ -251,16 +250,18 @@ class BuildSystem(object):
 
         vars_ = {
             'REZ_BUILD_ENV': 1,
-            'REZ_BUILD_PATH': build_path,
+            'REZ_BUILD_PATH': executor.normalize_path(build_path),
             'REZ_BUILD_THREAD_COUNT': package.config.build_thread_count,
             'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
             'REZ_BUILD_VARIANT_REQUIRES': ' '.join(variant_requires),
-            'REZ_BUILD_VARIANT_SUBPATH': variant_subpath,
+            'REZ_BUILD_VARIANT_SUBPATH': executor.normalize_path(variant_subpath),
             'REZ_BUILD_PROJECT_VERSION': str(package.version),
             'REZ_BUILD_PROJECT_NAME': package.name,
             'REZ_BUILD_PROJECT_DESCRIPTION': (package.description or '').strip(),
             'REZ_BUILD_PROJECT_FILE': package.filepath,
-            'REZ_BUILD_SOURCE_PATH': os.path.dirname(package.filepath),
+            'REZ_BUILD_SOURCE_PATH': executor.normalize_path(
+                os.path.dirname(package.filepath)
+            ),
             'REZ_BUILD_REQUIRES': ' '.join(
                 str(x) for x in context.requested_packages(True)
             ),
@@ -272,14 +273,16 @@ class BuildSystem(object):
         }
 
         if install_path:
-            vars_['REZ_BUILD_INSTALL_PATH'] = install_path
+            vars_['REZ_BUILD_INSTALL_PATH'] = executor.normalize_path(install_path)
 
         if config.rez_1_environment_variables and \
                 not config.disable_rez_1_compatibility and \
                 build_type == BuildType.central:
             vars_['REZ_IN_REZ_RELEASE'] = 1
 
-        return vars_
+        # set env vars
+        for key, value in vars_.items():
+            executor.env[key] = value
 
     @classmethod
     def add_pre_build_commands(cls, executor, variant, build_type, install,
@@ -310,8 +313,10 @@ class BuildSystem(object):
                                    install, build_path, install_path=None):
         """Perform build actions common to every build system.
         """
+
         # set env vars
-        env_vars = cls.get_standard_vars(
+        cls.set_standard_vars(
+            executor=executor,
             context=context,
             variant=variant,
             build_type=build_type,
@@ -319,6 +324,3 @@ class BuildSystem(object):
             build_path=build_path,
             install_path=install_path
         )
-
-        for var, value in env_vars.items():
-            executor.env[var] = value

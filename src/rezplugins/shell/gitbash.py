@@ -89,9 +89,6 @@ class GitBash(Bash):
         return cls.syspaths
 
     def normalize_path(self, path):
-        # TESTING
-        print("Normalized %s to %s" % (path, to_posix_path(path)))
-
         return to_posix_path(path)
 
     def normalize_paths(self, value):
@@ -109,10 +106,7 @@ class GitBash(Bash):
         # C:\ ==> /c/
         value2 = self._drive_regex.sub("/\\1/", value)
 
-        n = super(GitBash, self).normalize_paths(value2)
-
-        print("NORMALIZED %s to %s" % (value, n))
-        return n
+        return super(GitBash, self).normalize_paths(value2)
 
 
 def register_plugin():
