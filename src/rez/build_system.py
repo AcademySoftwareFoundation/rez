@@ -329,6 +329,7 @@ class BuildSystem(object):
         """
         # set env vars
         cls.set_standard_vars(
+            executor=executor,
             context=context,
             variant=variant,
             build_type=build_type,
