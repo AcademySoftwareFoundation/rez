@@ -8,12 +8,6 @@ import subprocess
 from rez.utils.execution import Popen
 
 
-SYSROOT = os.getenv("SYSTEMROOT")
-
-_drive_start_regex = re.compile(r"^([A-Za-z]):\\")
-_env_var_regex = re.compile(r"%([^%]*)%")
-
-
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _env_var_regex = re.compile(r"%([^%]*)%")
 

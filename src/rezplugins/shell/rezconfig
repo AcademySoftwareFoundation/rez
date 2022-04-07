@@ -35,9 +35,4 @@ pwsh:
 
 gitbash:
     prompt: '>'
-
-    # you may need to uncomment this, depending on searchpath, you may pick
-    # up system32/bash.exe incorrectly
-    #
-    # executable_fullpath: 'C:\git\bin\bash.exe'
     executable_fullpath: null

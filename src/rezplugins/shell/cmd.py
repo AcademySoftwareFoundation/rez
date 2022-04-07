@@ -12,12 +12,11 @@ from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
-from ._utils.windows import to_windows_path
+from ._utils.windows import to_windows_path, get_syspaths_from_registry
 from functools import partial
 import os
 import re
 import subprocess
-from ._utils.windows import get_syspaths_from_registry
 
 
 basestring = six.string_types[0]
