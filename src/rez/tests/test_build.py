@@ -135,6 +135,7 @@ class TestBuild(TestBase, TempdirMixin):
         stdout = proc.communicate()[0]
         self.assertEqual('hola amigo', stdout.strip())
 
+    # TESTING, REENABLE TESTS
     @per_available_shell()
     @install_dependent()
     def __test_build_whack(self, shell):

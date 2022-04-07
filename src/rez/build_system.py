@@ -7,6 +7,7 @@ import os.path
 from rez.build_process import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages import get_developer_package
+from rez.rex_bindings import VariantBinding
 
 
 def get_buildsys_types():
@@ -295,16 +296,29 @@ class BuildSystem(object):
         build_ns = {
             "build_type": build_type.name,
             "install": install,
-            "build_path": build_path,
-            "install_path": install_path
+            "build_path": executor.normalize_path(build_path),
+            "install_path": executor.normalize_path(install_path)
         }
 
         # execute pre_build_commands()
+        # note that we need to wrap variant in a VariantBinding so that any refs
+        # to (eg) 'this.root' in pre_build_commands() will get the possibly
+        # normalized path.
+        #
         pre_build_commands = getattr(variant, "pre_build_commands")
+
+        # TODO I suspect variant root isn't correctly set to the cached root
+        # when pkg caching is enabled (see use of VariantBinding in
+        # ResolvedContext._execute).
+
+        bound_variant = VariantBinding(
+            variant,
+            interpreter=executor.interpreter
+        )
 
         if pre_build_commands:
             with executor.reset_globals():
-                executor.bind("this", variant)
+                executor.bind("this", bound_variant)
                 executor.bind("build", ROA(build_ns))
                 executor.execute_code(pre_build_commands)
 
