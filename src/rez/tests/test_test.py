@@ -26,8 +26,6 @@ from rez import resolved_context, exceptions as rez_exceptions
 from rez.cli import _main
 from rez.tests import util
 
-_SUCCESS_CODE = 0
-
 
 class _Base(util.TestBase):
     """A bootstrap class for unittest classes in this module."""
