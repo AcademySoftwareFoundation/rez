@@ -55,7 +55,7 @@ class InteractiveFlagCases(_Base):
         result = _test_shell(
             "test package_with_tests --interactive on_variants_test_name",
             packages_path=[self._install_path],
-            variable="REZ_TEST_VARIANT_INDEX",
+            variable="REZ_CURRENT_TEST_VARIANT_INDEX",
         )
 
         self.assertEqual("1", result)
@@ -129,7 +129,7 @@ class InteractiveFlagExtraPackages(_Base):
         result = _test_shell(
             "test package_with_tests --interactive fizz --extra-packages python-2",
             packages_path=[self._install_path],
-            variable="REZ_TEST_VARIANT_INDEX",
+            variable="REZ_CURRENT_TEST_VARIANT_INDEX",
         )
 
         self.assertEqual("1", result)
@@ -139,7 +139,7 @@ class InteractiveFlagExtraPackages(_Base):
         result = _test_shell(
             "test package_with_tests --interactive fizz --extra-packages python",
             packages_path=[self._install_path],
-            variable="REZ_TEST_VARIANT_INDEX",
+            variable="REZ_CURRENT_TEST_VARIANT_INDEX",
         )
 
         self.assertIn(result, {"0", "1"})

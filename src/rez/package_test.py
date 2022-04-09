@@ -931,7 +931,7 @@ def _pre_test_env_commands(test_name, variant, executor):
     _pre_test_commands(test_name, variant, executor)
 
     if hasattr(variant, "index"):
-        executor.setenv("REZ_TEST_VARIANT_INDEX", variant.index)
+        executor.setenv("REZ_CURRENT_TEST_VARIANT_INDEX", variant.index)
 
 
 def _pre_test_commands(test_name, variant, executor):
