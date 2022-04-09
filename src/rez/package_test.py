@@ -874,7 +874,7 @@ def _choose_test_object(package, test_requires, extra_packages=frozenset()):
     Args:
         package (Package):
             The installed Rez package to query variant / test data from.
-        test_requires (set[PackageRequest], optional)
+        test_requires (set[PackageRequest]):
             Include these Rez package versions in the check, if provided. If
             the Rez test has no defined ``"requires"``, this parameter is empty.
         extra_packages (set[PackageRequest], optional):
