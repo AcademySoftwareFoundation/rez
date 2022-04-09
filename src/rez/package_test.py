@@ -949,19 +949,14 @@ def _pre_test_commands(test_name, variant, executor):
     """
     pre_test_commands = getattr(variant, "pre_test_commands")
 
-    if not pre_test_commands:
-        with executor.reset_globals():
-            executor.setenv("REZ_CURRENT_TEST_NAME", test_name)
-
-        return
-
-    test_ns = {
-        "name": test_name
-    }
-
     with executor.reset_globals():
+        executor.setenv("REZ_CURRENT_TEST_NAME", test_name)
+
+        if not pre_test_commands:
+            return
+
         executor.bind("this", variant)
-        executor.bind("test", RO_AttrDictWrapper(test_ns))
+        executor.bind("test", RO_AttrDictWrapper({"name": test_name}))
         executor.execute_code(pre_test_commands)
         executor.setenv("REZ_CURRENT_TEST_NAME", test_name)
 
