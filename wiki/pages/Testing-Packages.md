@@ -1,21 +1,17 @@
 As mentioned in other pages such as [tests](Package-Definition-Guide#tests),
-you can specify tests to run like this:
+you can specify Rez tests to run like this:
 
-	]$ rez-test maya_utils lint unittest
+	]$ rez-test maya_utils lint unittest_name
 
-This test would run two tests, "lint" and "unittest", from a Rez package called
-"maya_utils". When that happens, the pre-defined commands for "lint" and
-"unittest" will run. However if you to "rez-env" into those test environments,
-you can do that using the *--interactive* flag.
+This example runs two tests, "lint" and "unittest_name", from the "maya_utils"
+Rez package. Rez runs these tests one at a time, in the order you define them.
 
-	]$ rez-test maya_utils --interactive lint
-	]$ rez-test maya_utils --interactive unittest
+You may also "enter" any test environment, instead of running a test by
+including the *--interactive* flag.
 
-In the example commands above, a "rez-env" is auto-generated to combine
-"maya_utils" and "lint" / "maya_utils" and "unittest" into two, separate
-environments.
+	]$ rez-test maya_utils --interactive unittest_name
 
-Note that you cannot call *--interactive* on more than one Rez test at a time.
+Adding *--interactive* makes Rez combine the "maya_utils" Rez package and
+"unittest_name" Rez test into a single environment, just like how `rez-env` works.
 
-The resulting environment is exactly what Rez sees, just before a test
-"command" gets run.
+Note that *--interactive* can only target on Rez test at a time.
