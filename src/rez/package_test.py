@@ -978,7 +978,7 @@ def _validate_test_requests(test_requires, extra_packages):
         test_requires_names = ", ".join(str(request) for request in test_requires)
 
         raise PackageTestError(
-            'Test has conflicting requires "{test_requires_names}".'.format(
+            'Test has conflicting requires {test_requires_names!r}.'.format(
                 test_requires_names=test_requires_names,
             )
         )
