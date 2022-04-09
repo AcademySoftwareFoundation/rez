@@ -11,7 +11,7 @@ from __future__ import print_function
 def setup_parser(parser, completions=False):
     parser.add_argument(
         "--interactive",
-        help="Open a shell instead of executing the requested tests.",
+        help="Open a shell instead of executing the requested tests",
     )
     parser.add_argument(
         "-l", "--list", action="store_true",
