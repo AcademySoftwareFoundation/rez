@@ -105,8 +105,11 @@ class PowerShellBase(Shell):
         return cls.syspaths
 
     def _bind_interactive_rez(self):
+        curr_prompt = os.getenv("REZ_CURRENT_PROMPT", "")
         if config.set_prompt and self.settings.prompt:
-            self._addline('Function prompt {"%s"}' % self.settings.prompt)
+            self.setenv("REZ_CURRENT_PROMPT", str(curr_prompt + self.settings.prompt))
+            if not self.settings.set_prompt_as_env:
+                self._addline('Function prompt {"%s"}' % str(curr_prompt + self.settings.prompt))
 
     def _additional_commands(self, executor):
         # Make .py launch within shell without extension.
