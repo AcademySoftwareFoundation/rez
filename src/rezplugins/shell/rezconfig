@@ -20,7 +20,9 @@ cmd:
 powershell:
     prompt: '> $ '
     additional_pathext: ['.PY']
+    set_prompt_as_env: false
 
 pwsh:
     prompt: '> $ '
     additional_pathext: ['.PY']
+    set_prompt_as_env: false
