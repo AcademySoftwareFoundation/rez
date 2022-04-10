@@ -189,7 +189,7 @@ class PowerShellBase(Shell):
         target_file = os.path.join(tmpdir,
                                    "rez-shell.%s" % self.file_extension())
 
-        with open(target_file, 'w') as f:
+        with open(target_file, 'w', encoding='utf-8') as f:
             f.write(code)
 
         cmd = []
