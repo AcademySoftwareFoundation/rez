@@ -3,7 +3,7 @@ you can specify Rez tests to run like this:
 
 	]$ rez-test maya_utils lint unittest_name
 
-This example runs two tests, "lint" and "unittest_name", from the "maya_utils"
+This example runs two test targets, "lint" and "unittest_name", from the "maya_utils"
 Rez package. Rez runs these tests one at a time, in the order you define them.
 
 You may also "enter" any test environment, instead of running a test by
