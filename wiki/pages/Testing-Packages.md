@@ -14,4 +14,4 @@ including the *--interactive* flag.
 Adding *--interactive* makes Rez combine the "maya_utils" Rez package and
 "unittest_name" Rez test into a single environment, just like how `rez-env` works.
 
-Note that *--interactive* can only target on Rez test at a time.
+Note that *--interactive* can only target one Rez test at a time.
