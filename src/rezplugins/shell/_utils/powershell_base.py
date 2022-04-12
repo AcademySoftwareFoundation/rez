@@ -5,6 +5,7 @@
 import os
 import re
 from subprocess import PIPE
+from io import open
 
 from rez.config import config
 from rez.vendor.six import six
