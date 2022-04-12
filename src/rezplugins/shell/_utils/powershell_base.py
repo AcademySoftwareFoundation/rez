@@ -191,7 +191,7 @@ class PowerShellBase(Shell):
                                    "rez-shell.%s" % self.file_extension())
 
         with open(target_file, 'w', encoding='utf-8') as f:
-            f.write(code)
+            f.write(u"%s" % code)
 
         cmd = []
         if pre_command:
