@@ -18,9 +18,11 @@ cmd:
     additional_pathext: ['.PY']
 
 powershell:
-    prompt: '> $ '
+    prompt: '>'
     additional_pathext: ['.PY']
+    set_prompt_as_env: false
 
 pwsh:
-    prompt: '> $ '
+    prompt: '>'
     additional_pathext: ['.PY']
+    set_prompt_as_env: false

@@ -5,6 +5,7 @@
 import os
 import re
 from subprocess import PIPE
+from io import open
 
 from rez.config import config
 from rez.vendor.six import six
@@ -105,8 +106,11 @@ class PowerShellBase(Shell):
         return cls.syspaths
 
     def _bind_interactive_rez(self):
+        curr_prompt = os.getenv("REZ_CURRENT_PROMPT", "")
         if config.set_prompt and self.settings.prompt:
-            self._addline('Function prompt {"%s"}' % self.settings.prompt)
+            self.setenv("REZ_CURRENT_PROMPT", str(curr_prompt + self.settings.prompt))
+            if not self.settings.set_prompt_as_env:
+                self._addline('Function prompt {"%s"}' % str(curr_prompt + self.settings.prompt))
 
     def _additional_commands(self, executor):
         # Make .py launch within shell without extension.
@@ -186,8 +190,8 @@ class PowerShellBase(Shell):
         target_file = os.path.join(tmpdir,
                                    "rez-shell.%s" % self.file_extension())
 
-        with open(target_file, 'w') as f:
-            f.write(code)
+        with open(target_file, 'w', encoding='utf-8') as f:
+            f.write(u"%s" % code)
 
         cmd = []
         if pre_command:
