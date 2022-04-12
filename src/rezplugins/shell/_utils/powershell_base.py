@@ -253,9 +253,8 @@ class PowerShellBase(Shell):
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
-            'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'.format(
-                key, os.path.pathsep, value)
-        )
+            'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'
+            .format(key, os.path.pathsep, value))
 
     def unsetenv(self, key):
         self._addline(r"Remove-Item Env:\%s" % key)
