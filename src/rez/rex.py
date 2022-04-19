@@ -594,6 +594,7 @@ class ActionInterpreter(object):
 
     def normalize_paths(self, value):
         """Normalize value if it's a path(s).
+
         Note that `value` may be more than one pathsep-delimited paths.
         """
         paths = value.split(self.pathsep)
@@ -1352,7 +1353,9 @@ class RexExecutor(object):
 
     def normalize_path(self, path):
         """Normalize a path.
+
         Note that in many interpreters this will be unchanged.
+
         Returns:
             str: The normalized path.
         """

@@ -203,9 +203,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os-version:
-          - '2019'
-
         # The windows version has to match the host system.
         # 1809 -> 10.0.17763.805 -> windows-2019
         # Compare: https://hub.docker.com/_/microsoft-windows-servercore
@@ -378,3 +375,5 @@ jobs:
           docker run `
             --mount type=bind,src=$pwd,dst=C:\checkout,readonly `
             ${{ steps.vars.outputs.docker_image }}
+        env:
+          _REZ_ENSURE_TEST_SHELLS: cmd,pwsh,gitbash

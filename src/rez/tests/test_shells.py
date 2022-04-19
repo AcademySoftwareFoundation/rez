@@ -8,9 +8,10 @@ test shell invocation
 from __future__ import print_function
 
 from rez.system import system
-from rez.shells import create_shell
+from rez.shells import create_shell, get_shell_types, get_shell_class
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
+from rez.plugin_managers import plugin_manager
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
@@ -26,6 +27,10 @@ import os
 
 def _stdout(proc):
     out_, _ = proc.communicate()
+    if proc.returncode:
+        raise RuntimeError(
+            "The subprocess failed with exitcode %d" % proc.returncode
+        )
     return out_.strip()
 
 
@@ -51,6 +56,46 @@ class TestShells(TestBase, TempdirMixin):
     @classmethod
     def _create_context(cls, pkgs):
         return ResolvedContext(pkgs, caching=False)
+
+    def test_aaa_shell_presence(self):
+        """Ensure specific shell types are present as loaded plugins.
+
+        The env var _REZ_ENSURE_TEST_SHELLS should be set by a CI system (such
+        as github actions) to make sure the shells we expect to be installed,
+        are installed, and are getting tested.
+
+        Note 'aaa' forces unittest to run this test first.
+        """
+        shells = os.getenv("_REZ_ENSURE_TEST_SHELLS", "").split(',')
+        shells = set(x for x in shells if x)
+
+        if not shells:
+            self.skipTest("Not ensuring presence of shells from explicit list")
+            return
+
+        # check for missing shells
+        missing_shells = shells - set(get_shell_types())
+        if missing_shells:
+            raise RuntimeError(
+                "The following shells should be available for testing but are "
+                "not present: %r" % list(missing_shells)
+            )
+
+        # check for unavailable shells
+        for shell in shells:
+            if not get_shell_class(shell).is_available():
+                raise RuntimeError(
+                    "The shell %r is not available (executable not found)"
+                    % shell
+                )
+
+        # check for shell plugins that failed to load
+        for (name, reason) in plugin_manager.get_failed_plugins("shell"):
+            if name in shells:
+                raise RuntimeError(
+                    "The shell plugin %r failed to load: %s"
+                    % (name, reason)
+                )
 
     @per_available_shell()
     def test_no_output(self, shell):
@@ -208,7 +253,7 @@ class TestShells(TestBase, TempdirMixin):
             # how it's been configured
             #
             if sh_out[1]:
-                raise Exception("Command %r failed:\n%s" % (txt, sh_out[1]))
+                raise RuntimeError("Command %r failed:\n%s" % (txt, sh_out[1]))
 
             self.assertEqual(sh_out[0].strip(), txt)
 
@@ -351,6 +396,7 @@ class TestShells(TestBase, TempdirMixin):
 
         # Assertions for other environment variable types
         from rez.shells import create_shell
+
         sh = create_shell()
         for token in sh.get_all_key_tokens("WHO"):
             expected_output += [

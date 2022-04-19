@@ -46,7 +46,7 @@ class CSH(UnixShell):
               % (cls.name(), cls.command_arg)
         p = Popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True, text=True)
-        out_, err_ = p.communicate()
+        out_, _ = p.communicate()
         if p.returncode:
             paths = []
         else:
