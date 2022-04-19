@@ -12,6 +12,7 @@ from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
+from ._utils.windows import to_windows_path
 from functools import partial
 import os
 import re
@@ -273,7 +274,7 @@ class CMD(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         """Escape the <, >, ^, and & special characters reserved by Windows.
 
         Args:
@@ -293,9 +294,15 @@ class CMD(Shell):
                 # Note that cmd uses ^% while batch files use %% to escape %
                 txt = self._env_var_regex.sub(r"%%\1%%", txt)
             else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
                 txt = self._escaper(txt)
             result += txt
         return result
+
+    def normalize_path(self, path):
+        return to_windows_path(path)
 
     def _saferefenv(self, key):
         pass
@@ -304,7 +311,7 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):

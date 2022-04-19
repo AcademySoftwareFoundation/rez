@@ -19,7 +19,7 @@ class TCSH(CSH):
     def name(cls):
         return 'tcsh'
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -30,6 +30,9 @@ class TCSH(CSH):
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
                 txt = txt.replace('"', '"\\""')
                 txt = txt.replace('!', '\\!')
                 txt = '"%s"' % txt

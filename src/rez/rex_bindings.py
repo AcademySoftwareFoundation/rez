@@ -19,7 +19,8 @@ basestring = six.string_types[0]
 
 
 class Binding(object):
-    """Abstract base class."""
+    """Abstract base class.
+    """
     def __init__(self, data=None):
         self._data = data or {}
 
@@ -111,10 +112,13 @@ class VersionBinding(Binding):
 
 
 class VariantBinding(Binding):
-    """Binds a packages.Variant object."""
-    def __init__(self, variant, cached_root=None):
+    """Binds a packages.Variant object.
+    """
+    def __init__(self, variant, cached_root=None, interpreter=None):
         doc = dict(version=VersionBinding(variant.version))
         super(VariantBinding, self).__init__(doc)
+
+        self.__interpreter = interpreter
         self.__variant = variant
         self.__cached_root = cached_root
 
@@ -125,7 +129,12 @@ class VariantBinding(Binding):
         such as 'resolve.mypkg.root' resolve to the cached payload location,
         if the package is cached.
         """
-        return self.__cached_root or self.__variant.root
+        root = self.__cached_root or self.__variant.root
+
+        if self.__interpreter:
+            root = self.__interpreter.normalize_path(root)
+
+        return root
 
     def __getattr__(self, attr):
         try:

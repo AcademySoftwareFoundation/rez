@@ -8,6 +8,7 @@ import os
 import sys
 import re
 import traceback
+from fnmatch import fnmatch
 from contextlib import contextmanager
 from string import Formatter
 
@@ -232,7 +233,7 @@ class ActionManager(object):
             ('undefined', self.undefined)]
 
     def _env_sep(self, name):
-        return self._env_sep_map.get(name, os.pathsep)
+        return self._env_sep_map.get(name, self.interpreter.pathsep)
 
     def _is_verbose(self, command):
         if isinstance(self.verbose, (list, tuple)):
@@ -472,6 +473,11 @@ class ActionInterpreter(object):
     """
     expand_env_vars = False
 
+    # Path separator. There are cases (eg gitbash - git for windows) where the
+    # path separator does not match the system (ie os.pathsep)
+    #
+    pathsep = os.pathsep
+
     # RegEx that captures environment variables (generic form).
     # Extend/override to regex formats that can capture environment formats
     # in other interpreters like shells if needed
@@ -537,12 +543,16 @@ class ActionInterpreter(object):
 
     # --- other
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         """Escape a string.
 
         Escape the given string so that special characters (such as quotes and
         whitespace) are treated properly. If `value` is a string, assume that
         this is an expandable string in this interpreter.
+
+        Note that `is_path` provided because of the special case where a
+        path-like envvar is set. In this case, path normalization, if it needs
+        to occur, has to be part of the string escaping process.
 
         Note:
             This default implementation returns the string with no escaping
@@ -550,8 +560,45 @@ class ActionInterpreter(object):
 
         Args:
             value (str or `EscapedString`): String to escape.
+            is_path (bool): True if the value is path-like.
+
+        Returns:
+            str: The escaped string.
         """
         return str(value)
+
+    @classmethod
+    def _is_pathed_key(cls, key):
+        return any(fnmatch(key, x) for x in config.pathed_env_vars)
+
+    def normalize_path(self, path):
+        """Normalize a path.
+
+        Change `path` to a valid filepath representation for this interpreter.
+
+        IMPORTANT: Because var references like ${THIS} might be passed to funcs
+        like appendvar, `path` might be in this form. You need to take that
+        into account (ie, ensure normalization doesn't break such a var reference).
+
+        Args:
+            path (str): A filepath which may be in posix format, or windows
+                format, or some combination of the two. For eg, a string like
+                `{root}/bin` on windows will evaluate to `C:\\.../bin` - in this
+                case, the `cmd` shell would want to normalize this and convert
+                to all forward slashes.
+
+        Returns:
+            str: The normalized path.
+        """
+        return path
+
+    def normalize_paths(self, value):
+        """Normalize value if it's a path(s).
+        Note that `value` may be more than one pathsep-delimited paths.
+        """
+        paths = value.split(self.pathsep)
+        paths = [self.normalize_path(x) for x in paths]
+        return self.pathsep.join(paths)
 
     # --- internal commands, not exposed to public rex API
 
@@ -620,7 +667,7 @@ class Python(ActionInterpreter):
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
-                sys.path = value.split(os.pathsep)
+                sys.path = value.split(self.pathsep)
 
     def unsetenv(self, key):
         pass
@@ -1284,12 +1331,14 @@ class RexExecutor(object):
     def append_system_paths(self):
         """Append system paths to $PATH."""
         from rez.shells import Shell, create_shell
-        sh = self.interpreter if isinstance(self.interpreter, Shell) \
-            else create_shell()
 
-        paths = sh.get_syspaths()
-        paths_str = os.pathsep.join(paths)
-        self.env.PATH.append(paths_str)
+        if isinstance(self.interpreter, Shell):
+            sh = self.interpreter
+        else:
+            sh = create_shell()
+
+        for path in sh.get_syspaths():
+            self.env.PATH.append(path)
 
     def prepend_rez_path(self):
         """Prepend rez path to $PATH."""
@@ -1300,6 +1349,14 @@ class RexExecutor(object):
         """Append rez path to $PATH."""
         if system.rez_bin_path:
             self.env.PATH.append(system.rez_bin_path)
+
+    def normalize_path(self, path):
+        """Normalize a path.
+        Note that in many interpreters this will be unchanged.
+        Returns:
+            str: The normalized path.
+        """
+        return self.interpreter.normalize_path(path)
 
     @classmethod
     def compile_code(cls, code, filename=None, exec_namespace=None):
