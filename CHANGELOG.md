@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.109.0 (2022-04-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.109.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.108.0...2.109.0)
+
+**Merged pull requests:**
+
+- Feature/1256 add git bash shell plugin [\#1280](https://github.com/nerdvegas/rez/pull/1280) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- add git-bash shell plugin [\#1256](https://github.com/nerdvegas/rez/issues/1256)
+
 ## 2.108.0 (2022-04-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.108.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.107.0...2.108.0)
 
