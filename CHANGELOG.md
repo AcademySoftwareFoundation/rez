@@ -1,5 +1,27 @@
 # Change Log
 
+## 2.108.0 (2022-04-19)
+[Source](https://github.com/nerdvegas/rez/tree/2.108.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.107.0...2.108.0)
+
+**Notes**
+
+This release adds path normalization to shells. Usually we use POSIX-style paths in
+package commands (eg `env.PATH.append('{root}/bin')`. In previous rez versions,
+this path was left unchanged, leading to odd paths on Windows like
+`C:\svr\packages\foo\1.2.3/bin`. This hasn't been a problem however, since Windows is
+tolerant of a mix of forward and back slashes. Now though, you should see paths on
+Windows set correctly, ie `C:\svr\packages\foo\1.2.3\bin`.
+
+Please be aware of this change in behavior in case it affects you.
+
+**Merged pull requests:**
+
+- Feature/1269 formalize paths in package commands [\#1273](https://github.com/nerdvegas/rez/pull/1273) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- formalize paths in package commands [\#1269](https://github.com/nerdvegas/rez/issues/1269)
+
 ## 2.107.0 (2022-04-07)
 [Source](https://github.com/nerdvegas/rez/tree/2.107.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.106.0...2.107.0)
 
