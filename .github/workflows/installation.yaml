@@ -60,17 +60,14 @@ jobs:
 
     - name: Install
       run: |
-        ${{ matrix.method }}
-        find /opt/rez/ -maxdepth 2
+        ${{ matrix.REZ_INSTALL_COMMAND }}
 
-    - name: rez status
+    - name: Run rez-status
       run: |
-        export ${{ matrix.exports }}
-        rez status
+        ${{ matrix.REZ_SET_PATH_COMMAND }}
+        rez-status
 
-    - name: rez-pip --install .
+    - name: Install rez with rez-pip
       run: |
-        export ${{ matrix.exports }}
+        ${{ matrix.REZ_SET_PATH_COMMAND }}
         rez-pip --install .
-        rez view rez
-
