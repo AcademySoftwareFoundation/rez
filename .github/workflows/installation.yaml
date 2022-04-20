@@ -1,6 +1,12 @@
 name: installation
 on:
-  push:
+  pull_request:
+    paths:
+      - 'src/**'
+      - '.github/workflows/installation.yaml'
+      - '!src/rez/utils/_version.py'
+      - '!**.md'
+  push:  
     paths:
       - 'src/**'
       - '.github/workflows/installation.yaml'
