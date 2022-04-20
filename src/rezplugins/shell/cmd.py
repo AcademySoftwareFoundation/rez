@@ -12,6 +12,7 @@ from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
+from ._utils.windows import to_windows_path, get_syspaths_from_registry
 from functools import partial
 import os
 import re
@@ -83,64 +84,7 @@ class CMD(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # detect system paths using registry
-        def gen_expected_regex(parts):
-            whitespace = r"[\s]+"
-            return whitespace.join(parts)
-
-        paths = []
-
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = Popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cmd = [
-            "REG",
-            "QUERY",
-            "HKCU\\Environment",
-            "/v",
-            "PATH"
-        ]
-
-        expected = gen_expected_regex([
-            "HKEY_CURRENT_USER\\\\Environment",
-            "PATH",
-            "REG_(EXPAND_)?SZ",
-            "(.*)"
-        ])
-
-        p = Popen(cmd, stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE, shell=True, text=True)
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(expected, out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
-
-        cls.syspaths = [x for x in paths if x]
+        cls.syspaths = get_syspaths_from_registry()
         return cls.syspaths
 
     def _bind_interactive_rez(self):
@@ -273,7 +217,7 @@ class CMD(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         """Escape the <, >, ^, and & special characters reserved by Windows.
 
         Args:
@@ -293,9 +237,15 @@ class CMD(Shell):
                 # Note that cmd uses ^% while batch files use %% to escape %
                 txt = self._env_var_regex.sub(r"%%\1%%", txt)
             else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
                 txt = self._escaper(txt)
             result += txt
         return result
+
+    def normalize_path(self, path):
+        return to_windows_path(path)
 
     def _saferefenv(self, key):
         pass
@@ -304,7 +254,7 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):

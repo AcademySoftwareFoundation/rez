@@ -55,7 +55,7 @@ Python variables that do **not** become package attributes include:
 * Any variable with a leading double underscore;
 * Any variable that is a [build-time package attribute](#build-time-package-attributes).
 
-## Package Attributes As Functions
+### Function Attributes
 
 Package attributes can be implemented as functions - the return value of the function becomes
 the attribute value. There are two types of attribute functions - *early binding* functions,
@@ -65,7 +65,7 @@ and *late binding* functions - and these are decorated using *@early* and *@late
 > late bound, but are not the same as a standard function attribute, and are *never* decorated
 > with the early or late decorators.
 
-### Early Binding Functions
+#### Early Binding Functions
 
 Early binding functions use the *@early* decorator. They are evaluated at *build time*, hence the
 'early' in 'early binding'. Any package attribute can be implemented as an early binding function.
@@ -108,7 +108,7 @@ define an arbitrary function earlier in the python source. You can always use a 
 two as well - an early binding function can call an arbitrary function defined at the bottom of
 your definition file.
 
-#### Available Objects
+##### Available Objects
 
 Following is the list of objects that are available during early evaluation.
 
@@ -140,7 +140,7 @@ might look like so:
 > [[media/icons/warning.png]] You **must** ensure that your early-bound function returns the value
 > you want to see in the installed package, when `building` is False.
 
-### Late Binding Functions
+#### Late Binding Functions
 
 Late binding functions stay as functions in the installed package definition, and are only evaluated
 lazily, when the attribute is accessed for the first time (the return value is then cached).
@@ -202,7 +202,7 @@ Note how in the *_tools* function we're referring to a relative path. Remember t
 functions are evaluated at build time - the package hasn't actually been built or installed yet,
 so attributes such as *this.root* don't exist.
 
-#### The *in_context* Function
+##### The *in_context* Function
 
 When late binding functions are evaluated, a boolean function *in_context* is present, which
 returns True if the package is part of a resolved context, or False otherwise. For example,
@@ -230,7 +230,7 @@ current env; if it was, a maya-specific tool *maya-edit* is added to the tool li
 > value regardless of whether *in_context* is True or False. Otherwise, simply trying to
 > query the package attributes (using *rez-search* for example) may cause errors.
 
-#### Available Objects
+##### Available Objects
 
 Following is the list of objects that are available during late evaluation, if *in_context*
 is *True*:
@@ -254,7 +254,7 @@ The following objects are available in *all* cases:
 > attributes that packages don't - notably, *root* and *index*. Use the properties
 > `this.is_package` and `this.is_variant` to distinguish the case if needed.
 
-#### Example - Late Bound build_requires
+##### Example - Late Bound build_requires
 
 Here is an example of a package.py with a late-bound `build_requires` field:
 
