@@ -74,13 +74,3 @@ jobs:
         rez-pip --install .
         rez view rez
 
-    - name: Import rez package in Python
-      run: |
-        export ${{ matrix.exports }}
-
-        # Still needed as there's no fallback to use system's python
-        # TODO update once 'provides' mechanism is implemented
-        rez bind python
-
-        echo "Checking rez as python package:"
-        rez env rez -- python -c 'import rez;print(rez.__file__)'
