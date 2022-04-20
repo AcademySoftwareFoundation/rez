@@ -9,7 +9,7 @@ on:
 
 jobs:
   main:
-    name: ${{ matrix.python-version }} - ${{ matrix.method }}
+    name: ${{ matrix.os }} - ${{ matrix.python-version }} - ${{ matrix.method }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
