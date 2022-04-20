@@ -524,6 +524,15 @@ env_var_separators = {
     "DOXYGEN_TAGFILES": " ",
 }
 
+# This setting identifies path-like environment variables. This is required
+# because some shells need to apply path normalization. For example, the command
+# `env.PATH.append("{root}/bin")` will be normalized to (eg) `C:\...\bin` in a
+# `cmd` shell on Windows. Note that wildcards are supported. If this setting is
+# not correctly configured, then your shell may not work correctly.
+pathed_env_vars = [
+    "*PATH"
+]
+
 # Defines what suites on $PATH stay visible when a new rez environment is resolved.
 # Possible values are:
 # - "never":            Don"t attempt to keep any suites visible in a new env

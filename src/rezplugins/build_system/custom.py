@@ -21,6 +21,7 @@ from rez.build_process import BuildType
 from rez.utils.execution import create_forwarding_script
 from rez.packages import get_developer_package
 from rez.resolved_context import ResolvedContext
+from rez.shells import create_shell
 from rez.exceptions import PackageMetadataError
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_warning
@@ -117,14 +118,16 @@ class CustomBuildSystem(BuildSystem):
         if self.write_build_scripts:
             # write out the script that places the user in a build env
             build_env_script = os.path.join(build_path, "build-env")
-            create_forwarding_script(build_env_script,
-                                     module=("build_system", "custom"),
-                                     func_name="_FWD__spawn_build_shell",
-                                     working_dir=self.working_dir,
-                                     build_path=build_path,
-                                     variant_index=variant.index,
-                                     install=install,
-                                     install_path=install_path)
+            create_forwarding_script(
+                build_env_script,
+                module=("build_system", "custom"),
+                func_name="_FWD__spawn_build_shell",
+                working_dir=self.working_dir,
+                build_path=build_path,
+                variant_index=variant.index,
+                install=install,
+                install_path=install_path
+            )
 
             ret["success"] = True
             ret["build_env_script"] = build_env_script
@@ -139,13 +142,19 @@ class CustomBuildSystem(BuildSystem):
             return ret
 
         def expand(txt):
-            return txt.format(build_path=build_path,
-                              install="install" if install else '',
-                              install_path=install_path,
-                              name=self.package.name,
-                              root=self.package.root,
-                              variant_index=variant.index if variant.index is not None else '',
-                              version=self.package.version).strip()
+            # we need a shell here because build_command may reference vars like
+            # {root}, and that may require path normalization.
+            sh = create_shell()
+
+            return txt.format(
+                build_path=sh.normalize_path(build_path),
+                install_path=sh.normalize_path(install_path),
+                root=sh.normalize_path(self.package.root),
+                install="install" if install else '',
+                name=self.package.name,
+                variant_index=variant.index if variant.index is not None else '',
+                version=self.package.version
+            ).strip()
 
         if isinstance(command, basestring):
             if self.build_args:
