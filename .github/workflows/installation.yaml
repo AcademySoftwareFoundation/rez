@@ -13,12 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        os: 
+          - ubuntu-latest
+          - macOS-latest
+          - windows-2019
         python-version:
           - '2.7'
           - '3.7'
         method:
-          - 'python ./install.py'
-          - 'pip install --target /opt/rez .'
+          - 'install'
+          - 'pip'
         include:
           - method: 'python ./install.py'
             exports: 'PATH=${PATH}:/opt/rez/bin/rez'
