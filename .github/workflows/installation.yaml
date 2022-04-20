@@ -1,9 +1,6 @@
 name: installation
 on:
   push:
-    paths:
-      - 'src/**'
-      - '.github/workflows/installation.yaml'
 
 jobs:
   main:
