@@ -1,12 +1,19 @@
-REZ API Reference
-=================
+#################
+Rez Documentation
+#################
 
 .. toctree::
     :maxdepth: 2
     :numbered:
 
-    api/modules
     one-liners
+
+
+.. autosummary::
+    :toctree: api
+    :recursive:
+
+    rez
 
 
 Indices and tables
