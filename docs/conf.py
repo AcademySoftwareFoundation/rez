@@ -299,6 +299,7 @@ def _generate_api_files():
         os.path.join(source, "rez", "tests"),
         os.path.join(source, "rez", "vendor"),
         os.path.join(source, "support"),
+        os.path.join(source, "rezgui"),  # TODO : Remove this later, once Qt is fixed
     ]
 
     _clear_rst_files(destination)

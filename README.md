@@ -3,6 +3,7 @@
 - Under Admin > Automation Rules > add SemVer Tags (Action: Activate Version)
 	- So new releases get documentation built for them
 - Need information on how to build the documentation, locally
+- rezgui is broken due to objects.App.app singleton (possibly others as well). Fix.
 
 
 [![Release](https://shields.io/github/v/release/nerdvegas/rez)](https://github.com/nerdvegas/rez/releases)
