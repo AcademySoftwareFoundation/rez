@@ -35,7 +35,6 @@ needs_sphinx = '1.3'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
     'sphinx.ext.githubpages',
     'sphinx.ext.ifconfig',
