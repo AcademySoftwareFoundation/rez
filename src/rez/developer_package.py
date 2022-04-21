@@ -55,12 +55,16 @@ class DeveloperPackage(Package):
         user's source directory.
 
         Args:
-            path: Directory containing the package definition file, or file
+            path (str):
+                Directory containing the package definition file, or file
                 path for the package file itself
-            format: which FileFormat to use, or None to check both .py and .yaml
+            format (FileFormat, optional):
+                If provided, a package must match this format (.py, .yaml,
+                etc). Leave empty to allow any valid package format.
 
         Returns:
-            `Package` object.
+            DeveloperPackage: The created object.
+
         """
         name = None
         data = None
