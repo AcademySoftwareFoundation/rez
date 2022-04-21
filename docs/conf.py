@@ -277,29 +277,44 @@ texinfo_documents = [
 intersphinx_mapping = {'http://docs.python.org/': None}
 
 
+def _clear_rst_files(directory):
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+
+        return
+
+    for name in os.listdir(directory):
+        if not name.endswith(source_suffix):
+            continue
+
+        os.remove(os.path.join(directory, name))
+
+
 def _generate_api_files():
     current_directory = os.path.dirname(os.path.realpath(__file__))
-    source = os.path.join(os.path.dirname(current_directory), "src")
+    root = os.path.dirname(current_directory)
+    source = os.path.join(root, "src")
     destination = os.path.join(current_directory, "api")
     excluded_directories = [
-        "src/build_utils",
-        "src/rez/tests",
-        "src/rez/vendor",
-        "src/support",
+        os.path.join(source, "build_utils"),
+        os.path.join(source, "rez", "tests"),
+        os.path.join(source, "rez", "vendor"),
+        os.path.join(source, "support"),
     ]
 
-    if os.path.isdir(destination):
-        # This runs locally during repeat builds but not over readthedocs.io
-        shutil.rmtree(destination)
+    _clear_rst_files(destination)
 
     command = [
+        "--separate",
         "--output-dir",
         destination,
         "--templatedir",
         os.path.join(current_directory, "_templates"),
         source,
-        *excluded_directories,  # Don't generate API documentation for these folders
     ]
+
+    # Don't generate API documentation for these folders
+    command.extend(excluded_directories)
 
     apidoc.main(command)
 
