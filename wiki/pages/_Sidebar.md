@@ -26,7 +26,7 @@
 
 :information_source: Others:
 
-- [API Reference](https://__GITHUB_USER__.github.io/__REPO_NAME__/)
+- [API Reference](https://__REPO_NAME__.readthedocs.io/en/latest)
 - [[Glossary]]
 - [[FAQ]]
 - [[Notes]]
