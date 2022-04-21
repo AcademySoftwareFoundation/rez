@@ -1,3 +1,10 @@
+- Under Admin > Integrations, add a GitHub integration hook
+	- So GitHub forces changes to readthedocs
+- Under Admin > Automation Rules > add SemVer Tags (Action: Activate Version)
+	- So new releases get documentation built for them
+- Need information on how to build the documentation, locally
+
+
 [![Release](https://shields.io/github/v/release/nerdvegas/rez)](https://github.com/nerdvegas/rez/releases)
 [![Pypy Release](https://shields.io/pypi/v/rez)](https://pypi.org/project/rez)<br>
 [![Core](https://github.com/nerdvegas/rez/workflows/core/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Acore+branch%3Amaster)

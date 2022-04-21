@@ -12,8 +12,9 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import shutil
+import sys
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -21,6 +22,7 @@ import os
 
 sys.path.insert(0, os.path.abspath('../src'))
 
+from sphinx.ext import apidoc
 import rez
 
 # -- General configuration ------------------------------------------------
@@ -273,3 +275,33 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
+
+
+def _generate_api_files():
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    source = os.path.join(os.path.dirname(current_directory), "src")
+    destination = os.path.join(current_directory, "api")
+    excluded_directories = [
+        "src/build_utils",
+        "src/rez/tests",
+        "src/rez/vendor",
+        "src/support",
+    ]
+
+    if os.path.isdir(destination):
+        # This runs locally during repeat builds but not over readthedocs.io
+        shutil.rmtree(destination)
+
+    command = [
+        "--output-dir",
+        destination,
+        "--templatedir",
+        os.path.join(current_directory, "_templates"),
+        source,
+        *excluded_directories,  # Don't generate API documentation for these folders
+    ]
+
+    apidoc.main(command)
+
+
+_generate_api_files()

@@ -4,16 +4,9 @@ Rez Documentation
 
 .. toctree::
     :maxdepth: 2
-    :numbered:
 
+    API Documentation <api/modules>
     one-liners
-
-
-.. autosummary::
-    :toctree: api
-    :recursive:
-
-    rez
 
 
 Indices and tables
