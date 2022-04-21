@@ -62,6 +62,9 @@ class DeveloperPackage(Package):
                 If provided, a package must match this format (.py, .yaml,
                 etc). Leave empty to allow any valid package format.
 
+        Raises:
+            PackageMetadataError: If ``path`` does not exist or isn't readable.
+
         Returns:
             DeveloperPackage: The created object.
 
