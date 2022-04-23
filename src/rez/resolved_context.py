@@ -41,6 +41,7 @@ from rez.vendor.version.requirement import Requirement
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils import json
+from rez.utils.filesystem import to_environment_name
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
 
@@ -903,7 +904,7 @@ class ResolvedContext(object):
             pkg_root = pkg.root
 
             if is_current:
-                uname = pkg.name.upper().replace('.', '_')
+                uname = to_environment_name(pkg.name)
                 prefix = "REZ_" + uname
                 if os.getenv(prefix + "_ORIG_ROOT"):
                     pkg_root = os.getenv(
@@ -2037,7 +2038,7 @@ class ResolvedContext(object):
         # set basic package variables and create per-package bindings
         for pkg in resolved_pkgs:
             minor_header_comment(executor, "variables for package %s" % pkg.qualified_name)
-            prefix = "REZ_" + pkg.name.upper().replace('.', '_')
+            prefix = "REZ_" + to_environment_name(pkg.name)
 
             executor.setenv(prefix + "_VERSION", str(pkg.version))
             major_version = str(pkg.version[0] if len(pkg.version) >= 1 else '')
@@ -2107,7 +2108,7 @@ class ResolvedContext(object):
             header_comment(executor, "ephemeral variables")
 
             for eph_req in ephemerals:
-                uname = eph_req.name[1:].upper().replace('.', '_')
+                uname = to_environment_name(eph_req.name[1:])
                 varname = "REZ_EPH_" + uname + "_REQUEST"
                 executor.setenv(varname, str(eph_req.range))
 
