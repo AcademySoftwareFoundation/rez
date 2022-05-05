@@ -172,7 +172,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.package_order import FavorPathsOrder
+    from rez.package_order import FavorPathsOrder, PackageOrderList
     from rez.resolved_context import ResolvedContext
     from rez.resolver import ResolverStatus
     from rez.package_filter import PackageFilterList, Rule
@@ -235,10 +235,10 @@ def command(opts, parser, extra_arg_groups=None):
             rule = Rule.parse_rule(rule_str)
             package_filter.add_inclusion(rule)
 
-        package_orderers = []
+        package_orderers = list(PackageOrderList.singleton)
 
         if opts.favor_paths:
-            package_orderers.append(FavorPathsOrder(opts.favor_paths))
+            package_orderers.insert(0, FavorPathsOrder(opts.favor_paths))
 
         # perform the resolve
         context = ResolvedContext(
