@@ -111,6 +111,25 @@ class TestFavorPathsOrder(_BaseTestPackagesOrder):
         self.assertNotEqual(two, four)
         self.assertNotEqual(three, four)
 
+    def test_conflicting_versions(self):
+        """Use the favored path if 2 of the same version are found."""
+        package_name = "pyfoo"
+        orderer = FavorPathsOrder([self.second_packages_path])
+        descending = sorted(
+            iter_packages(package_name),
+            key=lambda x: x.version,
+            reverse=True,
+        )
+        package = orderer.reorder(descending)[0]
+
+        expected_version = "2.0.0"
+        self.assertEqual(
+            self.data_path("solver", "favor_paths_second"),
+            package.resource.location,
+        )
+        self.assertEqual(package.name, package_name)
+        self.assertEqual(str(package.version), expected_version)
+
     def test_multi_paths(self):
         """Prefer favored paths in the exact, preferred order."""
         self._test_reorder(
