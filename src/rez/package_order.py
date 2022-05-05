@@ -159,6 +159,10 @@ class FavorPathsOrder(PackageOrder):
                 The sorted packages (if ``key`` is None) or the sorted objects.
 
         """
+
+        def _sort(key, entries):
+            return sorted(entries, key=lambda entry: key(entry).version, reverse=True)
+
         key = key or (lambda package: package)
         buckets = collections.OrderedDict([(path, []) for path in self._paths])
         unordered = []
@@ -172,7 +176,14 @@ class FavorPathsOrder(PackageOrder):
             else:
                 unordered.append(entry)
 
-        return [entry for entries in buckets.values() for entry in entries] + unordered
+        known_paths = [
+            entry
+            for entries in buckets.values()
+            for entry in _sort(key, entries)
+        ]
+        all_others = _sort(key, unordered)
+
+        return known_paths + all_others
 
     def to_pod(self):
         """dict[str, list[str]]: A JSON-friendly representation of this instance."""
