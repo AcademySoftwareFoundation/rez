@@ -9,11 +9,39 @@ from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
-    from argparse import SUPPRESS
+    from argparse import Action, SUPPRESS
     from rez.config import config
     from rez.system import system
     from rez.shells import get_shell_types
     import os
+
+    class SplitPaths(Action):
+        """A parser action which splits path strings by ":" / ";"."""
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            """Add the split paths onto ``namespace``.
+
+            Args:
+                parser (argparse.ArgumentParser):
+                    The current parser that this instance is applied onto.
+                namespace (argparse.Namespace):
+                    The destination where parsed values are placed onto.
+                values (str):
+                    Raw user input content to split and add to the parser.
+                option_string (str, optional):
+                    The flag from the CLI. e.g. :ref:`--packages-path`.
+
+            """
+            # Strip each path, just in case there's unneeded whitespace
+            paths = []
+
+            for value in values.split(os.pathsep):
+                value = value.strip()
+
+                if value:
+                    paths.append(value)
+
+            setattr(namespace, self.dest, paths)
 
     shells = get_shell_types()
 
@@ -61,6 +89,13 @@ def setup_parser(parser, completions=False):
         "--time-limit", type=int, default=-1,
         dest="time_limit", metavar='SECS',
         help="abort if the resolve time exceeds SECS")
+    parser.add_argument(
+        "--favor-paths",
+        action=SplitPaths,
+        default=[],
+        const=config.local_packages_path,
+        nargs="?",
+    )
     parser.add_argument(
         "-o", "--output", type=str, metavar="FILE",
         help="store the context into an rxt file, instead of starting an "
@@ -137,6 +172,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.package_order import FavorPathsOrder
     from rez.resolved_context import ResolvedContext
     from rez.resolver import ResolverStatus
     from rez.package_filter import PackageFilterList, Rule
@@ -199,10 +235,16 @@ def command(opts, parser, extra_arg_groups=None):
             rule = Rule.parse_rule(rule_str)
             package_filter.add_inclusion(rule)
 
+        package_orderers = []
+
+        if opts.favor_paths:
+            package_orderers.append(FavorPathsOrder(opts.favor_paths))
+
         # perform the resolve
         context = ResolvedContext(
             package_requests=request,
             timestamp=t,
+            package_orderers=package_orderers,
             package_paths=pkg_paths,
             building=opts.build,
             package_filter=package_filter,
