@@ -85,7 +85,7 @@ class FavorPathsOrder(PackageOrder):
 
         from rez.resolved_context import ResolvedContext
 
-        orderer = FavorPathsOrder(["/some/packages/path/"])
+        orderer = FavorPathsOrder(["/some/packages/path"])
         context = ResolvedContext(
             "foo",
             package_orderers=[orderer],
@@ -96,14 +96,14 @@ class FavorPathsOrder(PackageOrder):
     The resolved package will be **foo version 2.0.0**, from
     ``/some/packages/path``. Normally, foo version 3.0.0 would be chosen from
     ``/another/root/path`` but, because the orderer is tracking
-    "/some/packages/path/", foo version 2.0.0 is used instead.
+    "/some/packages/path", foo version 2.0.0 is used instead.
 
     .. code-block:: python
 
-        orderer = FavorPathsOrder(["/some/packages/path/", "/extra/place/here"])
+        orderer = FavorPathsOrder(["/some/packages/path", "/extra/place/here"])
 
     An orderer with multiple paths like the one above means "use the packages
-    found from ``/some/packages/path/``. If the package isn't found there, try
+    found from ``/some/packages/path``. If the package isn't found there, try
     ``/extra/place/here`` next". Once all paths are exhausted, we check
     packages_path like normal.
 
