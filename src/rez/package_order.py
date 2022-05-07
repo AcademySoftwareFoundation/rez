@@ -2,9 +2,9 @@
 # Copyright Contributors to the Rez Project
 
 
-import collections
 from inspect import isclass
 from hashlib import sha1
+import collections
 
 from rez.config import config
 from rez.utils.data_utils import cached_class_property
