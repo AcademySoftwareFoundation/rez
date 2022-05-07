@@ -8,8 +8,17 @@ Test cases for package_order.py (package ordering)
 import json
 
 from rez.config import config
-from rez.package_order import FavorPathsOrder, NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
-    TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
+from rez.package_order import (
+    FavorPathsOrder,
+    NullPackageOrder,
+    PackageOrder,
+    PackageOrderList,
+    PerFamilyOrder,
+    SortedOrder,
+    TimestampPackageOrder,
+    VersionSplitPackageOrder,
+    from_pod,
+)
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.vendor.version.version import Version
