@@ -61,9 +61,7 @@ def read(string):
     # This is awful, however there seems to be a major incompatibility with pygraph
     # and current pydot. Pydot now returns a list of graphs from a dot string. Rather
     # than possibly rewrite a big chunk of this lib, we'll just use the first graph.
-    # Since rez only makes single graphs anyway, this should suffice.
-    #
-    # https://github.com/nerdvegas/rez/issues/884
+    # Since rez only makes single graphs anyway, this should suffice. See #884
     #
     # <hack>
     if isinstance(dotG, list):

@@ -923,7 +923,7 @@ pip_install_remaps = [
         "pip_install": r"\1",
         "rez_install": r"\1",
     },
-    # Fix for https://github.com/nerdvegas/rez/issues/821
+    # Fix for #821
     # Path in record          | pip installed to    | copy to rez destination
     # ------------------------|---------------------|--------------------------
     # ../../lib/python/*      | *                   | python/*

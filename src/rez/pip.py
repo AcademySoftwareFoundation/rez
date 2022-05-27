@@ -137,7 +137,7 @@ def find_python_in_context(context):
     # accidentally find a system python install.
     #
     context = context.copy()
-    context.append_sys_path = False  # https://github.com/nerdvegas/rez/issues/826
+    context.append_sys_path = False  # #826
 
     python_package = context.get_resolved_package("python")
     assert python_package
@@ -430,7 +430,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             # Make the package use hashed variants. This is required because we
             # can't control what ends up in its variants, and that can easily
             # include problematic chars (>, +, ! etc).
-            # TODO: https://github.com/nerdvegas/rez/issues/672
+            # TODO: #672
             #
             pkg.hashed_variants = True
 
@@ -541,7 +541,7 @@ def _get_distribution_files_mapping(distribution, targetdir):
             4. Try rez-pip install again.
 
             If path remapping is not enough, consider submitting a new issue
-            via https://github.com/nerdvegas/rez/issues/new
+            via https://github.com/AcademySoftwareFoundation/rez/issues/new
             """.format(dist_record, rel_src, tokenised_path)
             print_error(dedent(try_this_message).lstrip())
 
