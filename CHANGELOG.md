@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.110.0 (2022-05-28)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.110.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.109.0...2.110.0)
+
+**Merged pull requests:**
+
+-  remove references to nerdvegas in comments [\#1312](https://github.com/AcademySoftwareFoundation/rez/pull/1312) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.109.0 (2022-04-19)
 [Source](https://github.com/nerdvegas/rez/tree/2.109.0) | [Diff](https://github.com/nerdvegas/rez/compare/2.108.0...2.109.0)
 
