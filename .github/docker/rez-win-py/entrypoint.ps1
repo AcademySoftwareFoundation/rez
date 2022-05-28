@@ -40,16 +40,16 @@ if (-not $?) {exit 1}
 
 # Install rez
 # Note that the workflow's checkout has been bind mounted to /checkout
-mkdir build
-python .\checkout\install.py build
+mkdir installdir
+python .\checkout\install.py installdir
 if (-not $?) {exit 1}
 
 # Install pytest for better rez-selftest output
-.\build\Scripts\rez\rez-python -m pip install pytest-cov
-.\build\Scripts\rez\rez-python -m pip install parameterized
+.\installdir\Scripts\rez\rez-python -m pip install pytest-cov
+.\installdir\Scripts\rez\rez-python -m pip install parameterized
 
 # Run Rez Tests
-.\build\Scripts\rez\rez-selftest.exe -v
+.\installdir\Scripts\rez\rez-selftest.exe -v
 
 # Pass on exit code to runner
 exit $LASTEXITCODE

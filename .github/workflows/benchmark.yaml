@@ -34,12 +34,12 @@ jobs:
 
       - name: Install Rez
         run: |
-          mkdir ./build
-          python ./install.py ./build
+          mkdir ./installdir
+          python ./install.py ./installdir
 
       - name: Run Benchmark
         run: |
-          ./build/bin/rez/rez-benchmark --out ./out
+          ./installdir/bin/rez/rez-benchmark --out ./out
 
           # remove benchmarking suite package repo
           rm -rf ./out/packages
