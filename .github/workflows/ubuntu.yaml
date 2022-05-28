@@ -63,16 +63,16 @@ jobs:
 
       - name: Install Rez
         run: |
-          mkdir ./build
-          python ./install.py ./build
+          mkdir ./installdir
+          python ./install.py ./installdir
 
       - name: Install Rez test dependencies
         run: |
-          ./build/bin/rez/rez-python -m pip install pytest-cov
-          ./build/bin/rez/rez-python -m pip install parameterized
+          ./installdir/bin/rez/rez-python -m pip install pytest-cov
+          ./installdir/bin/rez/rez-python -m pip install parameterized
 
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest -v
+          ./installdir/bin/rez/rez-selftest -v
         env:
           _REZ_ENSURE_TEST_SHELLS: sh,csh,bash,tcsh,zsh,pwsh
