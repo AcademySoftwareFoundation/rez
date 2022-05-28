@@ -455,8 +455,7 @@ class LocalBuildProcess(BuildProcessHelper):
         # 'filesystem' package repo class, specifically for this case.
         #
         # Note: This adds the temp variant to the global resource cache, which is
-        # not really what we want. This doesn't cause problems however. See
-        # https://github.com/nerdvegas/rez/issues/809
+        # not really what we want. This doesn't cause problems however. See #809
         #
         variant.install(
             path=testing_repo_path,

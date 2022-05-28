@@ -48,14 +48,14 @@ on:
       - '!**.md'
 
 env:
-  PUB_NAMESPACE: nerdvegas  # TODO change to aswf
+  PUB_NAMESPACE: aswf
 
   # We don't take changes to this workfile yaml into account when determining
   # image tags, because changes here very rarely cause changes to the images,
   # and this causes lots of unnecessary image rebuilds. On the offchance a
   # change is made here that _does_ affect the images, increment this value
   #
-  IMAGE_TAG_SALT: 1
+  IMAGE_TAG_SALT: 2
 
 jobs:
 

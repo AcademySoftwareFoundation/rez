@@ -38,7 +38,7 @@ def patch_rpaths(elfpath, rpaths):
     """Replace an elf's rpath header with those provided.
     """
 
-    # this is a hack to get around https://github.com/nerdvegas/rez/issues/1074
+    # this is a hack to get around #1074
     # I actually hit a case where patchelf was installed as a rez suite tool,
     # causing '$ORIGIN' to be expanded early (to empty string).
     # TODO remove this hack when bug is fixed

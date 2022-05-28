@@ -60,7 +60,7 @@ setup(
     keywords="package resolve version build install software management",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url="https://github.com/nerdvegas/rez",
+    url="https://github.com/AcademySoftwareFoundation/rez",
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
     license="Apache License 2.0",

@@ -55,7 +55,7 @@ def check_production_install():
         sys.stderr.write(
             "Pip-based rez installation detected. Please be aware that rez command "
             "line tools are not guaranteed to function correctly in this case. See "
-            "https://github.com/nerdvegas/rez/wiki/Installation#why-not-pip-for-production "
+            "https://github.com/AcademySoftwareFoundation/rez/wiki/Installation#why-not-pip-for-production "
             " for futher details.\n"
         )
 
@@ -272,8 +272,7 @@ def run_rez_benchmark():
     check_production_install()
 
     # Special case - we have to override config settings here, before rez is
-    # loaded. TODO this would be cleaner if we had an Application object, see
-    # https://github.com/nerdvegas/rez/issues/1043
+    # loaded. TODO this would be cleaner if we had an Application object, see #1043
     #
     # /start
     import json
