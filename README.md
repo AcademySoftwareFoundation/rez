@@ -29,11 +29,7 @@
 
 Rez is a cross-platform package manager with a difference. Using Rez you can create
 standalone environments configured for a given set of packages. However, unlike many
-other package managers, packages are not installed into these standalone environments.
-Instead, all package versions are installed into a central repository, and standalone
-environments reference these existing packages. This means that configured environments
-are lightweight, and very fast to create, often taking just a few seconds to configure
-despite containing hundreds of packages.
+ages.
 
 See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
 
