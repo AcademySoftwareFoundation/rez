@@ -468,6 +468,7 @@ config_schema = Schema({
     "context_tracking_amqp":                        OptionalDict,
     "context_tracking_extra_fields":                OptionalDict,
     "optionvars":                                   OptionalDict,
+    "skip_root_normalization":                      OptionalStrList,
 
     # GUI settings
     "use_pyside":                                   Bool,
