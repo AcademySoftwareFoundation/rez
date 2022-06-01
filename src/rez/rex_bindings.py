@@ -10,6 +10,7 @@ dependency between rex code in package.py files, and versions of Rez.
 The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
+from rez.config import config
 from rez.vendor.six import six
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -131,7 +132,10 @@ class VariantBinding(Binding):
         """
         root = self.__cached_root or self.__variant.root
 
-        if self.__interpreter:
+        if (
+            self.__interpreter
+            and self.__interpreter.name() not in config.skip_root_normalization
+        ):
             root = self.__interpreter.normalize_path(root)
 
         return root
