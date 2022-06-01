@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+import re
 
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
@@ -11,6 +12,8 @@ from textwrap import dedent
 from glob import glob
 import traceback
 import os.path
+
+_drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 
 
 def early():
@@ -97,7 +100,12 @@ class SourceCode(object):
                  eval_as_function=True):
         self.source = (source or '').rstrip()
         self.func = func
+
         self.filepath = filepath
+        if self.filepath:
+            self.filepath = _drive_start_regex.sub("/\\1/", filepath)
+            self.filepath = self.filepath.replace("\\", '/')
+
         self.eval_as_function = eval_as_function
         self.package = None
 
