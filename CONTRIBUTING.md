@@ -30,7 +30,7 @@ in the root of the project (you'll only need to do it once, and the template fil
 to `.gitignore`):
 
 ```
-]$ echo 'Signed-off-by: (your name) <you@someaddress.com>' > .git-commit-template
+]$ echo "Signed-off-by: $(git config user.name) <$(git config user.email)>" > .git-commit-template
 ]$ git config commit.template .git-commit-template
 ```
 
