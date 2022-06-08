@@ -34,6 +34,8 @@ to `.gitignore`):
 ]$ git config commit.template .git-commit-template
 ```
 
+For more info see https://github.blog/changelog/2022-06-08-admins-can-require-sign-off-on-web-based-commits/
+
 ## Reporting Bugs
 
 If you report a bug, please ensure to specify the following:
