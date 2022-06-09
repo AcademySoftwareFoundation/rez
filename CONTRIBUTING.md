@@ -35,6 +35,7 @@ to `.gitignore`):
 ```
 
 For more info see https://github.blog/changelog/2022-06-08-admins-can-require-sign-off-on-web-based-commits/
+for web-based commits, and https://probot.github.io/apps/dco/ for all others.
 
 ## Reporting Bugs
 
