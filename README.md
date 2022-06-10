@@ -16,6 +16,7 @@
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
 
+
 - [What Is Rez?](#what-is-rez)
 - [The Basics](#the-basics)
 - [Examples](#examples)
