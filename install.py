@@ -85,9 +85,15 @@ def patch_rez_binaries(dest_dir):
 
     # delete rez bin files written into virtualenv
     for name in specs.keys():
-        filepath = os.path.join(virtualenv_bin_path, name)
-        if os.path.isfile(filepath):
-            os.remove(filepath)
+        basepath = os.path.join(virtualenv_bin_path, name)
+        filepaths = [
+            basepath,
+            basepath + "-script.py",
+            basepath + ".exe"
+        ]
+        for filepath in filepaths:
+            if os.path.isfile(filepath):
+                os.remove(filepath)
 
     # write patched bins instead. These go into 'bin/rez' subdirectory, which
     # gives us a bin dir containing only rez binaries. This is what we want -
