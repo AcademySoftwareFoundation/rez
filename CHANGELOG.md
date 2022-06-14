@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.111.1 (2022-06-14)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.0...2.111.1)
+
+**Merged pull requests:**
+
+- run git config in src dir [\#1324](https://github.com/AcademySoftwareFoundation/rez/pull/1324) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- Fix regression in benchmark CI [\#1323](https://github.com/AcademySoftwareFoundation/rez/issues/1323)
+
 ## 2.111.0 (2022-06-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.110.0...2.111.0)
 
