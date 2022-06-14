@@ -21,17 +21,21 @@ sending a pull request. Please follow these guidelines:
     document the setting. The comments in this file are extracted and turned into Wiki content. Pay
     attention to the comment formatting and follow the existing style closely.
 
-## Windows Docker Workflow
+## DCO
 
-The Windows tests currently build a Python image for each version to test. Each is based on a common
-base image. Any changes to the following Docker images sources should be a separate commit:
+Rez enforces Developer Certificate of Origin (DCO) on all commits, as per ASWF guidelines.
 
-- `.github/docker/rez-win-base/**`
-- `.github/docker/rez-win-py/**`
-- `.github/workflows/windows-docker-image.yaml`
+To automatically add the necessary sign-off line to every commit, we suggest you do the following,
+in the root of the project (you'll only need to do it once, and the template file has been added
+to `.gitignore`):
 
-The base and Python images will be automatically rebuilt.
-Any future commits will pickup the correct image via `windows-docker.yaml`
+```
+]$ echo "Signed-off-by: $(git config user.name) <$(git config user.email)>" > .git-commit-template
+]$ git config commit.template .git-commit-template
+```
+
+For more info see https://github.blog/changelog/2022-06-08-admins-can-require-sign-off-on-web-based-commits/
+for web-based commits, and https://probot.github.io/apps/dco/ for all others.
 
 ## Reporting Bugs
 

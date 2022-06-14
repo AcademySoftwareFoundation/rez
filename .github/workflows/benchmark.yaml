@@ -101,8 +101,8 @@ jobs:
 
       - name: Setup git config
         run: |
-          git config --global user.name "github.com/${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@${{ github.sha }}"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Git commit and push
         run: |
