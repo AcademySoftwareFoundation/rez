@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.111.0 (2022-06-14)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.110.0...2.111.0)
+
+**Merged pull requests:**
+
+- Fix rez executables aren't removed in windows install [\#1259](https://github.com/AcademySoftwareFoundation/rez/pull/1259) ([instinct-vfx](https://github.com/instinct-vfx))
+- use github actions bot user in benchmark workflow [\#1319](https://github.com/AcademySoftwareFoundation/rez/pull/1319) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- rez executables aren't removed in windows install [\#1258](https://github.com/AcademySoftwareFoundation/rez/issues/1258)
+- use github actions bot for commits [\#1318](https://github.com/AcademySoftwareFoundation/rez/issues/1318)
+
 ## 2.110.0 (2022-05-28)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.110.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.109.0...2.110.0)
 
