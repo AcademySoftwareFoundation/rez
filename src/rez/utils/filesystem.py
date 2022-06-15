@@ -26,6 +26,7 @@ import uuid
 
 from rez.vendor.six import six
 from rez.utils.platform_ import platform_
+from rez.exceptions import ResourceError
 
 
 is_windows = platform.system() == "Windows"
@@ -697,3 +698,22 @@ def windows_long_path(dos_path):
         path = "\\\\?\\" + path
 
     return path
+
+def compare_locaton(loc1, loc2):
+    # It appears that sometimes, the handle location can differ to the
+    # repo location even though they are the same path (different
+    # mounts). We account for that here.
+    #
+    # https://github.com/nerdvegas/rez/pull/957
+    if not platform_.has_case_sensitive_filesystem:
+        loc1 = loc1.lower()
+        loc2 = loc2.lower()
+
+    if loc1 != loc2:
+        loc1 = canonical_path(loc1, platform_)
+
+    if loc1 != loc2:
+        raise ResourceError("location mismatch - requested %r, "
+                            "repository location is %r "
+                            % (loc1, loc2))
+    
