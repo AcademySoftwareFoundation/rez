@@ -28,7 +28,7 @@ from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning, print_info
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, \
-    canonical_path, is_subdirectory, compare_locaton
+    canonical_path, is_subdirectory, compare_location
 from rez.utils.platform_ import platform_
 from rez.utils.yaml import load_yaml
 from rez.config import config
@@ -815,7 +815,7 @@ class FileSystemPackageRepository(PackageRepository):
                                     "repository_type is %r"
                                     % (repository_type, self.name()))
 
-            compare_locaton(location, self.location)
+            compare_location(location, self.location)
 
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self

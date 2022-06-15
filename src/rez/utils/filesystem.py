@@ -699,7 +699,7 @@ def windows_long_path(dos_path):
 
     return path
 
-def compare_locaton(loc1, loc2):
+def compare_location(loc1, loc2):
     # It appears that sometimes, the handle location can differ to the
     # repo location even though they are the same path (different
     # mounts). We account for that here.
