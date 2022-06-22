@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.111.2 (2022-06-22)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.1...2.111.2)
+
+**Merged pull requests:**
+
+- ResolvedContext.get_resolved_package() should return None for failure [\#1325](https://github.com/AcademySoftwareFoundation/rez/pull/1325) ([alexey-pelykh](https://github.com/alexey-pelykh))
+- fix accidental skip of fail in benchmarking ci [\#1336](https://github.com/AcademySoftwareFoundation/rez/pull/1336) ([nerdvegas](https://github.com/nerdvegas))
+
 ## 2.111.1 (2022-06-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.0...2.111.1)
 
