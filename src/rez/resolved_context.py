@@ -438,7 +438,7 @@ class ResolvedContext(object):
         """Returns a `Variant` object or None if the package is not in the
         resolve.
         """
-        pkgs = [x for x in self._resolved_packages if x.name == name]
+        pkgs = [x for x in (self._resolved_packages or []) if x.name == name]
         return pkgs[0] if pkgs else None
 
     def copy(self):
