@@ -107,9 +107,11 @@ jobs:
 
       - name: Git commit and push
         run: |
-          git add --all
-          git commit \
-            -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-            && git push origin master \
-            || echo "Nothing new to commit"
+          if [[ "$(git status --porcelain)" == "" ]]; then
+            echo "Nothing new to commit"
+          else
+            git add --all
+            git commit -m "Generated from GitHub "${{ github.workflow }}" Workflow"
+            git push origin master
+          fi
         working-directory: src
