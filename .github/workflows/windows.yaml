@@ -35,6 +35,10 @@ on:
       - '!src/rez/utils/_version.py'
       - '!**.md'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # The default namespace that the jobs will look at or use.
   PUB_NAMESPACE: ghcr.io/academysoftwarefoundation/rez
