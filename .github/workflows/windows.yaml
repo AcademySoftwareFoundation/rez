@@ -127,13 +127,7 @@ jobs:
 
             Write-Output "${docker_image} not found"
 
-            if ( "${{ github.event.pull_request.head.repo.full_name }}" -ne "") {
-              $github_namespace = "ghcr.io/${{ github.event.pull_request.head.repo.full_name }}"
-            }
-            else {
-              $github_namespace = "ghcr.io/${{ github.repository }}"
-            }
-
+            $github_namespace = "ghcr.io/${{ github.repository }}"
             $docker_image = "${github_namespace}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
 
             Write-Output "Inspecting image ${docker_image}..."
