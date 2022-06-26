@@ -3,6 +3,8 @@
 ARG BASE_IMAGE_NAME
 FROM $BASE_IMAGE_NAME
 
+LABEL org.opencontainers.image.description="WARNING: This is an internal image and should not be used outside of the rez repository!"
+
 # Name of this image
 ARG IMAGE_NAME
 ENV _IMAGE_NAME=$IMAGE_NAME

@@ -3,12 +3,12 @@
 # required, then runs the rez tests in the python image.
 #
 # The images are tagged with a hash of the relevant sourcefile contents (eg
-# Dockerfile). Images from the 'aswf/rez' GitHub container registry will be used
+# Dockerfile). Images from the 'AcademySoftwareFoundation/rez' GitHub container registry will be used
 # if they are up-to-date.
 #
 # If images require updating, the necessary images will be
 # created and will be stored in the GitHub Container registry. The images
-# will always be stored in the current's repo namespace.
+# will always be stored in the current's repo namespace (ghcr.io/<user>/<repo>).
 #
 # This approach ensures that image rebuilds are avoided when possible, but are
 # supported from forks who may have made changes to docker-related
