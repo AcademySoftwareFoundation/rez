@@ -290,8 +290,8 @@ jobs:
       - public_py_image
       - py_image
 
-    # forces this job to run even if needed jobs are skipped
-    if: always()
+    # Forces this job to run even if needed jobs are skipped but not when the workflow is cancelled or failed.
+    if: (success() || needs.py_image.result == 'skipped') && !cancelled() && !failure()
 
     strategy:
       fail-fast: false
