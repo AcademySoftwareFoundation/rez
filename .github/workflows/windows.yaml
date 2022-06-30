@@ -110,6 +110,7 @@ jobs:
       - name: Inspect public py image
         id: inspect
         run: |
+          # Try to get the image from the pub namepsace first.
           $pub_namespace = "${Env:PUB_NAMESPACE}"
           $docker_image = "${pub_namespace}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
 
@@ -127,7 +128,17 @@ jobs:
 
             Write-Output "${docker_image} not found"
 
-            $github_namespace = "ghcr.io/${{ github.repository }}"
+            # Image not found in pub namespace, look into the current's
+            # repo registry or in the originating repo when the workflow is
+            # triggered from a PR.
+            if ('${{ github.event_name }}' -eq 'pull_request') {
+              # This is quite important since workflows don't have write
+              # permissions when the source branch is from a fork.
+              $github_namespace = "ghcr.io/${{ github.event.pull_request.head.repo.full_name }}"
+            }
+            else {
+              $github_namespace = "ghcr.io/${{ github.repository }}"
+            }
             $docker_image = "${github_namespace}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
 
             Write-Output "Inspecting image ${docker_image}..."
@@ -140,6 +151,7 @@ jobs:
             Write-Output "::set-output name=namespace::${github_namespace}"
 
             if ($LastExitCode -ne 0) {
+              # Well, no images found at all! We will need to build the images.
               Write-Output "${docker_image} not found"
               Write-Output "::set-output name=needs_rebuild::true"
             } else {
@@ -170,6 +182,21 @@ jobs:
             windows-version: '1809-amd64'
 
     steps:
+      - name: Fail with summary
+        if: (github.event_name == 'pull_request') && (github.event.pull_request.head.repo.full_name != github.repository)
+        shell: bash
+        run: |
+          echo '# Action required!
+
+          This branch is coming from a fork and the appropriate docker images were
+          not found in `${{ needs.public_py_image.outputs.namespace }}`.
+
+          Please ensure that you run the workflow in your fork. Once this is done,
+          please let the reviewers know so that they can re-run the workflow in
+          the context of the PR.' > $GITHUB_STEP_SUMMARY
+
+          exit 1
+
       - name: Set job vars
         id: vars
         run: |
@@ -235,8 +262,8 @@ jobs:
         id: vars
         run: |
           # When publishing the images, we always publish in the current repo's package registry
-          $base_docker_image = "${{ needs.public_py_image.outputs.namespace }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}".ToLower()
-          $docker_image = "${{ needs.public_py_image.outputs.namespace }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
+          $base_docker_image = "ghcr.io/${{ github.repository }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}".ToLower()
+          $docker_image = "ghcr.io/${{ github.repository }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
 
           Write-Output "::set-output name=base_docker_image::${base_docker_image}"
           Write-Output "::set-output name=docker_image::${docker_image}"
