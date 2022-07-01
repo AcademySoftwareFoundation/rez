@@ -3,28 +3,16 @@
 # required, then runs the rez tests in the python image.
 #
 # The images are tagged with a hash of the relevant sourcefile contents (eg
-# Dockerfile). Images from the 'aswf' dockerhub org will be used if they are
-# up-to-date (note that this does not require a dockerhub account).
+# Dockerfile). Images from the 'AcademySoftwareFoundation/rez' GitHub container registry will be used
+# if they are up-to-date.
 #
-# If images require updating, and you do _not_ have a dockerhub account, the
-# workflow will fail. If you do have an account, the necessary images will be
-# created with your account, and the tests will run. If you have an account,
-# _and_ you are a member of the 'aswf' dockerhub org (which you indicate by
-# setting secrets.DOCKERHUB_NAMESPACE to 'aswf'), then the images will be built
-# with your account, and will be pushed to 'aswf' for others to use.
+# If images require updating, the necessary images will be
+# created and will be stored in the GitHub Container registry. The images
+# will always be stored in the current's repo namespace (ghcr.io/<user>/<repo>).
 #
 # This approach ensures that image rebuilds are avoided when possible, but are
-# supported from non-aswf-member forks who may have made changes to docker-related
+# supported from forks who may have made changes to docker-related
 # source (such as Dockerfile) and need this workflow to run.
-#
-# Please note that if you need to rebuild images then you must supply the
-# following secrets:
-#
-# DOCKERHUB_USER: Your dockerhub username.
-# DOCKERHUB_TOKEN: Your dockerhub access token.
-# DOCKERHUB_NAMESPACE: The namespace to publish to. If you are a member of the
-#   'aswf' dockerhub org, you should set this to 'aswf'. If not, you need to set
-#   this to match DOCKERHUB_USER.
 #
 ---
 name: windows
@@ -47,15 +35,19 @@ on:
       - '!src/rez/utils/_version.py'
       - '!**.md'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  PUB_NAMESPACE: aswf
+  # The default namespace that the jobs will look at or use.
+  PUB_NAMESPACE: ghcr.io/academysoftwarefoundation/rez
 
   # We don't take changes to this workfile yaml into account when determining
   # image tags, because changes here very rarely cause changes to the images,
   # and this causes lots of unnecessary image rebuilds. On the offchance a
   # change is made here that _does_ affect the images, increment this value
-  #
-  IMAGE_TAG_SALT: 2
+  IMAGE_TAG_SALT: 3
 
 jobs:
 
@@ -76,11 +68,7 @@ jobs:
         id: base
         run: |
           tag=$( \
-            find \
-            ./.github/docker/rez-win-base \
-            -type f \
-            | sort \
-            | ( xargs md5sum && echo $IMAGE_TAG_SALT ) \
+            echo "${{ hashFiles('.github/docker/rez-win-base/*') }}${IMAGE_TAG_SALT}" \
             | md5sum - \
             | awk '{print $1}' \
           )
@@ -91,12 +79,7 @@ jobs:
         id: py
         run: |
           tag=$( \
-            find \
-            ./.github/docker/rez-win-base \
-            ./.github/docker/rez-win-py \
-            -type f \
-            | sort \
-            | ( xargs md5sum && echo $IMAGE_TAG_SALT ) \
+            echo "${{ hashFiles('.github/docker/rez-win-base/*', '.github/docker/rez-win-py/*') }}${IMAGE_TAG_SALT}" \
             | md5sum - \
             | awk '{print $1}' \
           )
@@ -120,85 +103,73 @@ jobs:
           - '3.7.5'
 
     outputs:
-      stale: ${{ steps.inspect.outputs.stale }}
+      namespace: ${{ steps.inspect.outputs.namespace }}
+      needs_rebuild: ${{ steps.inspect.outputs.needs_rebuild }}
 
     steps:
       - name: Inspect public py image
         id: inspect
         run: |
-          ${docker_image} = "${Env:PUB_NAMESPACE}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          # Try to get the image from the pub namepsace first.
+          $pub_namespace = "${Env:PUB_NAMESPACE}"
+          $docker_image = "${pub_namespace}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
+
           Write-Output "Inspecting image ${docker_image}..."
           $ErrorActionPreference = "Continue"
-          docker manifest inspect ${docker_image} *>$null || Write-Output "(no such image)"
+          docker manifest inspect $docker_image *>$null || Write-Output "(no such image)"
           $ErrorActionPreference = "Stop"
 
-          if ($LastExitCode -ne 0) {
-            Write-Output "::set-output name=stale::true"
+          if ($LastExitCode -eq 0) {
+            Write-Output "Found ${docker_image}"
+            Write-Output "::set-output name=namespace::${pub_namespace}"
+            Write-Output "::set-output name=needs_rebuild::false"
           }
+          else {
+
+            Write-Output "${docker_image} not found"
+
+            # Image not found in pub namespace, look into the current's
+            # repo registry or in the originating repo when the workflow is
+            # triggered from a PR.
+            if ('${{ github.event_name }}' -eq 'pull_request') {
+              # This is quite important since workflows don't have write
+              # permissions when the source branch is from a fork.
+              $github_namespace = "ghcr.io/${{ github.event.pull_request.head.repo.full_name }}"
+            }
+            else {
+              $github_namespace = "ghcr.io/${{ github.repository }}"
+            }
+            $docker_image = "${github_namespace}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
+
+            Write-Output "Inspecting image ${docker_image}..."
+            $ErrorActionPreference = "Continue"
+            docker manifest inspect $docker_image *>$null || Write-Output "(no such image)"
+            $ErrorActionPreference = "Stop"
+
+            # Inform the next jobs that they need to use the "private"
+            # registry.
+            Write-Output "::set-output name=namespace::${github_namespace}"
+
+            if ($LastExitCode -ne 0) {
+              # Well, no images found at all! We will need to build the images.
+              Write-Output "${docker_image} not found"
+              Write-Output "::set-output name=needs_rebuild::true"
+            } else {
+              Write-Output "Found ${docker_image}"
+              Write-Output "::set-output name=needs_rebuild::false"
+            }
+          }
+
           exit 0
-
-  dockerhub_access:
-    name: Check for dockerhub access
-    runs-on: ubuntu-latest
-
-    outputs:
-      value: ${{ steps.main.outputs.value }}
-
-    steps:
-      - id: main
-        name: Check dockerhub credentials
-        run: |
-          if [[
-            ( "${{ secrets.DOCKERHUB_USER }}" != "" ) &&
-            ( "${{ secrets.DOCKERHUB_NAMESPACE }}" != "" ) &&
-            ( "${{ secrets.DOCKERHUB_TOKEN }}" != "" )
-          ]]; then
-            echo "::set-output name=value::true"
-          else
-            echo \
-              "You do not have dockerhub access - on or more of secrets DOCKERHUB_USER, DOCKERHUB_NAMESPACE and DOCKERHUB_TOKEN are not defined. If an image needs to be rebuilt, the workflow will fail. You only need to worry about this if you've changed any files in .github/docker."
-          fi
-
-  maybe_build:
-    name: See if images may need to be built
-    runs-on: ubuntu-latest
-    needs:
-      - public_py_image
-      - dockerhub_access
-
-    outputs:
-      value: ${{ steps.main.outputs.value }}
-
-    steps:
-      - id: main
-        name: Set job var
-        run: |
-          if [[ "${{ needs.public_py_image.outputs.stale }}" == "true" ]]; then
-            if [[ "${{ needs.dockerhub_access.outputs.value }}" == "true" ]]; then
-              echo "::set-output name=value::true"
-
-              if [[ "${{ secrets.DOCKERHUB_NAMESPACE }}" == "$PUB_NAMESPACE" ]]; then
-                echo "Public images are stale - they will be rebuilt and used by the tests"
-              else
-                echo "Public images are stale - private images will be built and used by the tests"
-              fi
-            else
-              echo "Docker image(s) need to be built, but you don't have dockerhub access." >&2
-              echo "See comments in .github/workflows/windows.yaml for instructions." >&2
-              exit 1
-            fi
-          else
-            echo "Public images are up-to-date - they will be used by the tests"
-          fi
 
   base_image:
     name: Build base docker image if required
     runs-on: windows-${{ matrix.os-version }}
     needs:
       - image_tags
-      - maybe_build
+      - public_py_image
 
-    if: needs.maybe_build.outputs.value == 'true'
+    if: needs.public_py_image.outputs.needs_rebuild == 'true'
 
     strategy:
       fail-fast: false
@@ -211,16 +182,30 @@ jobs:
             windows-version: '1809-amd64'
 
     steps:
+      - name: Fail with summary
+        if: (github.event_name == 'pull_request') && (github.event.pull_request.head.repo.full_name != github.repository)
+        shell: bash
+        run: |
+          echo '# Action required!
+
+          This branch is coming from a fork and the appropriate docker images were
+          not found in `${{ needs.public_py_image.outputs.namespace }}`.
+
+          Please ensure that you run the workflow in your fork. Once this is done,
+          please let the reviewers know so that they can re-run the workflow in
+          the context of the PR.' > $GITHUB_STEP_SUMMARY
+
+          exit 1
+
       - name: Set job vars
         id: vars
         run: |
-          ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
+          $docker_image = "${{ needs.public_py_image.outputs.namespace }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}".ToLower()
 
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
-        run: |
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
 
       - name: Inspect base image
         id: inspect
@@ -261,6 +246,7 @@ jobs:
     needs:
       - image_tags
       - base_image
+      - public_py_image
 
     strategy:
       fail-fast: false
@@ -275,15 +261,15 @@ jobs:
       - name: Set job vars
         id: vars
         run: |
-          ${base_docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}"
-          ${docker_image} = "${{ secrets.DOCKERHUB_NAMESPACE }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          # When publishing the images, we always publish in the current repo's package registry
+          $base_docker_image = "ghcr.io/${{ github.repository }}/rez-win-${{ matrix.os-version }}-base:${{ needs.image_tags.outputs.base }}".ToLower()
+          $docker_image = "ghcr.io/${{ github.repository }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
 
           Write-Output "::set-output name=base_docker_image::${base_docker_image}"
           Write-Output "::set-output name=docker_image::${docker_image}"
 
       - name: Login to docker repository
-        run: |
-          '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
 
       - name: Inspect py image
         id: inspect
@@ -335,8 +321,8 @@ jobs:
       - public_py_image
       - py_image
 
-    # forces this job to run even if needed jobs are skipped
-    if: always()
+    # Forces this job to run even if needed jobs are skipped but not when the workflow is cancelled or failed.
+    if: (success() || needs.py_image.result == 'skipped') && !cancelled() && !failure()
 
     strategy:
       fail-fast: false
@@ -351,14 +337,7 @@ jobs:
       - name: Set job vars
         id: vars
         run: |
-          if ("${{ needs.public_py_image.outputs.stale }}" -eq "true") {
-            ${ns} = "${{ secrets.DOCKERHUB_NAMESPACE }}"
-          }
-          else {
-            ${ns} = "${Env:PUB_NAMESPACE}"
-          }
-
-          ${docker_image} = "${ns}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}"
+          $docker_image = "${{ needs.public_py_image.outputs.namespace }}/rez-win-${{ matrix.os-version }}-py-${{ matrix.py-version }}:${{ needs.image_tags.outputs.py }}".ToLower()
 
           Write-Output "::set-output name=docker_image::${docker_image}"
           Write-Output "Using image ${docker_image}..."
@@ -371,9 +350,6 @@ jobs:
           docker pull ${{ steps.vars.outputs.docker_image }}
 
       - name: Run Docker image (installs and tests rez)
-        run: |
-          docker run `
-            --mount type=bind,src=$pwd,dst=C:\checkout,readonly `
-            ${{ steps.vars.outputs.docker_image }}
+        run: docker run --mount type=bind,src=$pwd,dst=C:\checkout,readonly ${{ steps.vars.outputs.docker_image }}
         env:
           _REZ_ENSURE_TEST_SHELLS: cmd,pwsh,gitbash
