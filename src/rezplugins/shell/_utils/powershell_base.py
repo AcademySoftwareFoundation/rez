@@ -243,10 +243,8 @@ class PowerShellBase(Shell):
         return result
 
     def normalize_path(self, path):
-        if platform_.name == "windows":
-            return to_windows_path(path)
-        else:
-            return path
+        # CMake requires forward slashes and powershell handles them fine
+        return path.replace('\\\\', '/').repace('\\', '/')
 
     def _saferefenv(self, key):
         pass
