@@ -244,7 +244,7 @@ class PowerShellBase(Shell):
 
     def normalize_path(self, path):
         # CMake requires forward slashes and powershell handles them fine
-        return path.replace('\\\\', '/').repace('\\', '/')
+        return path.replace('\\\\', '/').replace('\\', '/')
 
     def _saferefenv(self, key):
         pass
