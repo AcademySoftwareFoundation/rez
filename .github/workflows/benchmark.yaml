@@ -84,6 +84,12 @@ jobs:
           ref: master
           path: src
 
+          # This is a PAT from an Admin user. We do this in order to be able to write to a
+          # protected branch (master) from this workflow.
+          # See https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/14
+          #
+          token: "${{ secrets.GH_ACTION_TOKEN }}"
+
       # Note failing due to
       # https://github.com/actions/virtual-environments/issues/675
       #
