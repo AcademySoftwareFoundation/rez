@@ -1,5 +1,16 @@
 # Change Log
 
+## 2.111.3 (2022-08-02)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.2...2.111.3)
+
+**Merged pull requests:**
+
+- allow benchmarking workflow to write to master [\#1352](https://github.com/AcademySoftwareFoundation/rez/pull/1352) ([nerdvegas](https://github.com/nerdvegas))
+
+**Closed issues:**
+
+- benchmarking CI fails to push changes, does not error [\#1328](https://github.com/AcademySoftwareFoundation/rez/issues/1328)
+
 ## 2.111.2 (2022-06-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.1...2.111.2)
 
