@@ -209,7 +209,7 @@ def find_pip_from_context(python_version, pip_version=None):
         # -E and -s are used to isolate the environment as much as possible.
         # See python --help for more details. We absolutely don't want to get
         # pip from the user home.
-        [py_exe, "-E", "-s", "-c", "import pip, sys; sys.stdout.write(pip.__version__)"],
+        [py_exe, "-s", "-c", "import pip, sys; sys.stdout.write(pip.__version__)"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
