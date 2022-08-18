@@ -213,3 +213,4 @@ like any other package:
   the roadmap. Users have successfully implemented workarounds to utilize
   CMake with Rez under Windows, but the goal is to provide a seamless experience
   on any platform in the future. For details see this [issue](/../../issues/703)
+
