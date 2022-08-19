@@ -618,10 +618,6 @@ package_preprocess_function = None
 # - "override": Package's preprocess function completely overrides the global preprocess.
 package_preprocess_mode = "override"
 
-# List of packages to skip rot path normalization for.
-# This may be necessary for shells that support POSIX and non-POSIX paths.
-skip_root_normalization = ['gitbash']
-
 
 ###############################################################################
 # Context Tracking
