@@ -472,7 +472,7 @@ class UnixShell(Shell):
                 assert self.rcfile_arg
                 shell_command = "%s %s" % (self.executable, self.rcfile_arg)
             else:
-                shell_command = self.executable
+                shell_command = '"{}"'.format(self.executable)
 
             if do_rcfile:
                 # hijack rcfile to insert our own script
