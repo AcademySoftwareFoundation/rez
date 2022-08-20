@@ -47,6 +47,8 @@ class GitBash(Bash):
                 "plugins.shell.gitbash.executable_fullpath."
             )
 
+        exepath = exepath.replace('\\', '\\\\')
+
         return exepath
 
     @classmethod
