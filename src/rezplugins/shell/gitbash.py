@@ -88,7 +88,43 @@ class GitBash(Bash):
         cls.syspaths = paths
         return cls.syspaths
 
+    def as_path(self, path):
+        """
+        Return the given path as a system path.
+        Used if the path needs to be reformatted to suit a specific case.
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Transformed file path.
+        """
+        return to_posix_path(path)
+
+    def as_shell_path(self, path):
+        """
+        Return the given path as a shell path.
+        Used if the shell requires a different pathing structure.
+
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Transformed file path.
+        """
+        return path
+
     def normalize_path(self, path):
+        """
+        Normalize the path to fit the environment.
+        For example, POSIX paths, Windows path, etc. If no transformation is
+        necessary, just return the path.
+
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Normalized file path.
+        """
         return to_posix_path(path)
 
     def normalize_paths(self, value):
