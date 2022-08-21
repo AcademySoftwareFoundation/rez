@@ -1118,7 +1118,7 @@ class _PackageScope(_Common):
         if not package_request:
             return (self, None)
 
-        assert(new_slice is not self.variant_slice)
+        assert new_slice is not self.variant_slice
         scope = copy.copy(self)
         scope.variant_slice = new_slice
         if self.pr:
@@ -1477,7 +1477,7 @@ class _ResolvePhase(_Common):
             correctly ordered; or, if cyclic dependencies were detected, a new
             phase marked as cyclic.
         """
-        assert(self._is_solved())
+        assert self._is_solved()
         g = self._get_minimal_graph()
         scopes = dict((x.package_name, x) for x in self.scopes
                       if not x.is_conflict)
@@ -1532,7 +1532,7 @@ class _ResolvePhase(_Common):
             A 2-tuple of _ResolvePhase objects, where the first phase is the
             best contender for resolving.
         """
-        assert(self.status == SolverStatus.exhausted)
+        assert self.status == SolverStatus.exhausted
 
         scopes = []
         next_scopes = []
@@ -2202,7 +2202,7 @@ class Solver(_Common):
 
         else:
             self.pr.subheader("EXHAUSTED:")
-            assert(new_phase.status == SolverStatus.exhausted)
+            assert new_phase.status == SolverStatus.exhausted
             self._push_phase(new_phase)
 
     def failure_reason(self, failure_index=None):
@@ -2331,7 +2331,7 @@ class Solver(_Common):
         for phase in reversed(self.phase_stack):
             if phase.status not in (SolverStatus.failed, SolverStatus.cyclic):
                 return phase
-        assert(False)  # should never get here
+        assert False  # should never get here
 
     def _do_callback(self):
         keep_going = True
