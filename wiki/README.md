@@ -1,7 +1,7 @@
 # rez-wiki
 
 This directory holds the content used to produce the Rez Wiki documentation
-found [here](https://github.com/nerdvegas/rez/wiki). The wiki is updated by the
+found [here](https://github.com/AcademySoftwareFoundation/rez/wiki). The wiki is updated by the
 `Wiki` Github workflow, on release.
 
 You should include relevant wiki updates with your code PRs.
