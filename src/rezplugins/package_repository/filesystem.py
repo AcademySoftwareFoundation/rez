@@ -819,7 +819,7 @@ class FileSystemPackageRepository(PackageRepository):
             # repo location even though they are the same path (different
             # mounts). We account for that here.
             #
-            # https://github.com/nerdvegas/rez/pull/957
+            # https://github.com/AcademySoftwareFoundation/rez/pull/957
             #
             if location != self.location:
                 location = canonical_path(location, platform_)
