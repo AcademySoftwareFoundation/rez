@@ -78,7 +78,7 @@ class ReleaseVCS(object):
                                       "path %s" % (self.name(), pkg_root))
             vcs_root = result[0]
         else:
-            assert(self.is_valid_root(vcs_root))
+            assert self.is_valid_root(vcs_root)
 
         self.vcs_root = vcs_root
         self.pkg_root = pkg_root
