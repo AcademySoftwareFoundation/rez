@@ -56,7 +56,7 @@ class RecursiveAttribute(UserDict, StringFormatMixin):
         # to something. This stops code like "print(instance.notexist)" from
         # adding empty attributes
         attr_ = self._create_child_attribute(attr)
-        assert(isinstance(attr_, RecursiveAttribute))
+        assert isinstance(attr_, RecursiveAttribute)
         attr_.__dict__["pending"] = (attr, self)
         return attr_
 
@@ -219,8 +219,8 @@ class ScopeContext(object):
 
     def _scope_exit(self, name):
         scope = self.scope_stack.pop()
-        assert(self.scope_stack)
-        assert(name == scope.name)
+        assert self.scope_stack
+        assert name == scope.name
         data = {scope.name: scope.to_dict()}
         self.scope_stack[-1].update(data)
 

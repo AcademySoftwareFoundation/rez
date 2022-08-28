@@ -426,11 +426,11 @@ class UnixShell(Shell):
             shell_command = d["command"]
         else:
             if d["stdin"]:
-                assert(self.stdin_arg)
+                assert self.stdin_arg
                 shell_command = "%s %s" % (self.executable, self.stdin_arg)
                 quiet = True
             elif do_rcfile:
-                assert(self.rcfile_arg)
+                assert self.rcfile_arg
                 shell_command = "%s %s" % (self.executable, self.rcfile_arg)
             else:
                 shell_command = self.executable
