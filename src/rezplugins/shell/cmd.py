@@ -309,7 +309,7 @@ class CMD(Shell):
     @classmethod
     def join(cls, command):
         # TODO: This needs to be properly fixed, see other shell impls
-        # at https://github.com/nerdvegas/rez/pull/1130
+        # at https://github.com/AcademySoftwareFoundation/rez/pull/1130
         #
         # TODO: This may disappear in future [1]
         # [1] https://bugs.python.org/issue10838

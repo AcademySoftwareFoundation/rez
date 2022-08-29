@@ -2,5 +2,5 @@
 # Copyright Contributors to the Rez Project
 
 
-organisation_name = "nerdvegas"
+organisation_name = "AcademySoftwareFoundation"
 application_name = "rez-gui"

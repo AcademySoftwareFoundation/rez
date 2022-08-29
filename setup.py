@@ -62,7 +62,7 @@ setup(
     long_description_content_type='text/markdown',
     url="https://github.com/AcademySoftwareFoundation/rez",
     author="Allan Johns",
-    author_email="nerdvegas@gmail.com",
+    author_email="rez-discussion@lists.aswf.io",
     license="Apache License 2.0",
     entry_points={
         "console_scripts": get_specifications().values()
