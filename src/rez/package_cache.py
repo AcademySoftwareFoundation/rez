@@ -171,12 +171,6 @@ class PackageCache(object):
                 % variant.uri
             )
 
-        if not os.path.isdir(variant_root):
-            raise PackageCacheError(
-                "Not cached - variant %s root does not appear on disk: %s"
-                % (variant.uri, variant_root)
-            )
-
         if not force:
             # package is configured to not be cachable
             if not package.is_cachable:
@@ -295,7 +289,7 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            variant.resource.install(rootpath)
         finally:
             still_copying = False
 
@@ -371,7 +365,7 @@ class PackageCache(object):
 
         return self.VARIANT_REMOVED
 
-    def add_variants_async(self, variants):
+    def add_variants(self, variants, async_=True):
         """Update the package cache by adding some or all of the given variants.
 
         This method is called when a context is created or sourced. Variants
@@ -465,8 +459,13 @@ class PackageCache(object):
                 else:
                     out_target = devnull
 
-                subprocess.Popen(
-                    [exe, "--daemon", self.path],
+                if async_:
+                    func = subprocess.Popen
+                else:
+                    func = subprocess.call
+
+                func(
+                    args,
                     stdout=out_target,
                     stderr=out_target,
                     **kwargs

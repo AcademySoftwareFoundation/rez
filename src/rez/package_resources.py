@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+import shutil
+
 from rez.utils.resources import Resource
 from rez.utils.schema import Required, schema_keys, extensible_schema_dict
 from rez.utils.logging_ import print_warning
@@ -310,6 +312,10 @@ class PackageRepositoryResource(Resource):
         uniquely identifies this resource.
         """
         raise NotImplementedError
+
+    def install(self, location):
+        """Install the resource."""
+        shutil.copytree(self.root, location)
 
 
 class PackageFamilyResource(PackageRepositoryResource):
