@@ -5,33 +5,33 @@
 # https://git-scm.com/docs/gitignore#_pattern_format
 
 # Admin
-/ASWF/                  @nerdvegas
-CODEOWNERS              @nerdvegas
-LICENSE                 @nerdvegas
-NOTICE                  @nerdvegas
-*.md                    @nerdvegas
+/ASWF/                  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+CODEOWNERS              @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+LICENSE                 @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+NOTICE                  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+*.md                    @nerdvegas @AcademySoftwareFoundation/rez-maintainers
 
 # CI
-/.github/               @nerdvegas
-.sonarcloud.properties  @nerdvegas
-/src/rez/tests/         @nerdvegas
-/src/rez/data/          @nerdvegas
+/.github/               @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+.sonarcloud.properties  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/tests/         @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/data/          @nerdvegas @AcademySoftwareFoundation/rez-maintainers
 
 # Docs
-/wiki/                  @nerdvegas
+/wiki/                  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
 
 # Core
-/src/rez/backport       @nerdvegas
-/src/rez/bind           @nerdvegas
-/src/rez/cli            @nerdvegas
-/src/rez/utils          @nerdvegas
-/src/rez/*.py           @nerdvegas
+/src/rez/backport       @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/bind           @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/cli            @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/utils          @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/*.py           @nerdvegas @AcademySoftwareFoundation/rez-maintainers
 
 # Embedded packages
-/src/rez/vendor         @nerdvegas
+/src/rez/vendor         @nerdvegas @AcademySoftwareFoundation/rez-maintainers
 
 # Plugins
-/src/rezplugins/        @nerdvegas
+/src/rezplugins/        @nerdvegas @AcademySoftwareFoundation/rez-maintainers
 
 # Gui
-/src/rezgui/            @nerdvegas
+/src/rezgui/            @nerdvegas @AcademySoftwareFoundation/rez-maintainers
