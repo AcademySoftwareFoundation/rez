@@ -28,6 +28,9 @@ Via API:
 1  # -1: pkg not found; 0: pkg already ignored; 1: pkg ignored
 ```
 
+Both of these options generate a *.ignore\<version\>* file (e.g.
+*.ignore3.1.2*) next to the package version directory.
+
 You can also do the reverse (ie unignore a package). Use the `-u` option of
 `rez-pkg-ignore`, or the `unignore_package` function on the package repository
 object.
@@ -161,14 +164,18 @@ Via API:
 >>> remove_package("python", "3.7.4", "/packages")
 ```
 
+During the removal process, package versions will first be ignored so that
+partially-deleted versions are not visible.
+
 It can be useful to ignore packages that you don't want to use anymore, and
 actually remove them at a later date. This gives you a safety buffer in case
 current runtimes are using the package - they won't be affected if the package is
 ignored, but could break if it is removed.
 
 To facilitate this workflow, `rez-rm` lets you remove all packages that have
-been ignored for longer than N days. Here we remove all packages that have been
-ignored for 30 days or longer:
+been ignored for longer than N days (using the timestamp of the
+*.ignore\<version\>* file). Here we remove all packages that have been ignored
+for 30 days or longer:
 
 ```
 ]$ rez-rm --ignored-since=30 -v
