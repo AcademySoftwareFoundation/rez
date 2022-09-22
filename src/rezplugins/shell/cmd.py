@@ -217,14 +217,18 @@ class CMD(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path=False, is_shell_path=False):
         """Escape the <, >, ^, and & special characters reserved by Windows.
+
+        is_path and is_shell_path are mutally exclusive.
 
         Args:
             value (str/EscapedString): String or already escaped string.
 
         Returns:
-            str: The value escaped for Windows.
+            value (str): The value escaped for Windows.
+            is_path (bool): True if the value is path-like.
+            is_shell_path (bool): True if the value is a shell-path.
 
         """
         value = EscapedString.promote(value)
@@ -239,6 +243,8 @@ class CMD(Shell):
             else:
                 if is_path:
                     txt = self.normalize_paths(txt)
+                elif is_shell_path:
+                    txt = self.as_shell_path(txt)
 
                 txt = self._escaper(txt)
             result += txt
