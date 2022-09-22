@@ -231,7 +231,7 @@ class TestShells(TestBase, TempdirMixin):
             os.remove(path)
 
     # TODO fix cmd shell command string escape
-    # as per https://github.com/nerdvegas/rez/pull/1130, then remove this
+    # as per https://github.com/AcademySoftwareFoundation/rez/pull/1130, then remove this
     # exclusion
     #
     @per_available_shell(exclude=["cmd"])

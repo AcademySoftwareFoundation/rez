@@ -59,7 +59,7 @@ class Popen(_PopenBase):
             try:
                 file_no = sys.stdin.fileno()
 
-            # https://github.com/nerdvegas/rez/pull/966
+            # https://github.com/AcademySoftwareFoundation/rez/pull/966
             except (AttributeError, io.UnsupportedOperation):
                 file_no = None
 
@@ -140,7 +140,7 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
     program = program or "python"
     py_script_mode = py_script_mode or config.create_executable_script_mode
 
-    # https://github.com/nerdvegas/rez/pull/968
+    # https://github.com/AcademySoftwareFoundation/rez/pull/968
     is_forwarding_script_on_windows = (
         program == "_rez_fwd"
         and platform_.name == "windows"

@@ -129,7 +129,7 @@ def _run_command(args):
     cmd_str = ' '.join(quote(x) for x in args)
     log("running: %s" % cmd_str)
 
-    # https://github.com/nerdvegas/rez/pull/659
+    # https://github.com/AcademySoftwareFoundation/rez/pull/659
     use_shell = ("Windows" in platform.system())
 
     p = Popen(

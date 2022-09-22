@@ -1,14 +1,14 @@
-[![Release](https://shields.io/github/v/release/nerdvegas/rez)](https://github.com/nerdvegas/rez/releases)
+[![Release](https://shields.io/github/v/release/AcademySoftwareFoundation/rez)](https://github.com/AcademySoftwareFoundation/rez/releases)
 [![Pypy Release](https://shields.io/pypi/v/rez)](https://pypi.org/project/rez)<br>
-[![Core](https://github.com/nerdvegas/rez/workflows/core/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Acore+branch%3Amaster)
-[![Ubuntu](https://github.com/nerdvegas/rez/workflows/ubuntu/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Aubuntu+branch%3Amaster)
-[![Mac](https://github.com/nerdvegas/rez/workflows/mac/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Amac+branch%3Amaster)
-[![Windows](https://github.com/nerdvegas/rez/workflows/windows/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3AWindows+branch%3Amaster)<br>
-[![Installation](https://github.com/nerdvegas/rez/workflows/installation/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Ainstallation+branch%3Amaster)
-[![Flake8](https://github.com/nerdvegas/rez/workflows/flake8/badge.svg?branch=master)](https://github.com/nerdvegas/rez/actions?query=workflow%3Aflake8+branch%3Amaster)
-[![Wiki](https://github.com/nerdvegas/rez/workflows/wiki/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Awiki+event%3Arelease)
-[![Pypi](https://github.com/nerdvegas/rez/workflows/pypi/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Apypi+event%3Arelease)
-[![Benchmark](https://github.com/nerdvegas/rez/workflows/benchmark/badge.svg)](https://github.com/nerdvegas/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
+[![Core](https://github.com/AcademySoftwareFoundation/rez/workflows/core/badge.svg?branch=master)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Acore+branch%3Amaster)
+[![Ubuntu](https://github.com/AcademySoftwareFoundation/rez/workflows/ubuntu/badge.svg?branch=master)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aubuntu+branch%3Amaster)
+[![Mac](https://github.com/AcademySoftwareFoundation/rez/workflows/mac/badge.svg?branch=master)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Amac+branch%3Amaster)
+[![Windows](https://github.com/AcademySoftwareFoundation/rez/workflows/windows/badge.svg?branch=master)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3AWindows+branch%3Amaster)<br>
+[![Installation](https://github.com/AcademySoftwareFoundation/rez/workflows/installation/badge.svg?branch=master)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Ainstallation+branch%3Amaster)
+[![Flake8](https://github.com/AcademySoftwareFoundation/rez/workflows/flake8/badge.svg?branch=master)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aflake8+branch%3Amaster)
+[![Wiki](https://github.com/AcademySoftwareFoundation/rez/workflows/wiki/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Awiki+event%3Arelease)
+[![Pypi](https://github.com/AcademySoftwareFoundation/rez/workflows/pypi/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Apypi+event%3Arelease)
+[![Benchmark](https://github.com/AcademySoftwareFoundation/rez/workflows/benchmark/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=bugs)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
@@ -35,18 +35,18 @@ environments reference these existing packages. This means that configured envir
 are lightweight, and very fast to create, often taking just a few seconds to configure
 despite containing hundreds of packages.
 
-See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
+See [the wiki](https://github.com/AcademySoftwareFoundation/rez/wiki) for full documentation.
 
 <p align="center">
-<a href="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png">
-<img src="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png"></a>
+<a href="https://github.com/AcademySoftwareFoundation/rez/wiki/media/other_pkg_mgr.png">
+<img src="https://github.com/AcademySoftwareFoundation/rez/wiki/media/other_pkg_mgr.png"></a>
 <br><i>Typical package managers install packages into an environment</i>
 </p>
 
 <br>
 <p align="center">
-<a href="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png">
-<img src="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png"></a>
+<a href="https://github.com/AcademySoftwareFoundation/rez/wiki/media/rez_pkg_mgr.png">
+<img src="https://github.com/AcademySoftwareFoundation/rez/wiki/media/rez_pkg_mgr.png"></a>
 <br><i>Rez installs packages once, and configures environments dynamically</i>
 </p>
 
@@ -90,7 +90,7 @@ and when re-evaluated later will reconstruct the same environment once more.
 ## Examples
 
 This example places the user into a resolved shell containing the requested packages,
-using the [rez-env](https://github.com/nerdvegas/rez/wiki/Command-Line-Tools#rez-env) tool:
+using the [rez-env](https://github.com/AcademySoftwareFoundation/rez/wiki/Command-Line-Tools#rez-env) tool:
 
     ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
 
@@ -213,3 +213,4 @@ like any other package:
   the roadmap. Users have successfully implemented workarounds to utilize
   CMake with Rez under Windows, but the goal is to provide a seamless experience
   on any platform in the future. For details see this [issue](/../../issues/703)
+
