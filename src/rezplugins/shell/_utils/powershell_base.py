@@ -226,7 +226,7 @@ class PowerShellBase(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path=False, is_shell_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -237,6 +237,8 @@ class PowerShellBase(Shell):
             else:
                 if is_path:
                     txt = self.normalize_paths(txt)
+                elif is_shell_path:
+                    txt = self.as_shell_path(txt)
 
                 txt = self._escape_quotes(txt)
             result += txt

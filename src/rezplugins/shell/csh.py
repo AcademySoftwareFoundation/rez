@@ -98,7 +98,7 @@ class CSH(UnixShell):
             source_bind_files=(not norc)
         )
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path=False, is_shell_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -110,7 +110,9 @@ class CSH(UnixShell):
                     txt = "'%s'" % txt
             else:
                 if is_path:
-                    txt = self.normalize_paths(txt)
+                    txt = self.as_path(txt)
+                elif is_shell_path:
+                    txt = self.as_shell_path(txt)
 
                 txt = txt.replace('"', '"\\""')
                 txt = txt.replace('!', '\\!')
