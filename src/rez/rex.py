@@ -571,6 +571,16 @@ class ActionInterpreter(object):
     def _is_pathed_key(cls, key):
         return any(fnmatch(key, x) for x in config.pathed_env_vars)
 
+    @classmethod
+    def _is_shell_pathed_key(cls, key):
+        shell_name = cls.name if hasattr(cls, 'name') else ''
+        if shell_name not in config.shell_pathed_env_vars:
+            return False
+
+        return any(
+            fnmatch(key, x) for x in config.shell_pathed_env_vars[shell_name]
+        )
+
     def normalize_path(self, path):
         """Normalize a path.
 
