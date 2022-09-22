@@ -296,7 +296,11 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
+        value = self.escape_string(
+            value,
+            is_path=self._is_pathed_key(key),
+            is_shell_path=self._is_shell_pathed_key(key),
+        )
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):

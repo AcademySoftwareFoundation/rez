@@ -104,7 +104,12 @@ class SH(UnixShell):
             self._addline(cmd % r"\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
+        value = self.escape_string(
+            value,
+            is_path=self._is_pathed_key(key),
+            is_shell_path=self._is_shell_pathed_key(key),
+        )
+
         self._addline('export %s=%s' % (key, value))
 
     def unsetenv(self, key):
