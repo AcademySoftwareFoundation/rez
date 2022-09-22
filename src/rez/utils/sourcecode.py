@@ -103,8 +103,14 @@ class SourceCode(object):
 
         self.filepath = filepath
         if self.filepath:
-            self.filepath = _drive_start_regex.sub("/\\1/", filepath)
-            self.filepath = self.filepath.replace("\\", '/')
+            drive_letter_match = _drive_start_regex.match(filepath)
+            # If converting the drive letter to posix, capitalize the drive
+            # letter as per cygwin behavior.
+            if drive_letter_match:
+                self.filepath = _drive_start_regex.sub(
+                    drive_letter_match.expand("/\\1/").upper(), filepath
+                )
+            self.filepath = self.filepath.replace("\\", "/")
 
         self.eval_as_function = eval_as_function
         self.package = None
