@@ -543,7 +543,7 @@ class ActionInterpreter(object):
 
     # --- other
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path=False, is_shell_path=False):
         """Escape a string.
 
         Escape the given string so that special characters (such as quotes and
@@ -561,6 +561,7 @@ class ActionInterpreter(object):
         Args:
             value (str or `EscapedString`): String to escape.
             is_path (bool): True if the value is path-like.
+            is_shell_path (bool): True if the value is a shell-path.
 
         Returns:
             str: The escaped string.
