@@ -78,8 +78,9 @@ decent amount of utility code to manage cmake builds.
 
 When a rez environment is configured, each required package's
 [commands](Package-Definition-Guide#commands) section configures the environment for the building
-package to use. When a build is occurring, a special variable [building](Package-Commands#building) is set to *True*. Your required packages should use this variable to communicate build information
-to the package being built.
+package to use. When a build is occurring, a special variable
+[building](Package-Commands#building) is set to *True*. Your required packages should use this
+variable to communicate build information to the package being built.
 
 For example, our *boost* package's commands might look like so:
 
@@ -88,10 +89,10 @@ For example, our *boost* package's commands might look like so:
             # there is a 'FindBoost.cmake' file in this dir..
             env.CMAKE_MODULE_PATH.append("{root}/cmake")
 
-When *boost* is required into another package's build environment, `building` will be set to
-*True*, thereby executing that block of code, but otherwise, it will not be executed, even when
-*boost* itself is building (because the `commands` block is not executed by a package during its
-own building).
+> [[media/icons/warning.png]] Note that _commands_ is never executed for the package actually
+being built - 
+> if you want to run commands in that case, you can use
+[pre_build_commands](Package-Commands#pre-build-commands) instead.
 
 A (very simple) *FindBoost.cmake* file might look like this:
 
