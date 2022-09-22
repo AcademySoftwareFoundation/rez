@@ -533,6 +533,10 @@ pathed_env_vars = [
     "*PATH"
 ]
 
+shell_pathed_env_vars = {
+    "gitbash": ["PYTHONPATH"]
+}
+
 # Defines what suites on $PATH stay visible when a new rez environment is resolved.
 # Possible values are:
 # - "never":            Don"t attempt to keep any suites visible in a new env
