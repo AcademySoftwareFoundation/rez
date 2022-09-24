@@ -220,7 +220,7 @@ class CMD(Shell):
     def escape_string(self, value, is_path=False, is_shell_path=False):
         """Escape the <, >, ^, and & special characters reserved by Windows.
 
-        is_path and is_shell_path are mutally exclusive.
+        ``is_path`` and ``is_shell_path`` are mutually exclusive.
 
         Args:
             value (str/EscapedString): String or already escaped string.
