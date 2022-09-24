@@ -29,7 +29,7 @@ def to_posix_path(path):
     # C:\ ==> /C/
     drive_letter_match = _drive_start_regex.match(path)
     # If converting the drive letter to posix, capitalize the drive
-    # letter as per cygwin behavior.
+    # letter as per cygpath behavior.
     if drive_letter_match:
         path = _drive_start_regex.sub(
             drive_letter_match.expand("/\\1/").upper(), path
