@@ -105,7 +105,7 @@ class SourceCode(object):
         if self.filepath:
             drive_letter_match = _drive_start_regex.match(filepath)
             # If converting the drive letter to posix, capitalize the drive
-            # letter as per cygwin behavior.
+            # letter as per cygpath behavior.
             if drive_letter_match:
                 self.filepath = _drive_start_regex.sub(
                     drive_letter_match.expand("/\\1/").upper(), filepath
