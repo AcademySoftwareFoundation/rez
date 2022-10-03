@@ -5,6 +5,7 @@
 """
 Git Bash (for Windows) shell
 """
+from lib2to3.pytree import convert
 import os
 import re
 import os.path
@@ -17,7 +18,7 @@ from rez.utils.logging_ import print_warning
 from rez.util import dedup
 
 if platform_.name == "windows":
-    from ._utils.windows import get_syspaths_from_registry, to_posix_path
+    from ._utils.windows import get_syspaths_from_registry, convert_path
 
 
 class GitBash(Bash):
@@ -100,7 +101,7 @@ class GitBash(Bash):
         Returns:
             (str): Transformed file path.
         """
-        return to_posix_path(path)
+        return convert_path(path, mode='unix', force_fwdslash=True)
 
     def as_shell_path(self, path):
         """
@@ -127,7 +128,7 @@ class GitBash(Bash):
         Returns:
             (str): Normalized file path.
         """
-        return to_posix_path(path)
+        return convert_path(path, mode='unix', force_fwdslash=True)
 
     def normalize_paths(self, value):
         """
