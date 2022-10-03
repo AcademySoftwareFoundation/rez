@@ -564,6 +564,9 @@ pathed_env_vars = [
     "*PATH"
 ]
 
+# Some shells may require multiple types of pathing, so this option provides
+# a way to define variables on a per-shell basis to convert for shell pathing
+# instead of the pathing provided above or no modification at all.
 shell_pathed_env_vars = {
     "gitbash": ["PYTHONPATH"]
 }
