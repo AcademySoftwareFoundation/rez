@@ -14,7 +14,7 @@ from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
-from .windows import to_windows_path
+from .windows import convert_path
 
 
 class PowerShellBase(Shell):
@@ -246,7 +246,7 @@ class PowerShellBase(Shell):
 
     def normalize_path(self, path):
         if platform_.name == "windows":
-            return to_windows_path(path)
+            return convert_path(path, 'windows')
         else:
             return path
 
