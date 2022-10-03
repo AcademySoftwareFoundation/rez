@@ -47,15 +47,27 @@ def convert_path(path, mode='unix', force_fwdslash=False):
         path = path.replace('\\', '/')
 
     return path
+
+
+def to_posix_path(path):
+    """Convert (eg) "C:\foo" to "/c/foo"
+
+    TODO: doesn't take into account escaped bask slashes, which would be
+    weird to have in a path, but is possible.
+
+    Args:
+        path (str): Path to convert.
+    """
+    # c:\ and C:\ -> /c/
     drive_letter_match = _drive_start_regex.match(path)
     # If converting the drive letter to posix, capitalize the drive
     # letter as per cygpath behavior.
     if drive_letter_match:
         path = _drive_start_regex.sub(
-            drive_letter_match.expand("/\\1/").upper(), path
+            drive_letter_match.expand("/\\1/").lower(), path
         )
 
-    # backslash ==> fwdslash
+    # Backslash -> fwdslash
     path = path.replace('\\', '/')
 
     return path
