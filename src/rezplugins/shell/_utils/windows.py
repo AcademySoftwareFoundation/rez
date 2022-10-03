@@ -12,13 +12,20 @@ _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _env_var_regex = re.compile(r"%([^%]*)%")
 
 
-def to_posix_path(path):
-    """Convert (eg) "C:\foo" to "/c/foo"
+def convert_path(path, mode='unix', force_fwdslash=False):
+    r"""Convert a path to unix style or windows style as per cygpath rules.
 
-    TODO: doesn't take into account escaped bask slashes, which would be
-    weird to have in a path, but is possible.
+    Args:
+        path (str): Path to convert.
+        mode (str|Optional): Cygpath-style mode to use:
+            unix (default): Unix style path (c:\ and C:\ -> /c/)
+            windows: Windows style path (c:\ and C:\ -> C:/)
+        force_fwdslash (bool|Optional): Return a path containing only
+            forward slashes regardless of mode. Default is False.
+
+    Returns:
+        path(str): Converted path.
     """
-
     # expand refs like %SYSTEMROOT%, leave as-is if not in environ
     def _repl(m):
         varname = m.groups()[0]
@@ -26,7 +33,20 @@ def to_posix_path(path):
 
     path = _env_var_regex.sub(_repl, path)
 
-    # C:\ ==> /C/
+    # Convert the path based on mode.
+    if mode == 'windows':
+        path = to_windows_path(path)
+    else:
+        path = to_posix_path(path)
+
+    # NOTE: This would be normal cygpath behavior, but the broader
+    # implications of enabling it need extensive testing.
+    # Leaving it up to the user for now.
+    if force_fwdslash:
+        # Backslash -> fwdslash
+        path = path.replace('\\', '/')
+
+    return path
     drive_letter_match = _drive_start_regex.match(path)
     # If converting the drive letter to posix, capitalize the drive
     # letter as per cygpath behavior.
