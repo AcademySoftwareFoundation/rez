@@ -574,7 +574,7 @@ class ActionInterpreter(object):
 
     @classmethod
     def _is_shell_pathed_key(cls, key):
-        shell_name = cls.name if hasattr(cls, 'name') else ''
+        shell_name = cls.name() if hasattr(cls, 'name') else ''
         if shell_name not in config.shell_pathed_env_vars:
             return False
 
