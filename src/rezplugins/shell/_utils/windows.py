@@ -82,7 +82,19 @@ def to_windows_path(path):
     TODO: doesn't take into account escaped forward slashes, which would be
     weird to have in a path, but is possible.
     """
-    return path.replace('/', '\\')
+    # c:\ and C:\ -> C:/
+    drive_letter_match = _drive_start_regex.match(path)
+    # If converting the drive letter to posix, capitalize the drive
+    # letter as per cygpath behavior.
+    if drive_letter_match:
+        path = _drive_start_regex.sub(
+            drive_letter_match.expand("\\1:/").upper(), path
+        )
+
+    # Fwdslash -> backslash
+    path = path.replace('/', '\\')
+
+    return path
 
 
 def get_syspaths_from_registry():
