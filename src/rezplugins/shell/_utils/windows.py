@@ -19,7 +19,9 @@ def convert_path(path, mode='unix', force_fwdslash=False):
         path (str): Path to convert.
         mode (str|Optional): Cygpath-style mode to use:
             unix (default): Unix style path (c:\ and C:\ -> /c/)
-            windows: Windows style path (c:\ and C:\ -> C:/)
+            mixed: Windows style drives with forward slashes
+                (c:\ and C:\ -> C:/)
+            windows: Windows style paths (C:\)
         force_fwdslash (bool|Optional): Return a path containing only
             forward slashes regardless of mode. Default is False.
 
@@ -34,7 +36,9 @@ def convert_path(path, mode='unix', force_fwdslash=False):
     path = _env_var_regex.sub(_repl, path)
 
     # Convert the path based on mode.
-    if mode == 'windows':
+    if mode == 'mixed':
+        path = to_mixed_path(path)
+    elif mode == 'windows':
         path = to_windows_path(path)
     else:
         path = to_posix_path(path)
@@ -73,8 +77,8 @@ def to_posix_path(path):
     return path
 
 
-def to_windows_path(path):
-    """Convert (eg) "C:\foo/bin" to "C:\foo\bin"
+def to_mixed_path(path):
+    """Convert (eg) "C:\foo/bin" to "C:/foo/bin"
 
     The mixed syntax results from strings in package commands such as
     "{root}/bin" being interpreted in a windows shell.
@@ -91,6 +95,18 @@ def to_windows_path(path):
             drive_letter_match.expand("\\1:/").upper(), path
         )
 
+    # Fwdslash -> backslash
+    path = path.replace('/', '\\')
+
+    return path
+
+
+def to_windows_path(path):
+    r"""Convert (eg) "C:\foo/bin" to "C:\foo\bin"
+
+    TODO: doesn't take into account escaped forward slashes, which would be
+    weird to have in a path, but is possible.
+    """
     # Fwdslash -> backslash
     path = path.replace('/', '\\')
 
