@@ -365,7 +365,7 @@ class PackageCache(object):
 
         return self.VARIANT_REMOVED
 
-    def add_variants(self, variants, async_=True):
+    def add_variants(self, variants, _async=False):
         """Update the package cache by adding some or all of the given variants.
 
         This method is called when a context is created or sourced. Variants
@@ -379,7 +379,7 @@ class PackageCache(object):
         #
         if not system.is_production_rez_install:
             raise PackageCacheError(
-                "PackageCache.add_variants_async is only supported in a "
+                "PackageCache.add_variants is only supported in a "
                 "production rez installation."
             )
 
@@ -459,9 +459,8 @@ class PackageCache(object):
                 else:
                     out_target = devnull
 
-                if async_:
-                    func = subprocess.Popen
-                else:
+                func = subprocess.Popen
+                if not _async:
                     func = subprocess.call
 
                 func(

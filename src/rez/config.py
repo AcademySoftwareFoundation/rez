@@ -414,10 +414,10 @@ config_schema = Schema({
     "package_cache_log_days":                       Int,
     "package_cache_max_variant_days":               Int,
     "package_cache_clean_limit":                    Float,
+    "package_cache_async":                          Bool,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
     "package_cache_during_build":                   Bool,
-    "package_cache_async":                          Bool,
     "package_cache_local":                          Bool,
     "package_cache_same_device":                    Bool,
     "color_enabled":                                ForceOrBool,
@@ -469,6 +469,7 @@ config_schema = Schema({
     "context_tracking_amqp":                        OptionalDict,
     "context_tracking_extra_fields":                OptionalDict,
     "optionvars":                                   OptionalDict,
+    "artifacts_path":                               StrList,
 
     # GUI settings
     "use_pyside":                                   Bool,

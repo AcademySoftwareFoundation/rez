@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-import shutil
-
 from rez.utils.resources import Resource
 from rez.utils.schema import Required, schema_keys, extensible_schema_dict
 from rez.utils.logging_ import print_warning
@@ -21,6 +19,7 @@ from rez.vendor.six import six
 from textwrap import dedent
 import os.path
 from hashlib import sha1
+import shutil
 
 
 basestring = six.string_types[0]
@@ -314,7 +313,8 @@ class PackageRepositoryResource(Resource):
         raise NotImplementedError
 
     def install(self, location):
-        """Install the resource."""
+        """Install resource to a location.
+        """
         shutil.copytree(self.root, location)
 
 

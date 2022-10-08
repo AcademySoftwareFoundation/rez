@@ -39,6 +39,7 @@ from rez.plugin_managers import plugin_manager, RezPluginType
 
 from rez.config import config
 from rezplugins.package_repository.filesystem import FileSystemPackageRepository
+from rez.artifact_repository import artifact_repository_manager
 
 
 try:
