@@ -276,6 +276,16 @@ class ActionManager(object):
         expanded_value = self._expand(unexpanded_value)
         return unexpanded_value, expanded_value
 
+    def _implicit_value(self, value):
+        def _fn(str_):
+            str_ = expandvars(str_, self.environ)
+            str_ = expandvars(str_, self.parent_environ)
+            return str_
+
+        unexpanded_value = self._format(value)
+        expanded_value = EscapedString.promote(value).formatted(_fn)
+        return unexpanded_value, expanded_value
+
     def get_output(self, style=OutputStyle.file):
         return self.interpreter.get_output(style=style)
 
@@ -307,7 +317,10 @@ class ActionManager(object):
 
     def setenv(self, key, value):
         unexpanded_key, expanded_key = self._key(key)
-        unexpanded_value, expanded_value = self._value(value)
+        if key == "REZ_USED_IMPLICIT_PACKAGES":
+            unexpanded_value, expanded_value = self._implicit_value(value)
+        else:
+            unexpanded_value, expanded_value = self._value(value)
 
         # TODO: check if value has already been set by another package
         self.actions.append(Setenv(unexpanded_key, unexpanded_value))
