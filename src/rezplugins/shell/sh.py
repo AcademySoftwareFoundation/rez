@@ -135,11 +135,10 @@ class SH(UnixShell):
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
-                if is_path:
-                    txt = self.normalize_paths(txt)
-                    # txt = self.as_path(txt)
-                elif is_shell_path:
+                if is_shell_path:
                     txt = self.as_shell_path(txt)
+                elif is_path:
+                    txt = self.normalize_paths(txt)
 
                 txt = txt.replace('\\', '\\\\')
                 txt = txt.replace('"', '\\"')
