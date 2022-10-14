@@ -104,11 +104,11 @@ class SourceCode(object):
         self.filepath = filepath
         if self.filepath:
             drive_letter_match = _drive_start_regex.match(filepath)
-            # If converting the drive letter to posix, capitalize the drive
+            # If converting the drive letter to posix, lowercase the drive
             # letter as per cygpath behavior.
             if drive_letter_match:
                 self.filepath = _drive_start_regex.sub(
-                    drive_letter_match.expand("/\\1/").upper(), filepath
+                    drive_letter_match.expand("/\\1/").lower(), filepath
                 )
             self.filepath = self.filepath.replace("\\", "/")
 
