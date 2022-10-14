@@ -141,11 +141,13 @@ class GitBash(Bash):
         normalize_path() still does drive-colon replace also - it needs to
         behave correctly if passed a string like C:\foo.
         """
+        def lowrepl(match):
+            if match:
+                return "/{}/".format(match.group(1).lower())
 
         # C:\ ==> /c/
-        value2 = self._drive_regex.sub("/\\1/", value)
-
-        return super(GitBash, self).normalize_paths(value2)
+        value2 = self._drive_regex.sub(lowrepl, value).replace("\\", "/")
+        return value2
 
 
 def register_plugin():
