@@ -252,6 +252,8 @@ class PowerShellBase(Shell):
         value = self.escape_string(value)
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
+        # The nested Get-ChildItem call is set to SilentlyContinue to prevent
+        # an exception of the Environment Variable is not set already
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'
             .format(key, os.path.pathsep, value))
