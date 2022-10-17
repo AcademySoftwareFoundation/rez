@@ -438,7 +438,7 @@ class ResolvedContext(object):
         """Returns a `Variant` object or None if the package is not in the
         resolve.
         """
-        pkgs = [x for x in self._resolved_packages if x.name == name]
+        pkgs = [x for x in (self._resolved_packages or []) if x.name == name]
         return pkgs[0] if pkgs else None
 
     def copy(self):
@@ -1948,19 +1948,25 @@ class ResolvedContext(object):
 
     @pool_memcached_connections
     def _execute(self, executor):
-        # bind various info to the execution context
+        """Bind various info to the execution context
+        """
+        def normalized(path):
+            return executor.normalize_path(path)
+
         resolved_pkgs = self.resolved_packages or []
         ephemerals = self.resolved_ephemerals or []
 
         request_str = ' '.join(str(x) for x in self._package_requests)
         implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
-        package_paths_str = os.pathsep.join(self.package_paths)
         req_timestamp_str = str(self.requested_timestamp or 0)
+        package_paths_str = executor.interpreter.pathsep.join(
+            normalized(x) for x in self.package_paths
+        )
 
         header_comment(executor, "system setup")
 
-        executor.setenv("REZ_USED", self.rez_path)
+        executor.setenv("REZ_USED", normalized(self.rez_path))
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
         executor.setenv("REZ_USED_REQUESTED_TIMESTAMP", req_timestamp_str)
@@ -1981,7 +1987,7 @@ class ResolvedContext(object):
                 not config.disable_rez_1_compatibility:
             request_str_ = " ".join([request_str, implicit_str]).strip()
             executor.setenv("REZ_VERSION", self.rez_version)
-            executor.setenv("REZ_PATH", self.rez_path)
+            executor.setenv("REZ_PATH", normalized(self.rez_path))
             executor.setenv("REZ_REQUEST", request_str_)
             executor.setenv("REZ_RESOLVE", resolve_str)
             executor.setenv("REZ_RAW_REQUEST", request_str_)
@@ -2005,7 +2011,9 @@ class ResolvedContext(object):
             else:
                 cached_root = None
 
-            variant_binding = VariantBinding(pkg, cached_root=cached_root)
+            variant_binding = VariantBinding(
+                pkg, cached_root=cached_root, interpreter=executor.interpreter
+            )
             variant_bindings[pkg.name] = variant_binding
 
         # binds objects such as 'request', which are accessible before a resolve
@@ -2038,7 +2046,7 @@ class ResolvedContext(object):
             executor.setenv(prefix + "_MAJOR_VERSION", major_version)
             executor.setenv(prefix + "_MINOR_VERSION", minor_version)
             executor.setenv(prefix + "_PATCH_VERSION", patch_version)
-            executor.setenv(prefix + "_BASE", pkg.base)
+            executor.setenv(prefix + "_BASE", normalized(pkg.base))
 
             variant_binding = variant_bindings[pkg.name]
 
@@ -2046,9 +2054,9 @@ class ResolvedContext(object):
                 # set to cached payload rather than original
                 executor.setenv(prefix + "_ROOT", variant_binding.root)
                 # store extra var to indicate that root retarget occurred
-                executor.setenv(prefix + "_ORIG_ROOT", pkg.root)
+                executor.setenv(prefix + "_ORIG_ROOT", normalized(pkg.root))
             else:
-                executor.setenv(prefix + "_ROOT", pkg.root)
+                executor.setenv(prefix + "_ROOT", normalized(pkg.root))
 
         # package commands
         for attr in ("pre_commands", "commands", "post_commands"):
@@ -2067,7 +2075,7 @@ class ResolvedContext(object):
                 executor.bind('this', variant_binding)
                 executor.bind("version", VersionBinding(pkg.version))
                 executor.bind('root', variant_binding.root)
-                executor.bind('base', pkg.base)
+                executor.bind('base', normalized(pkg.base))
 
                 exc = None
                 commands.set_package(pkg)

@@ -210,7 +210,7 @@ class PackageCache(object):
 
             # Package belongs to a temp repo (this occurs when a package is
             # tested on pre_build/pre_release - see
-            # https://github.com/nerdvegas/rez/wiki/Package-Definition-Guide#tests)
+            # https://github.com/AcademySoftwareFoundation/rez/wiki/Package-Definition-Guide#tests)
             #
             if package.repository.name() == "filesystem" and \
                     package.repository.location.startswith(config.tmpdir + os.sep):

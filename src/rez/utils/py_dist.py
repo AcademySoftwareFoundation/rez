@@ -223,8 +223,8 @@ def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
     else:
         # this is an egg-file
         import zipfile
-        assert(is_egg and os.path.isfile(dist.location))
-        assert(zipfile.is_zipfile(dist.location))
+        assert is_egg and os.path.isfile(dist.location)
+        assert zipfile.is_zipfile(dist.location)
         z = zipfile.ZipFile(dist.location)
         z.extractall(root_path)
 

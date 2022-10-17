@@ -5,6 +5,8 @@
 ARG WINDOWS_VERSION
 FROM mcr.microsoft.com/windows/servercore:$WINDOWS_VERSION
 
+LABEL org.opencontainers.image.description="WARNING: This is an internal image and should not be used outside of the rez repository!"
+
 SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "ByPass"]
 
 ARG GIT_VERSION=2.23.0

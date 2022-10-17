@@ -176,6 +176,16 @@ class Shell(ActionInterpreter):
         Returns:
             str: Full filepath of executable.
         """
+        settings = config.plugins.shell[cls.name()]
+
+        if settings.executable_fullpath:
+            if not os.path.exists(settings.executable_fullpath):
+                raise RuntimeError(
+                    "Couldn't find executable '%s'." % settings.executable_fullpath
+                )
+            else:
+                return settings.executable_fullpath
+
         exe = which(name)
 
         if not exe and check_syspaths:
@@ -416,11 +426,11 @@ class UnixShell(Shell):
             shell_command = d["command"]
         else:
             if d["stdin"]:
-                assert(self.stdin_arg)
+                assert self.stdin_arg
                 shell_command = "%s %s" % (self.executable, self.stdin_arg)
                 quiet = True
             elif do_rcfile:
-                assert(self.rcfile_arg)
+                assert self.rcfile_arg
                 shell_command = "%s %s" % (self.executable, self.rcfile_arg)
             else:
                 shell_command = self.executable
@@ -475,6 +485,7 @@ class UnixShell(Shell):
 
         if shell_command:  # an empty string means 'run no command and exit'
             executor.command(shell_command)
+
         executor.command("exit %s" % self.last_command_status)
 
         code = executor.get_output()

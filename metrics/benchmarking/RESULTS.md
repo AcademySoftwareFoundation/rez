@@ -93,3 +93,9 @@ by hand; the 'benchmark' Github workflow does this automatically.
 | 2.106.0 | 3.7 | Linux-5.11.0-1028-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.16 | 2.21 | 2.26 |
 | 2.107.0 | 2.7 | Linux-5.13.0-1017-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.42 | 2.53 | 2.60 |
 | 2.107.0 | 3.7 | Linux-5.13.0-1017-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.14 | 1.91 | 1.96 |
+| 2.108.0 | 2.7 | Linux-5.13.0-1021-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.44 | 2.39 | 2.42 |
+| 2.108.0 | 3.7 | Linux-5.13.0-1021-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.19 | 2.20 | 2.25 |
+| 2.110.0 | 2.7 | Linux-5.13.0-1023-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz | 2 | 1.36 | 2.33 | 2.44 |
+| 2.110.0 | 3.7 | Linux-5.13.0-1023-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 2 | 1.09 | 1.75 | 1.74 |
+| 2.111.3 | 2.7 | Linux-5.15.0-1014-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 2 | 1.21 | 2.12 | 2.15 |
+| 2.111.3 | 3.7 | Linux-5.15.0-1014-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 2 | 0.98 | 1.76 | 1.79 |

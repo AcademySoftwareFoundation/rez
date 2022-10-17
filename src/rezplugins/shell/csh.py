@@ -46,7 +46,7 @@ class CSH(UnixShell):
               % (cls.name(), cls.command_arg)
         p = Popen(cmd, stdout=subprocess.PIPE,
                   stderr=subprocess.PIPE, shell=True, text=True)
-        out_, err_ = p.communicate()
+        out_, _ = p.communicate()
         if p.returncode:
             paths = []
         else:
@@ -98,7 +98,7 @@ class CSH(UnixShell):
             source_bind_files=(not norc)
         )
 
-    def escape_string(self, value):
+    def escape_string(self, value, is_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -109,6 +109,9 @@ class CSH(UnixShell):
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
                 txt = txt.replace('"', '"\\""')
                 txt = txt.replace('!', '\\!')
                 txt = '"%s"' % txt
@@ -154,7 +157,7 @@ class CSH(UnixShell):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
     def setenv(self, key, value):
-        value = self.escape_string(value)
+        value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('setenv %s %s' % (key, value))
 
     def unsetenv(self, key):

@@ -38,4 +38,4 @@ class AboutDialog(QtWidgets.QDialog):
 
     def _goto_github(self):
         import webbrowser
-        webbrowser.open_new("https://github.com/nerdvegas/rez")
+        webbrowser.open_new("https://github.com/AcademySoftwareFoundation/rez")

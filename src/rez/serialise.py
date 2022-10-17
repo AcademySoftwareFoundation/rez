@@ -82,9 +82,7 @@ def open_file_for_write(filepath, mode=None):
     except:
         pass
 
-    # try atomic write, but that can sometimes fail.
-    # https://github.com/nerdvegas/rez/issues/858
-    #
+    # try atomic write, but that can sometimes fail. See #858
     written = False
     try:
         with atomic_write(filepath, overwrite=True, **encoding) as f:

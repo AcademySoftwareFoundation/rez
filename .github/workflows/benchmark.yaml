@@ -34,12 +34,12 @@ jobs:
 
       - name: Install Rez
         run: |
-          mkdir ./build
-          python ./install.py ./build
+          mkdir ./installdir
+          python ./install.py ./installdir
 
       - name: Run Benchmark
         run: |
-          ./build/bin/rez/rez-benchmark --out ./out
+          ./installdir/bin/rez/rez-benchmark --out ./out
 
           # remove benchmarking suite package repo
           rm -rf ./out/packages
@@ -84,6 +84,12 @@ jobs:
           ref: master
           path: src
 
+          # This is a PAT from an Admin user. We do this in order to be able to write to a
+          # protected branch (master) from this workflow.
+          # See https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/14
+          #
+          token: "${{ secrets.GH_ACTION_TOKEN }}"
+
       # Note failing due to
       # https://github.com/actions/virtual-environments/issues/675
       #
@@ -101,14 +107,17 @@ jobs:
 
       - name: Setup git config
         run: |
-          git config --global user.name "github.com/${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@${{ github.sha }}"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+        working-directory: src
 
       - name: Git commit and push
         run: |
-          git add --all
-          git commit \
-            -m "Generated from GitHub "${{ github.workflow }}" Workflow" \
-            && git push origin master \
-            || echo "Nothing new to commit"
+          if [[ "$(git status --porcelain)" == "" ]]; then
+            echo "Nothing new to commit"
+          else
+            git add --all
+            git commit -m "Generated from GitHub "${{ github.workflow }}" Workflow"
+            git push origin master
+          fi
         working-directory: src

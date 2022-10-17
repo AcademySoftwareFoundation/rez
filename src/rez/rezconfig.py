@@ -362,34 +362,35 @@ variant_select_mode = "version_priority"
 # during a resolve, and if any filter excludes a package, that package is not
 # included in the resolve. Here is a simple example:
 #
-#     package_filter:
-#         excludes:
-#         - glob(*.beta)
-#         includes:
-#         - glob(foo-*)
+#     package_filter = {
+#         'excludes': 'glob(*.beta)',
+#         'includes': 'glob(foo-*)',
+#     }
 #
 # This is an example of a single filter with one exclusion rule and one inclusion
 # rule. The filter will ignore all packages with versions ending in '.beta',
 # except for package 'foo' (which it will accept all versions of). A filter will
-# only exclude a package iff that package matches at least one exclusion rule,
+# only exclude a package if that package matches at least one exclusion rule,
 # and does not match any inclusion rule.
 #
-# Here is another example, which excludes all beta packages, and all packages
-# except 'foo' that are released after a certain date. Note that in order to
-# use multiple filters, you need to supply a list of dicts, rather than just a
-# dict:
+# Here is another example, which excludes all beta and dev packages, and all
+# packages except 'foo' that are released after a certain date. Note that in
+# order to use multiple filters, you need to supply a list of dicts, rather
+# than just a dict:
 #
-#     package_filter:
-#     - excludes:
-#       - glob(*.beta)
-#     - excludes:
-#       - after(1429830188)
-#       includes:
-#       - foo  # same as range(foo), same as glob(foo-*)
+#     package_filter = [
+#         {
+#             'excludes': ['glob(*.beta)', 'glob(*.dev)']
+#         },
+#         {
+#             'excludes': ['after(1429830188)'],
+#             'includes': ['foo'],  # same as range(foo), same as glob(foo-*)
+#         }
+#     ]
 #
 # This example shows why multiple filters are supported - with only one filter,
-# it would not be possible to exclude all beta packages (including foo), but also
-# exclude all packages after a certain date, except for foo.
+# it would not be possible to exclude all beta and dev packages (including foo),
+# but also exclude all packages after a certain date, except for foo.
 #
 # Following are examples of all the possible rules:
 #
@@ -397,7 +398,7 @@ variant_select_mode = "version_priority"
 # --------------------|----------------------------------------------------
 # glob(*.beta)        | Matches packages matching the glob pattern.
 # regex(.*-\\.beta)   | Matches packages matching re-style regex.
-# requirement(foo-5+) | Matches packages within the given requirement.
+# range(foo-5+)       | Matches packages within the given requirement.
 # before(1429830188)  | Matches packages released before the given date.
 # after(1429830188)   | Matches packages released after the given date.
 # *.beta              | Same as glob(*.beta)
@@ -523,6 +524,15 @@ env_var_separators = {
     "CMAKE_MODULE_PATH": ";",
     "DOXYGEN_TAGFILES": " ",
 }
+
+# This setting identifies path-like environment variables. This is required
+# because some shells need to apply path normalization. For example, the command
+# `env.PATH.append("{root}/bin")` will be normalized to (eg) `C:\...\bin` in a
+# `cmd` shell on Windows. Note that wildcards are supported. If this setting is
+# not correctly configured, then your shell may not work correctly.
+pathed_env_vars = [
+    "*PATH"
+]
 
 # Defines what suites on $PATH stay visible when a new rez environment is resolved.
 # Possible values are:
@@ -914,7 +924,7 @@ pip_install_remaps = [
         "pip_install": r"\1",
         "rez_install": r"\1",
     },
-    # Fix for https://github.com/nerdvegas/rez/issues/821
+    # Fix for #821
     # Path in record          | pip installed to    | copy to rez destination
     # ------------------------|---------------------|--------------------------
     # ../../lib/python/*      | *                   | python/*
@@ -1024,7 +1034,7 @@ disable_rez_1_compatibility = False
 ###############################################################################
 
 # Where Rez's own documentation is hosted
-documentation_url = "https://github.com/nerdvegas/rez/wiki"
+documentation_url = "https://github.com/AcademySoftwareFoundation/rez/wiki"
 
 
 ###############################################################################

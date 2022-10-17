@@ -61,7 +61,7 @@ class GitReleaseVCS(ReleaseVCS):
             try:
                 s2 = toks[-1]
                 adj, n = s2.split()
-                assert(adj in ("ahead", "behind"))
+                assert adj in ("ahead", "behind")
                 n = int(n)
                 return -n if adj == "behind" else n
             except Exception as e:
