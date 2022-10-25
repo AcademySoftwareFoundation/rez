@@ -101,7 +101,7 @@ def to_mixed_path(path):
         )
 
     # Fwdslash -> backslash
-    path = path.replace('/', '\\')
+    path = path.replace('\\', '/')
 
     # ${XYZ};c:/ -> C:/
     if _drive_regex_mixed.match(path):
