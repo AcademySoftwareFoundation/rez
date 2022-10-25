@@ -108,7 +108,7 @@ class GitBash(Bash):
         Returns:
             (str): Transformed file path.
         """
-        return path
+        return convert_path(path, mode='mixed', force_fwdslash=True)
 
     def normalize_path(self, path):
         """Normalize the path to fit the environment.
