@@ -2,10 +2,7 @@
 # Copyright Contributors to the Rez Project
 
 
-"""
-Git Bash (for Windows) shell
-"""
-from lib2to3.pytree import convert
+"""Git Bash (for Windows) shell."""
 import os
 import re
 import os.path
@@ -17,20 +14,19 @@ from rez.utils.platform_ import platform_
 from rez.utils.logging_ import print_warning
 from rez.util import dedup
 
-if platform_.name == "windows":
+if platform_.name == 'windows':
     from ._utils.windows import get_syspaths_from_registry, convert_path
 
 
 class GitBash(Bash):
-    """Git Bash shell plugin.
-    """
+    """Git Bash shell plugin."""
     pathsep = ':'
 
-    _drive_regex = re.compile(r"([A-Za-z]):\\")
+    _drive_regex = re.compile(r'([A-Za-z]):\\')
 
     @classmethod
     def name(cls):
-        return "gitbash"
+        return 'gitbash'
 
     @classmethod
     def executable_name(cls):
@@ -76,7 +72,7 @@ class GitBash(Bash):
         out_, _ = p.communicate()
         if p.returncode == 0:
             lines = out_.split('\n')
-            line = [x for x in lines if "__PATHS_" in x.split()][0]
+            line = [x for x in lines if '__PATHS_' in x.split()][0]
             # note that we're on windows, but pathsep in bash is ':'
             paths = line.strip().split()[-1].split(':')
         else:
@@ -92,8 +88,7 @@ class GitBash(Bash):
         return cls.syspaths
 
     def as_path(self, path):
-        """
-        Return the given path as a system path.
+        """Return the given path as a system path.
         Used if the path needs to be reformatted to suit a specific case.
         Args:
             path (str): File path.
@@ -104,8 +99,7 @@ class GitBash(Bash):
         return convert_path(path, mode='unix', force_fwdslash=True)
 
     def as_shell_path(self, path):
-        """
-        Return the given path as a shell path.
+        """Return the given path as a shell path.
         Used if the shell requires a different pathing structure.
 
         Args:
@@ -117,8 +111,7 @@ class GitBash(Bash):
         return path
 
     def normalize_path(self, path):
-        """
-        Normalize the path to fit the environment.
+        """Normalize the path to fit the environment.
         For example, POSIX paths, Windows path, etc. If no transformation is
         necessary, just return the path.
 
@@ -143,13 +136,16 @@ class GitBash(Bash):
         """
         def lowrepl(match):
             if match:
-                return "/{}/".format(match.group(1).lower())
+                return '/{}/'.format(match.group(1).lower())
 
         # C:\ ==> /c/
-        value2 = self._drive_regex.sub(lowrepl, value).replace("\\", "/")
+        value2 = self._drive_regex.sub(lowrepl, value).replace('\\', '/')
         return value2
+
+    def shebang(self):
+        self._addline('#! /usr/bin/env bash')
 
 
 def register_plugin():
-    if platform_.name == "windows":
+    if platform_.name == 'windows':
         return GitBash
