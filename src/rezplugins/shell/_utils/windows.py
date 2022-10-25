@@ -9,6 +9,7 @@ from rez.utils.execution import Popen
 
 
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
+_drive_regex_mixed = re.compile(r"([a-z]):/")
 _env_var_regex = re.compile(r"%([^%]*)%")
 
 
@@ -86,6 +87,10 @@ def to_mixed_path(path):
     TODO: doesn't take into account escaped forward slashes, which would be
     weird to have in a path, but is possible.
     """
+    def uprepl(match):
+        if match:
+            return '{}:/'.format(match.group(1).upper())
+
     # c:\ and C:\ -> C:/
     drive_letter_match = _drive_start_regex.match(path)
     # If converting the drive letter to posix, capitalize the drive
@@ -97,6 +102,10 @@ def to_mixed_path(path):
 
     # Fwdslash -> backslash
     path = path.replace('/', '\\')
+
+    # ${XYZ};c:/ -> C:/
+    if _drive_regex_mixed.match(path):
+        path = _drive_regex_mixed.sub(uprepl, path)
 
     return path
 
