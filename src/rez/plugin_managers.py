@@ -317,7 +317,12 @@ class RezPluginManager(object):
                     module_path = os.path.join(importer.archive, name)
 
             else:
-                module_path = os.path.join(importer.path, name)
+                try:
+                    module_path = os.path.join(importer.path, name)
+                # Ignore execution failures due to missing `importer.path`,
+                # when rez is packaged as a single application via Pyinstaller or PyOxidizer.
+                except AttributeError:
+                    continue
                 init_path = os.path.join(module_path, "rezplugins", "__init__.py")
                 if not os.path.isfile(init_path):
                     continue
