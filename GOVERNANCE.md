@@ -24,8 +24,8 @@ project, beyond the legal forms.
 
 ### How to Become a Contributor
 
-* Review the coding standards to ensure your contribution is in line
-  with the project's coding and styling guidelines.
+* Review the coding standards in `CONTRIBUTING.md` to ensure your contribution
+  is in line with the project's coding and styling guidelines.
 
 * Sign the Individual CLA, or have your organization sign the Corporate CLA.
 
@@ -61,20 +61,15 @@ Any existing Committer can nominate an individual making significant
 and valuable contributions to the Rez project to become a new
 Committer.  New committers are approved by vote of the TSC.
 
-If you are interested in becoming a Committer, contact the TSC at ???
-
-TODO: best way to contact the TSC? Publicly? Privately?
+If you are interested in becoming a Committer, contact the TSC at:
+  rez-discussion@lists.aswf.io
 
 ## Technical Steering Committee
 
 The Technical Steering Committee (TSC) oversees the overall technical
 direction of Rez, as defined in the project
-[charter](ASWF/charter/Rez-Technical-Charter.md).  This
-charter defines the TSC member terms and succession policies.
-
-TODO: Is there a rez charter? I don't know whether it belongs here or in a
-charter, but there should be some sort of mission statement that includes
-goals of increasing adoption of rez and growing the ecosystem of tools and the community of developers around rez.
+[charter](https://github.com/AcademySoftwareFoundation/foundation/blob/main/project_charters/rez-charter.pdf).
+This charter defines the TSC member terms and succession policies.
 
 The responsibilities of the TSC include:
 
@@ -98,19 +93,22 @@ The responsibilities of the TSC include:
 
 The TSC elects a Chair person, who acts as the project manager,
 organizing meetings and providing oversight to project
-administration. The Chair is elected by the TSC.  The Chair also
-serves as the Rez representative on the Academy Software
-Foundation (ASWF) Technical Advisory Council (TAC). The chair
-represents the project at ASWF TAC meetings.
+administration. The Chair is elected by the TSC. The Chair may
+also serve as the Rez representative on the Academy Software
+Foundation (ASWF) Technical Advisory Council (TAC), or one may
+be separately elected by the TSC. The Rez representative will
+represent the project at ASWF TAC meetings.
 
 ### Current TSC Members
 
-* Allan Johns (chair, author) - Nvidia
-* Jean-Christophe Morin
-* Stephen Mackenzie
-* Thorsten Kaufmann
+Unless otherwise denoted with †, members of the TSC contribute to rez
+independent of their employer, but are listed regardless for transparency.
+
+* Allan Johns (chair, author) - NVIDIA
 * Brendan Abel - Walt Disney Imagineering
-* John Mertic - The Linux Foundation (TODO: is John a TSC member?)
+* Jean-Christophe Morin - Signiant
+* Stephen Mackenzie - NVIDIA
+* Thorsten Kaufmann - Accenture Song Content
 
 ### TSC Meetings
 
@@ -140,8 +138,8 @@ each meeting. The meeting chair and the TSC cannot veto or remove items.
 
 The TSC may invite additional persons to participate in a non-voting capacity.
 
-The meeting chair is responsible for archiving the minutes, stored at 
-https://wiki.aswf.io/display/OEXR/TSC+Meetings.
+The meeting chair is responsible for archiving the
+[minutes](https://github.com/AcademySoftwareFoundation/rez/tree/master/ASWF/TSC/meeting-notes).
 
 Due to the challenges of scheduling a global meeting with participants
 in several time zones, the TSC will seek to resolve as many agenda
