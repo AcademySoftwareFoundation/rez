@@ -138,7 +138,7 @@ each meeting. The meeting chair and the TSC cannot veto or remove items.
 
 The TSC may invite additional persons to participate in a non-voting capacity.
 
-The meeting chair is responsible for archiving the
+The meeting chair and secretary are responsible for archiving the
 [minutes](https://github.com/AcademySoftwareFoundation/rez/tree/master/ASWF/TSC/meeting-notes).
 
 Due to the challenges of scheduling a global meeting with participants
