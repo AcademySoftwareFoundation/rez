@@ -14,7 +14,7 @@ There are three primary project roles:
 ## Contributors
 
 The Rez project grows and thrives from assistance from
-Contributors.  Contributors include anyone in the community that
+Contributors. Contributors include anyone in the community that
 submits code, documentation, or other technical artifacts to the
 project. However, such contributions must be approved by a project
 Committer before they become a part of the project.  
@@ -59,7 +59,7 @@ Typical activities of a Committer include:
 
 Any existing Committer can nominate an individual making significant
 and valuable contributions to the Rez project to become a new
-Committer.  New committers are approved by vote of the TSC.
+Committer. New committers are approved by vote of the TSC.
 
 If you are interested in becoming a Committer, contact the TSC at:
   rez-discussion@lists.aswf.io
@@ -129,7 +129,7 @@ the larger group of Committers.
 
 Any community member or Contributor can ask that something be reviewed
 by the TSC at the meeting by logging a GitHub issue. Any Committer,
-TSC member, or the meeting chair can bring the issue to the TSC's
+TSC member can bring the issue to the TSC's
 attention by applying the `TSC` label.
 
 Prior to each TSC meeting, the meeting chair will share the agenda with members
