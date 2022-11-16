@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1.2.1.4. rezplugins.shell package &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="1.2.1.5. rezplugins.source_retriever package" href="rezplugins.source_retriever.html" />
+    <link rel="prev" title="1.2.1.3. rezplugins.release_vcs package" href="rezplugins.release_vcs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">1. API Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="rez.html">1.1. Rez</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="rezplugins.html">1.2. Rez Plugins</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="rezplugins.html#subpackages">1.2.1. Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.build_system.html">1.2.1.1. rezplugins.build_system package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.release_hook.html">1.2.1.2. rezplugins.release_hook package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.release_vcs.html">1.2.1.3. rezplugins.release_vcs package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">1.2.1.4. rezplugins.shell package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.source_retriever.html">1.2.1.5. rezplugins.source_retriever package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rezplugins.html#module-rezplugins">1.2.2. Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">1. API Documentation</a></li>
+          <li class="breadcrumb-item"><a href="rezplugins.html">1.2. Rez Plugins</a></li>
+      <li class="breadcrumb-item active">1.2.1.4. rezplugins.shell package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/rezplugins.shell.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="rezplugins-shell-package">
+<h1>1.2.1.4. rezplugins.shell package<a class="headerlink" href="#rezplugins-shell-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>1.2.1.4.1. Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rezplugins.shell.bash">
+<span id="rezplugins-shell-bash-module"></span><h2>1.2.1.4.2. rezplugins.shell.bash module<a class="headerlink" href="#module-rezplugins.shell.bash" title="Permalink to this headline">¶</a></h2>
+<p>Bash shell</p>
+<dl class="class">
+<dt id="rezplugins.shell.bash.Bash">
+<em class="property">class </em><code class="descclassname">rezplugins.shell.bash.</code><code class="descname">Bash</code><a class="reference internal" href="../_modules/rezplugins/shell/bash.html#Bash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.bash.Bash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rezplugins.shell.sh.SH" title="rezplugins.shell.sh.SH"><code class="xref py py-class docutils literal notranslate"><span class="pre">rezplugins.shell.sh.SH</span></code></a></p>
+<dl class="method">
+<dt id="rezplugins.shell.bash.Bash.alias">
+<code class="descname">alias</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/bash.html#Bash.alias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.bash.Bash.alias" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.bash.Bash.get_startup_sequence">
+<em class="property">classmethod </em><code class="descname">get_startup_sequence</code><span class="sig-paren">(</span><em>rcfile</em>, <em>norc</em>, <em>stdin</em>, <em>command</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/bash.html#Bash.get_startup_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.bash.Bash.get_startup_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dict containing:
+- ‘stdin’: resulting stdin setting.
+- ‘command’: resulting command setting.
+- ‘do_rcfile’: True if a file should be sourced directly.
+- ‘envvar’: Env-var that points at a file to source at startup. Can be None.
+- ‘files’: Existing files that will be sourced (non-user-expanded), in source</p>
+<blockquote>
+<div>order. This may also incorporate rcfile, and file pointed at via envvar.
+Can be empty.</div></blockquote>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>‘bind_files’: Files to inject Rez binding into, even if that file doesn’t</dt>
+<dd>already exist.</dd>
+</dl>
+</li>
+<li>‘source_bind_files’: Whether to source bind files, if they exist.</li>
+</ul>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.bash.Bash.name">
+<em class="property">classmethod </em><code class="descname">name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/bash.html#Bash.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.bash.Bash.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plugin name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.bash.Bash.norc_arg">
+<code class="descname">norc_arg</code><em class="property"> = '--norc'</em><a class="headerlink" href="#rezplugins.shell.bash.Bash.norc_arg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.bash.Bash.rcfile_arg">
+<code class="descname">rcfile_arg</code><em class="property"> = '--rcfile'</em><a class="headerlink" href="#rezplugins.shell.bash.Bash.rcfile_arg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.bash.Bash.startup_capabilities">
+<em class="property">classmethod </em><code class="descname">startup_capabilities</code><span class="sig-paren">(</span><em>rcfile=False</em>, <em>norc=False</em>, <em>stdin=False</em>, <em>command=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/bash.html#Bash.startup_capabilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.bash.Bash.startup_capabilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a set of options related to shell startup, return the actual
+options that will be applied.
+&#64;returns 4-tuple representing applied value of each option.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rezplugins.shell.bash.register_plugin">
+<code class="descclassname">rezplugins.shell.bash.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/bash.html#register_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.bash.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rezplugins.shell.csh">
+<span id="rezplugins-shell-csh-module"></span><h2>1.2.1.4.3. rezplugins.shell.csh module<a class="headerlink" href="#module-rezplugins.shell.csh" title="Permalink to this headline">¶</a></h2>
+<p>CSH shell</p>
+<dl class="class">
+<dt id="rezplugins.shell.csh.CSH">
+<em class="property">class </em><code class="descclassname">rezplugins.shell.csh.</code><code class="descname">CSH</code><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="rez.html#rez.shells.UnixShell" title="rez.shells.UnixShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.shells.UnixShell</span></code></a></p>
+<dl class="method">
+<dt id="rezplugins.shell.csh.CSH.alias">
+<code class="descname">alias</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.alias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.alias" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.csh.CSH.escape_string">
+<code class="descname">escape_string</code><span class="sig-paren">(</span><em>value</em>, <em>is_path=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.escape_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.escape_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Escape a string.</p>
+<p>Escape the given string so that special characters (such as quotes and
+whitespace) are treated properly. If <cite>value</cite> is a string, assume that
+this is an expandable string in this interpreter.</p>
+<p>Note that <cite>is_path</cite> provided because of the special case where a
+path-like envvar is set. In this case, path normalization, if it needs
+to occur, has to be part of the string escaping process.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This default implementation returns the string with no escaping
+applied.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>value</strong> (str or <cite>EscapedString</cite>) – String to escape.</li>
+<li><strong>is_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – True if the value is path-like.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The escaped string.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.csh.CSH.file_extension">
+<em class="property">classmethod </em><code class="descname">file_extension</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.file_extension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.file_extension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the file extension associated with the shell.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Shell file extension.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.csh.CSH.get_startup_sequence">
+<em class="property">classmethod </em><code class="descname">get_startup_sequence</code><span class="sig-paren">(</span><em>rcfile</em>, <em>norc</em>, <em>stdin</em>, <em>command</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.get_startup_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.get_startup_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dict containing:
+- ‘stdin’: resulting stdin setting.
+- ‘command’: resulting command setting.
+- ‘do_rcfile’: True if a file should be sourced directly.
+- ‘envvar’: Env-var that points at a file to source at startup. Can be None.
+- ‘files’: Existing files that will be sourced (non-user-expanded), in source</p>
+<blockquote>
+<div>order. This may also incorporate rcfile, and file pointed at via envvar.
+Can be empty.</div></blockquote>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>‘bind_files’: Files to inject Rez binding into, even if that file doesn’t</dt>
+<dd>already exist.</dd>
+</dl>
+</li>
+<li>‘source_bind_files’: Whether to source bind files, if they exist.</li>
+</ul>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.csh.CSH.get_syspaths">
+<em class="property">classmethod </em><code class="descname">get_syspaths</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.get_syspaths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.get_syspaths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.csh.CSH.histfile">
+<code class="descname">histfile</code><em class="property"> = '~/.history'</em><a class="headerlink" href="#rezplugins.shell.csh.CSH.histfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.csh.CSH.histvar">
+<code class="descname">histvar</code><em class="property"> = 'histfile'</em><a class="headerlink" href="#rezplugins.shell.csh.CSH.histvar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.csh.CSH.join">
+<em class="property">classmethod </em><code class="descname">join</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Note: Default to unix sh/bash- friendly behaviour.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – A sequence of program arguments to be joined into a single
+string that can be executed in the current shell.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string object representing the command.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.csh.CSH.last_command_status">
+<code class="descname">last_command_status</code><em class="property"> = '$status'</em><a class="headerlink" href="#rezplugins.shell.csh.CSH.last_command_status" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.csh.CSH.name">
+<em class="property">classmethod </em><code class="descname">name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plugin name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.csh.CSH.norc_arg">
+<code class="descname">norc_arg</code><em class="property"> = '-f'</em><a class="headerlink" href="#rezplugins.shell.csh.CSH.norc_arg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.csh.CSH.setenv">
+<code class="descname">setenv</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.setenv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.setenv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.csh.CSH.source">
+<code class="descname">source</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.csh.CSH.startup_capabilities">
+<em class="property">classmethod </em><code class="descname">startup_capabilities</code><span class="sig-paren">(</span><em>rcfile=False</em>, <em>norc=False</em>, <em>stdin=False</em>, <em>command=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.startup_capabilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.startup_capabilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a set of options related to shell startup, return the actual
+options that will be applied.
+&#64;returns 4-tuple representing applied value of each option.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.csh.CSH.unsetenv">
+<code class="descname">unsetenv</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#CSH.unsetenv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.CSH.unsetenv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rezplugins.shell.csh.register_plugin">
+<code class="descclassname">rezplugins.shell.csh.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/csh.html#register_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.csh.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rezplugins.shell.sh">
+<span id="rezplugins-shell-sh-module"></span><h2>1.2.1.4.4. rezplugins.shell.sh module<a class="headerlink" href="#module-rezplugins.shell.sh" title="Permalink to this headline">¶</a></h2>
+<p>SH shell</p>
+<dl class="class">
+<dt id="rezplugins.shell.sh.SH">
+<em class="property">class </em><code class="descclassname">rezplugins.shell.sh.</code><code class="descname">SH</code><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="rez.html#rez.shells.UnixShell" title="rez.shells.UnixShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.shells.UnixShell</span></code></a></p>
+<dl class="method">
+<dt id="rezplugins.shell.sh.SH.alias">
+<code class="descname">alias</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.alias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.alias" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.sh.SH.escape_string">
+<code class="descname">escape_string</code><span class="sig-paren">(</span><em>value</em>, <em>is_path=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.escape_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.escape_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Escape a string.</p>
+<p>Escape the given string so that special characters (such as quotes and
+whitespace) are treated properly. If <cite>value</cite> is a string, assume that
+this is an expandable string in this interpreter.</p>
+<p>Note that <cite>is_path</cite> provided because of the special case where a
+path-like envvar is set. In this case, path normalization, if it needs
+to occur, has to be part of the string escaping process.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This default implementation returns the string with no escaping
+applied.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>value</strong> (str or <cite>EscapedString</cite>) – String to escape.</li>
+<li><strong>is_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – True if the value is path-like.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The escaped string.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.sh.SH.file_extension">
+<em class="property">classmethod </em><code class="descname">file_extension</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.file_extension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.file_extension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the file extension associated with the shell.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Shell file extension.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.sh.SH.get_startup_sequence">
+<em class="property">classmethod </em><code class="descname">get_startup_sequence</code><span class="sig-paren">(</span><em>rcfile</em>, <em>norc</em>, <em>stdin</em>, <em>command</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.get_startup_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.get_startup_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dict containing:
+- ‘stdin’: resulting stdin setting.
+- ‘command’: resulting command setting.
+- ‘do_rcfile’: True if a file should be sourced directly.
+- ‘envvar’: Env-var that points at a file to source at startup. Can be None.
+- ‘files’: Existing files that will be sourced (non-user-expanded), in source</p>
+<blockquote>
+<div>order. This may also incorporate rcfile, and file pointed at via envvar.
+Can be empty.</div></blockquote>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>‘bind_files’: Files to inject Rez binding into, even if that file doesn’t</dt>
+<dd>already exist.</dd>
+</dl>
+</li>
+<li>‘source_bind_files’: Whether to source bind files, if they exist.</li>
+</ul>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.sh.SH.get_syspaths">
+<em class="property">classmethod </em><code class="descname">get_syspaths</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.get_syspaths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.get_syspaths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.sh.SH.histfile">
+<code class="descname">histfile</code><em class="property"> = '~/.bash_history'</em><a class="headerlink" href="#rezplugins.shell.sh.SH.histfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.sh.SH.histvar">
+<code class="descname">histvar</code><em class="property"> = 'HISTFILE'</em><a class="headerlink" href="#rezplugins.shell.sh.SH.histvar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.sh.SH.name">
+<em class="property">classmethod </em><code class="descname">name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plugin name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.shell.sh.SH.norc_arg">
+<code class="descname">norc_arg</code><em class="property"> = '--noprofile'</em><a class="headerlink" href="#rezplugins.shell.sh.SH.norc_arg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.sh.SH.setenv">
+<code class="descname">setenv</code><span class="sig-paren">(</span><em>key</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.setenv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.setenv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.sh.SH.source">
+<code class="descname">source</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.sh.SH.startup_capabilities">
+<em class="property">classmethod </em><code class="descname">startup_capabilities</code><span class="sig-paren">(</span><em>rcfile=False</em>, <em>norc=False</em>, <em>stdin=False</em>, <em>command=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.startup_capabilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.startup_capabilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a set of options related to shell startup, return the actual
+options that will be applied.
+&#64;returns 4-tuple representing applied value of each option.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.shell.sh.SH.unsetenv">
+<code class="descname">unsetenv</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#SH.unsetenv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.SH.unsetenv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rezplugins.shell.sh.register_plugin">
+<code class="descclassname">rezplugins.shell.sh.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/sh.html#register_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.sh.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rezplugins.shell.tcsh">
+<span id="rezplugins-shell-tcsh-module"></span><h2>1.2.1.4.5. rezplugins.shell.tcsh module<a class="headerlink" href="#module-rezplugins.shell.tcsh" title="Permalink to this headline">¶</a></h2>
+<p>TCSH shell</p>
+<dl class="class">
+<dt id="rezplugins.shell.tcsh.TCSH">
+<em class="property">class </em><code class="descclassname">rezplugins.shell.tcsh.</code><code class="descname">TCSH</code><a class="reference internal" href="../_modules/rezplugins/shell/tcsh.html#TCSH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.tcsh.TCSH" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rezplugins.shell.csh.CSH" title="rezplugins.shell.csh.CSH"><code class="xref py py-class docutils literal notranslate"><span class="pre">rezplugins.shell.csh.CSH</span></code></a></p>
+<dl class="method">
+<dt id="rezplugins.shell.tcsh.TCSH.escape_string">
+<code class="descname">escape_string</code><span class="sig-paren">(</span><em>value</em>, <em>is_path=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/tcsh.html#TCSH.escape_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.tcsh.TCSH.escape_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Escape a string.</p>
+<p>Escape the given string so that special characters (such as quotes and
+whitespace) are treated properly. If <cite>value</cite> is a string, assume that
+this is an expandable string in this interpreter.</p>
+<p>Note that <cite>is_path</cite> provided because of the special case where a
+path-like envvar is set. In this case, path normalization, if it needs
+to occur, has to be part of the string escaping process.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This default implementation returns the string with no escaping
+applied.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>value</strong> (str or <cite>EscapedString</cite>) – String to escape.</li>
+<li><strong>is_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – True if the value is path-like.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The escaped string.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.shell.tcsh.TCSH.name">
+<em class="property">classmethod </em><code class="descname">name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/tcsh.html#TCSH.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.tcsh.TCSH.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plugin name.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rezplugins.shell.tcsh.register_plugin">
+<code class="descclassname">rezplugins.shell.tcsh.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/shell/tcsh.html#register_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.shell.tcsh.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="rezplugins-shell-windows-module">
+<h2>1.2.1.4.6. rezplugins.shell.windows module<a class="headerlink" href="#rezplugins-shell-windows-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rezplugins.shell">
+<span id="module-contents"></span><h2>1.2.1.4.7. Module contents<a class="headerlink" href="#module-rezplugins.shell" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rezplugins.release_vcs.html" class="btn btn-neutral float-left" title="1.2.1.3. rezplugins.release_vcs package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rezplugins.source_retriever.html" class="btn btn-neutral float-right" title="1.2.1.5. rezplugins.source_retriever package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

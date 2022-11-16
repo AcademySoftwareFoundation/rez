@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.tests.test_rex &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.tests.test_rex</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.tests.test_rex</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">test the rex command generator API</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">rez.rex</span> <span class="kn">import</span> <span class="n">RexExecutor</span><span class="p">,</span> <span class="n">Python</span><span class="p">,</span> <span class="n">Setenv</span><span class="p">,</span> <span class="n">Appendenv</span><span class="p">,</span> <span class="n">Prependenv</span><span class="p">,</span> <span class="n">Info</span><span class="p">,</span> \
+    <span class="n">Comment</span><span class="p">,</span> <span class="n">Alias</span><span class="p">,</span> <span class="n">Command</span><span class="p">,</span> <span class="n">Source</span><span class="p">,</span> <span class="n">Error</span><span class="p">,</span> <span class="n">Shebang</span><span class="p">,</span> <span class="n">Unsetenv</span><span class="p">,</span> <span class="n">expandable</span><span class="p">,</span> \
+    <span class="n">literal</span>
+<span class="kn">from</span> <span class="nn">rez.rex_bindings</span> <span class="kn">import</span> <span class="n">VersionBinding</span><span class="p">,</span> <span class="n">VariantBinding</span><span class="p">,</span> <span class="n">VariantsBinding</span><span class="p">,</span> \
+    <span class="n">RequirementsBinding</span><span class="p">,</span> <span class="n">EphemeralsBinding</span><span class="p">,</span> <span class="n">intersects</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">RexError</span><span class="p">,</span> <span class="n">RexUndefinedVariableError</span>
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.version.version</span> <span class="kn">import</span> <span class="n">Version</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.version.requirement</span> <span class="kn">import</span> <span class="n">Requirement</span>
+<span class="kn">from</span> <span class="nn">rez.tests.util</span> <span class="kn">import</span> <span class="n">TestBase</span>
+<span class="kn">from</span> <span class="nn">rez.utils.backcompat</span> <span class="kn">import</span> <span class="n">convert_old_commands</span>
+<span class="kn">from</span> <span class="nn">rez.package_repository</span> <span class="kn">import</span> <span class="n">package_repository_manager</span>
+<span class="kn">from</span> <span class="nn">rez.packages</span> <span class="kn">import</span> <span class="n">iter_package_families</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="TestRex"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex">[docs]</a><span class="k">class</span> <span class="nc">TestRex</span><span class="p">(</span><span class="n">TestBase</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_create_executor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">interp</span> <span class="o">=</span> <span class="n">Python</span><span class="p">(</span><span class="n">target_environ</span><span class="o">=</span><span class="p">{},</span> <span class="n">passive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">RexExecutor</span><span class="p">(</span><span class="n">interpreter</span><span class="o">=</span><span class="n">interp</span><span class="p">,</span>
+                           <span class="n">parent_environ</span><span class="o">=</span><span class="n">env</span><span class="p">,</span>
+                           <span class="n">shebang</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">expected_actions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">expected_output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">expected_exception</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">ex_kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests rex code as a function object, and code string.&quot;&quot;&quot;</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">func</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">loc</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">expected_exception</span><span class="p">:</span>
+            <span class="n">ex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_executor</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="o">**</span><span class="n">ex_kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">expected_exception</span><span class="p">,</span> <span class="n">ex</span><span class="o">.</span><span class="n">execute_function</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+
+            <span class="n">ex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_executor</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="o">**</span><span class="n">ex_kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">expected_exception</span><span class="p">,</span> <span class="n">ex</span><span class="o">.</span><span class="n">execute_code</span><span class="p">,</span> <span class="n">code</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_executor</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="o">**</span><span class="n">ex_kwargs</span><span class="p">)</span>
+            <span class="n">ex</span><span class="o">.</span><span class="n">execute_function</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">actions</span><span class="p">,</span> <span class="n">expected_actions</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">get_output</span><span class="p">(),</span> <span class="n">expected_output</span><span class="p">)</span>
+
+            <span class="n">ex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_executor</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="o">**</span><span class="n">ex_kwargs</span><span class="p">)</span>
+            <span class="n">ex</span><span class="o">.</span><span class="n">execute_code</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">actions</span><span class="p">,</span> <span class="n">expected_actions</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">get_output</span><span class="p">(),</span> <span class="n">expected_output</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TestRex.test_1"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_1">[docs]</a>    <span class="k">def</span> <span class="nf">test_1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test simple use of every available action.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="n">shebang</span><span class="p">()</span>
+            <span class="n">setenv</span><span class="p">(</span><span class="s2">&quot;FOO&quot;</span><span class="p">,</span> <span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+            <span class="n">setenv</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">,</span> <span class="s2">&quot;bah&quot;</span><span class="p">)</span>
+            <span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">)</span>
+            <span class="n">unsetenv</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">)</span>
+            <span class="n">unsetenv</span><span class="p">(</span><span class="s2">&quot;NOTEXIST&quot;</span><span class="p">)</span>
+            <span class="n">prependenv</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">)</span>
+            <span class="n">prependenv</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;/data&quot;</span><span class="p">)</span>
+            <span class="n">appendenv</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">)</span>
+            <span class="n">appendenv</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;/data&quot;</span><span class="p">)</span>
+            <span class="n">defined</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">)</span>
+            <span class="n">undefined</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">)</span>
+            <span class="n">defined</span><span class="p">(</span><span class="s2">&quot;NOTEXIST&quot;</span><span class="p">)</span>
+            <span class="n">undefined</span><span class="p">(</span><span class="s2">&quot;NOTEXIST&quot;</span><span class="p">)</span>
+            <span class="n">alias</span><span class="p">(</span><span class="s2">&quot;thing&quot;</span><span class="p">,</span> <span class="s2">&quot;thang&quot;</span><span class="p">)</span>
+            <span class="n">info</span><span class="p">(</span><span class="s2">&quot;that&#39;s interesting&quot;</span><span class="p">)</span>
+            <span class="n">error</span><span class="p">(</span><span class="s2">&quot;oh noes&quot;</span><span class="p">)</span>
+            <span class="n">command</span><span class="p">(</span><span class="s2">&quot;runme --with --args&quot;</span><span class="p">)</span>
+            <span class="n">source</span><span class="p">(</span><span class="s2">&quot;./script.src&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Shebang</span><span class="p">(),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;bah&#39;</span><span class="p">),</span>
+                       <span class="n">Unsetenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">),</span>
+                       <span class="n">Unsetenv</span><span class="p">(</span><span class="s1">&#39;NOTEXIST&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;/tmp&#39;</span><span class="p">),</span>
+                       <span class="n">Prependenv</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;/data&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;/tmp&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;/data&#39;</span><span class="p">),</span>
+                       <span class="n">Alias</span><span class="p">(</span><span class="s1">&#39;thing&#39;</span><span class="p">,</span> <span class="s1">&#39;thang&#39;</span><span class="p">),</span>
+                       <span class="n">Info</span><span class="p">(</span><span class="s2">&quot;that&#39;s interesting&quot;</span><span class="p">),</span>
+                       <span class="n">Error</span><span class="p">(</span><span class="s1">&#39;oh noes&#39;</span><span class="p">),</span>
+                       <span class="n">Command</span><span class="p">(</span><span class="s1">&#39;runme --with --args&#39;</span><span class="p">),</span>
+                       <span class="n">Source</span><span class="p">(</span><span class="s1">&#39;./script.src&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;/data&quot;</span><span class="p">,</span> <span class="s2">&quot;/tmp&quot;</span><span class="p">]),</span>
+                       <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;/tmp&quot;</span><span class="p">,</span> <span class="s2">&quot;/data&quot;</span><span class="p">])})</span></div>
+
+<div class="viewcode-block" id="TestRex.test_2"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_2">[docs]</a>    <span class="k">def</span> <span class="nf">test_2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test simple setenvs and assignments.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span> <span class="o">=</span> <span class="s2">&quot;foo&quot;</span>
+            <span class="n">setenv</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">,</span> <span class="s2">&quot;bah&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">EEK</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">FOO</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;bah&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EEK&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;EEK&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="s1">&#39;bah&#39;</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestRex.test_3"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_3">[docs]</a>    <span class="k">def</span> <span class="nf">test_3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test appending/prepending.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="n">appendenv</span><span class="p">(</span><span class="s2">&quot;FOO&quot;</span><span class="p">,</span> <span class="s2">&quot;test1&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;test2&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;test3&quot;</span><span class="p">)</span>
+
+            <span class="n">env</span><span class="o">.</span><span class="n">BAH</span><span class="o">.</span><span class="n">prepend</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+            <span class="n">prependenv</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">BAH</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+
+        <span class="c1"># no parent variables enabled</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test1&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test2&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test3&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">),</span>
+                       <span class="n">Prependenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;test1&quot;</span><span class="p">,</span> <span class="s2">&quot;test2&quot;</span><span class="p">,</span> <span class="s2">&quot;test3&quot;</span><span class="p">]),</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])})</span>
+
+        <span class="c1"># FOO and BAH enabled as parent variables, but not present</span>
+        <span class="n">expected_actions</span> <span class="o">=</span> <span class="p">[</span><span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test1&#39;</span><span class="p">),</span>
+                            <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test2&#39;</span><span class="p">),</span>
+                            <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test3&#39;</span><span class="p">),</span>
+                            <span class="n">Prependenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">),</span>
+                            <span class="n">Prependenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">),</span>
+                            <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">)]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="n">expected_actions</span><span class="p">,</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;test1&quot;</span><span class="p">,</span> <span class="s2">&quot;test2&quot;</span><span class="p">,</span> <span class="s2">&quot;test3&quot;</span><span class="p">]),</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])},</span>
+                   <span class="n">parent_variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FOO&quot;</span><span class="p">,</span> <span class="s2">&quot;BAH&quot;</span><span class="p">])</span>
+
+        <span class="c1"># FOO and BAH enabled as parent variables, and present</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;FOO&quot;</span><span class="p">:</span> <span class="s2">&quot;tmp&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;BAH&quot;</span><span class="p">:</span> <span class="s2">&quot;Z&quot;</span><span class="p">},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="n">expected_actions</span><span class="p">,</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;tmp&quot;</span><span class="p">,</span> <span class="s2">&quot;test1&quot;</span><span class="p">,</span> <span class="s2">&quot;test2&quot;</span><span class="p">,</span> <span class="s2">&quot;test3&quot;</span><span class="p">]),</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])},</span>
+                   <span class="n">parent_variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;FOO&quot;</span><span class="p">,</span> <span class="s2">&quot;BAH&quot;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TestRex.test_4"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_4">[docs]</a>    <span class="k">def</span> <span class="nf">test_4</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test control flow using internally-set env vars.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span> <span class="o">=</span> <span class="s2">&quot;foo&quot;</span>
+            <span class="n">setenv</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">,</span> <span class="s2">&quot;bah&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">EEK</span> <span class="o">=</span> <span class="s2">&quot;foo&quot;</span>
+
+            <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">FOO</span> <span class="o">==</span> <span class="s2">&quot;foo&quot;</span><span class="p">:</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">FOO_VALID</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">info</span><span class="p">(</span><span class="s2">&quot;FOO validated&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">FOO</span> <span class="o">==</span> <span class="n">env</span><span class="o">.</span><span class="n">EEK</span><span class="p">:</span>
+                <span class="n">comment</span><span class="p">(</span><span class="s2">&quot;comparison ok&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;bah&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EEK&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO_VALID&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+                       <span class="n">Info</span><span class="p">(</span><span class="s1">&#39;FOO validated&#39;</span><span class="p">),</span>
+                       <span class="n">Comment</span><span class="p">(</span><span class="s1">&#39;comparison ok&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="s1">&#39;bah&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;EEK&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;FOO_VALID&#39;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestRex.test_5"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_5">[docs]</a>    <span class="k">def</span> <span class="nf">test_5</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test control flow using externally-set env vars.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">defined</span><span class="p">(</span><span class="s2">&quot;EXT&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">env</span><span class="o">.</span><span class="n">EXT</span> <span class="o">==</span> <span class="s2">&quot;alpha&quot;</span><span class="p">:</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">EXT_FOUND</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">EXT</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">)</span>  <span class="c1"># will still overwrite</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">EXT_FOUND</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="n">undefined</span><span class="p">(</span><span class="s2">&quot;EXT&quot;</span><span class="p">):</span>
+                    <span class="n">info</span><span class="p">(</span><span class="s2">&quot;undefined working as expected&quot;</span><span class="p">)</span>
+
+        <span class="c1"># with EXT undefined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EXT_FOUND&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">),</span>
+                       <span class="n">Info</span><span class="p">(</span><span class="s2">&quot;undefined working as expected&quot;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;EXT_FOUND&#39;</span><span class="p">:</span> <span class="s1">&#39;0&#39;</span><span class="p">})</span>
+
+        <span class="c1"># with EXT defined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;EXT&quot;</span><span class="p">:</span> <span class="s2">&quot;alpha&quot;</span><span class="p">},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EXT_FOUND&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EXT&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;EXT_FOUND&#39;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;EXT&#39;</span><span class="p">:</span> <span class="s1">&#39;beta&#39;</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestRex.test_6"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_6">[docs]</a>    <span class="k">def</span> <span class="nf">test_6</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test variable expansion.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span> <span class="o">=</span> <span class="s2">&quot;foo&quot;</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">DOG</span> <span class="o">=</span> <span class="s2">&quot;$FOO&quot;</span>  <span class="c1"># this will convert to &#39;${FOO}&#39;</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">BAH</span> <span class="o">=</span> <span class="s2">&quot;$</span><span class="si">{FOO}</span><span class="s2">&quot;</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">EEK</span> <span class="o">=</span> <span class="s2">&quot;$</span><span class="si">{BAH}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">BAH</span> <span class="o">==</span> <span class="s2">&quot;foo&quot;</span> <span class="ow">and</span> <span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;EEK&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;foo&quot;</span><span class="p">:</span>
+                <span class="n">info</span><span class="p">(</span><span class="s2">&quot;expansions visible in control flow&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">defined</span><span class="p">(</span><span class="s2">&quot;EXT&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;EXT&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;alpha&quot;</span><span class="p">:</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">FEE</span> <span class="o">=</span> <span class="s2">&quot;$</span><span class="si">{EXT}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># with EXT undefined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;DOG&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{FOO}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{FOO}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EEK&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{BAH}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Info</span><span class="p">(</span><span class="s1">&#39;expansions visible in control flow&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;DOG&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;EEK&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">})</span>
+
+        <span class="c1"># with EXT defined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;EXT&quot;</span><span class="p">:</span> <span class="s2">&quot;alpha&quot;</span><span class="p">},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;DOG&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{FOO}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{FOO}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EEK&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{BAH}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Info</span><span class="p">(</span><span class="s1">&#39;expansions visible in control flow&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FEE&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{EXT}</span><span class="s1">&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;DOG&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;EEK&#39;</span><span class="p">:</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;FEE&#39;</span><span class="p">:</span> <span class="s1">&#39;alpha&#39;</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestRex.test_7"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_7">[docs]</a>    <span class="k">def</span> <span class="nf">test_7</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test exceptions.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex1</span><span class="p">():</span>
+            <span class="c1"># reference to undefined var</span>
+            <span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;NOTEXIST&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex1</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_exception</span><span class="o">=</span><span class="n">RexUndefinedVariableError</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_rex2</span><span class="p">():</span>
+            <span class="c1"># reference to undefined var</span>
+            <span class="n">info</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">NOTEXIST</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex2</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_exception</span><span class="o">=</span><span class="n">RexUndefinedVariableError</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_rex3</span><span class="p">():</span>
+            <span class="c1"># native error, this gets encapsulated in a RexError</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;some non rex-specific error&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex3</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_exception</span><span class="o">=</span><span class="n">RexError</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestRex.test_8"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_8">[docs]</a>    <span class="k">def</span> <span class="nf">test_8</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Custom environment variable separators.&quot;&quot;&quot;</span>
+
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;env_var_separators&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;FOO&quot;</span><span class="p">:</span> <span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;BAH&quot;</span><span class="p">:</span> <span class="s2">&quot; &quot;</span><span class="p">})</span>
+
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="n">appendenv</span><span class="p">(</span><span class="s2">&quot;FOO&quot;</span><span class="p">,</span> <span class="s2">&quot;test1&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;test2&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;test3&quot;</span><span class="p">)</span>
+
+            <span class="n">env</span><span class="o">.</span><span class="n">BAH</span><span class="o">.</span><span class="n">prepend</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+            <span class="n">prependenv</span><span class="p">(</span><span class="s2">&quot;BAH&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">BAH</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test1&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test2&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;test3&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">),</span>
+                       <span class="n">Prependenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;test1&quot;</span><span class="p">,</span> <span class="s2">&quot;test2&quot;</span><span class="p">,</span> <span class="s2">&quot;test3&quot;</span><span class="p">]),</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])})</span></div>
+
+<div class="viewcode-block" id="TestRex.test_9"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_9">[docs]</a>    <span class="k">def</span> <span class="nf">test_9</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test literal and expandable strings.&quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_rex</span><span class="p">():</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="s2">&quot;hello&quot;</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span> <span class="o">=</span> <span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;$A&quot;</span><span class="p">)</span>  <span class="c1"># will convert to &#39;${A}&#39;</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">BAH</span> <span class="o">=</span> <span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{A}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">EEK</span> <span class="o">=</span> <span class="n">literal</span><span class="p">(</span><span class="s2">&quot;$A&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_rex2</span><span class="p">():</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">BAH</span> <span class="o">=</span> <span class="s2">&quot;omg&quot;</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;$BAH&quot;</span><span class="p">)</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{BAH}</span><span class="s2">&quot;</span><span class="p">))</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;like, &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;$SHE said, &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">e</span><span class="p">(</span><span class="s2">&quot;$BAH&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{A}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{A}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;EEK&#39;</span><span class="p">,</span> <span class="s1">&#39;$A&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;EEK&#39;</span><span class="p">:</span> <span class="s1">&#39;$A&#39;</span><span class="p">})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">_rex2</span><span class="p">,</span>
+                   <span class="n">env</span><span class="o">=</span><span class="p">{},</span>
+                   <span class="n">expected_actions</span><span class="o">=</span><span class="p">[</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;BAH&#39;</span><span class="p">,</span> <span class="s1">&#39;omg&#39;</span><span class="p">),</span>
+                       <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{BAH}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{BAH}</span><span class="s1">&#39;</span><span class="p">),</span>
+                       <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;FOO&#39;</span><span class="p">,</span> <span class="s1">&#39;like, $SHE said, $</span><span class="si">{BAH}</span><span class="s1">&#39;</span><span class="p">)],</span>
+                   <span class="n">expected_output</span><span class="o">=</span><span class="p">{</span>
+                       <span class="s1">&#39;BAH&#39;</span><span class="p">:</span> <span class="s1">&#39;omg&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;FOO&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;omg&#39;</span><span class="p">,</span> <span class="s1">&#39;$</span><span class="si">{BAH}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;like&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;, $SHE said, omg&#39;</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="TestRex.test_10"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_10">[docs]</a>    <span class="k">def</span> <span class="nf">test_10</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test env __contains__ and __bool__&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">_test</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+            <span class="n">ex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_executor</span><span class="p">(</span><span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">ex</span><span class="o">.</span><span class="n">execute_function</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">_rex_1</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="s2">&quot;A&quot;</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+                <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="s2">&quot;B&quot;</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+            <span class="p">}</span>
+
+        <span class="k">def</span> <span class="nf">_rex_2</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="s2">&quot;A&quot;</span> <span class="ow">in</span> <span class="n">env</span><span class="p">,</span>
+                <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="s2">&quot;B&quot;</span> <span class="ow">in</span> <span class="n">env</span><span class="p">,</span>
+            <span class="p">}</span>
+
+        <span class="k">def</span> <span class="nf">_rex_3</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;not b&quot;</span>
+
+        <span class="n">_test</span><span class="p">(</span><span class="n">_rex_1</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="s2">&quot;foo&quot;</span><span class="p">},</span> <span class="n">expected</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+        <span class="n">_test</span><span class="p">(</span><span class="n">_rex_2</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="s2">&quot;foo&quot;</span><span class="p">},</span> <span class="n">expected</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+        <span class="n">_test</span><span class="p">(</span><span class="n">_rex_3</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="p">{},</span> <span class="n">expected</span><span class="o">=</span><span class="s2">&quot;not b&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestRex.test_version_binding"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_version_binding">[docs]</a>    <span class="k">def</span> <span class="nf">test_version_binding</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test the Rex binding of the Version class.&quot;&quot;&quot;</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">VersionBinding</span><span class="p">(</span><span class="n">Version</span><span class="p">(</span><span class="s2">&quot;1.2.3alpha&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">major</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">minor</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">patch</span><span class="p">,</span> <span class="s2">&quot;3alpha&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="s2">&quot;1.2.3alpha&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">(),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;3alpha&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestRex.test_old_style_commands"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_old_style_commands">[docs]</a>    <span class="k">def</span> <span class="nf">test_old_style_commands</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert old style commands to rex&quot;&quot;&quot;</span>
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([],</span> <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;setenv(&#39;A&#39;, &#39;B&#39;)&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([</span><span class="s2">&quot;export A=B&quot;</span><span class="p">],</span> <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;setenv(&#39;A&#39;, &#39;B:$C&#39;)&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([</span><span class="s2">&quot;export A=B:$C&quot;</span><span class="p">],</span> <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;setenv(&#39;A&#39;, &#39;hey </span><span class="se">\&quot;</span><span class="s2">there</span><span class="se">\&quot;</span><span class="s2">&#39;)&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([</span><span class="s1">&#39;export A=&quot;hey </span><span class="se">\\</span><span class="s1">&quot;there</span><span class="se">\\</span><span class="s1">&quot;&quot;&#39;</span><span class="p">],</span>
+                                            <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;appendenv(&#39;A&#39;, &#39;B&#39;)&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([</span><span class="s2">&quot;export A=$A:B&quot;</span><span class="p">],</span> <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;prependenv(&#39;A&#39;, &#39;B&#39;)&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([</span><span class="s2">&quot;export A=B:$A&quot;</span><span class="p">],</span> <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;appendenv(&#39;A&#39;, &#39;B:$C&#39;)&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([</span><span class="s2">&quot;export A=$A:B:$C&quot;</span><span class="p">],</span>
+                                            <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+
+        <span class="n">expected</span> <span class="o">=</span> <span class="s2">&quot;prependenv(&#39;A&#39;, &#39;$C:B&#39;)&quot;</span>
+        <span class="n">rez_commands</span> <span class="o">=</span> <span class="n">convert_old_commands</span><span class="p">([</span><span class="s2">&quot;export A=$C:B:$A&quot;</span><span class="p">],</span>
+                                            <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">rez_commands</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestRex.test_intersects_resolve"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_intersects_resolve">[docs]</a>    <span class="k">def</span> <span class="nf">test_intersects_resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test intersects with resolve object&quot;&quot;&quot;</span>
+        <span class="n">resolved_pkg_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;foo&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">}},</span>
+            <span class="s2">&quot;maya&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;2020.1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;maya&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;2020.1&quot;</span><span class="p">}},</span>
+        <span class="p">}</span>
+        <span class="n">mem_path</span> <span class="o">=</span> <span class="s2">&quot;memory@</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">hex</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">resolved_pkg_data</span><span class="p">))</span>
+        <span class="n">resolved_repo</span> <span class="o">=</span> <span class="n">package_repository_manager</span><span class="o">.</span><span class="n">get_repository</span><span class="p">(</span><span class="n">mem_path</span><span class="p">)</span>
+        <span class="n">resolved_repo</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">resolved_pkg_data</span>
+        <span class="n">resolved_packages</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">variant</span>
+            <span class="k">for</span> <span class="n">family</span> <span class="ow">in</span> <span class="n">iter_package_families</span><span class="p">(</span><span class="n">paths</span><span class="o">=</span><span class="p">[</span><span class="n">mem_path</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">family</span><span class="o">.</span><span class="n">iter_packages</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">iter_variants</span><span class="p">()</span>
+        <span class="p">]</span>
+
+        <span class="n">variant_bindings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">VariantBinding</span><span class="p">(</span><span class="n">variant</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">resolved_packages</span>
+        <span class="p">)</span>
+        <span class="n">resolve</span> <span class="o">=</span> <span class="n">VariantsBinding</span><span class="p">(</span><span class="n">variant_bindings</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">intersects</span><span class="p">(</span><span class="n">resolve</span><span class="o">.</span><span class="n">foo</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">intersects</span><span class="p">(</span><span class="n">resolve</span><span class="o">.</span><span class="n">foo</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">intersects</span><span class="p">(</span><span class="n">resolve</span><span class="o">.</span><span class="n">maya</span><span class="p">,</span> <span class="s2">&quot;2019+&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">intersects</span><span class="p">(</span><span class="n">resolve</span><span class="o">.</span><span class="n">maya</span><span class="p">,</span> <span class="s2">&quot;&lt;=2019&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestRex.test_intersects_request"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_intersects_request">[docs]</a>    <span class="k">def</span> <span class="nf">test_intersects_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test intersects with request object&quot;&quot;&quot;</span>
+        <span class="c1"># request.get</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([</span><span class="n">Requirement</span><span class="p">(</span><span class="s2">&quot;foo.bar-1&quot;</span><span class="p">)])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>  <span class="c1"># should be False, but for backward compat</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;foo.bar-0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>  <span class="c1"># workaround, see https://github.com/AcademySoftwareFoundation/rez/pull/1030</span>
+
+        <span class="c1"># request.get_range</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([</span><span class="n">Requirement</span><span class="p">(</span><span class="s2">&quot;foo.bar-1&quot;</span><span class="p">)])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([])</span>
+        <span class="n">foo</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;==1.2.3&quot;</span><span class="p">),</span> <span class="s2">&quot;1.2&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([])</span>
+        <span class="n">foo</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;==1.2.3&quot;</span><span class="p">),</span> <span class="s2">&quot;1.4&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="n">RequirementsBinding</span><span class="p">([</span><span class="n">Requirement</span><span class="p">(</span><span class="s2">&quot;foo-1.4.5&quot;</span><span class="p">)])</span>
+        <span class="n">foo</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;==1.2.3&quot;</span><span class="p">),</span> <span class="s2">&quot;1.4&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestRex.test_intersects_ephemerals"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_rex.TestRex.test_intersects_ephemerals">[docs]</a>    <span class="k">def</span> <span class="nf">test_intersects_ephemerals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test intersects with ephemerals object&quot;&quot;&quot;</span>
+        <span class="c1"># ephemerals.get</span>
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([</span><span class="n">Requirement</span><span class="p">(</span><span class="s2">&quot;.foo.bar-1&quot;</span><span class="p">)])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>  <span class="c1"># should be False, but for backward compat</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;foo.bar-0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>  <span class="c1"># workaround, see https://github.com/AcademySoftwareFoundation/rez/pull/1030</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">,</span>  <span class="c1"># no default</span>
+                          <span class="n">intersects</span><span class="p">,</span> <span class="n">ephemerals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">),</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+
+        <span class="c1"># ephemerals.get_range</span>
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([</span><span class="n">Requirement</span><span class="p">(</span><span class="s2">&quot;.foo.bar-1&quot;</span><span class="p">)])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([])</span>
+        <span class="n">bar_on</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">bar_on</span><span class="p">)</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([])</span>
+        <span class="n">foo</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;==1.2.3&quot;</span><span class="p">),</span> <span class="s2">&quot;1.2&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([])</span>
+        <span class="n">foo</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;==1.2.3&quot;</span><span class="p">),</span> <span class="s2">&quot;1.4&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([</span><span class="n">Requirement</span><span class="p">(</span><span class="s2">&quot;.foo-1.4.5&quot;</span><span class="p">)])</span>
+        <span class="n">foo</span> <span class="o">=</span> <span class="n">intersects</span><span class="p">(</span><span class="n">ephemerals</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;==1.2.3&quot;</span><span class="p">),</span> <span class="s2">&quot;1.4&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="n">EphemeralsBinding</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">,</span>  <span class="c1"># no default</span>
+                          <span class="n">intersects</span><span class="p">,</span> <span class="n">ephemerals</span><span class="o">.</span><span class="n">get_range</span><span class="p">(</span><span class="s2">&quot;foo.bar&quot;</span><span class="p">),</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

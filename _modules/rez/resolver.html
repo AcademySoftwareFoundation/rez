@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.resolver &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.resolver</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.resolver</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">from</span> <span class="nn">rez.solver</span> <span class="kn">import</span> <span class="n">Solver</span><span class="p">,</span> <span class="n">SolverStatus</span>
+<span class="kn">from</span> <span class="nn">rez.package_repository</span> <span class="kn">import</span> <span class="n">package_repository_manager</span>
+<span class="kn">from</span> <span class="nn">rez.packages</span> <span class="kn">import</span> <span class="n">get_variant</span><span class="p">,</span> <span class="n">get_last_release_time</span>
+<span class="kn">from</span> <span class="nn">rez.package_filter</span> <span class="kn">import</span> <span class="n">PackageFilterList</span><span class="p">,</span> <span class="n">TimestampRule</span>
+<span class="kn">from</span> <span class="nn">rez.utils.memcached</span> <span class="kn">import</span> <span class="n">memcached_client</span><span class="p">,</span> <span class="n">pool_memcached_connections</span>
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">log_duration</span>
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.version.requirement</span> <span class="kn">import</span> <span class="n">Requirement</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">hashlib</span> <span class="kn">import</span> <span class="n">sha1</span>
+
+
+<div class="viewcode-block" id="ResolverStatus"><a class="viewcode-back" href="../../api/rez.html#rez.resolver.ResolverStatus">[docs]</a><span class="k">class</span> <span class="nc">ResolverStatus</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Enum to represent the current state of a resolver instance.  The enum</span>
+<span class="sd">    also includes a human readable description of what the state represents.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pending</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The resolve has not yet started.&quot;</span><span class="p">,</span> <span class="p">)</span>
+    <span class="n">solved</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The resolve has completed successfully.&quot;</span><span class="p">,</span> <span class="p">)</span>
+    <span class="n">failed</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The resolve is not possible.&quot;</span><span class="p">,</span> <span class="p">)</span>
+    <span class="n">aborted</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The resolve was stopped by the user (via callback).&quot;</span><span class="p">,</span> <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span></div>
+
+
+<div class="viewcode-block" id="Resolver"><a class="viewcode-back" href="../../api/rez.html#rez.resolver.Resolver">[docs]</a><span class="k">class</span> <span class="nc">Resolver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The package resolver.</span>
+
+<span class="sd">    The Resolver uses a combination of Solver(s) and cache(s) to resolve a</span>
+<span class="sd">    package request as quickly as possible.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">package_requests</span><span class="p">,</span> <span class="n">package_paths</span><span class="p">,</span> <span class="n">package_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">package_orderers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">building</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">verbosity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">buf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">package_load_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">caching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">suppress_passive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">print_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a Resolver.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            package_requests: List of Requirement objects representing the</span>
+<span class="sd">                request.</span>
+<span class="sd">            package_paths: List of paths to search for pkgs.</span>
+<span class="sd">            package_filter (`PackageFilterList`): Package filter.</span>
+<span class="sd">            package_orderers (list of `PackageOrder`): Custom package ordering.</span>
+<span class="sd">            callback: See `Solver`.</span>
+<span class="sd">            package_load_callback: If not None, this callable will be called</span>
+<span class="sd">                prior to each package being loaded. It is passed a single</span>
+<span class="sd">                `Package` object.</span>
+<span class="sd">            building: True if we&#39;re resolving for a build.</span>
+<span class="sd">            caching: If True, cache(s) may be used to speed the resolve. If</span>
+<span class="sd">                False, caches will not be used.</span>
+<span class="sd">            print_stats (bool): If true, print advanced solver stats at the end.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">context</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_requests</span> <span class="o">=</span> <span class="n">package_requests</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_paths</span> <span class="o">=</span> <span class="n">package_paths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_orderers</span> <span class="o">=</span> <span class="n">package_orderers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_load_callback</span> <span class="o">=</span> <span class="n">package_load_callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">building</span> <span class="o">=</span> <span class="n">building</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">=</span> <span class="n">verbosity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">caching</span> <span class="o">=</span> <span class="n">caching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buf</span> <span class="o">=</span> <span class="n">buf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">suppress_passive</span> <span class="o">=</span> <span class="n">suppress_passive</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_stats</span> <span class="o">=</span> <span class="n">print_stats</span>
+
+        <span class="c1"># store hash of package orderers. This is used in the memcached key</span>
+        <span class="k">if</span> <span class="n">package_orderers</span><span class="p">:</span>
+            <span class="n">sha1s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">sha1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">package_orderers</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_orderers_hash</span> <span class="o">=</span> <span class="n">sha1</span><span class="p">(</span><span class="n">sha1s</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf8&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_orderers_hash</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="c1"># store hash of pre-timestamp-combined package filter. This is used in</span>
+        <span class="c1"># the memcached key</span>
+        <span class="k">if</span> <span class="n">package_filter</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_filter_hash</span> <span class="o">=</span> <span class="n">package_filter</span><span class="o">.</span><span class="n">sha1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_filter_hash</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="c1"># combine timestamp and package filter into single filter</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">package_filter</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">package_filter</span> <span class="o">=</span> <span class="n">package_filter</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">package_filter</span> <span class="o">=</span> <span class="n">PackageFilterList</span><span class="p">()</span>
+            <span class="n">rule</span> <span class="o">=</span> <span class="n">TimestampRule</span><span class="o">.</span><span class="n">after</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_filter</span><span class="o">.</span><span class="n">add_exclusion</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_filter</span> <span class="o">=</span> <span class="n">package_filter</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_</span> <span class="o">=</span> <span class="n">ResolverStatus</span><span class="o">.</span><span class="n">pending</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolved_packages_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolved_ephemerals_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_description</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">from_cache</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memcached_servers</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">memcached_uri</span> <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">resolve_caching</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">solve_time</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># time spent solving</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_time</span> <span class="o">=</span> <span class="mf">0.0</span>   <span class="c1"># time spent loading package resources</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">debug_printer</span><span class="p">(</span><span class="s2">&quot;resolve_memcache&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Resolver.solve"><a class="viewcode-back" href="../../api/rez.html#rez.resolver.Resolver.solve">[docs]</a>    <span class="nd">@pool_memcached_connections</span>
+    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform the solve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">log_duration</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">,</span> <span class="s2">&quot;memcache get (resolve) took </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">):</span>
+            <span class="n">solver_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cached_solve</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">solver_dict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">from_cache</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_result</span><span class="p">(</span><span class="n">solver_dict</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">from_cache</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">solver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solve</span><span class="p">()</span>
+            <span class="n">solver_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solver_to_dict</span><span class="p">(</span><span class="n">solver</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_result</span><span class="p">(</span><span class="n">solver_dict</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">log_duration</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">,</span> <span class="s2">&quot;memcache set (resolve) took </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_cached_solve</span><span class="p">(</span><span class="n">solver_dict</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the current status of the resolve.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          ResolverStatus.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resolved_packages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the list of resolved packages.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of `PackageVariant` objects, or None if the resolve has not</span>
+<span class="sd">            completed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_packages_</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resolved_ephemerals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the list of resolved ewphemerals.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of `Requirement` objects, or None if the resolve has not</span>
+<span class="sd">            completed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_ephemerals_</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">graph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the resolve graph.</span>
+
+<span class="sd">        The resolve graph shows unsuccessful as well as successful resolves.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A pygraph.digraph object, or None if the solve has not completed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph_</span>
+
+    <span class="k">def</span> <span class="nf">_get_variant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variant_handle</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">get_variant</span><span class="p">(</span><span class="n">variant_handle</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_cached_solve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find a memcached resolve.</span>
+
+<span class="sd">        If there is NOT a resolve timestamp:</span>
+<span class="sd">            - fetch a non-timestamped memcache entry;</span>
+<span class="sd">            - if no entry, then fail;</span>
+<span class="sd">            - if packages have changed, then:</span>
+<span class="sd">              - delete the entry;</span>
+<span class="sd">              -  fail;</span>
+<span class="sd">            - if no packages in the entry have been released since, then</span>
+<span class="sd">              - use the entry and return;</span>
+<span class="sd">            - else:</span>
+<span class="sd">              - delete the entry;</span>
+<span class="sd">              - fail.</span>
+
+<span class="sd">        If there IS a resolve timestamp (let us call this T):</span>
+<span class="sd">            - fetch a non-timestamped memcache entry;</span>
+<span class="sd">            - if entry then:</span>
+<span class="sd">              - if no packages have changed, then:</span>
+<span class="sd">                - if no packages in the entry have been released since:</span>
+<span class="sd">                  - if no packages in the entry were released after T, then</span>
+<span class="sd">                    - use the entry and return;</span>
+<span class="sd">                - else:</span>
+<span class="sd">                  - delete the entry;</span>
+<span class="sd">              - else:</span>
+<span class="sd">                - delete the entry;</span>
+<span class="sd">            - fetch a timestamped (T) memcache entry;</span>
+<span class="sd">            - if no entry, then fail;</span>
+<span class="sd">            - if packages have changed, then:</span>
+<span class="sd">              - delete the entry;</span>
+<span class="sd">              - fail;</span>
+<span class="sd">            - else:</span>
+<span class="sd">              - use the entry.</span>
+
+<span class="sd">        This behaviour exists specifically so that resolves that use a</span>
+<span class="sd">        timestamp but set that to the current time, can be reused by other</span>
+<span class="sd">        resolves if nothing has changed. Older resolves however, can only be</span>
+<span class="sd">        reused if the timestamp matches exactly (but this might happen a lot -</span>
+<span class="sd">        consider a workflow where a work area is tied down to a particular</span>
+<span class="sd">        timestamp in order to &#39;lock&#39; it from any further software releases).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">caching</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">memcached_servers</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># these caches avoids some potentially repeated file stats</span>
+        <span class="n">variant_states</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">last_release_times</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span> <span class="nf">_hit</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">solver_dict</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">return</span> <span class="n">solver_dict</span>
+
+        <span class="k">def</span> <span class="nf">_miss</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;No cache key retrieved&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">def</span> <span class="nf">_delete_cache_entry</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_memcached_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Discarded entry: </span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_retrieve</span><span class="p">(</span><span class="n">timestamped</span><span class="p">):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_memcache_key</span><span class="p">(</span><span class="n">timestamped</span><span class="o">=</span><span class="n">timestamped</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Retrieving memcache key: </span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_memcached_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">data</span>
+
+        <span class="k">def</span> <span class="nf">_packages_changed</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+            <span class="n">solver_dict</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">variant_states_dict</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">for</span> <span class="n">variant_handle</span> <span class="ow">in</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant_handles&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="n">variant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_variant</span><span class="p">(</span><span class="n">variant_handle</span><span class="p">)</span>
+                <span class="n">old_state</span> <span class="o">=</span> <span class="n">variant_states_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+                <span class="n">new_state</span> <span class="o">=</span> <span class="n">variant_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">new_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">repo</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">resource</span><span class="o">.</span><span class="n">_repository</span>
+                        <span class="n">new_state</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">get_variant_state_handle</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">resource</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="p">(</span><span class="ne">IOError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="c1"># if, ie a package file was deleted on disk, then</span>
+                        <span class="c1"># an IOError or OSError will be raised when we try to</span>
+                        <span class="c1"># read from it - assume that the packages have changed!</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Error loading </span><span class="si">%r</span><span class="s2"> (assuming cached state &quot;</span>
+                                    <span class="s2">&quot;changed): </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">qualified_name</span><span class="p">,</span>
+                                    <span class="n">e</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+                    <span class="n">variant_states</span><span class="p">[</span><span class="n">variant</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_state</span>
+
+                <span class="k">if</span> <span class="n">old_state</span> <span class="o">!=</span> <span class="n">new_state</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%r</span><span class="s2"> has been modified&quot;</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">qualified_name</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">_releases_since_solve</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">release_times_dict</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">for</span> <span class="n">package_name</span><span class="p">,</span> <span class="n">release_time</span> <span class="ow">in</span> <span class="n">release_times_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">time_</span> <span class="o">=</span> <span class="n">last_release_times</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">package_name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">time_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">time_</span> <span class="o">=</span> <span class="n">get_last_release_time</span><span class="p">(</span><span class="n">package_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_paths</span><span class="p">)</span>
+                    <span class="n">last_release_times</span><span class="p">[</span><span class="n">package_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_</span>
+
+                <span class="k">if</span> <span class="n">time_</span> <span class="o">!=</span> <span class="n">release_time</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span>
+                        <span class="s2">&quot;A newer version of </span><span class="si">%r</span><span class="s2"> (</span><span class="si">%d</span><span class="s2">) has been released since the &quot;</span>
+                        <span class="s2">&quot;resolve was cached (latest release in cache was </span><span class="si">%d</span><span class="s2">) &quot;</span>
+                        <span class="s2">&quot;(entry: </span><span class="si">%r</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">package_name</span><span class="p">,</span> <span class="n">time_</span><span class="p">,</span> <span class="n">release_time</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">_timestamp_is_earlier</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">release_times_dict</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">for</span> <span class="n">package_name</span><span class="p">,</span> <span class="n">release_time</span> <span class="ow">in</span> <span class="n">release_times_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">&lt;</span> <span class="n">release_time</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Resolve timestamp (</span><span class="si">%d</span><span class="s2">) is earlier than </span><span class="si">%r</span><span class="s2"> in &quot;</span>
+                                <span class="s2">&quot;solve (</span><span class="si">%d</span><span class="s2">) (entry: </span><span class="si">%r</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span>
+                                <span class="n">package_name</span><span class="p">,</span> <span class="n">release_time</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">key</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">_retrieve</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">_packages_changed</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_releases_since_solve</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+                    <span class="n">_delete_cache_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="ow">not</span> <span class="n">_timestamp_is_earlier</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">_hit</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+            <span class="n">key</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">_retrieve</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_miss</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">_packages_changed</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+                <span class="n">_delete_cache_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">_miss</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_hit</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_miss</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">_packages_changed</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_releases_since_solve</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+                <span class="n">_delete_cache_entry</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">_miss</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_hit</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">_memcached_client</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">memcached_client</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memcached_servers</span><span class="p">,</span>
+                              <span class="n">debug</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">debug_memcache</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">client</span>
+
+    <span class="k">def</span> <span class="nf">_set_cached_solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">solver_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Store a solve to memcached.</span>
+
+<span class="sd">        If there is NOT a resolve timestamp:</span>
+<span class="sd">            - store the solve to a non-timestamped entry.</span>
+
+<span class="sd">        If there IS a resolve timestamp (let us call this T):</span>
+<span class="sd">            - if NO newer package in the solve has been released since T,</span>
+<span class="sd">              - then store the solve to a non-timestamped entry;</span>
+<span class="sd">            - else:</span>
+<span class="sd">              - store the solve to a timestamped entry.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_</span> <span class="o">!=</span> <span class="n">ResolverStatus</span><span class="o">.</span><span class="n">solved</span><span class="p">:</span>
+            <span class="k">return</span>  <span class="c1"># don&#39;t cache failed solves</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">caching</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">memcached_servers</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="c1"># most recent release times get stored with solve result in the cache</span>
+        <span class="n">releases_since_solve</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">release_times_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">variant_states_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolved_packages_</span><span class="p">:</span>
+            <span class="n">time_</span> <span class="o">=</span> <span class="n">get_last_release_time</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_paths</span><span class="p">)</span>
+
+            <span class="c1"># don&#39;t cache if a release time isn&#39;t known</span>
+            <span class="k">if</span> <span class="n">time_</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Did not send memcache key: a repository could &quot;</span>
+                            <span class="s2">&quot;not provide a most recent release time for </span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">&lt;</span> <span class="n">time_</span><span class="p">:</span>
+                <span class="n">releases_since_solve</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">release_times_dict</span><span class="p">[</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_</span>
+            <span class="n">repo</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">resource</span><span class="o">.</span><span class="n">_repository</span>
+            <span class="n">variant_states_dict</span><span class="p">[</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">repo</span><span class="o">.</span><span class="n">get_variant_state_handle</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">resource</span><span class="p">)</span>
+
+        <span class="n">timestamped</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="ow">and</span> <span class="n">releases_since_solve</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_memcache_key</span><span class="p">(</span><span class="n">timestamped</span><span class="o">=</span><span class="n">timestamped</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">solver_dict</span><span class="p">,</span> <span class="n">release_times_dict</span><span class="p">,</span> <span class="n">variant_states_dict</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_memcached_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Sent memcache key: </span><span class="si">%r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_memcache_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamped</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Makes a key suitable as a memcache entry.&quot;&quot;&quot;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_requests</span><span class="p">))</span>
+        <span class="n">repo_ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_paths</span><span class="p">:</span>
+            <span class="n">repo</span> <span class="o">=</span> <span class="n">package_repository_manager</span><span class="o">.</span><span class="n">get_repository</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">repo_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">repo</span><span class="o">.</span><span class="n">uid</span><span class="p">)</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;resolve&quot;</span><span class="p">,</span>
+             <span class="n">request</span><span class="p">,</span>
+             <span class="nb">tuple</span><span class="p">(</span><span class="n">repo_ids</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">package_filter_hash</span><span class="p">,</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">package_orderers_hash</span><span class="p">,</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">building</span><span class="p">,</span>
+             <span class="n">config</span><span class="o">.</span><span class="n">prune_failed_graph</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">timestamped</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">:</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_solve</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">solver</span> <span class="o">=</span> <span class="n">Solver</span><span class="p">(</span><span class="n">package_requests</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package_requests</span><span class="p">,</span>
+                        <span class="n">package_paths</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package_paths</span><span class="p">,</span>
+                        <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+                        <span class="n">package_filter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package_filter</span><span class="p">,</span>
+                        <span class="n">package_orderers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package_orderers</span><span class="p">,</span>
+                        <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">,</span>
+                        <span class="n">package_load_callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package_load_callback</span><span class="p">,</span>
+                        <span class="n">building</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building</span><span class="p">,</span>
+                        <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">,</span>
+                        <span class="n">prune_unfailed</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">prune_failed_graph</span><span class="p">,</span>
+                        <span class="n">buf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">buf</span><span class="p">,</span>
+                        <span class="n">suppress_passive</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">suppress_passive</span><span class="p">,</span>
+                        <span class="n">print_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">print_stats</span><span class="p">)</span>
+        <span class="n">solver</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">solver</span>
+
+    <span class="k">def</span> <span class="nf">_set_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">solver_dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_</span> <span class="o">=</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">graph_</span> <span class="o">=</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;graph&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solve_time</span> <span class="o">=</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;solve_time&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_time</span> <span class="o">=</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;load_time&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_description</span> <span class="o">=</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_description&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolved_packages_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolved_ephemerals_</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_</span> <span class="o">==</span> <span class="n">ResolverStatus</span><span class="o">.</span><span class="n">solved</span><span class="p">:</span>
+            <span class="c1"># convert solver.Variants to packages.Variants</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolved_packages_</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">variant_handle</span> <span class="ow">in</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variant_handles&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="n">variant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_variant</span><span class="p">(</span><span class="n">variant_handle</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">resolved_packages_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolved_ephemerals_</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">req_str</span> <span class="ow">in</span> <span class="n">solver_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ephemerals&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="n">req</span> <span class="o">=</span> <span class="n">Requirement</span><span class="p">(</span><span class="n">req_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">resolved_ephemerals_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_solver_to_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">solver</span><span class="p">):</span>
+        <span class="n">graph_</span> <span class="o">=</span> <span class="n">solver</span><span class="o">.</span><span class="n">get_graph</span><span class="p">()</span>
+        <span class="n">solve_time</span> <span class="o">=</span> <span class="n">solver</span><span class="o">.</span><span class="n">solve_time</span>
+        <span class="n">load_time</span> <span class="o">=</span> <span class="n">solver</span><span class="o">.</span><span class="n">load_time</span>
+        <span class="n">failure_description</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">variant_handles</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ephemerals</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">st</span> <span class="o">=</span> <span class="n">solver</span><span class="o">.</span><span class="n">status</span>
+        <span class="k">if</span> <span class="n">st</span> <span class="o">==</span> <span class="n">SolverStatus</span><span class="o">.</span><span class="n">unsolved</span><span class="p">:</span>
+            <span class="n">status_</span> <span class="o">=</span> <span class="n">ResolverStatus</span><span class="o">.</span><span class="n">aborted</span>
+            <span class="n">failure_description</span> <span class="o">=</span> <span class="n">solver</span><span class="o">.</span><span class="n">abort_reason</span>
+        <span class="k">elif</span> <span class="n">st</span> <span class="o">==</span> <span class="n">SolverStatus</span><span class="o">.</span><span class="n">failed</span><span class="p">:</span>
+            <span class="n">status_</span> <span class="o">=</span> <span class="n">ResolverStatus</span><span class="o">.</span><span class="n">failed</span>
+            <span class="n">failure_description</span> <span class="o">=</span> <span class="n">solver</span><span class="o">.</span><span class="n">failure_description</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="n">st</span> <span class="o">==</span> <span class="n">SolverStatus</span><span class="o">.</span><span class="n">solved</span><span class="p">:</span>
+            <span class="n">status_</span> <span class="o">=</span> <span class="n">ResolverStatus</span><span class="o">.</span><span class="n">solved</span>
+
+            <span class="n">variant_handles</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">solver_variant</span> <span class="ow">in</span> <span class="n">solver</span><span class="o">.</span><span class="n">resolved_packages</span><span class="p">:</span>
+                <span class="n">variant_handle_dict</span> <span class="o">=</span> <span class="n">solver_variant</span><span class="o">.</span><span class="n">handle</span>
+                <span class="n">variant_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variant_handle_dict</span><span class="p">)</span>
+
+            <span class="n">ephemerals</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ephemeral</span> <span class="ow">in</span> <span class="n">solver</span><span class="o">.</span><span class="n">resolved_ephemerals</span><span class="p">:</span>
+                <span class="n">ephemerals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ephemeral</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">status_</span><span class="p">,</span>
+            <span class="n">graph</span><span class="o">=</span><span class="n">graph_</span><span class="p">,</span>
+            <span class="n">solve_time</span><span class="o">=</span><span class="n">solve_time</span><span class="p">,</span>
+            <span class="n">load_time</span><span class="o">=</span><span class="n">load_time</span><span class="p">,</span>
+            <span class="n">failure_description</span><span class="o">=</span><span class="n">failure_description</span><span class="p">,</span>
+            <span class="n">variant_handles</span><span class="o">=</span><span class="n">variant_handles</span><span class="p">,</span>
+            <span class="n">ephemerals</span><span class="o">=</span><span class="n">ephemerals</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

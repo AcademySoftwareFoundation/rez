@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.cli._main &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.cli._main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.cli._main</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The main command-line entry point.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">_StoreTrueAction</span><span class="p">,</span> <span class="n">SUPPRESS</span>
+<span class="kn">from</span> <span class="nn">rez.cli._util</span> <span class="kn">import</span> <span class="n">subcommands</span><span class="p">,</span> <span class="n">LazyArgumentParser</span><span class="p">,</span> <span class="n">_env_var_true</span>
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_error</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">RezError</span><span class="p">,</span> <span class="n">RezSystemError</span><span class="p">,</span> <span class="n">_NeverError</span>
+<span class="kn">from</span> <span class="nn">rez</span> <span class="kn">import</span> <span class="n">__version__</span><span class="p">,</span> <span class="n">module_root_path</span>
+
+
+<span class="c1"># true if command was like &#39;rez-env&#39; rather than &#39;rez env&#39;</span>
+<span class="n">_hyphened_command</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="is_hyphened_command"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._main.is_hyphened_command">[docs]</a><span class="k">def</span> <span class="nf">is_hyphened_command</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">_hyphened_command</span></div>
+
+
+<div class="viewcode-block" id="SetupRezSubParser"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._main.SetupRezSubParser">[docs]</a><span class="k">class</span> <span class="nc">SetupRezSubParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Callback class for lazily setting up rez sub-parsers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module_name</span> <span class="o">=</span> <span class="n">module_name</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser_name</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_module</span><span class="p">()</span>
+
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mod</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;command module </span><span class="si">%s</span><span class="s2"> must have a module-level &quot;</span> \
+                <span class="s2">&quot;docstring (used as the command help)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">module_name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s1">&#39;command&#39;</span><span class="p">):</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;command module </span><span class="si">%s</span><span class="s2"> must provide a command() &quot;</span> \
+                <span class="s2">&quot;function&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">module_name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s1">&#39;setup_parser&#39;</span><span class="p">):</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;command module </span><span class="si">%s</span><span class="s2">  must provide a setup_parser() &quot;</span> \
+                <span class="s2">&quot;function&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">module_name</span>
+        <span class="k">if</span> <span class="n">error_msg</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">SUPPRESS</span>
+
+        <span class="n">mod</span><span class="o">.</span><span class="n">setup_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="vm">__doc__</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">mod</span><span class="o">.</span><span class="n">command</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">)</span>
+        <span class="c1"># add the common args to the subparser</span>
+        <span class="n">_add_common_args</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+
+        <span class="c1"># optionally, return the brief help line for this sub-parser</span>
+        <span class="n">brief</span> <span class="o">=</span> <span class="n">mod</span><span class="o">.</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">brief</span>
+
+<div class="viewcode-block" id="SetupRezSubParser.get_module"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._main.SetupRezSubParser.get_module">[docs]</a>    <span class="k">def</span> <span class="nf">get_module</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">module_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
+            <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">module_name</span><span class="p">]</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_add_common_args</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="s2">&quot;--verbose&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;verbose mode, repeat for more verbosity&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--debug&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="n">SUPPRESS</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--profile&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="n">SUPPRESS</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="InfoAction"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._main.InfoAction">[docs]</a><span class="k">class</span> <span class="nc">InfoAction</span><span class="p">(</span><span class="n">_StoreTrueAction</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">option_string</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">rez.system</span> <span class="kn">import</span> <span class="n">system</span>
+        <span class="n">txt</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">get_summary_string</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="setup_parser"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._main.setup_parser">[docs]</a><span class="k">def</span> <span class="nf">setup_parser</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Create and setup parser for given rez command line interface.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        LazyArgumentParser: Argument parser for rez command.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">py</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">LazyArgumentParser</span><span class="p">(</span><span class="s2">&quot;rez&quot;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="s2">&quot;--info&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="n">InfoAction</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;print information about rez and exit&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-V&quot;</span><span class="p">,</span> <span class="s2">&quot;--version&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;version&quot;</span><span class="p">,</span>
+                        <span class="n">version</span><span class="o">=</span><span class="s2">&quot;Rez </span><span class="si">%s</span><span class="s2"> from </span><span class="si">%s</span><span class="s2"> (python </span><span class="si">%d</span><span class="s2">.</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">__version__</span><span class="p">,</span> <span class="n">module_root_path</span><span class="p">,</span> <span class="n">py</span><span class="o">.</span><span class="n">major</span><span class="p">,</span> <span class="n">py</span><span class="o">.</span><span class="n">minor</span>
+                        <span class="p">))</span>
+
+    <span class="c1"># add args common to all subcommands... we add them both to the top parser,</span>
+    <span class="c1"># AND to the subparsers, for two reasons:</span>
+    <span class="c1">#  1) this allows us to do EITHER &quot;rez --debug build&quot; OR</span>
+    <span class="c1">#     &quot;rez build --debug&quot;</span>
+    <span class="c1">#  2) this allows the flags to be used when using either &quot;rez&quot; or</span>
+    <span class="c1">#     &quot;rez-build&quot; - ie, this will work: &quot;rez-build --debug&quot;</span>
+    <span class="n">_add_common_args</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+
+    <span class="c1"># add lazy subparsers</span>
+    <span class="n">subparser</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_subparsers</span><span class="p">(</span><span class="n">dest</span><span class="o">=</span><span class="s1">&#39;cmd&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s1">&#39;COMMAND&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">subcommand</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">subcommands</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">module_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;module_name&#39;</span><span class="p">,</span> <span class="s1">&#39;rez.cli.</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">subcommand</span><span class="p">)</span>
+
+        <span class="n">subparser</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>
+            <span class="n">subcommand</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>  <span class="c1"># required so that it can be setup later</span>
+            <span class="n">setup_subparser</span><span class="o">=</span><span class="n">SetupRezSubParser</span><span class="p">(</span><span class="n">module_name</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._main.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">_hyphened_command</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">dont_write_bytecode</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># construct args list. Note that commands like &#39;rez-env foo&#39; and</span>
+    <span class="c1"># &#39;rez env foo&#39; are equivalent</span>
+    <span class="c1">#</span>
+    <span class="k">if</span> <span class="n">command</span><span class="p">:</span>
+        <span class="c1"># like &#39;rez-foo arg1 arg2&#39;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">command</span><span class="p">]</span> <span class="o">+</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">_hyphened_command</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">subcommands</span><span class="p">:</span>
+        <span class="c1"># like &#39;rez foo arg1 arg2&#39;</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># like &#39;rez -i&#39;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="c1"># parse args depending on subcommand behaviour</span>
+    <span class="k">if</span> <span class="n">command</span><span class="p">:</span>
+        <span class="n">arg_mode</span> <span class="o">=</span> <span class="n">subcommands</span><span class="p">[</span><span class="n">command</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;arg_mode&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arg_mode</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">setup_parser</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">arg_mode</span> <span class="o">==</span> <span class="s2">&quot;grouped&quot;</span><span class="p">:</span>
+        <span class="c1"># args split into groups by &#39;--&#39;</span>
+        <span class="n">arg_groups</span> <span class="o">=</span> <span class="p">[[]]</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arg</span> <span class="o">==</span> <span class="s1">&#39;--&#39;</span><span class="p">:</span>
+                <span class="n">arg_groups</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+                <span class="k">continue</span>
+            <span class="n">arg_groups</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+
+        <span class="n">opts</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">arg_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">extra_arg_groups</span> <span class="o">=</span> <span class="n">arg_groups</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">elif</span> <span class="n">arg_mode</span> <span class="o">==</span> <span class="s2">&quot;passthrough&quot;</span><span class="p">:</span>
+        <span class="c1"># unknown args passed in first extra_arg_group</span>
+        <span class="n">opts</span><span class="p">,</span> <span class="n">extra_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">extra_arg_groups</span> <span class="o">=</span> <span class="p">[</span><span class="n">extra_args</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># native arg parsing</span>
+        <span class="n">opts</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">extra_arg_groups</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">debug</span> <span class="ow">or</span> <span class="n">_env_var_true</span><span class="p">(</span><span class="s2">&quot;REZ_DEBUG&quot;</span><span class="p">):</span>
+        <span class="n">exc_type</span> <span class="o">=</span> <span class="n">_NeverError</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">exc_type</span> <span class="o">=</span> <span class="n">RezError</span>
+
+    <span class="k">def</span> <span class="nf">run_cmd</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># python3 will not automatically handle cases where no sub parser</span>
+            <span class="c1"># has been selected. In these cases func will not exist, and an</span>
+            <span class="c1"># AttributeError will be raised.</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">opts</span><span class="o">.</span><span class="n">func</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;too few arguments.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">opts</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span> <span class="n">extra_arg_groups</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">profile</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cProfile</span>
+        <span class="n">cProfile</span><span class="o">.</span><span class="n">runctx</span><span class="p">(</span><span class="s2">&quot;run_cmd()&quot;</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="n">filename</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">profile</span><span class="p">)</span>
+        <span class="n">returncode</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">returncode</span> <span class="o">=</span> <span class="n">run_cmd</span><span class="p">()</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">,</span> <span class="n">RezSystemError</span><span class="p">):</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="n">exc_type</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">print_error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">returncode</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

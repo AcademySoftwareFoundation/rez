@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1.1.1.2. rez.bind package &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="1.1.1.3. rez.cli package" href="rez.cli.html" />
+    <link rel="prev" title="1.1.1.1. rez._sys package" href="rez._sys.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">1. API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="rez.html">1.1. Rez</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="rez.html#subpackages">1.1.1. Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="rez._sys.html">1.1.1.1. rez._sys package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">1.1.1.2. rez.bind package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rez.cli.html">1.1.1.3. rez.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rez.tests.html">1.1.1.4. rez.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#submodules">1.1.2. Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-bind-utils-module">1.1.3. rez.bind_utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-bootstrap-module">1.1.4. rez.bootstrap module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.build_process">1.1.5. rez.build_process module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.build_system">1.1.6. rez.build_system module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-build-utils-module">1.1.7. rez.build_utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-dot-module">1.1.8. rez.dot module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-env-module">1.1.9. rez.env module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.exceptions">1.1.10. rez.exceptions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-formulae-manager-module">1.1.11. rez.formulae_manager module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.package_maker">1.1.12. rez.package_maker module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#id1">1.1.13. rez.package_maker_ module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.packages">1.1.14. rez.packages module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-platform-module">1.1.15. rez.platform_ module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.plugin_managers">1.1.16. rez.plugin_managers module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-py-dist-module">1.1.17. rez.py_dist module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.release_hook">1.1.18. rez.release_hook module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.release_vcs">1.1.19. rez.release_vcs module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.resolved_context">1.1.20. rez.resolved_context module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.resolver">1.1.21. rez.resolver module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-resources-module">1.1.22. rez.resources module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.rex">1.1.23. rez.rex module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.rex_bindings">1.1.24. rez.rex_bindings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-settings-module">1.1.25. rez.settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.shells">1.1.26. rez.shells module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-sigint-module">1.1.27. rez.sigint module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.solver">1.1.28. rez.solver module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-source-retrieval-module">1.1.29. rez.source_retrieval module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.system">1.1.30. rez.system module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.util">1.1.31. rez.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez">1.1.32. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.html">1.2. Rez Plugins</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">1. API Documentation</a></li>
+          <li class="breadcrumb-item"><a href="rez.html">1.1. Rez</a></li>
+      <li class="breadcrumb-item active">1.1.1.2. rez.bind package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/rez.bind.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="rez-bind-package">
+<h1>1.1.1.2. rez.bind package<a class="headerlink" href="#rez-bind-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>1.1.1.2.1. Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rez.bind.arch">
+<span id="rez-bind-arch-module"></span><h2>1.1.1.2.2. rez.bind.arch module<a class="headerlink" href="#module-rez.bind.arch" title="Permalink to this headline">¶</a></h2>
+<p>Creates the system architecture package.</p>
+<dl class="function">
+<dt id="rez.bind.arch.bind">
+<code class="descclassname">rez.bind.arch.</code><code class="descname">bind</code><span class="sig-paren">(</span><em>path</em>, <em>version_range=None</em>, <em>opts=None</em>, <em>parser=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/arch.html#bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.arch.bind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rez.bind.cmake">
+<span id="rez-bind-cmake-module"></span><h2>1.1.1.2.3. rez.bind.cmake module<a class="headerlink" href="#module-rez.bind.cmake" title="Permalink to this headline">¶</a></h2>
+<p>Binds a cmake executable as a rez package.</p>
+<dl class="function">
+<dt id="rez.bind.cmake.bind">
+<code class="descclassname">rez.bind.cmake.</code><code class="descname">bind</code><span class="sig-paren">(</span><em>path</em>, <em>version_range=None</em>, <em>opts=None</em>, <em>parser=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/cmake.html#bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.cmake.bind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rez.bind.cmake.commands">
+<code class="descclassname">rez.bind.cmake.</code><code class="descname">commands</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/cmake.html#commands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.cmake.commands" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rez.bind.cmake.setup_parser">
+<code class="descclassname">rez.bind.cmake.</code><code class="descname">setup_parser</code><span class="sig-paren">(</span><em>parser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/cmake.html#setup_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.cmake.setup_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rez.bind.hello_world">
+<span id="rez-bind-hello-world-module"></span><h2>1.1.1.2.4. rez.bind.hello_world module<a class="headerlink" href="#module-rez.bind.hello_world" title="Permalink to this headline">¶</a></h2>
+<p>Creates the ‘hello_world’ testing package.</p>
+<p>Note: Even though this is a python-based package, it does not list python as a
+requirement. This is not typical! This package is intended as a very simple test
+case, and for that reason we do not want any dependencies.</p>
+<dl class="function">
+<dt id="rez.bind.hello_world.bind">
+<code class="descclassname">rez.bind.hello_world.</code><code class="descname">bind</code><span class="sig-paren">(</span><em>path</em>, <em>version_range=None</em>, <em>opts=None</em>, <em>parser=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/hello_world.html#bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.hello_world.bind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rez.bind.hello_world.commands">
+<code class="descclassname">rez.bind.hello_world.</code><code class="descname">commands</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/hello_world.html#commands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.hello_world.commands" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rez.bind.hello_world.hello_world_source">
+<code class="descclassname">rez.bind.hello_world.</code><code class="descname">hello_world_source</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/hello_world.html#hello_world_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.hello_world.hello_world_source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rez.bind.os">
+<span id="rez-bind-os-module"></span><h2>1.1.1.2.5. rez.bind.os module<a class="headerlink" href="#module-rez.bind.os" title="Permalink to this headline">¶</a></h2>
+<p>Creates the operating system package.</p>
+<dl class="function">
+<dt id="rez.bind.os.bind">
+<code class="descclassname">rez.bind.os.</code><code class="descname">bind</code><span class="sig-paren">(</span><em>path</em>, <em>version_range=None</em>, <em>opts=None</em>, <em>parser=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/os.html#bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.os.bind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rez.bind.platform">
+<span id="rez-bind-platform-module"></span><h2>1.1.1.2.6. rez.bind.platform module<a class="headerlink" href="#module-rez.bind.platform" title="Permalink to this headline">¶</a></h2>
+<p>Creates the system platform package.</p>
+<dl class="function">
+<dt id="rez.bind.platform.bind">
+<code class="descclassname">rez.bind.platform.</code><code class="descname">bind</code><span class="sig-paren">(</span><em>path</em>, <em>version_range=None</em>, <em>opts=None</em>, <em>parser=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/platform.html#bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.platform.bind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rez.bind.python">
+<span id="rez-bind-python-module"></span><h2>1.1.1.2.7. rez.bind.python module<a class="headerlink" href="#module-rez.bind.python" title="Permalink to this headline">¶</a></h2>
+<p>Binds a python executable as a rez package.</p>
+<dl class="function">
+<dt id="rez.bind.python.bind">
+<code class="descclassname">rez.bind.python.</code><code class="descname">bind</code><span class="sig-paren">(</span><em>path</em>, <em>version_range=None</em>, <em>opts=None</em>, <em>parser=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/python.html#bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.python.bind" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rez.bind.python.commands">
+<code class="descclassname">rez.bind.python.</code><code class="descname">commands</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/python.html#commands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.python.commands" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rez.bind.python.post_commands">
+<code class="descclassname">rez.bind.python.</code><code class="descname">post_commands</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/python.html#post_commands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.python.post_commands" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="rez.bind.python.setup_parser">
+<code class="descclassname">rez.bind.python.</code><code class="descname">setup_parser</code><span class="sig-paren">(</span><em>parser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/bind/python.html#setup_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.bind.python.setup_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rez.bind">
+<span id="module-contents"></span><h2>1.1.1.2.8. Module contents<a class="headerlink" href="#module-rez.bind" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rez._sys.html" class="btn btn-neutral float-left" title="1.1.1.1. rez._sys package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rez.cli.html" class="btn btn-neutral float-right" title="1.1.1.3. rez.cli package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

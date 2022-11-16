@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.rex_bindings &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.rex_bindings</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.rex_bindings</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides wrappers for various types for binding to Rex. We do not want to bind</span>
+<span class="sd">object instances directly in Rex, because this would create an indirect</span>
+<span class="sd">dependency between rex code in package.py files, and versions of Rez.</span>
+
+<span class="sd">The classes in this file are intended to have simple interfaces that hide</span>
+<span class="sd">unnecessary data from Rex, and provide APIs that will not change.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.six</span> <span class="kn">import</span> <span class="n">six</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.version.version</span> <span class="kn">import</span> <span class="n">VersionRange</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.version.requirement</span> <span class="kn">import</span> <span class="n">Requirement</span>
+
+
+<span class="n">basestring</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Binding"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.Binding">[docs]</a><span class="k">class</span> <span class="nc">Binding</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract base class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">_attr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> has no attribute &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
+                             <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_attr_error</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VersionBinding"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.VersionBinding">[docs]</a><span class="k">class</span> <span class="nc">VersionBinding</span><span class="p">(</span><span class="n">Binding</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Binds a version.Version object.</span>
+
+<span class="sd">        &gt;&gt;&gt; v = VersionBinding(Version(&quot;1.2.3alpha&quot;))</span>
+<span class="sd">        &gt;&gt;&gt; v.major</span>
+<span class="sd">        1</span>
+<span class="sd">        &gt;&gt;&gt; v.patch</span>
+<span class="sd">        &#39;3alpha&#39;</span>
+<span class="sd">        &gt;&gt;&gt; len(v)</span>
+<span class="sd">        3</span>
+<span class="sd">        &gt;&gt;&gt; v[1]</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; v[:3]</span>
+<span class="sd">        (1, 2, &#39;3alpha&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; str(v)</span>
+<span class="sd">        &#39;1.2.3alpha&#39;</span>
+<span class="sd">        &gt;&gt;&gt; print(v[5])</span>
+<span class="sd">        None</span>
+<span class="sd">        &gt;&gt;&gt; v.as_tuple():</span>
+<span class="sd">        (1, 2, &#39;3alpha&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VersionBinding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__version</span> <span class="o">=</span> <span class="n">version</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">major</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">minor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">patch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+<div class="viewcode-block" id="VersionBinding.as_tuple"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.VersionBinding.as_tuple">[docs]</a>    <span class="k">def</span> <span class="nf">as_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span></div>
+
+    <span class="k">def</span> <span class="nf">_attr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;version </span><span class="si">%s</span><span class="s2"> has no attribute &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
+                             <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">attr</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__getitem</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__getitem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_convert</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;0&#39;</span> <span class="ow">or</span> <span class="n">s</span> <span class="o">==</span> <span class="s1">&#39;0&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">s</span>
+
+        <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__version</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="s2">&quot;__iter__&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">_convert</span><span class="p">,</span> <span class="n">tokens</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_convert</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__version</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__version</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># without this, the binding will iterate infinitely, returning more</span>
+        <span class="c1"># None objects...</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__version</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VariantBinding"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.VariantBinding">[docs]</a><span class="k">class</span> <span class="nc">VariantBinding</span><span class="p">(</span><span class="n">Binding</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Binds a packages.Variant object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">cached_root</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interpreter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="n">VersionBinding</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">version</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VariantBinding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__interpreter</span> <span class="o">=</span> <span class="n">interpreter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__variant</span> <span class="o">=</span> <span class="n">variant</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__cached_root</span> <span class="o">=</span> <span class="n">cached_root</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">root</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is here to support package caching. This ensures that references</span>
+<span class="sd">        such as &#39;resolve.mypkg.root&#39; resolve to the cached payload location,</span>
+<span class="sd">        if the package is cached.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__cached_root</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">__variant</span><span class="o">.</span><span class="n">root</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__interpreter</span><span class="p">:</span>
+            <span class="n">root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__interpreter</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">root</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">VariantBinding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__variant</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_is_in_package_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__cached_root</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_attr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;package </span><span class="si">%s</span><span class="s2"> has no attribute &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
+                             <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">attr</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__variant</span><span class="o">.</span><span class="n">qualified_package_name</span></div>
+
+
+<div class="viewcode-block" id="RO_MappingBinding"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.RO_MappingBinding">[docs]</a><span class="k">class</span> <span class="nc">RO_MappingBinding</span><span class="p">(</span><span class="n">Binding</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A read-only, dict-like object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RO_MappingBinding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RO_MappingBinding.get"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.RO_MappingBinding.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_attr_error</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="VariantsBinding"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.VariantsBinding">[docs]</a><span class="k">class</span> <span class="nc">VariantsBinding</span><span class="p">(</span><span class="n">RO_MappingBinding</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Binds a list of packages.VariantBinding objects, under the package name</span>
+<span class="sd">    of each variant.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variant_bindings</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VariantsBinding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">variant_bindings</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_attr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;package does not exist: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">attr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RequirementsBinding"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.RequirementsBinding">[docs]</a><span class="k">class</span> <span class="nc">RequirementsBinding</span><span class="p">(</span><span class="n">RO_MappingBinding</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Binds a list of version.Requirement objects.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">requirements</span><span class="p">):</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">requirements</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RequirementsBinding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_attr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;request does not exist: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">attr</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RequirementsBinding.get_range"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.RequirementsBinding.get_range">[docs]</a>    <span class="k">def</span> <span class="nf">get_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns requirement version range object&quot;&quot;&quot;</span>
+        <span class="n">req_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">req_str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Requirement</span><span class="p">(</span><span class="n">req_str</span><span class="p">)</span><span class="o">.</span><span class="n">range</span>
+        <span class="k">elif</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">VersionRange</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="EphemeralsBinding"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.EphemeralsBinding">[docs]</a><span class="k">class</span> <span class="nc">EphemeralsBinding</span><span class="p">(</span><span class="n">RO_MappingBinding</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Binds a list of resolved ephemeral packages.</span>
+
+<span class="sd">    Note that the leading &#39;.&#39; is implied when referring to ephemerals. Eg:</span>
+
+<span class="sd">        # in package.py</span>
+<span class="sd">        def commands():</span>
+<span class="sd">            if &quot;foo.cli&quot; in ephemerals:  # will match &#39;.foo.cli-*&#39; request</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ephemerals</span><span class="p">):</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>  <span class="c1"># note: stripped leading &#39;.&#39;</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ephemerals</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EphemeralsBinding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_attr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;ephemeral does not exist: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">attr</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EphemeralsBinding.get_range"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.EphemeralsBinding.get_range">[docs]</a>    <span class="k">def</span> <span class="nf">get_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns ephemeral version range object&quot;&quot;&quot;</span>
+        <span class="n">req_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">req_str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Requirement</span><span class="p">(</span><span class="n">req_str</span><span class="p">)</span><span class="o">.</span><span class="n">range</span>
+        <span class="k">elif</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">VersionRange</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="intersects"><a class="viewcode-back" href="../../api/rez.html#rez.rex_bindings.intersects">[docs]</a><span class="k">def</span> <span class="nf">intersects</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">range_</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test if an object intersects with the given version range.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        # in package.py</span>
+<span class="sd">        def commands():</span>
+<span class="sd">            # test a request</span>
+<span class="sd">            if intersects(request.maya, &#39;2019+&#39;):</span>
+<span class="sd">                info(&#39;requested maya allows &gt;=2019.*&#39;)</span>
+
+<span class="sd">            # tests if a resolved version intersects with given range</span>
+<span class="sd">            if intersects(resolve.maya, &#39;2019+&#39;)</span>
+<span class="sd">                ...</span>
+
+<span class="sd">            # same as above</span>
+<span class="sd">            if intersects(resolve.maya.version, &#39;2019+&#39;)</span>
+<span class="sd">                ...</span>
+
+<span class="sd">        # disable my cli tools if .foo.cli-0 was specified</span>
+<span class="sd">        def commands():</span>
+<span class="sd">            if intersects(ephemerals.get(&#39;foo.cli&#39;, &#39;1&#39;), &#39;1&#39;):</span>
+<span class="sd">                env.PATH.append(&#39;{root}/bin&#39;)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obj (VariantBinding or str): Object to test, either a</span>
+<span class="sd">            variant, or requirement string (eg &#39;foo-1.2.3+&#39;).</span>
+<span class="sd">        range_ (str): Version range, eg &#39;1.2+&lt;2&#39;</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if the object intersects the given range.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">range1</span> <span class="o">=</span> <span class="n">VersionRange</span><span class="p">(</span><span class="n">range_</span><span class="p">)</span>
+
+    <span class="c1"># eg &#39;if intersects(request.maya, ...)&#39;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">Requirement</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">req</span><span class="o">.</span><span class="n">conflict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">range2</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">range</span>
+
+    <span class="c1"># eg &#39;if intersects(ephemerals.get_range(&#39;foo.cli&#39;, &#39;1&#39;), ...)&#39;</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">VersionRange</span><span class="p">):</span>
+        <span class="n">range2</span> <span class="o">=</span> <span class="n">obj</span>
+
+    <span class="c1"># eg &#39;if intersects(resolve.maya, ...)&#39;</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">VariantBinding</span><span class="p">):</span>
+        <span class="n">range2</span> <span class="o">=</span> <span class="n">VersionRange</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">version</span><span class="p">))</span>
+
+    <span class="c1"># eg &#39;if intersects(resolve.maya.version, ...)&#39;</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">VersionBinding</span><span class="p">):</span>
+        <span class="n">range2</span> <span class="o">=</span> <span class="n">VersionRange</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid type </span><span class="si">%s</span><span class="s2"> passed as first arg to &#39;intersects&#39;&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">range1</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">range2</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

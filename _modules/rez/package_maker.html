@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.package_maker &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.package_maker</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.package_maker</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">from</span> <span class="nn">rez.utils._version</span> <span class="kn">import</span> <span class="n">_rez_version</span>
+<span class="kn">from</span> <span class="nn">rez.utils.schema</span> <span class="kn">import</span> <span class="n">Required</span><span class="p">,</span> <span class="n">extensible_schema_dict</span>
+<span class="kn">from</span> <span class="nn">rez.utils.filesystem</span> <span class="kn">import</span> <span class="n">retain_cwd</span>
+<span class="kn">from</span> <span class="nn">rez.utils.formatting</span> <span class="kn">import</span> <span class="n">PackageRequest</span>
+<span class="kn">from</span> <span class="nn">rez.utils.data_utils</span> <span class="kn">import</span> <span class="n">AttrDictWrapper</span>
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_warning</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">PackageMetadataError</span>
+<span class="kn">from</span> <span class="nn">rez.package_resources</span> <span class="kn">import</span> <span class="n">help_schema</span><span class="p">,</span> <span class="n">_commands_schema</span><span class="p">,</span> \
+    <span class="n">_function_schema</span><span class="p">,</span> <span class="n">late_bound</span>
+<span class="kn">from</span> <span class="nn">rez.package_repository</span> <span class="kn">import</span> <span class="n">create_memory_package_repository</span>
+<span class="kn">from</span> <span class="nn">rez.packages</span> <span class="kn">import</span> <span class="n">Package</span>
+<span class="kn">from</span> <span class="nn">rez.package_py_utils</span> <span class="kn">import</span> <span class="n">expand_requirement</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.schema.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Or</span><span class="p">,</span> <span class="n">Use</span><span class="p">,</span> <span class="n">And</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.six</span> <span class="kn">import</span> <span class="n">six</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.version.version</span> <span class="kn">import</span> <span class="n">Version</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<span class="n">basestring</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="c1"># this schema will automatically harden request strings like &#39;python-*&#39;; see</span>
+<span class="c1"># the &#39;expand_requires&#39; function for more info.</span>
+<span class="c1">#</span>
+<span class="n">package_request_schema</span> <span class="o">=</span> <span class="n">Or</span><span class="p">(</span><span class="n">And</span><span class="p">(</span><span class="n">basestring</span><span class="p">,</span> <span class="n">Use</span><span class="p">(</span><span class="n">expand_requirement</span><span class="p">)),</span>
+                            <span class="n">And</span><span class="p">(</span><span class="n">PackageRequest</span><span class="p">,</span> <span class="n">Use</span><span class="p">(</span><span class="nb">str</span><span class="p">)))</span>
+
+<span class="n">tests_schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">({</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="n">basestring</span><span class="p">):</span> <span class="n">Or</span><span class="p">(</span>
+        <span class="n">Or</span><span class="p">(</span><span class="n">basestring</span><span class="p">,</span> <span class="p">[</span><span class="n">basestring</span><span class="p">]),</span>
+        <span class="n">extensible_schema_dict</span><span class="p">({</span>
+            <span class="s2">&quot;command&quot;</span><span class="p">:</span> <span class="n">Or</span><span class="p">(</span><span class="n">basestring</span><span class="p">,</span> <span class="p">[</span><span class="n">basestring</span><span class="p">]),</span>
+            <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;requires&quot;</span><span class="p">):</span> <span class="p">[</span><span class="n">package_request_schema</span><span class="p">],</span>
+            <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;run_on&quot;</span><span class="p">):</span> <span class="n">Or</span><span class="p">(</span><span class="n">basestring</span><span class="p">,</span> <span class="p">[</span><span class="n">basestring</span><span class="p">]),</span>
+            <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;on_variants&quot;</span><span class="p">):</span> <span class="n">Or</span><span class="p">(</span>
+                <span class="nb">bool</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;requires&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">package_request_schema</span><span class="p">]</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="p">})</span>
+    <span class="p">)</span>
+<span class="p">})</span>
+
+
+<span class="n">package_schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">({</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;requires_rez_version&quot;</span><span class="p">):</span>   <span class="n">And</span><span class="p">(</span><span class="n">basestring</span><span class="p">,</span> <span class="n">Use</span><span class="p">(</span><span class="n">Version</span><span class="p">)),</span>
+
+    <span class="n">Required</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">):</span>                   <span class="n">basestring</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;base&quot;</span><span class="p">):</span>                   <span class="n">basestring</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;version&quot;</span><span class="p">):</span>                <span class="n">Or</span><span class="p">(</span><span class="n">basestring</span><span class="p">,</span>
+                                           <span class="n">And</span><span class="p">(</span><span class="n">Version</span><span class="p">,</span> <span class="n">Use</span><span class="p">(</span><span class="nb">str</span><span class="p">))),</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">):</span>            <span class="n">basestring</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;authors&#39;</span><span class="p">):</span>                <span class="p">[</span><span class="n">basestring</span><span class="p">],</span>
+
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;requires&#39;</span><span class="p">):</span>               <span class="n">late_bound</span><span class="p">([</span><span class="n">package_request_schema</span><span class="p">]),</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;build_requires&#39;</span><span class="p">):</span>         <span class="n">late_bound</span><span class="p">([</span><span class="n">package_request_schema</span><span class="p">]),</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;private_build_requires&#39;</span><span class="p">):</span> <span class="n">late_bound</span><span class="p">([</span><span class="n">package_request_schema</span><span class="p">]),</span>
+
+    <span class="c1"># deliberately not possible to late bind</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;variants&#39;</span><span class="p">):</span>               <span class="p">[[</span><span class="n">package_request_schema</span><span class="p">]],</span>
+
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;hashed_variants&#39;</span><span class="p">):</span>        <span class="nb">bool</span><span class="p">,</span>
+
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;relocatable&#39;</span><span class="p">):</span>            <span class="n">late_bound</span><span class="p">(</span><span class="n">Or</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)),</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;cachable&#39;</span><span class="p">):</span>               <span class="n">late_bound</span><span class="p">(</span><span class="n">Or</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)),</span>
+
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;uuid&#39;</span><span class="p">):</span>                   <span class="n">basestring</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">):</span>                 <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;tools&#39;</span><span class="p">):</span>                  <span class="n">late_bound</span><span class="p">([</span><span class="n">basestring</span><span class="p">]),</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;help&#39;</span><span class="p">):</span>                   <span class="n">late_bound</span><span class="p">(</span><span class="n">help_schema</span><span class="p">),</span>
+
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;tests&#39;</span><span class="p">):</span>                  <span class="n">late_bound</span><span class="p">(</span><span class="n">tests_schema</span><span class="p">),</span>
+
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;pre_commands&#39;</span><span class="p">):</span>           <span class="n">_commands_schema</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;commands&#39;</span><span class="p">):</span>               <span class="n">_commands_schema</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;post_commands&#39;</span><span class="p">):</span>          <span class="n">_commands_schema</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;pre_build_commands&#39;</span><span class="p">):</span>     <span class="n">_commands_schema</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s1">&#39;pre_test_commands&#39;</span><span class="p">):</span>      <span class="n">_commands_schema</span><span class="p">,</span>
+
+    <span class="c1"># attributes specific to pre-built packages</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;build_system&quot;</span><span class="p">):</span>           <span class="n">basestring</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;build_command&quot;</span><span class="p">):</span>          <span class="n">Or</span><span class="p">([</span><span class="n">basestring</span><span class="p">],</span> <span class="n">basestring</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="s2">&quot;preprocess&quot;</span><span class="p">):</span>             <span class="n">_function_schema</span><span class="p">,</span>
+
+    <span class="c1"># arbitrary fields</span>
+    <span class="n">Optional</span><span class="p">(</span><span class="n">basestring</span><span class="p">):</span>               <span class="nb">object</span>
+<span class="p">})</span>
+
+
+<div class="viewcode-block" id="PackageMaker"><a class="viewcode-back" href="../../api/rez.html#rez.package_maker.PackageMaker">[docs]</a><span class="k">class</span> <span class="nc">PackageMaker</span><span class="p">(</span><span class="n">AttrDictWrapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Utility class for creating packages.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">package_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a package maker.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): Package name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PackageMaker</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package_cls</span> <span class="o">=</span> <span class="n">package_cls</span> <span class="ow">or</span> <span class="n">Package</span>
+
+        <span class="c1"># set by `make_package`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">installed_variants</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skipped_variants</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="PackageMaker.get_package"><a class="viewcode-back" href="../../api/rez.html#rez.package_maker.PackageMaker.get_package">[docs]</a>    <span class="k">def</span> <span class="nf">get_package</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create the analogous package.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `Package` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get and validate package data</span>
+        <span class="n">package_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data</span><span class="p">()</span>
+        <span class="n">package_data</span> <span class="o">=</span> <span class="n">package_schema</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">package_data</span><span class="p">)</span>
+
+        <span class="c1"># check compatibility with rez version</span>
+        <span class="k">if</span> <span class="s2">&quot;requires_rez_version&quot;</span> <span class="ow">in</span> <span class="n">package_data</span><span class="p">:</span>
+            <span class="n">ver</span> <span class="o">=</span> <span class="n">package_data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;requires_rez_version&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">Version</span><span class="p">(</span><span class="n">_rez_version</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">ver</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">PackageMetadataError</span><span class="p">(</span>
+                    <span class="s2">&quot;Failed reading package definition file: rez version &gt;= </span><span class="si">%s</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;needed (current version is </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ver</span><span class="p">,</span> <span class="n">_rez_version</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="c1"># create a &#39;memory&#39; package repository containing just this package</span>
+        <span class="n">version_str</span> <span class="o">=</span> <span class="n">package_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;version&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;_NO_VERSION&quot;</span>
+        <span class="n">repo_data</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="p">{</span><span class="n">version_str</span><span class="p">:</span> <span class="n">package_data</span><span class="p">}}</span>
+        <span class="n">repo</span> <span class="o">=</span> <span class="n">create_memory_package_repository</span><span class="p">(</span><span class="n">repo_data</span><span class="p">)</span>
+
+        <span class="c1"># retrieve the package from the new repository</span>
+        <span class="n">family_resource</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">get_package_family</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">iter_packages</span><span class="p">(</span><span class="n">family_resource</span><span class="p">)</span>
+        <span class="n">package_resource</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+
+        <span class="n">package</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_cls</span><span class="p">(</span><span class="n">package_resource</span><span class="p">)</span>
+
+        <span class="c1"># revalidate the package for extra measure</span>
+        <span class="n">package</span><span class="o">.</span><span class="n">validate_data</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">package</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;installed_variants&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;skipped_variants&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;package_cls&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="make_package"><a class="viewcode-back" href="../../api/rez.html#rez.package_maker.make_package">[docs]</a><span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">make_package</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">make_base</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">make_root</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip_existing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">warn_on_skip</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make and install a package.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; def make_root(variant, path):</span>
+<span class="sd">        &gt;&gt;&gt;     os.symlink(&quot;/foo_payload/misc/python27&quot;, &quot;ext&quot;)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; with make_package(&#39;foo&#39;, &#39;/packages&#39;, make_root=make_root) as pkg:</span>
+<span class="sd">        &gt;&gt;&gt;     pkg.version = &#39;1.0.0&#39;</span>
+<span class="sd">        &gt;&gt;&gt;     pkg.description = &#39;does foo things&#39;</span>
+<span class="sd">        &gt;&gt;&gt;     pkg.requires = [&#39;python-2.7&#39;]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (str): Package name.</span>
+<span class="sd">        path (str): Package repository path to install package into.</span>
+<span class="sd">        make_base (callable): Function that is used to create the package</span>
+<span class="sd">            payload, if applicable.</span>
+<span class="sd">        make_root (callable): Function that is used to create the package</span>
+<span class="sd">            variant payloads, if applicable.</span>
+<span class="sd">        skip_existing (bool): If True, detect if a variant already exists, and</span>
+<span class="sd">            skip with a warning message if so.</span>
+<span class="sd">        warn_on_skip (bool): If True, print warning when a variant is skipped.</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        `PackageMaker` object.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Both `make_base` and `make_root` are called once per variant install,</span>
+<span class="sd">        and have the signature (variant, path).</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        The &#39;installed_variants&#39; attribute on the `PackageMaker` instance will</span>
+<span class="sd">        be appended with variant(s) created by this function, if any.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">maker</span> <span class="o">=</span> <span class="n">PackageMaker</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">maker</span>
+
+    <span class="c1"># post-with-block:</span>
+    <span class="c1">#</span>
+
+    <span class="n">package</span> <span class="o">=</span> <span class="n">maker</span><span class="o">.</span><span class="n">get_package</span><span class="p">()</span>
+    <span class="n">src_variants</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># skip those variants that already exist</span>
+    <span class="k">if</span> <span class="n">skip_existing</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">iter_variants</span><span class="p">():</span>
+            <span class="n">variant_</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">install</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">variant_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">src_variants</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">maker</span><span class="o">.</span><span class="n">skipped_variants</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variant_</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">warn_on_skip</span><span class="p">:</span>
+                    <span class="n">print_warning</span><span class="p">(</span><span class="s2">&quot;Skipping installation: Package variant already &quot;</span>
+                                  <span class="s2">&quot;exists: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">variant_</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">src_variants</span> <span class="o">=</span> <span class="n">package</span><span class="o">.</span><span class="n">iter_variants</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">retain_cwd</span><span class="p">():</span>
+        <span class="c1"># install the package variant(s) into the filesystem package repo at `path`</span>
+        <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">src_variants</span><span class="p">:</span>
+            <span class="n">variant_</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">install</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+            <span class="n">base</span> <span class="o">=</span> <span class="n">variant_</span><span class="o">.</span><span class="n">base</span>
+            <span class="k">if</span> <span class="n">make_base</span> <span class="ow">and</span> <span class="n">base</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">base</span><span class="p">):</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+                <span class="n">make_base</span><span class="p">(</span><span class="n">variant_</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
+
+            <span class="n">root</span> <span class="o">=</span> <span class="n">variant_</span><span class="o">.</span><span class="n">root</span>
+            <span class="k">if</span> <span class="n">make_root</span> <span class="ow">and</span> <span class="n">root</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+                <span class="n">make_root</span><span class="p">(</span><span class="n">variant_</span><span class="p">,</span> <span class="n">root</span><span class="p">)</span>
+
+            <span class="n">maker</span><span class="o">.</span><span class="n">installed_variants</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variant_</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rezplugins.shell.csh &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rezplugins.shell.csh</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rezplugins.shell.csh</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">CSH shell</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">pipes</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">rez.util</span> <span class="kn">import</span> <span class="n">shlex_join</span>
+<span class="kn">from</span> <span class="nn">rez.utils.execution</span> <span class="kn">import</span> <span class="n">Popen</span>
+<span class="kn">from</span> <span class="nn">rez.utils.platform_</span> <span class="kn">import</span> <span class="n">platform_</span>
+<span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">UnixShell</span>
+<span class="kn">from</span> <span class="nn">rez.rex</span> <span class="kn">import</span> <span class="n">EscapedString</span>
+
+
+<div class="viewcode-block" id="CSH"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH">[docs]</a><span class="k">class</span> <span class="nc">CSH</span><span class="p">(</span><span class="n">UnixShell</span><span class="p">):</span>
+    <span class="n">norc_arg</span> <span class="o">=</span> <span class="s1">&#39;-f&#39;</span>
+    <span class="n">last_command_status</span> <span class="o">=</span> <span class="s1">&#39;$status&#39;</span>
+    <span class="n">histfile</span> <span class="o">=</span> <span class="s2">&quot;~/.history&quot;</span>
+    <span class="n">histvar</span> <span class="o">=</span> <span class="s2">&quot;histfile&quot;</span>
+
+<div class="viewcode-block" id="CSH.name"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;csh&#39;</span></div>
+
+<div class="viewcode-block" id="CSH.file_extension"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.file_extension">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">file_extension</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;csh&#39;</span></div>
+
+<div class="viewcode-block" id="CSH.get_syspaths"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.get_syspaths">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_syspaths</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">syspaths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">syspaths</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">standard_system_paths</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">syspaths</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">standard_system_paths</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">syspaths</span>
+
+        <span class="c1"># detect system paths using registry</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;cmd=`which </span><span class="si">%s</span><span class="s2">`; unset PATH; $cmd </span><span class="si">%s</span><span class="s2"> &#39;echo __PATHS_ $PATH&#39;&quot;</span> \
+              <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="bp">cls</span><span class="o">.</span><span class="n">command_arg</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                  <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">out_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">:</span>
+            <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">out_</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">lines</span> <span class="k">if</span> <span class="s2">&quot;__PATHS_&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">()][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">paths</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">defpath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">pathsep</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+                <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">syspaths</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">paths</span> <span class="k">if</span> <span class="n">x</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">syspaths</span></div>
+
+<div class="viewcode-block" id="CSH.startup_capabilities"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.startup_capabilities">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">startup_capabilities</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">rcfile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">norc</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                             <span class="n">command</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_unsupported_option</span><span class="p">(</span><span class="s1">&#39;rcfile&#39;</span><span class="p">,</span> <span class="n">rcfile</span><span class="p">)</span>
+        <span class="n">rcfile</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">command</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_overruled_option</span><span class="p">(</span><span class="s1">&#39;stdin&#39;</span><span class="p">,</span> <span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span>
+            <span class="n">stdin</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">rcfile</span><span class="p">,</span> <span class="n">norc</span><span class="p">,</span> <span class="n">stdin</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CSH.get_startup_sequence"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.get_startup_sequence">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_startup_sequence</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">rcfile</span><span class="p">,</span> <span class="n">norc</span><span class="p">,</span> <span class="n">stdin</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="n">rcfile</span><span class="p">,</span> <span class="n">norc</span><span class="p">,</span> <span class="n">stdin</span><span class="p">,</span> <span class="n">command</span> <span class="o">=</span> \
+            <span class="bp">cls</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">rcfile</span><span class="p">,</span> <span class="n">norc</span><span class="p">,</span> <span class="n">stdin</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">norc</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s2">&quot;~/.tcshrc&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;~/.cshrc&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;~/.login&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;~/.cshdirs&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">file</span><span class="p">)):</span>
+                    <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">stdin</span><span class="o">=</span><span class="n">stdin</span><span class="p">,</span>
+            <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">,</span>
+            <span class="n">do_rcfile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">envvar</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span>
+            <span class="n">bind_files</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;~/.tcshrc&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;~/.cshrc&quot;</span><span class="p">),</span>
+            <span class="n">source_bind_files</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">norc</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CSH.escape_string"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.escape_string">[docs]</a>    <span class="k">def</span> <span class="nf">escape_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">is_path</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">EscapedString</span><span class="o">.</span><span class="n">promote</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="k">for</span> <span class="n">is_literal</span><span class="p">,</span> <span class="n">txt</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">strings</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_literal</span><span class="p">:</span>
+                <span class="n">txt</span> <span class="o">=</span> <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">txt</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">):</span>
+                    <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">txt</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">is_path</span><span class="p">:</span>
+                    <span class="n">txt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_paths</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+
+                <span class="n">txt</span> <span class="o">=</span> <span class="n">txt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;</span><span class="se">\\</span><span class="s1">&quot;&quot;&#39;</span><span class="p">)</span>
+                <span class="n">txt</span> <span class="o">=</span> <span class="n">txt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">!&#39;</span><span class="p">)</span>
+                <span class="n">txt</span> <span class="o">=</span> <span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">txt</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="n">txt</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="CSH.join"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.join">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="n">replacements</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="c1"># escape ! as \!</span>
+            <span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">!&quot;</span><span class="p">),</span>
+
+            <span class="c1"># see Shell.join()</span>
+            <span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;</span><span class="se">\&#39;</span><span class="s1">&quot;</span><span class="se">\&#39;</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
+
+            <span class="c1"># similar to above, but for backticks</span>
+            <span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;</span><span class="se">\&#39;</span><span class="s1">`</span><span class="se">\&#39;</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
+
+            <span class="c1"># escape $ if not part of a valid var ref like $FOO, ${FOO}</span>
+            <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\$([^a-zA-Z{])&quot;</span><span class="p">),</span> <span class="s1">&#39;&quot;</span><span class="se">\&#39;</span><span class="s1">$</span><span class="se">\&#39;</span><span class="s1">&quot;</span><span class="se">\\</span><span class="s1">1&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\$$&quot;</span><span class="p">),</span> <span class="s1">&#39;&quot;</span><span class="se">\&#39;</span><span class="s1">$</span><span class="se">\&#39;</span><span class="s1">&quot;&#39;</span><span class="p">)</span>  <span class="c1"># edge case, $ at end</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">shlex_join</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">replacements</span><span class="o">=</span><span class="n">replacements</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_bind_interactive_rez</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">set_prompt</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">prompt</span><span class="p">:</span>
+            <span class="c1"># TODO: Do more like in sh.py, much less error prone</span>
+            <span class="n">stored_prompt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;REZ_STORED_PROMPT_CSH&quot;</span><span class="p">)</span>
+            <span class="n">curr_prompt</span> <span class="o">=</span> <span class="n">stored_prompt</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;prompt&quot;</span><span class="p">,</span> <span class="s2">&quot;[%m </span><span class="si">%c</span><span class="s2">]%# &quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">stored_prompt</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">setenv</span><span class="p">(</span><span class="s2">&quot;REZ_STORED_PROMPT_CSH&quot;</span><span class="p">,</span> <span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">curr_prompt</span><span class="p">)</span>
+
+            <span class="n">new_prompt</span> <span class="o">=</span> <span class="s2">&quot;$REZ_ENV_PROMPT&quot;</span>
+            <span class="n">new_prompt</span> <span class="o">=</span> <span class="p">(</span><span class="n">new_prompt</span> <span class="o">+</span> <span class="s2">&quot; </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">prefix_prompt</span> \
+                <span class="k">else</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">+</span> <span class="n">new_prompt</span><span class="p">)</span>
+
+            <span class="n">new_prompt</span> <span class="o">=</span> <span class="n">new_prompt</span> <span class="o">%</span> <span class="n">curr_prompt</span>
+            <span class="n">new_prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">escape_string</span><span class="p">(</span><span class="n">new_prompt</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_addline</span><span class="p">(</span><span class="s1">&#39;set prompt=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">new_prompt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_saferefenv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_addline</span><span class="p">(</span><span class="s2">&quot;if (!($?</span><span class="si">%s</span><span class="s2">)) setenv </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+
+<div class="viewcode-block" id="CSH.setenv"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.setenv">[docs]</a>    <span class="k">def</span> <span class="nf">setenv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">escape_string</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">is_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_pathed_key</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_addline</span><span class="p">(</span><span class="s1">&#39;setenv </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="CSH.unsetenv"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.unsetenv">[docs]</a>    <span class="k">def</span> <span class="nf">unsetenv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_addline</span><span class="p">(</span><span class="s2">&quot;unsetenv </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CSH.alias"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.alias">[docs]</a>    <span class="k">def</span> <span class="nf">alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">EscapedString</span><span class="o">.</span><span class="n">disallow</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_addline</span><span class="p">(</span><span class="s2">&quot;alias </span><span class="si">%s</span><span class="s2"> &#39;</span><span class="si">%s</span><span class="s2">&#39;;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="CSH.source"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.CSH.source">[docs]</a>    <span class="k">def</span> <span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">escape_string</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_addline</span><span class="p">(</span><span class="s1">&#39;source </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="register_plugin"><a class="viewcode-back" href="../../../api/rezplugins.shell.html#rezplugins.shell.csh.register_plugin">[docs]</a><span class="k">def</span> <span class="nf">register_plugin</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">platform_</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;windows&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CSH</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

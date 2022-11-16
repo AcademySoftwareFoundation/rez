@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.system &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.system</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.system</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+
+<span class="kn">from</span> <span class="nn">rez</span> <span class="kn">import</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">rez.utils.platform_</span> <span class="kn">import</span> <span class="n">platform_</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">RezSystemError</span>
+<span class="kn">from</span> <span class="nn">rez.utils.data_utils</span> <span class="kn">import</span> <span class="n">cached_property</span>
+
+
+<div class="viewcode-block" id="System"><a class="viewcode-back" href="../../api/rez.html#rez.system.System">[docs]</a><span class="k">class</span> <span class="nc">System</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Access to underlying system data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">rez_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the current version of Rez.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">__version__</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">platform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the current platform.</span>
+<span class="sd">        @returns The current platform. Examples:</span>
+
+<span class="sd">            linux</span>
+<span class="sd">            windows</span>
+<span class="sd">            osx</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">platform_</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">arch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the current architecture.</span>
+<span class="sd">        @returns The current architecture. Examples:</span>
+
+<span class="sd">            x86_64</span>
+<span class="sd">            i386</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">platform_</span><span class="o">.</span><span class="n">arch</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_safe_version_string</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">os</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the current operating system.</span>
+<span class="sd">        @returns The current operating system. Examples:</span>
+
+<span class="sd">            Ubuntu-12.04</span>
+<span class="sd">            CentOS-5.4</span>
+<span class="sd">            windows-6.1.7600.sp1</span>
+<span class="sd">            osx-10.6.2</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">platform_</span><span class="o">.</span><span class="n">os</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_safe_version_string</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">variant</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a list of the form [&quot;platform-X&quot;, &quot;arch-X&quot;, &quot;os-X&quot;] suitable</span>
+<span class="sd">        for use as a variant in a system-dependent package.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;platform-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">platform</span><span class="p">,</span>
+                <span class="s2">&quot;arch-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">arch</span><span class="p">,</span>
+                <span class="s2">&quot;os-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">os</span><span class="p">]</span>
+
+    <span class="c1"># TODO: move shell detection into shell plugins</span>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">shell</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the current shell.</span>
+<span class="sd">        @returns The current shell this process is running in. Examples:</span>
+
+<span class="sd">            bash</span>
+<span class="sd">            tcsh</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">get_shell_types</span>
+        <span class="n">shells</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_shell_types</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">shells</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RezSystemError</span><span class="p">(</span><span class="s2">&quot;no shells available&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;windows&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;cmd&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">subprocess</span> <span class="k">as</span> <span class="nn">sp</span>
+            <span class="n">shell</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># check parent process via ps</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;-o&#39;</span><span class="p">,</span> <span class="s1">&#39;args=&#39;</span><span class="p">,</span> <span class="s1">&#39;-p&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getppid</span><span class="p">())]</span>
+                <span class="n">proc</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">sp</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">shell</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="c1"># check $SHELL</span>
+            <span class="k">if</span> <span class="n">shell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                <span class="n">shell</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SHELL&quot;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+
+            <span class="c1"># traverse parent procs via /proc/(pid)/status</span>
+            <span class="k">if</span> <span class="n">shell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                <span class="n">pid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getppid</span><span class="p">())</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="kc">False</span>
+
+                <span class="k">while</span> <span class="ow">not</span> <span class="n">found</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">,</span> <span class="s2">&quot;proc&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="s2">&quot;status&quot;</span><span class="p">)</span>
+                        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                            <span class="n">loc</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+                        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">loc</span><span class="p">:</span>
+                            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                            <span class="n">toks</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">toks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">toks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Name:&quot;</span><span class="p">:</span>
+                                    <span class="n">name</span> <span class="o">=</span> <span class="n">toks</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                                        <span class="n">shell</span> <span class="o">=</span> <span class="n">name</span>
+                                        <span class="n">found</span> <span class="o">=</span> <span class="kc">True</span>
+                                        <span class="k">break</span>
+                                <span class="k">elif</span> <span class="n">toks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;PPid:&quot;</span><span class="p">:</span>
+                                    <span class="n">pid</span> <span class="o">=</span> <span class="n">toks</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                        <span class="k">break</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">shell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;sh&quot;</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">):</span>
+                <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;sh&quot;</span>  <span class="c1"># failed detection, fall back on &#39;sh&#39;</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">shell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">&quot;bash&quot;</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">):</span>
+                <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;bash&quot;</span>  <span class="c1"># failed detection, fall back on &#39;bash&#39;</span>
+            <span class="k">elif</span> <span class="n">shell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                <span class="n">shell</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">shells</span><span class="p">))</span>  <span class="c1"># give up - just choose a shell</span>
+
+            <span class="c1"># sh has to be handled as a special case</span>
+            <span class="k">if</span> <span class="n">shell</span> <span class="o">==</span> <span class="s2">&quot;sh&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">islink</span><span class="p">(</span><span class="s2">&quot;/bin/sh&quot;</span><span class="p">):</span>
+                    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">readlink</span><span class="p">(</span><span class="s2">&quot;/bin/sh&quot;</span><span class="p">)</span>
+                    <span class="n">shell2</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">shell2</span> <span class="o">==</span> <span class="s2">&quot;bash&quot;</span><span class="p">:</span>
+                        <span class="c1"># bash switches to sh-like shell when invoked as sh,</span>
+                        <span class="c1"># so we want to use the sh shell plugin</span>
+                        <span class="k">pass</span>
+                    <span class="k">elif</span> <span class="n">shell2</span> <span class="o">==</span> <span class="s2">&quot;dash&quot;</span><span class="p">:</span>
+                        <span class="c1"># dash doesn&#39;t have an sh emulation mode, so we have</span>
+                        <span class="c1"># to use the dash shell plugin</span>
+                        <span class="k">if</span> <span class="s2">&quot;dash&quot;</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                            <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;dash&quot;</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># this isn&#39;t good!</span>
+                            <span class="k">if</span> <span class="s2">&quot;bash&quot;</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                                <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;bash&quot;</span>  <span class="c1"># fall back on bash</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">shell</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">shells</span><span class="p">))</span>  <span class="c1"># give up - just choose a shell</span>
+
+            <span class="c1"># TODO: remove this when/if dash support added</span>
+            <span class="k">if</span> <span class="n">shell</span> <span class="o">==</span> <span class="s2">&quot;dash&quot;</span><span class="p">:</span>
+                <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;bash&quot;</span>
+
+            <span class="k">return</span> <span class="n">shell</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">user</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the current user.&quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">getpass</span>
+        <span class="k">return</span> <span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">()</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">home</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the home directory for the current user.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~&quot;</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">fqdn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        @returns Fully qualified domain name, eg &#39;somesvr.somestudio.com&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">socket</span>
+        <span class="k">return</span> <span class="n">socket</span><span class="o">.</span><span class="n">getfqdn</span><span class="p">()</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">hostname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        @returns The machine hostname, eg &#39;somesvr&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">socket</span>
+        <span class="k">return</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">()</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">domain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        @returns The domain, eg &#39;somestudio.com&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fqdn</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">rez_bin_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get path containing rez binaries, or None if no binaries are</span>
+<span class="sd">        available, or Rez is not a production install.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Rez install layout will be like:</span>
+        <span class="c1">#</span>
+        <span class="c1"># /&lt;install&gt;/lib/python2.7/site-packages/rez  &lt;- module path</span>
+        <span class="c1"># /&lt;install&gt;/(bin or Scripts)/rez/rez  &lt;- rez executable</span>
+        <span class="c1">#</span>
+        <span class="kn">import</span> <span class="nn">rez</span>
+        <span class="n">module_path</span> <span class="o">=</span> <span class="n">rez</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">module_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+        <span class="n">parts_lower</span> <span class="o">=</span> <span class="n">module_path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+
+        <span class="c1"># find last &#39;lib&#39; or &#39;lib64&#39; dir in rez module path</span>
+        <span class="c1"># Note: On Windows it can be &#39;Lib&#39; (hence lowercase check).</span>
+        <span class="c1"># Note: Occasionally a rez install will use the python lib stored in</span>
+        <span class="c1"># lib64 instead of lib, I don&#39;t know why.</span>
+        <span class="c1">#</span>
+        <span class="n">rev_parts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">parts_lower</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">rev_parts</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;lib&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">rev_parts</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;lib64&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span>  <span class="c1"># unreverse the index</span>
+
+        <span class="c1"># find rez bin path and look for the production install marker file</span>
+        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Windows&quot;</span><span class="p">:</span>
+            <span class="n">bin_dirname</span> <span class="o">=</span> <span class="s2">&quot;Scripts&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bin_dirname</span> <span class="o">=</span> <span class="s2">&quot;bin&quot;</span>
+
+        <span class="n">binpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">bin_dirname</span><span class="p">,</span> <span class="s2">&quot;rez&quot;</span><span class="p">])</span>
+
+        <span class="n">validation_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">binpath</span><span class="p">,</span> <span class="s2">&quot;.rez_production_install&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">validation_file</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">binpath</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_production_rez_install</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if this is a production rez install.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rez_bin_path</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">selftest_is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if tests are running via rez-selftest tool.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;__REZ_SELFTEST_RUNNING&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span>
+
+<div class="viewcode-block" id="System.get_summary_string"><a class="viewcode-back" href="../../api/rez.html#rez.system.System.get_summary_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a string summarising the state of Rez as a whole.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            String.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+
+        <span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;Rez </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">__version__</span>
+        <span class="n">txt</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_summary_string</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">txt</span></div>
+
+<div class="viewcode-block" id="System.clear_caches"><a class="viewcode-back" href="../../api/rez.html#rez.system.System.clear_caches">[docs]</a>    <span class="k">def</span> <span class="nf">clear_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hard</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Clear all caches in Rez.</span>
+
+<span class="sd">        Rez caches package contents and iteration during a python session. Thus</span>
+<span class="sd">        newly released packages, and changes to existing packages, may not be</span>
+<span class="sd">        picked up. You need to clear the cache for these changes to become</span>
+<span class="sd">        visible.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hard (bool): Perform a &#39;hard&#39; cache clear. This just means that the</span>
+<span class="sd">                memcached cache is also cleared. Generally this is not needed -</span>
+<span class="sd">                this option is for debugging purposes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">rez.package_repository</span> <span class="kn">import</span> <span class="n">package_repository_manager</span>
+        <span class="kn">from</span> <span class="nn">rez.utils.memcached</span> <span class="kn">import</span> <span class="n">memcached_client</span>
+
+        <span class="n">package_repository_manager</span><span class="o">.</span><span class="n">clear_caches</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">hard</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">memcached_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_make_safe_version_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="n">sep_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[\.\-]&quot;</span><span class="p">)</span>
+        <span class="n">char_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;[a-zA-Z0-9_]&quot;</span><span class="p">)</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="n">toks</span> <span class="o">=</span> <span class="n">sep_regex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">seps</span> <span class="o">=</span> <span class="n">sep_regex</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">valid_toks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">while</span> <span class="n">toks</span> <span class="ow">or</span> <span class="n">seps</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">b</span><span class="p">:</span>
+                <span class="n">tok</span> <span class="o">=</span> <span class="n">toks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">toks</span> <span class="o">=</span> <span class="n">toks</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="k">if</span> <span class="n">tok</span><span class="p">:</span>
+                    <span class="n">valid_tok</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">tok</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">char_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">ch</span><span class="p">):</span>
+                            <span class="n">valid_tok</span> <span class="o">+=</span> <span class="n">ch</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">valid_tok</span> <span class="o">+=</span> <span class="s1">&#39;_&#39;</span>
+                    <span class="n">valid_toks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">valid_tok</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">seps</span> <span class="o">=</span> <span class="n">seps</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>  <span class="c1"># skip empty string between seps</span>
+                    <span class="n">b</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">b</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sep</span> <span class="o">=</span> <span class="n">seps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">seps</span> <span class="o">=</span> <span class="n">seps</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="n">valid_toks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">b</span>
+
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">valid_toks</span><span class="p">)</span></div>
+
+
+<span class="c1"># singleton</span>
+<span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

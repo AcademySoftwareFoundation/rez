@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1.2. Rez Plugins &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="1.2.1.1. rezplugins.build_system package" href="rezplugins.build_system.html" />
+    <link rel="prev" title="1.1.1.4. rez.tests package" href="rez.tests.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">1. API Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="rez.html">1.1. Rez</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">1.2. Rez Plugins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#subpackages">1.2.1. Subpackages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.build_system.html">1.2.1.1. rezplugins.build_system package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.release_hook.html">1.2.1.2. rezplugins.release_hook package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.release_vcs.html">1.2.1.3. rezplugins.release_vcs package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.shell.html">1.2.1.4. rezplugins.shell package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.source_retriever.html">1.2.1.5. rezplugins.source_retriever package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-rezplugins">1.2.2. Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">1. API Documentation</a></li>
+      <li class="breadcrumb-item active">1.2. Rez Plugins</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/rezplugins.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="rez-plugins">
+<h1>1.2. Rez Plugins<a class="headerlink" href="#rez-plugins" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>1.2.1. Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="rezplugins.build_system.html">1.2.1.1. rezplugins.build_system package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.build_system.html#submodules">1.2.1.1.1. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.build_system.html#rezplugins-build-system-bez-module">1.2.1.1.2. rezplugins.build_system.bez module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.build_system.html#module-rezplugins.build_system.cmake">1.2.1.1.3. rezplugins.build_system.cmake module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.build_system.html#module-rezplugins.build_system.make">1.2.1.1.4. rezplugins.build_system.make module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.build_system.html#module-rezplugins.build_system">1.2.1.1.5. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rezplugins.release_hook.html">1.2.1.2. rezplugins.release_hook package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_hook.html#submodules">1.2.1.2.1. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_hook.html#module-rezplugins.release_hook.emailer">1.2.1.2.2. rezplugins.release_hook.emailer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_hook.html#module-rezplugins.release_hook">1.2.1.2.3. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rezplugins.release_vcs.html">1.2.1.3. rezplugins.release_vcs package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_vcs.html#submodules">1.2.1.3.1. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_vcs.html#module-rezplugins.release_vcs.git">1.2.1.3.2. rezplugins.release_vcs.git module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_vcs.html#module-rezplugins.release_vcs.hg">1.2.1.3.3. rezplugins.release_vcs.hg module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_vcs.html#rezplugins-release-vcs-svn-module">1.2.1.3.4. rezplugins.release_vcs.svn module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.release_vcs.html#module-rezplugins.release_vcs">1.2.1.3.5. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rezplugins.shell.html">1.2.1.4. rezplugins.shell package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.shell.html#submodules">1.2.1.4.1. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.shell.html#module-rezplugins.shell.bash">1.2.1.4.2. rezplugins.shell.bash module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.shell.html#module-rezplugins.shell.csh">1.2.1.4.3. rezplugins.shell.csh module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.shell.html#module-rezplugins.shell.sh">1.2.1.4.4. rezplugins.shell.sh module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.shell.html#module-rezplugins.shell.tcsh">1.2.1.4.5. rezplugins.shell.tcsh module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.shell.html#rezplugins-shell-windows-module">1.2.1.4.6. rezplugins.shell.windows module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.shell.html#module-rezplugins.shell">1.2.1.4.7. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rezplugins.source_retriever.html">1.2.1.5. rezplugins.source_retriever package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.source_retriever.html#submodules">1.2.1.5.1. Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.source_retriever.html#rezplugins-source-retriever-archive-module">1.2.1.5.2. rezplugins.source_retriever.archive module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.source_retriever.html#rezplugins-source-retriever-git-module">1.2.1.5.3. rezplugins.source_retriever.git module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.source_retriever.html#rezplugins-source-retriever-hg-module">1.2.1.5.4. rezplugins.source_retriever.hg module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.source_retriever.html#module-contents">1.2.1.5.5. Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="module-rezplugins">
+<span id="module-contents"></span><h2>1.2.2. Module contents<a class="headerlink" href="#module-rezplugins" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rez.tests.html" class="btn btn-neutral float-left" title="1.1.1.4. rez.tests package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rezplugins.build_system.html" class="btn btn-neutral float-right" title="1.2.1.1. rezplugins.build_system package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

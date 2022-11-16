@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.release_vcs &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.release_vcs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.release_vcs</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">ReleaseVCSError</span>
+<span class="kn">from</span> <span class="nn">rez.packages</span> <span class="kn">import</span> <span class="n">get_developer_package</span>
+<span class="kn">from</span> <span class="nn">rez.util</span> <span class="kn">import</span> <span class="n">which</span>
+<span class="kn">from</span> <span class="nn">rez.utils.execution</span> <span class="kn">import</span> <span class="n">Popen</span>
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_debug</span>
+<span class="kn">from</span> <span class="nn">rez.utils.filesystem</span> <span class="kn">import</span> <span class="n">walk_up_dirs</span>
+<span class="kn">from</span> <span class="nn">pipes</span> <span class="kn">import</span> <span class="n">quote</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+
+<div class="viewcode-block" id="get_release_vcs_types"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.get_release_vcs_types">[docs]</a><span class="k">def</span> <span class="nf">get_release_vcs_types</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the available VCS implementations - git, hg etc.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="k">return</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugins</span><span class="p">(</span><span class="s1">&#39;release_vcs&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_release_vcs"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.create_release_vcs">[docs]</a><span class="k">def</span> <span class="nf">create_release_vcs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">vcs_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a new release VCS that can release from this source path.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="n">vcs_types</span> <span class="o">=</span> <span class="n">get_release_vcs_types</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">vcs_name</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">vcs_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vcs_types</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReleaseVCSError</span><span class="p">(</span><span class="s2">&quot;Unknown version control system: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">vcs_name</span><span class="p">)</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="s1">&#39;release_vcs&#39;</span><span class="p">,</span> <span class="n">vcs_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="n">classes_by_level</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">vcs_name</span> <span class="ow">in</span> <span class="n">vcs_types</span><span class="p">:</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="s1">&#39;release_vcs&#39;</span><span class="p">,</span> <span class="n">vcs_name</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">find_vcs_root</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">vcs_path</span><span class="p">,</span> <span class="n">levels_up</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="n">classes_by_level</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">levels_up</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">cls</span><span class="p">,</span> <span class="n">vcs_path</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">classes_by_level</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ReleaseVCSError</span><span class="p">(</span>
+            <span class="s2">&quot;No version control system for package &quot;</span>
+            <span class="s2">&quot;releasing is associated with the path </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">path</span>
+        <span class="p">)</span>
+
+    <span class="c1"># it&#39;s ok to have multiple results, as long as there is only one at the</span>
+    <span class="c1"># &quot;closest&quot; directory up from this dir - ie, if we start at:</span>
+    <span class="c1">#    /blah/foo/pkg_root</span>
+    <span class="c1"># and these dirs exist:</span>
+    <span class="c1">#    /blah/.hg</span>
+    <span class="c1">#    /blah/foo/.git</span>
+    <span class="c1"># ...then this is ok, because /blah/foo/.git is &quot;closer&quot; to the original</span>
+    <span class="c1"># dir, and will be picked. However, if these two directories exist:</span>
+    <span class="c1">#    /blah/foo/.git</span>
+    <span class="c1">#    /blah/foo/.hg</span>
+    <span class="c1"># ...then we error, because we can&#39;t decide which to use</span>
+
+    <span class="n">lowest_level</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">classes_by_level</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">clss</span> <span class="o">=</span> <span class="n">classes_by_level</span><span class="p">[</span><span class="n">lowest_level</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">clss</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">clss_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">clss</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">ReleaseVCSError</span><span class="p">(</span><span class="s2">&quot;Several version control systems are associated &quot;</span>
+                              <span class="s2">&quot;with the path </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">. Use rez-release --vcs to &quot;</span>
+                              <span class="s2">&quot;choose.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">clss_str</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">vcs_root</span> <span class="o">=</span> <span class="n">clss</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">pkg_root</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">vcs_root</span><span class="o">=</span><span class="n">vcs_root</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReleaseVCS"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS">[docs]</a><span class="k">class</span> <span class="nc">ReleaseVCS</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A version control system (VCS) used to release Rez packages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pkg_root</span><span class="p">,</span> <span class="n">vcs_root</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">vcs_root</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_vcs_root</span><span class="p">(</span><span class="n">pkg_root</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReleaseVCSError</span><span class="p">(</span><span class="s2">&quot;Could not find </span><span class="si">%s</span><span class="s2"> repository for the &quot;</span>
+                                      <span class="s2">&quot;path </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">pkg_root</span><span class="p">))</span>
+            <span class="n">vcs_root</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid_root</span><span class="p">(</span><span class="n">vcs_root</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">vcs_root</span> <span class="o">=</span> <span class="n">vcs_root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pkg_root</span> <span class="o">=</span> <span class="n">pkg_root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="n">get_developer_package</span><span class="p">(</span><span class="n">pkg_root</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">plugins</span><span class="o">.</span><span class="n">release_vcs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ReleaseVCS.name"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the name of the VCS type, eg &#39;git&#39;.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.find_executable"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.find_executable">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">find_executable</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">exe</span> <span class="o">=</span> <span class="n">which</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">exe</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReleaseVCSError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find executable &#39;</span><span class="si">%s</span><span class="s2">&#39; for VCS &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
+                                  <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">name</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">exe</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.is_valid_root"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.is_valid_root">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">is_valid_root</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if the given path is a valid root directory for this</span>
+<span class="sd">        version control system.</span>
+
+<span class="sd">        Note that this is different than whether the path is under the</span>
+<span class="sd">        control of this type of vcs; to answer that question,</span>
+<span class="sd">        use find_vcs_root</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.search_parents_for_root"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.search_parents_for_root">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">search_parents_for_root</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if this vcs type should check parent directories to</span>
+<span class="sd">        find the root directory</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.find_vcs_root"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.find_vcs_root">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">find_vcs_root</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Try to find a version control root directory of this type for the</span>
+<span class="sd">        given path.</span>
+
+<span class="sd">        If successful, returns (vcs_root, levels_up), where vcs_root is the</span>
+<span class="sd">        path to the version control root directory it found, and levels_up is an</span>
+<span class="sd">        integer indicating how many parent directories it had to search through</span>
+<span class="sd">        to find it, where 0 means it was found in the indicated path, 1 means it</span>
+<span class="sd">        was found in that path&#39;s parent, etc. If not sucessful, returns None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">search_parents_for_root</span><span class="p">():</span>
+            <span class="n">valid_dirs</span> <span class="o">=</span> <span class="n">walk_up_dirs</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">valid_dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">path</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">current_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">valid_dirs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">is_valid_root</span><span class="p">(</span><span class="n">current_path</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">current_path</span><span class="p">,</span> <span class="n">i</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.validate_repostate"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.validate_repostate">[docs]</a>    <span class="k">def</span> <span class="nf">validate_repostate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ensure that the VCS working copy is up-to-date.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.get_current_revision"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.get_current_revision">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_revision</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the current revision, this can be any type (str, dict etc)</span>
+<span class="sd">        appropriate to your VCS implementation.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            You must ensure that a revision contains enough information to</span>
+<span class="sd">            clone/export/checkout the repo elsewhere - otherwise you will not</span>
+<span class="sd">            be able to implement `export`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.get_changelog"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.get_changelog">[docs]</a>    <span class="k">def</span> <span class="nf">get_changelog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">previous_revision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_revisions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the changelog text since the given revision.</span>
+
+<span class="sd">        If previous_revision is not an ancestor (for example, the last release</span>
+<span class="sd">        was from a different branch) you should still return a meaningful</span>
+<span class="sd">        changelog - perhaps include a warning, and give changelog back to the</span>
+<span class="sd">        last common ancestor.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            previous_revision: The revision to give the changelog since. If</span>
+<span class="sd">            None, give the entire changelog.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Changelog, as a string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.tag_exists"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.tag_exists">[docs]</a>    <span class="k">def</span> <span class="nf">tag_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test if a tag exists in the repo.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tag_name (str): Tag name to check for.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the tag exists, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.create_release_tag"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.create_release_tag">[docs]</a>    <span class="k">def</span> <span class="nf">create_release_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag_name</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a tag in the repo.</span>
+
+<span class="sd">        Create a tag in the repository representing the release of the</span>
+<span class="sd">        given version.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tag_name (str): Tag name to write to the repo.</span>
+<span class="sd">            message (str): Message string to associate with the release.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ReleaseVCS.export"><a class="viewcode-back" href="../../api/rez.html#rez.release_vcs.ReleaseVCS.export">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">export</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">revision</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Export the repository to the given path at the given revision.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            The directory at `path` must not exist, but the parent directory</span>
+<span class="sd">            must exist.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            revision (object): Revision to export; current revision if None.</span>
+<span class="sd">            path (str): Directory to export the repository to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="nf">_cmd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">nargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convenience function for executing a program such as &#39;git&#39; etc.&quot;&quot;&quot;</span>
+        <span class="n">cmd_str</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">quote</span><span class="p">,</span> <span class="n">nargs</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;package_release&quot;</span><span class="p">):</span>
+            <span class="n">print_debug</span><span class="p">(</span><span class="s2">&quot;Running command: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd_str</span><span class="p">)</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span><span class="n">nargs</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                  <span class="n">cwd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pkg_root</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">:</span>
+            <span class="n">print_debug</span><span class="p">(</span><span class="s2">&quot;command stdout:&quot;</span><span class="p">)</span>
+            <span class="n">print_debug</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">print_debug</span><span class="p">(</span><span class="s2">&quot;command stderr:&quot;</span><span class="p">)</span>
+            <span class="n">print_debug</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ReleaseVCSError</span><span class="p">(</span><span class="s2">&quot;command failed: </span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd_str</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">out</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.tests.test_context &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.tests.test_context</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.tests.test_context</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">test resolved contexts</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">rez.tests.util</span> <span class="kn">import</span> <span class="n">restore_os_environ</span><span class="p">,</span> <span class="n">restore_sys_path</span><span class="p">,</span> <span class="n">TempdirMixin</span><span class="p">,</span> \
+    <span class="n">TestBase</span>
+<span class="kn">from</span> <span class="nn">rez.resolved_context</span> <span class="kn">import</span> <span class="n">ResolvedContext</span>
+<span class="kn">from</span> <span class="nn">rez.bundle_context</span> <span class="kn">import</span> <span class="n">bundle_context</span>
+<span class="kn">from</span> <span class="nn">rez.bind</span> <span class="kn">import</span> <span class="n">hello_world</span>
+<span class="kn">from</span> <span class="nn">rez.utils.platform_</span> <span class="kn">import</span> <span class="n">platform_</span>
+<span class="kn">from</span> <span class="nn">rez.utils.filesystem</span> <span class="kn">import</span> <span class="n">is_subdirectory</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="TestContext"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext">[docs]</a><span class="k">class</span> <span class="nc">TestContext</span><span class="p">(</span><span class="n">TestBase</span><span class="p">,</span> <span class="n">TempdirMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="TestContext.setUpClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.setUpClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setUpClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">TempdirMixin</span><span class="o">.</span><span class="n">setUpClass</span><span class="p">()</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">packages_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">packages_path</span><span class="p">)</span>
+        <span class="n">hello_world</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">packages_path</span><span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">packages_path</span><span class="o">=</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">packages_path</span><span class="p">],</span>
+            <span class="n">package_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">implicit_packages</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">warn_untimestamped</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">resolve_caching</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestContext.tearDownClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.tearDownClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">tearDownClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">TempdirMixin</span><span class="o">.</span><span class="n">tearDownClass</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestContext.test_create_context"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.test_create_context">[docs]</a>    <span class="k">def</span> <span class="nf">test_create_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test creation of context.&quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([])</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">print_info</span><span class="p">()</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">print_info</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestContext.test_apply"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.test_apply">[docs]</a>    <span class="k">def</span> <span class="nf">test_apply</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test apply() function.&quot;&quot;&quot;</span>
+        <span class="c1"># Isolate our changes to os.environ and sys.path and return to the</span>
+        <span class="c1"># original state to not mess with our test environment.</span>
+        <span class="k">with</span> <span class="n">restore_os_environ</span><span class="p">(),</span> <span class="n">restore_sys_path</span><span class="p">():</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">apply</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OH_HAI_WORLD&quot;</span><span class="p">),</span> <span class="s2">&quot;hello&quot;</span><span class="p">)</span></div>
+
+    <span class="c1"># TODO make shell-dependent (wait until port to pytest)</span>
+<div class="viewcode-block" id="TestContext.test_execute_command"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.test_execute_command">[docs]</a>    <span class="k">def</span> <span class="nf">test_execute_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test command execution in context.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">platform_</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;windows&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span><span class="s2">&quot;This test does not run on Windows due to problems&quot;</span>
+                          <span class="s2">&quot; with the automated binding of the &#39;hello_world&#39;&quot;</span>
+                          <span class="s2">&quot; executable.&quot;</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_command</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">stdout</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="s2">&quot;Hello Rez World!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestContext.test_execute_command_environ"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.test_execute_command_environ">[docs]</a>    <span class="k">def</span> <span class="nf">test_execute_command_environ</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test that execute_command properly sets environ dict.&quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_execute_command_environ</span><span class="p">(</span><span class="n">r</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_test_execute_command_environ</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="n">pycode</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;import os; &quot;</span>
+                  <span class="s2">&quot;print(os.getenv(</span><span class="se">\&quot;</span><span class="s2">BIGLY</span><span class="se">\&quot;</span><span class="s2">)); &quot;</span>
+                  <span class="s2">&quot;print(os.getenv(</span><span class="se">\&quot;</span><span class="s2">OH_HAI_WORLD</span><span class="se">\&quot;</span><span class="s2">))&quot;</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="s2">&quot;-c&quot;</span><span class="p">,</span> <span class="n">pycode</span><span class="p">]</span>
+
+        <span class="n">parent_environ</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;BIGLY&quot;</span><span class="p">:</span> <span class="s2">&quot;covfefe&quot;</span><span class="p">}</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_command</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">parent_environ</span><span class="o">=</span><span class="n">parent_environ</span><span class="p">,</span>
+                              <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="n">stdout</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;covfefe&quot;</span><span class="p">,</span> <span class="s2">&quot;hello&quot;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="TestContext.test_serialize"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.test_serialize">[docs]</a>    <span class="k">def</span> <span class="nf">test_serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test context serialization.&quot;&quot;&quot;</span>
+
+        <span class="c1"># save</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;test.rxt&quot;</span><span class="p">)</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+        <span class="c1"># load</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">resolved_packages</span><span class="p">,</span> <span class="n">r2</span><span class="o">.</span><span class="n">resolved_packages</span><span class="p">)</span>
+
+        <span class="c1"># verify</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">r2</span><span class="o">.</span><span class="n">get_environ</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OH_HAI_WORLD&quot;</span><span class="p">),</span> <span class="s2">&quot;hello&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestContext.test_retarget"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.test_retarget">[docs]</a>    <span class="k">def</span> <span class="nf">test_retarget</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test that a retargeted context behaves identically.&quot;&quot;&quot;</span>
+
+        <span class="c1"># make a copy of the pkg repo</span>
+        <span class="n">packages_path2</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;packages2&quot;</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copytree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packages_path</span><span class="p">,</span> <span class="n">packages_path2</span><span class="p">)</span>
+
+        <span class="c1"># create a context, retarget to pkg repo copy</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">retargeted</span><span class="p">(</span><span class="n">package_paths</span><span class="o">=</span><span class="p">[</span><span class="n">packages_path2</span><span class="p">])</span>
+
+        <span class="c1"># check the pkg we contain is in the copied pkg repo</span>
+        <span class="n">variant</span> <span class="o">=</span> <span class="n">r2</span><span class="o">.</span><span class="n">resolved_packages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">is_subdirectory</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">packages_path2</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_execute_command_environ</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestContext.test_bundled"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_context.TestContext.test_bundled">[docs]</a>    <span class="k">def</span> <span class="nf">test_bundled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test that a bundled context behaves identically.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">_test_bundle</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="c1"># load the bundled context</span>
+            <span class="n">r2</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;context.rxt&quot;</span><span class="p">))</span>
+
+            <span class="c1"># check the pkg we contain is in the bundled pkg repo</span>
+            <span class="n">variant</span> <span class="o">=</span> <span class="n">r2</span><span class="o">.</span><span class="n">resolved_packages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span>
+                <span class="n">is_subdirectory</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">path</span><span class="p">),</span>
+                <span class="s2">&quot;Expected variant root </span><span class="si">%r</span><span class="s2"> of variant </span><span class="si">%r</span><span class="s2"> to be a subdirectory of </span><span class="si">%r</span><span class="s2">&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">uri</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_test_execute_command_environ</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span>
+
+        <span class="n">bundle_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;bundle&quot;</span><span class="p">)</span>
+
+        <span class="c1"># create context and bundle it</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+        <span class="n">bundle_context</span><span class="p">(</span>
+            <span class="n">context</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+            <span class="n">dest_dir</span><span class="o">=</span><span class="n">bundle_path</span><span class="p">,</span>
+            <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="c1"># test the bundle</span>
+        <span class="n">_test_bundle</span><span class="p">(</span><span class="n">bundle_path</span><span class="p">)</span>
+
+        <span class="c1"># copy the bundle and test the copy</span>
+        <span class="n">bundle_path2</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;bundle2&quot;</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copytree</span><span class="p">(</span><span class="n">bundle_path</span><span class="p">,</span> <span class="n">bundle_path2</span><span class="p">)</span>
+        <span class="n">_test_bundle</span><span class="p">(</span><span class="n">bundle_path2</span><span class="p">)</span>
+
+        <span class="c1"># Create a bundle in a symlinked dest path. Bugs can arise where the</span>
+        <span class="c1"># real path is used in some places and not others.</span>
+        <span class="c1">#</span>
+        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;linux&quot;</span><span class="p">,</span> <span class="s2">&quot;darwin&quot;</span><span class="p">):</span>
+            <span class="n">hard_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+            <span class="n">bundles_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;bundles&quot;</span><span class="p">)</span>
+            <span class="n">bundle_path3</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bundles_path</span><span class="p">,</span> <span class="s2">&quot;bundle3&quot;</span><span class="p">)</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">hard_path</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">symlink</span><span class="p">(</span><span class="n">hard_path</span><span class="p">,</span> <span class="n">bundles_path</span><span class="p">)</span>
+
+            <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">bundle_context</span><span class="p">(</span>
+                <span class="n">context</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+                <span class="n">dest_dir</span><span class="o">=</span><span class="n">bundle_path3</span><span class="p">,</span>
+                <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="n">_test_bundle</span><span class="p">(</span><span class="n">bundle_path3</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

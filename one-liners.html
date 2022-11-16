@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2. One-Liners &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="1.2.1.5. rezplugins.source_retriever package" href="api/rezplugins.source_retriever.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">2. One-Liners</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/one-liners.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="one-liners">
+<h1>2. One-Liners<a class="headerlink" href="#one-liners" title="Permalink to this headline">¶</a></h1>
+<p>A list of useful one-liners for rez-config and related tools</p>
+<p>Display info about the package foo:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">info</span> <span class="n">foo</span>
+</pre></div>
+</div>
+<p>List the packages that foo depends on:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">config</span> <span class="o">--</span><span class="nb">print</span><span class="o">-</span><span class="n">packages</span> <span class="n">foo</span>
+</pre></div>
+</div>
+<p>Jump into an environment containing foo-5(.x.x.x…):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">env</span> <span class="n">foo</span><span class="o">-</span><span class="mi">5</span>
+</pre></div>
+</div>
+<p>Run a command inside a configured shell</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">run</span> <span class="n">foo</span><span class="o">-</span><span class="mi">5</span> <span class="n">bah</span><span class="o">-</span><span class="mf">1.2</span> <span class="o">--</span> <span class="n">my</span><span class="o">-</span><span class="n">command</span>
+</pre></div>
+</div>
+<p>Show the resolve dot-graph for a given shell:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">run</span> <span class="n">foo</span><span class="o">-</span><span class="mi">5</span> <span class="n">bah</span><span class="o">-</span><span class="mf">1.2</span> <span class="n">fee</span> <span class="o">--</span> <span class="n">rez</span><span class="o">-</span><span class="n">context</span><span class="o">-</span><span class="n">image</span>
+</pre></div>
+</div>
+<p>Display a dot-graph showing the first failed attempt of the given configuration PKGS:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">config</span> <span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">fails</span><span class="o">=</span><span class="mi">0</span> <span class="o">--</span><span class="n">dot</span><span class="o">-</span><span class="n">file</span><span class="o">=/</span><span class="n">tmp</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">jpg</span> <span class="n">PKGS</span> <span class="p">;</span> <span class="n">firefox</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">dot</span><span class="o">.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+<p>Show a dot-graph of all the packages dependent on foo:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">depends</span> <span class="n">show</span><span class="o">-</span><span class="n">dot</span> <span class="n">foo</span>
+</pre></div>
+</div>
+<p>List every package in the system, and the description of each</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">config</span><span class="o">-</span><span class="nb">list</span> <span class="o">--</span><span class="n">desc</span>
+</pre></div>
+</div>
+<p>Show the resolve dot-graph for a given shell, but just show that part of the graph that
+contains packages dependent (directly or indirectly) on fee:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">run</span> <span class="n">foo</span><span class="o">-</span><span class="mi">5</span> <span class="n">bah</span><span class="o">-</span><span class="mf">1.2</span> <span class="n">fee</span> <span class="o">--</span> <span class="n">rez</span><span class="o">-</span><span class="n">context</span><span class="o">-</span><span class="n">image</span> <span class="o">--</span><span class="n">package</span><span class="o">=</span><span class="n">fee</span>
+</pre></div>
+</div>
+<p>Run a command inside a toolchain wrapper:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">run</span> <span class="n">mytoolchain</span> <span class="o">--</span> <span class="n">sometool</span> <span class="o">--</span> <span class="n">some</span><span class="o">-</span><span class="n">command</span>
+</pre></div>
+</div>
+<p>Jump into a toolchain, and then into a wrapper’s env:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rez</span><span class="o">-</span><span class="n">run</span> <span class="n">mytoolchain</span>
+<span class="n">sometool</span> <span class="o">---</span><span class="n">i</span>
+</pre></div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="api/rezplugins.source_retriever.html" class="btn btn-neutral float-left" title="1.2.1.5. rezplugins.source_retriever package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

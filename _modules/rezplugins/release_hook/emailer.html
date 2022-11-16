@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rezplugins.release_hook.emailer &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rezplugins.release_hook.emailer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rezplugins.release_hook.emailer</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Sends a post-release email</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">rez.release_hook</span> <span class="kn">import</span> <span class="n">ReleaseHook</span>
+<span class="kn">from</span> <span class="nn">rez.system</span> <span class="kn">import</span> <span class="n">system</span>
+<span class="kn">from</span> <span class="nn">email.mime.text</span> <span class="kn">import</span> <span class="n">MIMEText</span>
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_warning</span><span class="p">,</span> <span class="n">print_error</span>
+<span class="kn">from</span> <span class="nn">rez.utils.yaml</span> <span class="kn">import</span> <span class="n">load_yaml</span>
+<span class="kn">from</span> <span class="nn">rez.utils.scope</span> <span class="kn">import</span> <span class="n">scoped_formatter</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.schema.schema</span> <span class="kn">import</span> <span class="n">Or</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.six</span> <span class="kn">import</span> <span class="n">six</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">smtplib</span>
+
+
+<span class="n">basestring</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="EmailReleaseHook"><a class="viewcode-back" href="../../../api/rezplugins.release_hook.html#rezplugins.release_hook.emailer.EmailReleaseHook">[docs]</a><span class="k">class</span> <span class="nc">EmailReleaseHook</span><span class="p">(</span><span class="n">ReleaseHook</span><span class="p">):</span>
+
+    <span class="n">schema_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;subject&quot;</span><span class="p">:</span> <span class="n">basestring</span><span class="p">,</span>
+        <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="n">basestring</span><span class="p">,</span>
+        <span class="s2">&quot;smtp_host&quot;</span><span class="p">:</span> <span class="n">basestring</span><span class="p">,</span>
+        <span class="s2">&quot;smtp_port&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s2">&quot;sender&quot;</span><span class="p">:</span> <span class="n">basestring</span><span class="p">,</span>
+        <span class="s2">&quot;recipients&quot;</span><span class="p">:</span> <span class="n">Or</span><span class="p">(</span><span class="n">basestring</span><span class="p">,</span> <span class="p">[</span><span class="n">basestring</span><span class="p">])</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="EmailReleaseHook.name"><a class="viewcode-back" href="../../../api/rezplugins.release_hook.html#rezplugins.release_hook.emailer.EmailReleaseHook.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;emailer&quot;</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_path</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EmailReleaseHook</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EmailReleaseHook.post_release"><a class="viewcode-back" href="../../../api/rezplugins.release_hook.html#rezplugins.release_hook.emailer.EmailReleaseHook.post_release">[docs]</a>    <span class="k">def</span> <span class="nf">post_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">install_path</span><span class="p">,</span> <span class="n">variants</span><span class="p">,</span> <span class="n">release_message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">changelog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">previous_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">variants</span><span class="p">:</span>
+            <span class="k">return</span>  <span class="c1"># nothing was released</span>
+
+        <span class="c1"># construct email body</span>
+        <span class="n">release_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">install_path</span><span class="p">,</span>
+                            <span class="n">previous_version</span><span class="o">=</span><span class="n">previous_version</span> <span class="ow">or</span> <span class="s2">&quot;None.&quot;</span><span class="p">,</span>
+                            <span class="n">message</span><span class="o">=</span><span class="n">release_message</span> <span class="ow">or</span> <span class="s2">&quot;No release message.&quot;</span><span class="p">,</span>
+                            <span class="n">changelog</span><span class="o">=</span><span class="n">changelog</span> <span class="ow">or</span> <span class="s2">&quot;No changelog.&quot;</span><span class="p">)</span>
+
+        <span class="n">paths_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">root</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">variants</span><span class="p">)</span>
+        <span class="n">variants_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">variants</span><span class="p">),</span>
+                             <span class="n">paths</span><span class="o">=</span><span class="n">paths_str</span><span class="p">)</span>
+
+        <span class="n">formatter</span> <span class="o">=</span> <span class="n">scoped_formatter</span><span class="p">(</span><span class="n">release</span><span class="o">=</span><span class="n">release_dict</span><span class="p">,</span>
+                                     <span class="n">variants</span><span class="o">=</span><span class="n">variants_dict</span><span class="p">,</span>
+                                     <span class="n">system</span><span class="o">=</span><span class="n">system</span><span class="p">,</span>
+                                     <span class="n">package</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="p">)</span>
+
+        <span class="n">body</span> <span class="o">=</span> <span class="n">formatter</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># construct subject line, send email</span>
+        <span class="n">subject</span> <span class="o">=</span> <span class="n">formatter</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">subject</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_email</span><span class="p">(</span><span class="n">subject</span><span class="p">,</span> <span class="n">body</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EmailReleaseHook.send_email"><a class="viewcode-back" href="../../../api/rezplugins.release_hook.html#rezplugins.release_hook.emailer.EmailReleaseHook.send_email">[docs]</a>    <span class="k">def</span> <span class="nf">send_email</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subject</span><span class="p">,</span> <span class="n">body</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">recipients</span><span class="p">:</span>
+            <span class="k">return</span>  <span class="c1"># nothing to do, sending email to nobody</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">smtp_host</span><span class="p">:</span>
+            <span class="n">print_warning</span><span class="p">(</span><span class="s2">&quot;did not send release email: &quot;</span>
+                          <span class="s2">&quot;SMTP host is not specified&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">recipients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_recipients</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">recipients</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sending release email to:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;- </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">recipients</span><span class="p">))</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">MIMEText</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+        <span class="n">msg</span><span class="p">[</span><span class="s2">&quot;Subject&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subject</span>
+        <span class="n">msg</span><span class="p">[</span><span class="s2">&quot;From&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">sender</span>
+        <span class="n">msg</span><span class="p">[</span><span class="s2">&quot;To&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">recipients</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">smtp_host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">smtp_port</span><span class="p">)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">sendmail</span><span class="p">(</span><span class="n">from_addr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">sender</span><span class="p">,</span>
+                       <span class="n">to_addrs</span><span class="o">=</span><span class="n">recipients</span><span class="p">,</span>
+                       <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">as_string</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Email(s) sent.&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">print_error</span><span class="p">(</span><span class="s2">&quot;release email delivery failed: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="EmailReleaseHook.get_recipients"><a class="viewcode-back" href="../../../api/rezplugins.release_hook.html#rezplugins.release_hook.emailer.EmailReleaseHook.get_recipients">[docs]</a>    <span class="k">def</span> <span class="nf">get_recipients</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">recipients</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="n">filepath</span> <span class="o">=</span> <span class="n">value</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_recipients</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">print_error</span><span class="p">(</span><span class="s2">&quot;failed to load recipients config: </span><span class="si">%s</span><span class="s2">. Emails &quot;</span>
+                            <span class="s2">&quot;not sent&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="s1">&#39;@&#39;</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>  <span class="c1"># assume it&#39;s an email address</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">print_error</span><span class="p">(</span><span class="s2">&quot;email recipient file does not exist: </span><span class="si">%s</span><span class="s2">. Emails not &quot;</span>
+                        <span class="s2">&quot;sent&quot;</span> <span class="o">%</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="EmailReleaseHook.load_recipients"><a class="viewcode-back" href="../../../api/rezplugins.release_hook.html#rezplugins.release_hook.emailer.EmailReleaseHook.load_recipients">[docs]</a>    <span class="k">def</span> <span class="nf">load_recipients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">type_</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">type_</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected </span><span class="si">%s</span><span class="s2">, not </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">type_</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">load_yaml</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+        <span class="n">recipients</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">test</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rules&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">filters</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filters&quot;</span><span class="p">)</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">filters</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">test_value</span> <span class="ow">in</span> <span class="n">test</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+                    <span class="n">missing</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">missing</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="n">missing</span><span class="p">:</span>
+                        <span class="n">match</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">elif</span> <span class="n">test_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">match</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">match</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span> <span class="ow">in</span> <span class="n">test_value</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">match</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span> <span class="o">==</span> <span class="n">test_value</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+                        <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="n">rule_recipients</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;recipients&quot;</span><span class="p">)</span>
+                <span class="n">recipients</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">rule_recipients</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">recipients</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="register_plugin"><a class="viewcode-back" href="../../../api/rezplugins.release_hook.html#rezplugins.release_hook.emailer.register_plugin">[docs]</a><span class="k">def</span> <span class="nf">register_plugin</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">EmailReleaseHook</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

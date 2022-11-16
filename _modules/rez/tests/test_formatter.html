@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.tests.test_formatter &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.tests.test_formatter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.tests.test_formatter</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">test rex string formatting</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">rez.tests.util</span> <span class="kn">import</span> <span class="n">TestBase</span>
+<span class="kn">from</span> <span class="nn">rez.rex</span> <span class="kn">import</span> <span class="n">NamespaceFormatter</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.six</span> <span class="kn">import</span> <span class="n">six</span>
+
+
+<div class="viewcode-block" id="TestFormatter"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_formatter.TestFormatter">[docs]</a><span class="k">class</span> <span class="nc">TestFormatter</span><span class="p">(</span><span class="n">TestBase</span><span class="p">):</span>
+<div class="viewcode-block" id="TestFormatter.setUp"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_formatter.TestFormatter.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">TestBase</span><span class="o">.</span><span class="n">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">formatter</span> <span class="o">=</span> <span class="n">NamespaceFormatter</span><span class="p">({})</span></div>
+
+<div class="viewcode-block" id="TestFormatter.assert_formatter_equal"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_formatter.TestFormatter.assert_formatter_equal">[docs]</a>    <span class="k">def</span> <span class="nf">assert_formatter_equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">expected</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">formatter</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">expected</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestFormatter.assert_formatter_raises"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_formatter.TestFormatter.assert_formatter_raises">[docs]</a>    <span class="k">def</span> <span class="nf">assert_formatter_raises</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">formatter</span><span class="o">.</span><span class="n">format</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestFormatter.test_formatter_rex"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_formatter.TestFormatter.test_formatter_rex">[docs]</a>    <span class="k">def</span> <span class="nf">test_formatter_rex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;Hello, $</span><span class="si">{world}</span><span class="s1">!&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello, $</span><span class="si">{world}</span><span class="s1">!&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;Hello, $WORLD!&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello, $</span><span class="si">{WORLD}</span><span class="s1">!&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;Hello, ${{world}}!&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello, $</span><span class="si">{world}</span><span class="s1">!&#39;</span><span class="p">,</span> <span class="n">world</span><span class="o">=</span><span class="s2">&quot;Earth&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;Hello, </span><span class="si">{world}</span><span class="s1">!&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello, Earth!&#39;</span><span class="p">,</span> <span class="n">world</span><span class="o">=</span><span class="s2">&quot;Earth&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestFormatter.test_formatter_stdlib"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_formatter.TestFormatter.test_formatter_stdlib">[docs]</a>    <span class="k">def</span> <span class="nf">test_formatter_stdlib</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        string.Formatter.format tests from the Python standard library used to</span>
+<span class="sd">        ensure we haven&#39;t broken functionality preset in the standard</span>
+<span class="sd">        implementation of the Formatter object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;ab&#39;</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;a{{&#39;</span><span class="p">,</span> <span class="s1">&#39;a{&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;a}}&#39;</span><span class="p">,</span> <span class="s1">&#39;a}&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;{{b&#39;</span><span class="p">,</span> <span class="s1">&#39;{b&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;}}b&#39;</span><span class="p">,</span> <span class="s1">&#39;}b&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;a{{b&#39;</span><span class="p">,</span> <span class="s1">&#39;a{b&#39;</span><span class="p">)</span>
+
+        <span class="c1"># examples from the PEP:</span>
+        <span class="kn">import</span> <span class="nn">datetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;My name is </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;My name is Fred&quot;</span><span class="p">,</span> <span class="s1">&#39;Fred&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;My name is </span><span class="si">{0[name]}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;My name is Fred&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Fred&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;My name is </span><span class="si">{0}</span><span class="s2"> :-{{}}&quot;</span><span class="p">,</span> <span class="s2">&quot;My name is Fred :-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;Fred&#39;</span><span class="p">)</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="mi">2007</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">18</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;The year is </span><span class="si">{0.year}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;The year is 2007&quot;</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+        <span class="c1"># classes we&#39;ll use for testing</span>
+        <span class="k">class</span> <span class="nc">C</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="o">=</span> <span class="n">x</span>
+
+            <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">spec</span>
+
+        <span class="k">class</span> <span class="nc">D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+
+            <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># class with __str__, but no __format__</span>
+        <span class="k">class</span> <span class="nc">E</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+
+            <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="s1">&#39;E(&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+        <span class="c1"># class with __repr__, but no __format__ or __str__</span>
+        <span class="k">class</span> <span class="nc">F</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+
+            <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="s1">&#39;F(&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+
+        <span class="c1"># class with __format__ that forwards to string, for some format_spec&#39;s</span>
+        <span class="k">class</span> <span class="nc">G</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+
+            <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="s2">&quot;string is &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span>
+
+            <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">format_spec</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;G(&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
+                <span class="k">return</span> <span class="nb">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">format_spec</span><span class="p">)</span>
+
+        <span class="c1"># class that returns a bad type from __format__</span>
+        <span class="k">class</span> <span class="nc">H</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">):</span>
+                <span class="k">return</span> <span class="mf">1.0</span>
+
+        <span class="k">class</span> <span class="nc">I</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">format_spec</span><span class="p">)</span>
+
+        <span class="k">class</span> <span class="nc">J</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">int</span><span class="o">.</span><span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;X</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Xabc&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">X&#39;</span><span class="p">,</span> <span class="s1">&#39;abcX&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;X</span><span class="si">{0}</span><span class="s1">Y&#39;</span><span class="p">,</span> <span class="s1">&#39;XabcY&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;X</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Xabc&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{1}</span><span class="s1">X&#39;</span><span class="p">,</span> <span class="s1">&#39;abcX&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;X</span><span class="si">{1}</span><span class="s1">Y&#39;</span><span class="p">,</span> <span class="s1">&#39;XabcY&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;-15&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">15</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}{1}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;-15abc&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">15</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">X</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;-15Xabc&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">15</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;{{&#39;</span><span class="p">,</span> <span class="s1">&#39;{&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;}}&#39;</span><span class="p">,</span> <span class="s1">&#39;}&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;{{}}&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;{{x}}&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{x}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;{{</span><span class="si">{0}</span><span class="s1">}}&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{123}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="mi">123</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;{{{{0}}}}&#39;</span><span class="p">,</span> <span class="s1">&#39;{{0}}&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;}}{{&#39;</span><span class="p">,</span> <span class="s1">&#39;}{&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;}}x{{&#39;</span><span class="p">,</span> <span class="s1">&#39;}x{&#39;</span><span class="p">)</span>
+
+        <span class="c1"># weird field names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0[foo-bar]}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;baz&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;foo-bar&#39;</span><span class="p">:</span> <span class="s1">&#39;baz&#39;</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0[foo bar]}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;baz&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;foo bar&#39;</span><span class="p">:</span> <span class="s1">&#39;baz&#39;</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0[ ]}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39; &#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{foo._x}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;20&#39;</span><span class="p">,</span> <span class="n">foo</span><span class="o">=</span><span class="n">C</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{1}{0}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;2010&#39;</span><span class="p">,</span> <span class="n">D</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="n">D</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0._x.x}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="n">C</span><span class="p">(</span><span class="n">D</span><span class="p">(</span><span class="s1">&#39;abc&#39;</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0[0]}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0[1]}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0[1][0]}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;def&#39;</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0[1][0].x}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">D</span><span class="p">(</span><span class="s1">&#39;def&#39;</span><span class="p">)]])</span>
+
+        <span class="c1"># strings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:.3s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:.3s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:.3s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;abcdef&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:.0s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;abcdef&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:3.3s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:2.3s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:2.2s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:3.2s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;ab &#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:x&lt;0s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:x&lt;5s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:x&lt;6s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:x&lt;7s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;resultx&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:x&lt;8s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;resultxx&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0: &lt;7s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;result &#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:&lt;7s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;result &#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:&gt;7s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; result&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:&gt;8s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;  result&#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:^8s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; result &#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:^9s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; result  &#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:^10s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;  result  &#39;</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:10000}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="mi">9999</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:10000}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="mi">10000</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:10000000}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="mi">10000000</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="c1"># format specifiers for user defined type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;{0:abc}&#39;</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="n">C</span><span class="p">())</span>
+
+        <span class="c1"># !r and !s coersions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!s:}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!s:15}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello          &#39;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!s:15s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello          &#39;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!r}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;Hello&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!r:}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;Hello&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!r}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;F(Hello)&#39;</span><span class="p">,</span> <span class="n">F</span><span class="p">(</span><span class="s1">&#39;Hello&#39;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:d}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;G(data)&#39;</span><span class="p">,</span> <span class="n">G</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0!s}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;string is data&#39;</span><span class="p">,</span> <span class="n">G</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;{0:date: %Y-%m-</span><span class="si">%d</span><span class="s2">}&quot;</span><span class="p">,</span> <span class="s2">&quot;date: 2007-08-27&quot;</span><span class="p">,</span>
+                                    <span class="n">I</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="mi">2007</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">27</span><span class="p">))</span>
+
+        <span class="c1"># test deriving from a builtin type and overriding __format__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;20&quot;</span><span class="p">,</span> <span class="n">J</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+
+        <span class="c1"># string format specifiers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0:}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span>
+
+        <span class="c1"># computed format specifiers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;{0:.</span><span class="si">{1}</span><span class="s2">}&quot;</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="s1">&#39;hello world&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;{0:.</span><span class="si">{1}</span><span class="s2">s}&quot;</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="s1">&#39;hello world&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;{0:.</span><span class="si">{precision}</span><span class="s2">s}&quot;</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="s1">&#39;hello world&#39;</span><span class="p">,</span>
+                                    <span class="n">precision</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;{0:</span><span class="si">{width}</span><span class="s2">.</span><span class="si">{precision}</span><span class="s2">s}&quot;</span><span class="p">,</span> <span class="s1">&#39;hello     &#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;hello world&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s2">&quot;{0:</span><span class="si">{width}</span><span class="s2">.</span><span class="si">{precision}</span><span class="s2">s}&quot;</span><span class="p">,</span> <span class="s1">&#39;hello     &#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;hello world&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="s1">&#39;10&#39;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s1">&#39;5&#39;</span><span class="p">)</span>
+
+        <span class="c1"># test various errors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;{&#39;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;}&#39;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;a{&#39;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;a}&#39;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;{a&#39;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;}a&#39;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{x}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;}{&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;abc{0:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0.}&quot;</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0.}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0[}&quot;</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0[}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0[}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0]}&quot;</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0.[]}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0..foo}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0[0}&quot;, ValueError, 0)</span>
+<span class="si">        self.assert_formatter_raises(&quot;{0[0:foo}&quot;, ValueError, 0)</span>
+<span class="si">        self.assert_formatter_raises(&quot;{c]}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{{ {{</span><span class="si">{0}</span><span class="s2">}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{foo}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="n">bar</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0!x}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0!}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0!rs}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{!}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+
+        <span class="c1"># in python 2.7 onwards, string.Formatter raises KeyError here, rather</span>
+        <span class="c1"># than ValueError. In rex we keep this as ValueError (the change is due</span>
+        <span class="c1"># to implicit positional arguments, not applicable in rex).</span>
+        <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span>
+
+        <span class="c1"># issue 6089</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0[0]x}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0[0](10)}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">])</span>
+
+        <span class="c1"># can&#39;t have a replacement on the field name portion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0[{1}]}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="s1">&#39;abcdefg&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+        <span class="c1"># exceed maximum recursion depth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0:{1:</span><span class="si">{2}</span><span class="s2">}}&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;{0:{1:{2:{3:{4:{5:</span><span class="si">{6}</span><span class="s2">}}}}}}&quot;</span><span class="p">,</span>
+                                     <span class="ne">ValueError</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+
+        <span class="c1"># string format spec errors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:-s}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_raises</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0:=s}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestFormatter.test_formatter_recurse"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_formatter.TestFormatter.test_formatter_recurse">[docs]</a>    <span class="k">def</span> <span class="nf">test_formatter_recurse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;Hello </span><span class="si">{0}</span><span class="s1">!&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello Earth!&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{world}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                    <span class="n">world</span><span class="o">=</span><span class="s1">&#39;Earth&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;Hello </span><span class="si">{greeted}</span><span class="s1">!&#39;</span><span class="p">,</span> <span class="s1">&#39;Hello Timmy the Trex!&#39;</span><span class="p">,</span>
+                                    <span class="n">greeted</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{dinosaur}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{Bob}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                    <span class="n">Bob</span><span class="o">=</span><span class="s1">&#39;Fabulous Bobby&#39;</span><span class="p">,</span> <span class="n">dinosaur</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{Trex}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                    <span class="n">Trex</span><span class="o">=</span><span class="s1">&#39;Timmy the Trex&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">formatter</span><span class="o">.</span><span class="n">namespace</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">greeted</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{dinosaur}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">person</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{Bob}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                        <span class="n">Bob</span><span class="o">=</span><span class="s1">&#39;Fabulous Bobby&#39;</span><span class="p">,</span> <span class="n">dinosaur</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{Trex}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                        <span class="n">Trex</span><span class="o">=</span><span class="s1">&#39;Timmy the Trex&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_formatter_equal</span><span class="p">(</span><span class="s1">&#39;Hello </span><span class="si">{greeted}</span><span class="s1">!&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;Hello Timmy the Trex!&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

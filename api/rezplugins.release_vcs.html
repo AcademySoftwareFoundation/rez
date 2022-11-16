@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1.2.1.3. rezplugins.release_vcs package &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="1.2.1.4. rezplugins.shell package" href="rezplugins.shell.html" />
+    <link rel="prev" title="1.2.1.2. rezplugins.release_hook package" href="rezplugins.release_hook.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">1. API Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="rez.html">1.1. Rez</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="rezplugins.html">1.2. Rez Plugins</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="rezplugins.html#subpackages">1.2.1. Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.build_system.html">1.2.1.1. rezplugins.build_system package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.release_hook.html">1.2.1.2. rezplugins.release_hook package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">1.2.1.3. rezplugins.release_vcs package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.shell.html">1.2.1.4. rezplugins.shell package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rezplugins.source_retriever.html">1.2.1.5. rezplugins.source_retriever package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rezplugins.html#module-rezplugins">1.2.2. Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">1. API Documentation</a></li>
+          <li class="breadcrumb-item"><a href="rezplugins.html">1.2. Rez Plugins</a></li>
+      <li class="breadcrumb-item active">1.2.1.3. rezplugins.release_vcs package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/rezplugins.release_vcs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="rezplugins-release-vcs-package">
+<h1>1.2.1.3. rezplugins.release_vcs package<a class="headerlink" href="#rezplugins-release-vcs-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>1.2.1.3.1. Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rezplugins.release_vcs.git">
+<span id="rezplugins-release-vcs-git-module"></span><h2>1.2.1.3.2. rezplugins.release_vcs.git module<a class="headerlink" href="#module-rezplugins.release_vcs.git" title="Permalink to this headline">¶</a></h2>
+<p>Git version control</p>
+<dl class="class">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS">
+<em class="property">class </em><code class="descclassname">rezplugins.release_vcs.git.</code><code class="descname">GitReleaseVCS</code><span class="sig-paren">(</span><em>pkg_root</em>, <em>vcs_root=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="rez.html#rez.release_vcs.ReleaseVCS" title="rez.release_vcs.ReleaseVCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.release_vcs.ReleaseVCS</span></code></a></p>
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.create_release_tag">
+<code class="descname">create_release_tag</code><span class="sig-paren">(</span><em>tag_name</em>, <em>message=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.create_release_tag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.create_release_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a tag in the repo.</p>
+<p>Create a tag in the repository representing the release of the
+given version.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tag_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Tag name to write to the repo.</li>
+<li><strong>message</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Message string to associate with the release.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.export">
+<em class="property">classmethod </em><code class="descname">export</code><span class="sig-paren">(</span><em>revision</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export the repository to the given path at the given revision.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The directory at <cite>path</cite> must not exist, but the parent directory
+must exist.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>revision</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.11)"><em>object</em></a>) – Revision to export; current revision if None.</li>
+<li><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Directory to export the repository to.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.get_changelog">
+<code class="descname">get_changelog</code><span class="sig-paren">(</span><em>previous_revision=None</em>, <em>max_revisions=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.get_changelog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.get_changelog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the changelog text since the given revision.</p>
+<p>If previous_revision is not an ancestor (for example, the last release
+was from a different branch) you should still return a meaningful
+changelog - perhaps include a warning, and give changelog back to the
+last common ancestor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>previous_revision</strong> – The revision to give the changelog since. If</li>
+<li><strong>give the entire changelog.</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><em>None</em></a><em>,</em>) – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Changelog, as a string.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.get_current_revision">
+<code class="descname">get_current_revision</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.get_current_revision"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.get_current_revision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current revision, this can be any type (str, dict etc)
+appropriate to your VCS implementation.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must ensure that a revision contains enough information to
+clone/export/checkout the repo elsewhere - otherwise you will not
+be able to implement <cite>export</cite>.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.get_local_branch">
+<code class="descname">get_local_branch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.get_local_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.get_local_branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the label of the current local branch.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.get_relative_to_remote">
+<code class="descname">get_relative_to_remote</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.get_relative_to_remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.get_relative_to_remote" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of commits we are relative to the remote. Negative
+is behind, positive in front, zero means we are matched to remote.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.get_tracking_branch">
+<code class="descname">get_tracking_branch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.get_tracking_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.get_tracking_branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns (remote, branch) tuple, or None,None if there is no remote.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.git">
+<code class="descname">git</code><span class="sig-paren">(</span><em>*nargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.git"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.git" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.is_valid_root">
+<em class="property">classmethod </em><code class="descname">is_valid_root</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.is_valid_root"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.is_valid_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the given path is a valid root directory for this
+version control system.</p>
+<p>Note that this is different than whether the path is under the
+control of this type of vcs; to answer that question,
+use find_vcs_root</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.name">
+<em class="property">classmethod </em><code class="descname">name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the VCS type, eg ‘git’.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.schema_dict">
+<code class="descname">schema_dict</code><em class="property"> = {'allow_no_upstream': &lt;type 'bool'&gt;}</em><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.schema_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.search_parents_for_root">
+<em class="property">classmethod </em><code class="descname">search_parents_for_root</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.search_parents_for_root"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.search_parents_for_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if this vcs type should check parent directories to
+find the root directory</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.tag_exists">
+<code class="descname">tag_exists</code><span class="sig-paren">(</span><em>tag_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.tag_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.tag_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test if a tag exists in the repo.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Tag name to check for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if the tag exists, False otherwise.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCS.validate_repostate">
+<code class="descname">validate_repostate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCS.validate_repostate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCS.validate_repostate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure that the VCS working copy is up-to-date.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="rezplugins.release_vcs.git.GitReleaseVCSError">
+<em class="property">exception </em><code class="descclassname">rezplugins.release_vcs.git.</code><code class="descname">GitReleaseVCSError</code><span class="sig-paren">(</span><em>value=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#GitReleaseVCSError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.GitReleaseVCSError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="rez.html#rez.exceptions.ReleaseVCSError" title="rez.exceptions.ReleaseVCSError"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.exceptions.ReleaseVCSError</span></code></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rezplugins.release_vcs.git.register_plugin">
+<code class="descclassname">rezplugins.release_vcs.git.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/git.html#register_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.git.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-rezplugins.release_vcs.hg">
+<span id="rezplugins-release-vcs-hg-module"></span><h2>1.2.1.3.3. rezplugins.release_vcs.hg module<a class="headerlink" href="#module-rezplugins.release_vcs.hg" title="Permalink to this headline">¶</a></h2>
+<p>Mercurial version control</p>
+<dl class="class">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS">
+<em class="property">class </em><code class="descclassname">rezplugins.release_vcs.hg.</code><code class="descname">HgReleaseVCS</code><span class="sig-paren">(</span><em>pkg_root</em>, <em>vcs_root=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="rez.html#rez.release_vcs.ReleaseVCS" title="rez.release_vcs.ReleaseVCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.release_vcs.ReleaseVCS</span></code></a></p>
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.create_release_tag">
+<code class="descname">create_release_tag</code><span class="sig-paren">(</span><em>tag_name</em>, <em>message=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.create_release_tag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.create_release_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a tag in the repo.</p>
+<p>Create a tag in the repository representing the release of the
+given version.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tag_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Tag name to write to the repo.</li>
+<li><strong>message</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Message string to associate with the release.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.get_changelog">
+<code class="descname">get_changelog</code><span class="sig-paren">(</span><em>previous_revision=None</em>, <em>max_revisions=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.get_changelog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.get_changelog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the changelog text since the given revision.</p>
+<p>If previous_revision is not an ancestor (for example, the last release
+was from a different branch) you should still return a meaningful
+changelog - perhaps include a warning, and give changelog back to the
+last common ancestor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>previous_revision</strong> – The revision to give the changelog since. If</li>
+<li><strong>give the entire changelog.</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><em>None</em></a><em>,</em>) – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Changelog, as a string.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.get_current_revision">
+<code class="descname">get_current_revision</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.get_current_revision"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.get_current_revision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current revision, this can be any type (str, dict etc)
+appropriate to your VCS implementation.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You must ensure that a revision contains enough information to
+clone/export/checkout the repo elsewhere - otherwise you will not
+be able to implement <cite>export</cite>.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.get_default_url">
+<code class="descname">get_default_url</code><span class="sig-paren">(</span><em>patch=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.get_default_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.get_default_url" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.get_paths">
+<code class="descname">get_paths</code><span class="sig-paren">(</span><em>patch=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.get_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.get_paths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.get_tags">
+<code class="descname">get_tags</code><span class="sig-paren">(</span><em>patch=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.get_tags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.get_tags" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.hg">
+<code class="descname">hg</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.hg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.hg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.is_ancestor">
+<code class="descname">is_ancestor</code><span class="sig-paren">(</span><em>commit1</em>, <em>commit2</em>, <em>patch=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.is_ancestor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.is_ancestor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if commit1 is a direct ancestor of commit2, or False
+otherwise.</p>
+<p>This method considers a commit to be a direct ancestor of itself</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.is_valid_root">
+<em class="property">classmethod </em><code class="descname">is_valid_root</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.is_valid_root"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.is_valid_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the given path is a valid root directory for this
+version control system.</p>
+<p>Note that this is different than whether the path is under the
+control of this type of vcs; to answer that question,
+use find_vcs_root</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.name">
+<em class="property">classmethod </em><code class="descname">name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the VCS type, eg ‘git’.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.search_parents_for_root">
+<em class="property">classmethod </em><code class="descname">search_parents_for_root</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.search_parents_for_root"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.search_parents_for_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if this vcs type should check parent directories to
+find the root directory</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.tag_exists">
+<code class="descname">tag_exists</code><span class="sig-paren">(</span><em>tag_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.tag_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.tag_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test if a tag exists in the repo.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tag_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Tag name to check for.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if the tag exists, False otherwise.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCS.validate_repostate">
+<code class="descname">validate_repostate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCS.validate_repostate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCS.validate_repostate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure that the VCS working copy is up-to-date.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="rezplugins.release_vcs.hg.HgReleaseVCSError">
+<em class="property">exception </em><code class="descclassname">rezplugins.release_vcs.hg.</code><code class="descname">HgReleaseVCSError</code><span class="sig-paren">(</span><em>value=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#HgReleaseVCSError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.HgReleaseVCSError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="rez.html#rez.exceptions.ReleaseVCSError" title="rez.exceptions.ReleaseVCSError"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.exceptions.ReleaseVCSError</span></code></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rezplugins.release_vcs.hg.register_plugin">
+<code class="descclassname">rezplugins.release_vcs.hg.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rezplugins/release_vcs/hg.html#register_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rezplugins.release_vcs.hg.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="rezplugins-release-vcs-svn-module">
+<h2>1.2.1.3.4. rezplugins.release_vcs.svn module<a class="headerlink" href="#rezplugins-release-vcs-svn-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rezplugins.release_vcs">
+<span id="module-contents"></span><h2>1.2.1.3.5. Module contents<a class="headerlink" href="#module-rezplugins.release_vcs" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rezplugins.release_hook.html" class="btn btn-neutral float-left" title="1.2.1.2. rezplugins.release_hook package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rezplugins.shell.html" class="btn btn-neutral float-right" title="1.2.1.4. rezplugins.shell package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

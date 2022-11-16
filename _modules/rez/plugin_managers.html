@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.plugin_managers &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.plugin_managers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.plugin_managers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Manages loading of all types of Rez plugins.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span><span class="p">,</span> <span class="n">expand_system_vars</span><span class="p">,</span> <span class="n">_load_config_from_filepaths</span>
+<span class="kn">from</span> <span class="nn">rez.utils.formatting</span> <span class="kn">import</span> <span class="n">columnise</span>
+<span class="kn">from</span> <span class="nn">rez.utils.schema</span> <span class="kn">import</span> <span class="n">dict_to_schema</span>
+<span class="kn">from</span> <span class="nn">rez.utils.data_utils</span> <span class="kn">import</span> <span class="n">LazySingleton</span><span class="p">,</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">deep_update</span>
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_debug</span><span class="p">,</span> <span class="n">print_warning</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.six</span> <span class="kn">import</span> <span class="n">six</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">RezPluginError</span>
+<span class="kn">from</span> <span class="nn">zipimport</span> <span class="kn">import</span> <span class="n">zipimporter</span>
+<span class="kn">import</span> <span class="nn">pkgutil</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<span class="n">basestring</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="c1"># modified from pkgutil standard library:</span>
+<span class="c1"># this function is called from the __init__.py files of each plugin type inside</span>
+<span class="c1"># the &#39;rezplugins&#39; package.</span>
+<div class="viewcode-block" id="extend_path"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.extend_path">[docs]</a><span class="k">def</span> <span class="nf">extend_path</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extend a package&#39;s path.</span>
+
+<span class="sd">    Intended use is to place the following code in a package&#39;s __init__.py:</span>
+
+<span class="sd">        from pkgutil import extend_path</span>
+<span class="sd">        __path__ = extend_path(__path__, __name__)</span>
+
+<span class="sd">    This will add to the package&#39;s __path__ all subdirectories of</span>
+<span class="sd">    directories on &#39;config.plugin_path&#39; named after the package.  This is</span>
+<span class="sd">    useful if one wants to distribute different parts of a single logical</span>
+<span class="sd">    package as multiple directories.</span>
+
+<span class="sd">    If the input path is not a list (as is the case for frozen</span>
+<span class="sd">    packages) it is returned unchanged.  The input path is not</span>
+<span class="sd">    modified; an extended copy is returned.  Items are only appended</span>
+<span class="sd">    to the copy at the end.</span>
+
+<span class="sd">    It is assumed that &#39;plugin_path&#39; is a sequence.  Items of &#39;plugin_path&#39;</span>
+<span class="sd">    that are not (unicode or 8-bit) strings referring to existing</span>
+<span class="sd">    directories are ignored.  Unicode items of sys.path that cause</span>
+<span class="sd">    errors when used as filenames may cause this function to raise an</span>
+<span class="sd">    exception (in line with os.path.isdir() behavior).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="c1"># This could happen e.g. when this is called from inside a</span>
+        <span class="c1"># frozen package.  Return the path unchanged in that case.</span>
+        <span class="k">return</span> <span class="n">path</span>
+
+    <span class="n">pname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="o">*</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>  <span class="c1"># Reconstitute as relative path</span>
+    <span class="c1"># Just in case os.extsep != &#39;.&#39;</span>
+    <span class="n">init_py</span> <span class="o">=</span> <span class="s2">&quot;__init__&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">extsep</span> <span class="o">+</span> <span class="s2">&quot;py&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="p">[:]</span>
+
+    <span class="k">def</span> <span class="nf">append_if_valid</span><span class="p">(</span><span class="n">dir_</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">dir_</span><span class="p">):</span>
+            <span class="n">subdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normcase</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dir_</span><span class="p">,</span> <span class="n">pname</span><span class="p">))</span>
+            <span class="n">initfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">subdir</span><span class="p">,</span> <span class="n">init_py</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">subdir</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">initfile</span><span class="p">):</span>
+                <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subdir</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+            <span class="n">print_debug</span><span class="p">(</span><span class="s2">&quot;skipped nonexistant rez plugin path: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">dir_</span><span class="p">)</span>
+
+    <span class="c1"># Extend old-style plugins</span>
+    <span class="k">for</span> <span class="n">dir_</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">plugin_path</span><span class="p">:</span>
+        <span class="n">append_if_valid</span><span class="p">(</span><span class="n">dir_</span><span class="p">)</span>
+    <span class="c1"># Extend new-style plugins</span>
+    <span class="k">for</span> <span class="n">dir_</span> <span class="ow">in</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">rezplugins_module_paths</span><span class="p">:</span>
+        <span class="n">append_if_valid</span><span class="p">(</span><span class="n">dir_</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
+
+
+<div class="viewcode-block" id="uncache_rezplugins_module_paths"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.uncache_rezplugins_module_paths">[docs]</a><span class="k">def</span> <span class="nf">uncache_rezplugins_module_paths</span><span class="p">(</span><span class="n">instance</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">instance</span> <span class="o">=</span> <span class="n">instance</span> <span class="ow">or</span> <span class="n">plugin_manager</span>
+    <span class="n">cached_property</span><span class="o">.</span><span class="n">uncache</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="s2">&quot;rezplugins_module_paths&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RezPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginType">[docs]</a><span class="k">class</span> <span class="nc">RezPluginType</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An abstract base class representing a single type of plugin.</span>
+
+<span class="sd">    &#39;type_name&#39; must correspond with one of the source directories found under</span>
+<span class="sd">    the &#39;plugins&#39; directory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Subclasses of RezPluginType must provide a &quot;</span>
+                            <span class="s2">&quot;&#39;type_name&#39; attribute&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pretty_type_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plugin_classes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failed_plugins</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plugin_modules</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_plugins</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plugin_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+<div class="viewcode-block" id="RezPluginType.register_plugin"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginType.register_plugin">[docs]</a>    <span class="k">def</span> <span class="nf">register_plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">,</span> <span class="n">plugin_class</span><span class="p">,</span> <span class="n">plugin_module</span><span class="p">):</span>
+        <span class="c1"># TODO: check plugin_class to ensure it is a sub-class of expected base-class?</span>
+        <span class="c1"># TODO: perhaps have a Plugin base class. This introduces multiple</span>
+        <span class="c1"># inheritance in Shell class though :/</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plugin_classes</span><span class="p">[</span><span class="n">plugin_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">plugin_class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plugin_modules</span><span class="p">[</span><span class="n">plugin_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">plugin_module</span></div>
+
+<div class="viewcode-block" id="RezPluginType.load_plugins"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginType.load_plugins">[docs]</a>    <span class="k">def</span> <span class="nf">load_plugins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">pkgutil</span>
+        <span class="kn">from</span> <span class="nn">rez.backport.importlib</span> <span class="kn">import</span> <span class="n">import_module</span>
+        <span class="n">type_module_name</span> <span class="o">=</span> <span class="s1">&#39;rezplugins.&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_name</span>
+        <span class="n">package</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">type_module_name</span><span class="p">)</span>
+
+        <span class="c1"># on import, the `__path__` variable of the imported package is extended</span>
+        <span class="c1"># to include existing directories on the plugin search path (via</span>
+        <span class="c1"># extend_path, above). this means that `walk_packages` will walk over all</span>
+        <span class="c1"># modules on the search path at the same level (.e.g in a</span>
+        <span class="c1"># &#39;rezplugins/type_name&#39; sub-directory).</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">package</span><span class="o">.</span><span class="n">__path__</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">__path__</span><span class="p">,</span> <span class="n">basestring</span><span class="p">)</span> \
+            <span class="k">else</span> <span class="n">package</span><span class="o">.</span><span class="n">__path__</span>
+
+        <span class="c1"># reverse plugin path order, so that custom plugins have a chance to</span>
+        <span class="c1"># be found before the builtin plugins (from /rezplugins).</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                <span class="n">print_debug</span><span class="p">(</span><span class="s2">&quot;searching plugin path </span><span class="si">%s</span><span class="s2">...&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">importer</span><span class="p">,</span> <span class="n">modname</span><span class="p">,</span> <span class="n">ispkg</span> <span class="ow">in</span> <span class="n">pkgutil</span><span class="o">.</span><span class="n">iter_modules</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">path</span><span class="p">],</span> <span class="n">package</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="p">):</span>
+
+                <span class="k">if</span> <span class="n">importer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">plugin_name</span> <span class="o">=</span> <span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">plugin_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">plugin_name</span> <span class="o">==</span> <span class="s1">&#39;rezconfig&#39;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">plugin_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">plugin_modules</span><span class="p">:</span>
+                    <span class="c1"># same named plugins will have identical module name,</span>
+                    <span class="c1"># which will just reuse previous imported module from</span>
+                    <span class="c1"># `sys.modules` below. skipping the rest of the process</span>
+                    <span class="c1"># for good.</span>
+                    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                        <span class="n">print_warning</span><span class="p">(</span><span class="s2">&quot;skipped same named </span><span class="si">%s</span><span class="s2"> plugin at </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                                      <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type_name</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">modname</span><span class="p">))</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                    <span class="n">print_debug</span><span class="p">(</span><span class="s2">&quot;loading </span><span class="si">%s</span><span class="s2"> plugin at </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">...&quot;</span>
+                                <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type_name</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">modname</span><span class="p">))</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># https://github.com/AcademySoftwareFoundation/rez/pull/218</span>
+                    <span class="c1"># load_module will force reload the module if it&#39;s</span>
+                    <span class="c1"># already loaded, so check for that</span>
+                    <span class="n">plugin_module</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">modname</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">plugin_module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">loader</span> <span class="o">=</span> <span class="n">importer</span><span class="o">.</span><span class="n">find_module</span><span class="p">(</span><span class="n">modname</span><span class="p">)</span>
+                        <span class="n">plugin_module</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">load_module</span><span class="p">(</span><span class="n">modname</span><span class="p">)</span>
+
+                    <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">plugin_module</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span> <span class="o">!=</span> <span class="n">path</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                            <span class="c1"># this should not happen but if it does, tell why.</span>
+                            <span class="n">print_warning</span><span class="p">(</span>
+                                <span class="s2">&quot;plugin module </span><span class="si">%s</span><span class="s2"> is not loaded from current &quot;</span>
+                                <span class="s2">&quot;load path but reused from previous imported &quot;</span>
+                                <span class="s2">&quot;path: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">plugin_module</span><span class="o">.</span><span class="vm">__file__</span><span class="p">))</span>
+
+                    <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">plugin_module</span><span class="p">,</span> <span class="s2">&quot;register_plugin&quot;</span><span class="p">)</span>
+                            <span class="ow">and</span> <span class="n">callable</span><span class="p">(</span><span class="n">plugin_module</span><span class="o">.</span><span class="n">register_plugin</span><span class="p">)):</span>
+
+                        <span class="n">plugin_class</span> <span class="o">=</span> <span class="n">plugin_module</span><span class="o">.</span><span class="n">register_plugin</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">plugin_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">register_plugin</span><span class="p">(</span><span class="n">plugin_name</span><span class="p">,</span>
+                                                 <span class="n">plugin_class</span><span class="p">,</span>
+                                                 <span class="n">plugin_module</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                                <span class="n">print_warning</span><span class="p">(</span>
+                                    <span class="s2">&quot;&#39;register_plugin&#39; function at </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2"> did &quot;</span>
+                                    <span class="s2">&quot;not return a class.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">modname</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                            <span class="n">print_warning</span><span class="p">(</span>
+                                <span class="s2">&quot;no &#39;register_plugin&#39; function at </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                                <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">modname</span><span class="p">))</span>
+
+                        <span class="c1"># delete from sys.modules?</span>
+
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">nameish</span> <span class="o">=</span> <span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">failed_plugins</span><span class="p">[</span><span class="n">nameish</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                        <span class="kn">import</span> <span class="nn">traceback</span>
+                        <span class="kn">from</span> <span class="nn">rez.vendor.six.six</span> <span class="kn">import</span> <span class="n">StringIO</span>
+                        <span class="n">out</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+                        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+                        <span class="n">print_debug</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+            <span class="c1"># load config</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_load_config_from_filepaths</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rezconfig&quot;</span><span class="p">)])</span>
+            <span class="n">deep_update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_data</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RezPluginType.get_plugin_class"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginType.get_plugin_class">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugin_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the class registered under the given plugin name.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plugin_classes</span><span class="p">[</span><span class="n">plugin_name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RezPluginError</span><span class="p">(</span><span class="s2">&quot;Unrecognised </span><span class="si">%s</span><span class="s2"> plugin: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
+                                 <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretty_type_name</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="RezPluginType.get_plugin_module"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginType.get_plugin_module">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugin_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the module containing the plugin of the given name.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plugin_modules</span><span class="p">[</span><span class="n">plugin_name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RezPluginError</span><span class="p">(</span><span class="s2">&quot;Unrecognised </span><span class="si">%s</span><span class="s2"> plugin: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
+                                 <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretty_type_name</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">))</span></div>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">config_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the merged configuration data schema for this plugin</span>
+<span class="sd">        type.&quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">_plugin_config_dict</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">_plugin_config_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type_name</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">plugin_class</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">plugin_classes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">plugin_class</span><span class="p">,</span> <span class="s2">&quot;schema_dict&quot;</span><span class="p">)</span> \
+                    <span class="ow">and</span> <span class="n">plugin_class</span><span class="o">.</span><span class="n">schema_dict</span><span class="p">:</span>
+                <span class="n">d_</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">plugin_class</span><span class="o">.</span><span class="n">schema_dict</span><span class="p">}</span>
+                <span class="n">deep_update</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dict_to_schema</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">modifier</span><span class="o">=</span><span class="n">expand_system_vars</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RezPluginType.create_instance"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginType.create_instance">[docs]</a>    <span class="k">def</span> <span class="nf">create_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin</span><span class="p">,</span> <span class="o">**</span><span class="n">instance_kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create and return an instance of the given plugin.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="n">plugin</span><span class="p">)(</span><span class="o">**</span><span class="n">instance_kwargs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RezPluginManager"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager">[docs]</a><span class="k">class</span> <span class="nc">RezPluginManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Primary interface for working with registered plugins.</span>
+
+<span class="sd">    Custom plugins are organized under a python package named &#39;rezplugins&#39;.</span>
+<span class="sd">    The direct sub-packages of &#39;rezplugins&#39; are the plugin types supported by</span>
+<span class="sd">    rez, and the modules below that are individual custom plugins extending</span>
+<span class="sd">    that type.</span>
+
+<span class="sd">    For example, rez provides plugins of type &#39;build_system&#39;: &#39;cmake&#39; and &#39;make&#39;::</span>
+
+<span class="sd">        rezplugins/</span>
+<span class="sd">          __init__.py</span>
+<span class="sd">          build_system/</span>
+<span class="sd">            __init__.py</span>
+<span class="sd">            cmake.py</span>
+<span class="sd">            make.py</span>
+<span class="sd">          ...</span>
+
+<span class="sd">    Here is an example of how to provide your own plugin.  In the example,</span>
+<span class="sd">    we&#39;ll be adding a plugin for the SCons build system.</span>
+
+<span class="sd">    1.  Create the &#39;rezplugins/build_system&#39; directory structure, add the empty</span>
+<span class="sd">        &#39;__init__.py&#39; files, and then place your new &#39;scons.py&#39; plugin module</span>
+<span class="sd">        into the &#39;build_system&#39; sub-package::</span>
+
+<span class="sd">            rezplugins/</span>
+<span class="sd">              __init__.py</span>
+<span class="sd">              build_system/</span>
+<span class="sd">                __init__.py</span>
+<span class="sd">                scons.py</span>
+
+<span class="sd">    2.  Write your &#39;scons.py&#39; plugin module, sub-classing your</span>
+<span class="sd">        `SConsBuildSystem` class from `rez.build_systems.BuildSystem` base</span>
+<span class="sd">        class.</span>
+
+<span class="sd">        At the bottom of the module add a `register_plugin` function that</span>
+<span class="sd">        returns your plugin class::</span>
+
+<span class="sd">            def register_plugin():</span>
+<span class="sd">                return SConsBuildSystem</span>
+
+<span class="sd">    3   Set or append the rez config setting `plugin_path` to point to the</span>
+<span class="sd">        directory **above** your &#39;rezplugins&#39; directory.</span>
+
+<span class="sd">        All &#39;rezplugin&#39; packages found on the search path will all be merged</span>
+<span class="sd">        into a single python package.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Even though &#39;rezplugins&#39; is a python package, your sparse copy of</span>
+<span class="sd">            it should  not be on the `PYTHONPATH`, just the `REZ_PLUGIN_PATH`.</span>
+<span class="sd">            This is important  because it ensures that rez&#39;s copy of</span>
+<span class="sd">            &#39;rezplugins&#39; is always found first.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plugin_types</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">rezplugins_module_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">importer</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ispkg</span> <span class="ow">in</span> <span class="n">pkgutil</span><span class="o">.</span><span class="n">iter_modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ispkg</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">importer</span><span class="p">,</span> <span class="n">zipimporter</span><span class="p">):</span>
+                <span class="n">init_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;rezplugins&quot;</span><span class="p">,</span> <span class="s2">&quot;__init__.pyc&quot;</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">importer</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">init_path</span><span class="p">)</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">IOError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">importer</span><span class="o">.</span><span class="n">archive</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">module_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">importer</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="c1"># Ignore execution failures due to missing `importer.path`,</span>
+                <span class="c1"># when rez is packaged as a single application via Pyinstaller or PyOxidizer.</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">init_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_path</span><span class="p">,</span> <span class="s2">&quot;rezplugins&quot;</span><span class="p">,</span> <span class="s2">&quot;__init__.py&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">init_path</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+            <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">paths</span>
+
+    <span class="c1"># -- plugin types</span>
+
+    <span class="k">def</span> <span class="nf">_get_plugin_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plugin_types</span><span class="p">[</span><span class="n">plugin_type</span><span class="p">]()</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RezPluginError</span><span class="p">(</span><span class="s2">&quot;Unrecognised plugin type: &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span>
+                                 <span class="o">%</span> <span class="n">plugin_type</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RezPluginManager.register_plugin_type"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.register_plugin_type">[docs]</a>    <span class="k">def</span> <span class="nf">register_plugin_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_class</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">type_class</span><span class="p">,</span> <span class="n">RezPluginType</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&#39;type_class&#39; must be a RezPluginType sub class&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">type_class</span><span class="o">.</span><span class="n">type_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Subclasses of RezPluginType must provide a &quot;</span>
+                            <span class="s2">&quot;&#39;type_name&#39; attribute&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plugin_types</span><span class="p">[</span><span class="n">type_class</span><span class="o">.</span><span class="n">type_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">LazySingleton</span><span class="p">(</span><span class="n">type_class</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.get_plugin_types"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_plugin_types">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugin_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of the registered plugin types.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plugin_types</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+    <span class="c1"># -- plugins</span>
+
+<div class="viewcode-block" id="RezPluginManager.get_plugins"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_plugins">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugins</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of the registered names available for the given plugin</span>
+<span class="sd">        type.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_plugin_type</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)</span><span class="o">.</span><span class="n">plugin_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.get_plugin_class"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_plugin_class">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugin_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the class registered under the given plugin name.&quot;&quot;&quot;</span>
+        <span class="n">plugin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_plugin_type</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">plugin</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="n">plugin_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.get_plugin_module"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_plugin_module">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugin_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the module defining the class registered under the given</span>
+<span class="sd">        plugin name.&quot;&quot;&quot;</span>
+        <span class="n">plugin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_plugin_type</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">plugin</span><span class="o">.</span><span class="n">get_plugin_module</span><span class="p">(</span><span class="n">plugin_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.get_plugin_config_data"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_plugin_config_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugin_config_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the merged configuration data for the plugin type.&quot;&quot;&quot;</span>
+        <span class="n">plugin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_plugin_type</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">plugin</span><span class="o">.</span><span class="n">config_data</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.get_plugin_config_schema"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_plugin_config_schema">[docs]</a>    <span class="k">def</span> <span class="nf">get_plugin_config_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">):</span>
+        <span class="n">plugin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_plugin_type</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">plugin</span><span class="o">.</span><span class="n">config_schema</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.get_failed_plugins"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_failed_plugins">[docs]</a>    <span class="k">def</span> <span class="nf">get_failed_plugins</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of plugins for the given type that failed to load.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of 2-tuples:</span>
+<span class="sd">            name (str): Name of the plugin.</span>
+<span class="sd">            reason (str): Error message.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_plugin_type</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)</span><span class="o">.</span><span class="n">failed_plugins</span><span class="o">.</span><span class="n">items</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.create_instance"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.create_instance">[docs]</a>    <span class="k">def</span> <span class="nf">create_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plugin_type</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">,</span> <span class="o">**</span><span class="n">instance_kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create and return an instance of the given plugin.&quot;&quot;&quot;</span>
+        <span class="n">plugin_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_plugin_type</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">plugin_type</span><span class="o">.</span><span class="n">create_instance</span><span class="p">(</span><span class="n">plugin_name</span><span class="p">,</span> <span class="o">**</span><span class="n">instance_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RezPluginManager.get_summary_string"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.RezPluginManager.get_summary_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a formatted string summarising the plugins that were loaded.&quot;&quot;&quot;</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;PLUGIN TYPE&quot;</span><span class="p">,</span> <span class="s2">&quot;NAME&quot;</span><span class="p">,</span> <span class="s2">&quot;DESCRIPTION&quot;</span><span class="p">,</span> <span class="s2">&quot;STATUS&quot;</span><span class="p">],</span>
+                <span class="p">[</span><span class="s2">&quot;-----------&quot;</span><span class="p">,</span> <span class="s2">&quot;----&quot;</span><span class="p">,</span> <span class="s2">&quot;-----------&quot;</span><span class="p">,</span> <span class="s2">&quot;------&quot;</span><span class="p">]]</span>
+        <span class="k">for</span> <span class="n">plugin_type</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_plugin_types</span><span class="p">()):</span>
+            <span class="n">type_name</span> <span class="o">=</span> <span class="n">plugin_type</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_plugins</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)):</span>
+                <span class="n">module</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_plugin_module</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="n">desc</span> <span class="o">=</span> <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;__doc__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">type_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span> <span class="s2">&quot;loaded&quot;</span><span class="p">))</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_failed_plugins</span><span class="p">(</span><span class="n">plugin_type</span><span class="p">)):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;FAILED: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">reason</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">type_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columnise</span><span class="p">(</span><span class="n">rows</span><span class="p">))</span></div></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># Plugin Types</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="ShellPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.ShellPluginType">[docs]</a><span class="k">class</span> <span class="nc">ShellPluginType</span><span class="p">(</span><span class="n">RezPluginType</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Support for different types of target shells, such as bash, tcsh.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;shell&quot;</span></div>
+
+
+<div class="viewcode-block" id="ReleaseVCSPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.ReleaseVCSPluginType">[docs]</a><span class="k">class</span> <span class="nc">ReleaseVCSPluginType</span><span class="p">(</span><span class="n">RezPluginType</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Support for different version control systems when releasing packages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;release_vcs&quot;</span></div>
+
+
+<div class="viewcode-block" id="ReleaseHookPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.ReleaseHookPluginType">[docs]</a><span class="k">class</span> <span class="nc">ReleaseHookPluginType</span><span class="p">(</span><span class="n">RezPluginType</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Support for different version control systems when releasing packages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;release_hook&quot;</span></div>
+
+
+<div class="viewcode-block" id="BuildSystemPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.BuildSystemPluginType">[docs]</a><span class="k">class</span> <span class="nc">BuildSystemPluginType</span><span class="p">(</span><span class="n">RezPluginType</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Support for different build systems when building packages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;build_system&quot;</span></div>
+
+
+<div class="viewcode-block" id="PackageRepositoryPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.PackageRepositoryPluginType">[docs]</a><span class="k">class</span> <span class="nc">PackageRepositoryPluginType</span><span class="p">(</span><span class="n">RezPluginType</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Support for different package repositories for loading packages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;package_repository&quot;</span></div>
+
+
+<div class="viewcode-block" id="BuildProcessPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.BuildProcessPluginType">[docs]</a><span class="k">class</span> <span class="nc">BuildProcessPluginType</span><span class="p">(</span><span class="n">RezPluginType</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Support for different build and release processes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;build_process&quot;</span></div>
+
+
+<div class="viewcode-block" id="CommandPluginType"><a class="viewcode-back" href="../../api/rez.html#rez.plugin_managers.CommandPluginType">[docs]</a><span class="k">class</span> <span class="nc">CommandPluginType</span><span class="p">(</span><span class="n">RezPluginType</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Support for different custom Rez applications/subcommands.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;command&quot;</span></div>
+
+
+<span class="n">plugin_manager</span> <span class="o">=</span> <span class="n">RezPluginManager</span><span class="p">()</span>
+
+
+<span class="n">plugin_manager</span><span class="o">.</span><span class="n">register_plugin_type</span><span class="p">(</span><span class="n">ShellPluginType</span><span class="p">)</span>
+<span class="n">plugin_manager</span><span class="o">.</span><span class="n">register_plugin_type</span><span class="p">(</span><span class="n">ReleaseVCSPluginType</span><span class="p">)</span>
+<span class="n">plugin_manager</span><span class="o">.</span><span class="n">register_plugin_type</span><span class="p">(</span><span class="n">ReleaseHookPluginType</span><span class="p">)</span>
+<span class="n">plugin_manager</span><span class="o">.</span><span class="n">register_plugin_type</span><span class="p">(</span><span class="n">BuildSystemPluginType</span><span class="p">)</span>
+<span class="n">plugin_manager</span><span class="o">.</span><span class="n">register_plugin_type</span><span class="p">(</span><span class="n">PackageRepositoryPluginType</span><span class="p">)</span>
+<span class="n">plugin_manager</span><span class="o">.</span><span class="n">register_plugin_type</span><span class="p">(</span><span class="n">BuildProcessPluginType</span><span class="p">)</span>
+<span class="n">plugin_manager</span><span class="o">.</span><span class="n">register_plugin_type</span><span class="p">(</span><span class="n">CommandPluginType</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

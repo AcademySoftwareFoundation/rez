@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.release_hook &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.release_hook</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.release_hook</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_warning</span><span class="p">,</span> <span class="n">print_debug</span>
+<span class="kn">from</span> <span class="nn">rez.packages</span> <span class="kn">import</span> <span class="n">get_developer_package</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+
+
+<div class="viewcode-block" id="get_release_hook_types"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.get_release_hook_types">[docs]</a><span class="k">def</span> <span class="nf">get_release_hook_types</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the available release hook implementations.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="k">return</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugins</span><span class="p">(</span><span class="s1">&#39;release_hook&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_release_hook"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.create_release_hook">[docs]</a><span class="k">def</span> <span class="nf">create_release_hook</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">source_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a new release hook of the given type.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="k">return</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">create_instance</span><span class="p">(</span><span class="s1">&#39;release_hook&#39;</span><span class="p">,</span>
+                                          <span class="n">name</span><span class="p">,</span>
+                                          <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_release_hooks"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.create_release_hooks">[docs]</a><span class="k">def</span> <span class="nf">create_release_hooks</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">source_path</span><span class="p">):</span>
+    <span class="n">hooks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">hook</span> <span class="o">=</span> <span class="n">create_release_hook</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">source_path</span><span class="p">)</span>
+            <span class="n">hooks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hook</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">traceback</span>
+            <span class="n">print_warning</span><span class="p">(</span><span class="s2">&quot;Release hook &#39;</span><span class="si">%s</span><span class="s2">&#39; is not available.&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">print_debug</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">hooks</span></div>
+
+
+<div class="viewcode-block" id="ReleaseHook"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.ReleaseHook">[docs]</a><span class="k">class</span> <span class="nc">ReleaseHook</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An object that allows for custom behaviour during releases.</span>
+
+<span class="sd">    A release hook provides methods that you implement to inject custom</span>
+<span class="sd">    behaviour during parts of the release process. For example, the builtin</span>
+<span class="sd">    &#39;email&#39; hook sends a post-release email to a configured address.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ReleaseHook.name"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.ReleaseHook.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return name of source retriever, eg &#39;git&#39;&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a release hook.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source_path: Path containing source that was released.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_path</span> <span class="o">=</span> <span class="n">source_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="n">get_developer_package</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">plugins</span><span class="o">.</span><span class="n">release_hook</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ReleaseHook.pre_build"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.ReleaseHook.pre_build">[docs]</a>    <span class="k">def</span> <span class="nf">pre_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">install_path</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">release_message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">changelog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">previous_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">previous_revision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pre-build hook.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user: Name of person who did the release.</span>
+<span class="sd">            install_path: Directory the package was installed into.</span>
+<span class="sd">            variants: List of variant indices we are attempting to build, or</span>
+<span class="sd">                None</span>
+<span class="sd">            release_message: User-supplied release message.</span>
+<span class="sd">            changelog: List of strings describing changes since last release.</span>
+<span class="sd">            previous_version: Version object - previously-release package, or</span>
+<span class="sd">                None if no previous release.</span>
+<span class="sd">            previous_revision: Revision of previously-released package (type</span>
+<span class="sd">                depends on repo - see ReleaseVCS.get_current_revision().</span>
+<span class="sd">            kwargs: Reserved.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This method should raise a `ReleaseHookCancellingError` if the</span>
+<span class="sd">            release process should be cancelled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="ReleaseHook.pre_release"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.ReleaseHook.pre_release">[docs]</a>    <span class="k">def</span> <span class="nf">pre_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">install_path</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">release_message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">changelog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">previous_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">previous_revision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pre-release hook.</span>
+
+<span class="sd">        This is called before any package variants are released.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user: Name of person who did the release.</span>
+<span class="sd">            install_path: Directory the package was installed into.</span>
+<span class="sd">            variants: List of variant indices we are attempting to release, or</span>
+<span class="sd">                None</span>
+<span class="sd">            release_message: User-supplied release message.</span>
+<span class="sd">            changelog: List of strings describing changes since last release.</span>
+<span class="sd">            previous_version: Version object - previously-release package, or</span>
+<span class="sd">                None if no previous release.</span>
+<span class="sd">            previous_revision: Revision of previously-releaved package (type</span>
+<span class="sd">                depends on repo - see ReleaseVCS.get_current_revision().</span>
+<span class="sd">            kwargs: Reserved.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This method should raise a `ReleaseHookCancellingError` if the</span>
+<span class="sd">            release process should be cancelled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="ReleaseHook.post_release"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.ReleaseHook.post_release">[docs]</a>    <span class="k">def</span> <span class="nf">post_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">install_path</span><span class="p">,</span> <span class="n">variants</span><span class="p">,</span> <span class="n">release_message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">changelog</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">previous_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">previous_revision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Post-release hook.</span>
+
+<span class="sd">        This is called after all package variants have been released.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user: Name of person who did the release.</span>
+<span class="sd">            install_path: Directory the package was installed into.</span>
+<span class="sd">            variants (list of `Variant`): The variants that have been released.</span>
+<span class="sd">            release_message: User-supplied release message.</span>
+<span class="sd">            changelog: List of strings describing changes since last release.</span>
+<span class="sd">            previous_version: Version of previously-release package, None if</span>
+<span class="sd">                no previous release.</span>
+<span class="sd">            previous_revision: Revision of previously-releaved package (type</span>
+<span class="sd">                depends on repo - see ReleaseVCS.get_current_revision().</span>
+<span class="sd">            kwargs: Reserved.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="ReleaseHookEvent"><a class="viewcode-back" href="../../api/rez.html#rez.release_hook.ReleaseHookEvent">[docs]</a><span class="k">class</span> <span class="nc">ReleaseHookEvent</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Enum to help manage release hooks.&quot;&quot;&quot;</span>
+    <span class="n">pre_build</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;pre-build&quot;</span><span class="p">,</span> <span class="s2">&quot;build&quot;</span><span class="p">,</span> <span class="s2">&quot;pre_build&quot;</span><span class="p">)</span>
+    <span class="n">pre_release</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;pre-release&quot;</span><span class="p">,</span> <span class="s2">&quot;release&quot;</span><span class="p">,</span> <span class="s2">&quot;pre_release&quot;</span><span class="p">)</span>
+    <span class="n">post_release</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;post-release&quot;</span><span class="p">,</span> <span class="s2">&quot;release&quot;</span><span class="p">,</span> <span class="s2">&quot;post_release&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">noun</span><span class="p">,</span> <span class="n">func_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noun</span> <span class="o">=</span> <span class="n">noun</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">func_name</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

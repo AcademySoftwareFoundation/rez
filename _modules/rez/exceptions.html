@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.exceptions &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.exceptions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.exceptions</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Exceptions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+
+
+<div class="viewcode-block" id="RezError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RezError">[docs]</a><span class="k">class</span> <span class="nc">RezError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base-class Rez error.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RezSystemError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RezSystemError">[docs]</a><span class="k">class</span> <span class="nc">RezSystemError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Rez system/internal error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="RezBindError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RezBindError">[docs]</a><span class="k">class</span> <span class="nc">RezBindError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A bind-related error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="RezPluginError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RezPluginError">[docs]</a><span class="k">class</span> <span class="nc">RezPluginError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An error related to plugin or plugin load.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ConfigurationError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ConfigurationError">[docs]</a><span class="k">class</span> <span class="nc">ConfigurationError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A misconfiguration error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ResolveError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ResolveError">[docs]</a><span class="k">class</span> <span class="nc">ResolveError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A resolve-related error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageFamilyNotFoundError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageFamilyNotFoundError">[docs]</a><span class="k">class</span> <span class="nc">PackageFamilyNotFoundError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A package could not be found on disk.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageNotFoundError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageNotFoundError">[docs]</a><span class="k">class</span> <span class="nc">PackageNotFoundError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A package could not be found on disk.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ResourceError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ResourceError">[docs]</a><span class="k">class</span> <span class="nc">ResourceError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Resource-related exception base class.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ResourceNotFoundError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ResourceNotFoundError">[docs]</a><span class="k">class</span> <span class="nc">ResourceNotFoundError</span><span class="p">(</span><span class="n">ResourceError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A resource could not be found.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ResourceContentError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ResourceContentError">[docs]</a><span class="k">class</span> <span class="nc">ResourceContentError</span><span class="p">(</span><span class="n">ResourceError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A resource contains incorrect data.&quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;resource file&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resource_key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">resource_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;resource type: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">resource_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type_name</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">ResourceError</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;: &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="PackageMetadataError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageMetadataError">[docs]</a><span class="k">class</span> <span class="nc">PackageMetadataError</span><span class="p">(</span><span class="n">ResourceContentError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There is an error in a package&#39;s definition file.&quot;&quot;&quot;</span>
+    <span class="n">type_name</span> <span class="o">=</span> <span class="s2">&quot;package definition file&quot;</span></div>
+
+
+<div class="viewcode-block" id="PackageCommandError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageCommandError">[docs]</a><span class="k">class</span> <span class="nc">PackageCommandError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There is an error in a command or list of commands&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageRequestError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageRequestError">[docs]</a><span class="k">class</span> <span class="nc">PackageRequestError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There is an error related to a package request.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageCopyError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageCopyError">[docs]</a><span class="k">class</span> <span class="nc">PackageCopyError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There was a problem copying a package.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageMoveError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageMoveError">[docs]</a><span class="k">class</span> <span class="nc">PackageMoveError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There was a problem moving a package.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ContextBundleError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ContextBundleError">[docs]</a><span class="k">class</span> <span class="nc">ContextBundleError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There was a problem bundling a context.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageCacheError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageCacheError">[docs]</a><span class="k">class</span> <span class="nc">PackageCacheError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There was an error related to a package cache.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageTestError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageTestError">[docs]</a><span class="k">class</span> <span class="nc">PackageTestError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There was a problem running a package test.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ResolvedContextError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ResolvedContextError">[docs]</a><span class="k">class</span> <span class="nc">ResolvedContextError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;An error occurred in a resolved context.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="RexError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RexError">[docs]</a><span class="k">class</span> <span class="nc">RexError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There is an error in Rex code.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="RexUndefinedVariableError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RexUndefinedVariableError">[docs]</a><span class="k">class</span> <span class="nc">RexUndefinedVariableError</span><span class="p">(</span><span class="n">RexError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;There is a reference to an undefined variable.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="RexStopError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RexStopError">[docs]</a><span class="k">class</span> <span class="nc">RexStopError</span><span class="p">(</span><span class="n">RexError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Special error raised when a package commands uses the &#39;stop&#39; command.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="BuildError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.BuildError">[docs]</a><span class="k">class</span> <span class="nc">BuildError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for any build-related error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="BuildSystemError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.BuildSystemError">[docs]</a><span class="k">class</span> <span class="nc">BuildSystemError</span><span class="p">(</span><span class="n">BuildError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for buildsys-related errors.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="BuildContextResolveError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.BuildContextResolveError">[docs]</a><span class="k">class</span> <span class="nc">BuildContextResolveError</span><span class="p">(</span><span class="n">BuildError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised if unable to resolve the required context when creating the</span>
+<span class="sd">    environment for a build process.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">context</span>
+        <span class="k">assert</span> <span class="n">context</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">&quot;solved&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The build environment could not be resolved:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span>
+               <span class="o">%</span> <span class="n">context</span><span class="o">.</span><span class="n">failure_description</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BuildContextResolveError</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildProcessError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.BuildProcessError">[docs]</a><span class="k">class</span> <span class="nc">BuildProcessError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for build process-related errors.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ReleaseError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ReleaseError">[docs]</a><span class="k">class</span> <span class="nc">ReleaseError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Any release-related error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ReleaseVCSError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ReleaseVCSError">[docs]</a><span class="k">class</span> <span class="nc">ReleaseVCSError</span><span class="p">(</span><span class="n">ReleaseError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for release VCS-related errors.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ReleaseHookError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ReleaseHookError">[docs]</a><span class="k">class</span> <span class="nc">ReleaseHookError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for release-hook- related errors.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ReleaseHookCancellingError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.ReleaseHookCancellingError">[docs]</a><span class="k">class</span> <span class="nc">ReleaseHookCancellingError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A release hook error that asks to cancel the release as a result.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="SuiteError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.SuiteError">[docs]</a><span class="k">class</span> <span class="nc">SuiteError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Any suite-related error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PackageRepositoryError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.PackageRepositoryError">[docs]</a><span class="k">class</span> <span class="nc">PackageRepositoryError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for package repository- related errors.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="InvalidPackageError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.InvalidPackageError">[docs]</a><span class="k">class</span> <span class="nc">InvalidPackageError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A special case exception used in package &#39;preprocess function&#39;.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="RezGuiQTImportError"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.RezGuiQTImportError">[docs]</a><span class="k">class</span> <span class="nc">RezGuiQTImportError</span><span class="p">(</span><span class="ne">ImportError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A special case - see cli/gui.py</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<span class="k">class</span> <span class="nc">_NeverError</span><span class="p">(</span><span class="n">RezError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception that is never raised.</span>
+
+<span class="sd">    Used to toggle exception handling in some cases.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="convert_errors"><a class="viewcode-back" href="../../api/rez.html#rez.exceptions.convert_errors">[docs]</a><span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">convert_errors</span><span class="p">(</span><span class="n">from_</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">exc</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="kc">None</span>
+    <span class="k">except</span> <span class="n">from_</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">exc</span> <span class="o">=</span> <span class="n">e</span>
+
+    <span class="k">if</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">to</span><span class="p">(</span><span class="n">info</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

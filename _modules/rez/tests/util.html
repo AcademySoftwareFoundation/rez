@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.tests.util &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.tests.util</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.tests.util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">rez</span> <span class="kn">import</span> <span class="n">module_root_path</span>
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span><span class="p">,</span> <span class="n">_create_locked_config</span>
+<span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">get_shell_types</span><span class="p">,</span> <span class="n">get_shell_class</span>
+<span class="kn">from</span> <span class="nn">rez.system</span> <span class="kn">import</span> <span class="n">system</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+
+<span class="c1"># https://pypi.org/project/parameterized</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">parameterized</span> <span class="kn">import</span> <span class="n">parameterized</span>
+    <span class="n">use_parameterized</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">use_parameterized</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="TestBase"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase">[docs]</a><span class="k">class</span> <span class="nc">TestBase</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Unit test base class.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">nargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TestBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">nargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_once_called</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="TestBase.setUpClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.setUpClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setUpClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="TestBase.setUp"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxDiff</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;REZ_QUIET&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;true&quot;</span>
+
+        <span class="c1"># shield unit tests from any user config overrides</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_config</span><span class="p">()</span>
+
+        <span class="c1"># hook to run code once before all tests, but after the config has</span>
+        <span class="c1"># been overridden.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_once_called</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup_once</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup_once_called</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="TestBase.setup_once"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.setup_once">[docs]</a>    <span class="k">def</span> <span class="nf">setup_once</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="TestBase.tearDown"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.tearDown">[docs]</a>    <span class="k">def</span> <span class="nf">tearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">teardown_config</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestBase.data_path"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.data_path">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">data_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">dirs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get path to test data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_root_path</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;tests&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">dirs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+    <span class="c1"># These are moved into their own functions so update_settings can call</span>
+    <span class="c1"># them without having to call setUp / tearDown, and without worrying</span>
+    <span class="c1"># about future or subclass modifications to those methods...</span>
+<div class="viewcode-block" id="TestBase.setup_config"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.setup_config">[docs]</a>    <span class="k">def</span> <span class="nf">setup_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># to make sure config changes from one test don&#39;t affect another, copy</span>
+        <span class="c1"># the overrides dict...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="n">_create_locked_config</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">))</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">_swap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBase.teardown_config"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.teardown_config">[docs]</a>    <span class="k">def</span> <span class="nf">teardown_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># moved to it&#39;s own section because it&#39;s called in update_settings...</span>
+        <span class="c1"># so if in the future, tearDown does more than call this,</span>
+        <span class="c1"># update_settings is still valid</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">_swap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="TestBase.update_settings"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.update_settings">[docs]</a>    <span class="k">def</span> <span class="nf">update_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_settings</span><span class="p">,</span> <span class="n">override</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Can be called within test methods to modify settings on a</span>
+<span class="sd">        per-test basis (as opposed cls.settings, which modifies it for all</span>
+<span class="sd">        tests on the class)</span>
+
+<span class="sd">        Note that multiple calls will not &quot;accumulate&quot; updates, but will</span>
+<span class="sd">        instead patch the class&#39;s settings with the new_settings each time.</span>
+
+<span class="sd">        new_settings : dict</span>
+<span class="sd">            the updated settings to override the config with</span>
+<span class="sd">        override : bool</span>
+<span class="sd">            normally, the resulting config will be the result of merging</span>
+<span class="sd">            the base cls.settings with the new_settings - ie, like doing</span>
+<span class="sd">            cls.settings.update(new_settings).  If this is True, however,</span>
+<span class="sd">            then the cls.settings will be ignored entirely, and the</span>
+<span class="sd">            new_settings will be the only configuration settings applied</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># restore the &quot;normal&quot; config...</span>
+        <span class="kn">from</span> <span class="nn">rez.utils.data_utils</span> <span class="kn">import</span> <span class="n">deep_update</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">teardown_config</span><span class="p">()</span>
+
+        <span class="c1"># ...then copy the class settings dict to instance, so we can</span>
+        <span class="c1"># modify...</span>
+        <span class="k">if</span> <span class="n">override</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">new_settings</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">settings</span><span class="p">)</span>
+            <span class="n">deep_update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">,</span> <span class="n">new_settings</span><span class="p">)</span>
+
+        <span class="c1"># now swap the config back in...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_config</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestBase.get_settings_env"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TestBase.get_settings_env">[docs]</a>    <span class="k">def</span> <span class="nf">get_settings_env</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get an environ dict that applies the current settings.</span>
+
+<span class="sd">        This is required for cases where a subproc has to pick up the same</span>
+<span class="sd">        config settings that the test case has set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="p">(</span><span class="s2">&quot;REZ_</span><span class="si">%s</span><span class="s2">_JSON&quot;</span> <span class="o">%</span> <span class="n">k</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TempdirMixin"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TempdirMixin">[docs]</a><span class="k">class</span> <span class="nc">TempdirMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixin that adds tmpdir create/delete.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="TempdirMixin.setUpClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TempdirMixin.setUpClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setUpClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;rez_selftest_&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TempdirMixin.tearDownClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.TempdirMixin.tearDownClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">tearDownClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;REZ_KEEP_TMPDIRS&quot;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Tempdir kept due to $REZ_KEEP_TMPDIRS: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">cls</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># The retries are here because there is at least one case in the</span>
+        <span class="c1"># tests where a subproc can be writing to files in a tmpdir after</span>
+        <span class="c1"># the tests are completed (this is the rez-pkg-cache proc in the</span>
+        <span class="c1"># test_package_cache:test_caching_on_resolve test).</span>
+        <span class="c1">#</span>
+        <span class="n">retries</span> <span class="o">=</span> <span class="mi">5</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">root</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">retries</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">retries</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="find_file_in_path"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.find_file_in_path">[docs]</a><span class="k">def</span> <span class="nf">find_file_in_path</span><span class="p">(</span><span class="n">to_find</span><span class="p">,</span> <span class="n">path_str</span><span class="p">,</span> <span class="n">pathsep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Attempts to find the given relative path to_find in the given path</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pathsep</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pathsep</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span>
+    <span class="n">paths</span> <span class="o">=</span> <span class="n">path_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">pathsep</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">reverse</span><span class="p">:</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="n">test_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">to_find</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">test_path</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">test_path</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="program_dependent"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.program_dependent">[docs]</a><span class="k">def</span> <span class="nf">program_dependent</span><span class="p">(</span><span class="n">program_name</span><span class="p">,</span> <span class="o">*</span><span class="n">program_names</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Function decorator that skips the function if not all given programs are</span>
+<span class="sd">    visible.&quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">subprocess</span>
+
+    <span class="n">program_tests</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;cmake&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;cmake&#39;</span><span class="p">,</span> <span class="s1">&#39;-h&#39;</span><span class="p">],</span>
+        <span class="s2">&quot;make&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;make&#39;</span><span class="p">,</span> <span class="s1">&#39;-h&#39;</span><span class="p">],</span>
+        <span class="s2">&quot;g++&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;g++&quot;</span><span class="p">,</span> <span class="s2">&quot;--help&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="c1"># test if programs all exist</span>
+    <span class="k">def</span> <span class="nf">_test</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="n">program_tests</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">DEVNULL</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">DEVNULL</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">DEVNULL</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">,</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">program_name</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">program_names</span><span class="p">)</span>
+    <span class="n">all_exist</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">_test</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">names</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">all_exist</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span>
+                    <span class="s2">&quot;Requires all programs to be present and functioning: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                    <span class="o">%</span> <span class="n">names</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">wrapper</span>
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+<div class="viewcode-block" id="per_available_shell"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.per_available_shell">[docs]</a><span class="k">def</span> <span class="nf">per_available_shell</span><span class="p">(</span><span class="n">exclude</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Function decorator that runs the function over all available shell types.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span> <span class="ow">or</span> <span class="p">[]</span>
+
+    <span class="n">shells</span> <span class="o">=</span> <span class="n">get_shell_types</span><span class="p">()</span>
+
+    <span class="n">only_shell</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;__REZ_SELFTEST_SHELL&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">only_shell</span><span class="p">:</span>
+        <span class="n">shells</span> <span class="o">=</span> <span class="p">[</span><span class="n">only_shell</span><span class="p">]</span>
+
+    <span class="c1"># filter to only those shells available</span>
+    <span class="n">shells</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">shells</span>
+        <span class="k">if</span> <span class="n">get_shell_class</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">exclude</span> <span class="ow">or</span> <span class="p">[])</span>
+    <span class="p">]</span>
+
+    <span class="c1"># https://pypi.org/project/parameterized</span>
+    <span class="k">if</span> <span class="n">use_parameterized</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parameterized</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">shells</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">shell</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">testing in shell: </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">shell</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="n">shell</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c1"># Add the shell to the exception message, if possible.</span>
+                    <span class="c1"># In some IDEs the args do not exist at all.</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">&quot;args&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+                            <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; (in shell &#39;</span><span class="si">{}</span><span class="s2">&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+                            <span class="n">e</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="n">e</span>
+                    <span class="k">raise</span>
+        <span class="k">return</span> <span class="n">wrapper</span>
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+<div class="viewcode-block" id="install_dependent"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.install_dependent">[docs]</a><span class="k">def</span> <span class="nf">install_dependent</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Function decorator that skips tests if not run via &#39;rez-selftest&#39; tool,</span>
+<span class="sd">    from a production install&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;__REZ_SELFTEST_RUNNING&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">system</span><span class="o">.</span><span class="n">is_production_rez_install</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span>
+                    <span class="s2">&quot;Must be run via &#39;rez-selftest&#39; tool, see &quot;</span>
+                    <span class="s2">&quot;https://github.com/AcademySoftwareFoundation/rez/wiki/Installation#installation-script&quot;</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">wrapper</span>
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+<span class="n">_restore_sys_path_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+<span class="n">_restore_os_environ_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="restore_sys_path"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.restore_sys_path">[docs]</a><span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">restore_sys_path</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Encapsulate changes to sys.path and return to the original state.</span>
+
+<span class="sd">    This context manager lets you wrap modifications of sys.path and not worry</span>
+<span class="sd">    about reverting back to the original.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; path = &#39;/arbitrary/path&#39;</span>
+<span class="sd">        &gt;&gt;&gt; with sys_path():</span>
+<span class="sd">        &gt;&gt;&gt;     sys.path.insert(0, &#39;/arbitrary/path&#39;)</span>
+<span class="sd">        &gt;&gt;&gt;     assert path in sys.path</span>
+<span class="sd">        True</span>
+
+<span class="sd">        &gt;&gt;&gt; assert path in sys.path</span>
+<span class="sd">        False</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        list: The original sys.path.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">_restore_sys_path_lock</span><span class="p">:</span>
+        <span class="n">original</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">[:]</span>
+
+        <span class="k">yield</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span>
+
+        <span class="k">del</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">[:]</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">original</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="restore_os_environ"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.util.restore_os_environ">[docs]</a><span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">restore_os_environ</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Encapsulate changes to os.environ and return to the original state.</span>
+
+<span class="sd">    This context manager lets you wrap modifications of os.environ and not</span>
+<span class="sd">    worry about reverting back to the original.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; key = &#39;ARBITRARY_KEY&#39;</span>
+<span class="sd">        &gt;&gt;&gt; value = &#39;arbitrary_value&#39;</span>
+<span class="sd">        &gt;&gt;&gt; with os_environ():</span>
+<span class="sd">        &gt;&gt;&gt;     os.environ[key] = value</span>
+<span class="sd">        &gt;&gt;&gt;     assert key in os.environ</span>
+<span class="sd">        True</span>
+
+<span class="sd">        &gt;&gt;&gt; assert key in os.environ</span>
+<span class="sd">        False</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        dict: The original os.environ.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">_restore_os_environ_lock</span><span class="p">:</span>
+        <span class="n">original</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">yield</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">original</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

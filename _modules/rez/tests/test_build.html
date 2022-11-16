@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.tests.test_build &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.tests.test_build</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.tests.test_build</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">test the build system</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">rez.build_process</span> <span class="kn">import</span> <span class="n">create_build_process</span>
+<span class="kn">from</span> <span class="nn">rez.build_system</span> <span class="kn">import</span> <span class="n">create_build_system</span>
+<span class="kn">from</span> <span class="nn">rez.resolved_context</span> <span class="kn">import</span> <span class="n">ResolvedContext</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">BuildError</span><span class="p">,</span> <span class="n">BuildContextResolveError</span><span class="p">,</span>\
+    <span class="n">PackageFamilyNotFoundError</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">rez.tests.util</span> <span class="kn">import</span> <span class="n">TestBase</span><span class="p">,</span> <span class="n">TempdirMixin</span><span class="p">,</span> <span class="n">find_file_in_path</span><span class="p">,</span> \
+    <span class="n">per_available_shell</span><span class="p">,</span> <span class="n">install_dependent</span><span class="p">,</span> <span class="n">program_dependent</span>
+<span class="kn">from</span> <span class="nn">rez.utils.platform_</span> <span class="kn">import</span> <span class="n">platform_</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+
+
+<div class="viewcode-block" id="TestBuild"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild">[docs]</a><span class="k">class</span> <span class="nc">TestBuild</span><span class="p">(</span><span class="n">TestBase</span><span class="p">,</span> <span class="n">TempdirMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="TestBuild.setUpClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild.setUpClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setUpClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">TempdirMixin</span><span class="o">.</span><span class="n">setUpClass</span><span class="p">()</span>
+
+        <span class="n">packages_path</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">data_path</span><span class="p">(</span><span class="s2">&quot;builds&quot;</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">src_root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;src&quot;</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">install_root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copytree</span><span class="p">(</span><span class="n">packages_path</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">src_root</span><span class="p">)</span>
+
+        <span class="c1"># include modules</span>
+        <span class="n">pypath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">data_path</span><span class="p">(</span><span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="s2">&quot;late_bind&quot;</span><span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">packages_path</span><span class="o">=</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">install_root</span><span class="p">],</span>
+            <span class="n">package_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">package_definition_python_path</span><span class="o">=</span><span class="n">pypath</span><span class="p">,</span>
+            <span class="n">resolve_caching</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">warn_untimestamped</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">warn_old_commands</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">implicit_packages</span><span class="o">=</span><span class="p">[])</span></div>
+
+<div class="viewcode-block" id="TestBuild.tearDownClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild.tearDownClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">tearDownClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">TempdirMixin</span><span class="o">.</span><span class="n">tearDownClass</span><span class="p">()</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_builder</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">working_dir</span><span class="p">):</span>
+        <span class="n">buildsys</span> <span class="o">=</span> <span class="n">create_build_system</span><span class="p">(</span><span class="n">working_dir</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">create_build_process</span><span class="p">(</span><span class="n">process_type</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">,</span>
+                                    <span class="n">working_dir</span><span class="o">=</span><span class="n">working_dir</span><span class="p">,</span>
+                                    <span class="n">build_system</span><span class="o">=</span><span class="n">buildsys</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_context</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">pkgs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ResolvedContext</span><span class="p">(</span><span class="n">pkgs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># create the builder</span>
+        <span class="n">working_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">src_root</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
+            <span class="n">working_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+        <span class="n">builder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_builder</span><span class="p">(</span><span class="n">working_dir</span><span class="p">)</span>
+
+        <span class="c1"># build the package from a clean build dir, then build it again</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+        <span class="c1"># build and install it from a clean dir, then build and install it again</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">install_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">install_root</span><span class="p">,</span> <span class="n">install</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">install_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">install_root</span><span class="p">,</span> <span class="n">install</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_build_util</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build, install, test the build_util package.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;build_util&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;build_util==1&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_floob</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build, install, test the floob package.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;floob&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;floob==1.2.0&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_foo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build, install, test the foo package.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;1.0.0&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;foo==1.0.0&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;foo&quot;</span><span class="p">,</span> <span class="s2">&quot;1.1.0&quot;</span><span class="p">)</span>
+        <span class="n">rxt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;foo==1.1.0&quot;</span><span class="p">)</span>
+
+        <span class="c1"># test that expected env-var is set by foo&#39;s commands</span>
+        <span class="n">environ</span> <span class="o">=</span> <span class="n">rxt</span><span class="o">.</span><span class="n">get_environ</span><span class="p">(</span><span class="n">parent_environ</span><span class="o">=</span><span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;FOO_IN_DA_HOUSE&quot;</span><span class="p">),</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span>
+
+        <span class="c1"># test that include modules are working</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;EEK&quot;</span><span class="p">),</span> <span class="s2">&quot;2&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_loco</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test that a package with conflicting requirements fails correctly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">working_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">src_root</span><span class="p">,</span> <span class="s2">&quot;loco&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">)</span>
+        <span class="n">builder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_builder</span><span class="p">(</span><span class="n">working_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">BuildContextResolveError</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_bah</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build, install, test the bah package.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;bah&quot;</span><span class="p">,</span> <span class="s2">&quot;2.1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;bah==2.1&quot;</span><span class="p">,</span> <span class="s2">&quot;foo==1.0.0&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;bah==2.1&quot;</span><span class="p">,</span> <span class="s2">&quot;foo==1.1.0&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_anti</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build, install, test the anti package.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;anti&quot;</span><span class="p">,</span> <span class="s2">&quot;1.0.0&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;anti==1.0.0&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_translate_lib</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build, install, test the translate_lib package.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;translate_lib&quot;</span><span class="p">,</span> <span class="s2">&quot;2.2.0&quot;</span><span class="p">)</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;translate_lib==2.2.0&quot;</span><span class="p">)</span>
+        <span class="n">environ</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">get_environ</span><span class="p">()</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">environ</span><span class="p">[</span><span class="s1">&#39;REZ_TRANSLATE_LIB_ROOT&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">find_file_in_path</span><span class="p">(</span><span class="s1">&#39;translate_lib.cmake&#39;</span><span class="p">,</span> <span class="n">environ</span><span class="p">[</span><span class="s1">&#39;CMAKE_MODULE_PATH&#39;</span><span class="p">]))</span>
+        <span class="c1"># is testing symlinks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">find_file_in_path</span><span class="p">(</span><span class="s1">&#39;an_unspaced_document&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s1">&#39;docs&#39;</span><span class="p">)))</span>
+        <span class="c1"># is testing spaces in symlinks per issue #553</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">find_file_in_path</span><span class="p">(</span><span class="s1">&#39;a spaced document&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s1">&#39;docs&#39;</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">_test_build_sup_world</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build, install, test the sup_world package.&quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">PIPE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;sup_world&quot;</span><span class="p">,</span> <span class="s2">&quot;3.8&quot;</span><span class="p">)</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;sup_world==3.8&quot;</span><span class="p">)</span>
+        <span class="n">proc</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">execute_command</span><span class="p">([</span><span class="s1">&#39;greeter&#39;</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;hola amigo&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+<div class="viewcode-block" id="TestBuild.test_build_whack"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild.test_build_whack">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="nd">@install_dependent</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_build_whack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test that a broken build fails correctly.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;default_shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">)</span>
+
+        <span class="n">working_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">src_root</span><span class="p">,</span> <span class="s2">&quot;whack&quot;</span><span class="p">)</span>
+        <span class="n">builder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_builder</span><span class="p">(</span><span class="n">working_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">BuildError</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestBuild.test_builds"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild.test_builds">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="nd">@install_dependent</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_builds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test an interdependent set of builds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;default_shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_build_util</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_floob</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_foo</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_loco</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_bah</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestBuild.test_builds_anti"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild.test_builds_anti">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="nd">@install_dependent</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_builds_anti</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test we can build packages that contain anti packages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;default_shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_build_util</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_floob</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_anti</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestBuild.test_build_cmake"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild.test_build_cmake">[docs]</a>    <span class="nd">@program_dependent</span><span class="p">(</span><span class="s2">&quot;cmake&quot;</span><span class="p">)</span>
+    <span class="nd">@install_dependent</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_build_cmake</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test a cmake-based package.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">platform_</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;windows&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span><span class="s2">&quot;This test does not run on Windows due to temporary&quot;</span>
+                          <span class="s2">&quot;limitations of the cmake build_system plugin&quot;</span>
+                          <span class="s2">&quot; implementation.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">PackageFamilyNotFoundError</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">,</span>
+                          <span class="s2">&quot;sup_world==3.8&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_translate_lib</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build_sup_world</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestBuild.test_build_custom"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_build.TestBuild.test_build_custom">[docs]</a>    <span class="nd">@program_dependent</span><span class="p">(</span><span class="s2">&quot;make&quot;</span><span class="p">,</span> <span class="s2">&quot;g++&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">test_build_custom</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test a make-based package that uses the custom_build attribute.&quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">PIPE</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_build</span><span class="p">(</span><span class="s2">&quot;hello&quot;</span><span class="p">,</span> <span class="s2">&quot;1.0&quot;</span><span class="p">)</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">(</span><span class="s2">&quot;hello==1.0&quot;</span><span class="p">)</span>
+
+        <span class="n">proc</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">execute_command</span><span class="p">([</span><span class="s1">&#39;hai&#39;</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;Oh hai!&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

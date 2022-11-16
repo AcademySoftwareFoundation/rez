@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1.1.1.4. rez.tests package &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="1.2. Rez Plugins" href="rezplugins.html" />
+    <link rel="prev" title="1.1.1.3. rez.cli package" href="rez.cli.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">1. API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="rez.html">1.1. Rez</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="rez.html#subpackages">1.1.1. Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="rez._sys.html">1.1.1.1. rez._sys package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rez.bind.html">1.1.1.2. rez.bind package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rez.cli.html">1.1.1.3. rez.cli package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">1.1.1.4. rez.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#submodules">1.1.2. Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-bind-utils-module">1.1.3. rez.bind_utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-bootstrap-module">1.1.4. rez.bootstrap module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.build_process">1.1.5. rez.build_process module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.build_system">1.1.6. rez.build_system module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-build-utils-module">1.1.7. rez.build_utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-dot-module">1.1.8. rez.dot module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-env-module">1.1.9. rez.env module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.exceptions">1.1.10. rez.exceptions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-formulae-manager-module">1.1.11. rez.formulae_manager module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.package_maker">1.1.12. rez.package_maker module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#id1">1.1.13. rez.package_maker_ module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.packages">1.1.14. rez.packages module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-platform-module">1.1.15. rez.platform_ module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.plugin_managers">1.1.16. rez.plugin_managers module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-py-dist-module">1.1.17. rez.py_dist module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.release_hook">1.1.18. rez.release_hook module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.release_vcs">1.1.19. rez.release_vcs module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.resolved_context">1.1.20. rez.resolved_context module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.resolver">1.1.21. rez.resolver module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-resources-module">1.1.22. rez.resources module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.rex">1.1.23. rez.rex module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.rex_bindings">1.1.24. rez.rex_bindings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-settings-module">1.1.25. rez.settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.shells">1.1.26. rez.shells module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-sigint-module">1.1.27. rez.sigint module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.solver">1.1.28. rez.solver module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#rez-source-retrieval-module">1.1.29. rez.source_retrieval module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.system">1.1.30. rez.system module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez.util">1.1.31. rez.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rez.html#module-rez">1.1.32. Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rezplugins.html">1.2. Rez Plugins</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">1. API Documentation</a></li>
+          <li class="breadcrumb-item"><a href="rez.html">1.1. Rez</a></li>
+      <li class="breadcrumb-item active">1.1.1.4. rez.tests package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/rez.tests.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="rez-tests-package">
+<h1>1.1.1.4. rez.tests package<a class="headerlink" href="#rez-tests-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>1.1.1.4.1. Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rez.tests.test_build">
+<span id="rez-tests-test-build-module"></span><h2>1.1.1.4.2. rez.tests.test_build module<a class="headerlink" href="#module-rez.tests.test_build" title="Permalink to this headline">¶</a></h2>
+<p>test the build system</p>
+<dl class="class">
+<dt id="rez.tests.test_build.TestBuild">
+<em class="property">class </em><code class="descclassname">rez.tests.test_build.</code><code class="descname">TestBuild</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rez.tests.util.TestBase" title="rez.tests.util.TestBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TestBase</span></code></a>, <a class="reference internal" href="#rez.tests.util.TempdirMixin" title="rez.tests.util.TempdirMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TempdirMixin</span></code></a></p>
+<dl class="classmethod">
+<dt id="rez.tests.test_build.TestBuild.setUpClass">
+<em class="property">classmethod </em><code class="descname">setUpClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild.setUpClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild.setUpClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up class fixture before running tests in the class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rez.tests.test_build.TestBuild.tearDownClass">
+<em class="property">classmethod </em><code class="descname">tearDownClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild.tearDownClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild.tearDownClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for deconstructing the class fixture after running all tests in the class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_build.TestBuild.test_build_cmake">
+<code class="descname">test_build_cmake</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild.test_build_cmake"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild.test_build_cmake" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test a cmake-based package.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_build.TestBuild.test_build_custom">
+<code class="descname">test_build_custom</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild.test_build_custom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild.test_build_custom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test a make-based package that uses the custom_build attribute.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_build.TestBuild.test_build_whack">
+<code class="descname">test_build_whack</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild.test_build_whack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild.test_build_whack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test that a broken build fails correctly.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_build.TestBuild.test_builds">
+<code class="descname">test_builds</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild.test_builds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild.test_builds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test an interdependent set of builds.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_build.TestBuild.test_builds_anti">
+<code class="descname">test_builds_anti</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_build.html#TestBuild.test_builds_anti"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_build.TestBuild.test_builds_anti" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test we can build packages that contain anti packages</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests.test_commands">
+<span id="rez-tests-test-commands-module"></span><h2>1.1.1.4.3. rez.tests.test_commands module<a class="headerlink" href="#module-rez.tests.test_commands" title="Permalink to this headline">¶</a></h2>
+<p>test package commands</p>
+<dl class="class">
+<dt id="rez.tests.test_commands.TestCommands">
+<em class="property">class </em><code class="descclassname">rez.tests.test_commands.</code><code class="descname">TestCommands</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_commands.html#TestCommands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_commands.TestCommands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rez.tests.util.TestBase" title="rez.tests.util.TestBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TestBase</span></code></a></p>
+<dl class="classmethod">
+<dt id="rez.tests.test_commands.TestCommands.get_packages_path">
+<em class="property">classmethod </em><code class="descname">get_packages_path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_commands.html#TestCommands.get_packages_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_commands.TestCommands.get_packages_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rez.tests.test_commands.TestCommands.setUpClass">
+<em class="property">classmethod </em><code class="descname">setUpClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_commands.html#TestCommands.setUpClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_commands.TestCommands.setUpClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up class fixture before running tests in the class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_commands.TestCommands.test_2">
+<code class="descname">test_2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_commands.html#TestCommands.test_2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_commands.TestCommands.test_2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve a package with a dependency, see that their commands are
+concatenated as expected.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_commands.TestCommands.test_new_yaml">
+<code class="descname">test_new_yaml</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_commands.html#TestCommands.test_new_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_commands.TestCommands.test_new_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve a yaml-based package with new rex commands.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_commands.TestCommands.test_old_yaml">
+<code class="descname">test_old_yaml</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_commands.html#TestCommands.test_old_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_commands.TestCommands.test_old_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve a yaml-based package with old-style bash commands.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_commands.TestCommands.test_py">
+<code class="descname">test_py</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_commands.html#TestCommands.test_py"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_commands.TestCommands.test_py" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve a new py-based package with rex commands.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests.test_context">
+<span id="rez-tests-test-context-module"></span><h2>1.1.1.4.4. rez.tests.test_context module<a class="headerlink" href="#module-rez.tests.test_context" title="Permalink to this headline">¶</a></h2>
+<p>test resolved contexts</p>
+<dl class="class">
+<dt id="rez.tests.test_context.TestContext">
+<em class="property">class </em><code class="descclassname">rez.tests.test_context.</code><code class="descname">TestContext</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rez.tests.util.TestBase" title="rez.tests.util.TestBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TestBase</span></code></a>, <a class="reference internal" href="#rez.tests.util.TempdirMixin" title="rez.tests.util.TempdirMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TempdirMixin</span></code></a></p>
+<dl class="classmethod">
+<dt id="rez.tests.test_context.TestContext.setUpClass">
+<em class="property">classmethod </em><code class="descname">setUpClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.setUpClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.setUpClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up class fixture before running tests in the class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rez.tests.test_context.TestContext.tearDownClass">
+<em class="property">classmethod </em><code class="descname">tearDownClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.tearDownClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.tearDownClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for deconstructing the class fixture after running all tests in the class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_context.TestContext.test_apply">
+<code class="descname">test_apply</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.test_apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.test_apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test apply() function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_context.TestContext.test_bundled">
+<code class="descname">test_bundled</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.test_bundled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.test_bundled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test that a bundled context behaves identically.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_context.TestContext.test_create_context">
+<code class="descname">test_create_context</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.test_create_context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.test_create_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test creation of context.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_context.TestContext.test_execute_command">
+<code class="descname">test_execute_command</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.test_execute_command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.test_execute_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test command execution in context.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_context.TestContext.test_execute_command_environ">
+<code class="descname">test_execute_command_environ</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.test_execute_command_environ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.test_execute_command_environ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test that execute_command properly sets environ dict.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_context.TestContext.test_retarget">
+<code class="descname">test_retarget</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.test_retarget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.test_retarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test that a retargeted context behaves identically.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_context.TestContext.test_serialize">
+<code class="descname">test_serialize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_context.html#TestContext.test_serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_context.TestContext.test_serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test context serialization.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests.test_formatter">
+<span id="rez-tests-test-formatter-module"></span><h2>1.1.1.4.5. rez.tests.test_formatter module<a class="headerlink" href="#module-rez.tests.test_formatter" title="Permalink to this headline">¶</a></h2>
+<p>test rex string formatting</p>
+<dl class="class">
+<dt id="rez.tests.test_formatter.TestFormatter">
+<em class="property">class </em><code class="descclassname">rez.tests.test_formatter.</code><code class="descname">TestFormatter</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_formatter.html#TestFormatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_formatter.TestFormatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rez.tests.util.TestBase" title="rez.tests.util.TestBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TestBase</span></code></a></p>
+<dl class="method">
+<dt id="rez.tests.test_formatter.TestFormatter.assert_formatter_equal">
+<code class="descname">assert_formatter_equal</code><span class="sig-paren">(</span><em>format</em>, <em>expected</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_formatter.html#TestFormatter.assert_formatter_equal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_formatter.TestFormatter.assert_formatter_equal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_formatter.TestFormatter.assert_formatter_raises">
+<code class="descname">assert_formatter_raises</code><span class="sig-paren">(</span><em>format</em>, <em>error</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_formatter.html#TestFormatter.assert_formatter_raises"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_formatter.TestFormatter.assert_formatter_raises" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_formatter.TestFormatter.setUp">
+<code class="descname">setUp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_formatter.html#TestFormatter.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_formatter.TestFormatter.setUp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up the test fixture before exercising it.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_formatter.TestFormatter.test_formatter_recurse">
+<code class="descname">test_formatter_recurse</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_formatter.html#TestFormatter.test_formatter_recurse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_formatter.TestFormatter.test_formatter_recurse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_formatter.TestFormatter.test_formatter_rex">
+<code class="descname">test_formatter_rex</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_formatter.html#TestFormatter.test_formatter_rex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_formatter.TestFormatter.test_formatter_rex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_formatter.TestFormatter.test_formatter_stdlib">
+<code class="descname">test_formatter_stdlib</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_formatter.html#TestFormatter.test_formatter_stdlib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_formatter.TestFormatter.test_formatter_stdlib" title="Permalink to this definition">¶</a></dt>
+<dd><p>string.Formatter.format tests from the Python standard library used to
+ensure we haven’t broken functionality preset in the standard
+implementation of the Formatter object.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests.test_rex">
+<span id="rez-tests-test-rex-module"></span><h2>1.1.1.4.6. rez.tests.test_rex module<a class="headerlink" href="#module-rez.tests.test_rex" title="Permalink to this headline">¶</a></h2>
+<p>test the rex command generator API</p>
+<dl class="class">
+<dt id="rez.tests.test_rex.TestRex">
+<em class="property">class </em><code class="descclassname">rez.tests.test_rex.</code><code class="descname">TestRex</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rez.tests.util.TestBase" title="rez.tests.util.TestBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TestBase</span></code></a></p>
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_1">
+<code class="descname">test_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test simple use of every available action.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_10">
+<code class="descname">test_10</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_10"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_10" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test env __contains__ and __bool__</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_2">
+<code class="descname">test_2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test simple setenvs and assignments.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_3">
+<code class="descname">test_3</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_3"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test appending/prepending.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_4">
+<code class="descname">test_4</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_4"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_4" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test control flow using internally-set env vars.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_5">
+<code class="descname">test_5</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test control flow using externally-set env vars.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_6">
+<code class="descname">test_6</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_6"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_6" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test variable expansion.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_7">
+<code class="descname">test_7</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_7"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_7" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test exceptions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_8">
+<code class="descname">test_8</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_8"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_8" title="Permalink to this definition">¶</a></dt>
+<dd><p>Custom environment variable separators.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_9">
+<code class="descname">test_9</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_9"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_9" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test literal and expandable strings.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_intersects_ephemerals">
+<code class="descname">test_intersects_ephemerals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_intersects_ephemerals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_intersects_ephemerals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test intersects with ephemerals object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_intersects_request">
+<code class="descname">test_intersects_request</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_intersects_request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_intersects_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test intersects with request object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_intersects_resolve">
+<code class="descname">test_intersects_resolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_intersects_resolve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_intersects_resolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test intersects with resolve object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_old_style_commands">
+<code class="descname">test_old_style_commands</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_old_style_commands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_old_style_commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert old style commands to rex</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_rex.TestRex.test_version_binding">
+<code class="descname">test_version_binding</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_rex.html#TestRex.test_version_binding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_rex.TestRex.test_version_binding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test the Rex binding of the Version class.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests.test_shells">
+<span id="rez-tests-test-shells-module"></span><h2>1.1.1.4.7. rez.tests.test_shells module<a class="headerlink" href="#module-rez.tests.test_shells" title="Permalink to this headline">¶</a></h2>
+<p>test shell invocation</p>
+<dl class="class">
+<dt id="rez.tests.test_shells.TestShells">
+<em class="property">class </em><code class="descclassname">rez.tests.test_shells.</code><code class="descname">TestShells</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rez.tests.util.TestBase" title="rez.tests.util.TestBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TestBase</span></code></a>, <a class="reference internal" href="#rez.tests.util.TempdirMixin" title="rez.tests.util.TempdirMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TempdirMixin</span></code></a></p>
+<dl class="classmethod">
+<dt id="rez.tests.test_shells.TestShells.setUpClass">
+<em class="property">classmethod </em><code class="descname">setUpClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.setUpClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.setUpClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up class fixture before running tests in the class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rez.tests.test_shells.TestShells.tearDownClass">
+<em class="property">classmethod </em><code class="descname">tearDownClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.tearDownClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.tearDownClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for deconstructing the class fixture after running all tests in the class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_aaa_shell_presence">
+<code class="descname">test_aaa_shell_presence</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_aaa_shell_presence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_aaa_shell_presence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure specific shell types are present as loaded plugins.</p>
+<p>The env var _REZ_ENSURE_TEST_SHELLS should be set by a CI system (such
+as github actions) to make sure the shells we expect to be installed,
+are installed, and are getting tested.</p>
+<p>Note ‘aaa’ forces unittest to run this test first.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_alias_command">
+<code class="descname">test_alias_command</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_alias_command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_alias_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Testing alias can be passed in as command</p>
+<p>This is important for Windows CMD shell because the doskey.exe isn’t
+executed yet when the alias is being passed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_alias_command_with_args">
+<code class="descname">test_alias_command_with_args</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_alias_command_with_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_alias_command_with_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Testing alias can be passed in as command with args</p>
+<p>This is important for Windows CMD shell because the doskey.exe isn’t
+executed yet when the alias is being passed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_command">
+<code class="descname">test_command</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_command_returncode">
+<code class="descname">test_command_returncode</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_command_returncode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_command_returncode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_create_executable_script">
+<code class="descname">test_create_executable_script</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_create_executable_script"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_create_executable_script" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_no_output">
+<code class="descname">test_no_output</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_no_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_no_output" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_norc">
+<code class="descname">test_norc</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_norc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_norc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_rcfile">
+<code class="descname">test_rcfile</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_rcfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_rcfile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_rex_code">
+<code class="descname">test_rex_code</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_rex_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_rex_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test that Rex code run in the shell creates the environment variable
+values that we expect.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_rex_code_alias">
+<code class="descname">test_rex_code_alias</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_rex_code_alias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_rex_code_alias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure PATH changes do not influence the alias command.</p>
+<p>This is important for Windows because the doskey.exe might not be on
+the PATH anymore at the time it’s executed. That’s why we figure out
+the absolute path to doskey.exe before we modify PATH and continue to
+use the absolute path after the modifications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_rez_command">
+<code class="descname">test_rez_command</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_rez_command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_rez_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_rez_env_output">
+<code class="descname">test_rez_env_output</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_rez_env_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_rez_env_output" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_shells.TestShells.test_stdin">
+<code class="descname">test_stdin</code><span class="sig-paren">(</span><em>shell=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_shells.html#TestShells.test_stdin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_shells.TestShells.test_stdin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests.test_solver">
+<span id="rez-tests-test-solver-module"></span><h2>1.1.1.4.8. rez.tests.test_solver module<a class="headerlink" href="#module-rez.tests.test_solver" title="Permalink to this headline">¶</a></h2>
+<p>test dependency resolving algorithm</p>
+<dl class="class">
+<dt id="rez.tests.test_solver.TestSolver">
+<em class="property">class </em><code class="descclassname">rez.tests.test_solver.</code><code class="descname">TestSolver</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rez.tests.util.TestBase" title="rez.tests.util.TestBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">rez.tests.util.TestBase</span></code></a></p>
+<dl class="classmethod">
+<dt id="rez.tests.test_solver.TestSolver.setUpClass">
+<em class="property">classmethod </em><code class="descname">setUpClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.setUpClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.setUpClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up class fixture before running tests in the class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_01">
+<code class="descname">test_01</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_01"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_01" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extremely basic solves involving a single package.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_02">
+<code class="descname">test_02</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_02"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_02" title="Permalink to this definition">¶</a></dt>
+<dd><p>Basic solves involving a single package.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_03">
+<code class="descname">test_03</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_03"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_03" title="Permalink to this definition">¶</a></dt>
+<dd><p>Failures in the initial request.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_04">
+<code class="descname">test_04</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_04"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_04" title="Permalink to this definition">¶</a></dt>
+<dd><p>Basic failures.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_05">
+<code class="descname">test_05</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_05"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_05" title="Permalink to this definition">¶</a></dt>
+<dd><p>More complex failures.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_06">
+<code class="descname">test_06</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_06"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_06" title="Permalink to this definition">¶</a></dt>
+<dd><p>Basic solves involving multiple packages.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_07">
+<code class="descname">test_07</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_07"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_07" title="Permalink to this definition">¶</a></dt>
+<dd><p>More complex solves.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_08">
+<code class="descname">test_08</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_08"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_08" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cyclic failures.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_09_version_priority_mode">
+<code class="descname">test_09_version_priority_mode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_09_version_priority_mode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_09_version_priority_mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_10_intersection_priority_mode">
+<code class="descname">test_10_intersection_priority_mode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_10_intersection_priority_mode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_10_intersection_priority_mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.test_solver.TestSolver.test_11_variant_splitting">
+<code class="descname">test_11_variant_splitting</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/test_solver.html#TestSolver.test_11_variant_splitting"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.test_solver.TestSolver.test_11_variant_splitting" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests.util">
+<span id="rez-tests-util-module"></span><h2>1.1.1.4.9. rez.tests.util module<a class="headerlink" href="#module-rez.tests.util" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rez.tests.util.TempdirMixin">
+<em class="property">class </em><code class="descclassname">rez.tests.util.</code><code class="descname">TempdirMixin</code><a class="reference internal" href="../_modules/rez/tests/util.html#TempdirMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TempdirMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Mixin that adds tmpdir create/delete.</p>
+<dl class="classmethod">
+<dt id="rez.tests.util.TempdirMixin.setUpClass">
+<em class="property">classmethod </em><code class="descname">setUpClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TempdirMixin.setUpClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TempdirMixin.setUpClass" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="rez.tests.util.TempdirMixin.tearDownClass">
+<em class="property">classmethod </em><code class="descname">tearDownClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TempdirMixin.tearDownClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TempdirMixin.tearDownClass" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rez.tests.util.TestBase">
+<em class="property">class </em><code class="descclassname">rez.tests.util.</code><code class="descname">TestBase</code><span class="sig-paren">(</span><em>*nargs</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">unittest.case.TestCase</span></code></p>
+<p>Unit test base class.</p>
+<dl class="classmethod">
+<dt id="rez.tests.util.TestBase.data_path">
+<em class="property">classmethod </em><code class="descname">data_path</code><span class="sig-paren">(</span><em>*dirs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.data_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.data_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get path to test data.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.util.TestBase.get_settings_env">
+<code class="descname">get_settings_env</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.get_settings_env"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.get_settings_env" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an environ dict that applies the current settings.</p>
+<p>This is required for cases where a subproc has to pick up the same
+config settings that the test case has set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.util.TestBase.setUp">
+<code class="descname">setUp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.setUp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up the test fixture before exercising it.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="rez.tests.util.TestBase.setUpClass">
+<em class="property">classmethod </em><code class="descname">setUpClass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.setUpClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.setUpClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up class fixture before running tests in the class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.util.TestBase.setup_config">
+<code class="descname">setup_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.setup_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.setup_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.util.TestBase.setup_once">
+<code class="descname">setup_once</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.setup_once"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.setup_once" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.util.TestBase.tearDown">
+<code class="descname">tearDown</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.tearDown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.tearDown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for deconstructing the test fixture after testing it.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.util.TestBase.teardown_config">
+<code class="descname">teardown_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.teardown_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.teardown_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rez.tests.util.TestBase.update_settings">
+<code class="descname">update_settings</code><span class="sig-paren">(</span><em>new_settings</em>, <em>override=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#TestBase.update_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.TestBase.update_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Can be called within test methods to modify settings on a
+per-test basis (as opposed cls.settings, which modifies it for all
+tests on the class)</p>
+<p>Note that multiple calls will not “accumulate” updates, but will
+instead patch the class’s settings with the new_settings each time.</p>
+<dl class="docutils">
+<dt>new_settings <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd>the updated settings to override the config with</dd>
+<dt>override <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>normally, the resulting config will be the result of merging
+the base cls.settings with the new_settings - ie, like doing
+cls.settings.update(new_settings).  If this is True, however,
+then the cls.settings will be ignored entirely, and the
+new_settings will be the only configuration settings applied</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rez.tests.util.find_file_in_path">
+<code class="descclassname">rez.tests.util.</code><code class="descname">find_file_in_path</code><span class="sig-paren">(</span><em>to_find</em>, <em>path_str</em>, <em>pathsep=None</em>, <em>reverse=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#find_file_in_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.find_file_in_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempts to find the given relative path to_find in the given path</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rez.tests.util.install_dependent">
+<code class="descclassname">rez.tests.util.</code><code class="descname">install_dependent</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#install_dependent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.install_dependent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function decorator that skips tests if not run via ‘rez-selftest’ tool,
+from a production install</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rez.tests.util.per_available_shell">
+<code class="descclassname">rez.tests.util.</code><code class="descname">per_available_shell</code><span class="sig-paren">(</span><em>exclude=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#per_available_shell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.per_available_shell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function decorator that runs the function over all available shell types.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rez.tests.util.program_dependent">
+<code class="descclassname">rez.tests.util.</code><code class="descname">program_dependent</code><span class="sig-paren">(</span><em>program_name</em>, <em>*program_names</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#program_dependent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.program_dependent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function decorator that skips the function if not all given programs are
+visible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rez.tests.util.restore_os_environ">
+<code class="descclassname">rez.tests.util.</code><code class="descname">restore_os_environ</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#restore_os_environ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.restore_os_environ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encapsulate changes to os.environ and return to the original state.</p>
+<p>This context manager lets you wrap modifications of os.environ and not
+worry about reverting back to the original.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;ARBITRARY_KEY&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">value</span> <span class="o">=</span> <span class="s1">&#39;arbitrary_value&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">os_environ</span><span class="p">():</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Yields:</th><td class="field-body"><em>dict</em> – The original os.environ.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rez.tests.util.restore_sys_path">
+<code class="descclassname">rez.tests.util.</code><code class="descname">restore_sys_path</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/rez/tests/util.html#restore_sys_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rez.tests.util.restore_sys_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encapsulate changes to sys.path and return to the original state.</p>
+<p>This context manager lets you wrap modifications of sys.path and not worry
+about reverting back to the original.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/arbitrary/path&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">sys_path</span><span class="p">():</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;/arbitrary/path&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">assert</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Yields:</th><td class="field-body"><em>list</em> – The original sys.path.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rez.tests">
+<span id="module-contents"></span><h2>1.1.1.4.10. Module contents<a class="headerlink" href="#module-rez.tests" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="rez.cli.html" class="btn btn-neutral float-left" title="1.1.1.3. rez.cli package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rezplugins.html" class="btn btn-neutral float-right" title="1.2. Rez Plugins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

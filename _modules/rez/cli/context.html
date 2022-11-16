@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.cli.context &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.cli.context</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.cli.context</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Print information about the current rez context, or a given context file.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="c1"># Disable the following:</span>
+<span class="c1"># - context tracking</span>
+<span class="c1"># - package caching</span>
+<span class="c1">#</span>
+<span class="c1"># Use of rez-context is&#39;t really &#39;using&#39; the context, so much as inspecting it.</span>
+<span class="c1"># Since features such as context tracking are related to context use only, we</span>
+<span class="c1"># disable them in this tool.</span>
+<span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+    <span class="s2">&quot;REZ_CONTEXT_TRACKING_HOST&quot;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;REZ_WRITE_PACKAGE_CACHE&quot;</span><span class="p">:</span> <span class="s2">&quot;False&quot;</span>
+<span class="p">})</span>
+
+<span class="kn">from</span> <span class="nn">rez.rex</span> <span class="kn">import</span> <span class="n">OutputStyle</span>  <span class="c1"># noqa</span>
+
+
+<div class="viewcode-block" id="setup_parser"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli.context.setup_parser">[docs]</a><span class="k">def</span> <span class="nf">setup_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">completions</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">rez.system</span> <span class="kn">import</span> <span class="n">system</span>
+    <span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">get_shell_types</span>
+
+    <span class="n">formats</span> <span class="o">=</span> <span class="n">get_shell_types</span><span class="p">()</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;dict&#39;</span><span class="p">,</span> <span class="s1">&#39;table&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">json</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;json&#39;</span><span class="p">)</span>
+
+    <span class="n">output_styles</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">OutputStyle</span><span class="p">]</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--req&quot;</span><span class="p">,</span> <span class="s2">&quot;--print-request&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;print_request&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;print only the request list (not including implicits)&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--res&quot;</span><span class="p">,</span> <span class="s2">&quot;--print-resolve&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;print_resolve&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;print only the resolve list. Use with --su to print package URIs&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--so&quot;</span><span class="p">,</span> <span class="s2">&quot;--source-order&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;source_order&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;print resolved packages in order they are sorted, rather than &quot;</span>
+        <span class="s2">&quot;alphabetical order&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--su&quot;</span><span class="p">,</span> <span class="s2">&quot;--show-uris&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;show_uris&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;list resolved package&#39;s URIs, rather than the default &#39;root&#39; &quot;</span>
+        <span class="s2">&quot;filepath&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="s2">&quot;--tools&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;print a list of the executables available in the context&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--which&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;CMD&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;locate a program within the context&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-g&quot;</span><span class="p">,</span> <span class="s2">&quot;--graph&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;display the resolve graph as an image&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="s2">&quot;--dependency-graph&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;display the (simpler) dependency graph. Works in combination &quot;</span>
+        <span class="s2">&quot;with other graph options&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--pg&quot;</span><span class="p">,</span> <span class="s2">&quot;--print-graph&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;print_graph&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;print the resolve graph as a string&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--wg&quot;</span><span class="p">,</span> <span class="s2">&quot;--write-graph&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;write_graph&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s1">&#39;FILE&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;write the resolve graph to FILE&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--pp&quot;</span><span class="p">,</span> <span class="s2">&quot;--prune-package&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;prune_pkg&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;PKG&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;prune the graph down to PKG&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="s2">&quot;--interpret&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;interpret the context and print the resulting code&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;--format&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">formats</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">system</span><span class="o">.</span><span class="n">shell</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;print interpreted output in the given format. Ignored if &quot;</span>
+        <span class="s2">&quot;--interpret is not present (default: </span><span class="si">%(default)s</span><span class="s2">). If one of &quot;</span>
+        <span class="s2">&quot;table, dict or json, the environ dict is printed.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-s&quot;</span><span class="p">,</span> <span class="s2">&quot;--style&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">output_styles</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set code output style. Ignored if --interpret is not present &quot;</span>
+        <span class="s2">&quot;(default: </span><span class="si">%(default)s</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no-env&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;no_env&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;interpret the context in an empty environment&quot;</span><span class="p">)</span>
+    <span class="n">diff_action</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--diff&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;RXT&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;diff the current context against the given context&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--fetch&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;diff the current context against a re-resolved copy of the &quot;</span>
+        <span class="s2">&quot;current context&quot;</span><span class="p">)</span>
+    <span class="n">RXT_action</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;RXT&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;?&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;rez context file (current context if not supplied). Use &#39;-&#39; to &quot;</span>
+        <span class="s2">&quot;read the context from stdin&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">completions</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">rez.cli._complete_util</span> <span class="kn">import</span> <span class="n">FilesCompleter</span>
+        <span class="n">rxt_completer</span> <span class="o">=</span> <span class="n">FilesCompleter</span><span class="p">(</span><span class="n">dirs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">file_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;*.rxt&quot;</span><span class="p">])</span>
+        <span class="n">RXT_action</span><span class="o">.</span><span class="n">completer</span> <span class="o">=</span> <span class="n">rxt_completer</span>
+        <span class="n">diff_action</span><span class="o">.</span><span class="n">completer</span> <span class="o">=</span> <span class="n">rxt_completer</span></div>
+
+
+<div class="viewcode-block" id="command"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli.context.command">[docs]</a><span class="k">def</span> <span class="nf">command</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">extra_arg_groups</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">rez.cli._util</span> <span class="kn">import</span> <span class="n">print_items</span>
+    <span class="kn">from</span> <span class="nn">rez.status</span> <span class="kn">import</span> <span class="n">status</span>
+    <span class="kn">from</span> <span class="nn">rez.utils.formatting</span> <span class="kn">import</span> <span class="n">columnise</span><span class="p">,</span> <span class="n">PackageRequest</span>
+    <span class="kn">from</span> <span class="nn">rez.resolved_context</span> <span class="kn">import</span> <span class="n">ResolvedContext</span>
+    <span class="kn">from</span> <span class="nn">rez.utils.graph_utils</span> <span class="kn">import</span> <span class="n">save_graph</span><span class="p">,</span> <span class="n">view_graph</span><span class="p">,</span> <span class="n">prune_graph</span>
+    <span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">pformat</span>
+
+    <span class="n">rxt_file</span> <span class="o">=</span> <span class="n">opts</span><span class="o">.</span><span class="n">RXT</span> <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">RXT</span> <span class="k">else</span> <span class="n">status</span><span class="o">.</span><span class="n">context_file</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rxt_file</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;not in a resolved environment context.&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rxt_file</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>  <span class="c1"># read from stdin</span>
+        <span class="n">rc</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="o">.</span><span class="n">read_from_buffer</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="p">,</span> <span class="s1">&#39;STDIN&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rc</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">rxt_file</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_graph</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">rc</span><span class="o">.</span><span class="n">has_graph</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">dependency_graph</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">rc</span><span class="o">.</span><span class="n">get_dependency_graph</span><span class="p">(</span><span class="n">as_dot</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">rc</span><span class="o">.</span><span class="n">graph</span><span class="p">(</span><span class="n">as_dot</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The context does not contain a graph.&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">parent_env</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">no_env</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">opts</span><span class="o">.</span><span class="n">interpret</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">print_request</span><span class="p">:</span>
+            <span class="n">print_items</span><span class="p">(</span><span class="n">rc</span><span class="o">.</span><span class="n">requested_packages</span><span class="p">(</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">print_resolve</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">show_uris</span><span class="p">:</span>
+                <span class="n">print_items</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">uri</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rc</span><span class="o">.</span><span class="n">resolved_packages</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">print_items</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">qualified_package_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rc</span><span class="o">.</span><span class="n">resolved_packages</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">tools</span><span class="p">:</span>
+            <span class="n">rc</span><span class="o">.</span><span class="n">print_tools</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">diff</span><span class="p">:</span>
+            <span class="n">rc_other</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">opts</span><span class="o">.</span><span class="n">diff</span><span class="p">)</span>
+            <span class="n">rc</span><span class="o">.</span><span class="n">print_resolve_diff</span><span class="p">(</span><span class="n">rc_other</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">fetch</span><span class="p">:</span>
+            <span class="n">rc_new</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">(</span><span class="n">rc</span><span class="o">.</span><span class="n">requested_packages</span><span class="p">(),</span>
+                                     <span class="n">package_paths</span><span class="o">=</span><span class="n">rc</span><span class="o">.</span><span class="n">package_paths</span><span class="p">,</span>
+                                     <span class="n">verbosity</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+            <span class="n">rc</span><span class="o">.</span><span class="n">print_resolve_diff</span><span class="p">(</span><span class="n">rc_new</span><span class="p">,</span> <span class="n">heading</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;current&quot;</span><span class="p">,</span> <span class="s2">&quot;updated&quot;</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">which</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="n">opts</span><span class="o">.</span><span class="n">which</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">rc</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">parent_environ</span><span class="o">=</span><span class="n">parent_env</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; not found in the context&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">print_graph</span><span class="p">:</span>
+            <span class="n">gstr</span> <span class="o">=</span> <span class="n">_graph</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">gstr</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">graph</span> <span class="ow">or</span> <span class="n">opts</span><span class="o">.</span><span class="n">dependency_graph</span> <span class="ow">or</span> <span class="n">opts</span><span class="o">.</span><span class="n">write_graph</span><span class="p">:</span>
+            <span class="n">gstr</span> <span class="o">=</span> <span class="n">_graph</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">prune_pkg</span><span class="p">:</span>
+                <span class="n">req</span> <span class="o">=</span> <span class="n">PackageRequest</span><span class="p">(</span><span class="n">opts</span><span class="o">.</span><span class="n">prune_pkg</span><span class="p">)</span>
+                <span class="n">gstr</span> <span class="o">=</span> <span class="n">prune_graph</span><span class="p">(</span><span class="n">gstr</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">view_graph</span> <span class="k">if</span> <span class="p">(</span><span class="n">opts</span><span class="o">.</span><span class="n">graph</span> <span class="ow">or</span> <span class="n">opts</span><span class="o">.</span><span class="n">dependency_graph</span><span class="p">)</span> <span class="k">else</span> <span class="n">save_graph</span>
+            <span class="n">func</span><span class="p">(</span><span class="n">gstr</span><span class="p">,</span> <span class="n">dest_file</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">write_graph</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rc</span><span class="o">.</span><span class="n">print_info</span><span class="p">(</span><span class="n">verbosity</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                          <span class="n">source_order</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">source_order</span><span class="p">,</span>
+                          <span class="n">show_resolved_uris</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">show_uris</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">format</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;dict&quot;</span><span class="p">,</span> <span class="s2">&quot;table&quot;</span><span class="p">,</span> <span class="s2">&quot;json&quot;</span><span class="p">):</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">rc</span><span class="o">.</span><span class="n">get_environ</span><span class="p">(</span><span class="n">parent_environ</span><span class="o">=</span><span class="n">parent_env</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;table&#39;</span><span class="p">:</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">())]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columnise</span><span class="p">(</span><span class="n">rows</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="n">opts</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">pformat</span><span class="p">(</span><span class="n">env</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># json</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">rc</span><span class="o">.</span><span class="n">get_shell_code</span><span class="p">(</span><span class="n">shell</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">format</span><span class="p">,</span>
+                                 <span class="n">parent_environ</span><span class="o">=</span><span class="n">parent_env</span><span class="p">,</span>
+                                 <span class="n">style</span><span class="o">=</span><span class="n">OutputStyle</span><span class="p">[</span><span class="n">opts</span><span class="o">.</span><span class="n">style</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">code</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

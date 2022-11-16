@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.cli._util &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.cli._util</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.cli._util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">_SubParsersAction</span><span class="p">,</span> <span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">SUPPRESS</span><span class="p">,</span> \
+    <span class="n">ArgumentError</span>
+
+
+<span class="c1"># Subcommands and their behaviors.</span>
+<span class="c1">#</span>
+<span class="c1"># &#39;arg_mode&#39; determines how cli args are parsed. Values are:</span>
+<span class="c1"># * &#39;grouped&#39;: Args can be separated by &#39;--&#39;. This causes args to be grouped into</span>
+<span class="c1">#   lists which are then passed as &#39;extra_arg_groups&#39; to each command.</span>
+<span class="c1"># * &#39;passthrough&#39;: Unknown args are passed as first list in &#39;extra_arg_groups&#39;.</span>
+<span class="c1">#   The &#39;--&#39; arg is not treated as a special case.</span>
+<span class="c1"># * missing: Native python argparse behavior.</span>
+<span class="c1">#</span>
+<span class="n">subcommands</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;bind&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;build&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;arg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;grouped&quot;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;config&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;complete&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;hidden&quot;</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;cp&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;depends&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;diff&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;env&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;arg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;grouped&quot;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;forward&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;hidden&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;arg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;passthrough&quot;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;gui&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;interpret&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;memcache&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;pip&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;pkg-cache&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;plugins&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;python&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;arg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;passthrough&quot;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;release&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;arg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;grouped&quot;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;selftest&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;arg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;grouped&quot;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;suite&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;view&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;yaml2py&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;bundle&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;benchmark&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;pkg-ignore&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;mv&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;rm&quot;</span><span class="p">:</span> <span class="p">{}</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="load_plugin_cmd"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.load_plugin_cmd">[docs]</a><span class="k">def</span> <span class="nf">load_plugin_cmd</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Load subcommand from command type plugin</span>
+
+<span class="sd">    The command type plugin module should have attribute `command_behavior`,</span>
+<span class="sd">    and the value must be a dict if provided. For example:</span>
+
+<span class="sd">        # in your command plugin module</span>
+<span class="sd">        command_behavior = {</span>
+<span class="sd">            &quot;hidden&quot;: False,   # (bool): default False</span>
+<span class="sd">            &quot;arg_mode&quot;: None,  #  (str): &quot;passthrough&quot;, &quot;grouped&quot;, default None</span>
+<span class="sd">        }</span>
+
+<span class="sd">    If the attribute not present, default behavior will be given.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+    <span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_debug</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+
+    <span class="n">ext_plugins</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">plugin_name</span> <span class="ow">in</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugins</span><span class="p">(</span><span class="s2">&quot;command&quot;</span><span class="p">):</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugin_module</span><span class="p">(</span><span class="s2">&quot;command&quot;</span><span class="p">,</span> <span class="n">plugin_name</span><span class="p">)</span>
+
+        <span class="n">behavior</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;command_behavior&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">behavior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">behavior</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                <span class="n">print_debug</span><span class="p">(</span><span class="s2">&quot;Attribute &#39;command_behavior&#39; not found in plugin &quot;</span>
+                            <span class="s2">&quot;module </span><span class="si">%s</span><span class="s2">, registering with default behavior.&quot;</span>
+                            <span class="o">%</span> <span class="n">module</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">behavior</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;module_name&quot;</span><span class="p">:</span> <span class="n">module</span><span class="o">.</span><span class="vm">__name__</span><span class="p">})</span>
+            <span class="n">ext_plugins</span><span class="p">[</span><span class="n">plugin_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;plugins&quot;</span><span class="p">):</span>
+                <span class="kn">import</span> <span class="nn">traceback</span>
+                <span class="kn">from</span> <span class="nn">rez.vendor.six.six</span> <span class="kn">import</span> <span class="n">StringIO</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+                <span class="n">print_debug</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">ext_plugins</span></div>
+
+
+<span class="n">subcommands</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">load_plugin_cmd</span><span class="p">())</span>
+
+
+<div class="viewcode-block" id="LazySubParsersAction"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.LazySubParsersAction">[docs]</a><span class="k">class</span> <span class="nc">LazySubParsersAction</span><span class="p">(</span><span class="n">_SubParsersAction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Argparse Action which calls the `setup_subparser` function provided to</span>
+<span class="sd">    `LazyArgumentParser`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">option_string</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">parser_name</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># this bit is taken directly from argparse:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">parser2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_parser_map</span><span class="p">[</span><span class="n">parser_name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">tup</span> <span class="o">=</span> <span class="n">parser_name</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name_parser_map</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;unknown parser </span><span class="si">%r</span><span class="s1"> (choices: </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">tup</span>
+            <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_subparser</span><span class="p">(</span><span class="n">parser_name</span><span class="p">,</span> <span class="n">parser2</span><span class="p">)</span>
+        <span class="n">caller</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LazySubParsersAction</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__call__</span>
+        <span class="k">return</span> <span class="n">caller</span><span class="p">(</span><span class="n">parser2</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">option_string</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_setup_subparser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser_name</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="s1">&#39;setup_subparser&#39;</span><span class="p">):</span>
+            <span class="n">help_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">setup_subparser</span><span class="p">(</span><span class="n">parser_name</span><span class="p">,</span> <span class="n">parser</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">help_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">help_</span> <span class="o">==</span> <span class="n">SUPPRESS</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_choices_actions</span> <span class="o">=</span> <span class="p">[</span><span class="n">act</span> <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_choices_actions</span>
+                                             <span class="k">if</span> <span class="n">act</span><span class="o">.</span><span class="n">dest</span> <span class="o">!=</span> <span class="n">parser_name</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">help_action</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_choice_action</span><span class="p">(</span><span class="n">parser_name</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">help_action</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">help_action</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="n">help_</span>
+            <span class="nb">delattr</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="s1">&#39;setup_subparser&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_find_choice_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser_name</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">help_action</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_choices_actions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">help_action</span><span class="o">.</span><span class="n">dest</span> <span class="o">==</span> <span class="n">parser_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">help_action</span></div>
+
+
+<div class="viewcode-block" id="LazyArgumentParser"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.LazyArgumentParser">[docs]</a><span class="k">class</span> <span class="nc">LazyArgumentParser</span><span class="p">(</span><span class="n">ArgumentParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ArgumentParser sub-class which accepts an additional `setup_subparser`</span>
+<span class="sd">    argument for lazy setup of sub-parsers.</span>
+
+<span class="sd">    `setup_subparser` is passed &#39;parser_name&#39;, &#39;parser&#39;, and can return a help</span>
+<span class="sd">    string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_subparser</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;setup_subparser&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LazyArgumentParser</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;action&#39;</span><span class="p">,</span> <span class="s1">&#39;parsers&#39;</span><span class="p">,</span> <span class="n">LazySubParsersAction</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LazyArgumentParser.format_help"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.LazyArgumentParser.format_help">[docs]</a>    <span class="k">def</span> <span class="nf">format_help</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets up all sub-parsers when help is requested.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subparsers</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subparsers</span><span class="o">.</span><span class="n">_actions</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">LazySubParsersAction</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">parser_name</span><span class="p">,</span> <span class="n">parser</span> <span class="ow">in</span> <span class="n">action</span><span class="o">.</span><span class="n">_name_parser_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">action</span><span class="o">.</span><span class="n">_setup_subparser</span><span class="p">(</span><span class="n">parser_name</span><span class="p">,</span> <span class="n">parser</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">LazyArgumentParser</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">format_help</span><span class="p">()</span></div></div>
+
+
+<span class="n">_handled_int</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">_handled_term</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">_env_var_true</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;on&quot;</span><span class="p">,</span> <span class="s2">&quot;yes&quot;</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="print_items"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.print_items">[docs]</a><span class="k">def</span> <span class="nf">print_items</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">item_per_line</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="n">stream</span><span class="o">.</span><span class="n">isatty</span><span class="p">())</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">item_per_line</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">item_per_line</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">items</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="sigbase_handler"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.sigbase_handler">[docs]</a><span class="k">def</span> <span class="nf">sigbase_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="c1"># show cursor - progress lib may have hidden it</span>
+    <span class="n">SHOW_CURSOR</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\x1b</span><span class="s1">[?25h&#39;</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SHOW_CURSOR</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="c1"># kill all child procs</span>
+    <span class="c1"># FIXME this kills parent procs as well</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_env_var_true</span><span class="p">(</span><span class="s2">&quot;_REZ_NO_KILLPG&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;nt&quot;</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">(),</span> <span class="n">signal</span><span class="o">.</span><span class="n">CTRL_C_EVENT</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">signum</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sigint_handler"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.sigint_handler">[docs]</a><span class="k">def</span> <span class="nf">sigint_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exit gracefully on ctrl-C.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_handled_int</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_handled_int</span><span class="p">:</span>
+        <span class="n">_handled_int</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_env_var_true</span><span class="p">(</span><span class="s2">&quot;_REZ_QUIET_ON_SIG&quot;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Interrupted by user&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sigbase_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sigterm_handler"><a class="viewcode-back" href="../../../api/rez.cli.html#rez.cli._util.sigterm_handler">[docs]</a><span class="k">def</span> <span class="nf">sigterm_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exit gracefully on terminate.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_handled_term</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_handled_term</span><span class="p">:</span>
+        <span class="n">_handled_term</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_env_var_true</span><span class="p">(</span><span class="s2">&quot;_REZ_QUIET_ON_SIG&quot;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Terminated by user&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">sigbase_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span></div>
+
+
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sigint_handler</span><span class="p">)</span>
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">sigterm_handler</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

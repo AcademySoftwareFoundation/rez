@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.build_system &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.build_system</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.build_system</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">import</span> <span class="nn">os.path</span>
+
+<span class="kn">from</span> <span class="nn">rez.build_process</span> <span class="kn">import</span> <span class="n">BuildType</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">BuildSystemError</span>
+<span class="kn">from</span> <span class="nn">rez.packages</span> <span class="kn">import</span> <span class="n">get_developer_package</span>
+<span class="kn">from</span> <span class="nn">rez.rex_bindings</span> <span class="kn">import</span> <span class="n">VariantBinding</span>
+
+
+<div class="viewcode-block" id="get_buildsys_types"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.get_buildsys_types">[docs]</a><span class="k">def</span> <span class="nf">get_buildsys_types</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the available build system implementations - cmake, make etc.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="k">return</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugins</span><span class="p">(</span><span class="s1">&#39;build_system&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_valid_build_systems"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.get_valid_build_systems">[docs]</a><span class="k">def</span> <span class="nf">get_valid_build_systems</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the build system classes that could build the source in given dir.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        working_dir (str): Dir containing the package definition and potentially</span>
+<span class="sd">            build files.</span>
+<span class="sd">        package (`Package`): Package to be built. This may or may not be needed</span>
+<span class="sd">            to determine the build system. For eg, cmake just has to look for</span>
+<span class="sd">            a CMakeLists.txt file, whereas the &#39;build_command&#39; package field</span>
+<span class="sd">            must be present for the &#39;custom&#39; build system type.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List of class: Valid build system class types.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">PackageMetadataError</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">package</span> <span class="o">=</span> <span class="n">package</span> <span class="ow">or</span> <span class="n">get_developer_package</span><span class="p">(</span><span class="n">working_dir</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">PackageMetadataError</span><span class="p">:</span>
+        <span class="c1"># no package, or bad package</span>
+        <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">package</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="s2">&quot;build_command&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">buildsys_name</span> <span class="o">=</span> <span class="s2">&quot;custom&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">buildsys_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="s2">&quot;build_system&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># package explicitly specifies build system</span>
+        <span class="k">if</span> <span class="n">buildsys_name</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="s1">&#39;build_system&#39;</span><span class="p">,</span> <span class="n">buildsys_name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">cls</span><span class="p">]</span>
+
+    <span class="c1"># detect valid build systems</span>
+    <span class="n">clss</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">buildsys_name</span> <span class="ow">in</span> <span class="n">get_buildsys_types</span><span class="p">():</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="s1">&#39;build_system&#39;</span><span class="p">,</span> <span class="n">buildsys_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">is_valid_root</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">):</span>
+            <span class="n">clss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+
+    <span class="c1"># Sometimes files for multiple build systems can be present, because one</span>
+    <span class="c1"># build system uses another (a &#39;child&#39; build system) - eg, cmake uses</span>
+    <span class="c1"># make. Detect this case and ignore files from the child build system.</span>
+    <span class="c1">#</span>
+    <span class="n">child_clss</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">child_build_system</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">clss</span><span class="p">)</span>
+    <span class="n">clss</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">clss</span><span class="p">)</span> <span class="o">-</span> <span class="n">child_clss</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">clss</span></div>
+
+
+<div class="viewcode-block" id="create_build_system"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.create_build_system">[docs]</a><span class="k">def</span> <span class="nf">create_build_system</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span> <span class="n">buildsys_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">opts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">write_build_scripts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">build_args</span><span class="o">=</span><span class="p">[],</span> <span class="n">child_build_args</span><span class="o">=</span><span class="p">[]):</span>
+    <span class="sd">&quot;&quot;&quot;Return a new build system that can build the source in working_dir.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+
+    <span class="c1"># detect build system if necessary</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">buildsys_type</span><span class="p">:</span>
+        <span class="n">clss</span> <span class="o">=</span> <span class="n">get_valid_build_systems</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">clss</span><span class="p">:</span>
+            <span class="c1"># Special case - bez. This is an old deprecated build system,</span>
+            <span class="c1"># which expects a rezbuild.py file. Include info in error showing</span>
+            <span class="c1"># how to port to a custom build command.</span>
+            <span class="c1">#</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span> <span class="s2">&quot;rezbuild.py&quot;</span><span class="p">)):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;No build system is associated with the path </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;There is a rezbuild.py file present, suggesting you were &quot;</span>
+                    <span class="s2">&quot;using the deprecated bez build system. You need to use a &quot;</span>
+                    <span class="s2">&quot;custom build command instead. You can port your existing &quot;</span>
+                    <span class="s2">&quot;rezbuild.py like so:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;Add this line to package.py:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;    build_command = &#39;python </span><span class="si">{root}</span><span class="s2">/rezbuild.py </span><span class="si">{install}</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;Add these lines to rezbuild.py:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;    if __name__ == &#39;__main__&#39;:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;        import os, sys</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;        build(</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;            source_path=os.environ[&#39;REZ_BUILD_SOURCE_PATH&#39;],</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;            build_path=os.environ[&#39;REZ_BUILD_PATH&#39;],</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;            install_path=os.environ[&#39;REZ_BUILD_INSTALL_PATH&#39;],</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;            targets=sys.argv[1:]</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;        )&quot;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="n">BuildSystemError</span><span class="p">(</span><span class="n">msg</span> <span class="o">%</span> <span class="n">working_dir</span><span class="p">)</span>
+
+            <span class="k">raise</span> <span class="n">BuildSystemError</span><span class="p">(</span>
+                <span class="s2">&quot;No build system is associated with the path </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">working_dir</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">clss</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">clss</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">BuildSystemError</span><span class="p">((</span><span class="s2">&quot;Source could be built with one of: </span><span class="si">%s</span><span class="s2">; &quot;</span>
+                                   <span class="s2">&quot;Please specify a build system&quot;</span><span class="p">)</span> <span class="o">%</span> <span class="n">s</span><span class="p">)</span>
+
+        <span class="n">buildsys_type</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">clss</span><span class="p">))</span><span class="o">.</span><span class="n">name</span><span class="p">()</span>
+
+    <span class="c1"># create instance of build system</span>
+    <span class="n">cls_</span> <span class="o">=</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="s1">&#39;build_system&#39;</span><span class="p">,</span> <span class="n">buildsys_type</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cls_</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">,</span>
+                <span class="n">write_build_scripts</span><span class="o">=</span><span class="n">write_build_scripts</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">build_args</span><span class="o">=</span><span class="n">build_args</span><span class="p">,</span>
+                <span class="n">child_build_args</span><span class="o">=</span><span class="n">child_build_args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildSystem"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem">[docs]</a><span class="k">class</span> <span class="nc">BuildSystem</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A build system, such as cmake, make, Scons etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BuildSystem.name"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the name of the build system, eg &#39;make&#39;.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">working_dir</span><span class="p">,</span> <span class="n">opts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">write_build_scripts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">build_args</span><span class="o">=</span><span class="p">[],</span>
+                 <span class="n">child_build_args</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;Create a build system instance.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            working_dir: Directory to build source from.</span>
+<span class="sd">            opts: argparse.Namespace object which may contain constructor</span>
+<span class="sd">                params, as set by our bind_cli() classmethod.</span>
+<span class="sd">            package (`DeveloperPackage`): Package to build. If None, defaults to</span>
+<span class="sd">                the package in the working directory.</span>
+<span class="sd">            write_build_scripts: If True, create build scripts rather than</span>
+<span class="sd">                perform the full build. The user can then run these scripts to</span>
+<span class="sd">                place themselves into a build environment and invoke the build</span>
+<span class="sd">                system directly.</span>
+<span class="sd">            build_args: Extra cli build arguments.</span>
+<span class="sd">            child_build_args: Extra cli args for child build system, ignored if</span>
+<span class="sd">                there is no child build system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">working_dir</span> <span class="o">=</span> <span class="n">working_dir</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_valid_root</span><span class="p">(</span><span class="n">working_dir</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">BuildSystemError</span><span class="p">(</span>
+                <span class="s2">&quot;Not a valid working directory for build system </span><span class="si">%r</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span> <span class="n">working_dir</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">package</span> <span class="o">=</span> <span class="n">package</span> <span class="ow">or</span> <span class="n">get_developer_package</span><span class="p">(</span><span class="n">working_dir</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_build_scripts</span> <span class="o">=</span> <span class="n">write_build_scripts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_args</span> <span class="o">=</span> <span class="n">build_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">child_build_args</span> <span class="o">=</span> <span class="n">child_build_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">opts</span> <span class="o">=</span> <span class="n">opts</span>
+
+<div class="viewcode-block" id="BuildSystem.is_valid_root"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.is_valid_root">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">is_valid_root</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if this build system can build the source in path.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BuildSystem.child_build_system"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.child_build_system">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">child_build_system</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the child build system.</span>
+
+<span class="sd">        Some build systems, such as cmake, don&#39;t build the source directly.</span>
+<span class="sd">        Instead, they build an interim set of build scripts that are then</span>
+<span class="sd">        consumed by a second build system (such as make). You should implement</span>
+<span class="sd">        this method if that&#39;s the case.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Name of build system (corresponding to the plugin name) if this</span>
+<span class="sd">            system has a child system, or None otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="BuildSystem.bind_cli"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.bind_cli">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">bind_cli</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">group</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Expose parameters to an argparse.ArgumentParser that are specific</span>
+<span class="sd">        to this build system.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parser (`ArgumentParser`): Arg parser.</span>
+<span class="sd">            group (`ArgumentGroup`): Arg parser group - you should add args to</span>
+<span class="sd">                this, NOT to `parser`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BuildSystem.build"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">build_path</span><span class="p">,</span> <span class="n">install_path</span><span class="p">,</span> <span class="n">install</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">build_type</span><span class="o">=</span><span class="n">BuildType</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implement this method to perform the actual build.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            context: A ResolvedContext object that the build process must be</span>
+<span class="sd">                executed within.</span>
+<span class="sd">            variant (`Variant`): The variant being built.</span>
+<span class="sd">            build_path: Where to write temporary build files. May be absolute</span>
+<span class="sd">                or relative to working_dir.</span>
+<span class="sd">            install_path (str): The package repository path to install the</span>
+<span class="sd">                package to, if installing. If None, defaults to</span>
+<span class="sd">                `config.local_packages_path`.</span>
+<span class="sd">            install: If True, install the build.</span>
+<span class="sd">            build_type: A BuildType (i.e local or central).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dict containing the following information:</span>
+<span class="sd">            - success: Bool indicating if the build was successful.</span>
+<span class="sd">            - extra_files: List of created files of interest, not including</span>
+<span class="sd">                build targets. A good example is the interpreted context file,</span>
+<span class="sd">                usually named &#39;build.rxt.sh&#39; or similar. These files should be</span>
+<span class="sd">                located under build_path. Rez may install them for debugging</span>
+<span class="sd">                purposes.</span>
+<span class="sd">            - build_env_script: If this instance was created with write_build_scripts</span>
+<span class="sd">                as True, then the build should generate a script which, when run</span>
+<span class="sd">                by the user, places them in the build environment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BuildSystem.set_standard_vars"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.set_standard_vars">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">set_standard_vars</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">executor</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">build_type</span><span class="p">,</span> <span class="n">install</span><span class="p">,</span>
+                          <span class="n">build_path</span><span class="p">,</span> <span class="n">install_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set some standard env vars that all build systems can rely on.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+
+        <span class="n">package</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">parent</span>
+        <span class="n">variant_requires</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">variant_requires</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">variant</span><span class="o">.</span><span class="n">index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">variant_subpath</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">variant_subpath</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">_non_shortlinked_subpath</span>
+
+        <span class="n">vars_</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;REZ_BUILD_ENV&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;REZ_BUILD_PATH&#39;</span><span class="p">:</span> <span class="n">executor</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">build_path</span><span class="p">),</span>
+            <span class="s1">&#39;REZ_BUILD_THREAD_COUNT&#39;</span><span class="p">:</span> <span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">build_thread_count</span><span class="p">,</span>
+            <span class="s1">&#39;REZ_BUILD_VARIANT_INDEX&#39;</span><span class="p">:</span> <span class="n">variant</span><span class="o">.</span><span class="n">index</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;REZ_BUILD_VARIANT_REQUIRES&#39;</span><span class="p">:</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">variant_requires</span><span class="p">),</span>
+            <span class="s1">&#39;REZ_BUILD_VARIANT_SUBPATH&#39;</span><span class="p">:</span> <span class="n">executor</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">variant_subpath</span><span class="p">),</span>
+            <span class="s1">&#39;REZ_BUILD_PROJECT_VERSION&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">version</span><span class="p">),</span>
+            <span class="s1">&#39;REZ_BUILD_PROJECT_NAME&#39;</span><span class="p">:</span> <span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;REZ_BUILD_PROJECT_DESCRIPTION&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">description</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="s1">&#39;REZ_BUILD_PROJECT_FILE&#39;</span><span class="p">:</span> <span class="n">package</span><span class="o">.</span><span class="n">filepath</span><span class="p">,</span>
+            <span class="s1">&#39;REZ_BUILD_SOURCE_PATH&#39;</span><span class="p">:</span> <span class="n">executor</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;REZ_BUILD_REQUIRES&#39;</span><span class="p">:</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">requested_packages</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;REZ_BUILD_REQUIRES_UNVERSIONED&#39;</span><span class="p">:</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">requested_packages</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;REZ_BUILD_TYPE&#39;</span><span class="p">:</span> <span class="n">build_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;REZ_BUILD_INSTALL&#39;</span><span class="p">:</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">install</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">install_path</span><span class="p">:</span>
+            <span class="n">vars_</span><span class="p">[</span><span class="s1">&#39;REZ_BUILD_INSTALL_PATH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">install_path</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">rez_1_environment_variables</span> <span class="ow">and</span> \
+                <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">disable_rez_1_compatibility</span> <span class="ow">and</span> \
+                <span class="n">build_type</span> <span class="o">==</span> <span class="n">BuildType</span><span class="o">.</span><span class="n">central</span><span class="p">:</span>
+            <span class="n">vars_</span><span class="p">[</span><span class="s1">&#39;REZ_IN_REZ_RELEASE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># set env vars</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">vars_</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">env</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="BuildSystem.add_pre_build_commands"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.add_pre_build_commands">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_pre_build_commands</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">executor</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">build_type</span><span class="p">,</span> <span class="n">install</span><span class="p">,</span>
+                               <span class="n">build_path</span><span class="p">,</span> <span class="n">install_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Execute pre_build_commands function if present.&quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">rez.utils.data_utils</span> <span class="kn">import</span> <span class="n">RO_AttrDictWrapper</span> <span class="k">as</span> <span class="n">ROA</span>
+
+        <span class="c1"># bind build-related values into a &#39;build&#39; namespace</span>
+        <span class="n">build_ns</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;build_type&quot;</span><span class="p">:</span> <span class="n">build_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;install&quot;</span><span class="p">:</span> <span class="n">install</span><span class="p">,</span>
+            <span class="s2">&quot;build_path&quot;</span><span class="p">:</span> <span class="n">executor</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">build_path</span><span class="p">),</span>
+            <span class="s2">&quot;install_path&quot;</span><span class="p">:</span> <span class="n">executor</span><span class="o">.</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">install_path</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="c1"># execute pre_build_commands()</span>
+        <span class="c1"># note that we need to wrap variant in a VariantBinding so that any refs</span>
+        <span class="c1"># to (eg) &#39;this.root&#39; in pre_build_commands() will get the possibly</span>
+        <span class="c1"># normalized path.</span>
+        <span class="c1">#</span>
+        <span class="n">pre_build_commands</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">variant</span><span class="p">,</span> <span class="s2">&quot;pre_build_commands&quot;</span><span class="p">)</span>
+
+        <span class="c1"># TODO I suspect variant root isn&#39;t correctly set to the cached root</span>
+        <span class="c1"># when pkg caching is enabled (see use of VariantBinding in</span>
+        <span class="c1"># ResolvedContext._execute).</span>
+        <span class="c1">#</span>
+        <span class="n">bound_variant</span> <span class="o">=</span> <span class="n">VariantBinding</span><span class="p">(</span>
+            <span class="n">variant</span><span class="p">,</span>
+            <span class="n">interpreter</span><span class="o">=</span><span class="n">executor</span><span class="o">.</span><span class="n">interpreter</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pre_build_commands</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">executor</span><span class="o">.</span><span class="n">reset_globals</span><span class="p">():</span>
+                <span class="n">executor</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;this&quot;</span><span class="p">,</span> <span class="n">bound_variant</span><span class="p">)</span>
+                <span class="n">executor</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;build&quot;</span><span class="p">,</span> <span class="n">ROA</span><span class="p">(</span><span class="n">build_ns</span><span class="p">))</span>
+                <span class="n">executor</span><span class="o">.</span><span class="n">execute_code</span><span class="p">(</span><span class="n">pre_build_commands</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BuildSystem.add_standard_build_actions"><a class="viewcode-back" href="../../api/rez.html#rez.build_system.BuildSystem.add_standard_build_actions">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_standard_build_actions</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">executor</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">build_type</span><span class="p">,</span>
+                                   <span class="n">install</span><span class="p">,</span> <span class="n">build_path</span><span class="p">,</span> <span class="n">install_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform build actions common to every build system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set env vars</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">set_standard_vars</span><span class="p">(</span>
+            <span class="n">executor</span><span class="o">=</span><span class="n">executor</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+            <span class="n">variant</span><span class="o">=</span><span class="n">variant</span><span class="p">,</span>
+            <span class="n">build_type</span><span class="o">=</span><span class="n">build_type</span><span class="p">,</span>
+            <span class="n">install</span><span class="o">=</span><span class="n">install</span><span class="p">,</span>
+            <span class="n">build_path</span><span class="o">=</span><span class="n">build_path</span><span class="p">,</span>
+            <span class="n">install_path</span><span class="o">=</span><span class="n">install_path</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

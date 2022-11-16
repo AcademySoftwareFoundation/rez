@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.tests.test_commands &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.tests.test_commands</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.tests.test_commands</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">test package commands</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.version.requirement</span> <span class="kn">import</span> <span class="n">VersionedObject</span>
+<span class="kn">from</span> <span class="nn">rez.rex</span> <span class="kn">import</span> <span class="n">Comment</span><span class="p">,</span> <span class="n">EnvAction</span><span class="p">,</span> <span class="n">Shebang</span><span class="p">,</span> <span class="n">Setenv</span><span class="p">,</span> <span class="n">Alias</span><span class="p">,</span> <span class="n">Appendenv</span>
+<span class="kn">from</span> <span class="nn">rez.resolved_context</span> <span class="kn">import</span> <span class="n">ResolvedContext</span>
+<span class="kn">from</span> <span class="nn">rez.utils.filesystem</span> <span class="kn">import</span> <span class="n">canonical_path</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">rez.tests.util</span> <span class="kn">import</span> <span class="n">TestBase</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="TestCommands"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_commands.TestCommands">[docs]</a><span class="k">class</span> <span class="nc">TestCommands</span><span class="p">(</span><span class="n">TestBase</span><span class="p">):</span>
+    <span class="c1"># Note some tests use a hardcoded &#39;/&#39; path separator instead of</span>
+    <span class="c1"># os.path.join.  This is because they are being compared against</span>
+    <span class="c1"># baked commands in existing package.yaml|py files in the data</span>
+    <span class="c1"># directory where the separator is static.</span>
+
+<div class="viewcode-block" id="TestCommands.get_packages_path"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_commands.TestCommands.get_packages_path">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_packages_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">canonical_path</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">data_path</span><span class="p">(</span><span class="s2">&quot;commands&quot;</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestCommands.setUpClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_commands.TestCommands.setUpClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setUpClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">packages_path</span><span class="o">=</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_packages_path</span><span class="p">()],</span>
+            <span class="n">package_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">resolve_caching</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">warn_untimestamped</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">warn_old_commands</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">implicit_packages</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">rez_1_environment_variables</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="n">TestBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">packages_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_packages_path</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_test_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pkg</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">expected_commands</span><span class="p">):</span>
+        <span class="n">orig_environ</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="p">)],</span> <span class="n">caching</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># this environ should not have changed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">orig_environ</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
+
+        <span class="n">commands</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">get_actions</span><span class="p">(</span><span class="n">parent_environ</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+        <span class="n">commands_</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># ignore some commands that don&#39;t matter or change depending on system</span>
+        <span class="n">ignore_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s2">&quot;REZ_USED&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;REZ_USED_VERSION&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;REZ_USED_TIMESTAMP&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;REZ_USED_REQUESTED_TIMESTAMP&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;REZ_USED_PACKAGES_PATH&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;REZ_USED_IMPLICIT_PACKAGES&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;PATH&quot;</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="p">(</span><span class="n">Comment</span><span class="p">,</span> <span class="n">Shebang</span><span class="p">)):</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">EnvAction</span><span class="p">)</span> <span class="ow">and</span> <span class="n">cmd</span><span class="o">.</span><span class="n">key</span> <span class="ow">in</span> <span class="n">ignore_keys</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">commands_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">commands_</span><span class="p">,</span> <span class="n">expected_commands</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_rextest_commands</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pkg</span><span class="p">):</span>
+        <span class="n">verstr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packages_path</span><span class="p">,</span> <span class="s2">&quot;rextest&quot;</span><span class="p">,</span> <span class="n">verstr</span><span class="p">)</span>
+
+        <span class="n">major_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">minor_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">patch_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="n">cmds</span> <span class="o">=</span> <span class="p">[</span><span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_VERSION&#39;</span><span class="p">,</span> <span class="n">verstr</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_MAJOR_VERSION&#39;</span><span class="p">,</span> <span class="n">major_version</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_MINOR_VERSION&#39;</span><span class="p">,</span> <span class="n">minor_version</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_PATCH_VERSION&#39;</span><span class="p">,</span> <span class="n">patch_version</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_BASE&#39;</span><span class="p">,</span> <span class="n">base</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_ROOT&#39;</span><span class="p">,</span> <span class="n">base</span><span class="p">),</span>
+                <span class="c1"># from package...</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_ROOT&#39;</span><span class="p">,</span> <span class="n">base</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_VERSION&#39;</span><span class="p">,</span> <span class="n">verstr</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_MAJOR_VERSION&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="o">.</span><span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_DIRS&#39;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">base</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">])),</span>
+                <span class="n">Alias</span><span class="p">(</span><span class="s1">&#39;rextest&#39;</span><span class="p">,</span> <span class="s1">&#39;foobar&#39;</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">cmds</span>
+
+    <span class="k">def</span> <span class="nf">_test_rextest_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="n">pkg</span> <span class="o">=</span> <span class="n">VersionedObject</span><span class="p">(</span><span class="s2">&quot;rextest-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">version</span><span class="p">)</span>
+
+        <span class="n">cmds</span> <span class="o">=</span> <span class="p">[</span><span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_USED_REQUEST&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="p">)),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_USED_RESOLVE&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="p">))]</span>
+        <span class="n">cmds</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rextest_commands</span><span class="p">(</span><span class="n">pkg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_package</span><span class="p">(</span><span class="n">pkg</span><span class="p">,</span> <span class="p">{},</span> <span class="n">cmds</span><span class="p">)</span>
+        <span class="c1"># first prepend should still override</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_package</span><span class="p">(</span><span class="n">pkg</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;REXTEST_DIRS&quot;</span><span class="p">:</span> <span class="s2">&quot;TEST&quot;</span><span class="p">},</span> <span class="n">cmds</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TestCommands.test_old_yaml"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_commands.TestCommands.test_old_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">test_old_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resolve a yaml-based package with old-style bash commands.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_rextest_package</span><span class="p">(</span><span class="s2">&quot;1.1&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCommands.test_new_yaml"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_commands.TestCommands.test_new_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">test_new_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resolve a yaml-based package with new rex commands.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_rextest_package</span><span class="p">(</span><span class="s2">&quot;1.2&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCommands.test_py"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_commands.TestCommands.test_py">[docs]</a>    <span class="k">def</span> <span class="nf">test_py</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resolve a new py-based package with rex commands.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_rextest_package</span><span class="p">(</span><span class="s2">&quot;1.3&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCommands.test_2"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_commands.TestCommands.test_2">[docs]</a>    <span class="k">def</span> <span class="nf">test_2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resolve a package with a dependency, see that their commands are</span>
+<span class="sd">        concatenated as expected.&quot;&quot;&quot;</span>
+        <span class="n">pkg</span> <span class="o">=</span> <span class="n">VersionedObject</span><span class="p">(</span><span class="s2">&quot;rextest2-2&quot;</span><span class="p">)</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packages_path</span><span class="p">,</span> <span class="s2">&quot;rextest&quot;</span><span class="p">,</span> <span class="s2">&quot;1.3&quot;</span><span class="p">)</span>
+        <span class="n">base2</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packages_path</span><span class="p">,</span> <span class="s2">&quot;rextest2&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">)</span>
+
+        <span class="n">cmds</span> <span class="o">=</span> <span class="p">[</span><span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_USED_REQUEST&#39;</span><span class="p">,</span> <span class="s2">&quot;rextest2-2&quot;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_USED_RESOLVE&#39;</span><span class="p">,</span> <span class="s2">&quot;rextest-1.3 rextest2-2&quot;</span><span class="p">),</span>
+                <span class="c1"># rez&#39;s rextest vars</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_VERSION&#39;</span><span class="p">,</span> <span class="s2">&quot;1.3&quot;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_MAJOR_VERSION&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_MINOR_VERSION&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_PATCH_VERSION&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_BASE&#39;</span><span class="p">,</span> <span class="n">base</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST_ROOT&#39;</span><span class="p">,</span> <span class="n">base</span><span class="p">),</span>
+                <span class="c1"># rez&#39;s rextest2 vars</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST2_VERSION&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST2_MAJOR_VERSION&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST2_MINOR_VERSION&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST2_PATCH_VERSION&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST2_BASE&#39;</span><span class="p">,</span> <span class="n">base2</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REZ_REXTEST2_ROOT&#39;</span><span class="p">,</span> <span class="n">base2</span><span class="p">),</span>
+                <span class="c1"># rextest&#39;s commands</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_ROOT&#39;</span><span class="p">,</span> <span class="n">base</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_VERSION&#39;</span><span class="p">,</span> <span class="s2">&quot;1.3&quot;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_MAJOR_VERSION&#39;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_DIRS&#39;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">base</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">])),</span>
+                <span class="n">Alias</span><span class="p">(</span><span class="s1">&#39;rextest&#39;</span><span class="p">,</span> <span class="s1">&#39;foobar&#39;</span><span class="p">),</span>
+                <span class="c1"># rextext2&#39;s commands</span>
+                <span class="n">Appendenv</span><span class="p">(</span><span class="s1">&#39;REXTEST_DIRS&#39;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">base2</span><span class="p">,</span> <span class="s2">&quot;data2&quot;</span><span class="p">])),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST2_REXTEST_VER&#39;</span><span class="p">,</span> <span class="s1">&#39;1.3&#39;</span><span class="p">),</span>
+                <span class="n">Setenv</span><span class="p">(</span><span class="s1">&#39;REXTEST2_REXTEST_BASE&#39;</span><span class="p">,</span>
+                       <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packages_path</span><span class="p">,</span> <span class="s2">&quot;rextest&quot;</span><span class="p">,</span> <span class="s2">&quot;1.3&quot;</span><span class="p">))]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_package</span><span class="p">(</span><span class="n">pkg</span><span class="p">,</span> <span class="p">{},</span> <span class="n">cmds</span><span class="p">)</span>
+        <span class="c1"># first prepend should still override</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_package</span><span class="p">(</span><span class="n">pkg</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;REXTEST_DIRS&quot;</span><span class="p">:</span> <span class="s2">&quot;TEST&quot;</span><span class="p">},</span> <span class="n">cmds</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

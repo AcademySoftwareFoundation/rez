@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.build_process &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.build_process</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.build_process</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">rez.packages</span> <span class="kn">import</span> <span class="n">iter_packages</span>
+<span class="kn">from</span> <span class="nn">rez.exceptions</span> <span class="kn">import</span> <span class="n">BuildProcessError</span><span class="p">,</span> <span class="n">BuildContextResolveError</span><span class="p">,</span> \
+    <span class="n">ReleaseHookCancellingError</span><span class="p">,</span> <span class="n">RezError</span><span class="p">,</span> <span class="n">ReleaseError</span><span class="p">,</span> <span class="n">BuildError</span><span class="p">,</span> \
+    <span class="n">ReleaseVCSError</span><span class="p">,</span> <span class="n">_NeverError</span>
+<span class="kn">from</span> <span class="nn">rez.utils.logging_</span> <span class="kn">import</span> <span class="n">print_warning</span>
+<span class="kn">from</span> <span class="nn">rez.utils.colorize</span> <span class="kn">import</span> <span class="n">heading</span><span class="p">,</span> <span class="n">Printer</span>
+<span class="kn">from</span> <span class="nn">rez.resolved_context</span> <span class="kn">import</span> <span class="n">ResolvedContext</span>
+<span class="kn">from</span> <span class="nn">rez.release_hook</span> <span class="kn">import</span> <span class="n">create_release_hooks</span>
+<span class="kn">from</span> <span class="nn">rez.resolver</span> <span class="kn">import</span> <span class="n">ResolverStatus</span>
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">rez.vendor.enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">pipes</span> <span class="kn">import</span> <span class="n">quote</span>
+<span class="kn">import</span> <span class="nn">getpass</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<span class="n">debug_print</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">debug_printer</span><span class="p">(</span><span class="s2">&quot;package_release&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_build_process_types"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.get_build_process_types">[docs]</a><span class="k">def</span> <span class="nf">get_build_process_types</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns the available build process implementations.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="k">return</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugins</span><span class="p">(</span><span class="s1">&#39;build_process&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_build_process"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.create_build_process">[docs]</a><span class="k">def</span> <span class="nf">create_build_process</span><span class="p">(</span><span class="n">process_type</span><span class="p">,</span> <span class="n">working_dir</span><span class="p">,</span> <span class="n">build_system</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">vcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ensure_latest</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">skip_repo_errors</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                         <span class="n">ignore_existing_tag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a `BuildProcess` instance.&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+    <span class="n">process_types</span> <span class="o">=</span> <span class="n">get_build_process_types</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">process_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">process_types</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">BuildProcessError</span><span class="p">(</span><span class="s2">&quot;Unknown build process: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">process_type</span><span class="p">)</span>
+
+    <span class="bp">cls</span> <span class="o">=</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_plugin_class</span><span class="p">(</span><span class="s1">&#39;build_process&#39;</span><span class="p">,</span> <span class="n">process_type</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span>  <span class="c1"># ignored (deprecated)</span>
+               <span class="n">build_system</span><span class="p">,</span>
+               <span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">,</span>  <span class="c1"># ignored (deprecated)</span>
+               <span class="n">vcs</span><span class="o">=</span><span class="n">vcs</span><span class="p">,</span>
+               <span class="n">ensure_latest</span><span class="o">=</span><span class="n">ensure_latest</span><span class="p">,</span>
+               <span class="n">skip_repo_errors</span><span class="o">=</span><span class="n">skip_repo_errors</span><span class="p">,</span>
+               <span class="n">ignore_existing_tag</span><span class="o">=</span><span class="n">ignore_existing_tag</span><span class="p">,</span>
+               <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+               <span class="n">quiet</span><span class="o">=</span><span class="n">quiet</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BuildType"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildType">[docs]</a><span class="k">class</span> <span class="nc">BuildType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Enum to represent the type of build.&quot;&quot;&quot;</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">central</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="BuildProcess"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcess">[docs]</a><span class="k">class</span> <span class="nc">BuildProcess</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A BuildProcess builds and possibly releases a package.</span>
+
+<span class="sd">    A build process iterates over the variants of a package, creates the</span>
+<span class="sd">    correct build environment for each variant, builds that variant using a</span>
+<span class="sd">    build system (or possibly creates a script so the user can do that</span>
+<span class="sd">    independently), and then possibly releases the package with the nominated</span>
+<span class="sd">    VCS. This is an abstract base class, you should use a BuildProcess</span>
+<span class="sd">    subclass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BuildProcess.name"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcess.name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">working_dir</span><span class="p">,</span> <span class="n">build_system</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">ensure_latest</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">skip_repo_errors</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">ignore_existing_tag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a BuildProcess.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            working_dir (DEPRECATED): Ignored.</span>
+<span class="sd">            build_system (`BuildSystem`): Build system used to build the package.</span>
+<span class="sd">            package (DEPRECATED): Ignored.</span>
+<span class="sd">            vcs (`ReleaseVCS`): Version control system to use for the release</span>
+<span class="sd">                process.</span>
+<span class="sd">            ensure_latest: If True, do not allow the release process to occur</span>
+<span class="sd">                if an newer versioned package is already released.</span>
+<span class="sd">            skip_repo_errors: If True, proceed with the release even when errors</span>
+<span class="sd">                occur. BE CAREFUL using this option, it is here in case a package</span>
+<span class="sd">                needs to be released urgently even though there is some problem</span>
+<span class="sd">                with reading or writing the repository.</span>
+<span class="sd">            ignore_existing_tag: Perform the release even if the repository is</span>
+<span class="sd">                already tagged at the current version. If the config setting</span>
+<span class="sd">                plugins.release_vcs.check_tag is False, this has no effect.</span>
+<span class="sd">            verbose (bool): Verbose mode.</span>
+<span class="sd">            quiet (bool): Quiet mode (overrides `verbose`).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">quiet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">quiet</span> <span class="o">=</span> <span class="n">quiet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_system</span> <span class="o">=</span> <span class="n">build_system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span> <span class="o">=</span> <span class="n">vcs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ensure_latest</span> <span class="o">=</span> <span class="n">ensure_latest</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_repo_errors</span> <span class="o">=</span> <span class="n">skip_repo_errors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_existing_tag</span> <span class="o">=</span> <span class="n">ignore_existing_tag</span>
+
+        <span class="k">if</span> <span class="n">vcs</span> <span class="ow">and</span> <span class="n">vcs</span><span class="o">.</span><span class="n">pkg_root</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_dir</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildProcessError</span><span class="p">(</span>
+                <span class="s2">&quot;Build process was instantiated with a mismatched VCS instance&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">build_directory</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">build_directory</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_dir</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">build_directory</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">package</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_system</span><span class="o">.</span><span class="n">package</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">working_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_system</span><span class="o">.</span><span class="n">working_dir</span>
+
+<div class="viewcode-block" id="BuildProcess.build"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcess.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">install_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">install</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform the build process.</span>
+
+<span class="sd">        Iterates over the package&#39;s variants, resolves the environment for</span>
+<span class="sd">        each, and runs the build system within each resolved environment.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            install_path (str): The package repository path to install the</span>
+<span class="sd">                package to, if installing. If None, defaults to</span>
+<span class="sd">                `config.local_packages_path`.</span>
+<span class="sd">            clean (bool): If True, clear any previous build first. Otherwise,</span>
+<span class="sd">                rebuild over the top of a previous build.</span>
+<span class="sd">            install (bool): If True, install the build.</span>
+<span class="sd">            variants (list of int): Indexes of variants to build, all if None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `BuildError`: If the build failed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: Number of variants successfully built.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BuildProcess.release"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcess.release">[docs]</a>    <span class="k">def</span> <span class="nf">release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">release_message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform the release process.</span>
+
+<span class="sd">        Iterates over the package&#39;s variants, building and installing each into</span>
+<span class="sd">        the release path determined by `config.release_packages_path`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            release_message (str): Message to associate with the release.</span>
+<span class="sd">            variants (list of int): Indexes of variants to release, all if None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `ReleaseError`: If the release failed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: Number of variants successfully released.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BuildProcess.get_changelog"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcess.get_changelog">[docs]</a>    <span class="k">def</span> <span class="nf">get_changelog</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the changelog since last package release.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Changelog.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="BuildProcessHelper"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper">[docs]</a><span class="k">class</span> <span class="nc">BuildProcessHelper</span><span class="p">(</span><span class="n">BuildProcess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A BuildProcess base class with some useful functionality.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BuildProcessHelper.repo_operation"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.repo_operation">[docs]</a>    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">repo_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">exc_type</span> <span class="o">=</span> <span class="n">ReleaseVCSError</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_repo_errors</span> <span class="k">else</span> <span class="n">_NeverError</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span>
+        <span class="k">except</span> <span class="n">exc_type</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">print_warning</span><span class="p">(</span><span class="s2">&quot;THE FOLLOWING ERROR WAS SKIPPED:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.visit_variants"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.visit_variants">[docs]</a>    <span class="k">def</span> <span class="nf">visit_variants</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Iterate over variants and call a function on each.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">variants</span><span class="p">:</span>
+            <span class="n">present_variants</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">num_variants</span><span class="p">)</span>
+            <span class="n">invalid_variants</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">variants</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">present_variants</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">invalid_variants</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span>
+                    <span class="s2">&quot;The package does not contain the variants: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                    <span class="o">%</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">invalid_variants</span><span class="p">)))</span>
+
+        <span class="c1"># iterate over variants</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">num_visited</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">iter_variants</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">variants</span> <span class="ow">and</span> <span class="n">variant</span><span class="o">.</span><span class="n">index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">variants</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_print_header</span><span class="p">(</span>
+                    <span class="s2">&quot;Skipping variant </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)...&quot;</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_of_m</span><span class="p">(</span><span class="n">variant</span><span class="p">)))</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># visit the variant</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">variant</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="n">num_visited</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">num_visited</span><span class="p">,</span> <span class="n">results</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.get_package_install_path"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.get_package_install_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_package_install_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the installation path for a package (where its payload goes).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str): Package repository path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">rez.package_repository</span> <span class="kn">import</span> <span class="n">package_repository_manager</span>
+
+        <span class="n">pkg_repo</span> <span class="o">=</span> <span class="n">package_repository_manager</span><span class="o">.</span><span class="n">get_repository</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pkg_repo</span><span class="o">.</span><span class="n">get_package_payload_path</span><span class="p">(</span>
+            <span class="n">package_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">package_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">version</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.create_build_context"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.create_build_context">[docs]</a>    <span class="k">def</span> <span class="nf">create_build_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">build_type</span><span class="p">,</span> <span class="n">build_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a context to build the variant within.&quot;&quot;&quot;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">get_requires</span><span class="p">(</span><span class="n">build_requires</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                       <span class="n">private_build_requires</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">req_strs</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+        <span class="n">quoted_req_strs</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">quote</span><span class="p">,</span> <span class="n">req_strs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Resolving build environment: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">quoted_req_strs</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">build_type</span> <span class="o">==</span> <span class="n">BuildType</span><span class="o">.</span><span class="n">local</span><span class="p">:</span>
+            <span class="n">packages_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">packages_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">packages_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">nonlocal_packages_path</span>
+
+        <span class="c1"># It is uncommon, but possible, to define the package filters in the</span>
+        <span class="c1"># developer package. Example scenario: you may want to enable visiblity</span>
+        <span class="c1"># of *.dev packages if the current package is *.dev also, for example</span>
+        <span class="c1"># (assuming you have a production-time package filter which filters out</span>
+        <span class="c1"># *.dev packages by default).</span>
+        <span class="c1">#</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">is_overridden</span><span class="p">(</span><span class="s2">&quot;package_filter&quot;</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">rez.package_filter</span> <span class="kn">import</span> <span class="n">PackageFilterList</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">package_filter</span>
+            <span class="n">package_filter</span> <span class="o">=</span> <span class="n">PackageFilterList</span><span class="o">.</span><span class="n">from_pod</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">package_filter</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># create the build context</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="n">ResolvedContext</span><span class="p">(</span><span class="n">request</span><span class="p">,</span>
+                                  <span class="n">package_paths</span><span class="o">=</span><span class="n">packages_path</span><span class="p">,</span>
+                                  <span class="n">package_filter</span><span class="o">=</span><span class="n">package_filter</span><span class="p">,</span>
+                                  <span class="n">building</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">print_info</span><span class="p">()</span>
+
+        <span class="c1"># save context before possible fail, so user can debug</span>
+        <span class="n">rxt_filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">build_path</span><span class="p">,</span> <span class="s2">&quot;build.rxt&quot;</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">rxt_filepath</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="n">ResolverStatus</span><span class="o">.</span><span class="n">solved</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildContextResolveError</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">context</span><span class="p">,</span> <span class="n">rxt_filepath</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.pre_release"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.pre_release">[docs]</a>    <span class="k">def</span> <span class="nf">pre_release</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">release_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">plugins</span><span class="o">.</span><span class="n">release_vcs</span>
+
+        <span class="c1"># test that the release path exists</span>
+        <span class="n">release_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">release_packages_path</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">release_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ReleaseError</span><span class="p">(</span><span class="s2">&quot;Release path does not exist: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">release_path</span><span class="p">)</span>
+
+        <span class="c1"># test that the repo is in a state to release</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s2">&quot;Checking state of repository...&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_operation</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="o">.</span><span class="n">validate_repostate</span><span class="p">()</span>
+
+            <span class="c1"># check if the repo is already tagged at the current version</span>
+            <span class="k">if</span> <span class="n">release_settings</span><span class="o">.</span><span class="n">check_tag</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_existing_tag</span><span class="p">:</span>
+                <span class="n">tag_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_tag_name</span><span class="p">()</span>
+                <span class="n">tag_exists</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_operation</span><span class="p">():</span>
+                    <span class="n">tag_exists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="o">.</span><span class="n">tag_exists</span><span class="p">(</span><span class="n">tag_name</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">tag_exists</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ReleaseError</span><span class="p">(</span>
+                        <span class="s2">&quot;Cannot release - the current package version &#39;</span><span class="si">%s</span><span class="s2">&#39; is &quot;</span>
+                        <span class="s2">&quot;already tagged in the repository. Use --ignore-existing-tag &quot;</span>
+                        <span class="s2">&quot;to force the release&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+
+        <span class="n">it</span> <span class="o">=</span> <span class="n">iter_packages</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">paths</span><span class="o">=</span><span class="p">[</span><span class="n">release_path</span><span class="p">])</span>
+        <span class="n">packages</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># check UUID. This stops unrelated packages that happen to have the same</span>
+        <span class="c1"># name, being released as though they are the same package</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">uuid</span> <span class="ow">and</span> <span class="n">packages</span><span class="p">:</span>
+            <span class="n">latest_package</span> <span class="o">=</span> <span class="n">packages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">latest_package</span><span class="o">.</span><span class="n">uuid</span> <span class="ow">and</span> <span class="n">latest_package</span><span class="o">.</span><span class="n">uuid</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">uuid</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReleaseError</span><span class="p">(</span>
+                    <span class="s2">&quot;Cannot release - the packages are not the same (UUID mismatch)&quot;</span><span class="p">)</span>
+
+        <span class="c1"># test that a newer package version hasn&#39;t already been released</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensure_latest</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">package</span><span class="o">.</span><span class="n">version</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ReleaseError</span><span class="p">(</span>
+                        <span class="s2">&quot;Cannot release - a newer package version already &quot;</span>
+                        <span class="s2">&quot;exists (</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">package</span><span class="o">.</span><span class="n">uri</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.post_release"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.post_release">[docs]</a>    <span class="k">def</span> <span class="nf">post_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">release_message</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">tag_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_tag_name</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>  <span class="c1"># nothing more to do</span>
+
+        <span class="c1"># write a tag for the new release into the vcs</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_operation</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="o">.</span><span class="n">create_release_tag</span><span class="p">(</span><span class="n">tag_name</span><span class="o">=</span><span class="n">tag_name</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">release_message</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.get_current_tag_name"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.get_current_tag_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_tag_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">release_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">plugins</span><span class="o">.</span><span class="n">release_vcs</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tag_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">release_settings</span><span class="o">.</span><span class="n">tag_name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReleaseError</span><span class="p">(</span><span class="s2">&quot;Error formatting release tag name: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tag_name</span><span class="p">:</span>
+            <span class="n">tag_name</span> <span class="o">=</span> <span class="s2">&quot;unversioned&quot;</span>
+        <span class="k">return</span> <span class="n">tag_name</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.run_hooks"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.run_hooks">[docs]</a>    <span class="k">def</span> <span class="nf">run_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hook_event</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">hook_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">release_hooks</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">hooks</span> <span class="o">=</span> <span class="n">create_release_hooks</span><span class="p">(</span><span class="n">hook_names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_dir</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">hook</span> <span class="ow">in</span> <span class="n">hooks</span><span class="p">:</span>
+            <span class="n">debug_print</span><span class="p">(</span><span class="s2">&quot;Running </span><span class="si">%s</span><span class="s2"> hook &#39;</span><span class="si">%s</span><span class="s2">&#39;...&quot;</span><span class="p">,</span>
+                        <span class="n">hook_event</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">())</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">hook</span><span class="p">,</span> <span class="n">hook_event</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">getpass</span><span class="o">.</span><span class="n">getuser</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">ReleaseHookCancellingError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReleaseError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> cancelled by </span><span class="si">%s</span><span class="s2"> hook &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="n">hook_event</span><span class="o">.</span><span class="n">noun</span><span class="p">,</span> <span class="n">hook_event</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span>
+                       <span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+            <span class="k">except</span> <span class="n">RezError</span><span class="p">:</span>
+                <span class="n">debug_print</span><span class="p">(</span><span class="s2">&quot;Error in </span><span class="si">%s</span><span class="s2"> hook &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">hook_event</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span>
+                               <span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.get_previous_release"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.get_previous_release">[docs]</a>    <span class="k">def</span> <span class="nf">get_previous_release</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">release_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">release_packages_path</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="n">iter_packages</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">paths</span><span class="o">=</span><span class="p">[</span><span class="n">release_path</span><span class="p">])</span>
+        <span class="n">packages</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">package</span><span class="o">.</span><span class="n">version</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">package</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.get_changelog"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.get_changelog">[docs]</a>    <span class="k">def</span> <span class="nf">get_changelog</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">previous_package</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_previous_release</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">previous_package</span><span class="p">:</span>
+            <span class="n">previous_revision</span> <span class="o">=</span> <span class="n">previous_package</span><span class="o">.</span><span class="n">revision</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">previous_revision</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">changelog</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_operation</span><span class="p">():</span>
+            <span class="n">changelog</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="o">.</span><span class="n">get_changelog</span><span class="p">(</span>
+                <span class="n">previous_revision</span><span class="p">,</span>
+                <span class="n">max_revisions</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">max_package_changelog_revisions</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">changelog</span></div>
+
+<div class="viewcode-block" id="BuildProcessHelper.get_release_data"><a class="viewcode-back" href="../../api/rez.html#rez.build_process.BuildProcessHelper.get_release_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_release_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get release data for this release.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">previous_package</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_previous_release</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">previous_package</span><span class="p">:</span>
+            <span class="n">previous_version</span> <span class="o">=</span> <span class="n">previous_package</span><span class="o">.</span><span class="n">version</span>
+            <span class="n">previous_revision</span> <span class="o">=</span> <span class="n">previous_package</span><span class="o">.</span><span class="n">revision</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">previous_version</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">previous_revision</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">vcs</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span>
+                        <span class="n">previous_version</span><span class="o">=</span><span class="n">previous_version</span><span class="p">)</span>
+
+        <span class="n">revision</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">repo_operation</span><span class="p">():</span>
+            <span class="n">revision</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="o">.</span><span class="n">get_current_revision</span><span class="p">()</span>
+
+        <span class="n">changelog</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_changelog</span><span class="p">()</span>
+
+        <span class="c1"># truncate changelog - very large changelogs can cause package load</span>
+        <span class="c1"># times to be very high, we don&#39;t want that</span>
+        <span class="n">maxlen</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">max_package_changelog_chars</span>
+        <span class="k">if</span> <span class="n">maxlen</span> <span class="ow">and</span> <span class="n">changelog</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">changelog</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">maxlen</span> <span class="o">+</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">changelog</span> <span class="o">=</span> <span class="n">changelog</span><span class="p">[:</span><span class="n">maxlen</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">vcs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vcs</span><span class="o">.</span><span class="n">name</span><span class="p">(),</span>
+                    <span class="n">revision</span><span class="o">=</span><span class="n">revision</span><span class="p">,</span>
+                    <span class="n">changelog</span><span class="o">=</span><span class="n">changelog</span><span class="p">,</span>
+                    <span class="n">previous_version</span><span class="o">=</span><span class="n">previous_version</span><span class="p">,</span>
+                    <span class="n">previous_revision</span><span class="o">=</span><span class="n">previous_revision</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_print</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span> <span class="o">*</span><span class="n">nargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">nargs</span><span class="p">:</span>
+                <span class="n">txt</span> <span class="o">=</span> <span class="n">txt</span> <span class="o">%</span> <span class="n">nargs</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_print_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quiet</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">br</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">80</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">br</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span> <span class="n">br</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">txt</span><span class="p">))</span>
+
+        <span class="n">pr</span> <span class="o">=</span> <span class="n">Printer</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+        <span class="n">pr</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">heading</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_n_of_m</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variant</span><span class="p">):</span>
+        <span class="n">num_variants</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package</span><span class="o">.</span><span class="n">num_variants</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">index</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">num_variants</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

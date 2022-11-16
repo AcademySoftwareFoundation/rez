@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rez.tests.test_shells &mdash; Rez 2.112.0 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Rez
+          </a>
+              <div class="version">
+                2.112
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">1. API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../one-liners.html">2. One-Liners</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rez</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">rez.tests.test_shells</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for rez.tests.test_shells</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1"># Copyright Contributors to the Rez Project</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">test shell invocation</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">rez.system</span> <span class="kn">import</span> <span class="n">system</span>
+<span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">create_shell</span><span class="p">,</span> <span class="n">get_shell_types</span><span class="p">,</span> <span class="n">get_shell_class</span>
+<span class="kn">from</span> <span class="nn">rez.resolved_context</span> <span class="kn">import</span> <span class="n">ResolvedContext</span>
+<span class="kn">from</span> <span class="nn">rez.rex</span> <span class="kn">import</span> <span class="n">literal</span><span class="p">,</span> <span class="n">expandable</span>
+<span class="kn">from</span> <span class="nn">rez.plugin_managers</span> <span class="kn">import</span> <span class="n">plugin_manager</span>
+<span class="kn">from</span> <span class="nn">rez.utils.execution</span> <span class="kn">import</span> <span class="n">ExecutableScriptMode</span><span class="p">,</span> <span class="n">_get_python_script_files</span>
+<span class="kn">from</span> <span class="nn">rez.tests.util</span> <span class="kn">import</span> <span class="n">TestBase</span><span class="p">,</span> <span class="n">TempdirMixin</span><span class="p">,</span> <span class="n">per_available_shell</span><span class="p">,</span> \
+    <span class="n">install_dependent</span>
+<span class="kn">from</span> <span class="nn">rez.bind</span> <span class="kn">import</span> <span class="n">hello_world</span>
+<span class="kn">from</span> <span class="nn">rez.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<span class="k">def</span> <span class="nf">_stdout</span><span class="p">(</span><span class="n">proc</span><span class="p">):</span>
+    <span class="n">out_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">proc</span><span class="o">.</span><span class="n">returncode</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;The subprocess failed with exitcode </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">proc</span><span class="o">.</span><span class="n">returncode</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">out_</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="TestShells"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells">[docs]</a><span class="k">class</span> <span class="nc">TestShells</span><span class="p">(</span><span class="n">TestBase</span><span class="p">,</span> <span class="n">TempdirMixin</span><span class="p">):</span>
+<div class="viewcode-block" id="TestShells.setUpClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.setUpClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setUpClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">TempdirMixin</span><span class="o">.</span><span class="n">setUpClass</span><span class="p">()</span>
+
+        <span class="n">packages_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;packages&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">packages_path</span><span class="p">)</span>
+        <span class="n">hello_world</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">packages_path</span><span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">packages_path</span><span class="o">=</span><span class="p">[</span><span class="n">packages_path</span><span class="p">],</span>
+            <span class="n">package_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">implicit_packages</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">warn_untimestamped</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.tearDownClass"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.tearDownClass">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">tearDownClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">TempdirMixin</span><span class="o">.</span><span class="n">tearDownClass</span><span class="p">()</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_context</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pkgs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ResolvedContext</span><span class="p">(</span><span class="n">pkgs</span><span class="p">,</span> <span class="n">caching</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TestShells.test_aaa_shell_presence"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_aaa_shell_presence">[docs]</a>    <span class="k">def</span> <span class="nf">test_aaa_shell_presence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ensure specific shell types are present as loaded plugins.</span>
+
+<span class="sd">        The env var _REZ_ENSURE_TEST_SHELLS should be set by a CI system (such</span>
+<span class="sd">        as github actions) to make sure the shells we expect to be installed,</span>
+<span class="sd">        are installed, and are getting tested.</span>
+
+<span class="sd">        Note &#39;aaa&#39; forces unittest to run this test first.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shells</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;_REZ_ENSURE_TEST_SHELLS&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="n">shells</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">shells</span> <span class="k">if</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">shells</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span><span class="s2">&quot;Not ensuring presence of shells from explicit list&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># check for missing shells</span>
+        <span class="n">missing_shells</span> <span class="o">=</span> <span class="n">shells</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">get_shell_types</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">missing_shells</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;The following shells should be available for testing but are &quot;</span>
+                <span class="s2">&quot;not present: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">list</span><span class="p">(</span><span class="n">missing_shells</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># check for unavailable shells</span>
+        <span class="k">for</span> <span class="n">shell</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">get_shell_class</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;The shell </span><span class="si">%r</span><span class="s2"> is not available (executable not found)&quot;</span>
+                    <span class="o">%</span> <span class="n">shell</span>
+                <span class="p">)</span>
+
+        <span class="c1"># check for shell plugins that failed to load</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span> <span class="ow">in</span> <span class="n">plugin_manager</span><span class="o">.</span><span class="n">get_failed_plugins</span><span class="p">(</span><span class="s2">&quot;shell&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">shells</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;The shell plugin </span><span class="si">%r</span><span class="s2"> failed to load: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+                <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_no_output"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_no_output">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_no_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">command</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">command</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="s2">&quot;hello_world -q&quot;</span><span class="p">,</span>
+                                <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+                <span class="n">_stdout</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="s2">&quot;This test and others will fail, because one or more of your &quot;</span>
+                <span class="s2">&quot;startup scripts are printing to stdout. Please remove the &quot;</span>
+                <span class="s2">&quot;printout and try again.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_create_executable_script"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_create_executable_script">[docs]</a>    <span class="k">def</span> <span class="nf">test_create_executable_script</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">script_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;script&quot;</span><span class="p">)</span>
+        <span class="n">py_script_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;script.py&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">platform</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;windows&#39;</span><span class="p">,</span> <span class="s1">&#39;linux&#39;</span><span class="p">]:</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">py</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">py_script_file</span><span class="p">])</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">py_script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">py</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">py_script_file</span><span class="p">])</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">single</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">script_file</span><span class="p">])</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">py_script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">single</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">py_script_file</span><span class="p">])</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">both</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">script_file</span><span class="p">,</span> <span class="n">py_script_file</span><span class="p">])</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">py_script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">both</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">py_script_file</span><span class="p">])</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">platform_specific</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;windows&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">py_script_file</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">script_file</span><span class="p">])</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">_get_python_script_files</span><span class="p">(</span><span class="n">py_script_file</span><span class="p">,</span>
+                                             <span class="n">ExecutableScriptMode</span><span class="o">.</span><span class="n">platform_specific</span><span class="p">,</span>
+                                             <span class="n">platform</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertListEqual</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">[</span><span class="n">py_script_file</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TestShells.test_command"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_command">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">command</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">command</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="s2">&quot;hello_world&quot;</span><span class="p">,</span>
+                                <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">_stdout</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="s2">&quot;Hello Rez World!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_command_returncode"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_command_returncode">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_command_returncode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">command</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">command</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;hello_world -q -r 66&quot;</span>
+            <span class="n">commands</span> <span class="o">=</span> <span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">command</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">commands</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">,</span> <span class="mi">66</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_norc"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_norc">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_norc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">norc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">command</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">norc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">norc</span> <span class="ow">and</span> <span class="n">command</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">norc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">command</span><span class="o">=</span><span class="s2">&quot;hello_world&quot;</span><span class="p">,</span>
+                                <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">_stdout</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="s2">&quot;Hello Rez World!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_stdin"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_stdin">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_stdin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">stdin</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">stdin</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">stdin</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                <span class="n">norc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="s2">&quot;hello_world</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="s2">&quot;Hello Rez World!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_rcfile"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_rcfile">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_rcfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+        <span class="n">rcfile</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">command</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">rcfile</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">rcfile</span> <span class="ow">and</span> <span class="n">command</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">()</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;hello_world</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([</span><span class="s2">&quot;hello_world&quot;</span><span class="p">])</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">rcfile</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                                <span class="n">command</span><span class="o">=</span><span class="s2">&quot;hello_world -q&quot;</span><span class="p">,</span>
+                                <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">_stdout</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="s2">&quot;Hello Rez World!&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+    <span class="c1"># TODO fix cmd shell command string escape</span>
+    <span class="c1"># as per https://github.com/AcademySoftwareFoundation/rez/pull/1130, then remove this</span>
+    <span class="c1"># exclusion</span>
+    <span class="c1">#</span>
+<div class="viewcode-block" id="TestShells.test_rez_env_output"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_rez_env_output">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">(</span><span class="n">exclude</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;cmd&quot;</span><span class="p">])</span>
+    <span class="nd">@install_dependent</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_rez_env_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">_test</span><span class="p">(</span><span class="n">txt</span><span class="p">):</span>
+            <span class="c1"># Assumes that the shell has an echo command, built-in or alias</span>
+            <span class="n">binpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">rez_bin_path</span><span class="p">,</span> <span class="s2">&quot;rez-env&quot;</span><span class="p">)</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">binpath</span><span class="p">,</span> <span class="s2">&quot;--shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">,</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="s2">&quot;echo&quot;</span><span class="p">,</span> <span class="n">txt</span><span class="p">]</span>
+
+            <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+                <span class="n">args</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">sh_out</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+
+            <span class="c1"># because powershell may not exit with !0 on error, depending on</span>
+            <span class="c1"># how it&#39;s been configured</span>
+            <span class="c1">#</span>
+            <span class="k">if</span> <span class="n">sh_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Command </span><span class="si">%r</span><span class="s2"> failed:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="n">sh_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">sh_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">txt</span><span class="p">)</span>
+
+        <span class="c1"># please note - it&#39;s no coincidence that there are no substrings like</span>
+        <span class="c1"># &#39;$you&#39; here. These would expand to the equivalent env-var (as</span>
+        <span class="c1"># intended), which would be an empty string. We&#39;re not testing that</span>
+        <span class="c1"># here though.</span>
+        <span class="c1">#</span>
+
+        <span class="n">_test</span><span class="p">(</span><span class="s2">&quot;hey&quot;</span><span class="p">)</span>  <span class="c1"># simple case</span>
+        <span class="n">_test</span><span class="p">(</span><span class="s2">&quot;hey you&quot;</span><span class="p">)</span>  <span class="c1"># with a space</span>
+        <span class="n">_test</span><span class="p">(</span><span class="s2">&quot;&lt;hey&gt;&quot;</span><span class="p">)</span>  <span class="c1"># special characters</span>
+        <span class="n">_test</span><span class="p">(</span><span class="s2">&quot;!hey&gt;$&quot;</span><span class="p">)</span>  <span class="c1"># more special characters</span>
+        <span class="n">_test</span><span class="p">(</span><span class="s2">&quot;&#39;hey&#39;&quot;</span><span class="p">)</span>  <span class="c1"># single quotes</span>
+        <span class="n">_test</span><span class="p">(</span><span class="s1">&#39;&quot;hey&quot;&#39;</span><span class="p">)</span>  <span class="c1"># double quotes</span>
+        <span class="n">_test</span><span class="p">(</span><span class="s2">&quot;hey `&quot;</span><span class="p">)</span>  <span class="c1"># backtick</span>
+        <span class="n">_test</span><span class="p">(</span><span class="s2">&quot;hey $ ?yeah&gt; &#39;you&#39;..^!&quot;</span><span class="p">)</span>  <span class="c1"># throw lots of stuff at it</span></div>
+
+<div class="viewcode-block" id="TestShells.test_rez_command"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_rez_command">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="nd">@install_dependent</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_rez_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">(</span><span class="n">shell</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">command</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">startup_capabilities</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">command</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([])</span>
+            <span class="k">with</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="s2">&quot;rezolve -h&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="s2">&quot;rez-env -h&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_rex_code"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_rex_code">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_rex_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Test that Rex code run in the shell creates the environment variable</span>
+<span class="sd">        values that we expect.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;default_shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_execute_code</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">expected_output</span><span class="p">):</span>
+            <span class="n">loc</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">func</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">loc</span><span class="p">))</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([])</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_rex_code</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">output</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">expected_output</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_rex_assigning</span><span class="p">():</span>
+            <span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">create_shell</span>
+            <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">()</span>
+
+            <span class="k">def</span> <span class="nf">_print</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">FOO</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="c1"># Wrap the output in quotes to prevent the shell from</span>
+                <span class="c1"># interpreting parts of our output as commands. This can happen</span>
+                <span class="c1"># when we include special characters (&amp;, &lt;, &gt;, ^) in a</span>
+                <span class="c1"># variable.</span>
+                <span class="n">info</span><span class="p">(</span><span class="s1">&#39;&quot;$</span><span class="si">{FOO}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+
+            <span class="n">env</span><span class="o">.</span><span class="n">GREET</span> <span class="o">=</span> <span class="s2">&quot;hi&quot;</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">WHO</span> <span class="o">=</span> <span class="s2">&quot;Gary&quot;</span>
+
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;ello&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;ello&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;ello&quot;</span><span class="p">))</span>
+            <span class="n">info</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\\&quot;</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&#39;&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\\&quot;</span><span class="s2">&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">path1</span><span class="se">\\</span><span class="s2">path2</span><span class="se">\\</span><span class="s2">path3&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">path1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">e</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">path2</span><span class="se">\\</span><span class="s2">path3&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;hello world&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;hello &#39;world&#39;&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s1">&#39;hello &quot;world&quot;&#39;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;hello world&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;hello &#39;world&#39;&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s1">&#39;hello &quot;world&quot;&#39;</span><span class="p">))</span>
+
+            <span class="c1"># Generic form of variables</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;hey $WHO&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;hey $</span><span class="si">{WHO}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{GREET}</span><span class="s2"> &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">e</span><span class="p">(</span><span class="s2">&quot;$WHO&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{GREET}</span><span class="s2"> &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="s2">&quot;$WHO&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{WHO}</span><span class="s2">&quot;</span><span class="p">))</span>
+            <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{WHO}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">e</span><span class="p">(</span><span class="s2">&quot; $WHO&quot;</span><span class="p">))</span>
+
+            <span class="c1"># Make sure we are escaping &amp;, &lt;, &gt;, ^ properly.</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s1">&#39;hey &amp; world&#39;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s1">&#39;hey &gt; world&#39;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s1">&#39;hey &lt; world&#39;</span><span class="p">)</span>
+            <span class="n">_print</span><span class="p">(</span><span class="s1">&#39;hey ^ world&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Platform dependent form of variables.</span>
+            <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">sh</span><span class="o">.</span><span class="n">get_all_key_tokens</span><span class="p">(</span><span class="s2">&quot;WHO&quot;</span><span class="p">):</span>
+                <span class="n">_print</span><span class="p">(</span><span class="s2">&quot;hey &quot;</span> <span class="o">+</span> <span class="n">token</span><span class="p">)</span>
+                <span class="n">_print</span><span class="p">(</span><span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{GREET}</span><span class="s2"> &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">e</span><span class="p">(</span><span class="n">token</span><span class="p">))</span>
+                <span class="n">_print</span><span class="p">(</span><span class="n">expandable</span><span class="p">(</span><span class="s2">&quot;$</span><span class="si">{GREET}</span><span class="s2"> &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">l</span><span class="p">(</span><span class="n">token</span><span class="p">))</span>
+                <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="n">token</span><span class="p">))</span>
+                <span class="n">_print</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="n">token</span><span class="p">)</span><span class="o">.</span><span class="n">e</span><span class="p">(</span><span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">token</span><span class="p">))</span>
+
+        <span class="n">expected_output</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;ello&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ello&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ello&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&#39;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\\&quot;</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&#39;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\\&quot;</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">path1</span><span class="se">\\</span><span class="s2">path2</span><span class="se">\\</span><span class="s2">path3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">path1</span><span class="se">\\</span><span class="s2">path2</span><span class="se">\\</span><span class="s2">path3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hello world&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hello &#39;world&#39;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;hello &quot;world&quot;&#39;</span><span class="p">,</span>
+            <span class="s2">&quot;hello world&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hello &#39;world&#39;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;hello &quot;world&quot;&#39;</span><span class="p">,</span>
+            <span class="s2">&quot;hey Gary&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hey Gary&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hi Gary&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hi $WHO&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;$</span><span class="si">{WHO}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;$</span><span class="si">{WHO}</span><span class="s2"> Gary&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hey &amp; world&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hey &gt; world&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hey &lt; world&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hey ^ world&quot;</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Assertions for other environment variable types</span>
+        <span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">create_shell</span>
+
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">sh</span><span class="o">.</span><span class="n">get_all_key_tokens</span><span class="p">(</span><span class="s2">&quot;WHO&quot;</span><span class="p">):</span>
+            <span class="n">expected_output</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="s2">&quot;hey Gary&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;hi Gary&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;hi &quot;</span> <span class="o">+</span> <span class="n">token</span><span class="p">,</span>
+                <span class="n">token</span><span class="p">,</span>
+                <span class="n">token</span> <span class="o">+</span> <span class="s2">&quot; Gary&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+
+        <span class="c1"># We are wrapping all variable outputs in quotes in order to make sure</span>
+        <span class="c1"># our shell isn&#39;t interpreting our output as instructions when echoing</span>
+        <span class="c1"># it but this means we need to wrap our expected output as well. Only</span>
+        <span class="c1"># exception is empty string, which is just passed through.</span>
+        <span class="n">expected_output</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">if</span> <span class="n">o</span> <span class="k">else</span> <span class="n">o</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">expected_output</span><span class="p">]</span>
+
+        <span class="n">_execute_code</span><span class="p">(</span><span class="n">_rex_assigning</span><span class="p">,</span> <span class="n">expected_output</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_rex_appending</span><span class="p">():</span>
+            <span class="kn">from</span> <span class="nn">rez.shells</span> <span class="kn">import</span> <span class="n">create_shell</span>
+            <span class="n">sh</span> <span class="o">=</span> <span class="n">create_shell</span><span class="p">()</span>
+
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;hey&quot;</span><span class="p">)</span>
+            <span class="n">info</span><span class="p">(</span><span class="n">sh</span><span class="o">.</span><span class="n">get_key_token</span><span class="p">(</span><span class="s2">&quot;FOO&quot;</span><span class="p">))</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">literal</span><span class="p">(</span><span class="s2">&quot;$DAVE&quot;</span><span class="p">))</span>
+            <span class="n">info</span><span class="p">(</span><span class="n">sh</span><span class="o">.</span><span class="n">get_key_token</span><span class="p">(</span><span class="s2">&quot;FOO&quot;</span><span class="p">))</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">FOO</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Dave&#39;s not here man&quot;</span><span class="p">)</span>
+            <span class="n">info</span><span class="p">(</span><span class="n">sh</span><span class="o">.</span><span class="n">get_key_token</span><span class="p">(</span><span class="s2">&quot;FOO&quot;</span><span class="p">))</span>
+
+        <span class="n">expected_output</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;hey&quot;</span><span class="p">,</span>
+            <span class="n">sh</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;hey&quot;</span><span class="p">,</span> <span class="s2">&quot;$DAVE&quot;</span><span class="p">]),</span>
+            <span class="n">sh</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;hey&quot;</span><span class="p">,</span> <span class="s2">&quot;$DAVE&quot;</span><span class="p">,</span> <span class="s2">&quot;Dave&#39;s not here man&quot;</span><span class="p">])</span>
+        <span class="p">]</span>
+
+        <span class="n">_execute_code</span><span class="p">(</span><span class="n">_rex_appending</span><span class="p">,</span> <span class="n">expected_output</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_rex_code_alias"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_rex_code_alias">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_rex_code_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ensure PATH changes do not influence the alias command.</span>
+
+<span class="sd">        This is important for Windows because the doskey.exe might not be on</span>
+<span class="sd">        the PATH anymore at the time it&#39;s executed. That&#39;s why we figure out</span>
+<span class="sd">        the absolute path to doskey.exe before we modify PATH and continue to</span>
+<span class="sd">        use the absolute path after the modifications.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;default_shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_execute_code</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+            <span class="n">loc</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">func</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">loc</span><span class="p">))</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([])</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_rex_code</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+
+            <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_alias_after_path_manipulation</span><span class="p">():</span>
+            <span class="c1"># Appending something to the PATH and creating an alias afterwards</span>
+            <span class="c1"># did fail before we implemented a doskey specific fix.</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">PATH</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;hey&quot;</span><span class="p">)</span>
+            <span class="n">alias</span><span class="p">(</span><span class="s2">&quot;alias_test&quot;</span><span class="p">,</span> <span class="s2">&quot;echo test_echo&quot;</span><span class="p">)</span>
+
+        <span class="c1"># We don&#39;t expect any output, the shell should just return with exit</span>
+        <span class="c1"># code 0.</span>
+        <span class="n">_execute_code</span><span class="p">(</span><span class="n">_alias_after_path_manipulation</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_alias_command"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_alias_command">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_alias_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Testing alias can be passed in as command</span>
+
+<span class="sd">        This is important for Windows CMD shell because the doskey.exe isn&#39;t</span>
+<span class="sd">        executed yet when the alias is being passed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;default_shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_make_alias</span><span class="p">(</span><span class="n">ex</span><span class="p">):</span>
+            <span class="n">ex</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;hi&#39;</span><span class="p">,</span> <span class="s1">&#39;echo &quot;hi&quot;&#39;</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([])</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="s1">&#39;hi&#39;</span><span class="p">,</span>
+                            <span class="n">actions_callback</span><span class="o">=</span><span class="n">_make_alias</span><span class="p">,</span>
+                            <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+
+        <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestShells.test_alias_command_with_args"><a class="viewcode-back" href="../../../api/rez.tests.html#rez.tests.test_shells.TestShells.test_alias_command_with_args">[docs]</a>    <span class="nd">@per_available_shell</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">test_alias_command_with_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Testing alias can be passed in as command with args</span>
+
+<span class="sd">        This is important for Windows CMD shell because the doskey.exe isn&#39;t</span>
+<span class="sd">        executed yet when the alias is being passed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="s2">&quot;default_shell&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_make_alias</span><span class="p">(</span><span class="n">ex</span><span class="p">):</span>
+            <span class="n">ex</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;tell&#39;</span><span class="p">,</span> <span class="s1">&#39;echo&#39;</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_context</span><span class="p">([])</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">execute_shell</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="s1">&#39;tell &quot;hello&quot;&#39;</span><span class="p">,</span>
+                            <span class="n">actions_callback</span><span class="o">=</span><span class="n">_make_alias</span><span class="p">,</span>
+                            <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+
+        <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014, Allan Johns.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
