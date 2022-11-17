@@ -59,5 +59,5 @@ jobs:
         run: |
           git add --all
           ( git commit -m "Generated from GitHub ${{ github.workflow }} Workflow" \
-            && git push origin master \
+            && git push origin main \
           ) || echo "Nothing new to commit"

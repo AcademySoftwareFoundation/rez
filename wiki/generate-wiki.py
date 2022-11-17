@@ -29,7 +29,7 @@ REZ_SOURCE_DIR = os.getenv("REZ_SOURCE_DIR", os.path.dirname(THIS_DIR))
 
 OUT_DIR = "out"
 GITHUB_REPO = "unknown/rez"
-GITHUB_BRANCH = "master"
+GITHUB_BRANCH = "main"
 GITHUB_WORKFLOW = "Wiki"
 
 

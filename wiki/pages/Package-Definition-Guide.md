@@ -900,11 +900,11 @@ setting 'TODO_ADD_THIS'). A package may not have a release message.
 *Type varies*
 
     revision = \
-        {'branch': 'master',
+        {'branch': 'main',
          'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
          'fetch_url': 'git@github.com:foo/dummy.git',
          'push_url': 'git@github.com:foo/dummy.git',
-         'tracking_branch': 'origin/master'}
+         'tracking_branch': 'origin/main'}
 
 Information about the source control revision containing the source code that was released. The
 data type is determined by the version control system plugin that was used. The example code shown

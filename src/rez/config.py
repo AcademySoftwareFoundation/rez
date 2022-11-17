@@ -35,7 +35,7 @@ basestring = six.string_types[0]
 class Setting(object):
     """Setting subclasses implement lazy setting validators.
 
-    Note that lazy setting validation only happens on master configuration
+    Note that lazy setting validation only happens on main configuration
     settings - plugin settings are validated on load only.
     """
     schema = Schema(object)
@@ -497,8 +497,8 @@ class Config(six.with_metaclass(LazyAttributeMeta, object)):
     `Config` object directly.
 
     Config files are merged with other config files to create a `Config`
-    instance. The 'rezconfig' file in rez acts as the master - other config
-    files update the master configuration to create the final config. See the
+    instance. The 'rezconfig' file in rez acts as the primary - other config
+    files update the primary configuration to create the final config. See the
     comments at the top of 'rezconfig' for more details.
     """
     schema = config_schema

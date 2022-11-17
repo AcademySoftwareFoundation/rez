@@ -93,11 +93,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: master
+          ref: main
           path: src
 
           # This is a PAT from an Admin user. We do this in order to be able to write to a
-          # protected branch (master) from this workflow.
+          # protected branch (main) from this workflow.
           # See https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/14
           #
           token: "${{ secrets.GH_ACTION_TOKEN }}"
@@ -134,6 +134,6 @@ jobs:
           else
             git add --all
             git commit -m "Generated from GitHub "${{ github.workflow }}" Workflow"
-            git push origin master
+            git push origin main
           fi
         working-directory: src

@@ -1148,7 +1148,7 @@ plugins = {
         # can be used to block releases from development or feature branches,
         # and support a workflow such as "gitflow".  Each branch name should be
         # a regular expression that can be used with re.match(), for example
-        # "^master$".
+        # "^main$".
         "releasable_branches": [],
 
         # If True, a release will be cancelled if the repository has already been
