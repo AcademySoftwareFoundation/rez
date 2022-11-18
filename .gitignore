@@ -14,3 +14,4 @@ docs/_build
 wiki/out
 LATEST_CHANGELOG.md
 __pycache__
+.git-commit-template

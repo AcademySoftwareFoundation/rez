@@ -12,6 +12,8 @@ These are variables that rez generates within a resolved environment (a "context
 * **REZ_USED_PACKAGES_PATH** - The package searchpath used for this resolve.
 * **REZ_USED_RESOLVE** - The list of resolved packages, eg *"platform-linux utils-1.2.3"*.
 * **REZ_USED_EPH_RESOLVE** - The list of resolved ephemerals, eg *".foo.cli-1 .debugging-0"*.
+* **REZ_USED_LOCAL_RESOLVE** - The list of resolved local packages, eg *"utils-1.2.3 maya_utils-1.3+"*.
+  Packages listed here will always be a subset of the packages in *REZ_USED_RESOLVE*.
 * **REZ_USED_REQUEST** - The environment request string, eg *"maya-2017 maya_utils-1.3+"*.
   Does not include implicit packages.
 * **REZ_USED_REQUESTED_TIMESTAMP** - The epoch time of this resolved environment,

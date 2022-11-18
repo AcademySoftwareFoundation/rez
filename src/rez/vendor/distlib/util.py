@@ -216,7 +216,7 @@ def parse_requirement(req):
                             break
                         ver_remaining = ver_remaining[1:].lstrip()
 
-                        # https://github.com/nerdvegas/rez/pull/1092
+                        # https://github.com/AcademySoftwareFoundation/rez/pull/1092
                         # Some packages have a trailing comma which would break the matching
                         if not ver_remaining:
                             break

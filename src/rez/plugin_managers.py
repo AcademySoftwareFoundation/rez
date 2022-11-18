@@ -158,7 +158,7 @@ class RezPluginType(object):
                     print_debug("loading %s plugin at %s: %s..."
                                 % (self.type_name, path, modname))
                 try:
-                    # https://github.com/nerdvegas/rez/pull/218
+                    # https://github.com/AcademySoftwareFoundation/rez/pull/218
                     # load_module will force reload the module if it's
                     # already loaded, so check for that
                     plugin_module = sys.modules.get(modname)
@@ -317,7 +317,12 @@ class RezPluginManager(object):
                     module_path = os.path.join(importer.archive, name)
 
             else:
-                module_path = os.path.join(importer.path, name)
+                try:
+                    module_path = os.path.join(importer.path, name)
+                # Ignore execution failures due to missing `importer.path`,
+                # when rez is packaged as a single application via Pyinstaller or PyOxidizer.
+                except AttributeError:
+                    continue
                 init_path = os.path.join(module_path, "rezplugins", "__init__.py")
                 if not os.path.isfile(init_path):
                     continue

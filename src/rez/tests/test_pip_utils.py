@@ -149,6 +149,13 @@ class TestPipUtils(TestBase):
 
         self.assertTrue(rez.utils.pip.is_pure_python_package(dist))
 
+    def test_is_entry_points_scripts_package(self):
+        """
+        """
+        dpath = rez.vendor.distlib.database.DistributionPath([self.dist_path])
+        dist = list(dpath.get_distributions())[0]
+        self.assertFalse(rez.utils.pip.is_entry_points_scripts_package(dist))
+
     def test_convert_distlib_to_setuptools_wrong(self):
         """
         """

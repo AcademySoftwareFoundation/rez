@@ -330,7 +330,7 @@ def make_tmp_name(name):
     path, base = os.path.split(name)
 
     # there's a reason this isn't a hidden file:
-    # https://github.com/nerdvegas/rez/pull/1088
+    # https://github.com/AcademySoftwareFoundation/rez/pull/1088
     #
     tmp_base = "_tmp-%s-%s" % (base, uuid4().hex)
 

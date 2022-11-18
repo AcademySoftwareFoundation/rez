@@ -29,7 +29,7 @@ from rez.utils._version import _rez_version
 
 
 def get_github_repo_owner():
-    out = subprocess.check_output(["git", "remote", "-v"])
+    out = subprocess.check_output(["git", "remote", "-v"], text=True)
 
     # eg git@github.com:jbloggs/rez.git, https://github.com/jbloggs/rez.git
     remote_url = out.split()[1]
@@ -52,7 +52,7 @@ def run_command(*nargs):
     if verbose:
         print("RUNNING: %s" % ' '.join(map(quote, nargs)))
 
-    proc = subprocess.Popen(nargs, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(nargs, stdout=subprocess.PIPE, text=True)
     out, _ = proc.communicate()
 
     if proc.returncode:

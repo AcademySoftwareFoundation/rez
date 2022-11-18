@@ -290,8 +290,10 @@ Do not check this variable to detect if an installation is occurring - see `buil
         env.FOO_INCLUDE_PATH = "{root}/include"
 
 This boolean variable is *True* if a build is occurring (typically done via the *rez-build* tool),
-and *False* otherwise. Typically a package will use this variable to set environment variables that
-are only useful during a build - C++ header include paths are a good example.
+and *False* otherwise, however, the `commands` block is only executed when the package is brought
+into a resolved environment, so this is not used when the package itself is building. Typically a
+package will use this variable to set environment variables that are only useful during when other
+packages are being built - C++ header include paths are a good example.
 
 ### command
 *Function*

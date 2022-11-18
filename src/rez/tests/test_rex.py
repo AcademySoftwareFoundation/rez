@@ -480,7 +480,7 @@ class TestRex(TestBase):
 
         request = RequirementsBinding([])
         bar_on = intersects(request.get("foo.bar", "foo.bar-0"), "1")
-        self.assertFalse(bar_on)  # workaround, see https://github.com/nerdvegas/rez/pull/1030
+        self.assertFalse(bar_on)  # workaround, see https://github.com/AcademySoftwareFoundation/rez/pull/1030
 
         # request.get_range
         request = RequirementsBinding([Requirement("foo.bar-1")])
@@ -516,7 +516,7 @@ class TestRex(TestBase):
 
         ephemerals = EphemeralsBinding([])
         bar_on = intersects(ephemerals.get("foo.bar", "foo.bar-0"), "1")
-        self.assertFalse(bar_on)  # workaround, see https://github.com/nerdvegas/rez/pull/1030
+        self.assertFalse(bar_on)  # workaround, see https://github.com/AcademySoftwareFoundation/rez/pull/1030
 
         ephemerals = EphemeralsBinding([])
         self.assertRaises(RuntimeError,  # no default
