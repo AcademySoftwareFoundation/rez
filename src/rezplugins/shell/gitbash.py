@@ -96,7 +96,7 @@ class GitBash(Bash):
         Returns:
             (str): Transformed file path.
         """
-        return convert_path(path, mode='unix', force_fwdslash=True)
+        return path
 
     def as_shell_path(self, path):
         """Return the given path as a shell path.
