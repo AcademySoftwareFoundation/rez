@@ -61,8 +61,9 @@ Any existing Committer can nominate an individual making significant
 and valuable contributions to the Rez project to become a new
 Committer. New committers are approved by vote of the TSC.
 
-If you are interested in becoming a Committer, contact the TSC at:
-  rez-discussion@lists.aswf.io
+If you are interested in becoming a Committer, contact the TSC via:
+  rez-discussion@lists.aswf.io,
+  or privately on the AcademySoftwareFoundation Slack instance.
 
 ## Technical Steering Committee
 
@@ -93,16 +94,16 @@ The responsibilities of the TSC include:
 
 The TSC elects a Chair person, who acts as the project manager,
 organizing meetings and providing oversight to project
-administration. The Chair is elected by the TSC. The Chair may
+administration. The Chair is elected by the TSC. The Chair will
 also serve as the Rez representative on the Academy Software
-Foundation (ASWF) Technical Advisory Council (TAC), or one may
-be separately elected by the TSC. The Rez representative will
-represent the project at ASWF TAC meetings.
+Foundation (ASWF) Technical Advisory Council (TAC). The chair may
+delegate or reclaim any portion of these responsibilities to or
+from other TSC members on a short or long-term basis.
 
 ### Current TSC Members
 
-Unless otherwise denoted with †, members of the TSC contribute to rez
-independent of their employer, but are listed regardless for transparency.
+Members of the TSC contribute to rez independent of their employer and
+their employer is listed purely for transparency purposes.
 
 * Allan Johns (chair, author) - NVIDIA
 * Brendan Abel - Walt Disney Imagineering
@@ -113,8 +114,7 @@ independent of their employer, but are listed regardless for transparency.
 ### TSC Meetings
 
 All meetings of the TSC are open to participation by any member of the
-Rez community. Meeting times are listed in the [ASWF technical
-community calendar](https://lists.aswf.io/g/tac/calendar). The TSC
+Rez community. Meeting times are listed in the [rez project calendar](https://lists.aswf.io/g/rez-discussion/calendar). The TSC
 Chair moderates the meeting, or appoints another TSC member to
 moderate in his or her absence.
 
@@ -132,9 +132,11 @@ by the TSC at the meeting by logging a GitHub issue. Any Committer,
 TSC member can bring the issue to the TSC's
 attention by applying the `TSC` label.
 
-Prior to each TSC meeting, the meeting chair will share the agenda with members
-of the TSC. TSC members can also add items to the agenda at the beginning of
-each meeting. The meeting chair and the TSC cannot veto or remove items.
+Prior to each TSC meeting, a TSC member will share the agenda with members
+of the TSC. TSC members can also add items to the agenda at the beginning
+of each meeting. The meeting chair and the TSC cannot veto or remove items.
+The agenda will also be shared on Slack in the #rez channel, preferably a
+day before if possible.
 
 The TSC may invite additional persons to participate in a non-voting capacity.
 
