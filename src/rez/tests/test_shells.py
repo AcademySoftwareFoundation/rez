@@ -504,6 +504,17 @@ class TestShells(TestBase, TempdirMixin):
         out, _ = p.communicate()
         self.assertEqual(0, p.returncode)
 
+    @per_available_shell()
+    def test_disabled_path_normalization(self, shell):
+        """Test disabling path normalization via the config."""
+        config.override('disable_normalization', True)
+
+        test_path = r'C:\foo\bar\spam'
+        normalized_path = shell.normalize_path(test_path)
+        expected_path = r'C:\foo\bar\spam'
+
+        self.assertEqual(normalized_path, expected_path)
+
 
 if __name__ == '__main__':
     unittest.main()
