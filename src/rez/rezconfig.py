@@ -541,6 +541,12 @@ shell_pathed_env_vars = {
     "gitbash": ["PYTHONPATH"]
 }
 
+# If set to True, completely disables any path transformations that would occur
+# as a result of both the shell and the settings in "pathed_env_vars" and
+# "shell_pathed_env_vars". This is meant to aid in debugging and should be
+# False unless needed.
+disable_normalization = False
+
 # Defines what suites on $PATH stay visible when a new rez environment is resolved.
 # Possible values are:
 # - "never":            Don"t attempt to keep any suites visible in a new env
