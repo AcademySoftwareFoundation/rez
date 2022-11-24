@@ -245,6 +245,10 @@ class PowerShellBase(Shell):
         return result
 
     def normalize_path(self, path):
+        # Prevent path conversion if normalization is disabled in the config.
+        if config.disable_normalization:
+            return path
+
         if platform_.name == "windows":
             return convert_path(path, 'windows')
         else:

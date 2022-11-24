@@ -261,6 +261,10 @@ class CMD(Shell):
         Returns:
             (str): Transformed file path.
         """
+        # Prevent path conversion if normalization is disabled in the config.
+        if config.disable_normalization:
+            return path
+
         return self.normalize_path(path)
 
     def as_shell_path(self, path):
@@ -274,6 +278,10 @@ class CMD(Shell):
         Returns:
             (str): Transformed file path.
         """
+        # Prevent path conversion if normalization is disabled in the config.
+        if config.disable_normalization:
+            return path
+
         return self.normalize_path(path)
 
     def normalize_path(self, path):
@@ -289,6 +297,9 @@ class CMD(Shell):
             (str): Normalized file path.
         """
         return convert_path(path, 'windows')
+        # Prevent path conversion if normalization is disabled in the config.
+        if config.disable_normalization:
+            return path
 
     def _saferefenv(self, key):
         pass
