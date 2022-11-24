@@ -14,6 +14,7 @@ from rez.config import config
 from rez.util import shlex_join
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
+from rez.utils.logging_ import print_debug
 from rez.shells import UnixShell
 from rez.rex import EscapedString
 
@@ -159,8 +160,18 @@ class CSH(UnixShell):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
     def setenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
-        self._addline('setenv %s %s' % (key, value))
+        is_path = self._is_pathed_key(key) or self._is_shell_pathed_key(key)
+        new_value = self.escape_string(value, is_path=self._is_pathed_key(key))
+
+        if is_path and value != new_value:
+            print_debug(
+                'Path changed: {} -> {}'.format(value, new_value)
+            )
+            self._addline(
+                '# Path value changed: {} -> {}'.format(value, new_value)
+            )
+
+        self._addline('setenv %s %s' % (key, new_value))
 
     def unsetenv(self, key):
         self._addline("unsetenv %s" % key)

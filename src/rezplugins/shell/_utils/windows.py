@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 from rez.utils.execution import Popen
-
+from rez.utils.logging_ import print_debug
 
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _drive_regex_mixed = re.compile(r"([a-z]):/")
@@ -38,20 +38,23 @@ def convert_path(path, mode='unix', force_fwdslash=False):
 
     # Convert the path based on mode.
     if mode == 'mixed':
-        path = to_mixed_path(path)
+        new_path = to_mixed_path(path)
     elif mode == 'windows':
-        path = to_windows_path(path)
+        new_path = to_windows_path(path)
     else:
-        path = to_posix_path(path)
+        new_path = to_posix_path(path)
 
     # NOTE: This would be normal cygpath behavior, but the broader
     # implications of enabling it need extensive testing.
     # Leaving it up to the user for now.
     if force_fwdslash:
         # Backslash -> fwdslash
-        path = path.replace('\\', '/')
+        new_path = new_path.replace('\\', '/')
 
-    return path
+    if path != new_path:
+        print_debug('Path converted: {} -> {}'.format(path, new_path))
+
+    return new_path
 
 
 def to_posix_path(path):

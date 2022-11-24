@@ -5,7 +5,6 @@
 """
 Windows Command Prompt (DOS) shell.
 """
-from lib2to3.pytree import convert
 from rez.config import config
 from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
 from rez.shells import Shell
@@ -296,10 +295,20 @@ class CMD(Shell):
         Returns:
             (str): Normalized file path.
         """
-        return convert_path(path, 'windows')
         # Prevent path conversion if normalization is disabled in the config.
         if config.disable_normalization:
             return path
+
+        converted_path = convert_path(path, 'windows')
+
+        if path != converted_path:
+            self._addline(
+                'REM Path converted: {} -> {}'.format(
+                    path, converted_path
+                )
+            )
+
+        return converted_path
 
     def _saferefenv(self, key):
         pass
@@ -308,12 +317,13 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(
+        new_value = self.escape_string(
             value,
             is_path=self._is_pathed_key(key),
             is_shell_path=self._is_shell_pathed_key(key),
         )
-        self._addline('set %s=%s' % (key, value))
+
+        self._addline('set %s=%s' % (key, new_value))
 
     def unsetenv(self, key):
         self._addline("set %s=" % key)

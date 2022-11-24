@@ -13,6 +13,7 @@ from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
+from rez.utils.logging_ import print_debug
 from rez.util import shlex_join
 from .windows import convert_path
 
@@ -250,7 +251,16 @@ class PowerShellBase(Shell):
             return path
 
         if platform_.name == "windows":
-            return convert_path(path, 'windows')
+            converted_path = convert_path(path, 'windows')
+            if path != converted_path:
+                print_debug(
+                    'Path converted: {} -> {}'.format(path, converted_path)
+                )
+                self._addline(
+                    '# Path converted: {} -> {}'.format(path, converted_path)
+                )
+            return converted_path
+
         else:
             return path
 
@@ -261,21 +271,45 @@ class PowerShellBase(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
-        self._addline('Set-Item -Path "Env:{0}" -Value "{1}"'.format(key, value))
+        is_path = self._is_pathed_key(key)
+        new_value = self.escape_string(value, is_path=is_path)
+
+        if is_path and value != new_value:
+            print_debug(
+                'Path changed: {} -> {}'.format(value, new_value)
+            )
+            self._addline(
+                '# Path value changed: {} -> {}'.format(value, new_value)
+            )
+
+        self._addline(
+            'Set-Item -Path "Env:{0}" -Value "{1}"'.format(key, new_value)
+        )
 
     def prependenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
+        is_path = self._is_pathed_key(key)
+        new_value = self.escape_string(value, is_path=is_path)
+
+        if is_path and value != new_value:
+            self._addline(
+                '# Path value changed: {} -> {}'.format(value, new_value)
+            )
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem "Env:{0}").Value)'.format(
-                key, value, self.pathsep)
+                key, new_value, self.pathsep)
         )
 
     def appendenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
+        is_path = self._is_pathed_key(key)
+        new_value = self.escape_string(value, is_path=is_path)
+
+        if is_path and value != new_value:
+            self._addline(
+                '# Path value changed: {} -> {}'.format(value, new_value)
+            )
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
