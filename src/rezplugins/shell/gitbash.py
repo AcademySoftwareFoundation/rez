@@ -96,6 +96,10 @@ class GitBash(Bash):
         Returns:
             (str): Transformed file path.
         """
+        # Prevent path conversion if normalization is disabled in the config.
+        if config.disable_normalization:
+            return path
+
         return path
 
     def as_shell_path(self, path):
@@ -109,6 +113,9 @@ class GitBash(Bash):
             (str): Transformed file path.
         """
         return convert_path(path, mode='mixed', force_fwdslash=True)
+        # Prevent path conversion if normalization is disabled in the config.
+        if config.disable_normalization:
+            return path
 
     def normalize_path(self, path):
         """Normalize the path to fit the environment.
@@ -122,6 +129,9 @@ class GitBash(Bash):
             (str): Normalized file path.
         """
         return convert_path(path, mode='unix', force_fwdslash=True)
+        # Prevent path conversion if normalization is disabled in the config.
+        if config.disable_normalization:
+            return path
 
     def normalize_paths(self, value):
         """
