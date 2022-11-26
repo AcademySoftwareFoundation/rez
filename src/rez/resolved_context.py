@@ -1959,6 +1959,7 @@ class ResolvedContext(object):
         request_str = ' '.join(str(x) for x in self._package_requests)
         implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
+        local_packages_str = ' '.join(x.qualified_package_name for x in resolved_pkgs if x.is_local)
         req_timestamp_str = str(self.requested_timestamp or 0)
         package_paths_str = executor.interpreter.pathsep.join(
             normalized(x) for x in self.package_paths
@@ -1978,6 +1979,9 @@ class ResolvedContext(object):
         if ephemerals:
             eph_resolve_str = ' '.join(str(x) for x in ephemerals)
             executor.setenv("REZ_USED_EPH_RESOLVE", eph_resolve_str)
+
+        if local_packages_str:
+            executor.setenv("REZ_USED_LOCAL_RESOLVE", local_packages_str)
 
         if self.building:
             executor.setenv("REZ_BUILD_ENV", "1")

@@ -5,33 +5,33 @@
 # https://git-scm.com/docs/gitignore#_pattern_format
 
 # Admin
-/ASWF/                  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-CODEOWNERS              @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-LICENSE                 @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-NOTICE                  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-*.md                    @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/ASWF/                  @nerdvegas @AcademySoftwareFoundation/rez-tsc
+CODEOWNERS              @nerdvegas @AcademySoftwareFoundation/rez-tsc
+LICENSE                 @nerdvegas @AcademySoftwareFoundation/rez-tsc
+NOTICE                  @nerdvegas @AcademySoftwareFoundation/rez-tsc
+*.md                    @nerdvegas @AcademySoftwareFoundation/rez-tsc
 
 # CI
-/.github/               @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-.sonarcloud.properties  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-/src/rez/tests/         @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-/src/rez/data/          @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/.github/               @nerdvegas @AcademySoftwareFoundation/rez-tsc
+.sonarcloud.properties  @nerdvegas @AcademySoftwareFoundation/rez-tsc
+/src/rez/tests/         @nerdvegas @AcademySoftwareFoundation/rez-tsc
+/src/rez/data/          @nerdvegas @AcademySoftwareFoundation/rez-tsc
 
 # Docs
-/wiki/                  @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/wiki/                  @nerdvegas @AcademySoftwareFoundation/rez-tsc
 
 # Core
-/src/rez/backport       @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-/src/rez/bind           @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-/src/rez/cli            @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-/src/rez/utils          @nerdvegas @AcademySoftwareFoundation/rez-maintainers
-/src/rez/*.py           @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/backport       @nerdvegas @AcademySoftwareFoundation/rez-tsc
+/src/rez/bind           @nerdvegas @AcademySoftwareFoundation/rez-tsc
+/src/rez/cli            @nerdvegas @AcademySoftwareFoundation/rez-tsc
+/src/rez/utils          @nerdvegas @AcademySoftwareFoundation/rez-tsc
+/src/rez/*.py           @nerdvegas @AcademySoftwareFoundation/rez-tsc
 
 # Embedded packages
-/src/rez/vendor         @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rez/vendor         @nerdvegas @AcademySoftwareFoundation/rez-tsc
 
 # Plugins
-/src/rezplugins/        @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rezplugins/        @nerdvegas @AcademySoftwareFoundation/rez-tsc
 
 # Gui
-/src/rezgui/            @nerdvegas @AcademySoftwareFoundation/rez-maintainers
+/src/rezgui/            @nerdvegas @AcademySoftwareFoundation/rez-tsc

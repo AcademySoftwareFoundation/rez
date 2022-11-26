@@ -99,3 +99,5 @@ by hand; the 'benchmark' Github workflow does this automatically.
 | 2.110.0 | 3.7 | Linux-5.13.0-1023-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 2 | 1.09 | 1.75 | 1.74 |
 | 2.111.3 | 2.7 | Linux-5.15.0-1014-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 2 | 1.21 | 2.12 | 2.15 |
 | 2.111.3 | 3.7 | Linux-5.15.0-1014-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 2 | 0.98 | 1.76 | 1.79 |
+| 2.112.0 | 2.7 | Linux-5.15.0-1022-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz | 2 | 1.27 | 2.22 | 2.27 |
+| 2.112.0 | 3.7 | Linux-5.15.0-1022-azure-x86_64-with-debian-bullseye-sid | Intel(R) Xeon(R) Platinum 8171M CPU @ 2.60GHz | 2 | 1.09 | 2.03 | 2.10 |

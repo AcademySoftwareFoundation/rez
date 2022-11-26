@@ -1,5 +1,24 @@
 # Change Log
 
+## 2.112.0 (2022-11-15)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.112.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.3...2.112.0)
+
+**Notes**
+
+First Official AcademySoftwareFoundation rez release!
+
+**Merged pull requests:**
+
+- Fix 1255-possible-regression-appendenv-in-powershell-fails-if-env-variable-does-not-exist-already [\#1285](https://github.com/AcademySoftwareFoundation/rez/pull/1285) ([instinct-vfx](https://github.com/instinct-vfx))
+- fix: add platform/arch to variant for rez-pip packages with entry point scripts [\#1287](https://github.com/AcademySoftwareFoundation/rez/pull/1287) ([bpabel](https://github.com/bpabel))
+- working with embedded python scanning rezplugins [\#1359](https://github.com/AcademySoftwareFoundation/rez/pull/1359) ([loonghao](https://github.com/loonghao))
+- Replace nerdvegas with aswf [\#1368](https://github.com/AcademySoftwareFoundation/rez/pull/1368) ([maxnbk](https://github.com/maxnbk))
+- fix asserts causing flake8 linter failures [\#1369](https://github.com/AcademySoftwareFoundation/rez/pull/1369) ([maxnbk](https://github.com/maxnbk))
+- Edit rezconfig docstrings for package_filter to reflect python form rather than YAML [\#1377](https://github.com/AcademySoftwareFoundation/rez/pull/1377) ([herronelou](https://github.com/herronelou))
+- Add REZ_USED_LOCAL_RESOLVE context environment variable [\#1378](https://github.com/AcademySoftwareFoundation/rez/pull/1378) ([JoshkVFX](https://github.com/JoshkVFX))
+- Document .ignore pkg repo functionality [\#1385](https://github.com/AcademySoftwareFoundation/rez/pull/1385) ([jasoncscott](https://github.com/jasoncscott))
+- Clarify when the commands block is executed during rez-build [\#1391](https://github.com/AcademySoftwareFoundation/rez/pull/1391) ([jasoncscott](https://github.com/jasoncscott))
+
 ## 2.111.3 (2022-08-02)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.2...2.111.3)
 
