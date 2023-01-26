@@ -264,7 +264,7 @@ class PowerShellBase(Shell):
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
-            'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem "Env:{0}").Value)'.format(
+            'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value)'.format(
                 key, value, self.pathsep)
         )
 
