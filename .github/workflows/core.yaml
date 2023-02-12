@@ -41,12 +41,12 @@ jobs:
 
       - name: Install Rez
         run: |
-          mkdir ./build
-          python ./install.py ./build
+          mkdir ./installdir
+          python ./install.py ./installdir
 
       - name: Install Rez test dependencies
         run: |
-          ./build/bin/rez/rez-python -m pip install pytest-cov
+          ./installdir/bin/rez/rez-python -m pip install pytest-cov
 
       # TODO: Add a --core rez-selftest option. Some test suites (eg test_context)
       # have some 'core' parts (eg not reliant on a shell). It would be good to just
@@ -54,7 +54,7 @@ jobs:
       # test class. This will be easier once ported to pytest.
       - name: Run Rez Tests
         run: |
-          ./build/bin/rez/rez-selftest -v \
+          ./installdir/bin/rez/rez-selftest -v \
             --config \
             --copy_package \
             --formatter \

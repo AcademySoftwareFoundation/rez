@@ -356,9 +356,7 @@ class IncludeModuleManager(object):
 
                 filepath = hashnames[0]
                 hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
-                # End, for details of backward compat,
-                # see https://github.com/nerdvegas/rez/issues/934
-                # and https://github.com/nerdvegas/rez/pull/935
+                # End, for details of backward compat, see #934 and #935
 
         module = self.modules.get(hash_str)
         if module is not None:
