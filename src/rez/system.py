@@ -207,6 +207,8 @@ class System(object):
         # /<install>/(bin or Scripts)/rez/rez  <- rez executable
         #
         import rez
+        if os.path.exists(os.environ['REZ_BIN_PATH']):
+            return os.environ['REZ_BIN_PATH']
         module_path = rez.__path__[0]
 
         parts = module_path.split(os.path.sep)
