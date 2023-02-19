@@ -19,6 +19,7 @@ from rez.vendor.six import six
 from textwrap import dedent
 import os.path
 from hashlib import sha1
+import shutil
 
 
 basestring = six.string_types[0]
@@ -310,6 +311,11 @@ class PackageRepositoryResource(Resource):
         uniquely identifies this resource.
         """
         raise NotImplementedError
+
+    def install(self, location):
+        """Install resource to a location.
+        """
+        shutil.copytree(self.root, location)
 
 
 class PackageFamilyResource(PackageRepositoryResource):
