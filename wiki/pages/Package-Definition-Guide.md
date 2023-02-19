@@ -546,9 +546,10 @@ enabled. If not provided, this is determined from the global config setting [def
         env.PYTHONPATH.append("{root}/python")
         env.PATH.append("{root}/bin")
 
-This is a block of python code which tells rez how to update an environment so that this package can
-be used. There is a python API provided (see [here](Package-Commands) for more details) that lets
-you do things such as:
+This is a block of python code which tells rez how to update an environment so that this package
+can be used. It is executed when the package is brought into a rez environment, either by explicit
+request or by another package's requirements. There is a python API provided (see
+[here](Package-Commands) for more details) that lets you do things such as:
 
 * set, unset, prepend and append environment variables;
 * create aliases;

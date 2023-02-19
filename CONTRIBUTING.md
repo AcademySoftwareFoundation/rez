@@ -21,9 +21,15 @@ sending a pull request. Please follow these guidelines:
     document the setting. The comments in this file are extracted and turned into Wiki content. Pay
     attention to the comment formatting and follow the existing style closely.
 
+## CLA
+
+Rez enforces use of a Contributor License Agreement as per ASWF guidelines. You need only sign up to the EasyCLA system once, but until you do, your PRs will be automatically blocked.
+
+For more info see https://easycla.lfx.linuxfoundation.org/#/
+
 ## DCO
 
-Rez enforces Developer Certificate of Origin (DCO) on all commits, as per ASWF guidelines.
+Rez enforces Developer Certificate of Origin (DCO) on all commits, as per ASWF guidelines. PRs are automatically blocked until all commits within the PR are signed off.
 
 To automatically add the necessary sign-off line to every commit, we suggest you do the following,
 in the root of the project (you'll only need to do it once, and the template file has been added
