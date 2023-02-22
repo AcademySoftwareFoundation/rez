@@ -278,6 +278,9 @@ package_cache_max_variant_days = 30
 # Enable package caching during a package build.
 package_cache_during_build = False
 
+# Enable package caching to run asynchronously during a resolve.
+package_cache_async = True 
+
 # Allow caching of local packages. You would only want to set this True for
 # testing purposes.
 package_cache_local = False

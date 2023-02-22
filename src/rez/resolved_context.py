@@ -1844,7 +1844,10 @@ class ResolvedContext(object):
 
         pkgcache = self._get_package_cache()
         if pkgcache:
-            pkgcache.add_variants_async(self.resolved_packages)
+            pkgcache.add_variants_async(
+                self.resolved_packages,
+                config.package_cache_async
+                )
 
     @classmethod
     def _init_context_tracking_payload_base(cls):
