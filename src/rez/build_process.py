@@ -122,7 +122,7 @@ class BuildProcess(object):
     def working_dir(self):
         return self.build_system.working_dir
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self, install_path=None, artifact_path=None, clean=False, install=False, variants=None):
         """Perform the build process.
 
         Iterates over the package's variants, resolves the environment for
