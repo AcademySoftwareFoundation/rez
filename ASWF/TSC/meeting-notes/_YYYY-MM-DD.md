@@ -1,17 +1,19 @@
-# Rez TSC Meeting Notes - 2022-08-18
+# Rez TSC Meeting Notes - YYYY-MM-DD
+
+:movie_camera::scroll: Recording: <link to recording>
 
 ## Attendance
 
 * Host: TBD
 * Secretary: TBD
 * TSC Attendees:
-    * [ ] Allan Johns - NVIDIA
-    * [ ] Brendan Abel - Walt-Disney Imagineering
-    * [ ] Jean-Christophe Morin - Freelance
-    * [ ] Stephen Mackenzie - NVIDIA
-    * [ ] Thorsten Kaufmann - Mackevision / Accenture
+  * [ ] Allan Johns - NVIDIA
+  * [ ] Brendan Abel - Walt-Disney Imagineering
+  * [ ] Jean-Christophe Morin - Freelance
+  * [ ] Stephen Mackenzie - NVIDIA
+  * [ ] Thorsten Kaufmann - Mackevision / Accenture
 * Other Attendees:
-     * [ ] TBD
+  * TBD
 
 ## Agenda
 * Agenda Issue: [https://github.com/AcademySoftwareFoundation/rez/issues/####]
@@ -20,16 +22,16 @@
 ## Short Version / Decisions / Action Items / Important Links
 
 * Decisions:
-    * Item
+  * Item
 * Discussions:
-    * Item
+  * Item
 * Action Items:
-    * Assignee: Item
+  * Assignee: Item
 * Links:
-    * (Item)[Item]
+  * (Item)[Item]
 
 ## Details
 
 ### Agenda Item
 * (TBD):
-    * Blah
+  * 
