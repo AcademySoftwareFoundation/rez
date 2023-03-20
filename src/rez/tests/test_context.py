@@ -182,6 +182,30 @@ class TestContext(TestBase, TempdirMixin):
 
             _test_bundle(bundle_path3)
 
+    def test_execute_command_default_env(self):
+        """Test that execute_command uses os.environ when parent_environ=None"""
+        with restore_os_environ(), restore_sys_path():
+            # Set env var in current process
+            os.environ['EXAMPLE'] = 'blahblah'
+
+            # Create context
+            r = ResolvedContext(["hello_world"])
+
+            # Print $EXAMPLE
+            pycode = ("import os; "
+                      "print(os.getenv(\"EXAMPLE\")); "
+                      "print(os.getenv(\"OH_HAI_WORLD\"))")
+
+            args = ["python", "-c", pycode]
+
+            p = r.execute_command(args, parent_environ=None,
+                                  stdout=subprocess.PIPE)
+            stdout, _ = p.communicate()
+            stdout = stdout.strip()
+            parts = [x.strip() for x in stdout.decode("utf-8").split('\n')]
+
+            self.assertEqual(parts, ["blahblah", "hello"])
+
 
 if __name__ == '__main__':
     unittest.main()
