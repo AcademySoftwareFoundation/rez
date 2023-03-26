@@ -1,6 +1,6 @@
 # Project reviews
 
-Every year, we have to do a projecct review thta we present to the TAC.
+Every year, we have to do a project review that we present to the TAC.
 
 This folder contains our past presentations.
 
