@@ -16,7 +16,7 @@
   * TBD
 
 ## Agenda
-* Agenda Issue: [https://github.com/AcademySoftwareFoundation/rez/issues/####]
+* Agenda Issue: https://github.com/AcademySoftwareFoundation/rez/issues/####
 * [ ] Agenda Items
 
 ## Short Version / Decisions / Action Items / Important Links
