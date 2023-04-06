@@ -12,8 +12,20 @@ import argparse
 import os
 import sys
 import shutil
-import os.path
 import subprocess
+
+if sys.version_info[:2] < (3, 7):
+    sys.stderr.write(
+        'Error: rez can only be installed with python greater or equal to 3.7. You are trying to install using Python {0}.{1}.{2} ({3}).\n'.format(
+            sys.version_info[0],
+            sys.version_info[1],
+            sys.version_info[2],
+            sys.executable,
+        )
+    )
+    exit(1)
+
+import venv
 
 
 source_path = os.path.dirname(os.path.realpath(__file__))
@@ -28,36 +40,16 @@ from rez.utils.which import which  # noqa: E402
 from rez.cli._entry_points import get_specifications  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
-# switch to builtin venv in python 3.7+
-#
-# Note: There are issues using venv with 3.6. Installed pip version is 18.2
-# (which isn't high enough for rez-pip to behave correctly). 3.7 installs pip
-# version 20.1.
-#
-use_venv = (sys.version_info[:2] >= (3, 7))
-
-if use_venv:
-    import venv
-else:
-    from build_utils.virtualenv.virtualenv import create_environment, path_locations
-
 
 def create_virtual_environment(dest_dir):
-    if use_venv:
-        builder = venv.EnvBuilder(with_pip=True)
-        builder.create(dest_dir)
-    else:
-        create_environment(dest_dir)
+    builder = venv.EnvBuilder(with_pip=True)
+    builder.create(dest_dir)
 
 
 def get_virtualenv_bin_dir(dest_dir):
-    if use_venv:
-        builder = venv.EnvBuilder()
-        context = builder.ensure_directories(dest_dir)
-        return context.bin_path
-    else:
-        _, _, _, bin_dir = path_locations(dest_dir)
-        return bin_dir
+    builder = venv.EnvBuilder()
+    context = builder.ensure_directories(dest_dir)
+    return context.bin_path
 
 
 def get_virtualenv_py_executable(dest_dir):
