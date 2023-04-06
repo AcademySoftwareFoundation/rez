@@ -12,6 +12,7 @@ on:
       - '.github/workflows/installation.yaml'
       - '!src/rez/utils/_version.py'
       - '!**.md'
+  workflow_dispatch:
 
 jobs:
   main:

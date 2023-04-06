@@ -12,6 +12,11 @@ on:
       - '.github/workflows/mac.yaml'
       - '!src/rez/utils/_version.py'
       - '!**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   main:
