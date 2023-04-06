@@ -331,7 +331,6 @@ jobs:
         os-version:
           - '2019'
         py-version:
-          - '2.7.17'
           - '3.7.5'
 
     steps:
