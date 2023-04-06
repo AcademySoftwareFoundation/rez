@@ -102,6 +102,10 @@ jobs:
             }
             pip install --target C:\ProgramData\rez .
 
+        exclude:
+        - method: install
+          python-version: '2.7'
+
     steps:
     - uses: actions/checkout@v3
 
