@@ -26,8 +26,8 @@ jobs:
     strategy:
       matrix:
         os-version:
-          - '18.04'
           - '20.04'
+          - '22.04'
         python-version:
           - '2.7'
           - '3.7'
