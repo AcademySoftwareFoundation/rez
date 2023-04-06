@@ -24,8 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  main:
-    name: main
+  install_script:
+    name: install_script
     runs-on: ubuntu-latest
 
     strategy:
@@ -69,6 +69,53 @@ jobs:
       - name: Run Rez Tests
         run: |
           ./installdir/bin/rez/rez-selftest -v \
+            --config \
+            --copy_package \
+            --formatter \
+            --imports \
+            --packages \
+            --package_filter \
+            --packages_order \
+            --resources_ \
+            --rex \
+            --schema \
+            --solver \
+            --version
+
+  pip:
+    name: pip
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version:
+          - '2.7'
+          - '3.7'
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Rez
+        run: python -m pip install .
+
+      - name: Install Rez test dependencies
+        run: |
+          python -m pip install pytest pytest-cov
+
+      # TODO: Add a --core rez-selftest option. Some test suites (eg test_context)
+      # have some 'core' parts (eg not reliant on a shell). It would be good to just
+      # run those parts when --core is present, rather than skipping the entire
+      # test class. This will be easier once ported to pytest.
+      - name: Run Rez Tests
+        run: |
+          rez-selftest -v \
             --config \
             --copy_package \
             --formatter \
