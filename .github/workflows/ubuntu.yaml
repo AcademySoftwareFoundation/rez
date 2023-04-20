@@ -12,6 +12,11 @@ on:
       - '.github/workflows/ubuntu.yaml'
       - '!src/rez/utils/_version.py'
       - '!**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   main:
@@ -21,8 +26,8 @@ jobs:
     strategy:
       matrix:
         os-version:
-          - '18.04'
           - '20.04'
+          - '22.04'
         python-version:
           - '2.7'
           - '3.7'
