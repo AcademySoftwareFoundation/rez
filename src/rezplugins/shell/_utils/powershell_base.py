@@ -280,7 +280,9 @@ class PowerShellBase(Shell):
             .format(key, os.path.pathsep, value))
 
     def unsetenv(self, key):
-        self._addline(r"Remove-Item Env:\%s" % key)
+        self._addline(
+            'Remove-Item -ErrorAction -SilentlyContinue "Env:\{0}"'.format(key)
+        )
 
     def resetenv(self, key, value, friends=None):
         self._addline(self.setenv(key, value))
