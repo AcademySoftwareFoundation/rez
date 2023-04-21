@@ -110,6 +110,8 @@ their employer is listed purely for transparency purposes.
 * Stephen Mackenzie (co-chair) - NVIDIA
 * Thorsten Kaufmann - Accenture Song Content
 
+Changes to employment should be updated promply and will require a pull request.
+Such pull requests do not require an approval from all members.
 
 ### Former TSC Members
 
