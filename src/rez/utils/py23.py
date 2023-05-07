@@ -8,6 +8,8 @@ Custom py2/3 interoperability code.
 Put any code here that deals with py2/3 interoperability, beyond simple cases
 that use (for eg) the six module.
 """
+import sys
+
 from rez.vendor.six import six
 
 
@@ -38,7 +40,12 @@ def load_module_from_file(name, filepath):
     if six.PY2:
         import imp
         with open(filepath) as f:
-            return imp.load_source(name, filepath, f)
+            module = imp.load_source(name, filepath, f)
+            # Keep the module out of sys.modules. See comment in the `else:`
+            # for more info
+            if name in sys.modules:
+                del sys.modules[name]
+            return module
 
     else:
         # The below code will import the module _without_ adding it to
