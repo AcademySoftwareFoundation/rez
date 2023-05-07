@@ -41,5 +41,12 @@ def load_module_from_file(name, filepath):
             return imp.load_source(name, filepath, f)
 
     else:
-        from importlib.machinery import SourceFileLoader
-        return SourceFileLoader(name, filepath).load_module()
+        # The below code will import the module _without_ adding it to
+        # sys.modules. We want this otherwise we can't import multiple
+        # versions of the same module
+        # See: https://github.com/AcademySoftwareFoundation/rez/issues/1483
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(name, filepath)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
