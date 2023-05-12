@@ -302,11 +302,7 @@ class CMD(Shell):
         converted_path = convert_path(path, 'windows')
 
         if path != converted_path:
-            self._addline(
-                'REM Path converted: {} -> {}'.format(
-                    path, converted_path
-                )
-            )
+            self._addline("REM normalized path: {!r} -> {}".format(path, converted_path))
 
         return converted_path
 

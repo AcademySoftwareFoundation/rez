@@ -106,24 +106,16 @@ class SH(UnixShell):
 
     def setenv(self, key, value):
         is_implicit = key == 'REZ_USED_IMPLICIT_PACKAGES'
-        is_path = self._is_pathed_key(key) or self._is_shell_pathed_key(key)
 
-        new_value = self.escape_string(
+        # Doesn't just escape, but can also perform path normalization
+        modified_value = self.escape_string(
             value,
             is_path=self._is_pathed_key(key),
             is_shell_path=self._is_shell_pathed_key(key),
             is_implicit=is_implicit,
         )
 
-        if is_path and value != new_value:
-            print_debug(
-                'Path value changed: {} -> {}'.format(value, new_value)
-            )
-            self._addline(
-                '# Path value changed: {} -> {}'.format(value, new_value)
-            )
-
-        self._addline('export %s=%s' % (key, new_value))
+        self._addline("export %s=%s" % (key, modified_value))
 
     def unsetenv(self, key):
         self._addline("unset %s" % key)
@@ -155,6 +147,7 @@ class SH(UnixShell):
                 if is_shell_path:
                     txt = self.as_shell_path(txt)
                 elif is_path:
+                    # potentially calls plugin shell's normalize
                     txt = self.normalize_paths(txt)
 
                 txt = txt.replace('\\', '\\\\')

@@ -7,11 +7,12 @@ import os
 import re
 import os.path
 import subprocess
+
 from rez.config import config
 from rezplugins.shell.bash import Bash
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_debug, print_warning
 from rez.util import dedup
 
 if platform_.name == 'windows':
@@ -112,18 +113,10 @@ class GitBash(Bash):
         Returns:
             (str): Transformed file path.
         """
-        # Prevent path conversion if normalization is disabled in the config.
-        if config.disable_normalization:
-            return path
-
-        converted_path = convert_path(path, mode='mixed', force_fwdslash=True)
-        if path != converted_path:
-            self._addline(
-                '# Path converted: {} -> {}'.format(path, converted_path)
-            )
+        converted_path = self.normalize_path(path, mode="mixed")
         return converted_path
 
-    def normalize_path(self, path):
+    def normalize_path(self, path, mode="unix"):
         """Normalize the path to fit the environment.
         For example, POSIX paths, Windows path, etc. If no transformation is
         necessary, just return the path.
@@ -138,14 +131,18 @@ class GitBash(Bash):
         if config.disable_normalization:
             return path
 
-        converted_path = convert_path(path, mode='unix', force_fwdslash=True)
-        if path != converted_path:
-            self._addline(
-                '# Path converted: {} -> {}'.format(path, converted_path)
+        normalized_path = convert_path(path, mode=mode, force_fwdslash=True)
+        if path != normalized_path:
+            print_debug(
+                "path normalized: {!r} -> {}".format(path, normalized_path)
             )
-        return converted_path
+            self._addline(
+                "# path normalized: {!r} -> {}".format(path, normalized_path)
+            )
 
-    def normalize_paths(self, value):
+        return normalized_path
+
+    def normalize_paths(self, path):
         """
         This is a bit tricky in the case of gitbash. The problem we hit is that
         our pathsep is ':', _but_ pre-normalised paths also contain ':' (eg
@@ -156,13 +153,25 @@ class GitBash(Bash):
         normalize_path() still does drive-colon replace also - it needs to
         behave correctly if passed a string like C:\foo.
         """
+        if config.disable_normalization:
+            return path
+
         def lowrepl(match):
             if match:
-                return '/{}/'.format(match.group(1).lower())
+                return "/{}/".format(match.group(1).lower())
 
         # C:\ ==> /c/
-        value2 = self._drive_regex.sub(lowrepl, value).replace('\\', '/')
-        return value2
+        normalized_path = self._drive_regex.sub(lowrepl, path).replace("\\", "/")
+
+        if path != normalized_path:
+            print_debug(
+                "path normalized: {!r} -> {}".format(path, normalized_path)
+            )
+            self._addline(
+                "# path normalized: {!r} -> {}".format(path, normalized_path)
+            )
+
+        return normalized_path
 
     def shebang(self):
         self._addline('#! /usr/bin/env bash')

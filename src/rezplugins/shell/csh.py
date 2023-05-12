@@ -160,17 +160,7 @@ class CSH(UnixShell):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
     def setenv(self, key, value):
-        is_path = self._is_pathed_key(key) or self._is_shell_pathed_key(key)
         new_value = self.escape_string(value, is_path=self._is_pathed_key(key))
-
-        if is_path and value != new_value:
-            print_debug(
-                'Path changed: {} -> {}'.format(value, new_value)
-            )
-            self._addline(
-                '# Path value changed: {} -> {}'.format(value, new_value)
-            )
-
         self._addline('setenv %s %s' % (key, new_value))
 
     def unsetenv(self, key):

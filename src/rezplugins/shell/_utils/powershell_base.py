@@ -250,15 +250,12 @@ class PowerShellBase(Shell):
         if config.disable_normalization:
             return path
 
+        # TODO: Is this necessary?
         if platform_.name == "windows":
             converted_path = convert_path(path, 'windows')
             if path != converted_path:
-                print_debug(
-                    'Path converted: {} -> {}'.format(path, converted_path)
-                )
-                self._addline(
-                    '# Path converted: {} -> {}'.format(path, converted_path)
-                )
+                print_debug("Path normalized: {} -> {}".format(path, converted_path))
+                self._addline("# Path normalized: {} -> {}".format(path, converted_path))
             return converted_path
 
         else:
@@ -274,14 +271,6 @@ class PowerShellBase(Shell):
         is_path = self._is_pathed_key(key)
         new_value = self.escape_string(value, is_path=is_path)
 
-        if is_path and value != new_value:
-            print_debug(
-                'Path changed: {} -> {}'.format(value, new_value)
-            )
-            self._addline(
-                '# Path value changed: {} -> {}'.format(value, new_value)
-            )
-
         self._addline(
             'Set-Item -Path "Env:{0}" -Value "{1}"'.format(key, new_value)
         )
@@ -289,11 +278,6 @@ class PowerShellBase(Shell):
     def prependenv(self, key, value):
         is_path = self._is_pathed_key(key)
         new_value = self.escape_string(value, is_path=is_path)
-
-        if is_path and value != new_value:
-            self._addline(
-                '# Path value changed: {} -> {}'.format(value, new_value)
-            )
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
@@ -304,12 +288,8 @@ class PowerShellBase(Shell):
 
     def appendenv(self, key, value):
         is_path = self._is_pathed_key(key)
-        new_value = self.escape_string(value, is_path=is_path)
-
-        if is_path and value != new_value:
-            self._addline(
-                '# Path value changed: {} -> {}'.format(value, new_value)
-            )
+        # Doesn't just escape, but can also perform path normalization
+        modified_value = self.escape_string(value, is_path=is_path)
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
@@ -317,7 +297,7 @@ class PowerShellBase(Shell):
         # an exception of the Environment Variable is not set already
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'
-            .format(key, os.path.pathsep, value))
+            .format(key, os.path.pathsep, modified_value))
 
     def unsetenv(self, key):
         self._addline(

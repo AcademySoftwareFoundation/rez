@@ -51,9 +51,6 @@ def convert_path(path, mode='unix', force_fwdslash=False):
         # Backslash -> fwdslash
         new_path = new_path.replace('\\', '/')
 
-    if path != new_path:
-        print_debug('Path converted: {} -> {}'.format(path, new_path))
-
     return new_path
 
 
