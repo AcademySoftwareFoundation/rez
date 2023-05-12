@@ -7,11 +7,9 @@ test shell invocation
 """
 from __future__ import print_function
 
-from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell
-from rez.config import config
 import unittest
 import subprocess
 
@@ -27,7 +25,8 @@ class TestShells(TestBase, TempdirMixin):
             packages_path=[packages_path],
             package_filter=None,
             implicit_packages=[],
-            warn_untimestamped=False)
+            warn_untimestamped=False,
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -38,19 +37,20 @@ class TestShells(TestBase, TempdirMixin):
         return ResolvedContext(pkgs, caching=False)
 
     @per_available_shell()
-    def test_asd(self, shell):
+    def test_shell_execution(self, shell):
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
             r = self._create_context(["shell"])
-            p = r.execute_shell(command="asd",
-                                stdout=subprocess.PIPE, text=True)
+            p = r.execute_shell(command="echo asd", stdout=subprocess.PIPE, text=True)
+            _, _ = p.communicate()
+            self.assertEqual(p.returncode, 0)
 
             if p.returncode:
                 raise RuntimeError(
                     "The subprocess failed with exitcode %d" % p.returncode
-            )
+                )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
