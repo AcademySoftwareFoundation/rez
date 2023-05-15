@@ -530,8 +530,9 @@ class TestShells(TestBase, TempdirMixin):
         """Test disabling path normalization via the config."""
         config.override('disable_normalization', True)
 
+        sh = create_shell(shell)
         test_path = r'C:\foo\bar\spam'
-        normalized_path = shell.normalize_path(test_path)
+        normalized_path = sh.normalize_path(test_path)
         expected_path = r'C:\foo\bar\spam'
 
         self.assertEqual(normalized_path, expected_path)
