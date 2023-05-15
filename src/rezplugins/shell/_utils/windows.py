@@ -6,7 +6,6 @@ import os
 import re
 import subprocess
 from rez.utils.execution import Popen
-from rez.utils.logging_ import print_debug
 
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _drive_regex_mixed = re.compile(r"([a-z]):/")

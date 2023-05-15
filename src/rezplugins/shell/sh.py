@@ -12,7 +12,6 @@ import subprocess
 from rez.config import config
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
-from rez.utils.logging_ import print_debug
 from rez.shells import UnixShell
 from rez.rex import EscapedString
 
