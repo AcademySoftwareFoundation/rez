@@ -9,7 +9,7 @@ import os
 import sys
 import tempfile
 
-from rez.tests.util import TestBase, TempdirMixin
+from rez.tests.util import TestBase
 from rez.utils import py23
 
 
