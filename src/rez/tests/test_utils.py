@@ -55,25 +55,7 @@ class TestPathConversion(TestBase):
 
     def test_convert_windows(self):
         """Test the path conversion to windows style."""
-        # import os, sys
-        # print("__REZ_SELFTEST_RUNNING: {}".format(os.environ.get("__REZ_SELFTEST_RUNNING")))
-        # print("argv: {}".format(sys.argv))
-        # print("="*80)
-        # print("sys path: {}".format(sys.path))
-        # print("="*80)
-        # print("sys modules: {}".format(sys.modules))
-        # print("="*80)
-        # print("PYTHONPATH: {}".format(os.environ.get("PYTHONPATH")))
-        # print("="*80)
         test_path = r'C:\foo/bar/spam'
-        # print("="*80)
-        # print("dir cygpath.convert_path: {}".format(dir(cygpath.convert_path)))
-        # print("="*80)
-        # print("locals: {}".format(locals()))
-        # print("="*80)
-        # print("vars(cygpath.convert_path): {}".format(vars(cygpath.convert_path)))
-        # print("="*80)
-        # print("globals: {}".format(globals()))
         converted_path = cygpath.convert_path(test_path, 'windows')
         expected_path = r'C:\foo\bar\spam'
 
