@@ -10,13 +10,12 @@ import subprocess
 
 from rez.config import config
 from rezplugins.shell.bash import Bash
+from rez.utils.cygpath import convert_path
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.utils.logging_ import print_debug, print_warning
 from rez.util import dedup
-
-if platform_.name == 'windows':
-    from ._utils.windows import get_syspaths_from_registry, convert_path
+from ._utils.windows import get_syspaths_from_registry
 
 
 class GitBash(Bash):

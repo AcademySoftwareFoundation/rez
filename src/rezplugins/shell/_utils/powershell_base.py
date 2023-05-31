@@ -11,11 +11,11 @@ from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
+from rez.utils.cygpath import convert_path
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
 from rez.util import shlex_join
-from .windows import convert_path
 
 
 class PowerShellBase(Shell):

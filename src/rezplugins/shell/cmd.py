@@ -9,10 +9,11 @@ from rez.config import config
 from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
+from rez.utils.cygpath import convert_path
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
-from ._utils.windows import convert_path, get_syspaths_from_registry
+from ._utils.windows import get_syspaths_from_registry
 from functools import partial
 import os
 import re
