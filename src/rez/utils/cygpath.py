@@ -7,6 +7,7 @@
 TODO: refactor and use filesystem utils
 
 """
+import os
 import re
 
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
@@ -30,13 +31,6 @@ def convert_path(path, mode='unix', force_fwdslash=False):
     Returns:
         str: Converted path.
     """
-    import os
-    if os.environ["__REZ_SELFTEST_RUNNING"] == "1":
-        print("=" * 80)
-        print("cygpath.convert_path __REZ_SELFTEST_RUNNING")
-        print("cygpath.convert_path")
-        # print("globals: {}".format(globals()))
-
     # expand refs like %SYSTEMROOT%, leave as-is if not in environ
     def _repl(m):
         varname = m.groups()[0]
