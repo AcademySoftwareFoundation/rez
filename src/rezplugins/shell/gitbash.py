@@ -34,6 +34,23 @@ class GitBash(Bash):
 
     @classmethod
     def find_executable(cls, name, check_syspaths=False):
+        # If WSL is installed, it's probably safest to assume System32 bash is
+        # on the path and the default bash location for gitbash is on the path
+        # and appears after System32. In this scenario, we don't want to get the
+        # executable path from the parent class because it is configured
+        # differently and it seems like the best option to get the executable is
+        # through configuration, unless there's a way to get the gitbash executable
+        # using the registry.
+        settings = config.plugins.shell[cls.name()]
+        if settings.executable_fullpath:
+            if not os.path.exists(settings.executable_fullpath):
+                raise RuntimeError(
+                    "Couldn't find executable '%s'." % settings.executable_fullpath
+                )
+            else:
+                return settings.executable_fullpath
+
+        # Find the gitbash bash executable using the windows registry.
         exepath = Bash.find_executable(name, check_syspaths=check_syspaths)
 
         if exepath and "system32" in exepath.lower():
@@ -41,8 +58,10 @@ class GitBash(Bash):
                 "Git-bash executable has been detected at %s, but this is "
                 "probably not correct (google Windows Subsystem for Linux). "
                 "Consider adjusting your searchpath, or use rez config setting "
-                "plugins.shell.gitbash.executable_fullpath."
+                "plugins.shell.gitbash.executable_fullpath.",
+                exepath
             )
+            raise ValueError("Gitbash executable is not correct: %s" % exepath)
 
         exepath = exepath.replace('\\', '\\\\')
 
