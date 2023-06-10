@@ -10,7 +10,7 @@ from rez.bind._utils import check_version, find_exe, extract_version, \
     make_dirs, log, run_python_command
 from rez.package_maker import make_package
 from rez.system import system
-from rez.utils.lint_helper import env
+from rez.utils.lint_helper import env, this
 from rez.utils.platform_ import platform_
 import shutil
 import os.path
@@ -71,7 +71,11 @@ def bind(path, version_range=None, opts=None, parser=None):
     def make_root(variant, root):
         binpath = make_dirs(root, "bin")
         link = os.path.join(binpath, "python")
-        platform_.symlink(exepath, link)
+        if platform_.name == "windows" and str(version.major) == "2":
+            link += ".exe"
+            shutil.copy(exepath, link)
+        else:
+            platform_.symlink(exepath, link)
 
         if builtin_paths:
             pypath = make_dirs(root, "python")
