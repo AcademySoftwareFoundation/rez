@@ -23,11 +23,11 @@ class GitBash(Bash):
     """Git Bash shell plugin."""
     pathsep = ':'
 
-    _drive_regex = re.compile(r'([A-Za-z]):\\')
+    _drive_regex = re.compile(r"([A-Za-z]):\\")
 
     @classmethod
     def name(cls):
-        return 'gitbash'
+        return "gitbash"
 
     @classmethod
     def executable_name(cls):
@@ -51,7 +51,6 @@ class GitBash(Bash):
             else:
                 return settings.executable_fullpath
 
-        # Find the gitbash bash executable using the windows registry.
         exepath = Bash.find_executable(name, check_syspaths=check_syspaths)
 
         if exepath and "system32" in exepath.lower():
@@ -62,9 +61,8 @@ class GitBash(Bash):
                 "plugins.shell.gitbash.executable_fullpath.",
                 exepath
             )
-            raise ValueError("Gitbash executable is not correct: %s" % exepath)
 
-        exepath = exepath.replace('\\', '\\\\')
+        exepath = exepath.replace("\\", "\\\\")
 
         return exepath
 
@@ -92,7 +90,7 @@ class GitBash(Bash):
         out_, _ = p.communicate()
         if p.returncode == 0:
             lines = out_.split('\n')
-            line = [x for x in lines if '__PATHS_' in x.split()][0]
+            line = [x for x in lines if "__PATHS_" in x.split()][0]
             # note that we're on windows, but pathsep in bash is ':'
             paths = line.strip().split()[-1].split(':')
         else:
@@ -187,7 +185,7 @@ class GitBash(Bash):
         return normalized_path
 
     def shebang(self):
-        self._addline('#! /usr/bin/env bash')
+        self._addline("#!/usr/bin/env bash")
 
 
 def register_plugin():

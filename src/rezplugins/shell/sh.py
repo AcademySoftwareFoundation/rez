@@ -146,7 +146,6 @@ class SH(UnixShell):
                 if is_shell_path:
                     txt = self.as_shell_path(txt)
                 elif is_path:
-                    # potentially calls plugin shell's normalize
                     txt = self.normalize_paths(txt)
 
                 txt = txt.replace('\\', '\\\\')
