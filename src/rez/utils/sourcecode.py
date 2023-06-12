@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-import re
-
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug
@@ -13,8 +11,6 @@ from textwrap import dedent
 from glob import glob
 import traceback
 import os.path
-
-_drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 
 
 def early():
@@ -101,17 +97,7 @@ class SourceCode(object):
                  eval_as_function=True):
         self.source = (source or '').rstrip()
         self.func = func
-
         self.filepath = filepath
-        if self.filepath:
-            drive_letter_match = _drive_start_regex.match(filepath)
-            # If converting the drive letter to posix, lowercase the drive
-            # letter as per cygpath behavior.
-            if drive_letter_match:
-                self.filepath = _drive_start_regex.sub(
-                    drive_letter_match.expand("/\\1/").lower(), filepath
-                )
-            self.filepath = self.filepath.replace("\\", "/")
 
         self.eval_as_function = eval_as_function
         self.package = None
