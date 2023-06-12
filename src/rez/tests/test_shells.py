@@ -39,6 +39,9 @@ class TestShells(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
+        if config.debug("shells"):
+            config.override("debug_shells", False)
+
         packages_path = os.path.join(cls.root, "packages")
         os.makedirs(packages_path)
         hello_world.bind(packages_path)

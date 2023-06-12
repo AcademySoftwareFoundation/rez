@@ -7,7 +7,7 @@ Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
 from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
-from rez.shells import Shell
+from rez.shells import Shell, log
 from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
@@ -303,8 +303,8 @@ class CMD(Shell):
         normalized_path = path.replace("/", "\\")
 
         if path != normalized_path:
-            print_debug("CMD normalize_path()")
-            print_debug("path normalized: {!r} -> {!r}".format(path, normalized_path))
+            log("CMD normalize_path()")
+            log("path normalized: {!r} -> {!r}".format(path, normalized_path))
             self._addline(
                 "REM normalized path: {!r} -> {}".format(path, normalized_path)
             )

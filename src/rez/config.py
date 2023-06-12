@@ -443,6 +443,7 @@ config_schema = Schema({
     "debug_memcache":                               Bool,
     "debug_resolve_memcache":                       Bool,
     "debug_context_tracking":                       Bool,
+    "debug_shells":                                 Bool,
     "debug_all":                                    Bool,
     "debug_none":                                   Bool,
     "quiet":                                        Bool,

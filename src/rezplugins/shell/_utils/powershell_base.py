@@ -9,11 +9,10 @@ from subprocess import PIPE
 from rez.config import config
 from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
-from rez.shells import Shell
+from rez.shells import Shell, log
 from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
-from rez.utils.logging_ import print_debug
 from rez.util import shlex_join
 
 
@@ -264,9 +263,11 @@ class PowerShellBase(Shell):
         if platform_.name == "windows":
             normalized_path = path.replace("/", "\\")
             if path != normalized_path:
-                print_debug("PowerShellBase normalize_path()")
-                print_debug("Path normalized: {} -> {}".format(path, normalized_path))
-                self._addline("# Path normalized: {} -> {}".format(path, normalized_path))
+                log("PowerShellBase normalize_path()")
+                log("Path normalized: {!r} -> {!r}".format(path, normalized_path))
+                self._addline(
+                    "# Path normalized: {!r} -> {!r}".format(path, normalized_path)
+                )
             return normalized_path
         else:
             return path

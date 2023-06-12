@@ -8,7 +8,7 @@ Pluggable API for creating subshells using different programs, such as bash.
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils.which import which
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_debug, print_warning
 from rez.utils.execution import Popen
 from rez.system import system
 from rez.exceptions import RezSystemError
@@ -21,6 +21,11 @@ import pipes
 
 
 basestring = six.string_types[0]
+
+
+def log(*msg):
+    if config.debug("shells"):
+        print_debug(*msg)
 
 
 def get_shell_types():

@@ -19,7 +19,6 @@ from rez.exceptions import RexError, RexUndefinedVariableError, \
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils import reraise
 from rez.utils.execution import Popen
-from rez.utils.logging_ import print_debug
 from rez.utils.sourcecode import SourceCode, SourceCodeError
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
@@ -615,7 +614,6 @@ class ActionInterpreter(object):
         Returns:
             str: The normalized path.
         """
-        print_debug("ActionInterpreter normalize_path()")
         return path
 
     def normalize_paths(self, value):
@@ -623,7 +621,6 @@ class ActionInterpreter(object):
 
         Note that `value` may be more than one pathsep-delimited paths.
         """
-        print_debug("ActionInterpreter normalize_path[s]()")
         paths = value.split(self.pathsep)
         paths = [self.normalize_path(x) for x in paths]
         return self.pathsep.join(paths)
