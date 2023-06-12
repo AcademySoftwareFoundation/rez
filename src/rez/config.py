@@ -346,7 +346,7 @@ config_schema = Schema({
     "context_tracking_context_fields":              StrList,
     "pathed_env_vars":                              StrList,
     "shell_pathed_env_vars":                        OptionalDict,
-    "disable_normalization":                        OptionalBool,
+    "enable_path_normalization":                    OptionalBool,
     "prompt_release_message":                       Bool,
     "critical_styles":                              OptionalStrList,
     "error_styles":                                 OptionalStrList,

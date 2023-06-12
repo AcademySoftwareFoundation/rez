@@ -621,6 +621,9 @@ class ActionInterpreter(object):
 
         Note that `value` may be more than one pathsep-delimited paths.
         """
+        # Prevent path conversion if normalization is disabled in the config.
+        if not config.enable_path_normalization:
+            return value
         paths = value.split(self.pathsep)
         paths = [self.normalize_path(x) for x in paths]
         return self.pathsep.join(paths)

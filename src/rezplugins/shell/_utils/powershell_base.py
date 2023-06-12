@@ -257,7 +257,7 @@ class PowerShellBase(Shell):
             str: Normalized path.
         """
         # Prevent path conversion if normalization is disabled in the config.
-        if config.disable_normalization:
+        if not config.enable_path_normalization:
             return path
 
         if platform_.name == "windows":

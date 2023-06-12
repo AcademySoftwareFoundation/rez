@@ -102,6 +102,9 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     def test_no_output(self, shell):
+        if shell == "gitbash":
+            config.override("enable_path_normalization", True)
+
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
@@ -531,7 +534,7 @@ class TestShells(TestBase, TempdirMixin):
     @per_available_shell()
     def test_disabled_path_normalization(self, shell):
         """Test disabling path normalization via the config."""
-        config.override('disable_normalization', True)
+        config.override('enable_path_normalization', False)
 
         sh = create_shell(shell)
         test_path = r'C:\foo\bar\spam'

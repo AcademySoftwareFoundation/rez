@@ -141,6 +141,8 @@ class TestBuild(TestBase, TempdirMixin):
         """Test that a broken build fails correctly.
         """
         config.override("default_shell", shell)
+        if shell == "gitbash":
+            config.override("enable_path_normalization", True)
 
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
@@ -152,6 +154,8 @@ class TestBuild(TestBase, TempdirMixin):
         """Test an interdependent set of builds.
         """
         config.override("default_shell", shell)
+        if shell == "gitbash":
+            config.override("enable_path_normalization", True)
 
         self._test_build_build_util()
         self._test_build_floob()
@@ -165,6 +169,8 @@ class TestBuild(TestBase, TempdirMixin):
         """Test we can build packages that contain anti packages
         """
         config.override("default_shell", shell)
+        if shell == "gitbash":
+            config.override("enable_path_normalization", True)
 
         self._test_build_build_util()
         self._test_build_floob()

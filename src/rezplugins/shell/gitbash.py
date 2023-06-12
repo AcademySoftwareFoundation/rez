@@ -116,10 +116,6 @@ class GitBash(Bash):
         Returns:
             (str): Transformed file path.
         """
-        # Prevent path conversion if normalization is disabled in the config.
-        if config.disable_normalization:
-            return path
-
         return path
 
     def as_shell_path(self, path):
@@ -147,7 +143,7 @@ class GitBash(Bash):
             (str): Normalized file path.
         """
         # Prevent path conversion if normalization is disabled in the config.
-        if config.disable_normalization:
+        if not config.enable_path_normalization:
             return path
 
         normalized_path = convert_path(path, mode=mode, force_fwdslash=True)
@@ -171,7 +167,7 @@ class GitBash(Bash):
         normalize_path() still does drive-colon replace also - it needs to
         behave correctly if passed a string like C:\foo.
         """
-        if config.disable_normalization:
+        if not config.enable_path_normalization:
             return path
 
         def lowrepl(match):
