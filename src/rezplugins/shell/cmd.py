@@ -9,7 +9,6 @@ from rez.config import config
 from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
-from rez.utils.cygpath import convert_path
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
@@ -285,27 +284,32 @@ class CMD(Shell):
         return self.normalize_path(path)
 
     def normalize_path(self, path):
-        """
-        Normalize the path to fit the environment.
-        For example, POSIX paths, Windows path, etc. If no transformation is
-        necessary, just return the path.
+        """Normalize a path to the current platform's path format.
+
+        This isn't explicitely necessary on Windows since around Windows 7,
+        CMD has supported mixed slashes as a path separator. However,
+        we can still call this method to normalize paths for consistency.
 
         Args:
-            path (str): File path.
+            path (str): Path to normalize.
 
         Returns:
-            (str): Normalized file path.
+            str: Normalized path.
         """
         # Prevent path conversion if normalization is disabled in the config.
         if config.disable_normalization:
             return path
 
-        converted_path = convert_path(path, 'windows')
+        normalized_path = path.replace("/", "\\")
 
-        if path != converted_path:
-            self._addline("REM normalized path: {!r} -> {}".format(path, converted_path))
+        if path != normalized_path:
+            print_debug("CMD normalize_path()")
+            print_debug("path normalized: {!r} -> {!r}".format(path, normalized_path))
+            self._addline(
+                "REM normalized path: {!r} -> {}".format(path, normalized_path)
+            )
 
-        return converted_path
+        return normalized_path
 
     def _saferefenv(self, key):
         pass

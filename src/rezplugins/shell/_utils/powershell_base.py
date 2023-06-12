@@ -11,7 +11,6 @@ from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
-from rez.utils.cygpath import convert_path
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
@@ -246,18 +245,29 @@ class PowerShellBase(Shell):
         return result
 
     def normalize_path(self, path):
+        """Normalize a path to the current platform's path format.
+
+        This isn't explicitely necessary on Windows since around Windows 7,
+        PowerShell has supported mixed slashes as a path separator. However,
+        we can still call this method to normalize paths for consistency.
+
+        Args:
+            path (str): Path to normalize.
+
+        Returns:
+            str: Normalized path.
+        """
         # Prevent path conversion if normalization is disabled in the config.
         if config.disable_normalization:
             return path
 
-        # TODO: Is this necessary?
         if platform_.name == "windows":
-            converted_path = convert_path(path, 'windows')
-            if path != converted_path:
-                print_debug("Path normalized: {} -> {}".format(path, converted_path))
-                self._addline("# Path normalized: {} -> {}".format(path, converted_path))
-            return converted_path
-
+            normalized_path = path.replace("/", "\\")
+            if path != normalized_path:
+                print_debug("PowerShellBase normalize_path()")
+                print_debug("Path normalized: {} -> {}".format(path, normalized_path))
+                self._addline("# Path normalized: {} -> {}".format(path, normalized_path))
+            return normalized_path
         else:
             return path
 
