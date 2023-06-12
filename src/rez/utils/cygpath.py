@@ -38,6 +38,12 @@ def convert_path(path, mode='unix', force_fwdslash=False):
 
     path = _env_var_regex.sub(_repl, path)
 
+    # Ensure the correct env var separator is being used in the case of
+    # `PYTHONPATH` in gitbash.
+    env_var_regex = r"(\$\{PYTHONPATH\})(:)"
+    env_sep_subst = "\\1;"
+    path = re.sub(env_var_regex, env_sep_subst, path, 0)
+
     # Convert the path based on mode.
     if mode == 'mixed':
         new_path = to_mixed_path(path)
