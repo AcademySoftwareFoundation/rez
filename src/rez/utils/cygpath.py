@@ -10,12 +10,14 @@ TODO: refactor and use filesystem utils
 import os
 import re
 
+from rez.utils.logging_ import print_debug
+
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _drive_regex_mixed = re.compile(r"([a-z]):/")
 _env_var_regex = re.compile(r"%([^%]*)%")
 
 
-def convert_path(path, mode='unix', force_fwdslash=False):
+def convert_path(path, mode='unix', env_var_seps=None, force_fwdslash=False):
     r"""Convert a path to unix style or windows style as per cygpath rules.
 
     Args:
@@ -38,11 +40,14 @@ def convert_path(path, mode='unix', force_fwdslash=False):
 
     path = _env_var_regex.sub(_repl, path)
 
-    # Ensure the correct env var separator is being used in the case of
-    # `PYTHONPATH` in gitbash.
-    env_var_regex = r"(\$\{PYTHONPATH\})(:)"
-    env_sep_subst = "\\1;"
-    path = re.sub(env_var_regex, env_sep_subst, path, 0)
+    env_var_seps = env_var_seps or {}
+    for var, sep in env_var_seps.items():
+        start = path
+        regex = r"(\$\{%s\})([:;])" % var
+        path = re.sub(regex, "\\1%s" % sep, path, 0)
+        if path != start:
+            print_debug("cygpath convert_path() path in: {!r}".format(start))
+            print_debug("cygpath convert_path() path out: {!r}".format(path))
 
     # Convert the path based on mode.
     if mode == 'mixed':

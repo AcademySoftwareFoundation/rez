@@ -76,6 +76,9 @@ class Shell(ActionInterpreter):
     schema_dict = {
         "prompt": basestring}
 
+    env_sep_map_setting = "env_var_separators"
+    shell_env_sep_map_setting = "shell_env_var_separators"
+
     @classmethod
     def name(cls):
         """Plugin name.
@@ -136,6 +139,56 @@ class Shell(ActionInterpreter):
     def __init__(self):
         self._lines = []
         self.settings = config.plugins.shell[self.name()]
+        self.env_sep_map = self._get_env_sep_map()
+        self.validate_env_sep_map()
+
+    def _global_env_seps(self):
+        setting = self.env_sep_map_setting
+        value = config.get(setting, {})
+        return value
+
+    def _shell_env_seps(self):
+        shell = self.name()
+        setting = self.shell_env_sep_map_setting
+        values = config.get(setting, {})
+        value = values.get(shell, {})
+        return value
+
+    def _get_env_sep_map(self):
+        """
+        Get a dict of environment variable names to path separators.
+        """
+        if getattr(self, "_env_sep_map", None):
+            return self.env_sep_map
+
+        env_seps = {}
+        global_env_seps = self._global_env_seps()
+        shell_env_seps = self._shell_env_seps()
+
+        # Check for conflicting values and log debug info
+        if global_env_seps and shell_env_seps:
+            for var, pathsep in global_env_seps.items():
+                shell_pathsep = shell_env_seps.get(var, "")
+                if shell_pathsep and shell_pathsep != pathsep:
+                    log(
+                        "'%s' is configured in '%s' and configured in "
+                        "'%s'. In this case, the shell setting '%s' will "
+                        "trump the global setting '%s'",
+                        var,
+                        self.env_sep_map_setting,
+                        self.shell_env_sep_map_setting,
+                        shell_pathsep,
+                        pathsep,
+                    )
+
+        # Apply shell settings, overriding global settings
+        for var, pathsep in shell_env_seps.items():
+            env_seps[var] = pathsep
+
+        return env_seps
+
+    def validate_env_sep_map(self):
+        pass
 
     def _addline(self, line):
         self._lines.append(line)

@@ -14,7 +14,7 @@ from rezplugins.shell.bash import Bash
 from rez.utils.cygpath import convert_path
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_error, print_warning
 from rez.util import dedup
 from ._utils.windows import get_syspaths_from_registry
 
@@ -105,6 +105,82 @@ class GitBash(Bash):
         cls.syspaths = paths
         return cls.syspaths
 
+    def validate_env_sep_map(self):
+        env_var_seps = self.env_sep_map
+        shell = self.name()
+        shell_setting = self.shell_env_sep_map_setting
+        py_path_var, py_path_sep = ("PYTHONPATH", ";")
+
+        # Begin validation, check special case for PYTHONPATH in gitbash
+        if env_var_seps:
+            if py_path_var not in env_var_seps:
+                print_error(
+                    "'%s' is not configured in '%s'. This is required for "
+                    "python to work correctly. Please add '%s' to %s['%s'] and "
+                    "set it to '%s' for the best experience working with  %s ",
+                    py_path_var,
+                    shell_setting,
+                    py_path_var,
+                    shell_setting,
+                    shell,
+                    py_path_sep,
+                    shell,
+                )
+        else:
+            print_error(
+                "'%s' is improperly configured! '%s' must be configured and "
+                "contain '%s' and set to '%s' for python to function and rez "
+                "in %s to work as expected.",
+                shell,
+                shell_setting,
+                py_path_var,
+                py_path_sep,
+                shell,
+            )
+
+        env_seps = self._global_env_seps()
+        shell_env_seps = self._shell_env_seps()
+        setting = self.env_sep_map_setting
+
+        is_configured = (env_seps and py_path_var in env_seps)
+        shell_is_configured = (shell_env_seps and py_path_var in shell_env_seps)
+
+        # If `shell_path_vars` is not configured for `PYTHONPATH`
+        # ensure `env_var_separators` is configured with `PYTHONPATH` set to `;`
+        # Otherwise communicate to the user that there's a configuration error.
+        if is_configured and not shell_is_configured:
+            if env_seps[py_path_var] != py_path_sep:
+                print_error(
+                    "'%s' is configured in '%s' but is not configured in '%s'. "
+                    "This is required for python to work correctly. Please add "
+                    "'%s' to %s['%s'] and set it to '%s' for the best "
+                    "experience working with  %s",
+                    py_path_var,
+                    setting,
+                    shell_setting,
+                    py_path_var,
+                    shell_setting,
+                    shell,
+                    py_path_sep,
+                    shell,
+                )
+            else:
+                print_warning(
+                    "'%s' is configured in '%s' but is not configured in '%s'. "
+                    "Using rez with gitbash will probably still work but "
+                    "configuration is technically incorrect and may cause "
+                    "problems. Please add '%s' to %s['%s'] "
+                    "and set it to '%s' for %s to ensure the best experience.",
+                    py_path_var,
+                    setting,
+                    shell_setting,
+                    py_path_var,
+                    shell_setting,
+                    shell,
+                    py_path_sep,
+                    shell,
+                )
+
     def as_path(self, path):
         """Return the given path as a system path.
         Used if the path needs to be reformatted to suit a specific case.
@@ -126,10 +202,23 @@ class GitBash(Bash):
         Returns:
             (str): Transformed file path.
         """
-        converted_path = self.normalize_path(path, mode="mixed")
-        return converted_path
+        # Prevent path conversion if normalization is disabled in the config.
+        if not config.enable_path_normalization:
+            return path
 
-    def normalize_path(self, path, mode="unix"):
+        normalized_path = convert_path(
+            path, env_var_seps=self.env_sep_map, mode="mixed", force_fwdslash=True
+        )
+
+        if path != normalized_path:
+            log("GitBash as_shell_path()")
+            log("path normalized: {!r} -> {!r}".format(path, normalized_path))
+            self._addline(
+                "# path normalized: {!r} -> {!r}".format(path, normalized_path)
+            )
+        return normalized_path
+
+    def normalize_path(self, path):
         """Normalize the path to fit the environment.
         For example, POSIX paths, Windows path, etc. If no transformation is
         necessary, just return the path.
@@ -144,7 +233,7 @@ class GitBash(Bash):
         if not config.enable_path_normalization:
             return path
 
-        normalized_path = convert_path(path, mode=mode, force_fwdslash=True)
+        normalized_path = convert_path(path, mode="unix", force_fwdslash=True)
         if path != normalized_path:
             log("GitBash normalize_path()")
             log("path normalized: {!r} -> {!r}".format(path, normalized_path))

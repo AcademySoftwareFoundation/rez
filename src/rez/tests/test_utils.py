@@ -56,7 +56,7 @@ class TestPathConversion(TestBase):
     def test_convert_windows(self):
         """Test the path conversion to windows style."""
         test_path = r'C:\foo/bar/spam'
-        converted_path = cygpath.convert_path(test_path, 'windows')
+        converted_path = cygpath.convert(test_path, mode='windows')
         expected_path = r'C:\foo\bar\spam'
 
         self.assertEqual(converted_path, expected_path)
@@ -64,7 +64,7 @@ class TestPathConversion(TestBase):
     def test_convert_unix(self):
         """Test the path conversion to unix style."""
         test_path = r'C:\foo\bar\spam'
-        converted_path = cygpath.convert_path(test_path, 'unix')
+        converted_path = cygpath.convert(test_path)
         expected_path = r'/c/foo/bar/spam'
 
         self.assertEqual(converted_path, expected_path)
@@ -72,7 +72,7 @@ class TestPathConversion(TestBase):
     def test_convert_mixed(self):
         """Test the path conversion to mixed style."""
         test_path = r'C:\foo\bar\spam'
-        converted_path = cygpath.convert_path(test_path, 'unix')
+        converted_path = cygpath.convert(test_path)
         expected_path = r'/c/foo/bar/spam'
 
         self.assertEqual(converted_path, expected_path)
@@ -80,7 +80,7 @@ class TestPathConversion(TestBase):
     def test_convert_unix_forced_fwdslash(self):
         """Test the path conversion to unix style."""
         test_path = r'C:\foo\bar\spam'
-        converted_path = cygpath.convert_path(test_path, 'unix', force_fwdslash=True)
+        converted_path = cygpath.convert(test_path, force_fwdslash=True)
         expected_path = r'/c/foo/bar/spam'
 
         self.assertEqual(converted_path, expected_path)
@@ -88,7 +88,7 @@ class TestPathConversion(TestBase):
     def test_convert_mixed_forced_fwdslash(self):
         """Test the path conversion to mixed style while forcing fwd slashes."""
         test_path = r'C:\foo\bar\spam'
-        converted_path = cygpath.convert_path(test_path, 'mixed', force_fwdslash=True)
+        converted_path = cygpath.convert(test_path, mode='mixed', force_fwdslash=True)
         expected_path = r'C:/foo/bar/spam'
 
         self.assertEqual(converted_path, expected_path)
