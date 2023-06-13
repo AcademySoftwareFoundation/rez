@@ -464,6 +464,7 @@ config_schema = Schema({
     "read_package_cache":                           Bool,
     "write_package_cache":                          Bool,
     "env_var_separators":                           Dict,
+    "shell_env_var_separators":                     OptionalDict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
     "package_orderers":                             OptionalDictOrDictList,

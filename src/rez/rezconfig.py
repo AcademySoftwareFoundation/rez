@@ -564,6 +564,12 @@ pathed_env_vars = [
     "*PATH"
 ]
 
+shell_env_var_separators = {
+    "gitbash": {
+        "PYTHONPATH": ";",
+    }
+}
+
 # Some shells may require multiple types of pathing, so this option provides
 # a way to define variables on a per-shell basis to convert for shell pathing
 # instead of the pathing provided above or no modification at all.
