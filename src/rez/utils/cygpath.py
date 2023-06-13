@@ -2,10 +2,11 @@
 # Copyright Contributors to the Rez Project
 
 
-"""Cygpath-like paths
-
-TODO: refactor and use filesystem utils
-
+"""
+This module provides a simple emulation of the cygpath command that is available
+in gitbash is used to convert between Windows and Unix styles. It provides
+implementations of cygpath behavior to avoid complexities of adding cygpath as a
+dependency such as compiling or relying on a system installation.
 """
 import os
 import re
@@ -17,7 +18,7 @@ _drive_regex_mixed = re.compile(r"([a-z]):/")
 _env_var_regex = re.compile(r"%([^%]*)%")
 
 
-def convert_path(path, mode='unix', env_var_seps=None, force_fwdslash=False):
+def convert(path, mode=None, env_var_seps=None, force_fwdslash=False):
     r"""Convert a path to unix style or windows style as per cygpath rules.
 
     Args:
@@ -33,6 +34,10 @@ def convert_path(path, mode='unix', env_var_seps=None, force_fwdslash=False):
     Returns:
         str: Converted path.
     """
+    mode = mode or "unix"
+    if mode not in ("unix", "mixed", "windows"):
+        raise ValueError("Unsupported mode: %s" % mode)
+
     # expand refs like %SYSTEMROOT%, leave as-is if not in environ
     def _repl(m):
         varname = m.groups()[0]
@@ -50,12 +55,12 @@ def convert_path(path, mode='unix', env_var_seps=None, force_fwdslash=False):
             print_debug("cygpath convert_path() path out: {!r}".format(path))
 
     # Convert the path based on mode.
-    if mode == 'mixed':
-        new_path = to_mixed_path(path)
-    elif mode == 'windows':
-        new_path = to_windows_path(path)
-    else:
+    if mode == "unix":
         new_path = to_posix_path(path)
+    elif mode == "mixed":
+        new_path = to_mixed_path(path)
+    elif mode == "windows":
+        new_path = to_windows_path(path)
 
     # NOTE: This would be normal cygpath behavior, but the broader
     # implications of enabling it need extensive testing.

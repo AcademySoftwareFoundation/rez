@@ -11,7 +11,7 @@ import subprocess
 from rez.config import config
 from rez.shells import log
 from rezplugins.shell.bash import Bash
-from rez.utils.cygpath import convert_path
+from rez.utils import cygpath
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.utils.logging_ import print_error, print_warning
@@ -206,7 +206,7 @@ class GitBash(Bash):
         if not config.enable_path_normalization:
             return path
 
-        normalized_path = convert_path(
+        normalized_path = cygpath.convert(
             path, env_var_seps=self.env_sep_map, mode="mixed", force_fwdslash=True
         )
 
@@ -233,7 +233,7 @@ class GitBash(Bash):
         if not config.enable_path_normalization:
             return path
 
-        normalized_path = convert_path(path, mode="unix", force_fwdslash=True)
+        normalized_path = cygpath.convert(path, mode="unix", force_fwdslash=True)
         if path != normalized_path:
             log("GitBash normalize_path()")
             log("path normalized: {!r} -> {!r}".format(path, normalized_path))
@@ -243,7 +243,7 @@ class GitBash(Bash):
 
         return normalized_path
 
-    def normalize_paths(self, path):
+    def normalize_paths(self, value):
         """
         This is a bit tricky in the case of gitbash. The problem we hit is that
         our pathsep is ':', _but_ pre-normalised paths also contain ':' (eg
@@ -255,23 +255,23 @@ class GitBash(Bash):
         behave correctly if passed a string like C:\foo.
         """
         if not config.enable_path_normalization:
-            return path
+            return value
 
         def lowrepl(match):
             if match:
                 return "/{}/".format(match.group(1).lower())
 
         # C:\ ==> /c/
-        normalized_path = self._drive_regex.sub(lowrepl, path).replace("\\", "/")
+        normalized = self._drive_regex.sub(lowrepl, value).replace("\\", "/")
 
-        if path != normalized_path:
+        if value != normalized:
             log("GitBash normalize_path[s]()")
-            log("path normalized: {!r} -> {!r}".format(path, normalized_path))
+            log("path normalized: {!r} -> {!r}".format(value, normalized))
             self._addline(
-                "# path normalized: {!r} -> {!r}".format(path, normalized_path)
+                "# path normalized: {!r} -> {!r}".format(value, normalized)
             )
 
-        return normalized_path
+        return normalized
 
     def shebang(self):
         self._addline("#!/usr/bin/env bash")
