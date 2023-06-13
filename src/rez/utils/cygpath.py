@@ -8,14 +8,12 @@ in gitbash is used to convert between Windows and Unix styles. It provides
 implementations of cygpath behavior to avoid complexities of adding cygpath as a
 dependency such as compiling or relying on a system installation.
 """
-import os
 import re
 
 from rez.utils.logging_ import print_debug
 
-_drive_start_regex = re.compile(r"^([A-Za-z]):\\")
+_drive_start_regex = re.compile(r"^([A-Za-z]):[\\/]")
 _drive_regex_mixed = re.compile(r"([a-z]):/")
-_env_var_regex = re.compile(r"%([^%]*)%")
 
 
 def convert(path, mode=None, env_var_seps=None, force_fwdslash=False):
@@ -38,14 +36,8 @@ def convert(path, mode=None, env_var_seps=None, force_fwdslash=False):
     if mode not in ("unix", "mixed", "windows"):
         raise ValueError("Unsupported mode: %s" % mode)
 
-    # expand refs like %SYSTEMROOT%, leave as-is if not in environ
-    def _repl(m):
-        varname = m.groups()[0]
-        return os.getenv(varname, m.group())
-
-    path = _env_var_regex.sub(_repl, path)
-
     env_var_seps = env_var_seps or {}
+    matches = None
     for var, sep in env_var_seps.items():
         start = path
         regex = r"(\$\{%s\})([:;])" % var
@@ -53,23 +45,29 @@ def convert(path, mode=None, env_var_seps=None, force_fwdslash=False):
         if path != start:
             print_debug("cygpath convert_path() path in: {!r}".format(start))
             print_debug("cygpath convert_path() path out: {!r}".format(path))
+        matches = re.finditer(regex, path)
+
+    prefix = None
+    if matches:
+        match = next(matches, None)
+        if match is not None:
+            prefix = match.group()
+
+    if prefix:
+        path = path.replace(prefix, "", 1)
 
     # Convert the path based on mode.
     if mode == "unix":
-        new_path = to_posix_path(path)
+        path = to_posix_path(path)
     elif mode == "mixed":
-        new_path = to_mixed_path(path)
+        path = to_mixed_path(path)
     elif mode == "windows":
-        new_path = to_windows_path(path)
+        path = to_windows_path(path)
 
-    # NOTE: This would be normal cygpath behavior, but the broader
-    # implications of enabling it need extensive testing.
-    # Leaving it up to the user for now.
-    if force_fwdslash:
-        # Backslash -> fwdslash
-        new_path = new_path.replace('\\', '/')
+    if prefix and path:
+        path = prefix + path
 
-    return new_path
+    return path
 
 
 def to_posix_path(path):
@@ -83,7 +81,7 @@ def to_posix_path(path):
     """
     # c:\ and C:\ -> /c/
     drive_letter_match = _drive_start_regex.match(path)
-    # If converting the drive letter to posix, capitalize the drive
+    # If converting the drive letter to posix, lower the drive
     # letter as per cygpath behavior.
     if drive_letter_match:
         path = _drive_start_regex.sub(

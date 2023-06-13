@@ -69,11 +69,31 @@ class TestPathConversion(TestBase):
 
         self.assertEqual(converted_path, expected_path)
 
+    def test_convert_unix_override_path_sep(self):
+        """Test the path conversion to unix style overriding env path sep."""
+        test_path = r'${SOMEPATH}:C:\foo/bar/spam'
+        separators = {'SOMEPATH': ';'}
+        converted_path = cygpath.convert(test_path, env_var_seps=separators)
+        expected_path = '${SOMEPATH};/c/foo/bar/spam'
+
+        self.assertEqual(converted_path, expected_path)
+
     def test_convert_mixed(self):
         """Test the path conversion to mixed style."""
         test_path = r'C:\foo\bar\spam'
         converted_path = cygpath.convert(test_path)
-        expected_path = r'/c/foo/bar/spam'
+        expected_path = '/c/foo/bar/spam'
+
+        self.assertEqual(converted_path, expected_path)
+
+    def test_convert_mixed_override_path_sep(self):
+        """Test the path conversion to mixed style overriding env path sep."""
+        test_path = r'${SOMEPATH}:C:/foo\bar/spam'
+        separators = {'SOMEPATH': ';'}
+        converted_path = cygpath.convert(
+            test_path, mode='mixed', env_var_seps=separators
+        )
+        expected_path = '${SOMEPATH};C:/foo/bar/spam'
 
         self.assertEqual(converted_path, expected_path)
 
