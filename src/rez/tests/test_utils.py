@@ -8,7 +8,7 @@ test 'utils' modules
 import os
 
 from rez.config import config
-from rez.tests.util import TestBase
+from rez.tests.util import TestBase, platform_dependent
 from rez.utils import cygpath, filesystem
 from rez.utils.platform_ import Platform, platform_
 
@@ -62,6 +62,7 @@ class TestPathConversion(TestBase):
         if not config.debug("none"):
             config.override("debug_none", True)
 
+    @platform_dependent(["windows"])
     def test_convert_windows(self):
         """Test the path conversion to windows style."""
         test_path = r'C:\foo/bar/spam'
@@ -78,6 +79,7 @@ class TestPathConversion(TestBase):
 
         self.assertEqual(converted_path, expected_path)
 
+    @platform_dependent(["windows"])
     def test_convert_unix_override_path_sep(self):
         """Test the path conversion to unix style overriding env path sep."""
         test_path = r'${SOMEPATH}:C:\foo/bar/spam'
@@ -87,6 +89,7 @@ class TestPathConversion(TestBase):
 
         self.assertEqual(converted_path, expected_path)
 
+    @platform_dependent(["windows"])
     def test_convert_mixed(self):
         """Test the path conversion to mixed style."""
         test_path = r'C:\foo\bar\spam'
@@ -95,6 +98,7 @@ class TestPathConversion(TestBase):
 
         self.assertEqual(converted_path, expected_path)
 
+    @platform_dependent(["windows"])
     def test_convert_mixed_override_path_sep(self):
         """Test the path conversion to mixed style overriding env path sep."""
         test_path = r'${SOMEPATH}:C:/foo\bar/spam'
@@ -111,6 +115,7 @@ class TestToCygdrive(TestBase):
     """Test cygpath.to_cygdrive() function."""
 
     # Test valid paths with NT drive letters
+    @platform_dependent(["windows"])
     def test_valid_paths(self):
         self.assertEqual(cygpath.to_cygdrive("C:\\"), "/c/")
         self.assertEqual(cygpath.to_cygdrive("D:\\folder"), "/d/")
@@ -119,6 +124,7 @@ class TestToCygdrive(TestBase):
         self.assertEqual(cygpath.to_cygdrive("G:\\dir1\\dir2\\file.txt"), "/g/")
 
     # Test paths with mixed slashes
+    @platform_dependent(["windows"])
     def test_forward_slashes(self):
         self.assertEqual(cygpath.to_cygdrive(r"C:\/folder"), "/c/")
         self.assertEqual(cygpath.to_cygdrive(r"D:/dir1\dir2"), "/d/")
@@ -127,6 +133,7 @@ class TestToCygdrive(TestBase):
         self.assertEqual(cygpath.to_cygdrive(r"G:/dir1/dir2\file.txt"), "/g/")
 
     # Test invalid paths
+    @platform_dependent(["windows"])
     def test_invalid_paths(self):
         self.assertEqual(cygpath.to_cygdrive("\\folder"), "")
         self.assertEqual(cygpath.to_cygdrive("1:\\folder"), "")
@@ -137,11 +144,13 @@ class TestToCygdrive(TestBase):
         self.assertEqual(cygpath.to_cygdrive(r":\dir1\dir2\file.txt"), "")
 
     # Test unsupported cases
+    @platform_dependent(["windows"])
     def test_unsupported_cases(self):
         self.assertEqual(cygpath.to_cygdrive("\\\\server\\share\\folder"), "")
         self.assertEqual(cygpath.to_cygdrive(".\\folder"), "")
 
     # Test edge cases
+    @platform_dependent(["windows"])
     def test_edge_cases(self):
         self.assertEqual(cygpath.to_cygdrive(""), "")
         self.assertEqual(cygpath.to_cygdrive("C:"), "/c/")

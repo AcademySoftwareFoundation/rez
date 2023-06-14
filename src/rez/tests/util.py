@@ -9,6 +9,7 @@ from rez import module_root_path
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
+from rez.utils import platform_
 import tempfile
 import threading
 import time
@@ -267,6 +268,19 @@ def install_dependent():
                     "Must be run via 'rez-selftest' tool, see "
                     "https://github.com/AcademySoftwareFoundation/rez/wiki/Installation#installation-script"
                 )
+        return wrapper
+    return decorator
+
+
+def platform_dependent(platforms):
+    """Function decorator that skips tests if not run on the target platforms"""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if platform_.name in platforms:
+                return func(self, *args, **kwargs)
+            else:
+                self.skipTest("Must be run on platform(s): %s" % platforms)
         return wrapper
     return decorator
 
