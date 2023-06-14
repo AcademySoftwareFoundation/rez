@@ -16,7 +16,7 @@ _drive_start_regex = re.compile(r"^([A-Za-z]):[\\/]")
 _drive_regex_mixed = re.compile(r"([a-z]):/")
 
 
-def convert(path, mode=None, env_var_seps=None, force_fwdslash=False):
+def convert(path, mode=None, env_var_seps=None):
     r"""Convert a path to unix style or windows style as per cygpath rules.
 
     Args:
@@ -26,8 +26,6 @@ def convert(path, mode=None, env_var_seps=None, force_fwdslash=False):
             mixed: Windows style drives with forward slashes
                 (c:\ and C:\ -> C:/)
             windows: Windows style paths (C:\)
-        force_fwdslash (bool|Optional): Return a path containing only
-            forward slashes regardless of mode. Default is False.
 
     Returns:
         str: Converted path.

@@ -96,19 +96,3 @@ class TestPathConversion(TestBase):
         expected_path = '${SOMEPATH};C:/foo/bar/spam'
 
         self.assertEqual(converted_path, expected_path)
-
-    def test_convert_unix_forced_fwdslash(self):
-        """Test the path conversion to unix style."""
-        test_path = r'C:\foo\bar\spam'
-        converted_path = cygpath.convert(test_path, force_fwdslash=True)
-        expected_path = r'/c/foo/bar/spam'
-
-        self.assertEqual(converted_path, expected_path)
-
-    def test_convert_mixed_forced_fwdslash(self):
-        """Test the path conversion to mixed style while forcing fwd slashes."""
-        test_path = r'C:\foo\bar\spam'
-        converted_path = cygpath.convert(test_path, mode='mixed', force_fwdslash=True)
-        expected_path = r'C:/foo/bar/spam'
-
-        self.assertEqual(converted_path, expected_path)

@@ -207,7 +207,7 @@ class GitBash(Bash):
             return path
 
         normalized_path = cygpath.convert(
-            path, env_var_seps=self.env_sep_map, mode="mixed", force_fwdslash=True
+            path, env_var_seps=self.env_sep_map, mode="mixed"
         )
 
         if path != normalized_path:
@@ -233,7 +233,7 @@ class GitBash(Bash):
         if not config.enable_path_normalization:
             return path
 
-        normalized_path = cygpath.convert(path, mode="unix", force_fwdslash=True)
+        normalized_path = cygpath.convert(path, mode="unix")
         if path != normalized_path:
             log("GitBash normalize_path()")
             log("path normalized: {!r} -> {!r}".format(path, normalized_path))
