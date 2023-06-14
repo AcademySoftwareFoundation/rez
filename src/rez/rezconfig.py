@@ -762,6 +762,9 @@ warn_none = False
 # Print debugging info for shells
 debug_shells = False
 
+# Print debugging info for the cygpath module
+debug_cygpath = False
+
 # Print info whenever a file is loaded from disk, or saved to disk.
 debug_file_loads = False
 

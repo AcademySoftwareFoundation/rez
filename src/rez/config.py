@@ -444,6 +444,7 @@ config_schema = Schema({
     "debug_resolve_memcache":                       Bool,
     "debug_context_tracking":                       Bool,
     "debug_shells":                                 Bool,
+    "debug_cygpath":                                Bool,
     "debug_all":                                    Bool,
     "debug_none":                                   Bool,
     "quiet":                                        Bool,

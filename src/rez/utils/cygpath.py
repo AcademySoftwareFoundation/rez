@@ -8,12 +8,21 @@ in gitbash is used to convert between Windows and Unix styles. It provides
 implementations of cygpath behavior to avoid complexities of adding cygpath as a
 dependency such as compiling or relying on a system installation.
 """
+import os
+import posixpath
 import re
+import shlex
 
+from rez.config import config
 from rez.utils.logging_ import print_debug
 
 _drive_start_regex = re.compile(r"^([A-Za-z]):[\\/]")
 _drive_regex_mixed = re.compile(r"([a-z]):/")
+
+
+def log(*msg):
+    if config.debug("cygpath"):
+        print_debug(*msg)
 
 
 def convert(path, mode=None, env_var_seps=None):
@@ -41,8 +50,8 @@ def convert(path, mode=None, env_var_seps=None):
         regex = r"(\$\{%s\})([:;])" % var
         path = re.sub(regex, "\\1%s" % sep, path, 0)
         if path != start:
-            print_debug("cygpath convert_path() path in: {!r}".format(start))
-            print_debug("cygpath convert_path() path out: {!r}".format(path))
+            log("cygpath convert_path() path in: {!r}".format(start))
+            log("cygpath convert_path() path out: {!r}".format(path))
         matches = re.finditer(regex, path)
 
     prefix = None
@@ -69,26 +78,18 @@ def convert(path, mode=None, env_var_seps=None):
 
 
 def to_posix_path(path):
-    r"""Convert (eg) "C:\foo" to "/c/foo"
-
-    TODO: doesn't take into account escaped bask slashes, which would be
-    weird to have in a path, but is possible.
+    """Convert (eg) "C:\foo" to "/c/foo"
 
     Args:
         path (str): Path to convert.
-    """
-    # c:\ and C:\ -> /c/
-    drive_letter_match = _drive_start_regex.match(path)
-    # If converting the drive letter to posix, lower the drive
-    # letter as per cygpath behavior.
-    if drive_letter_match:
-        path = _drive_start_regex.sub(
-            drive_letter_match.expand("/\\1/").lower(), path
-        )
 
-    # Backslash -> fwdslash
-    # TODO: probably use filesystem.to_posixpath() intead
-    path = path.replace('\\', '/')
+    Returns:
+        str: Converted path.
+    """
+    drive = to_cygdrive(path)
+    _, path = os.path.splitdrive(path)
+    path = path.replace("\\", "", 1)
+    path = drive + path.replace("\\", "/")
 
     return path
 
@@ -136,3 +137,41 @@ def to_windows_path(path):
     path = path.replace('/', '\\')
 
     return path
+
+
+def to_cygdrive(path):
+    """Convert an NT drive to a cygwin-style drive.
+
+    (eg) 'C:\' -> '/c/'
+
+    Args:
+        path (str): Path to convert.
+
+    Returns:
+        str: Converted path.
+    """
+    # Handle Windows long paths
+    if path.startswith("\\\\?\\"):
+        path = path[4:]
+
+    # Normalize forward backslashes to slashes
+    path = path.replace("\\", "/")
+
+    # Split the path into tokens using shlex
+    tokens = shlex.split(path) or path  # no tokens
+
+    # Empty paths are invalid
+    if not tokens:
+        return ""
+
+    # Extract the drive letter from the first token
+    drive, _ = os.path.splitdrive(tokens[0])
+
+    if drive:
+        # Check if the drive letter is valid
+        drive_letter = drive[0].lower()
+        if drive_letter.isalpha():
+            # Valid drive letter format
+            return posixpath.sep + drive_letter + posixpath.sep
+
+    return ""

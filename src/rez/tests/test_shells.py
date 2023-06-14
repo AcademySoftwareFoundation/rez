@@ -39,8 +39,10 @@ class TestShells(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        if config.debug("shells"):
-            config.override("debug_shells", False)
+        # for convenience while developing
+        # some tests are sensitive to stdout
+        if not config.debug("none"):
+            config.override("debug_none", True)
 
         packages_path = os.path.join(cls.root, "packages")
         os.makedirs(packages_path)
