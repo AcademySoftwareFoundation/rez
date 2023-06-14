@@ -28,13 +28,17 @@ def log(*msg):
 def convert(path, mode=None, env_var_seps=None):
     r"""Convert a path to unix style or windows style as per cygpath rules.
 
+    A "windows" mode is absent due to the fact that converting from unix to
+    windows style is not necessary for rez or gitbash in rez to function and
+    gitbash is the primary consumer of this function. Other shells may need to
+    do their own normalization, and should not use this function for that purpose.
+
     Args:
         path (str): Path to convert.
         mode (str|Optional): Cygpath-style mode to use:
             unix (default): Unix style path (c:\ and C:\ -> /c/)
             mixed: Windows style drives with forward slashes
                 (c:\ and C:\ -> C:/)
-            windows: Windows style paths (C:\)
 
     Returns:
         str: Converted path.
@@ -68,8 +72,6 @@ def convert(path, mode=None, env_var_seps=None):
         path = to_posix_path(path)
     elif mode == "mixed":
         path = to_mixed_path(path)
-    elif mode == "windows":
-        path = to_windows_path(path)
 
     if prefix and path:
         path = prefix + path
@@ -123,18 +125,6 @@ def to_mixed_path(path):
     # ${XYZ};c:/ -> C:/
     if _drive_regex_mixed.match(path):
         path = _drive_regex_mixed.sub(uprepl, path)
-
-    return path
-
-
-def to_windows_path(path):
-    r"""Convert (eg) "C:\foo/bin" to "C:\foo\bin"
-
-    TODO: doesn't take into account escaped forward slashes, which would be
-    weird to have in a path, but is possible.
-    """
-    # Fwdslash -> backslash
-    path = path.replace('/', '\\')
 
     return path
 

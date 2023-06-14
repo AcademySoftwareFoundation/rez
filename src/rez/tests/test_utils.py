@@ -63,14 +63,6 @@ class TestPathConversion(TestBase):
             config.override("debug_none", True)
 
     @platform_dependent(["windows"])
-    def test_convert_windows(self):
-        """Test the path conversion to windows style."""
-        test_path = r'C:\foo/bar/spam'
-        converted_path = cygpath.convert(test_path, mode='windows')
-        expected_path = r'C:\foo\bar\spam'
-
-        self.assertEqual(converted_path, expected_path)
-
     def test_convert_unix(self):
         """Test the path conversion to unix style."""
         test_path = r'C:\foo\bar\spam'
