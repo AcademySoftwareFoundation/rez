@@ -80,7 +80,7 @@ def convert(path, mode=None, env_var_seps=None):
 
 
 def to_posix_path(path):
-    """Convert (eg) "C:\foo" to "/c/foo"
+    r"""Convert (eg) 'C:\foo' to '/c/foo'
 
     Args:
         path (str): Path to convert.
@@ -97,40 +97,32 @@ def to_posix_path(path):
 
 
 def to_mixed_path(path):
-    r"""Convert (eg) "C:\foo/bin" to "C:/foo/bin"
+    r"""Convert (eg) 'C:\foo\bin' to 'C:/foo/bin'
 
-    The mixed syntax results from strings in package commands such as
-    "{root}/bin" being interpreted in a windows shell.
+    Args:
+        path (str): Path to convert.
 
-    TODO: doesn't take into account escaped forward slashes, which would be
-    weird to have in a path, but is possible.
+    Returns:
+        str: Converted path.
     """
-    def uprepl(match):
-        if match:
-            return '{}:/'.format(match.group(1).upper())
+    def slashify(path):
+        path = path.replace("\\", "/")
+        path = re.sub(r'/{2,}', '/', path)
+        return path
 
-    # c:\ and C:\ -> C:/
-    drive_letter_match = _drive_start_regex.match(path)
-    # If converting the drive letter to posix, capitalize the drive
-    # letter as per cygpath behavior.
-    if drive_letter_match:
-        path = _drive_start_regex.sub(
-            drive_letter_match.expand("\\1:/").upper(), path
-        )
+    drive, path = os.path.splitdrive(path)
+    if not drive:
+        return slashify(path)
+    if drive and not path:
+        return drive.replace("\\", "/")
 
-    # Fwdslash -> backslash
-    # TODO: probably use filesystem.to_ntpath() instead
-    path = path.replace('\\', '/')
+    path = slashify(path)
 
-    # ${XYZ};c:/ -> C:/
-    if _drive_regex_mixed.match(path):
-        path = _drive_regex_mixed.sub(uprepl, path)
-
-    return path
+    return drive + path
 
 
 def to_cygdrive(path):
-    """Convert an NT drive to a cygwin-style drive.
+    r"""Convert an NT drive to a cygwin-style drive.
 
     (eg) 'C:\' -> '/c/'
 

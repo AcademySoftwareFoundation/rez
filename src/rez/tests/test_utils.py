@@ -153,3 +153,52 @@ class TestToCygdrive(TestBase):
         self.assertEqual(cygpath.to_cygdrive("E:\\folder!@#$%^&*()_+-={}[]|;:,.<>?"), "/e/")
         self.assertEqual(cygpath.to_cygdrive("F:\\folder_日本語"), "/f/")
         self.assertEqual(cygpath.to_cygdrive("\\\\?\\C:\\folder\\file.txt"), "/c/")
+
+
+class TestToMixedPath(TestBase):
+
+    @platform_dependent(["windows"])
+    def test_normal_windows_paths(self):
+        self.assertEqual(cygpath.to_mixed_path('C:\\foo\\bar'), 'C:/foo/bar')
+        self.assertEqual(cygpath.to_mixed_path(
+            'D:\\my_folder\\my_file.txt'), 'D:/my_folder/my_file.txt')
+        self.assertEqual(cygpath.to_mixed_path(
+            'E:\\projects\\python\\main.py'), 'E:/projects/python/main.py')
+
+    @platform_dependent(["windows"])
+    def test_paths_with_escaped_backslashes(self):
+        self.assertEqual(cygpath.to_mixed_path('C:\\\\foo\\\\bar'), 'C:/foo/bar')
+        self.assertEqual(cygpath.to_mixed_path(
+            'D:\\my_folder\\\\my_file.txt'), 'D:/my_folder/my_file.txt'
+        )
+        self.assertEqual(cygpath.to_mixed_path(
+            'E:\\projects\\python\\\\main.py'), 'E:/projects/python/main.py'
+        )
+
+    @platform_dependent(["windows"])
+    def test_paths_with_mixed_slashes(self):
+        self.assertEqual(cygpath.to_mixed_path('C:\\foo/bar'), 'C:/foo/bar')
+        self.assertEqual(cygpath.to_mixed_path(
+            'D:/my_folder\\my_file.txt'), 'D:/my_folder/my_file.txt'
+        )
+        self.assertEqual(cygpath.to_mixed_path(
+            'E:/projects/python\\main.py'), 'E:/projects/python/main.py'
+        )
+
+    @platform_dependent(["windows"])
+    def test_paths_with_no_drive_letter(self):
+        self.assertEqual(cygpath.to_mixed_path(
+            '\\foo\\bar'), '/foo/bar'
+        )
+        self.assertEqual(cygpath.to_mixed_path(
+            '\\\\my_folder\\my_file.txt'), '//my_folder/my_file.txt'
+        )
+        self.assertEqual(cygpath.to_mixed_path(
+            '/projects/python/main.py'), '/projects/python/main.py'
+        )
+
+    @platform_dependent(["windows"])
+    def test_paths_with_only_a_drive_letter(self):
+        self.assertEqual(cygpath.to_mixed_path('C:'), 'C:')
+        self.assertEqual(cygpath.to_mixed_path('D:'), 'D:')
+        self.assertEqual(cygpath.to_mixed_path('E:'), 'E:')
