@@ -28,6 +28,14 @@ try:
 except ImportError:
     use_parameterized = False
 
+# For py2 backwards compatibility
+if not hasattr(unittest.TestCase, 'assertRaisesRegex'):
+    setattr(
+        unittest.TestCase,
+        'assertRaisesRegex',
+        unittest.TestCase.assertRaisesRegexp
+    )
+
 
 class TestBase(unittest.TestCase):
     """Unit test base class."""

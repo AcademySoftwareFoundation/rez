@@ -157,14 +157,14 @@ class TestToPosixPath(TestBase):
         )
         self.assertEqual(
             cygpath.to_posix_path("/d/projects/python"), "/d/projects/python")
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "Please ensure that the path is absolute",
             cygpath.to_posix_path,
             "/home/john/documents"
         )
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "Please ensure that the path is absolute",
@@ -174,7 +174,7 @@ class TestToPosixPath(TestBase):
 
     @platform_dependent(["windows"])
     def test_relative_paths(self):
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "Please ensure that the path is absolute",
@@ -182,7 +182,7 @@ class TestToPosixPath(TestBase):
             "jane/documents"
         )
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "Please ensure that the path is absolute",
@@ -222,14 +222,14 @@ class TestToPosixPath(TestBase):
         self.assertEqual(
             cygpath.to_posix_path("D:\\projects/python"), "/d/projects/python"
         )
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "This is most likely due to a malformed path",
             cygpath.to_posix_path,
             "D:\\..\\Projects"
         )
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "This is most likely due to a malformed path",
@@ -245,7 +245,7 @@ class TestToPosixPath(TestBase):
         self.assertEqual(cygpath.to_posix_path(
             "/c/users/./jane"), "/c/users/jane"
         )
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "Please ensure that the path is absolute",
@@ -349,7 +349,7 @@ class TestToMixedPath(TestBase):
 
     @platform_dependent(["windows"])
     def test_paths_with_no_drive_letter(self):
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Please ensure that the path is absolute",
@@ -357,7 +357,7 @@ class TestToMixedPath(TestBase):
             '\\foo\\bar'
         )
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Please ensure that the path is absolute",
@@ -365,7 +365,7 @@ class TestToMixedPath(TestBase):
             '\\\\my_folder\\my_file.txt'
         )
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Please ensure that the path is absolute",
@@ -387,7 +387,7 @@ class TestToMixedPath(TestBase):
         self.assertEqual(cygpath.to_mixed_path(
             "C:/users/./jane"), "C:/users/jane"
         )
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
             "Please ensure that the path is absolute",
