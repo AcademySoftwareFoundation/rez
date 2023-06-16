@@ -6,11 +6,24 @@
 test 'utils' modules
 """
 import os
+import sys
 
 from rez.config import config
 from rez.tests.util import TestBase, platform_dependent
 from rez.utils import cygpath, filesystem
 from rez.utils.platform_ import Platform, platform_
+
+if platform_.name == "windows":
+    from rez.utils import uncpath
+    uncpath_available = True
+else:
+    uncpath_available = False
+
+if sys.version_info[:2] >= (3, 3):
+    from unittest.mock import patch
+    patch_available = True
+else:
+    patch_available = False
 
 
 class TestCanonicalPath(TestBase):
@@ -198,6 +211,12 @@ class TestToPosixPath(TestBase):
         self.assertEqual(cygpath.to_posix_path(
             "\\\\server\\share\\folder\\file.txt"), "//server/share/folder/file.txt"
         )
+        self.assertEqual(cygpath.to_posix_path(
+            "\\\\server\\share/folder/file.txt"), "//server/share/folder/file.txt"
+        )
+        self.assertEqual(cygpath.to_posix_path(
+            r"\\server\share/folder\//file.txt"), "//server/share/folder/file.txt"
+        )
 
     @platform_dependent(["windows"])
     def test_windows_long_paths(self):
@@ -362,14 +381,6 @@ class TestToMixedPath(TestBase):
             "Cannot convert path to mixed path: '.*' "
             "Please ensure that the path is absolute",
             cygpath.to_mixed_path,
-            '\\\\my_folder\\my_file.txt'
-        )
-
-        self.assertRaisesRegex(
-            ValueError,
-            "Cannot convert path to mixed path: '.*' "
-            "Please ensure that the path is absolute",
-            cygpath.to_mixed_path,
             '/projects/python/main.py'
         )
 
@@ -394,3 +405,62 @@ class TestToMixedPath(TestBase):
             cygpath.to_posix_path,
             "./projects/python"
         )
+
+    @platform_dependent(["windows"])
+    def test_windows_unc_paths(self):
+        self.assertRaisesRegex(
+            ValueError,
+            "Cannot convert path to mixed path: '.*' "
+            "Unmapped UNC paths are not supported",
+            cygpath.to_mixed_path,
+            '\\\\my_folder\\my_file.txt'
+        )
+        self.assertRaisesRegex(
+            ValueError,
+            "Cannot convert path to mixed path: '.*' "
+            "Unmapped UNC paths are not supported",
+            cygpath.to_mixed_path,
+            "\\\\Server\\Share\\folder"
+        )
+        self.assertRaisesRegex(
+            ValueError,
+            "Cannot convert path to mixed path: '.*' "
+            "Unmapped UNC paths are not supported",
+            cygpath.to_mixed_path,
+            "\\\\server\\share\\folder\\file.txt"
+        )
+        self.assertRaisesRegex(
+            ValueError,
+            "Cannot convert path to mixed path: '.*' "
+            "Unmapped UNC paths are not supported",
+            cygpath.to_mixed_path,
+            "\\\\server\\share/folder/file.txt"
+        )
+        self.assertRaisesRegex(
+            ValueError,
+            "Cannot convert path to mixed path: '.*' "
+            "Unmapped UNC paths are not supported",
+            cygpath.to_mixed_path,
+            r"\\server\share/folder\//file.txt"
+        )
+
+    @platform_dependent(["windows"])
+    def test_windows_mapped_unc_paths(self):
+        if not patch_available:
+            raise self.skipTest("Patching not available")
+        with patch.object(cygpath, 'to_mapped_drive', return_value="X:"):
+            self.assertEqual(
+                cygpath.to_mixed_path('\\\\server\\share\\folder'), 'X:/folder'
+            )
+
+
+class TestToMappedDrive(TestBase):
+
+    @platform_dependent(["windows"])
+    def test_already_mapped_drive(self):
+        if not uncpath_available:
+            raise self.skipTest("UNC path util not available")
+        if not patch_available:
+            raise self.skipTest("Unittest patch not available")
+        with patch.object(uncpath, 'to_drive', return_value="X:"):
+            self.assertEqual(cygpath.to_mapped_drive('\\\\server\\share'), 'X:')

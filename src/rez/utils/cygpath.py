@@ -13,7 +13,14 @@ import posixpath
 import re
 
 from rez.config import config
+from rez.utils import platform_
 from rez.utils.logging_ import print_debug
+
+if platform_.name == "windows":
+    from rez.utils import uncpath
+    uncpath_available = True
+else:
+    uncpath_available = False
 
 
 def log(*msg):
@@ -78,20 +85,27 @@ def convert(path, mode=None, env_var_seps=None):
 def to_posix_path(path):
     r"""Convert (eg) 'C:\foo' to '/c/foo'
 
+    Note: Especially for UNC paths, and as opposed mixed path conversion, this
+    function will return a path that is not guaranteed to exist.
+
     Args:
         path (str): Path to convert.
 
     Returns:
         str: Converted path.
+
+    Raises:
+        ValueError: If the path is not absolute or path is malformed
     """
     # Handle Windows long paths
     if path.startswith("\\\\?\\"):
         path = path[4:]
 
-    unc, path = os.path.splitunc(path)
-    if unc:
-        path = unc.replace("\\", "/") + path.replace("\\", "/")
-        return path
+    # Handle UNC paths
+    unc, unc_path = os.path.splitdrive(path)
+    if unc and unc.startswith("\\\\"):
+        unc_path = unc.replace("\\", "/") + slashify(unc_path)
+        return unc_path
 
     drive = to_cygdrive(path)
 
@@ -125,12 +139,35 @@ def to_posix_path(path):
 def to_mixed_path(path):
     r"""Convert (eg) 'C:\foo\bin' to 'C:/foo/bin'
 
+    Note: Especially in the case of UNC paths, this function will return a path
+    that is practically guaranteed to exist but it is not verified.
+
     Args:
         path (str): Path to convert.
 
     Returns:
         str: Converted path.
+
+    Raises:
+        ValueError: If the path is not absolute or drive letter is not mapped
+            to a UNC path.
     """
+    # Handle Windows long paths
+    if path.startswith("\\\\?\\"):
+        path = path[4:]
+
+    # Handle UNC paths
+    # Return mapped drive letter if any, else raise
+    unc, unc_path = os.path.splitdrive(path)
+    if unc and unc.startswith("\\\\"):
+        drive = to_mapped_drive(path)
+        if drive:
+            return drive.upper() + slashify(unc_path)
+        raise ValueError(
+            "Cannot convert path to mixed path: {!r} "
+            "Unmapped UNC paths are not supported".format(path)
+        )
+
     drive, path = os.path.splitdrive(path)
 
     if not drive:
@@ -152,6 +189,14 @@ def to_mixed_path(path):
 
 
 def slashify(path):
+    """Ensures path only contains forward slashes.
+
+    Args:
+        path (str): Path to convert.
+
+    Returns:
+        str: Converted path.
+    """
     # Remove double backslashes and dots
     path = os.path.normpath(path)
     # Normalize slashes
@@ -179,9 +224,13 @@ def to_cygdrive(path):
     # Normalize forward backslashes to slashes
     path = path.replace("\\", "/")
 
-    # UNC paths are not supported
-    unc, _ = os.path.splitunc(path)
-    if unc:
+    # Handle UNC paths
+    # Return mapped drive letter if any, else return ""
+    unc, _ = os.path.splitdrive(path)
+    if unc and unc.startswith("\\\\"):
+        drive = to_mapped_drive(path)
+        if drive:
+            return posixpath.sep + drive.lower() + posixpath.sep
         return ""
 
     if (
@@ -204,3 +253,21 @@ def to_cygdrive(path):
 
     # Most likely a relative path
     return ""
+
+
+def to_mapped_drive(path):
+    r"""Convert a UNC path to an NT drive if possible.
+
+    (eg) '\\\\server\\share\\folder' -> 'X:'
+
+    Args:
+        path (str): UNC path.
+
+    Returns:
+        str: Drive mapped to UNC, if any.
+    """
+    if not uncpath_available:
+        return
+    unc, _ = os.path.splitdrive(path)
+    if unc and unc.startswith("\\\\"):
+        return uncpath.to_drive(unc)
