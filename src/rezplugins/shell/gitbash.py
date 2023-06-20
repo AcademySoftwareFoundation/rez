@@ -2,7 +2,9 @@
 # Copyright Contributors to the Rez Project
 
 
-"""Git Bash (for Windows) shell."""
+"""
+Git Bash (for Windows) shell.
+"""
 import os
 import re
 import os.path
@@ -20,7 +22,8 @@ from ._utils.windows import get_syspaths_from_registry
 
 
 class GitBash(Bash):
-    """Git Bash shell plugin."""
+    """Git Bash shell plugin.
+    """
     pathsep = ':'
 
     _drive_regex = re.compile(r"([A-Za-z]):\\")
@@ -278,5 +281,5 @@ class GitBash(Bash):
 
 
 def register_plugin():
-    if platform_.name == 'windows':
+    if platform_.name == "windows":
         return GitBash
