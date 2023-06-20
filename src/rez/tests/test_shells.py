@@ -12,6 +12,7 @@ from rez.shells import create_shell, get_shell_types, get_shell_class
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
 from rez.plugin_managers import plugin_manager
+from rez.utils import platform_
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
@@ -46,7 +47,14 @@ class TestShells(TestBase, TempdirMixin):
 
         packages_path = os.path.join(cls.root, "packages")
         os.makedirs(packages_path)
-        hello_world.bind(packages_path)
+
+        # on windows, we need to install both
+        # executable types of executable scripts, hello_world.py
+        # for cmd / powershell and hello_world for gitbash
+        if platform_.name == "windows":
+            hello_world.bind(packages_path, py_script_mode="both")
+        else:
+            hello_world.bind(packages_path)
 
         cls.settings = dict(
             packages_path=[packages_path],
@@ -104,6 +112,7 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     def test_no_output(self, shell):
+        config.override("default_shell", shell)
         if shell == "gitbash":
             config.override("enable_path_normalization", True)
 

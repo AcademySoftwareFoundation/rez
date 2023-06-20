@@ -39,6 +39,7 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     def test_shell_execution(self, shell):
+        config.override("default_shell", shell)
         if shell == "gitbash":
             config.override("enable_path_normalization", True)
 
