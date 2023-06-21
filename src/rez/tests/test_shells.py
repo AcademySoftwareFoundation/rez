@@ -112,10 +112,6 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     def test_no_output(self, shell):
-        config.override("default_shell", shell)
-        if shell == "gitbash":
-            config.override("enable_path_normalization", True)
-
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
@@ -310,8 +306,6 @@ class TestShells(TestBase, TempdirMixin):
         """Test that Rex code run in the shell creates the environment variable
         values that we expect.
         """
-        config.override("default_shell", shell)
-
         def _execute_code(func, expected_output):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -481,8 +475,6 @@ class TestShells(TestBase, TempdirMixin):
         the absolute path to doskey.exe before we modify PATH and continue to
         use the absolute path after the modifications.
         """
-        config.override("default_shell", shell)
-
         def _execute_code(func):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -509,8 +501,6 @@ class TestShells(TestBase, TempdirMixin):
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
         """
-        config.override("default_shell", shell)
-
         def _make_alias(ex):
             ex.alias('hi', 'echo "hi"')
 
@@ -529,8 +519,6 @@ class TestShells(TestBase, TempdirMixin):
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
         """
-        config.override("default_shell", shell)
-
         def _make_alias(ex):
             ex.alias('tell', 'echo')
 

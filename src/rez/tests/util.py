@@ -245,6 +245,21 @@ def per_available_shell(exclude=None):
         def wrapper(self, shell=None):
             for shell in shells:
                 print("\ntesting in shell: %s..." % shell)
+                # The default shell if none is configured is the system shell
+                # (bash or cmd ususally), so in order to test the other shells
+                # we need to override the default shell to the one we are
+                # testing to get a accurate results with more complete coverage.
+                #
+                # E.g. create_shell() will use the shell provided by this decorator
+                # but resoved_context.execute_shell() will use the default shell to
+                # execute a command if no shell is passed in.
+                config.override("default_shell", shell)
+
+                # TODO: If & when path normalization is set to True by default,
+                # this should be removed. For now, we need to enable it for
+                # gitbash, because it requires path normalization.
+                if shell == "gitbash":
+                    config.override("enable_path_normalization", True)
 
                 try:
                     func(self, shell=shell)

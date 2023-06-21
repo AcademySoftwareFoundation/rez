@@ -158,8 +158,6 @@ class TestRezSuites(TestBase, TempdirMixin):
         ```
 
         """
-        config.override("default_shell", shell)
-
         c_pooh = ResolvedContext(["pooh"])
         s = Suite()
         s.add_context("pooh", c_pooh)
