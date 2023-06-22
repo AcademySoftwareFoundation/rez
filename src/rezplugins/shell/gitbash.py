@@ -109,6 +109,10 @@ class GitBash(Bash):
         return cls.syspaths
 
     def validate_env_sep_map(self):
+        # Return early if validation is disabled.
+        if not config.warn("shell_startup"):
+            return
+
         env_var_seps = self.env_sep_map
         shell = self.name()
         shell_setting = self.shell_env_sep_map_setting
