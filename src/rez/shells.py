@@ -524,13 +524,13 @@ class UnixShell(Shell):
         else:
             if d["stdin"]:
                 assert self.stdin_arg
-                shell_command = "%s %s" % (self.executable, self.stdin_arg)
+                shell_command = "'{}' {}".format(self.executable, self.stdin_arg)
                 quiet = True
             elif do_rcfile:
                 assert self.rcfile_arg
-                shell_command = "%s %s" % (self.executable, self.rcfile_arg)
+                shell_command = "'{}' {}".format(self.executable, self.rcfile_arg)
             else:
-                shell_command = '"{}"'.format(self.executable)
+                shell_command = "'{}'".format(self.executable)
 
             if do_rcfile:
                 # hijack rcfile to insert our own script
