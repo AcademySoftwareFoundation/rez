@@ -158,7 +158,7 @@ class Shell(ActionInterpreter):
         """
         Get a dict of environment variable names to path separators.
         """
-        if getattr(self, "_env_sep_map", None):
+        if getattr(self, "env_sep_map", None):
             return self.env_sep_map
 
         env_seps = {}
