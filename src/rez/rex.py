@@ -1425,7 +1425,9 @@ class RexExecutor(object):
         Returns:
             str: The normalized path.
         """
-        return self.interpreter.as_path(path)
+        if not config.enable_path_normalization:
+            return path
+        return self.interpreter.normalize_path(path)
 
     @classmethod
     def compile_code(cls, code, filename=None, exec_namespace=None):

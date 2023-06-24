@@ -24,6 +24,12 @@ class TestConfig(TestBase):
         cls.settings = {}
         cls.root_config_file = get_module_root_config()
         cls.config_path = cls.data_path("config")
+        cls.old_environ = os.environ
+
+    @classmethod
+    def tearDownClass(cls):
+        TestBase.tearDownClass()
+        os.environ = cls.old_environ
 
     def _test_basic(self, c):
         self.assertEqual(type(c.warn_all), bool)
@@ -239,9 +245,11 @@ class TestConfig(TestBase):
             "/foo bar/baz hey",
             "/home/foo bar/baz",
         ]
-        os.environ["REZ_PACKAGES_PATH"] = os.pathsep.join(packages_path)
 
+        old_environ = os.environ
+        os.environ = {"REZ_PACKAGES_PATH": os.pathsep.join(packages_path)}
         self.assertEqual(c.packages_path, packages_path)
+        os.environ = old_environ
 
     def test_8(self):
         """Test CLI dict/list value JSON round trip."""

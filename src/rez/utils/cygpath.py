@@ -52,8 +52,8 @@ def convert(path, mode=None, env_var_seps=None):
 
     env_var_seps = env_var_seps or {}
     matches = None
+    start = path
     for var, sep in env_var_seps.items():
-        start = path
         regex = r"(\$\{%s\})([:;])" % var
         path = re.sub(regex, "\\1%s" % sep, path, 0)
         if path != start:
@@ -69,6 +69,9 @@ def convert(path, mode=None, env_var_seps=None):
 
     if prefix:
         path = path.replace(prefix, "", 1)
+
+    if not path:
+        return start
 
     # Convert the path based on mode.
     if mode == "unix":
@@ -95,7 +98,7 @@ def to_posix_path(path):
         str: Converted path.
 
     Raises:
-        ValueError: If the path is not absolute or path is malformed
+        ValueError: If the path is already posix and is absolute or path is malformed
     """
     # Handle Windows long paths
     if path.startswith("\\\\?\\"):
@@ -111,10 +114,14 @@ def to_posix_path(path):
 
     # Relative, or already in posix format (but missing a drive!)
     if not drive:
-        raise ValueError(
-            "Cannot convert path to posix path: {!r} "
-            "Please ensure that the path is absolute".format(path)
-        )
+        path = slashify(path)
+        if path.startswith("/"):
+            raise ValueError(
+                "Cannot convert path to posix path: {!r} "
+                "Please ensure that the path is not absolute".format(path)
+            )
+        # Relative path
+        return path
 
     _, path = os.path.splitdrive(path)
 
@@ -149,7 +156,7 @@ def to_mixed_path(path):
         str: Converted path.
 
     Raises:
-        ValueError: If the path is not absolute or drive letter is not mapped
+        ValueError: If the path is posix and absolute or drive letter is not mapped
             to a UNC path.
     """
     # Handle Windows long paths
@@ -171,10 +178,15 @@ def to_mixed_path(path):
     drive, path = os.path.splitdrive(path)
 
     if not drive:
-        raise ValueError(
-            "Cannot convert path to mixed path: {!r} "
-            "Please ensure that the path is absolute".format(path)
-        )
+        path = slashify(path)
+        if path.startswith("/"):
+            raise ValueError(
+                "Cannot convert path to mixed path: {!r} "
+                "Please ensure that the path is not absolute".format(path)
+            )
+        # Path is relative
+        return path
+
     if drive and not path:
         if len(drive) == 2:
             return drive + posixpath.sep

@@ -173,35 +173,30 @@ class TestToPosixPath(TestBase):
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is absolute",
+            "Please ensure that the path is not absolute",
             cygpath.to_posix_path,
             "/home/john/documents"
         )
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is absolute",
+            "Please ensure that the path is not absolute",
             cygpath.to_posix_path,
             "/projects/python"
         )
 
     @platform_dependent(["windows"])
     def test_relative_paths(self):
-        self.assertRaisesRegex(
-            ValueError,
-            "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is absolute",
-            cygpath.to_posix_path,
-            "jane/documents"
-        )
-
-        self.assertRaisesRegex(
-            ValueError,
-            "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is absolute",
-            cygpath.to_posix_path,
+        self.assertEqual(cygpath.to_posix_path("jane/documents"), "jane/documents")
+        self.assertEqual(
+            cygpath.to_posix_path("projects/python/file.py"),
             "projects/python/file.py"
         )
+        self.assertEqual(
+            cygpath.to_posix_path("f2dd99c6c010d9ea710dad6233ebfcdf64ee1355"),
+            "f2dd99c6c010d9ea710dad6233ebfcdf64ee1355"
+        )
+        self.assertEqual(cygpath.to_posix_path("spangle-1.0"), "spangle-1.0")
 
     @platform_dependent(["windows"])
     def test_windows_unc_paths(self):
@@ -264,12 +259,14 @@ class TestToPosixPath(TestBase):
         self.assertEqual(cygpath.to_posix_path(
             "/c/users/./jane"), "/c/users/jane"
         )
-        self.assertRaisesRegex(
-            ValueError,
-            "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is absolute",
-            cygpath.to_posix_path,
-            "./projects/python"
+        # Dotted relative path
+        self.assertEqual(
+            cygpath.to_posix_path("./projects/python"),
+            "projects/python"
+        )
+        self.assertEqual(
+            cygpath.to_posix_path(".\\projects\\python"),
+            "projects/python"
         )
 
 
@@ -371,7 +368,7 @@ class TestToMixedPath(TestBase):
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
-            "Please ensure that the path is absolute",
+            "Please ensure that the path is not absolute",
             cygpath.to_mixed_path,
             '\\foo\\bar'
         )
@@ -379,10 +376,26 @@ class TestToMixedPath(TestBase):
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
-            "Please ensure that the path is absolute",
+            "Please ensure that the path is not absolute",
             cygpath.to_mixed_path,
             '/projects/python/main.py'
         )
+
+    @platform_dependent(["windows"])
+    def test_relative_paths(self):
+        self.assertEqual(
+            cygpath.to_mixed_path("shell\\1.0.0"),
+            "shell/1.0.0"
+        )
+        self.assertEqual(
+            cygpath.to_mixed_path("projects/python/main.py"),
+            "projects/python/main.py"
+        )
+        self.assertEqual(
+            cygpath.to_mixed_path("f2dd99c6c010d9ea710dad6233ebfcdf64ee1355"),
+            "f2dd99c6c010d9ea710dad6233ebfcdf64ee1355"
+        )
+        self.assertEqual(cygpath.to_mixed_path("spangle-1.0"), "spangle-1.0")
 
     @platform_dependent(["windows"])
     def test_paths_with_only_a_drive_letter(self):
@@ -398,12 +411,10 @@ class TestToMixedPath(TestBase):
         self.assertEqual(cygpath.to_mixed_path(
             "C:/users/./jane"), "C:/users/jane"
         )
-        self.assertRaisesRegex(
-            ValueError,
-            "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is absolute",
-            cygpath.to_posix_path,
-            "./projects/python"
+        # Dotted relative path
+        self.assertEqual(
+            cygpath.to_mixed_path("./projects/python"),
+            "projects/python"
         )
 
     @platform_dependent(["windows"])

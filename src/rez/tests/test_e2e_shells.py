@@ -9,6 +9,7 @@ from __future__ import print_function
 import os
 
 from rez.config import config
+from rez.exceptions import PackageFamilyNotFoundError
 from rez.shells import create_shell, get_shell_types
 from rez.resolved_context import ResolvedContext
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell
@@ -187,6 +188,16 @@ class TestShells(TestBase, TempdirMixin):
                 l.strip() == "'{}' {}".format(sh.executable_filepath(), sh.stdin_arg)
                 for l in lines
             )
+
+    @per_available_shell(include=["gitbash"])
+    def test_invalid_packages_path(self, shell):
+        """Test invalid packages path errors."""
+        old_packages_path = config.packages_path
+        config.override("packages_path", ["/foo bar/baz"])
+
+        self.assertRaises(PackageFamilyNotFoundError, self._create_context, ["shell"])
+
+        config.override("packages_path", old_packages_path)
 
 
 if __name__ == "__main__":
