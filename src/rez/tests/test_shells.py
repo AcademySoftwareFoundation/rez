@@ -11,9 +11,11 @@ from rez.system import system
 from rez.shells import create_shell, get_shell_types, get_shell_class
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
+from rez.rex_bindings import VariantBinding
 from rez.plugin_managers import plugin_manager
 from rez.utils import platform_
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
+from rez.utils.filesystem import canonical_path
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
     install_dependent
 from rez.bind import hello_world
@@ -529,6 +531,25 @@ class TestShells(TestBase, TempdirMixin):
 
         out, _ = p.communicate()
         self.assertEqual(0, p.returncode)
+
+    @per_available_shell()
+    def test_root_normalization(self, shell):
+        """Test root variant binding is normalized as expected."""
+        r = self._create_context(["hello_world"])
+
+        variant_bindings = dict(
+            (variant.name, VariantBinding(variant))
+            for variant in r.resolved_packages
+        )
+
+        self.assertEqual(
+            variant_bindings["hello_world"].root,
+            canonical_path(
+                os.path.join(
+                    self.settings["packages_path"][0], "hello_world", "1.0"
+                )
+            )
+        )
 
     @per_available_shell()
     def test_disabled_path_normalization(self, shell):
