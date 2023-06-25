@@ -98,7 +98,6 @@ class SourceCode(object):
         self.source = (source or '').rstrip()
         self.func = func
         self.filepath = filepath
-
         self.eval_as_function = eval_as_function
         self.package = None
 

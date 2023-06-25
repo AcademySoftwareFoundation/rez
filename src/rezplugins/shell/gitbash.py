@@ -3,7 +3,7 @@
 
 
 """
-Git Bash (for Windows) shell.
+Git Bash (for Windows) shell
 """
 import os
 import re
@@ -22,7 +22,7 @@ from ._utils.windows import get_syspaths_from_registry
 
 
 class GitBash(Bash):
-    """Git Bash shell plugin.
+    """Git Bash shell plugin
     """
     pathsep = ':'
 
