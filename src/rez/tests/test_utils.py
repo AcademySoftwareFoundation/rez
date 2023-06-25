@@ -115,6 +115,15 @@ class TestPathConversion(TestBase):
 
         self.assertEqual(converted_path, expected_path)
 
+    @platform_dependent(["windows"])
+    def test_convert_empty_path(self):
+        """Test the path conversion on empty paths.
+        Path conversion can expect empty paths when normalizing rex paths such as
+        variant subpaths.
+        """
+        converted_path = cygpath.convert('')
+        self.assertEqual(converted_path, '')
+
 
 class TestToPosixPath(TestBase):
 
