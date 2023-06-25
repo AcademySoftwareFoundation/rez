@@ -5,7 +5,6 @@
 """
 test the build system
 """
-from rez.config import config
 from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
@@ -140,10 +139,6 @@ class TestBuild(TestBase, TempdirMixin):
     def test_build_whack(self, shell):
         """Test that a broken build fails correctly.
         """
-        config.override("default_shell", shell)
-        if shell == "gitbash":
-            config.override("enable_path_normalization", True)
-
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
         self.assertRaises(BuildError, builder.build, clean=True)
@@ -153,10 +148,6 @@ class TestBuild(TestBase, TempdirMixin):
     def test_builds(self, shell):
         """Test an interdependent set of builds.
         """
-        config.override("default_shell", shell)
-        if shell == "gitbash":
-            config.override("enable_path_normalization", True)
-
         self._test_build_build_util()
         self._test_build_floob()
         self._test_build_foo()
@@ -168,10 +159,6 @@ class TestBuild(TestBase, TempdirMixin):
     def test_builds_anti(self, shell):
         """Test we can build packages that contain anti packages
         """
-        config.override("default_shell", shell)
-        if shell == "gitbash":
-            config.override("enable_path_normalization", True)
-
         self._test_build_build_util()
         self._test_build_floob()
         self._test_build_anti()
