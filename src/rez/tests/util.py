@@ -218,16 +218,20 @@ def program_dependent(program_name, *program_names):
     return decorator
 
 
-def per_available_shell(exclude=None):
+def per_available_shell(exclude=None, include=None):
     """Function decorator that runs the function over all available shell types.
     """
     exclude = exclude or []
+    include = include or []
 
     shells = get_shell_types()
 
     only_shell = os.getenv("__REZ_SELFTEST_SHELL")
     if only_shell:
         shells = [only_shell]
+
+    if include:
+        shells = [sh for sh in shells if sh in include]
 
     # filter to only those shells available
     shells = [
@@ -238,7 +242,7 @@ def per_available_shell(exclude=None):
 
     # https://pypi.org/project/parameterized
     if use_parameterized:
-        return parameterized.expand(shells)
+        return parameterized.expand(shells, skip_on_empty=True)
 
     def decorator(func):
         @functools.wraps(func)
