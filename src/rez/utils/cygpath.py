@@ -169,7 +169,7 @@ def to_mixed_path(path):
     if unc and unc.startswith("\\\\"):
         drive = to_mapped_drive(path)
         if drive:
-            return drive.upper() + slashify(unc_path)
+            return drive + slashify(unc_path)
         raise ValueError(
             "Cannot convert path to mixed path: {!r} "
             "Unmapped UNC paths are not supported".format(path)
