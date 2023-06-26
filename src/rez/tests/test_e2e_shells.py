@@ -10,7 +10,7 @@ import os
 
 from rez.config import config
 from rez.exceptions import PackageFamilyNotFoundError
-from rez.shells import create_shell, get_shell_types
+from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell
 from rez.utils import platform_

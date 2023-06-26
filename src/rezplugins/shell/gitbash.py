@@ -209,7 +209,7 @@ class GitBash(Bash):
 
         Returns:
             (str): Transformed file path.
-        
+
         Note:
             Gitbash handles PYTHONPATH differently because Python only understands
             ';' as a path separator regardless of the shell environment. So Gitbash
