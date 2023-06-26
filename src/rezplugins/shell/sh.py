@@ -104,14 +104,11 @@ class SH(UnixShell):
             self._addline(cmd % r"\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
-        is_implicit = key == 'REZ_USED_IMPLICIT_PACKAGES'
-
         # Doesn't just escape, but can also perform path normalization
         modified_value = self.escape_string(
             value,
             is_path=self._is_pathed_key(key),
             is_shell_path=self._is_shell_pathed_key(key),
-            is_implicit=is_implicit,
         )
 
         self._addline("export %s=%s" % (key, modified_value))
@@ -129,11 +126,10 @@ class SH(UnixShell):
         self._addline('. %s' % value)
 
     def escape_string(
-        self, value, is_path=False, is_shell_path=False, is_implicit=False
+        self, value, is_path=False, is_shell_path=False
     ):
         value = EscapedString.promote(value)
-        if not is_implicit:
-            value = value.expanduser()
+        value = value.expanduser()
 
         result = ''
 
