@@ -44,8 +44,7 @@ class TestShells(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        # for convenience while developing
-        # some tests are sensitive to stdout
+        # Build tests are very sensitive to stdout
         if not config.debug("none"):
             config.override("debug_none", True)
 

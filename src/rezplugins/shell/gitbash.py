@@ -22,7 +22,7 @@ from ._utils.windows import get_syspaths_from_registry
 
 
 class GitBash(Bash):
-    """Git Bash shell plugin
+    """Git Bash shell plugin.
     """
     pathsep = ':'
 
@@ -191,6 +191,7 @@ class GitBash(Bash):
     def as_path(self, path):
         """Return the given path as a system path.
         Used if the path needs to be reformatted to suit a specific case.
+
         Args:
             path (str): File path.
 
@@ -208,6 +209,12 @@ class GitBash(Bash):
 
         Returns:
             (str): Transformed file path.
+        
+        Note:
+            Gitbash handles PYTHONPATH differently because Python only understands
+            ';' as a path separator regardless of the shell environment. So Gitbash
+            generally uses 'mixed' mode, where the path is coverted to used windows
+            drive letter + posix-style slashes.
         """
         # Prevent path conversion if normalization is disabled in the config.
         if not config.enable_path_normalization:
@@ -226,15 +233,21 @@ class GitBash(Bash):
         return normalized_path
 
     def normalize_path(self, path):
-        """Normalize the path to fit the environment.
-        For example, POSIX paths, Windows path, etc. If no transformation is
-        necessary, just return the path.
+        """Normalize the path to match what Gitbash expects.
+        For example, Windows -> posix etc. If no transformation is necessary,
+        just return the path.
 
         Args:
             path (str): File path.
 
         Returns:
             (str): Normalized file path.
+
+        Note:
+            The difference between this function and normalize_path[s] are the
+            variety of paths that can be passed in. This function is used for
+            individual paths, whereas normalize_paths is used for values that
+            may contain multiple paths but that might not always be the case.
         """
         # Prevent path conversion if normalization is disabled in the config.
         if not config.enable_path_normalization:
@@ -251,15 +264,21 @@ class GitBash(Bash):
         return normalized_path
 
     def normalize_paths(self, value):
-        """
-        This is a bit tricky in the case of gitbash. The problem we hit is that
-        our pathsep is ':', _but_ pre-normalised paths also contain ':' (eg
-        C:\foo). In other words we have to deal with values like  'C:\foo:C:\bah'.
+        """Normalize the path to match what Gitbash expects.
+        For example, Windows -> posix etc. If no transformation is necessary,
+        just return the value.
 
-        To get around this, we do the drive-colon replace here instead of in
-        normalize_path(), so we can then split the paths correctly. Note that
-        normalize_path() still does drive-colon replace also - it needs to
-        behave correctly if passed a string like C:\foo.
+        Args:
+            value (str): File path.
+
+        Returns:
+            (str): Normalized file path.
+
+        Note:
+            This is a bit tricky in the case of Gitbash. The problem we hit is that
+            Gitbash's pathsep is ':', _but_ pre-normalised paths also contain ':'
+            (eg C:\foo). Normalize also needs to deal with values like 'C:\foo:C:\bah'
+            or '${SOMEPATH}:C:\foo' or '${SOMEPATH};C:\foo'.
         """
         if not config.enable_path_normalization:
             return value

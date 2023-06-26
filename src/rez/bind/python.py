@@ -71,6 +71,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     def make_root(variant, root):
         binpath = make_dirs(root, "bin")
         link = os.path.join(binpath, "python")
+        # Symlinks to python2 on windows break python, so we copy the exe
         if platform_.name == "windows" and str(version.major) == "2":
             link += ".exe"
             shutil.copy(exepath, link)
