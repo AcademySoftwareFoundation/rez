@@ -557,7 +557,7 @@ env_var_separators = {
 
 # This setting identifies path-like environment variables. This is required
 # because some path vars need platform normalization. For example, a setting
-# such as `["PATH"]` with the command ``env.PATH.append("{root}/bin")`` will cause
+# such as ``["PATH"]`` with the command ``env.PATH.append("{root}/bin")`` will cause
 # ``{root}`` to be normalized to (eg) ``C:\...\bin`` in a ``cmd`` shell on Windows.
 #
 # Note that wildcards are supported, ``[*PATH]`` for example. Like the previous
@@ -602,8 +602,8 @@ shell_pathed_env_vars = {
 
 # Global toggle to perform path normalization to path-like environment variables.
 # Applies the `pathed_env_vars` and `shell_pathed_env_vars` setting to all shells.
-# If `shell_pathed_env_vars` setting is configured then it overrides `pathed_env_vars`.
-# Setting this to `False` disables all normalization.
+# If `shell_pathed_env_vars` setting is configured then it overrides `pathed_env_vars`
+# if the keys are the same. Setting this to `False` disables all normalization.
 enable_path_normalization = False
 
 # Defines what suites on ``$PATH`` stay visible when a new rez environment is resolved.
