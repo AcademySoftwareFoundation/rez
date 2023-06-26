@@ -104,14 +104,9 @@ class TestShells(TestBase, TempdirMixin):
             )
             self.assertEqual(stdout.strip(), canonical_path(expected_result))
 
-    def test_shell_pythonpath_normalization(self, shell="gitbash"):
+    @per_available_shell(include=["gitbash"])
+    def test_shell_pythonpath_normalization(self, shell):
         """Test PYTHONPATHs are being normalized by the shell."""
-        if shell not in get_shell_types():
-            self.skipTest("shell {!r} not available".format(shell))
-
-        config.override("default_shell", shell)
-        config.override("enable_path_normalization", True)
-
         sh = create_shell(shell)
         r = self._create_context(["shell"])
         p = r.execute_shell(
@@ -121,14 +116,9 @@ class TestShells(TestBase, TempdirMixin):
         env = r.get_environ()
         self.assertEqual(stdout.strip(), sh.as_shell_path(env["PYTHONPATH"]))
 
-    def test_shell_disabled_normalization(self, shell="gitbash"):
+    @per_available_shell(include=["gitbash"])
+    def test_shell_disabled_normalization(self, shell):
         """Test disabled normalization."""
-        if shell not in get_shell_types():
-            self.skipTest("shell {!r} not available".format(shell))
-
-        config.override("default_shell", shell)
-        config.override("enable_path_normalization", False)
-
         sh = create_shell(shell)
         r = self._create_context(["shell"])
         p = r.execute_shell(
