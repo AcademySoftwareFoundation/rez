@@ -264,12 +264,8 @@ class GitBash(Bash):
         if not config.enable_path_normalization:
             return value
 
-        def lowrepl(match):
-            if match:
-                return "/{}/".format(match.group(1).lower())
-
         # C:\ ==> /c/
-        normalized = self._drive_regex.sub(lowrepl, value).replace("\\", "/")
+        normalized = cygpath.convert(value, env_var_seps=self.env_sep_map, mode="unix")
 
         if value != normalized:
             log("GitBash normalize_path[s]()")

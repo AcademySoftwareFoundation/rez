@@ -175,23 +175,24 @@ class TestToPosixPath(TestBase):
     @platform_dependent(["windows"])
     def test_already_posix_style_paths(self):
         self.assertEqual(cygpath.to_posix_path(
-            "/c/Users/John/Documents"), "/c/Users/John/Documents"
+            "/c/Users/John/Documents"),
+            "/c/Users/John/Documents"
         )
         self.assertEqual(
-            cygpath.to_posix_path("/d/projects/python"), "/d/projects/python")
-        self.assertRaisesRegex(
-            ValueError,
-            "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is not absolute",
-            cygpath.to_posix_path,
+            cygpath.to_posix_path("/d/projects/python"),
+            "/d/projects/python"
+        )
+        self.assertEqual(
+            cygpath.to_posix_path("/home/john/documents"),
             "/home/john/documents"
         )
-        self.assertRaisesRegex(
-            ValueError,
-            "Cannot convert path to posix path: '.*' "
-            "Please ensure that the path is not absolute",
-            cygpath.to_posix_path,
-            "/projects/python"
+        self.assertEqual(
+            cygpath.to_posix_path("/mingw64/bin"),
+            "/mingw64/bin"
+        )
+        self.assertEqual(
+            cygpath.to_posix_path("/usr/bin"),
+            "/usr/bin"
         )
 
     @platform_dependent(["windows"])

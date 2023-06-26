@@ -51,21 +51,20 @@ def convert(path, mode=None, env_var_seps=None):
         raise ValueError("Unsupported mode: %s" % mode)
 
     env_var_seps = env_var_seps or {}
-    matches = None
+
+    match = None
     start = path
     for var, sep in env_var_seps.items():
+        # ${VAR}: or ${VAR};
         regex = r"(\$\{%s\})([:;])" % var
         path = re.sub(regex, "\\1%s" % sep, path, 0)
-        if path != start:
-            log("cygpath convert_path() path in: {!r}".format(start))
-            log("cygpath convert_path() path out: {!r}".format(path))
-        matches = re.finditer(regex, path)
+        match = re.match(regex, path)
+        if match is not None:
+            break
 
     prefix = None
-    if matches:
-        match = next(matches, None)
-        if match is not None:
-            prefix = match.group()
+    if match is not None:
+        prefix = match.group()
 
     if prefix:
         path = path.replace(prefix, "", 1)
@@ -82,6 +81,9 @@ def convert(path, mode=None, env_var_seps=None):
     if prefix and path:
         path = prefix + path
 
+    if path != start:
+        log("cygpath convert() path in: {!r}".format(start))
+        log("cygpath convert() path out: {!r}".format(path))
     return path
 
 
@@ -91,6 +93,10 @@ def to_posix_path(path):
     Note: Especially for UNC paths, and as opposed mixed path conversion, this
     function will return a path that is not guaranteed to exist.
 
+    If path is already posix, it is returned unchanged. Paths such as
+    '/mingw64/bin' or '/usr/bin' are built in to gitbash and absolute paths
+    such as '/' point to the root of the gitbash installation.
+
     Args:
         path (str): Path to convert.
 
@@ -98,7 +104,7 @@ def to_posix_path(path):
         str: Converted path.
 
     Raises:
-        ValueError: If the path is already posix and is absolute or path is malformed
+        ValueError: If the path path is malformed
     """
     # Handle Windows long paths
     if path.startswith("\\\\?\\"):
@@ -112,16 +118,9 @@ def to_posix_path(path):
 
     drive = to_cygdrive(path)
 
-    # Relative, or already in posix format (but missing a drive!)
+    # Relative, or absolute posix path with no drive letter
     if not drive:
-        path = slashify(path)
-        if path.startswith("/"):
-            raise ValueError(
-                "Cannot convert path to posix path: {!r} "
-                "Please ensure that the path is not absolute".format(path)
-            )
-        # Relative path
-        return path
+        return slashify(path)
 
     _, path = os.path.splitdrive(path)
 

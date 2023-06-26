@@ -566,6 +566,7 @@ pathed_env_vars = [
 
 shell_env_var_separators = {
     "gitbash": {
+        "PATH": ":",
         "PYTHONPATH": ";",
     }
 }
