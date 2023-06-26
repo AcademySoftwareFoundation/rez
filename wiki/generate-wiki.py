@@ -242,7 +242,7 @@ def process_markdown_files():
     for name, txt in processed_files.items():
         destfile = os.path.join(OUT_DIR, name)
         txt = add_toc(txt)
-        with open(destfile, 'w') as out:
+        with open(destfile, 'w', encoding="utf-8") as out:
             out.write(txt)
 
 
