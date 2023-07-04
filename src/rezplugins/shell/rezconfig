@@ -27,11 +27,13 @@ powershell:
     prompt: '> $ '
     additional_pathext: ['.PY']
     executable_fullpath: null
+    execution_policy: null
 
 pwsh:
     prompt: '> $ '
     additional_pathext: ['.PY']
     executable_fullpath: null
+    execution_policy: null
 
 gitbash:
     prompt: '>'

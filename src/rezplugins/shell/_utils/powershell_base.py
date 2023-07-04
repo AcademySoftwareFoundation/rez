@@ -202,6 +202,12 @@ class PowerShellBase(Shell):
         # Suppresses copyright message of PowerShell and pwsh
         cmd += ["-NoLogo"]
 
+        # Powershell execution policy overrides
+        # Prevent injections/mistakes by ensuring policy value only contains letters.
+        execution_policy = self.settings.execution_policy
+        if execution_policy and execution_policy.isalpha():
+            cmd += ["-ExecutionPolicy", execution_policy]
+
         # Generic form of sourcing that works in powershell and pwsh
         cmd += ["-File", target_file]
 
