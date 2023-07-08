@@ -44,7 +44,6 @@ from rez.utils import json
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
 
-import codecs
 from contextlib import contextmanager
 from functools import wraps
 import getpass
@@ -54,6 +53,7 @@ import time
 import sys
 import os
 import os.path
+import io
 
 
 basestring = six.string_types[0]
@@ -1442,7 +1442,7 @@ class ResolvedContext(object):
 
         # write out the native context file
         context_code = executor.get_output()
-        with codecs.open(context_file, 'w', encoding="utf-8") as f:
+        with io.open(context_file, 'w', encoding="utf-8") as f:
             f.write(context_code)
 
         quiet = quiet or \
