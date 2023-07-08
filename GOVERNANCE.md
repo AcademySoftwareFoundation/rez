@@ -107,7 +107,7 @@ their employer is listed purely for transparency purposes.
 
 * Allan Johns (chair, author) - NVIDIA
 * Brendan Abel - Walt Disney Imagineering
-* Jean-Christophe Morin - Signiant
+* Jean-Christophe Morin - Anaconda
 * Stephen Mackenzie - NVIDIA
 * Thorsten Kaufmann - Accenture Song Content
 
