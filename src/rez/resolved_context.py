@@ -44,6 +44,7 @@ from rez.utils import json
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
 
+import codecs
 from contextlib import contextmanager
 from functools import wraps
 import getpass
@@ -1441,7 +1442,7 @@ class ResolvedContext(object):
 
         # write out the native context file
         context_code = executor.get_output()
-        with open(context_file, 'w') as f:
+        with codecs.open(context_file, 'w', encoding="utf-8") as f:
             f.write(context_code)
 
         quiet = quiet or \
