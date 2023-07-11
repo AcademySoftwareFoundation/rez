@@ -9,6 +9,13 @@ import logging
 from rez.vendor import colorama
 from rez.config import config
 
+# Important - we don't want to init Colorama at startup,
+# because colorama prints a RESET_ALL character at exit. This in turn adds
+# unexpected output when capturing the output of a command run in a
+# ResolvedContext, for example.
+# While we're not initializing colorama at all anymore, this comment is left
+# in case someone thought about putting it back: Make sure to do it lazily.
+
 
 def colorama_wrap(stream):
     """ Wrap the stream with colorama so that it can display colors on any OS """
