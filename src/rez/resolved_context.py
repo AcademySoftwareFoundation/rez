@@ -53,7 +53,6 @@ import time
 import sys
 import os
 import os.path
-import io
 
 
 basestring = six.string_types[0]
@@ -1442,7 +1441,8 @@ class ResolvedContext(object):
 
         # write out the native context file
         context_code = executor.get_output()
-        with io.open(context_file, 'w', encoding="utf-8") as f:
+        encoding = {"encoding": "utf-8"} if six.PY3 else {}
+        with open(context_file, 'w', **encoding) as f:
             f.write(context_code)
 
         quiet = quiet or \
