@@ -9,12 +9,12 @@
 [![Wiki](https://github.com/AcademySoftwareFoundation/rez/workflows/wiki/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Awiki+event%3Arelease)
 [![Pypi](https://github.com/AcademySoftwareFoundation/rez/workflows/pypi/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Apypi+event%3Arelease)
 [![Benchmark](https://github.com/AcademySoftwareFoundation/rez/workflows/benchmark/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=bugs)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=nerdvegas_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=nerdvegas_rez)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=bugs)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 
 
 - [What Is Rez?](#what-is-rez)
