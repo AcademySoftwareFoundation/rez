@@ -6,8 +6,16 @@ To install rez, download the source. Then from the root directory, run:
 ]$ python ./install.py
 ```
 
-This installs rez to `/opt/rez`. See `install.py -h` for how to install to a
-different location.
+This installs rez to a default location depending on operating system. 
+
+```
+Linux: /opt/rez
+Windows: <Current shell drive letter>:/opt/rez
+Mac: /opt/rez
+```
+
+
+See `install.py -h` for how to install to a different location.
 
 Once the installation is complete, a message tells you how to run it:
 
