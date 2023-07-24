@@ -7,7 +7,6 @@
 * Host: TBD
 * Secretary: TBD
 * TSC Attendees:
-  * [ ] Allan Johns - NVIDIA
   * [ ] Brendan Abel - Walt-Disney Imagineering
   * [ ] Jean-Christophe Morin - Freelance
   * [ ] Stephen Mackenzie - NVIDIA
