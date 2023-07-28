@@ -142,7 +142,7 @@ def to_posix_path(path):
     return drive + path
 
 
-def to_mixed_path(path):
+def to_mixed_path(path, strict=False):
     r"""Convert (eg) 'C:\foo\bin' to 'C:/foo/bin'
 
     Note: Especially in the case of UNC paths, this function will return a path
@@ -150,6 +150,8 @@ def to_mixed_path(path):
 
     Args:
         path (str): Path to convert.
+        strict (bool): Raise error if UNC path is not mapped to a drive. If False,
+            just return the path with slashes normalized.
 
     Returns:
         str: Converted path.
@@ -169,10 +171,12 @@ def to_mixed_path(path):
         drive = to_mapped_drive(path)
         if drive:
             return drive + slashify(unc_path)
-        raise ValueError(
-            "Cannot convert path to mixed path: {!r} "
-            "Unmapped UNC paths are not supported".format(path)
-        )
+        if strict:
+            raise ValueError(
+                "Cannot convert path to mixed path: {!r} "
+                "Unmapped UNC paths are not supported".format(path)
+            )
+        return slashify(path, unc=True)
 
     drive, path = os.path.splitdrive(path)
 
@@ -199,21 +203,23 @@ def to_mixed_path(path):
     return drive + path
 
 
-def slashify(path):
+def slashify(path, unc=False):
     """Ensures path only contains forward slashes.
 
     Args:
         path (str): Path to convert.
+        unc (bool): Path is a unc path
 
     Returns:
-        str: Converted path.
+        str: Path with slashes normalized.
     """
     # Remove double backslashes and dots
     path = os.path.normpath(path)
     # Normalize slashes
     path = path.replace("\\", "/")
     # Remove double slashes
-    path = re.sub(r'/{2,}', '/', path)
+    if not unc:
+        path = re.sub(r'/{2,}', '/', path)
     return path
 
 

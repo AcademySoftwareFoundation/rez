@@ -429,40 +429,68 @@ class TestToMixedPath(TestBase):
 
     @platform_dependent(["windows"])
     def test_windows_unc_paths(self):
+        self.assertEqual(
+            cygpath.to_mixed_path("\\\\my_folder\\my_file.txt"),
+            "//my_folder/my_file.txt"
+        )
+        self.assertEqual(
+            cygpath.to_mixed_path("\\\\Server\\Share\\folder"),
+            "//Server/Share/folder"
+        )
+        self.assertEqual(
+            cygpath.to_mixed_path("\\\\server\\share\\folder\\file.txt"),
+            "//server/share/folder/file.txt"
+        )
+        self.assertEqual(
+            cygpath.to_mixed_path("\\\\server\\share/folder/file.txt"),
+            "//server/share/folder/file.txt"
+        )
+        self.assertEqual(
+            cygpath.to_mixed_path(r"\\server\share/folder\//file.txt"),
+            "//server/share/folder/file.txt"
+        )
+
+    @platform_dependent(["windows"])
+    def test_windows_unc_paths_strict(self):
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Unmapped UNC paths are not supported",
             cygpath.to_mixed_path,
-            '\\\\my_folder\\my_file.txt'
+            '\\\\my_folder\\my_file.txt',
+            strict=True,
         )
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Unmapped UNC paths are not supported",
             cygpath.to_mixed_path,
-            "\\\\Server\\Share\\folder"
+            "\\\\Server\\Share\\folder",
+            strict=True,
         )
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Unmapped UNC paths are not supported",
             cygpath.to_mixed_path,
-            "\\\\server\\share\\folder\\file.txt"
+            "\\\\server\\share\\folder\\file.txt",
+            strict=True,
         )
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Unmapped UNC paths are not supported",
             cygpath.to_mixed_path,
-            "\\\\server\\share/folder/file.txt"
+            "\\\\server\\share/folder/file.txt",
+            strict=True,
         )
         self.assertRaisesRegex(
             ValueError,
             "Cannot convert path to mixed path: '.*' "
             "Unmapped UNC paths are not supported",
             cygpath.to_mixed_path,
-            r"\\server\share/folder\//file.txt"
+            r"\\server\share/folder\//file.txt",
+            strict=True,
         )
 
     @platform_dependent(["windows"])

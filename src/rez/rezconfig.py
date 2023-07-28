@@ -590,12 +590,12 @@ shell_env_var_separators = {
 }
 
 # Some shells may require finer grained control over how path variables are
-# handled. Similar to `env_pathed_vars`, this option provides a way to define
+# handled. Similar to `pathed_env_vars`, this option provides a way to define
 # variables the shell should handle, but on a per-shell basis. This setting can
 # be used to override the pathing strategy provided by `pathed_env_vars` or to
 # disable modification if that is desired.
 #
-# Note that, similar to `env_pathed_vars`, wildcards are supported.
+# Note that, similar to `pathed_env_vars`, wildcards are supported.
 shell_pathed_env_vars = {
     "gitbash": ["PYTHONPATH"]
 }
