@@ -108,8 +108,6 @@ class TestRelease(TestBase, TempdirMixin):
     def test_1(self, shell):
         """Basic release."""
         config.override("default_shell", shell)
-        if shell == "gitbash":
-            config.override("enable_path_normalization", True)
 
         # release should fail because release path does not exist
         self._setup_release()
@@ -174,8 +172,6 @@ class TestRelease(TestBase, TempdirMixin):
         """Test variant installation on release
         """
         config.override("default_shell", shell)
-        if shell == "gitbash":
-            config.override("enable_path_normalization", True)
 
         orig_src_path = self.src_path
         self.src_path = os.path.join(self.src_path, "variants")
