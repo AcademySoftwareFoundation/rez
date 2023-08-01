@@ -112,9 +112,12 @@ def to_posix_path(path):
 
     # Handle UNC paths
     unc, unc_path = os.path.splitdrive(path)
-    if unc and unc.startswith("\\\\"):
-        unc_path = unc.replace("\\", "/") + slashify(unc_path)
-        return unc_path
+    if unc:
+        if unc.startswith("\\\\"):
+            unc_path = unc.replace("\\", "/") + slashify(unc_path)
+            return unc_path
+        elif unc.startswith("//"):
+            return slashify(path, unc=True)
 
     drive = to_cygdrive(path)
 

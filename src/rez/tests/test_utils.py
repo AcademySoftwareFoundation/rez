@@ -211,6 +211,9 @@ class TestToPosixPath(TestBase):
     @platform_dependent(["windows"])
     def test_windows_unc_paths(self):
         self.assertEqual(cygpath.to_posix_path(
+            "//Server/Share/folder"), "//Server/Share/folder"
+        )
+        self.assertEqual(cygpath.to_posix_path(
             "\\\\Server\\Share\\folder"), "//Server/Share/folder"
         )
         self.assertEqual(cygpath.to_posix_path(
