@@ -9,3 +9,4 @@ def commands():
 
     env.PATH.append("{root}")
     env.PYTHONPATH.append(os.path.join("{root}", "src"))
+    env.CMAKE_MODULE_PATH.append(os.path.join(this.root, "cmake"))

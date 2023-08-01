@@ -72,6 +72,8 @@ class TestShells(TestBase, TempdirMixin):
             elif shell == "pwsh":
                 return
 
+        config.override("enable_path_normalization", False)
+
         pkg = "shell"
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
@@ -125,6 +127,27 @@ class TestShells(TestBase, TempdirMixin):
         stdout, _ = p.communicate()
         env = r.get_environ()
         self.assertEqual(stdout.strip(), sh.as_shell_path(env["PYTHONPATH"]))
+
+    @per_available_shell(include=["gitbash"])
+    def test_shell_cmake_path_normalization(self, shell):
+        """Test PYTHONPATHs are being normalized by the shell."""
+        # TODO: Remove the check below when this test is fixed on CI.
+        # See comments below.
+        if CI:
+            if shell != "cmd":
+                return
+
+        sh = create_shell(shell)
+        r = self._create_context(["shell"])
+        # Running this command on Windows CI sometimes outputs $PYTHONPATH
+        # not the actual path. The behavior is inconsistent.
+        # Switching to stdin also does not help.
+        p = r.execute_shell(
+            command="echo $CMAKE_MODULE_PATH", stdout=subprocess.PIPE, text=True
+        )
+        stdout, _ = p.communicate()
+        env = r.get_environ()
+        self.assertEqual(stdout.strip(), sh.as_shell_path(env["CMAKE_MODULE_PATH"]))
 
     @per_available_shell(include=["gitbash"])
     def test_shell_disabled_normalization(self, shell):

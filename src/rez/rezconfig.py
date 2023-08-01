@@ -592,12 +592,20 @@ shell_env_var_separators = {
 # Some shells may require finer grained control over how path variables are
 # handled. Similar to `pathed_env_vars`, this option provides a way to define
 # variables the shell should handle, but on a per-shell basis. This setting can
-# be used to override the pathing strategy provided by `pathed_env_vars` or to
-# disable modification if that is desired.
+# be used in addition to the platform pathing strategy provided by `pathed_env_vars`
+# to override or disable it if that is desired.
+#
+# A path-like variable defined in this setting should correspond to a pathsep
+# setting in either `env_var_separators` or `shell_env_var_separators`. It can be
+# both, but only one is necessary. A corresponding pathsep setting informs the shell
+# plugin how to join paths of that type.
 #
 # Note that, similar to `pathed_env_vars`, wildcards are supported.
 shell_pathed_env_vars = {
-    "gitbash": ["PYTHONPATH"]
+    "gitbash": [
+        "PYTHONPATH",
+        "CMAKE_MODULE_PATH",
+    ]
 }
 
 # Global toggle to perform path normalization to path-like environment variables.
