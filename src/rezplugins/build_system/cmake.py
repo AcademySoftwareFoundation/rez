@@ -131,14 +131,14 @@ class CMakeBuildSystem(BuildSystem):
         sh = create_shell()
 
         # assemble cmake command
-        cmd = [found_exe]
+        cmd = [sh.normalize_path(found_exe)]
         # cmd.append("-d")  # see #1055
-        cmd.append(self.working_dir)
+        cmd.append(sh.normalize_path(self.working_dir))
 
         cmd += (self.settings.cmake_args or [])
         cmd += (self.build_args or [])
 
-        cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
+        cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % sh.normalize_path(install_path))
         cmd.append("-DCMAKE_MODULE_PATH=%s" %
                    sh.get_key_token("CMAKE_MODULE_PATH").replace('\\', '/'))
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
