@@ -233,7 +233,13 @@ class ActionManager(object):
             ('undefined', self.undefined)]
 
     def _env_sep(self, name):
-        return self._env_sep_map.get(name, self.interpreter.pathsep)
+        return self.interpreter.env_sep_map.get(
+            name,
+            self._env_sep_map.get(
+                name,
+                self.interpreter.pathsep
+            )
+        )
 
     def _is_verbose(self, command):
         if isinstance(self.verbose, (list, tuple)):
@@ -492,6 +498,12 @@ class ActionInterpreter(object):
     # path separator does not match the system (ie os.pathsep)
     #
     pathsep = os.pathsep
+
+    # Path separator mapping. There are cases (eg gitbash - git for windows) where
+    # the path separator changes based on the variable
+    # (eg "PATH": ":", and "PYTHONPATH": ";")
+    #
+    env_sep_map = {}
 
     # RegEx that captures environment variables (generic form).
     # Extend/override to regex formats that can capture environment formats
