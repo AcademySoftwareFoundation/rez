@@ -19,7 +19,7 @@ import unittest
 import subprocess
 
 
-CI = os.getenv("CI") != ""
+CI = "_IMAGE_NAME" in os.environ
 
 
 class TestShells(TestBase, TempdirMixin):
