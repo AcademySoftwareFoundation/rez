@@ -107,10 +107,9 @@ class TestRelease(TestBase, TempdirMixin):
     @install_dependent()
     def test_1(self, shell):
         """Basic release."""
-        config.override("default_shell", shell)
+        self._setup_release()
 
         # release should fail because release path does not exist
-        self._setup_release()
         builder = self._create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
@@ -171,8 +170,6 @@ class TestRelease(TestBase, TempdirMixin):
     def test_2_variant_add(self, shell):
         """Test variant installation on release
         """
-        config.override("default_shell", shell)
-
         orig_src_path = self.src_path
         self.src_path = os.path.join(self.src_path, "variants")
         try:
