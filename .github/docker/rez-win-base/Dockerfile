@@ -21,6 +21,7 @@ ARG PWSH_VERSION=6.2.2
 # - PowerShellCore
 #
 ENV chocolateyUseWindowsCompression false
+ENV chocolateyVersion=1.4.0
 RUN iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1')); `
     choco feature disable --name showDownloadProgress; `
     choco install git.install --yes --version=${ENV:GIT_VERSION}; `
