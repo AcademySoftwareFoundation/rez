@@ -139,8 +139,7 @@ class Shell(ActionInterpreter):
     def __init__(self):
         self._lines = []
         self.settings = config.plugins.shell[self.name()]
-        self.env_sep_map = self._get_env_sep_map()
-        self.validate_env_sep_map()
+        self.env_sep_map = self._shell_env_seps()
 
     def _global_env_seps(self):
         setting = self.env_sep_map_setting
@@ -148,18 +147,20 @@ class Shell(ActionInterpreter):
         return value
 
     def _shell_env_seps(self):
+        self.validate_env_sep_map()
         shell = self.name()
         setting = self.shell_env_sep_map_setting
         values = config.get(setting, {})
         value = values.get(shell, {})
         return value
 
-    def _get_env_sep_map(self):
+    def validate_env_sep_map(self):
         """
-        Get a dict of environment variable names to path separators.
+        Validate environment path separator settings.
         """
-        if getattr(self, "env_sep_map", None):
-            return self.env_sep_map
+        # Return early if validation is disabled.
+        if not config.warn("shell_startup"):
+            return
 
         global_env_seps = self._global_env_seps()
         shell_env_seps = self._shell_env_seps()
@@ -179,11 +180,6 @@ class Shell(ActionInterpreter):
                         shell_pathsep,
                         pathsep,
                     )
-
-        return shell_env_seps
-
-    def validate_env_sep_map(self):
-        pass
 
     def _addline(self, line):
         self._lines.append(line)

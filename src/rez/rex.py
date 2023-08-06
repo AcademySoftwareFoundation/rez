@@ -277,7 +277,8 @@ class ActionManager(object):
                 # in a request string which python on windows will expand
                 # regardless if the user exists or not
                 matches = re.findall(r"[\\/]?", str_)
-                matches = list(set(matches)).remove("")
+                matches = list(set(matches))
+                matches.remove("")
                 if matches:
                     return os.path.expanduser(str_)
                 else:
