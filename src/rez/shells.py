@@ -161,7 +161,6 @@ class Shell(ActionInterpreter):
         if getattr(self, "env_sep_map", None):
             return self.env_sep_map
 
-        env_seps = {}
         global_env_seps = self._global_env_seps()
         shell_env_seps = self._shell_env_seps()
 
@@ -181,11 +180,7 @@ class Shell(ActionInterpreter):
                         pathsep,
                     )
 
-        # Apply shell settings, overriding global settings
-        for var, pathsep in shell_env_seps.items():
-            env_seps[var] = pathsep
-
-        return env_seps
+        return shell_env_seps
 
     def validate_env_sep_map(self):
         pass
