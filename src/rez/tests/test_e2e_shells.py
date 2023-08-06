@@ -6,7 +6,10 @@
 test shell invocation
 """
 from __future__ import print_function
+import json
 import os
+from fnmatch import fnmatch
+from textwrap import dedent
 
 from rez.config import config
 from rez.exceptions import PackageFamilyNotFoundError
@@ -36,6 +39,23 @@ class TestShells(TestBase, TempdirMixin):
             warn_untimestamped=False,
         )
 
+        cls.env_cmd_txt = dedent(
+            """
+            {{
+                "bash": "echo ${var}",
+                "cmd": "echo %{var}%",
+                "csh": "echo ${var}",
+                "tcsh": "echo ${var}",
+                "gitbash": "echo ${var}",
+                "powershell": "echo $env:{var}",
+                "pwsh": "echo $env:{var}",
+                "sh": "echo ${var}",
+                "tcsh": "echo ${var}",
+                "zsh": "echo ${var}"
+            }}
+            """
+        )
+
     @classmethod
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
@@ -63,14 +83,14 @@ class TestShells(TestBase, TempdirMixin):
                 )
 
     @per_available_shell()
-    def test_shell_root_path_normalization(self, shell):
+    def test_shell_disabled_normalization(self, shell):
         """Test {root} path is normalized to a platform native canonical path."""
         # TODO: Remove the check below when this test is fixed. See comments below.
         if CI:
-            if platform_.name == "windows" and shell != "cmd":
+            if shell != "cmd":
                 return
-            elif shell == "pwsh":
-                return
+        elif platform_.name in ["linux", "darwin"] and shell == "pwsh":
+            return
 
         config.override("enable_path_normalization", False)
 
@@ -78,27 +98,15 @@ class TestShells(TestBase, TempdirMixin):
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
-        cmds = {
-            "bash": "echo $REZ_SHELL_ROOT",
-            "cmd": "echo %REZ_SHELL_ROOT%",
-            "csh": "echo $REZ_SHELL_ROOT",
-            "tcsh": "echo $REZ_SHELL_ROOT",
-            "gitbash": "echo $REZ_SHELL_ROOT",
-            "powershell": "echo $env:REZ_SHELL_ROOT",
-            "pwsh": "echo $env:REZ_SHELL_ROOT",
-            "sh": "echo $REZ_SHELL_ROOT",
-            "tcsh": "echo $REZ_SHELL_ROOT",
-            "zsh": "echo $REZ_SHELL_ROOT",
-        }
-
         if command:
+            cmd = json.loads(self.env_cmd_txt.format(var="REZ_SHELL_ROOT")).get(shell)
             r = self._create_context([pkg])
             # Running this command on Windows CI outputs $REZ_SHELL_ROOT or
             # $env:REZ_SHELL_ROOT depending on the shell, not the actual path.
             # In pwsh on Linux or Mac CI it outputs :REZ_SHELL_ROOT
             # Switching to stdin also does not help.
             p = r.execute_shell(
-                command=cmds[shell], stdout=subprocess.PIPE, text=True
+                command=cmd, stdout=subprocess.PIPE, text=True
             )
             stdout, _ = p.communicate()
             version = str(r.get_key("version")[pkg][-1])
@@ -108,76 +116,74 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(stdout.strip(), canonical_path(expected_result))
 
     @per_available_shell(include=["gitbash"])
-    def test_shell_pythonpath_normalization(self, shell):
-        """Test PYTHONPATHs are being normalized by the shell."""
+    def test_shell_pathed_env_vars(self, shell):
+        """Test shell pathed env variable normalization"""
         # TODO: Remove the check below when this test is fixed on CI.
         # See comments below.
         if CI:
-            if shell != "cmd":
-                return
+            return
 
         sh = create_shell(shell)
         r = self._create_context(["shell"])
-        # Running this command on Windows CI sometimes outputs $PYTHONPATH
-        # not the actual path. The behavior is inconsistent.
-        # Switching to stdin also does not help.
-        p = r.execute_shell(
-            command="echo $PYTHONPATH", stdout=subprocess.PIPE, text=True
-        )
-        stdout, _ = p.communicate()
         env = r.get_environ()
-        self.assertEqual(stdout.strip(), sh.as_shell_path(env["PYTHONPATH"]))
+
+        # Keep in mind support for wildcards
+        env_vars = []
+        for ptrn in config.shell_pathed_env_vars.get(shell, []):
+            env_vars.extend([key for key in env if fnmatch(key, ptrn)])
+
+        for key in env_vars:
+            cmd = json.loads(self.env_cmd_txt.format(var=key)).get(shell)
+            # Running this command on Windows CI sometimes outputs $THE_VARIABLE
+            # not the expanded value e.g. /a/b/c. The behavior is inconsistent.
+            # Switching to stdin also does not help and the point is to execute
+            # in a subshell, IOW without using `execute_command`.
+            p = r.execute_shell(
+                command=cmd, stdout=subprocess.PIPE, text=True
+            )
+            stdout, _ = p.communicate()
+            self.assertEqual(stdout.strip(), sh.as_shell_path(env[key]))
 
     @per_available_shell(include=["gitbash"])
-    def test_shell_cmake_path_normalization(self, shell):
-        """Test PYTHONPATHs are being normalized by the shell."""
+    def test_shell_pathed_env_var_seps(self, shell):
+        """Test shell path env variable separators"""
         # TODO: Remove the check below when this test is fixed on CI.
         # See comments below.
         if CI:
-            if shell != "cmd":
-                return
+            return
 
         sh = create_shell(shell)
         r = self._create_context(["shell"])
-        # Running this command on Windows CI sometimes outputs $PYTHONPATH
-        # not the actual path. The behavior is inconsistent.
-        # Switching to stdin also does not help.
-        p = r.execute_shell(
-            command="echo $CMAKE_MODULE_PATH", stdout=subprocess.PIPE, text=True
-        )
-        stdout, _ = p.communicate()
         env = r.get_environ()
-        self.assertEqual(stdout.strip(), sh.as_shell_path(env["CMAKE_MODULE_PATH"]))
 
-    @per_available_shell(include=["gitbash"])
-    def test_shell_disabled_normalization(self, shell):
-        """Test disabled normalization."""
-        # TODO: Remove the check below when this test is fixed on CI.
-        # See comments below.
-        if CI:
-            if shell != "cmd":
-                return
+        # The separator can be set in platform separators or shell separators
+        env_var_seps = config.get("env_var_separators")
+        env_var_seps.update(config.shell_env_var_separators.get(shell, {}))
 
-        sh = create_shell(shell)
-        r = self._create_context(["shell"])
-        # Running this command on Windows CI sometimes outputs $PYTHONPATH
-        # not the actual path. The behavior is inconsistent.
-        # Switching to stdin also does not help.
-        p = r.execute_shell(
-            command="echo $PYTHONPATH", stdout=subprocess.PIPE, text=True
+        # Only testing shell normalized paths
+        shell_env_var_seps = dict(
+            (k, v)
+            for k, v in env_var_seps.items()
+            if k in config.shell_pathed_env_vars.get(shell, [])
         )
-        stdout, _ = p.communicate()
-        env = r.get_environ()
-        self.assertEqual(stdout.strip(), sh.as_shell_path(env["PYTHONPATH"]))
 
-        p = r.execute_shell(
-            command="echo $PATH", stdout=subprocess.PIPE, text=True
-        )
-        stdout, _ = p.communicate()
-        self.assertNotEqual(
-            stdout.strip().split(os.pathsep)[0],
-            sh.normalize_path(env["PATH"].split(os.pathsep)[0])
-        )
+        # Keep in mind support for wildcards
+        env_var_seps = {}
+        for ptrn, sep in shell_env_var_seps.items():
+            env_var_seps.update(dict((key, sep) for key in env if fnmatch(key, ptrn)))
+
+        for key, sep in env_var_seps.items():
+            cmd = json.loads(self.env_cmd_txt.format(var=key)).get(shell)
+            # Running this command on Windows CI sometimes outputs $THE_VARIABLE
+            # not the expanded value e.g. /a/b/c. The behavior is inconsistent.
+            # Switching to stdin also does not help and the point is to execute
+            # in a subshell, IOW without using `execute_command`.
+            p = r.execute_shell(
+                command=cmd, stdout=subprocess.PIPE, text=True
+            )
+            stdout, _ = p.communicate()
+            self.assertEqual(stdout.strip(), sh.as_shell_path(env[key]))
+            self.assertIn(sep, stdout.strip())
 
     @per_available_shell()
     def test_shell_invoking_script(self, shell):
