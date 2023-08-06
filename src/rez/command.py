@@ -11,15 +11,18 @@ class Command(object):
     To register plugin and expose subcommand, the plugin module..
 
     * MUST have a module-level docstring (used as the command help)
-    * MUST provide a `setup_parser()` function
-    * MUST provide a `command()` function
-    * MUST provide a `register_plugin()` function
-    * SHOULD have a module-level attribute `command_behavior`
+    * MUST provide a ``setup_parser()`` function
+    * MUST provide a ``command()`` function
+    * MUST provide a ``register_plugin()`` function
+    * SHOULD have a module-level attribute ``command_behavior``
 
-    For example, a plugin named 'foo' and this is the `foo.py`:
+    For example, a plugin named 'foo' and this is the ``foo.py``:
 
-        '''The docstring for command help, this is required.
-        '''
+    .. code-block:: python
+
+        \"""
+        The docstring for command help, this is required.
+        \"""
         from rez.command import Command
 
         command_behavior = {

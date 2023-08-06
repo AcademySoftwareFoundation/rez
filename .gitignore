@@ -15,3 +15,6 @@ wiki/out
 LATEST_CHANGELOG.md
 __pycache__
 .git-commit-template
+.vscode/
+.venv/
+docs/source/api/

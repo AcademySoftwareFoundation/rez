@@ -41,14 +41,13 @@ class PackageCache(object):
 
     * A rez-env is performed;
     * The context is resolved;
-    * For each variant in the context, we check to see if it's present in the
-      current package cache;
+    * For each variant in the context, we check to see if it's present in the current package cache;
     * If it is, the variant's root is remapped to this location.
 
-    A package cache is _not_ a package repository. It just stores copies of
+    A package cache is **not** a package repository. It just stores copies of
     variant payloads - no package definitions are stored.
 
-    Payloads are stored into the following structure:
+    Payloads are stored into the following structure::
 
         /<cache_dir>/foo/1.0.0/af8d/a/<payload>
                                    /a.json
@@ -62,13 +61,13 @@ class PackageCache(object):
     matching variant.
     """
 
-    VARIANT_NOT_FOUND = 0  # Variant was not found
-    VARIANT_FOUND = 1  # Variant was found
-    VARIANT_CREATED = 2  # Variant was created
-    VARIANT_COPYING = 3  # Variant payload is still being copied to this cache
-    VARIANT_COPY_STALLED = 4  # Variant payload copy has stalled
-    VARIANT_PENDING = 5  # Variant is pending caching
-    VARIANT_REMOVED = 6  # Variant was deleted
+    VARIANT_NOT_FOUND = 0  #: Variant was not found
+    VARIANT_FOUND = 1  #: Variant was found
+    VARIANT_CREATED = 2  #: Variant was created
+    VARIANT_COPYING = 3  #: Variant payload is still being copied to this cache
+    VARIANT_COPY_STALLED = 4  #: Variant payload copy has stalled
+    VARIANT_PENDING = 5  #: Variant is pending caching
+    VARIANT_REMOVED = 6  #: Variant was deleted
 
     _FILELOCK_TIMEOUT = 10
     _COPYING_TIME_INC = 0.2
@@ -145,18 +144,14 @@ class PackageCache(object):
           config.package_cache_same_device' is False.
 
         Args:
-            variant (`Variant`): The variant to copy into this cache
+            variant (Variant): The variant to copy into this cache
             force (bool): Copy the variant regardless. Use at your own risk (there
                 is no guarantee the resulting variant payload will be functional).
 
         Returns:
             2-tuple:
             - str: Path to cached payload
-            - int: One of:
-              - VARIANT_FOUND
-              - VARIANT_CREATED
-              - VARIANT_COPYING
-              - VARIANT_COPY_STALLED
+            - int: One of VARIANT_FOUND, VARIANT_CREATED, VARIANT_COPYING, VARIANT_COPY_STALLED
         """
         from rez.utils.base26 import get_next_base26
         from rez.utils.filesystem import safe_makedirs
@@ -598,8 +593,8 @@ class PackageCache(object):
         This should be run periodically via 'rez-pkg-cache --clean'.
 
         This removes:
-        - Variants that have not been used in more than
-          'config.package_cache_max_variant_days' days;
+
+        - Variants that have not been used in more than 'config.package_cache_max_variant_days' days;
         - Variants that have stalled;
         - Variants that are already pending deletion (remove_variant() was used).
 
