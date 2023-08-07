@@ -9,13 +9,19 @@ Welcome to rez's documentation!
 Some text here.
 
 
-.. .. toctree::
-..    :maxdepth: 2
-..    :caption: Contents:
+.. toctree::
+   :maxdepth: 2
+   :caption: Introduction
+   :hidden:
+
+   installation
+   basic_concepts
 
 .. toctree::
    :maxdepth: 2
    :caption: Reference
    :hidden:
 
+   configuring_rez
+   environment
    api
