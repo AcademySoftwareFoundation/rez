@@ -135,7 +135,7 @@ class TestBuild(TestBase, TempdirMixin):
         stdout = proc.communicate()[0]
         self.assertEqual('hola amigo', stdout.strip())
 
-    @per_available_shell(include=["cmd", "gitbash"])
+    @per_available_shell()
     @program_dependent("cmake", "make")
     @platform_dependent(["windows"])
     @install_dependent()

@@ -248,7 +248,9 @@ class PowerShellBase(Shell):
 
         This isn't explicitely necessary on Windows since around Windows 7,
         PowerShell has supported mixed slashes as a path separator. However,
-        we can still call this method to normalize paths for consistency.
+        we can still call this method to normalize paths for consistency, and
+        have better interoperability with some software such as cmake which
+        prefer forward slashes e.g. GH issue #1321.
 
         Args:
             path (str): Path to normalize.
@@ -261,7 +263,8 @@ class PowerShellBase(Shell):
             return path
 
         if platform_.name == "windows":
-            normalized_path = path.replace("/", "\\")
+            path = os.path.normpath(path)
+            normalized_path = path.replace("\\", "/")
             if path != normalized_path:
                 log("PowerShellBase normalize_path()")
                 log("Path normalized: {!r} -> {!r}".format(path, normalized_path))
@@ -354,6 +357,8 @@ class PowerShellBase(Shell):
         if isinstance(command, six.string_types):
             return command
 
+        find_unsafe = re.compile(r'[^\w@%+`:,./-]').search
+
         replacements = [
             # escape ` as ``
             ('`', "``"),
@@ -362,7 +367,7 @@ class PowerShellBase(Shell):
             ('"', '`"')
         ]
 
-        joined = shlex_join(command, replacements=replacements)
+        joined = shlex_join(command, unsafe_regex=find_unsafe, replacements=replacements)
 
         # add call operator in case executable gets quotes applied
         # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_operators?view=powershell-7.1#call-operator-
