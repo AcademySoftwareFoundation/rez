@@ -8,11 +8,12 @@ test the build system
 from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
+from rez.shells import get_shell_class
 from rez.exceptions import BuildError, BuildContextResolveError,\
     PackageFamilyNotFoundError
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
-    per_available_shell, install_dependent, program_dependent
+    per_available_shell, install_dependent, platform_dependent, program_dependent
 from rez.utils.platform_ import platform_
 import shutil
 import os.path
@@ -133,6 +134,35 @@ class TestBuild(TestBase, TempdirMixin):
         proc = context.execute_command(['greeter'], stdout=PIPE, text=True)
         stdout = proc.communicate()[0]
         self.assertEqual('hola amigo', stdout.strip())
+
+    @per_available_shell(include=["cmd", "gitbash"])
+    @program_dependent("cmake", "make")
+    @platform_dependent(["windows"])
+    @install_dependent()
+    def test_build_winning(self, shell):
+        """Build, install, test the winning package."""
+        sh_cls = get_shell_class(shell)
+
+        cmake_exe = sh_cls.find_executable("cmake")
+        make_exe = sh_cls.find_executable("make")
+
+        self.update_settings(
+            dict(
+                default_shell=shell,
+                enable_path_normalization=True,
+                plugins=dict(
+                    build_system=dict(
+                        cmake=dict(
+                            install_pyc=False,
+                            build_system="make",
+                            cmake_binary=cmake_exe,
+                            make_binary=make_exe,
+                        )
+                    )
+                )
+            )
+        )
+        self._test_build("winning", "9.6")
 
     @per_available_shell()
     @install_dependent()

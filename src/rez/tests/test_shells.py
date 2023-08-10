@@ -17,7 +17,7 @@ from rez.utils import platform_
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.utils.filesystem import canonical_path
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
-    install_dependent
+    install_dependent, platform_dependent
 from rez.bind import hello_world
 from rez.config import config
 import unittest
@@ -551,6 +551,19 @@ class TestShells(TestBase, TempdirMixin):
                 )
             )
         )
+
+    @per_available_shell(include=["cmd", "powershell", "pwsh"])
+    @platform_dependent(["windows"])
+    def test_enabled_path_normalization(self, shell):
+        """Test enabling path normalization via the config."""
+        config.override('enable_path_normalization', True)
+
+        sh = create_shell(shell)
+        test_path = r'C:\foo\bar\spam'
+        normalized_path = sh.normalize_path(test_path)
+        expected_path = 'C:/foo/bar/spam'
+
+        self.assertEqual(normalized_path, expected_path)
 
     @per_available_shell()
     def test_disabled_path_normalization(self, shell):
