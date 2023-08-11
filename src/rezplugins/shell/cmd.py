@@ -280,7 +280,9 @@ class CMD(Shell):
 
         This isn't explicitely necessary on Windows since around Windows 7,
         CMD has supported mixed slashes as a path separator. However,
-        we can still call this method to normalize paths for consistency.
+        we can still call this method to normalize paths for consistency and
+        have better interoperability with some software such as cmake which
+        prefer forward slashes e.g. GH issue #1321.
 
         Args:
             path (str): Path to normalize.
@@ -292,7 +294,8 @@ class CMD(Shell):
         if not config.enable_path_normalization:
             return path
 
-        normalized_path = path.replace("/", "\\")
+        path = os.path.normpath(path)
+        normalized_path = path.replace("\\", "/")
 
         if path != normalized_path:
             log("CMD normalize_path()")
