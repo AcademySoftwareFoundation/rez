@@ -17,6 +17,7 @@ Some text here.
    installation
    basic_concepts
    variants
+   ephemerals
 
 .. toctree::
    :maxdepth: 2
