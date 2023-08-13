@@ -39,13 +39,6 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = [
-    'api/rez.cli.*',
-    'api/rez.vendor.[!v]*',
-    'api/rez.tests.*'
-]
-
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
