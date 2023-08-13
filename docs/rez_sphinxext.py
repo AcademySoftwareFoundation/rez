@@ -1,13 +1,13 @@
 import os
 import re
-import textwrap
 
 import rez.rezconfig
 import docutils.nodes
+import sphinx.util.nodes
 import sphinx.application
-import docutils.parsers.rst
+import sphinx.environment
+import sphinx.util.docutils
 import docutils.statemachine
-from sphinx.util.nodes import nested_parse_with_titles
 
 
 def convert_rez_config_to_rst() -> list[str]:
@@ -43,9 +43,7 @@ def convert_rez_config_to_rst() -> list[str]:
                 description_linenumber = i + 2
                 end_of_section = description_linenumber
 
-                # print('Reading description')
                 while not section_header.match(lines[description_linenumber]):
-                    # print(description_linenumber+start, lines[description_linenumber])
                     section_description += lines[description_linenumber].split('#', 1)[-1].strip() + '\n'
                     description_linenumber += 1
                     end_of_section = description_linenumber
@@ -61,7 +59,6 @@ def convert_rez_config_to_rst() -> list[str]:
 
             value_lines = lines[start_defn:end_defn]
             value_lines[0] = value_lines[0].split("=")[-1].strip()
-            value = '\n'.join(value_lines)
 
             end_comment = i
             while not lines[end_comment].startswith('#'):
@@ -73,20 +70,16 @@ def convert_rez_config_to_rst() -> list[str]:
             start_comment += 1
 
             comments = lines[start_comment:end_comment + 1]
-            comments = [x[2:] for x in comments]  # drop leading '# '
-            comment = '\n'.join(comments)
+            comment_lines = [x[2:] for x in comments]  # drop leading '# '
 
             varname = m.groups()[0]
-            # print(varname)
             if section_title in settings:
-                settings[section_title]['settings'][varname] = (value, comment)
+                settings[section_title]['settings'][varname] = (value_lines, comment_lines)
             else:
-                # print('Adding new section named {0!r} with description {1!r}'.format(section_title, section_description))
                 settings[section_title] = {
                     'desc': section_description,
-                    'settings': {varname: (value, comment)}
+                    'settings': {varname: (value_lines, comment_lines)}
                 }
-
 
         # generate rst text
         rst = ['.. currentmodule:: config']
@@ -97,36 +90,44 @@ def convert_rez_config_to_rst() -> list[str]:
             rst.append("-" * len(section))
             rst.append('')
 
-            rst.append(settings[section]['desc'].strip())
+            # This seems benign (storing each line individually), but it's actually extremelly
+            # important. The docutils ViewList class absolutely requires to have only one line per
+            # entry. If we don't do that, the docutils parser won't parse the sublines,
+            # and we'll get "garbage" (ie unformatted lines) in the output.
+            for line in settings[section]['desc'].strip().split('\n'):
+                rst.append(line)
             rst.append('')
 
-            for varname, (value, comment) in sorted(settings[section]['settings'].items()):
+            for varname, (value_lines, comment_lines) in sorted(settings[section]['settings'].items()):
                 rst.append(".. py:data:: {0}".format(varname))
-                if len(value.split('\n')) == 1:
-                    rst.append("   :value: {0}".format(value))
+                if len(value_lines) == 1:
+                    rst.append("   :value: {0}".format(value_lines[0]))
                 else:
                     rst.append('')
                     rst.append('   Default:')
                     rst.append('')
                     rst.append('   .. code-block:: python')
                     rst.append('')
-                    rst.append(textwrap.indent(value, '      '))
+                    for line in value_lines:
+                        rst.append(f'      {line}')
 
                 rst.append('')
-                rst.append(textwrap.indent(comment, '   '))
+                for line in comment_lines:
+                    rst.append(f'   {line}')
                 rst.append('')
 
                 envvar = f'REZ_{varname.upper()}'
                 rst.append(f'   .. envvar:: {envvar}')
                 rst.append('')
                 rst.append(f'      The ``{envvar}`` environment variable can also be used to configure this.')
+                rst.append('')
 
     return rst
 
 
 # Inspired by https://github.com/pypa/pip/blob/4a79e65cb6aac84505ad92d272a29f0c3c1aedce/docs/pip_sphinxext.py
 # https://stackoverflow.com/a/44084890
-class RezConfigDirective(docutils.parsers.rst.Directive):
+class RezConfigDirective(sphinx.util.docutils.SphinxDirective):
     """
     Special rex-config directive. This is quite similar to "autodoc" in some ways.
     """
@@ -140,15 +141,19 @@ class RezConfigDirective(docutils.parsers.rst.Directive):
 
         rst = docutils.statemachine.ViewList()
 
-        # Get the configuration settings as RestructuredText.
+        # Get the configuration settings as reStructuredText text.
         configLines = convert_rez_config_to_rst()
 
+        path, lineNumber = self.get_source_info()
+
         # Add each line to the view list.
-        for line in configLines:
-            rst.append(line, '')
+        for index, line in enumerate(configLines):
+            # Note to future people that will look at this.
+            # "line" has to be a single line! It can't be a line like "this\nthat".
+            rst.append(line, path, lineNumber+index)
 
         # Finally, convert the rst into the appropriate docutils/sphinx nodes.
-        nested_parse_with_titles(self.state, rst, node)
+        sphinx.util.nodes.nested_parse_with_titles(self.state, rst, node)
 
         # Return the generated nodes.
         return node.children
@@ -178,6 +183,7 @@ def checkIfRezConfigIsOutdated(
     return []
 
 def setup(app: sphinx.application.Sphinx) -> dict[str, bool | str]:
+    app.setup_extension('sphinx.ext.autodoc')
     app.add_directive('rez-config', RezConfigDirective)
     app.connect('env-get-outdated', checkIfRezConfigIsOutdated)
 
