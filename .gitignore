@@ -18,4 +18,3 @@ __pycache__
 .vscode/
 .venv/
 docs/source/api/
-docs/source/configuring_rez.rst

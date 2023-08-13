@@ -14,7 +14,7 @@ Settings are determined in the following way:
 - The setting is further overriden if it is present in ``$HOME/.rezconfig``;
 - The setting is overridden again if the environment variable :envvar:`REZ_XXX` is present, where ``XXX`` is
   the uppercase version of the setting key. For example, :data:`.image_viewer` will be overriden by
-  ``REZ_IMAGE_VIEWER``.
+  :envvar:`REZ_IMAGE_VIEWER`.
 - This is a special case applied only during a package build or release. In this case, if the
   package definition file contains a "config" section, settings in this section will override all
   others. See :ref:`package overrides`.
@@ -124,4 +124,4 @@ Following is an alphabetical list of rez settings.
    Note that this list has been generated automatically from the :gh-rez:`src/rez/rezconfig.py`
    file in the rez source, so you can also refer to that file for the same information.
 
-__REZCONFIG__
+.. rez-config::
