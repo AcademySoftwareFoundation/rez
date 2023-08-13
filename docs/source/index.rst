@@ -16,8 +16,12 @@ Some text here.
 
    installation
    basic_concepts
+   building_packages
+   context
    variants
    ephemerals
+   context_bundles
+   suites
 
 .. toctree::
    :maxdepth: 2
