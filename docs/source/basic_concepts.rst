@@ -88,7 +88,7 @@ describes everything we need to know about the package in order to use it. Rez m
 package, whether it be a python package, compiled package, or simply build code or configuration
 data.
 
-Here is an example package definition file (see [here](Package-Definition-Guide) for further details
+Here is an example package definition file (see the :ref:`package definition guide <package definition>` for further details
 of each attribute):
 
 .. code-block:: python
@@ -112,7 +112,7 @@ of each attribute):
       env.PYTHONPATH.append("{root}/python")
       env.PATH.append("{root}/bin")
 
-The ``requires`` section defines the requirements of the package. The ``commands`` section describes
+The :attr:`~pkgdef.requires` section defines the requirements of the package. The :func:`~pkgdef.commands` section describes
 what happens when this package is added to an environment. Here, the ``bin`` directory in the package
 installation is appended to ``PATH``, and similarly the ``python`` subdirectory is appended to
 ``PYTHONPATH``.
@@ -120,7 +120,12 @@ installation is appended to ``PATH``, and similarly the ``python`` subdirectory 
 Package Repositories
 ====================
 
-Packages are installed into package repositories. A package repository is a directory on disk, with
+Packages are installed into package repositories.
+
+.. caution::
+   The folowwing is an implementation of the filesystem repository plugin.
+
+A package repository is a directory on disk, with
 packages and their versions laid out in a known structure underneath. Going on with our (foo, bah,
 eek) example, here is how the package repository might look:
 
@@ -178,7 +183,7 @@ developed by a user. Having this at the start of the searchpath allows developer
 environments that pull in test packages in preference to released ones, so they can test a package
 before releasing it for general use.
 
-You can change the packages search path in several ways. A common way is to set the REZ_PACKAGES_PATH
+You can change the packages search path in several ways. A common way is to set the :envvar:`REZ_PACKAGES_PATH`
 environment variable.
 
 .. tip::
@@ -187,7 +192,7 @@ environment variable.
 Package Commands
 ================
 
-The ``commands`` section of the package definition determines how the environment is configured in
+The :func:`~pkgdef.commands` section of the package definition determines how the environment is configured in
 order to use it. It is a python function, but note that if any imports are used, they must appear
 within the body of this function.
 
@@ -200,7 +205,7 @@ Consider this commands example:
       env.PATH.append("{root}/bin")
 
 This is a typical example, where a package adds its source path to ``PYTHONPATH``, and its tools to
-``PATH``. See [here](Package-Commands) for details on what can be done within the ``commands`` section,
+``PATH``. See [here](Package-Commands) for details on what can be done within the :func:`~pkgdef.commands` section,
 as well as details on what order package commands are executed in.
 
 Package Requests
@@ -210,7 +215,7 @@ A *package request* is a string with a special syntax which matches a number of 
 versions. You use package requests in the requires section of a package definition file, and also
 when creating your own configured environment directly using tools such as ``rez-env``.
 
-For example, here is a request (using the *rez-env* tool) to create an environment containing
+For example, here is a request (using the ``rez-env`` tool) to create an environment containing
 *python* version 2.6 or greater, and *my_py_utils* version 5.4 or greater, but less than 6:
 
 .. code-block:: text
@@ -281,7 +286,7 @@ Implicit Packages
 
 The *implicit packages* are a list of package requests that are automatically added to every rez
 request (for example, when you use ``rez-env``). They are set by the configuration setting
-*implicit_packages*. The default setting looks like so:
+:data:`~config.implicit_packages`. The default setting looks like so:
 
 .. todo:: document implicit_packages and make it referenceable
 
@@ -405,4 +410,4 @@ The digram shows the following operations occurring:
   creating the final configured environment.
 
 The order of package command execution depends on package dependencies, and the order that packages
-were requested in. See [here](Package-Commands#order-of-command-execution) for more details.
+were requested in. See :ref:`here <order of command execution>` for more details.

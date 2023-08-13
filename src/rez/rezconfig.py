@@ -84,15 +84,14 @@ context_tmpdir = None
 
 # These are extra python paths that are added to :data:`sys.path` **only during a build**.
 # This means that any of the functions in the following list can import modules
-# .. todo: document preprocess
 # from these paths:
 #
-# * The ``preprocess`` function;
-# * Any function decorated with ``@early``. These get evaluated at build time.
+# * The :func:`~pkgdef.preprocess` function;
+# * Any function decorated with :ref:`@early <early binding functions>`. These get evaluated at build time.
 #
 # You can use this to provide common code to your package definition files during
 # a build. To provide common code for packages to use at resolve time instead (for
-# example, in a ``commands`` function) see the following
+# example, in a :func:`~pkgdef.commands` function) see the following
 # :data:`package_definition_python_path` setting.
 package_definition_build_python_paths = []
 
@@ -111,7 +110,7 @@ package_definition_build_python_paths = []
 #
 #    package_definition_python_path = "/src/rezutils"
 #
-# Consider also the following package ``commands`` function:
+# Consider also the following package :func:`~pkgdef.commands` function:
 #
 # .. code-block:: python
 #
@@ -123,7 +122,7 @@ package_definition_build_python_paths = []
 # specifically, its copy of this sourcefile) and will bind it to the name ``utils``.
 #
 # For further information, see
-# [here](Package-Definition-Guide#sharing-code-across-package-definition-files).
+# :ref:`sharing code across package definition files`.
 package_definition_python_path = None
 
 
@@ -190,7 +189,7 @@ memcached_resolve_min_compress_len = 1
 ###############################################################################
 
 # Whether a package is relocatable or not, if it does not explicitly state with
-# the ``relocatable`` attribute in its package definition file.
+# the :attr:`~pkgdef.relocatable` attribute in its package definition file.
 default_relocatable = True
 
 # Set relocatable on a per-package basis. This is here for migration purposes.
@@ -232,8 +231,8 @@ default_relocatable_per_repository = None
 ###############################################################################
 
 # Whether a package is cachable or not, if it does not explicitly state with
-# the ``cachable`` attribute in its package definition file. If None, defaults
-# to packages' relocatability (ie cachable will == relocatable).
+# the :attr:`~pkgdef.cachable` attribute in its package definition file. If None, defaults
+# to packages' relocatability (ie cachable == relocatable).
 default_cachable = False
 
 # Set cachable on a per-package basis. This is here for migration purposes.
@@ -524,14 +523,14 @@ all_parent_variables = False
 # When two or more packages in a resolve attempt to set the same environment
 # variable, Rez's default behaviour is to flag this as a conflict and abort the
 # resolve. You can overcome this in a package's commands section by using the
-# Rex command "resetenv" instead of "setenv". However, you can also turn off this
+# Rex command :func:`~pkgdefrex.resetenv` instead of :func:`~pkgdefrex.setenv`. However, you can also turn off this
 # behaviour globally for some varibles by adding them to :data:`resetting_variables`,
 # and for all variables, by setting :data:`all_resetting_variables` to true.
 resetting_variables = []
 all_resetting_variables = False
 
 # The default shell type to use when creating resolved environments (eg when using
-# ``rez-env``, or calling :meth:`ResolvedContext.execute_shell`). If empty or None, the
+# ``rez-env``, or calling :meth:`.ResolvedContext.execute_shell`). If empty or None, the
 # current shell is used (for eg, "bash").
 default_shell = ""
 
@@ -540,8 +539,8 @@ default_shell = ""
 terminal_emulator_command = None
 
 # :class:`subprocess.Popen` arguments to use in order to execute a shell in a new process
-# group (see :meth:`rez.resolved_context.ResolvedContext.execute_shell`,
-# :meth:`rez.resolved_context.ResolvedContext.start_new_session`). Dict of (Popen argument, value).
+# group (see :meth:`.ResolvedContext.execute_shell` and its ``start_new_session`` argument).
+# Dict of (Popen argument, value).
 new_session_popen_args = None
 
 # This setting can be used to override the separator used for environment
@@ -623,7 +622,7 @@ standard_system_paths = []
 #
 # If the preprocess function raises an exception, an error message is printed,
 # and the preprocessing is not applied to the package. However, if the
-# :exc:`rez.exceptions.InvalidPackageError` exception is raised, the build is aborted.
+# :exc:`~rez.exceptions.InvalidPackageError` exception is raised, the build is aborted.
 #
 # You would typically use this to perform common validation or modification of
 # packages. For example, your common preprocess function might check that the
@@ -643,7 +642,7 @@ standard_system_paths = []
 package_preprocess_function = None
 
 # Defines in which order the :data:`package_preprocess_function`
-# and the ``preprocess`` function inside a ``package.py`` are executed.
+# and the :attr:`~pkgdef.preprocess` function inside a ``package.py`` are executed.
 #
 # Note that "global preprocess" means the preprocess defined by
 # :data:`package_preprocess_function`.
@@ -735,7 +734,7 @@ warn_untimestamped = False
 # Turn on all warnings
 warn_all = False
 
-# Turn off all warnings. This overrides warn_all.
+# Turn off all warnings. This overrides :data:`warn_all`.
 warn_none = False
 
 # Print info whenever a file is loaded from disk, or saved to disk.
@@ -884,7 +883,7 @@ dot_image_format = "png"
 # ``>``, ``>>`` etc.
 set_prompt = True
 
-# If true, prefixes the prompt, suffixes if false. Ignored if :data:`set_prompt`` is
+# If true, prefixes the prompt, suffixes if false. Ignored if :data:`set_prompt` is
 # false.
 prefix_prompt = True
 
@@ -901,7 +900,7 @@ max_package_changelog_chars = 65536
 # If not zero, truncates all package changelogs to only show the last N commits
 max_package_changelog_revisions = 0
 
-# Default option on how to create scripts with :func:`rez.utils.execution.create_executable_script`.
+# Default option on how to create scripts with :func:`~rez.utils.execution.create_executable_script`.
 # In order to support both windows and other OS it is recommended to set this
 # to ``both``.
 #
@@ -973,12 +972,11 @@ pip_install_remaps = [
 ]
 
 # A dict type config for storing arbitrary data that can be
-# accessed by the [optionvars](Package-Commands#optionvars) function in packages
-# ``commands``.
+# accessed by the :func:`~pkgdefrex.optionvars` function in packages
+# :func:`~pkgdef.commands`.
 #
 # This is like user preferences for packages, which may not easy to define in
-# package's definition file directly due to the differences between machines/
-# users/pipeline-roles.
+# package's definition file directly due to the differences between machines/users/pipeline-roles.
 #
 # Example:
 #

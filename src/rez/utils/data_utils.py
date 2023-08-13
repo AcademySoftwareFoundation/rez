@@ -7,6 +7,7 @@ Utilities related to managing data types.
 """
 import os.path
 import json
+import functools
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
@@ -240,6 +241,7 @@ class cached_property(object):
     """
     def __init__(self, func, name=None):
         self.func = func
+        functools.update_wrapper(self, func)
         self.name = name or func.__name__
 
     def __get__(self, instance, owner=None):

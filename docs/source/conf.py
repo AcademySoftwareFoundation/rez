@@ -37,7 +37,7 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = [
     'api/rez.cli.*',
-    'api/rez.vendor.*',
+    'api/rez.vendor.[!v]*',
     'api/rez.tests.*'
 ]
 
@@ -157,47 +157,50 @@ def populate_rez_config(app, config):
 
 
         # generate md text
-        md = ['.. currentmodule:: config']
+        rst = ['.. currentmodule:: config']
 
         for section in settings:
-            md.append('')
-            md.append(section)
-            md.append("-" * len(section))
-            md.append('')
+            rst.append('')
+            rst.append(section)
+            rst.append("-" * len(section))
+            rst.append('')
 
-            md.append(settings[section]['desc'].strip())
-            md.append('')
+            rst.append(settings[section]['desc'].strip())
+            rst.append('')
 
             for varname, (value, comment) in sorted(settings[section]['settings'].items()):
-                md.append(".. py:data:: {0}".format(varname))
+                rst.append(".. py:data:: {0}".format(varname))
                 if len(value.split('\n')) == 1:
-                    md.append("   :value: {0}".format(value))
+                    rst.append("   :value: {0}".format(value))
                 else:
-                    md.append('')
-                    md.append('   Default:')
-                    md.append('')
-                    md.append('   .. code-block:: python')
-                    md.append('')
-                    md.append(textwrap.indent(value, '      '))
+                    rst.append('')
+                    rst.append('   Default:')
+                    rst.append('')
+                    rst.append('   .. code-block:: python')
+                    rst.append('')
+                    rst.append(textwrap.indent(value, '      '))
 
-                md.append('')
-                md.append(textwrap.indent(comment, '   '))
-                md.append('')
-                # md.append("### %s" % varname)
-                # md.append("")
-                # md.append(defn)
-                # md.append("")
-                # md.append(comment)
-                # md.append("")
+                rst.append('')
+                rst.append(textwrap.indent(comment, '   '))
+                rst.append('')
 
-        import pdb
-        md = '\n'.join(md)
+                envvar = f'REZ_{varname.upper()}'
+                rst.append(f'   .. envvar:: {envvar}')
+                rst.append('')
+                rst.append(f'      The ``{envvar}`` environment variable can also be used to configure this.')
 
-    with open(os.path.join(os.path.dirname(__file__), '_configuring_rez.rst'), 'r') as fd:
-        new_text = fd.read().replace('__REZCONFIG__', md)
+        rst = '\n'.join(rst)
+
+    with open(os.path.join(os.path.dirname(__file__), '_configuring_rez.rst.in'), 'r') as fd:
+        new_text = fd.read().replace('__REZCONFIG__', rst)
 
     with open(os.path.join(os.path.dirname(__file__), 'configuring_rez.rst'), 'w') as fd:
         fd.write(new_text)
+
+
+def onDoctreeRead(app, doctree):
+    domain = app.env.get_domain('std')
+    domain.note_object('asd', 'envvar', 'asd')
 
 def setup(app):
     app.connect('config-inited', populate_rez_config)

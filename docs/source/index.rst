@@ -11,11 +11,20 @@ Some text here.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Introduction
+   :caption: General
    :hidden:
 
    installation
    basic_concepts
+   variants
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Package definition
+   :hidden:
+
+   package_definition
+   package_commands
 
 .. toctree::
    :maxdepth: 2

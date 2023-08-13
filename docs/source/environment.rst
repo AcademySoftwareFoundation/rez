@@ -64,6 +64,11 @@ These are variables that rez generates within a resolved environment (a "context
    Will be 1 if the shell is interactive, and 0 otherwise
    (ie, when a command is specified, like ``rez-env foo -- mycommand``).
 
+.. envvar:: REZ_CONTEXT_FILE
+
+   Filepath of the current context's shell code that is the result of all the
+   resolved packages :func:`~pkgdef.commands`'s sections.
+
 Specifically, per-package, the following variables are generated. Note that for a given
 package name, ``(PKG)`` in the variables below is the uppercased package name, with any
 dots replaced with underscore.
