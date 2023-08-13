@@ -1,3 +1,4 @@
+import os
 import re
 import textwrap
 
@@ -153,8 +154,33 @@ class RezConfigDirective(docutils.parsers.rst.Directive):
         return node.children
 
 
+# https://github.com/sphinx-doc/sphinx/blob/064b6279536da573d31990d7819a110eee98b342/sphinx/builders/__init__.py#L383
+# https://github.com/sphinx-doc/sphinx/blob/064b6279536da573d31990d7819a110eee98b342/sphinx/environment/__init__.py#L459
+def checkIfRezConfigIsOutdated(
+    app: sphinx.application.Sphinx,
+    env: sphinx.environment.BuildEnvironment,
+    added: set[str],
+    changed: set[str],
+    removed: set[str],
+) -> list[str]:
+    """
+    Cache invalidation for configuring_rez
+
+    :returns: Documents considered changed.
+    """
+    rezconfigMtime = -(os.stat(rez.rezconfig.__file__).st_mtime_ns // -1_000)
+
+    # env.all_docs is a dict that contains previously build documents and their timestamp at the time.
+    # So we use it to compare the current timestamp of rezconfig.py. if rezconfig.py is more
+    # recent, we tell sphinx to re-build the configuring_rez document.
+    if 'configuring_rez' not in added and rezconfigMtime > env.all_docs['configuring_rez']:
+        return ['configuring_rez']
+    return []
+
 def setup(app: sphinx.application.Sphinx) -> dict[str, bool | str]:
     app.add_directive('rez-config', RezConfigDirective)
+    app.connect('env-get-outdated', checkIfRezConfigIsOutdated)
+
     return {
         'parallel_read_safe': True,
         'parallel_write_safe': True,
