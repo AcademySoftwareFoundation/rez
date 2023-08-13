@@ -53,6 +53,10 @@ exclude_patterns = [
 html_theme = 'furo'
 html_static_path = ['_static']
 
+html_theme_options = {
+    'light_logo': 'rez-icon-black.svg',
+    'dark_logo': 'rez-icon-white.svg'
+}
 
 # -- Options for intersphinx extension ---------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#module-sphinx.ext.intersphinx
