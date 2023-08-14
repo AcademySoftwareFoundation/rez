@@ -18,7 +18,7 @@ import rez.utils._version
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'rez'
-copyright = '2023, Contributors to the rez project'
+copyright = 'Contributors to the rez project'
 author = 'Contributors to the rez project'
 version = rez.utils._version._rez_version
 release = rez.utils._version._rez_version
@@ -53,7 +53,9 @@ html_theme_options = {
 # -- Options for intersphinx extension ---------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#module-sphinx.ext.intersphinx
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+}
 
 # -- Options for autodoc extension ------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#module-sphinx.ext.autodoc

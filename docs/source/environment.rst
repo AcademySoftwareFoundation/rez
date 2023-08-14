@@ -17,6 +17,8 @@ These are variables that rez generates within a resolved environment (a "context
 
    Filepath of the current context (an rxt file).
 
+   .. seealso:: Documentation on :doc:`contexts <context>`.
+
 .. envvar:: REZ_USED
 
    Path to rez installation that was used to resolve this environment.
@@ -158,8 +160,8 @@ to those listed :ref:`here <context-environment-variables>`.
 
 .. envvar:: REZ_BUILD_REQUIRES
 
-   Space-separated list of requirements for the build - comes from the current package's ``requires``,
-   ``build_requires`` and ``private_build_requires`` attributes, including the current variant's requirements.
+   Space-separated list of requirements for the build - comes from the current package's :attr:`~pkgdef.requires`,
+   :attr:`~pkgdef.build_requires` and :attr:`~pkgdef.private_build_requires` attributes, including the current variant's requirements.
 
 .. envvar:: REZ_BUILD_REQUIRES_UNVERSIONED
 
@@ -170,8 +172,11 @@ to those listed :ref:`here <context-environment-variables>`.
    Path containing the package.py file.
 
 .. envvar:: REZ_BUILD_THREAD_COUNT
+   :noindex:
 
    Number of threads being used for the build.
+
+   .. seealso:: The :data:`~config.build_thread_count` setting.
 
 .. envvar:: REZ_BUILD_TYPE
 
@@ -190,6 +195,10 @@ to those listed :ref:`here <context-environment-variables>`.
 
    Subdirectory containing the current variant. For non-varianted builds, this is an empty string.
 
+.. envvar:: __PARSE_ARG_XXX
+
+   .. seealso:: :ref:`custom-build-commands-pass-arguments`
+
 .. _runtime-environment-variables:
 
 Runtime Environment Variables
@@ -207,14 +216,17 @@ operation of rez.
    For any given rez config entry (see ``rezconfig.py``),
    you can override the setting with an environment variable, for convenience. Here,
    ``XXX`` is the uppercased equivalent of the setting name. For example,
-   a setting commonly overriden this way is ``packages_path``, whos equivalent
-   variable is ``REZ_PACKAGES_PATH``.
+   a setting commonly overriden this way is :data:`~config.packages_path`, whos equivalent
+   variable is :envvar:`REZ_PACKAGES_PATH`.
+
+   .. hint::
+      Each setting documented in :ref:`configuring-rez-configuration-settings` documents their environment variable.
 
 .. envvar:: REZ_XXX_JSON
 
    Same as :envvar:`REZ_XXX`, except that the format
    is a JSON string. This means that some more complex settings can be overridden,
-   that aren't supported in the non-JSON case (``package_filter`` is an example).
+   that aren't supported in the non-JSON case (:data:`~config.package_filter` is an example).
 
 .. envvar:: REZ_DISABLE_HOME_CONFIG
 
@@ -223,7 +235,7 @@ operation of rez.
 .. envvar:: EDITOR
 
    On Linux and OSX systems, this will set the default editor to use
-   if and when rez requires one (an example is on release if the ``prompt_release_message``
+   if and when rez requires one (an example is on release if the :data:`~config.prompt_release_message`
    config setting is true).
 
 .. envvar:: REZ_KEEP_TMPDIRS
@@ -238,4 +250,4 @@ operation of rez.
 
 .. envvar:: REZ_ENV_PROMPT
 
-   See the :data:`config.set_prompt` and :data:`config.prefix_prompt` settings.
+   See the :data:`~config.set_prompt` and :data:`~config.prefix_prompt` settings.

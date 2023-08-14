@@ -517,6 +517,8 @@ allow_unversioned_packages = True
 # app plugin paths parent variables, you are exposing yourself to potentially
 # incorrect behaviour within a resolved environment.
 parent_variables = []
+
+# See :data:`parent_variables`.
 all_parent_variables = False
 
 # When two or more packages in a resolve attempt to set the same environment
@@ -526,6 +528,8 @@ all_parent_variables = False
 # behaviour globally for some varibles by adding them to :data:`resetting_variables`,
 # and for all variables, by setting :data:`all_resetting_variables` to true.
 resetting_variables = []
+
+# See :data:`resetting_variables`.
 all_resetting_variables = False
 
 # The default shell type to use when creating resolved environments (eg when using
@@ -1020,6 +1024,8 @@ rxt_as_yaml = False
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 warn_old_commands = True
+
+# See :data:`warn_old_commands`.
 error_old_commands = False
 
 # Print old commands and their converted rex equivalent. Note that this can
@@ -1034,6 +1040,8 @@ debug_old_commands = False
 # "commands2".
 # TODO: DEPRECATE
 warn_commands2 = False
+
+# See :data:`warn_commands2`.
 error_commands2 = False
 
 # If True, Rez will continue to generate the given environment variables in

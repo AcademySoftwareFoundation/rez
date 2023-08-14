@@ -325,6 +325,7 @@ Here is an example of a ``package.py`` with a late-bound :attr:`~pkgdef.build_re
          return ["maya_2018_build_utils"]
 
 .. todo:: Figure out why I can't link to this.is_package
+
 Note the check for :attr:`~pkgdefrex.this.is_package`. This is necessary, otherwise the evaluation would
 fail in some circumstances. Specifically, if someone ran the following command, the :attr:`~pkgdefrex.this`
 field would actually be a :class:`.Package` instance, which doesn't have an ``index`` method:
@@ -835,11 +836,11 @@ the data type, and includes a code snippet.
       * ``on_variants``: Which variants the test should be run on. Valid values are:
          * ``True``: Run the test on all variants.
          * ``False`` (the default): Run the test only on one variant (ie the variant you get by
-            default when the test env is resolved). This is useful for tests like linting,
-            where variants may be irrelevant.
+           default when the test env is resolved). This is useful for tests like linting,
+           where variants may be irrelevant.
          * A dict: This is a variant selection mechanism. In the example below, the ``maya_CI`` test will
-         run only on those variants that directly require ``maya`` (or a package within this range, eg
-         ``maya-2019``). Note that ``requires`` is the only filter type currently available.
+           run only on those variants that directly require ``maya`` (or a package within this range, eg
+           ``maya-2019``). Note that ``requires`` is the only filter type currently available.
 
    .. code-block:: python
 
@@ -1051,7 +1052,7 @@ of these attributes have been added.
          """
 
 .. py:attribute:: previous_revision
-   :type: tying.Any
+   :type: typing.Any
 
    Revision information of the previously released package, if any (see :attr:`revision` for code example -
    the code for this attribute is the same).

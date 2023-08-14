@@ -6,9 +6,6 @@
 Welcome to rez's documentation!
 ===============================
 
-Some text here.
-
-
 .. toctree::
    :maxdepth: 2
    :caption: General
@@ -19,9 +16,16 @@ Some text here.
    building_packages
    context
    variants
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Advanced
+   :hidden:
+
    ephemerals
    context_bundles
    suites
+   managing_packages
 
 .. toctree::
    :maxdepth: 2

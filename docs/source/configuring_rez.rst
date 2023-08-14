@@ -136,4 +136,7 @@ Following is an alphabetical list of rez settings.
    Note that this list has been generated automatically from the :gh-rez:`src/rez/rezconfig.py`
    file in the rez source, so you can also refer to that file for the same information.
 
+.. This is a custom directive. See the rez_sphinxext.py file for more information.
+.. TL;DR: It will take care of generating the documentation or all the settings defined
+.. in rezconfig.py
 .. rez-config::

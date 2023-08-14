@@ -558,9 +558,11 @@ Following is a list of the objects and functions available.
          if intersects(ephemerals.get("foo.cli", "0"), "1"):
             ...
 
+      .. todo:: document request.get_range
+
       If ``foo.cli`` is not present, this will unexpectedly compare the unversioned
       package named ``0`` against the version range ``1``, which will succeed! Use
-      :func:`ephemerals.get_range` and :func:`request.get_range` functions instead:
+      :func:`ephemerals.get_range` and ``request.get_range`` functions instead:
 
       .. code-block:: python
 
@@ -690,7 +692,7 @@ Following is a list of the objects and functions available.
       if system.platform == "windows":
          ...
 
-.. py:attribute:: test.name
+.. py:attribute:: test
 
    Dict like object to access test related attributes. Only available in the :func:`~pkgdef.pre_test_commands` function.
    Keys can be accessed as object attributes.
