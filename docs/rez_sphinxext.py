@@ -82,7 +82,8 @@ def convert_rez_config_to_rst() -> list[str]:
                 }
 
         # generate rst text
-        rst = ['.. currentmodule:: config']
+        # rst = ['.. currentmodule:: config']
+        rst = []
 
         for section in settings:
             rst.append('')

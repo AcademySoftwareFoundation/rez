@@ -71,7 +71,7 @@ These are variables that rez generates within a resolved environment (a "context
 .. envvar:: REZ_CONTEXT_FILE
 
    Filepath of the current context's shell code that is the result of all the
-   resolved packages :func:`~pkgdef.commands`'s sections.
+   resolved packages :func:`commands`'s sections.
 
 Package environment variables
 -----------------------------
@@ -160,8 +160,8 @@ to those listed :ref:`here <context-environment-variables>`.
 
 .. envvar:: REZ_BUILD_REQUIRES
 
-   Space-separated list of requirements for the build - comes from the current package's :attr:`~pkgdef.requires`,
-   :attr:`~pkgdef.build_requires` and :attr:`~pkgdef.private_build_requires` attributes, including the current variant's requirements.
+   Space-separated list of requirements for the build - comes from the current package's :attr:`requires`,
+   :attr:`build_requires` and :attr:`private_build_requires` attributes, including the current variant's requirements.
 
 .. envvar:: REZ_BUILD_REQUIRES_UNVERSIONED
 
@@ -176,7 +176,7 @@ to those listed :ref:`here <context-environment-variables>`.
 
    Number of threads being used for the build.
 
-   .. seealso:: The :data:`~config.build_thread_count` setting.
+   .. seealso:: The :data:`build_thread_count` setting.
 
 .. envvar:: REZ_BUILD_TYPE
 
@@ -216,7 +216,7 @@ operation of rez.
    For any given rez config entry (see ``rezconfig.py``),
    you can override the setting with an environment variable, for convenience. Here,
    ``XXX`` is the uppercased equivalent of the setting name. For example,
-   a setting commonly overriden this way is :data:`~config.packages_path`, whos equivalent
+   a setting commonly overriden this way is :data:`packages_path`, whos equivalent
    variable is :envvar:`REZ_PACKAGES_PATH`.
 
    .. hint::
@@ -226,7 +226,7 @@ operation of rez.
 
    Same as :envvar:`REZ_XXX`, except that the format
    is a JSON string. This means that some more complex settings can be overridden,
-   that aren't supported in the non-JSON case (:data:`~config.package_filter` is an example).
+   that aren't supported in the non-JSON case (:data:`package_filter` is an example).
 
 .. envvar:: REZ_DISABLE_HOME_CONFIG
 
@@ -235,7 +235,7 @@ operation of rez.
 .. envvar:: EDITOR
 
    On Linux and OSX systems, this will set the default editor to use
-   if and when rez requires one (an example is on release if the :data:`~config.prompt_release_message`
+   if and when rez requires one (an example is on release if the :data:`prompt_release_message`
    config setting is true).
 
 .. envvar:: REZ_KEEP_TMPDIRS
@@ -250,4 +250,4 @@ operation of rez.
 
 .. envvar:: REZ_ENV_PROMPT
 
-   See the :data:`~config.set_prompt` and :data:`~config.prefix_prompt` settings.
+   See the :data:`set_prompt` and :data:`prefix_prompt` settings.

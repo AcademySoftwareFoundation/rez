@@ -107,15 +107,15 @@ String Expansion
 Object Expansion
 ----------------
 
-Any of the objects available to you in a :func:`~pkgdef.commands` section can be referred to in formatted strings
-that are passed to rex functions such as :func:`~pkgdefrex.setenv` and so on. For example, consider the code:
+Any of the objects available to you in a :func:`commands` section can be referred to in formatted strings
+that are passed to rex functions such as :func:`setenv` and so on. For example, consider the code:
 
 .. code-block:: python
 
    appendenv("PATH", "{root}/bin")
 
-Here, ``{root}`` will expand out to the value of :attr:`~pkgdefrex.root`, which is the installation path of the
-package (:attr:`~pkgdefrex.this.root` could also have been used).
+Here, ``{root}`` will expand out to the value of :attr:`root`, which is the installation path of the
+package (:attr:`this.root` could also have been used).
 
 You don't *have* to use this feature. It is provided as a convenience. For example, the following
 code is equivalent to the previous example, and is just as valid (but more verbose):
@@ -125,7 +125,7 @@ code is equivalent to the previous example, and is just as valid (but more verbo
    import os.path
    appendenv("PATH", os.path.join(root, "bin"))
 
-Object string expansion is also supported when setting an environment variable via the :attr:`~pkgdefrex.env` object:
+Object string expansion is also supported when setting an environment variable via the :attr:`env` object:
 
 .. code-block:: python
 
@@ -140,16 +140,16 @@ and ``${FOO}`` are supported, regardless of the syntax supported by the target s
 Literal Strings
 ---------------
 
-You can use the :func:`~pkgdefrex.literal` function to inhibit object and environment variable string
+You can use the :func:`literal` function to inhibit object and environment variable string
 expansion. For example, the following code will set the environment variable to the literal string:
 
 .. code-block:: python
 
    env.TEST = literal("this {root} will not expand")
 
-There is also an :func:`~pkgdefrex.expandable` function, which matches the default behavior. You wouldn't typically
+There is also an :func:`expandable` function, which matches the default behavior. You wouldn't typically
 use this function. However, you can define a string containing literal and expandable parts by
-chaining together :func:`~pkgdefrex.literal` and :func:`~pkgdefrex.expandable`:
+chaining together :func:`literal` and :func:`expandable`:
 
 .. code-block:: python
 
@@ -161,18 +161,18 @@ Explicit String Expansion
 -------------------------
 
 Object string expansion usually occurs **only** when a string is passed to a rex function, or to
-the :attr:`~pkgdefrex.env` object. For example the simple statement ``var = "{root}/bin"`` would not expand ``{root}``
-into ``var``. However, you can use the :func:`~pkgdefrex.expandvars` function to enable this behavior
+the :attr:`env` object. For example the simple statement ``var = "{root}/bin"`` would not expand ``{root}``
+into ``var``. However, you can use the :func:`expandvars` function to enable this behavior
 explicitly:
 
 .. code-block:: python
 
    var = expandvars("{root}/bin")
 
-The :func:`~pkgdefrex.expandvars` and :func:`~pkgdefrex.expandable` functions are slightly different. :func:`~pkgdefrex.expandable` will generate a
-shell variable assignment that will expand out while :func:`~pkgdefrex.expandvars` will expand the value immediately.
+The :func:`expandvars` and :func:`expandable` functions are slightly different. :func:`expandable` will generate a
+shell variable assignment that will expand out while :func:`expandvars` will expand the value immediately.
 
-This table illustrates the difference between :func:`~pkgdefrex.literal`, :func:`~pkgdefrex.expandable` and :func:`~pkgdefrex.expandvars`:
+This table illustrates the difference between :func:`literal`, :func:`expandable` and :func:`expandvars`:
 
 =================================== =======================
 Package command                     Equivalent bash command
@@ -201,7 +201,7 @@ Thus, even if you're on Windows, you should do this:
 Where necessary, filepaths will be automatically normalized for you. That is, converted into
 the syntax expected by the shell. In order for this to work correctly however, rez needs to know
 what environment variables are actually paths. You determine this with the
-:data:`~config.pathed_env_vars` config setting. By default, any environment
+:data:`pathed_env_vars` config setting. By default, any environment
 variable ending in ``PATH`` will be treated as a filepath or list of filepaths, and any
 set/append/prepend operation on it will cause those values to be path-normalized automatically.
 
@@ -216,15 +216,15 @@ Pre And Post Commands
 =====================
 
 Occasionally, it's useful for a package to run commands either before or after all other packages,
-regardless of the command execution order rules. This can be achieved by defining a :func:`~pkgdef.pre_commands`
-or :func:`~pkgdef.post_commands` function. A package can have any, all or none of :func:`~pkgdef.pre_commands`, :func:`~pkgdef.commands` and
-:func:`~pkgdef.post_commands` defined, although it is very common for a package to define just :func:`~pkgdef.commands`.
+regardless of the command execution order rules. This can be achieved by defining a :func:`pre_commands`
+or :func:`post_commands` function. A package can have any, all or none of :func:`pre_commands`, :func:`commands` and
+:func:`post_commands` defined, although it is very common for a package to define just :func:`commands`.
 
 The order of command execution is:
 
-* All package :func:`~pkgdef.pre_commands` are executed, in standard execution order;
-* Then, all package :func:`~pkgdef.commands` are executed, in standard execution order;
-* Then, all package :func:`~pkgdef.post_commands` are executed, in standard execution order.
+* All package :func:`pre_commands` are executed, in standard execution order;
+* Then, all package :func:`commands` are executed, in standard execution order;
+* Then, all package :func:`post_commands` are executed, in standard execution order.
 
 .. _pre-build-commands:
 
@@ -236,9 +236,9 @@ not present in its own build environment! However, sometimes there is a need to 
 specifically for the package being built. For example, you may wish to set some environment
 variables to pass information along to the build system.
 
-The :func:`~pkgdef.pre_build_commands` function does just this. It is called prior to the build. Note that info
+The :func:`pre_build_commands` function does just this. It is called prior to the build. Note that info
 about the current build (such as the installation path) is available in a
-:attr:`~pkgdefrex.build` object (other commands functions do not have this object visible).
+:attr:`build` object (other commands functions do not have this object visible).
 
 .. _pre-test-commands:
 
@@ -246,14 +246,14 @@ Pre Test Commands
 =================
 
 Sometimes it's useful to perform some extra configuration in the environment that a package's test
-will run in. You can define the :func:`~pkgdef.pre_test_commands` function to do this. It will be invoked just
-before the test is run. As well as the standard :attr:`~pkgdefrex.this` object, a :attr:`~pkgdefrex.test` object is also
+will run in. You can define the :func:`pre_test_commands` function to do this. It will be invoked just
+before the test is run. As well as the standard :attr:`this` object, a :attr:`test` object is also
 provided to distinguish which test is about to run.
 
 A Largish Example
 =================
 
-Here is an example of a package definition with a fairly lengthy :func:`~pkgdef.commands` section:
+Here is an example of a package definition with a fairly lengthy :func:`commands` section:
 
 .. code-block:: python
 
@@ -297,12 +297,12 @@ Here is an example of a package definition with a fairly lengthy :func:`~pkgdef.
 Objects
 =======
 
-Various objects and functions are available to use in the :func:`~pkgdef.commands` function (as well as
-:func:`~pkgdef.pre_commands` and :func:`~pkgdef.post_commands`).
+Various objects and functions are available to use in the :func:`commands` function (as well as
+:func:`pre_commands` and :func:`post_commands`).
 
 Following is a list of the objects and functions available.
 
-.. currentmodule:: pkgdefrex
+.. .. currentmodule:: pkgdefrex
 
 .. py:function:: alias()
 
@@ -324,7 +324,7 @@ Following is a list of the objects and functions available.
 
    This is a dict like object. Each key can also be accessed as attributes.
 
-   This object is only available in the :func:`~pkgdef.pre_build_commands`
+   This object is only available in the :func:`pre_build_commands`
    function. It has the following fields:
 
    .. code-block:: python
@@ -366,7 +366,7 @@ Following is a list of the objects and functions available.
    This boolean variable is ``True`` if a build is occurring (typically done via the ``rez-build`` tool),
    and ``False`` otherwise.
    
-   However, the :func:`~pkgdef.commands` block is only executed when the package is brought
+   However, the :func:`commands` block is only executed when the package is brought
    into a resolved environment, so this is not used when the package itself is building. Typically a
    package will use this variable to set environment variables that are only useful during when other
    packages are being built. C++ header include paths are a good example.
@@ -436,7 +436,7 @@ Following is a list of the objects and functions available.
    
    .. note::
       Note that this is different from the standard python :data:`os.environ` dict, which represents the current environment,
-      not the one being configured. If a prior package's :func:`~pkgdef.commands` sets a variable via the ``env`` object,
+      not the one being configured. If a prior package's :func:`commands` sets a variable via the ``env`` object,
       it will be visible only via ``env``, not :data:`os.environ`. The :data:`os.environ` dict hasn't been updated because the target
       configured environment does not yet exist!
 
@@ -448,7 +448,7 @@ Following is a list of the objects and functions available.
 .. py:function:: env.append(value: str)
 
    Appends a value to an environment variable. By default this will use the :data:`os.pathsep` delimiter
-   between list items, but this can be overridden using the config setting :data:`~config.env_var_separators`. See
+   between list items, but this can be overridden using the config setting :data:`env_var_separators`. See
    :ref:`variable-appending-and-prepending` for further information on the behavior of this function.
 
    .. code-block:: python
@@ -524,7 +524,7 @@ Following is a list of the objects and functions available.
 .. py:attribute:: implicits
 
    A dict like object that is similar to the :attr:`request` object, but it contains only the package request as
-   defined by the :data:`~config.implicit_packages` configuration setting.
+   defined by the :data:`implicit_packages` configuration setting.
 
    .. code-block:: python
 
@@ -592,7 +592,7 @@ Following is a list of the objects and functions available.
 
 .. py:function:: optionvars(name: str, default: typing.Any | None = None) -> typing.Any
 
-   A :meth:`dict.get` like function for package accessing arbitrary data from :data:`~config.optionvars` in rez config.
+   A :meth:`dict.get` like function for package accessing arbitrary data from :data:`optionvars` in rez config.
 
 .. py:attribute:: request
    :type: ~rez.rex_bindings.RequirementsBinding
@@ -664,7 +664,7 @@ Following is a list of the objects and functions available.
 
 .. py:function:: source(path: str) -> None
 
-   Source a shell script. Note that, similarly to :func:`~pkgdef.commands`, this function cannot return a value, and
+   Source a shell script. Note that, similarly to :func:`commands`, this function cannot return a value, and
    any side effects that the script sourcing has is not visible to any packages. For example, if the
    ``init.sh`` script below contained ``export FOO=BAH``, a subsequent test for this variable on the
    :attr:`env` object would yield nothing.
@@ -694,7 +694,7 @@ Following is a list of the objects and functions available.
 
 .. py:attribute:: test
 
-   Dict like object to access test related attributes. Only available in the :func:`~pkgdef.pre_test_commands` function.
+   Dict like object to access test related attributes. Only available in the :func:`pre_test_commands` function.
    Keys can be accessed as object attributes.
 
 .. py:attribute:: test.name
@@ -710,7 +710,7 @@ Following is a list of the objects and functions available.
 .. py:attribute:: this
 
    The ``this`` object represents the current package. The following attributes are most commonly used
-   in a :func:`~pkgdef.commands`) section (though you have access to all package attributes. See :ref:`here <package-attributes>`):
+   in a :func:`commands`) section (though you have access to all package attributes. See :ref:`here <package-attributes>`):
 
    .. py:attribute:: this.base
       :type: str

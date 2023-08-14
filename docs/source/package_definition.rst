@@ -58,7 +58,7 @@ Python variables that do **not** become package attributes include:
 
 * Python modules;
 * Functions, not including :ref:`early <package-definition-early-binding-functions>` and :ref:`late <package-definition-late-binding-functions>`
-  binding functions (see next), and not including the :attr:`~pkgdef.commands` and related functions;
+  binding functions (see next), and not including the :attr:`commands` and related functions;
 * Any variable with a leading double underscore;
 * Any variable that is a :ref:`build-package-attributes`.
 
@@ -70,7 +70,7 @@ the attribute value. There are two types of attribute functions: *early binding*
 and *late binding* functions - and these are decorated using ``@early`` and ``@late`` respectively.
 
 .. warning::
-   The :func:`~pkgdef.commands` functions are an exception to the rule. They are
+   The :func:`commands` functions are an exception to the rule. They are
    late bound, but are not the same as a standard function attribute, and are **never** decorated
    with the early or late decorators.
 
@@ -82,7 +82,7 @@ Early Binding Functions
 Early binding functions use the ``@early`` decorator. They are evaluated at *build time*, hence the
 'early' in 'early binding'. Any package attribute can be implemented as an early binding function.
 
-Here is an example of an :attr:`~pkgdef.authors` attribute that is automatically set to the contributors of the
+Here is an example of an :attr:`authors` attribute that is automatically set to the contributors of the
 package's git project:
 
 .. code-block:: python
@@ -100,7 +100,7 @@ package's git project:
    current working directory is the root directory containing your ``package.py``.
 
 An early bound function can also have access to other package attributes. To do this, use the
-implicit :attr:`~pkgdefrex.this` object:
+implicit :attr:`this` object:
 
 .. code-block:: python
 
@@ -135,12 +135,12 @@ Following is the list of objects that are available during early evaluation.
 
 .. todo:: Document these properly with py:attribute?
 
-* **building**: See :attr:`~pkgdefrex.building`;
+* **building**: See :attr:`building`;
 * **build_variant_index**: The index of the variant currently being built. This is only relevant if
-  :attr:`~pkgdefrex.building` is True.
+  :attr:`building` is True.
 * **build_variant_requires**: The subset of package requirements specific to the variant
   currently being built. This is a list of ``PackageRequest`` objects. This is only relevant if
-  :attr:`~pkgdefrex.building` is True.
+  :attr:`building` is True.
 * **this**: The current package, as described previously.
 
 Be aware that early-bound functions are actually evaluated multiple times during a build: once
@@ -149,8 +149,8 @@ functions to change their return value based on variables like ``build_variant_i
 *pre-build* evaluated value is the one set into the installed package, and in this case, ``building``
 is False.
 
-An example of where you'd need to be aware of this is if you wanted the :attr:`~pkgdef.requires` field to include
-a certain package at runtime only (ie, not present during the package build). In this case, :attr:`~pkgdef.requires`
+An example of where you'd need to be aware of this is if you wanted the :attr:`requires` field to include
+a certain package at runtime only (ie, not present during the package build). In this case, :attr:`requires`
 might look like so:
 
 .. code-block:: python
@@ -183,7 +183,7 @@ Not any attribute can be implemented as a late binding function. The allowed att
 * help
 * any arbitrary attribute
 
-Here is an example of a late binding :attr:`~pkgdef.tools` attribute:
+Here is an example of a late binding :attr:`tools` attribute:
 
 .. code-block:: python
 
@@ -236,7 +236,7 @@ reimplement the above example like so:
 
 Note how in the ``_tools`` function we're referring to a relative path. Remember that early binding
 functions are evaluated at build time. The package hasn't actually been built or installed yet,
-so attributes such as :attr:`~pkgdefrex.this.root` don't exist.
+so attributes such as :attr:`this.root` don't exist.
 
 .. _in_context:
 
@@ -251,7 +251,7 @@ the ``rez-env`` tool does) and iterate over its resolved packages, these belong 
 
 The in-context or not-in-context distinction is important, because often the package attribute
 will need information from the context to give desired behavior. For example, consider the
-late binding :attr:`~pkgdef.tools` attribute below:
+late binding :attr:`tools` attribute below:
 
 .. code-block:: python
 
@@ -264,7 +264,7 @@ late binding :attr:`~pkgdef.tools` attribute below:
 
       return result
 
-Here the :attr:`~pkgdefrex.request` object is being checked to see if the ``maya`` package was requested in the
+Here the :attr:`request` object is being checked to see if the ``maya`` package was requested in the
 current env; if it was, a maya-specific tool ``maya-edit`` is added to the tool list.
 
 .. warning::
@@ -280,29 +280,29 @@ Following is the list of objects that are available during late evaluation, if :
 is ``True``:
 
 * **context**: the :class:`~rez.resolved_context.ResolvedContext` instance this package belongs to;
-* **system**: see :attr:`~pkgdefrex.system`;
-* **building**: see :attr:`~pkgdefrex.building`;
-* **request**: see :attr:`~pkgdefrex.request`;
-* **implicits**: see :attr:`~pkgdefrex.implicits`.
+* **system**: see :attr:`system`;
+* **building**: see :attr:`building`;
+* **request**: see :attr:`request`;
+* **implicits**: see :attr:`implicits`.
 
 The following objects are available in **all** cases:
 
-* :attr:`~pkgdefrex.this`: the current package/variant (see note below);
+* :attr:`this`: the current package/variant (see note below);
 * **in_context**: the :ref:`in_context <in_context>` function itself.
 
 .. warning::
-   The :attr:`~pkgdefrex.this` object may be either a package or a variant,
+   The :attr:`this` object may be either a package or a variant,
    depending on the situation. For example, if :ref:`in_context <in_context>` is ``True``,
-   then :attr:`~pkgdefrex.this` is a variant, because variants are the objects present in a resolved context. On the other
+   then :attr:`this` is a variant, because variants are the objects present in a resolved context. On the other
    hand, if a package is accessed via API (for example, by using the ``rez-search`` tool),
-   then :attr:`~pkgdefrex.this` may be a package. The difference matters, because variants have some
+   then :attr:`this` may be a package. The difference matters, because variants have some
    attributes that packages don't, notably, ``root`` and ``index``. Use the properties
-   :attr:`~pkgdefrex.this.is_package` and :attr:`~pkgdefrex.this.is_variant` to distinguish the case if needed.
+   :attr:`this.is_package` and :attr:`this.is_variant` to distinguish the case if needed.
 
 Example - Late Bound build_requires
 ***********************************
 
-Here is an example of a ``package.py`` with a late-bound :attr:`~pkgdef.build_requires` field:
+Here is an example of a ``package.py`` with a late-bound :attr:`build_requires` field:
 
 .. code-block:: python
 
@@ -326,15 +326,15 @@ Here is an example of a ``package.py`` with a late-bound :attr:`~pkgdef.build_re
 
 .. todo:: Figure out why I can't link to this.is_package
 
-Note the check for :attr:`~pkgdefrex.this.is_package`. This is necessary, otherwise the evaluation would
-fail in some circumstances. Specifically, if someone ran the following command, the :attr:`~pkgdefrex.this`
+Note the check for :attr:`this.is_package`. This is necessary, otherwise the evaluation would
+fail in some circumstances. Specifically, if someone ran the following command, the :attr:`this`
 field would actually be a :class:`.Package` instance, which doesn't have an ``index`` method:
 
 .. code-block:: text
 
    ]$ rez-search maya_thing --type package --format '{build_requires}'
 
-In this case, :attr:`~pkgdef.build_requires` is somewhat nonsensical (there is no common build requirement
+In this case, :attr:`build_requires` is somewhat nonsensical (there is no common build requirement
 for both variants here), but something needs to be returned nonetheless.
 
 .. _package-definition-sharing-code:
@@ -352,11 +352,11 @@ Sharing Code During A Build
 
 Functions in a ``package.py`` file which are evaluated at build time include:
 
-* The :attr:`~pkgdef.preprocess` function;
+* The :attr:`preprocess` function;
 * Any package attribute implemented as a function using the :ref:`@early <package-definition-early-binding-functions>` decorator.
 
 You expose common code to these functions by using the
-:data:`~config.package_definition_build_python_paths` config setting.
+:data:`package_definition_build_python_paths` config setting.
 
 Sharing Code Across Installed Packages
 --------------------------------------
@@ -369,13 +369,13 @@ Functions that are evaluated in installed packages' definition files include:
 * Any package attribute implemented as a function using the :ref:`@late <package-definition-late-binding-functions>` decorator.
 
 You expose common code to these functions by using the ``@include`` decorator, which relies on the
-:data:`~config.package_definition_python_path` config setting.
+:data:`package_definition_python_path` config setting.
 The module source files are actually copied into each package's install payload, so the package
 stays self-contained, and will not break or change behavior if the original modules' source
 files are changed. The downside though, is that these modules are not imported, and they themselves
 cannot import other modules managed in the same way.
 
-Here is an example of a package's :attr:`~pkgdef.commands` using a shared module:
+Here is an example of a package's :attr:`commands` using a shared module:
 
 .. code-block:: python
 
@@ -393,8 +393,8 @@ Often a package may be compatible with a broader range of its dependencies at bu
 at runtime. For example, a C++ package may build against any version of ``boost-1``, but may
 then need to link to the specific minor version that it was built against, say ``boost-1.55``.
 
-You can describe this in your package's :attr:`pkgdef.requires` attribute (or any of the related attributes,
-such as :attr:`~pkgdef.build_requires`) by using wildcards as shown here:
+You can describe this in your package's :attr:`requires` attribute (or any of the related attributes,
+such as :attr:`build_requires`) by using wildcards as shown here:
 
 .. code-block:: python
 
@@ -408,8 +408,8 @@ requires list will be expanded to the latest found within the given range (``boo
 There is also a special wilcard available, ``**``. This expands to the full package version. For
 example, the requirement ``boost-1.**`` might expand to ``boost-1.55.1``.
 
-You can also achieve requirements expansion by implementing :attr:`~pkgdef.requires` as an early binding
-function (and you may want to use some variation of this to generate :attr:`~pkgdef.variants` for example), and
+You can also achieve requirements expansion by implementing :attr:`requires` as an early binding
+function (and you may want to use some variation of this to generate :attr:`variants` for example), and
 using the rez :func:`~rez.package_py_utils.expand_requires` function:
 
 .. code-block:: python
@@ -426,9 +426,9 @@ using the rez :func:`~rez.package_py_utils.expand_requires` function:
 Package Preprocessing
 =====================
 
-You can define a :func:`~pkgdef.preprocess` function either globally or in a ``package.py``. This can be used to
+You can define a :func:`preprocess` function either globally or in a ``package.py``. This can be used to
 validate a package, or even change some of its attributes, before it is built. To set a global
-preprocessing function, see the :data:`~config.package_preprocess_function` config setting.
+preprocessing function, see the :data:`package_preprocess_function` config setting.
 
 Consider the following preprocessing function, defined in a ``package.py``:
 
@@ -447,7 +447,7 @@ Consider the following preprocessing function, defined in a ``package.py``:
 
 This preprocessor checks the package name against a regex and sets the package authors list to its
 git committers, if not already supplied in the ``package.py``. To update package attributes, you have
-to update the given ``data`` dict, **not** the package instance (:attr:`~pkgdefrex.this`).
+to update the given ``data`` dict, **not** the package instance (:attr:`this`).
 
 To halt a build because a package is not valid, you must raise an :exc:`~rez.exceptions.InvalidPackageError` as shown
 above.
@@ -576,17 +576,17 @@ Note the following:
 
 .. todo:: Document which attributes supports automatic wildcard expansion?
 
-* :attr:`~pkgdef.variants` is implemented as an early bound attribute, and uses :ref:`requirements-expansion` to
-  dynamically define the variant requirements. Even though only the :attr:`~pkgdef.requires` and related attributes
+* :attr:`variants` is implemented as an early bound attribute, and uses :ref:`requirements-expansion` to
+  dynamically define the variant requirements. Even though only the :attr:`requires` and related attributes
   natively expand wildcards, you can still use the :func:`~rez.package_py_utils.expand_requires` function
   yourself, as illustrated here.
 * A ``_version`` function has been defined, and its return value stored into the ``__version`` variable.
-  This is done because two other early binding attributes. :attr:`~pkgdef.version` and :attr:`~pkgdef.tools` use this value,
+  This is done because two other early binding attributes. :attr:`version` and :attr:`tools` use this value,
   and we avoid calling the function twice. Both ``_version`` and ``__version`` are later stripped from
   the package, because one is a normal function, and the other has double leading underscores.
 * An arbitrary attribute ``_bin_path`` has been defined, and implemented as an early bound attribute.
-  The :attr:`~pkgdef.commands` function then uses this value. In this example, it was far better to take this
-  approach than the alternative of running the python subprocess in the :attr:`~pkgdef.commands` function. Doing that
+  The :attr:`commands` function then uses this value. In this example, it was far better to take this
+  approach than the alternative of running the python subprocess in the :attr:`commands` function. Doing that
   would have been very costly, since commands are executed every time a new environment is created
   (and launching a subprocess is slow). Instead, here we take this cost at build time, and cache the
   result into the package attribute.
@@ -607,7 +607,7 @@ Following is a list, in alphabetical order, of every standard attribute that a u
 package definition file (you can also define your own arbitrary attributes). Each entry specifies
 the data type, and includes a code snippet.
 
-.. currentmodule:: pkgdef
+.. .. currentmodule:: pkgdef
 
 .. py:attribute:: authors
    :type: list[str]
@@ -635,7 +635,7 @@ the data type, and includes a code snippet.
    :type: bool
 
    Determines whether a package can be cached when :ref:`package-caching` is enabled.
-   If not provided, this is determined from the global config setting :data:`~config.default_cachable` and related ``default_cachable_*`` settings.
+   If not provided, this is determined from the global config setting :data:`default_cachable` and related ``default_cachable_*`` settings.
 
    .. code-block:: python
 
@@ -787,7 +787,7 @@ the data type, and includes a code snippet.
    :type: bool
 
    Determines whether a package can be copied to another package repository (using the ``rez-cp`` tool for
-   example). If not provided, this is determined from the global config setting :data:`~config.default_relocatable` and
+   example). If not provided, this is determined from the global config setting :data:`default_relocatable` and
    related ``default_relocatable_*`` settings.
 
    .. code-block:: python

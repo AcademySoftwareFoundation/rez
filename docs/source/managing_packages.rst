@@ -97,11 +97,11 @@ Copying packages is enabled by default, however you're also able to specify whic
 packages are and are not *relocatable*, for much the same reasons as given
 :ref:`here <enabling-package-caching>`.
 
-You can mark a package as non-relocatable by setting :attr:`~pkgdef.relocatable`
+You can mark a package as non-relocatable by setting :attr:`relocatable`
 to ``False`` in its package definition file. There are also config settings that affect relocatability
 in the event that relocatable is not defined in a package's definition. For example,
-see :data:`~config.default_relocatable`, :data:`~config.default_relocatable_per_package`
-and :data:`~config.default_relocatable_per_repository`.
+see :data:`default_relocatable`, :data:`default_relocatable_per_package`
+and :data:`default_relocatable_per_repository`.
 
 Attempting to copy a non-relocatable package will raise a :exc:`~rez.exceptions.PackageCopyError`.
 However, note that there is a ``force`` option that will override this. Use at
@@ -143,7 +143,7 @@ Via API:
    None
 
 Be aware that a non-relocatable package is also not movable (see
-:attr:`here <pkgdef.relocatable>`. Like package
+:attr:`here <relocatable>`. Like package
 copying, there is a ``force`` option to move it regardless.
 
 A typical reason you might want to move a package is to archive packages that are
@@ -228,19 +228,19 @@ Enabling Package Caching
 ========================
 
 Package caching is not enabled by default. To enable it, you need to configure
-:data:`~config.cache_packages_path` to specify a path to
+:data:`cache_packages_path` to specify a path to
 store the cache in.
 
 You also have granular control over whether an individual package will or will
-not be cached. To make a package cachable, you can set :attr:`~pkgdef.cachable`
+not be cached. To make a package cachable, you can set :attr:`cachable`
 to False in its package definition file. Reasons you may *not* want to do this include
 packages that are large, or that aren't relocatable because other compiled packages are
 linked to them in a way that doesn't support library relocation.
 
-There are also config settings that affect cachability in the event that :attr:`~pkgdef.cachable`
+There are also config settings that affect cachability in the event that :attr:`cachable`
 is not defined in a package's definition. For example, see
-:data:`~config.default_cachable`, :data:`~config.default_cachable_per_package`
-and :data:`~config.default_cachable_per_repository`.
+:data:`default_cachable`, :data:`default_cachable_per_package`
+and :data:`default_cachable_per_repository`.
 
 Note that you can also disable package caching on the command line, using
 ``rez-env --no-pkg-caching``.
@@ -303,7 +303,7 @@ Variants that are cached are assumed to be immutable. No check is done to see if
 a variant's payload has changed, and needs to replace an existing cache entry. So
 you should **not** enable caching on package repositories where packages may get
 overwritten. It is for this reason that caching is disabled for local packages by
-default (see :data:`~config.package_cache_local`).
+default (see :data:`package_cache_local`).
 
 Commandline Tool
 ----------------
@@ -362,7 +362,7 @@ Cleaning The Cache
 
 Cleaning the cache refers to deleting variants that are stalled or no longer in use.
 It isn't really possible to know whether a variant is in use, so there is a
-configurable :data:`~config.package_cache_max_variant_days`
+configurable :data:`package_cache_max_variant_days`
 setting, that will delete variants that have not been used (ie that have not appeared
 in a created or sourced context) for more than N days.
 
@@ -371,14 +371,14 @@ Note that when you do this, the variant is no longer available in the cache,
 however it is still stored on disk. You must perform a clean (``rez-pkg-cache --clean``)
 to purge unused cache files from disk.
 
-You can use the :data:`~config.package_cache_clean_limit`
+You can use the :data:`package_cache_clean_limit`
 setting to asynchronously perform some cleanup every time the cache is updated. If
 you do not use this setting, it is recommended that you set up a cron or other form
 of execution scheduler, to run ``rez-pkg-cache --clean`` periodically. Otherwise,
 your cache will grow indefinitely.
 
 Lastly, note that a stalled variant will not attempt to be re-cached until it is
-removed by a clean operation. Using :data:`~config.package_cache_clean_limit` will not clean
+removed by a clean operation. Using :data:`package_cache_clean_limit` will not clean
 stalled variants either, as that could result in a problematic variant getting
 cached, then stalled, then deleted, then cached again and so on. You must run
 ``rez-pkg-cache --clean`` to delete stalled variants.

@@ -116,7 +116,7 @@ of each attribute):
       env.PYTHONPATH.append("{root}/python")
       env.PATH.append("{root}/bin")
 
-The :attr:`~pkgdef.requires` section defines the requirements of the package. The :func:`~pkgdef.commands` section describes
+The :attr:`requires` section defines the requirements of the package. The :func:`commands` section describes
 what happens when this package is added to an environment. Here, the ``bin`` directory in the package
 installation is appended to ``PATH``, and similarly the ``python`` subdirectory is appended to
 ``PYTHONPATH``.
@@ -202,7 +202,7 @@ environment variable.
 Package Commands
 ================
 
-The :func:`~pkgdef.commands` section of the package definition determines how the environment is configured in
+The :func:`commands` section of the package definition determines how the environment is configured in
 order to use it. It is a python function, but note that if any imports are used, they must appear
 within the body of this function.
 
@@ -215,7 +215,7 @@ Consider this commands example:
       env.PATH.append("{root}/bin")
 
 This is a typical example, where a package adds its source path to ``PYTHONPATH``, and its tools to
-``PATH``. See [here](Package-Commands) for details on what can be done within the :func:`~pkgdef.commands` section,
+``PATH``. See [here](Package-Commands) for details on what can be done within the :func:`commands` section,
 as well as details on what order package commands are executed in.
 
 .. _package-requests-concept:
@@ -304,7 +304,7 @@ Implicit Packages
 
 The *implicit packages* are a list of package requests that are automatically added to every rez
 request (for example, when you use ``rez-env``). They are set by the configuration setting
-:data:`~config.implicit_packages`. The default setting looks like so:
+:data:`implicit_packages`. The default setting looks like so:
 
 .. todo:: document implicit_packages and make it referenceable
 

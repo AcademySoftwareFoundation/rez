@@ -37,7 +37,7 @@ the version of maya present. Only one variant of a package is ever used in a
 given configured environment.
 
 Each variant entry is a list of dependencies, no different to the packages listed
-in the :attr:`~pkgdef.requires` field. These dependencies are appended to the ``requires`` list
+in the :attr:`requires` field. These dependencies are appended to the ``requires`` list
 for each variant. Thus the first variant requires ``openexr-2.2`` and ``maya-2016.sp1``,
 and the second variant requires ``openexr-2.2`` and ``maya-2017``.
 
@@ -75,11 +75,11 @@ There are two problems with the variant subpath as illustrated above:
   can cause escaping problems that affect build systems; and, depending on the
   platform, may not be a valid filesystem path.
 
-You can avoid these issues by using :attr:`~pkgdef.hashed_variants`. This sets the variant
+You can avoid these issues by using :attr:`hashed_variants`. This sets the variant
 subpath to a hash of its requirements, rather than the requirements themselves.
 The resulting subdirectly is somewhat unwieldy (example:
 ``83e0c415db1b602f9d59cee028da6ac785e9bacc``). However, another feature,
-:data:`variant shortlinks <config.use_variant_shortlinks>`, deals with this. A shortlink is a symlink to each variant,
+:data:`variant shortlinks <use_variant_shortlinks>`, deals with this. A shortlink is a symlink to each variant,
 created in a separate subdirectory (default ``_v``).
 
 Here is an example hashed variant path:
@@ -187,7 +187,7 @@ of python. However, if I ran ``rez-env foo maya``, I would get the ``first`` var
 because priority is now given to ``maya``, because it's listed in my request, and the
 first variant has the higher version of maya.
 
-The rez setting :data:`~config.variant_select_mode` affects this selection behavior.
+The rez setting :data:`variant_select_mode` affects this selection behavior.
 The default mode just described is ``version_priority``, but there is another mode called
 ``intersection_priority``. In this mode, variants are preferred that have *the most
 number of packages present in the request*; version priority is secondary.

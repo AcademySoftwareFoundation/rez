@@ -64,7 +64,7 @@ Environment Variables
 =====================
 
 Ephemerals do not affect the runtime in the way that packages can (via their
-:func:`~pkgdef.commands` section), however some environment variables are set:
+:func:`commands` section), however some environment variables are set:
 
 * :envvar:`REZ_USED_EPH_RESOLVE`
 * :envvar:`REZ_EPH_(PKG)_REQUEST`
@@ -84,9 +84,9 @@ Introspection
 =============
 
 In order for a package to inspect the ephemerals that are present in a runtime,
-there is an :attr:`~pkgdefrex.ephemerals` object provided, similar
-to the :attr:`~pkgdefrex.resolve` object. You would typically use the
-:func:`~pkgdefrex.intersects` function to inspect it, like so:
+there is an :attr:`ephemerals` object provided, similar
+to the :attr:`resolve` object. You would typically use the
+:func:`intersects` function to inspect it, like so:
 
 .. code-block:: python
 
@@ -98,13 +98,13 @@ to the :attr:`~pkgdefrex.resolve` object. You would typically use the
 In this example, the given package would set the ``TRACKING_ENABLED`` environment
 variable if an ephemeral such as ``.enable_tracking-1`` (or ``.enable_tracking-1.2+``
 etc) is present in the resolve. Note that the leading ``.`` is implied and not
-included when querying the :attr:`~pkgdefrex.ephemerals` object.
+included when querying the :attr:`ephemerals` object.
 
 .. warning::
-   Since :attr:`~pkgdefrex.ephemerals` is a dict-like object, so it has
+   Since :attr:`ephemerals` is a dict-like object, so it has
    a ``get`` function which will return a full request string if key exists. Hence,
    the default value should also be a full request string, not just a version range
-   string like ``0`` in :func:`~pkgdefrex.ephemerals.get_range`. Or :func:`~pkgdefrex.intersects` may not work as expect. 
+   string like ``0`` in :func:`ephemerals.get_range`. Or :func:`intersects` may not work as expect.
 
 Ephemeral Use Cases
 ===================

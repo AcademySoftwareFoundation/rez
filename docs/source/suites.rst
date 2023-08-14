@@ -84,8 +84,8 @@ Suite Tools
 ===========
 
 The tools in a context which are exposed by the suite is determined by the
-:attr:`~pkgdef.tools` package attribute. For example, the
-``maya`` package might have a :attr:`~pkgdef.tools` definition like so:
+:attr:`tools` package attribute. For example, the
+``maya`` package might have a :attr:`tools` definition like so:
 
 .. code-block:: python
 
