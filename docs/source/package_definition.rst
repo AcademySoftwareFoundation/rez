@@ -35,12 +35,12 @@ Here is an example package definition file:
 
    uuid = '6c43d533-92bb-4f8b-b812-7020bf54d3f1'
 
-Package Attributes
-==================
+Attributes
+==========
 
 Every variable defined in the package definition file becomes an attribute on the built or
 installed package. This includes attributes that are not in the
-:ref:`standard package attributes`. You can add any custom attribute to a package.
+:ref:`standard-package-attributes`. You can add any custom attribute to a package.
 
 Some variables are not, however, added as package attributes. Consider the following package
 definition snippet:
@@ -57,10 +57,10 @@ package attribute is nonsensical.
 Python variables that do **not** become package attributes include:
 
 * Python modules;
-* Functions, not including :ref:`early <early binding functions>` and :ref:`late <late binding functions>`
+* Functions, not including :ref:`early <package-definition-early-binding-functions>` and :ref:`late <package-definition-late-binding-functions>`
   binding functions (see next), and not including the :attr:`~pkgdef.commands` and related functions;
 * Any variable with a leading double underscore;
-* Any variable that is a :ref:`build time package attributes`.
+* Any variable that is a :ref:`build-package-attributes`.
 
 Function Attributes
 -------------------
@@ -73,6 +73,8 @@ and *late binding* functions - and these are decorated using ``@early`` and ``@l
    The :func:`~pkgdef.commands` functions are an exception to the rule. They are
    late bound, but are not the same as a standard function attribute, and are **never** decorated
    with the early or late decorators.
+
+.. _package-definition-early-binding-functions:
 
 Early Binding Functions
 +++++++++++++++++++++++
@@ -164,6 +166,8 @@ might look like so:
    You **must** ensure that your early-bound function returns the value
    you want to see in the installed package, when ``building`` is False.
 
+.. _package-definition-late-binding-functions:
+
 Late Binding Functions
 ++++++++++++++++++++++
 
@@ -202,7 +206,7 @@ Here is an example of a late binding :attr:`~pkgdef.tools` attribute:
    **within** the function, not at the top of the ``package.py`` file.
 
 Note that, if this function just returned the binaries found in the bin dir, it would have made
-more sense to implement this as an :ref:`early binding <early binding functions>` function.
+more sense to implement this as an :ref:`early binding <package-definition-early-binding-functions>` function.
 No code evaluation has to happen at runtime then, so it's cheaper. However, here a modification
 is made based on the value of the ``_USER_ROLE`` environment variable, which isn't known at build time.
 
@@ -260,7 +264,7 @@ late binding :attr:`~pkgdef.tools` attribute below:
 
       return result
 
-Here the :attr:`~pkgdef.request` object is being checked to see if the ``maya`` package was requested in the
+Here the :attr:`~pkgdefrex.request` object is being checked to see if the ``maya`` package was requested in the
 current env; if it was, a maya-specific tool ``maya-edit`` is added to the tool list.
 
 .. warning::
@@ -332,6 +336,8 @@ field would actually be a :class:`.Package` instance, which doesn't have an ``in
 In this case, :attr:`~pkgdef.build_requires` is somewhat nonsensical (there is no common build requirement
 for both variants here), but something needs to be returned nonetheless.
 
+.. _package-definition-sharing-code:
+
 Sharing Code Across Package Definition Files
 ============================================
 
@@ -346,7 +352,7 @@ Sharing Code During A Build
 Functions in a ``package.py`` file which are evaluated at build time include:
 
 * The :attr:`~pkgdef.preprocess` function;
-* Any package attribute implemented as a function using the :ref:`@early <early binding functions>` decorator.
+* Any package attribute implemented as a function using the :ref:`@early <package-definition-early-binding-functions>` decorator.
 
 You expose common code to these functions by using the
 :data:`~config.package_definition_build_python_paths` config setting.
@@ -358,8 +364,8 @@ Functions that are evaluated in installed packages' definition files include:
 
 .. todo:: Group all commands in one section?
 
-* The various :ref:`commands <package commands>` functions;
-* Any package attribute implemented as a function using the :ref:`@late <late binding functions>` decorator.
+* The various :doc:`commands <package_commands>` functions;
+* Any package attribute implemented as a function using the :ref:`@late <package-definition-late-binding-functions>` decorator.
 
 You expose common code to these functions by using the ``@include`` decorator, which relies on the
 :data:`~config.package_definition_python_path` config setting.
@@ -376,6 +382,8 @@ Here is an example of a package's :attr:`~pkgdef.commands` using a shared module
    @include("utils")
    def commands():
       utils.set_common_env_vars(this, env)
+
+.. _requirements-expansion:
 
 Requirements Expansion
 ======================
@@ -411,6 +419,8 @@ using the rez :func:`~rez.package_py_utils.expand_requires` function:
       return expand_requires(["boost-1.*"])
 
 .. _preprocess:
+
+.. _package-preprocessing:
 
 Package Preprocessing
 =====================
@@ -479,7 +489,7 @@ this with a global preprocessing function like this:
 The ``with scope(...)`` statement is just a fancy way of defining a dict, so you can do the same
 thing in the preprocess function simply by updating the ``config`` dict within ``data``.
 
-See :ref:`package overrides` for more details on the ``scope`` function.
+See :ref:`configuring-rez-package-overrides` for more details on the ``scope`` function.
 
 Example Package
 ===============
@@ -565,7 +575,7 @@ Note the following:
 
 .. todo:: Document which attributes supports automatic wildcard expansion?
 
-* :attr:`~pkgdef.variants` is implemented as an early bound attribute, and uses :ref:`requirements expansion` to
+* :attr:`~pkgdef.variants` is implemented as an early bound attribute, and uses :ref:`requirements-expansion` to
   dynamically define the variant requirements. Even though only the :attr:`~pkgdef.requires` and related attributes
   natively expand wildcards, you can still use the :func:`~rez.package_py_utils.expand_requires` function
   yourself, as illustrated here.
@@ -582,8 +592,12 @@ Note the following:
 * Common code was provided in the normal function ``_exec_python``, which will be stripped from the
   installed package.
 
+.. _package-attributes:
+
 Package Attributes
 ==================
+
+.. _standard-package-attributes:
 
 Standard Package Attributes
 ---------------------------
@@ -619,7 +633,7 @@ the data type, and includes a code snippet.
 .. py:attribute:: cachable
    :type: bool
 
-   Determines whether a package can be cached when :ref:`package caching` is enabled.
+   Determines whether a package can be cached when :ref:`package-caching` is enabled.
    If not provided, this is determined from the global config setting :data:`~config.default_cachable` and related ``default_cachable_*`` settings.
 
    .. code-block:: python
@@ -631,7 +645,7 @@ the data type, and includes a code snippet.
    This is a block of python code which tells rez how to update an environment so that this package
    can be used. It is executed when the package is brought into a rez environment, either by explicit
    request or by another package's requirements. There is a python API provided (see
-   :ref:`Package Commands` for more details) that lets you do things such as:
+   :doc:`package_commands` for more details) that lets you do things such as:
 
    * set, unset, prepend and append environment variables;
    * create aliases;
@@ -639,7 +653,7 @@ the data type, and includes a code snippet.
    * print messages.
 
    In this example, the ``foo`` package is appending a path to ``PYTHONPATH``, and appending a path to
-   ``PATH``. The special string ``{root}`` will expand out to the install location of the package (see :ref:`string expansion`).
+   ``PATH``. The special string ``{root}`` will expand out to the install location of the package (see :ref:`string-expansion`).
    This is a fairly typical example.
 
    .. code-block:: python
@@ -653,7 +667,7 @@ the data type, and includes a code snippet.
 
    Packages are able to override rez configuration settings. This is useful in some cases. For example,
    we may want a package to release to a different directory than the default (as this example shows).
-   See :ref:`here <package overrides>` for more details.
+   See :ref:`here <configuring-rez-package-overrides>` for more details.
 
    .. note::
       ``config`` should not be modified as is. You need to use the ``scope`` function to manipulate it.
@@ -760,7 +774,7 @@ the data type, and includes a code snippet.
 .. py:function:: pre_test_commands()
 
    This is similar to :func:`commands`, except that it is run prior to each test defined in
-   :attr:`tests`. See :ref:`pre test commands` for more details.
+   :attr:`tests`. See :ref:`pre-test-commands` for more details.
 
    .. code-block:: python
 
@@ -792,7 +806,7 @@ the data type, and includes a code snippet.
    request a package, you are asking rez for any version within this request, although rez will aim to
    give you the latest possible version.
 
-   .. hint:: For more details on request syntax, see :ref:`package requests`.
+   .. hint:: For more details on request syntax, see :ref:`package-requests-concept`.
 
    .. code-block:: python
 
@@ -860,7 +874,7 @@ the data type, and includes a code snippet.
    :type: list[str]
 
    This is a list of tools that the package provides. This entry is important later on when we talk
-   about :ref:`suite tools <suite tools>`.
+   about :ref:`suite tools <suite-tools>`.
 
    .. code-block:: python
 
@@ -896,7 +910,7 @@ the data type, and includes a code snippet.
    :type: list[list[str]]
 
    A package can contain *variants* - think of them as different flavors of the same package version,
-   but with differing dependencies. See the :ref:`variants` section for further details.
+   but with differing dependencies. See the :doc:`variants` section for further details.
 
    .. code-block:: python
 
@@ -909,12 +923,14 @@ the data type, and includes a code snippet.
 .. py:attribute:: version
    :type: str
 
-   This is the version of the package. See :ref:`basic_concepts:versions` for further details on valid
+   This is the version of the package. See :ref:`versions-concept` for further details on valid
    package versions.
 
    .. code-block:: python
 
       version = "1.0.0"
+
+.. _build-package-attributes:
 
 Build Time Package Attributes
 -----------------------------
@@ -957,7 +973,8 @@ package once installed because they are only used at build time.
 .. py:attribute:: build_system
    :type: str
 
-   .. toto:: reference the real --build-system cli flag
+   .. todo:: reference the real --build-system cli flag
+
    Specify the build system used to build this package. If not set, it is detected automatically when
    a build occurs (or the user specifies if using rez-build's ``--build-system`` option).
 
@@ -969,7 +986,7 @@ package once installed because they are only used at build time.
 .. py:function:: pre_build_commands() -> None
 
    This is similar to :func:`commands`, except that it is run *prior to the current package being built*.
-   See :ref:`pre build commands` for more details.
+   See :ref:`pre-build-commands` for more details.
 
    .. code-block:: python
 
@@ -978,7 +995,7 @@ package once installed because they are only used at build time.
 
 .. py:function:: preprocess(this, data: dict[str, typing.Any])
 
-   See :ref:`package preprocessing`.
+   See :ref:`package-preprocessing`.
 
 .. py:attribute:: private_build_requires
    :type: list[str]
@@ -1004,6 +1021,8 @@ package once installed because they are only used at build time.
    .. code-block:: python
 
       requires_rez_version = "2.10"
+
+.. _release-package-attributes:
 
 Release Time Package Attributes
 -------------------------------

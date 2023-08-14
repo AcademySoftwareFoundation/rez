@@ -260,7 +260,7 @@ This directory is listed at the start of the
 environment to test with, the locally installed package will be picked up first. Your
 package will typically be installed to :file:`~/packages/{name}/{version}`, for example
 :file:`~/packages/maya_utils/1.0.5`. If you have variants, they will be installed into subdirectories
-within this install path (see :ref:`disk-structure` for more details).
+within this install path (see :ref:`variants-disk-structure` for more details).
 
 .. tip::
    You don't need to run ``rez-env`` after every install. If your

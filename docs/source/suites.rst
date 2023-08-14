@@ -78,6 +78,8 @@ You should now see your tools coming from the suite:
    maya
    nuke
 
+.. _suite-tools:
+
 Suite Tools
 ===========
 

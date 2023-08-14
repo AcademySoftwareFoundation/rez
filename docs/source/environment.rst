@@ -6,6 +6,8 @@ This chapter lists the environment variables that rez generates in certain
 circumstances, as well as environment variables that you can set which affect
 the operation of rez.
 
+.. _context-environment-variables:
+
 Context Environment Variables
 =============================
 
@@ -69,6 +71,9 @@ These are variables that rez generates within a resolved environment (a "context
    Filepath of the current context's shell code that is the result of all the
    resolved packages :func:`~pkgdef.commands`'s sections.
 
+Package environment variables
+-----------------------------
+
 Specifically, per-package, the following variables are generated. Note that for a given
 package name, ``(PKG)`` in the variables below is the uppercased package name, with any
 dots replaced with underscore.
@@ -97,6 +102,9 @@ dots replaced with underscore.
 
    The patch version of the package, or an emopty string.
 
+Ephemeral packages environment variables
+----------------------------------------
+
 For every ephemeral package request, the following variables are generated. Note
 that for a given ephemeral package name, ``(PKG)`` in the variables below is the
 uppercased package name, with dots replaced by underscore, and **the leading dot
@@ -106,11 +114,13 @@ removed**:
 
    The resolved ephemeral package request.
 
+.. _build-environment-variables:
+
 Build Environment Variables
 ===========================
 
 These are variables that rez generates within a build environment, in addition
-to those listed :ref:`here <context environment variables>`.
+to those listed :ref:`here <context-environment-variables>`.
 
 .. glossary::
 
@@ -179,6 +189,8 @@ to those listed :ref:`here <context environment variables>`.
 .. envvar:: REZ_BUILD_VARIANT_SUBPATH
 
    Subdirectory containing the current variant. For non-varianted builds, this is an empty string.
+
+.. _runtime-environment-variables:
 
 Runtime Environment Variables
 =============================

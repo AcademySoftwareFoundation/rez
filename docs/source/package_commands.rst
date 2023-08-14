@@ -35,6 +35,8 @@ environment variables.
    If you need to import any python modules to use in a :func:`.commands`
    section, the import statements **must** be done inside that function.
 
+.. _package-commands-order-of-execution:
+
 Order Of Command Execution
 ==========================
 
@@ -63,6 +65,8 @@ resulting :func:`.commands` execution order would be:
 * maya_anim_tool;
 * python;
 * PyYAML.
+
+.. _variable-appending-and-prepending:
 
 Variable Appending And Prepending
 =================================
@@ -94,6 +98,8 @@ incorrectly, import the system version.
    Better control over environment variable initialization is
    coming. Specifically, you will be able to specify various modes for variables. For example, one
    mode will append the original (pre-rez) value back to the resulting value.
+
+.. _string-expansion:
 
 String Expansion
 ================
@@ -148,6 +154,8 @@ chaining together :func:`~pkgdefrex.literal` and :func:`~pkgdefrex.expandable`:
 .. code-block:: python
 
    env.DESC = literal("the value of {root} is").expandable("{root}")
+
+.. _explicit-string-expansion:
 
 Explicit String Expansion
 -------------------------
@@ -218,6 +226,8 @@ The order of command execution is:
 * Then, all package :func:`~pkgdef.commands` are executed, in standard execution order;
 * Then, all package :func:`~pkgdef.post_commands` are executed, in standard execution order.
 
+.. _pre-build-commands:
+
 Pre Build Commands
 ==================
 
@@ -229,6 +239,8 @@ variables to pass information along to the build system.
 The :func:`~pkgdef.pre_build_commands` function does just this. It is called prior to the build. Note that info
 about the current build (such as the installation path) is available in a
 :attr:`~pkgdefrex.build` object (other commands functions do not have this object visible).
+
+.. _pre-test-commands:
 
 Pre Test Commands
 =================
@@ -437,7 +449,7 @@ Following is a list of the objects and functions available.
 
    Appends a value to an environment variable. By default this will use the :data:`os.pathsep` delimiter
    between list items, but this can be overridden using the config setting :data:`~config.env_var_separators`. See
-   :ref:`variable appending and prepending` for further information on the behavior of this function.
+   :ref:`variable-appending-and-prepending` for further information on the behavior of this function.
 
    .. code-block:: python
 
@@ -492,11 +504,11 @@ Following is a list of the objects and functions available.
 
 .. py:function:: expandable(arg: str) -> ~rez.rex.EscapedString
 
-   See :ref:`explicit string expansion`.
+   See :ref:`explicit-string-expansion`.
 
 .. py:function:: expandvars(arg: str)
 
-   See :ref:`explicit string expansion`.
+   See :ref:`explicit-string-expansion`.
 
 .. py:function:: getenv(envvar: str)
 
@@ -624,7 +636,7 @@ Following is a list of the objects and functions available.
 .. py:attribute:: resolve
 
    A dict like object representing the list of packages in the resolved environment. Each item is a
-   :ref:`Package <package attributes>` object, keyed by the package name.
+   :ref:`Package <package-attributes>` object, keyed by the package name.
 
    Packages can be accessed using attributes (ie ``resolve.maya``).
 
@@ -696,13 +708,13 @@ Following is a list of the objects and functions available.
 .. py:attribute:: this
 
    The ``this`` object represents the current package. The following attributes are most commonly used
-   in a :func:`~pkgdef.commands`) section (though you have access to all package attributes. See :ref:`here <package attributes>`):
+   in a :func:`~pkgdef.commands`) section (though you have access to all package attributes. See :ref:`here <package-attributes>`):
 
    .. py:attribute:: this.base
       :type: str
 
       Similar to :attr:`this.root`, but does not include the variant subpath, if there is one. Different
-      variants of the same package share the same :attr:`base` directory. See :ref:`here <variants>` for more
+      variants of the same package share the same :attr:`base` directory. See :doc:`here <variants>` for more
       information on package structure in relation to variants.
 
    .. py:attribute:: this.is_package
@@ -729,7 +741,7 @@ Following is a list of the objects and functions available.
 
       The installation directory of the package. If the package contains variants, this path will include
       the variant subpath. This is the directory that contains the installed package payload. See
-      :ref:`here <variants>` for more information on package structure in relation to variants.
+      :doc:`here <variants>` for more information on package structure in relation to variants.
 
    .. py:attribute:: this.version
       :type: ~rez.rex_bindings.VersionBinding

@@ -87,7 +87,7 @@ context_tmpdir = None
 # from these paths:
 #
 # * The :func:`~pkgdef.preprocess` function;
-# * Any function decorated with :ref:`@early <early binding functions>`. These get evaluated at build time.
+# * Any function decorated with :ref:`@early <package-definition-early-binding-functions>`. These get evaluated at build time.
 #
 # You can use this to provide common code to your package definition files during
 # a build. To provide common code for packages to use at resolve time instead (for
@@ -121,8 +121,7 @@ package_definition_build_python_paths = []
 # This package will import the code from :file:`/src/rezutils/utils.py` (or more
 # specifically, its copy of this sourcefile) and will bind it to the name ``utils``.
 #
-# For further information, see
-# :ref:`sharing code across package definition files`.
+# For further information, see :ref:`package-definition-sharing-code`.
 package_definition_python_path = None
 
 

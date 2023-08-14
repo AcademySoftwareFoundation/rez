@@ -17,7 +17,7 @@ Settings are determined in the following way:
   :envvar:`REZ_IMAGE_VIEWER`.
 - This is a special case applied only during a package build or release. In this case, if the
   package definition file contains a "config" section, settings in this section will override all
-  others. See :ref:`package overrides`.
+  others. See :ref:`configuring-rez-package-overrides`.
 
 It is fairly typical to provide your site-specific rez settings in a file that the environment
 variable :envvar:`REZ_CONFIG_FILE` is then set to for all your users.
@@ -25,6 +25,8 @@ variable :envvar:`REZ_CONFIG_FILE` is then set to for all your users.
 .. tip::
    You do not need to provide a copy of all settings in this file. Just provide those
    that are changed from the defaults.
+
+.. _configuring-rez-settings-merge-rules:
 
 Settings Merge Rules
 ====================
@@ -44,6 +46,8 @@ previous configuration sources (you can also supply a ``prepend`` argument):
 .. code-block:: python
 
    release_hooks = ModifyList(append=["custom_release_notify"])
+
+.. _configuring-rez-package-overrides:
 
 Package Overrides
 =================
@@ -72,6 +76,8 @@ those that have any effect during the build/install process. These include:
 * :data:`.package_definition_python_path`;
 * :data:`.package_filter`.
 
+.. _configuring-rez-string-expansions:
+
 String Expansions
 =================
 
@@ -79,6 +85,8 @@ The following string expansions occur on all configuration settings:
 
 * Any environment variable reference, in the form ``${HOME}``;
 * Any property of the ``system`` object, eg ``{system.platform}``. See :class:`rez.system.System` for more details.
+
+.. _configuring-rez-delay-load:
 
 Delay Load
 ==========
@@ -94,6 +102,8 @@ JSON formats are supported:
    default_relocatable_per_package = DelayLoad('/svr/configs/rez_relocs.yaml')
 
 See :Class:`.DelayLoad`.
+
+.. _configuring-rez-commandline-line:
 
 Commandline Tool
 ================
@@ -114,6 +124,8 @@ Here is an example showing how to override settings using your own configuration
    ]$ rez-config packages_path
    - /home/sclaus/packages
    - /packages
+
+.. _configuring-rez-configuration-settings:
 
 Configuration Settings
 ======================

@@ -163,7 +163,7 @@ Sometimes it makes sense for a package to require some form of abstract object o
 capability, rather than an actual package. For example, perhaps your package (or
 one of its variants) requires a GPU to be present on the host machine. To support
 this, you might have something setup that includes a ``.gpu-1`` ephemeral in the
-:ref:`implicits <implicit packages>` list on all GPU-enabled hosts.
+:ref:`implicits <implicit-packages-concept>` list on all GPU-enabled hosts.
 Then, your package could look like this:
 
 .. code-block:: python

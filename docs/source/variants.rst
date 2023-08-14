@@ -41,6 +41,8 @@ in the :attr:`~pkgdef.requires` field. These dependencies are appended to the ``
 for each variant. Thus the first variant requires ``openexr-2.2`` and ``maya-2016.sp1``,
 and the second variant requires ``openexr-2.2`` and ``maya-2017``.
 
+.. _variants-disk-structure:
+
 Disk Structure
 ==============
 
@@ -117,7 +119,7 @@ example, you might see variants like this:
 
 This indicates that the package has been built for multiple platforms. The correct
 variant will be selected for you, because you probably have the relevant
-:ref:`implicit packages <implicit packages>` set to limit packages to
+:ref:`implicit packages <implicit-packages-concept>` set to limit packages to
 the current platform.
 
 Single Variants

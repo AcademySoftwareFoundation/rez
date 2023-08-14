@@ -23,6 +23,8 @@ In many examples in this documentation we will use the
 requests and creates the resulting configured environment. It places you in a subshell. Simply
 exit the shell to return to a non-configured environment.
 
+.. _versions-concept:
+
 Versions
 ========
 
@@ -79,6 +81,8 @@ version than ``1.0``.
    a version number doesn't matter, you can have as many as you like. While you are encouraged to use
    semantic versioning (see `<https://semver.org>`_), it is not enforced.
 
+.. _packages-concept:
+
 Packages
 ========
 
@@ -88,7 +92,7 @@ describes everything we need to know about the package in order to use it. Rez m
 package, whether it be a python package, compiled package, or simply build code or configuration
 data.
 
-Here is an example package definition file (see the :ref:`package definition guide <package definition>` for further details
+Here is an example package definition file (see the :doc:`package definition guide <package_definition>` for further details
 of each attribute):
 
 .. code-block:: python
@@ -116,6 +120,8 @@ The :attr:`~pkgdef.requires` section defines the requirements of the package. Th
 what happens when this package is added to an environment. Here, the ``bin`` directory in the package
 installation is appended to ``PATH``, and similarly the ``python`` subdirectory is appended to
 ``PYTHONPATH``.
+
+.. _package-repositories-concept:
 
 Package Repositories
 ====================
@@ -158,6 +164,8 @@ match up with its installation though. For example, notice how the path for foo'
 binaries match what its package commands specified from earlier. ``{root}/python`` and ``{root}/bin``
 will expand to these paths respectively.
 
+.. _package-search-path-concept:
+
 Package Search Path
 ===================
 
@@ -189,6 +197,8 @@ environment variable.
 .. tip::
    See :doc:`configuring_rez` for more configuration options.
 
+.. _package-commands-concept:
+
 Package Commands
 ================
 
@@ -207,6 +217,8 @@ Consider this commands example:
 This is a typical example, where a package adds its source path to ``PYTHONPATH``, and its tools to
 ``PATH``. See [here](Package-Commands) for details on what can be done within the :func:`~pkgdef.commands` section,
 as well as details on what order package commands are executed in.
+
+.. _package-requests-concept:
 
 Package Requests
 ================
@@ -236,6 +248,8 @@ foo==2.0.0      Only version 2.0.0 exactly          foo-2.0.0
 foo-1.3\|5+     OR'd requests                       foo-1.3.0, foo-6.0.0
 =============== =================================== ======================================
 
+.. _conflict-operator-concept:
+
 The Conflict Operator
 ---------------------
 
@@ -249,6 +263,8 @@ consider the command:
 
 This specifies that you require any version of ``maya_utils``, but that any version of ``maya`` within
 2015.6 (and this includes 2015.6.1 and so on) is not acceptable.
+
+.. _weak-references-concept:
 
 Weak References
 ---------------
@@ -281,6 +297,8 @@ app, the app may define a *weak package reference* to their relevant python vers
 This example ensures that any package that uses python, will use the version compatible with maya
 when maya is present in the environment.
 
+.. _implicit-packages-concept:
+
 Implicit Packages
 =================
 
@@ -305,6 +323,8 @@ and/or operating system it depends on, matches the current system.
 
 The list of implicits that were used in a request are printed by ``rez-env`` when you enter the newly
 configured subshell, and are also printed by the ``rez-context`` tool.
+
+.. _dependency-resolving:
 
 Dependency Resolving
 ====================
@@ -410,4 +430,4 @@ The digram shows the following operations occurring:
   creating the final configured environment.
 
 The order of package command execution depends on package dependencies, and the order that packages
-were requested in. See :ref:`here <order of command execution>` for more details.
+were requested in. See :ref:`here <package-commands-order-of-execution>` for more details.
