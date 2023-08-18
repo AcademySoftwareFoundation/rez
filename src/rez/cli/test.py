@@ -64,6 +64,14 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
+    if extra_arg_groups:
+        if not opts.TEST or len(opts.TEST) > 1:
+            parser.error(
+                "You can only pass extra arguments to a single, specified test. "
+                "Please rerun the command and specify a single test to run."
+            )
+        extra_arg_groups = extra_arg_groups[0]
+
     # run test(s)
     runner = PackageTestRunner(
         package_request=opts.PKG,
@@ -107,7 +115,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     for test_name in run_test_names:
         if not runner.stopped_on_fail:
-            ret = runner.run_test(test_name)
+            ret = runner.run_test(test_name, extra_test_args=extra_arg_groups)
             if ret and not exitcode:
                 exitcode = ret
 
