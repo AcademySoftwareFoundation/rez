@@ -19,40 +19,15 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Set up Python ${{ inputs.python-version }} with conda
-      if: ${{ inputs.python-version == '2.7' }}
-      shell: bash
-      run: |
-        cd /tmp
-        if [[ "${{ inputs.os }}" = macos* ]]; then
-            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o /tmp/miniconda.sh
-        else
-            curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o /tmp/miniconda.sh
-        fi
-
-        case "${{ inputs.os }}" in
-            macos*)
-                curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o /tmp/miniconda.sh
-                sh /tmp/miniconda.sh -b -p /opt/conda
-                ;;
-            ubuntu*)
-                curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
-                sh /tmp/miniconda.sh -b -p /opt/conda
-                ;;
-            windows*)
-                curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe -o /c/miniconda.sh
-                sh /tmp/miniconda.sh -b -p /c/conda
-                ;;
-        esac
-
+    # Conda comes pre-installed with the GitHub hosted runners.
     - name: Create conda environment
       if: ${{ inputs.python-version == '2.7' }}
       shell: bash
       run: |
         if [[ "${OSTYPE}" == "msys" ]]; then
-            eval "$(/c/conda/condabin/conda.bat shell.bash hook)"
+            eval "$(/c/Miniconda/condabin/conda.bat shell.bash hook)"
         else
-            source /opt/conda/bin/activate
+            eval "$(conda shell.bash hook)"
         fi
         conda create -n python python=2.7 setuptools wheel
 
@@ -62,7 +37,7 @@ runs:
       run: |
         set -ex
 
-        source /opt/conda/bin/activate
+        eval "$(conda shell.bash hook)"
         conda activate python
         conda info
 
