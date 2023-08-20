@@ -40,7 +40,7 @@ jobs:
           REZ_INSTALL_COMMAND: |
             set -ex
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
-                eval "$(conda shell.bash hook)"
+                source /opt/conda/bin/activate
                 conda activate python
             fi
             python ./install.py /opt/rez
@@ -51,7 +51,7 @@ jobs:
           REZ_INSTALL_COMMAND: |
             set -ex
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
-                eval "$(conda shell.bash hook)"
+                source /opt/conda/bin/activate
                 conda activate python
             fi
             pip install --target /opt/rez .
@@ -62,13 +62,9 @@ jobs:
           REZ_INSTALL_COMMAND: |
             set -e
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
-                eval "$(conda shell.bash hook)"
+                source /opt/conda/bin/activate
                 conda activate python
 
-                echo "otool -L $(which python)"
-                otool -L $(which python)
-                echo "otool -l $(which python)"
-                otool -l $(which python)
                 echo "otool -L $(dirname $(which python))/../lib/libpython2.7.dylib"
                 otool -L $(dirname $(which python))/../lib/libpython2.7.dylib
                 echo "otool -l $(dirname $(which python))/../lib/libpython2.7.dylib"
@@ -82,7 +78,7 @@ jobs:
           REZ_INSTALL_COMMAND: |
             set -ex
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
-                eval "$(conda shell.bash hook)"
+                source /opt/conda/bin/activate
                 conda activate python
             fi
             pip install --target ~/rez .
@@ -92,7 +88,7 @@ jobs:
           REZ_SET_PATH_COMMAND: '$env:PATH="$env:PATH;C:\ProgramData\rez\Scripts\rez"'
           REZ_INSTALL_COMMAND: |
             if ($env:MATRIX_PYTHON_VERSION -eq "2.7") {
-                & 'C:\Miniconda\shell\condabin\conda-hook.ps1'
+                & 'C:\conda\shell\condabin\conda-hook.ps1'
                 conda activate python
             }
             python ./install.py C:\ProgramData\rez
@@ -101,7 +97,7 @@ jobs:
           REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
           REZ_INSTALL_COMMAND: |
             if ($env:MATRIX_PYTHON_VERSION -eq "2.7") {
-                & 'C:\Miniconda\shell\condabin\conda-hook.ps1'
+                & 'C:\conda\shell\condabin\conda-hook.ps1'
                 conda activate python
             }
             pip install --target C:\ProgramData\rez .

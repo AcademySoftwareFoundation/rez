@@ -52,11 +52,12 @@ jobs:
 
       - name: Install Rez
         run: |
-          mkdir ./installdir
           if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
-              eval "$(conda shell.bash hook)"
+              source /opt/conda/bin/activate
               conda activate python
           fi
+          mkdir ./installdir
+          python --version
           python ./install.py ./installdir
 
       - name: Install Rez test dependencies

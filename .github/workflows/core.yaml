@@ -52,7 +52,7 @@ jobs:
           mkdir ./installdir
 
           if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
-              eval "$(conda shell.bash hook)"
+              source /opt/conda/bin/activate
               conda activate python
           fi
 
