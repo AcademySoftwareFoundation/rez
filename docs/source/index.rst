@@ -26,6 +26,7 @@ Welcome to rez's documentation!
    context_bundles
    suites
    managing_packages
+   pip
 
 .. toctree::
    :maxdepth: 2
