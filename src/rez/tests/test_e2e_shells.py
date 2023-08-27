@@ -8,6 +8,7 @@ test shell invocation
 from __future__ import print_function
 import json
 import os
+import sys
 from fnmatch import fnmatch
 from textwrap import dedent
 
@@ -203,6 +204,10 @@ class TestShells(TestBase, TempdirMixin):
         _, stderr = p.communicate()
         self.assertEqual(p.returncode, 0)
         assert stderr is None
+
+        # Popen args added in v3.3
+        if sys.version_info < (3, 3):
+            return
 
         lines = []
         script_arg = next(iter(arg for arg in p.args if "rez-shell" in arg))
