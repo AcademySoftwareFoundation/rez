@@ -58,6 +58,7 @@ Traditional package manager:
 .. figure:: _static/other_pkg_mgr.png
    :align: center
    :alt: Typical package managers install packages into an environment
+   :class: rez-diagram
 
    Typical package managers install packages into an environment
 
@@ -66,6 +67,7 @@ Rez:
 .. figure:: _static/rez_pkg_mgr.png
    :align: center
    :alt: Rez installs packages once, and configures environments dynamically
+   :class: rez-diagram
 
    Rez installs packages once, and configures environments dynamically
 

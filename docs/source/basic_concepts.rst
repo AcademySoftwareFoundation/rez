@@ -341,6 +341,7 @@ Consider the following example (the arrows indicate dependencies):
 
 .. image:: _static/rez_deps_simple_eg.png
    :align: center
+   :class: rez-diagram
 
 Here we have three packages, ``foo``, ``bah`` and ``eek``, where both foo and bah have dependencies on
 eek. For example, package ``bah-4`` might have a package definition file that looks something like
@@ -416,6 +417,7 @@ The following diagram shows what happens when the command ``rez-env mplugin-1.3.
 
 .. image:: _static/rez_env.png
    :align: center
+   :class: rez-diagram
 
 The digram shows the following operations occurring:
 

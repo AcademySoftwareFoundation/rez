@@ -59,6 +59,7 @@ The anatomy of a package with variants is illustrated in the following diagram:
 
 .. image:: _static/pkg_path_anatomy.png
    :align: center
+   :class: rez-diagram
 
 The ``root`` of a package is the root directory of its current variant (the one
 the current environment is configured to use); the ``base`` of a package is the
