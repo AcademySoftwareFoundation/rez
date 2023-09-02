@@ -19,10 +19,11 @@ jobs:
     name: ${{ matrix.os }} - ${{ matrix.python-version }} - ${{ matrix.method }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: 
           - ubuntu-latest
-          - macOS-latest
+          - macos-latest
           - windows-2019
         python-version:
           - '2.7'
@@ -34,48 +35,98 @@ jobs:
         include:
         # ubuntu
         - os: ubuntu-latest
-          method: install          
+          method: install
           REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin/rez'
-          REZ_INSTALL_COMMAND: 'python ./install.py /opt/rez'
+          REZ_INSTALL_COMMAND: |
+            set -ex
+            if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
+                eval "$(conda shell.bash hook)"
+                conda activate python
+            fi
+            python ./install.py /opt/rez
+
         - os: ubuntu-latest
           method: pip
           REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin PYTHONPATH=${PYTHONPATH}:/opt/rez'
-          REZ_INSTALL_COMMAND: 'pip install --target /opt/rez .'
+          REZ_INSTALL_COMMAND: |
+            set -ex
+            if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
+                eval "$(conda shell.bash hook)"
+                conda activate python
+            fi
+            pip install --target /opt/rez .
         # macOS
-        - os: macOS-latest
+        - os: macos-latest
           method: install
           REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:~/rez/bin/rez'
-          REZ_INSTALL_COMMAND: 'python ./install.py ~/rez'
-        - os: macOS-latest
+          REZ_INSTALL_COMMAND: |
+            set -e
+            if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
+                eval "$(conda shell.bash hook)"
+                conda activate python
+
+                echo "otool -L $(dirname $(which python))/../lib/libpython2.7.dylib"
+                otool -L $(dirname $(which python))/../lib/libpython2.7.dylib
+                echo "otool -l $(dirname $(which python))/../lib/libpython2.7.dylib"
+                otool -l $(dirname $(which python))/../lib/libpython2.7.dylib
+            fi
+
+            python ./install.py ~/rez
+        - os: macos-latest
           method: pip
           REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
-          REZ_INSTALL_COMMAND: 'pip install --target ~/rez .'
+          REZ_INSTALL_COMMAND: |
+            set -ex
+            if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
+                eval "$(conda shell.bash hook)"
+                conda activate python
+            fi
+            pip install --target ~/rez .
         # windows
         - os: windows-2019
           method: install
           REZ_SET_PATH_COMMAND: '$env:PATH="$env:PATH;C:\ProgramData\rez\Scripts\rez"'
-          REZ_INSTALL_COMMAND: 'python ./install.py C:\ProgramData\rez'
+          REZ_INSTALL_COMMAND: |
+            if ($env:MATRIX_PYTHON_VERSION -eq "2.7") {
+                & 'C:\Miniconda\shell\condabin\conda-hook.ps1'
+                conda activate python
+            }
+            python ./install.py C:\ProgramData\rez
         - os: windows-2019
           method: pip
           REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
-          REZ_INSTALL_COMMAND: 'pip install --target C:\ProgramData\rez .'
-    
+          REZ_INSTALL_COMMAND: |
+            if ($env:MATRIX_PYTHON_VERSION -eq "2.7") {
+                & 'C:\Miniconda\shell\condabin\conda-hook.ps1'
+                conda activate python
+            }
+            pip install --target C:\ProgramData\rez .
+
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+
+    - name: Setup python ${{ matrix.python-version }}
+      uses: ./.github/actions/setup-python
       with:
         python-version: ${{ matrix.python-version }}
+        os: ${{ matrix.os }}
 
     - name: Install
+      env:
+        MATRIX_PYTHON_VERSION: ${{ matrix.python-version }}
       run: |
         ${{ matrix.REZ_INSTALL_COMMAND }}
 
     - name: Run rez-status
+      env:
+        MATRIX_PYTHON_VERSION: ${{ matrix.python-version }}
       run: |
         ${{ matrix.REZ_SET_PATH_COMMAND }}
         rez-status
 
     - name: Install rez with rez-pip
+      env:
+        MATRIX_PYTHON_VERSION: ${{ matrix.python-version }}
       run: |
         ${{ matrix.REZ_SET_PATH_COMMAND }}
         rez-pip --install .

@@ -35,12 +35,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Setup python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
+          os: ubuntu
 
       - name: apt-get update
         run: |
@@ -68,7 +69,12 @@ jobs:
 
       - name: Install Rez
         run: |
+          if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
+              eval "$(conda shell.bash hook)"
+              conda activate python
+          fi
           mkdir ./installdir
+          python --version
           python ./install.py ./installdir
 
       - name: Install Rez test dependencies

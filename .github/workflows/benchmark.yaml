@@ -25,16 +25,23 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Setup python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
+          os: ubuntu-latest
 
       - name: Install Rez
         run: |
           mkdir ./installdir
+
+          if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
+              eval "$(conda shell.bash hook)"
+              conda activate python
+          fi
+
           python ./install.py ./installdir
 
       - name: Run Benchmark
@@ -46,9 +53,13 @@ jobs:
 
       - name: Validate Result
         run: |
+          if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
+              eval "$(conda shell.bash hook)"
+              conda activate python
+          fi
           python ./.github/scripts/validate_benchmark.py
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: ./out
@@ -68,18 +79,19 @@ jobs:
       max-parallel: 1
 
     steps:
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Setup python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
+          os: ubuntu
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: .
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: master
           path: src
@@ -102,6 +114,10 @@ jobs:
 
       - name: Store Benchmark Result
         run: |
+          if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
+              eval "$(conda shell.bash hook)"
+              conda activate python
+          fi
           python ./.github/scripts/store_benchmark.py
         working-directory: src
 
