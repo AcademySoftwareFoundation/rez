@@ -89,7 +89,7 @@ def setup_parser():
         LazyArgumentParser: Argument parser for rez command.
     """
     py = sys.version_info
-    parser = LazyArgumentParser("rez")
+    parser = LazyArgumentParser("rez", description="rez CLI")
 
     parser.add_argument("-i", "--info", action=InfoAction,
                         help="print information about rez and exit")

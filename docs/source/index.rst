@@ -42,6 +42,7 @@ Welcome to rez's documentation!
    :hidden:
 
    configuring_rez
+   commands_index
    environment
    api
 
