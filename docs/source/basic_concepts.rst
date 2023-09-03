@@ -215,7 +215,7 @@ Consider this commands example:
       env.PATH.append("{root}/bin")
 
 This is a typical example, where a package adds its source path to ``PYTHONPATH``, and its tools to
-``PATH``. See [here](Package-Commands) for details on what can be done within the :func:`commands` section,
+``PATH``. See :doc:`here <package_commands>` for details on what can be done within the :func:`commands` section,
 as well as details on what order package commands are executed in.
 
 .. _package-requests-concept:
