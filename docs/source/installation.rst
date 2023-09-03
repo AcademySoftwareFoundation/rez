@@ -47,9 +47,10 @@ don't require its command line tools to be available within a resolved environme
    .. code-block:: text
 
       Pip-based rez installation detected. Please be aware that rez command line tools
-      are not guaranteed to function correctly in this case. See
-      https://github.com/__GITHUB_REPO__/wiki/Installation#why-not-pip-for-production
+      are not guaranteed to function correctly in this case. See :ref:`why-not-pip-for-production`
       for further details.
+
+.. _why-not-pip-for-production:
 
 Why Not Pip For Production?
 ===========================
