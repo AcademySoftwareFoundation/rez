@@ -62,10 +62,10 @@ packages_path = [
     "~/.rez/packages/ext",  # external (3rd party) pkgs, such as houdini, boost
 ]
 
-# The path that Rez will locally install packages to when rez-build is used
+# The path that Rez will locally install packages to when :ref:`rez-build` is used
 local_packages_path = "~/packages"
 
-# The path that Rez will deploy packages to when rez-release is used. For
+# The path that Rez will deploy packages to when :ref:`rez-release` is used. For
 # production use, you will probably want to change this to a site-wide location.
 release_packages_path = "~/.rez/packages/int"
 
@@ -132,7 +132,7 @@ package_definition_python_path = None
 # Search path for rez plugins.
 plugin_path = []
 
-# Search path for bind modules. The ``rez-bind`` tool uses these modules to create
+# Search path for bind modules. The :ref:`rez-bind` tool uses these modules to create
 # rez packages that reference existing software already installed on the system.
 bind_module_path = []
 
@@ -271,7 +271,7 @@ read_package_cache = True
 # If True, creating or sourcing a context will cause variants to be cached.
 write_package_cache = True
 
-# Delete variants that haven't been used in N days (see ``rez-pkg-cache --clean``).
+# Delete variants that haven't been used in N days (see :option:`rez-pkg-cache --clean`).
 # To disable, set to zero.
 package_cache_max_variant_days = 30
 
@@ -289,7 +289,7 @@ package_cache_same_device = False
 
 # If > 0, spend up to this many seconds cleaning the cache every time the cache
 # is updated. This is a way to keep the cache size under control without having
-# to periodically run ``rez-pkg-cache --clean``. Set to -1 to disable.
+# to periodically run :option:`rez-pkg-cache --clean`. Set to -1 to disable.
 package_cache_clean_limit = 0.5
 
 # Number of days of package cache logs to keep.
@@ -302,7 +302,7 @@ package_cache_log_days = 7
 ###############################################################################
 
 # Packages that are implicitly added to all package resolves, unless the
-# ``--no-implicit`` flag is used.
+# :option:`rez-env --no-implicit` flag is used.
 implicit_packages = [
     "~platform=={system.platform}",
     "~arch=={system.arch}",
@@ -533,12 +533,12 @@ resetting_variables = []
 all_resetting_variables = False
 
 # The default shell type to use when creating resolved environments (eg when using
-# ``rez-env``, or calling :meth:`.ResolvedContext.execute_shell`). If empty or None, the
+# :ref:`rez-env`, or calling :meth:`.ResolvedContext.execute_shell`). If empty or None, the
 # current shell is used (for eg, "bash").
 default_shell = ""
 
 # The command to use to launch a new Rez environment in a separate terminal (this
-# is enabled using rez-env's ``--detached`` option). If None, it is detected.
+# is enabled using the :option:`rez-env --detached` option). If None, it is detected.
 terminal_emulator_command = None
 
 # :class:`subprocess.Popen` arguments to use in order to execute a shell in a new process
@@ -726,7 +726,7 @@ context_tracking_extra_fields = {}
 ###############################################################################
 
 # If true, print warnings associated with shell startup sequence, when using
-# tools such as ``rez-env``. For example, if the target shell type is ``sh``, and
+# tools such as :ref:`rez-env`. For example, if the target shell type is ``sh``, and
 # the ``rcfile`` param is used, you would get a warning, because the sh shell
 # does not support rcfile.
 warn_shell_startup = False
@@ -747,7 +747,7 @@ debug_file_loads = False
 debug_plugins = False
 
 # Print debugging info such as VCS commands during package release. Note that
-# ``rez-pip`` installations are controlled with this setting also.
+# :ref:`rez-pip` installations are controlled with this setting also.
 debug_package_release = False
 
 # Print debugging info in binding modules. Binding modules should print using
@@ -861,11 +861,11 @@ show_progress = True
 # On macOS, set this to ``open -a <your-app>`` if you want to use a specific app.
 editor = None
 
-# The program used to view images by tools such as ``rez-context -g``
+# The program used to view images by tools such as :option:`rez-context -g`
 # On macOS, set this to ``open -a <your-app>`` if you want to use a specific app.
 image_viewer = None
 
-# The browser used to view documentation. The ``rez-help`` tool uses this
+# The browser used to view documentation. The :ref:`rez-help` tool uses this
 # On macOS, set this to ``open -a <your-app>`` if you want to use a specific app.
 browser = None
 
@@ -876,7 +876,7 @@ difftool = None
 # The default image format that dot-graphs are rendered to.
 dot_image_format = "png"
 
-# If true, tools such as ``rez-env`` will update the prompt when moving into a new
+# If true, tools such as :ref:`rez-env` will update the prompt when moving into a new
 # resolved shell. Prompt nerds might do fancy things with their prompt that Rez
 # can't deal with (but it can deal with a lot (colors etc) so try it first).
 # By setting this to False, Rez will not change the prompt. Instead, you will
@@ -922,8 +922,8 @@ max_package_changelog_revisions = 0
 #       launched without extension from windows and other systems.
 create_executable_script_mode = "single"
 
-# Configurable pip extra arguments passed to the ``rez-pip`` install command.
-# Since the ``rez-pip`` install command already includes some pre-configured
+# Configurable pip extra arguments passed to the :ref:`rez-pip` install command.
+# Since the :ref:`rez-pip` install command already includes some pre-configured
 # arguments (``--target``, ``--use-pep517``) this setting can potentially override the
 # default configuration in a way which can cause package installation issues.
 # It is recommended to refrain from overriding the default arguments and only
@@ -937,7 +937,7 @@ pip_extra_args = []
 # Rez reads the distribution record to figure out where pip installed files
 # to, then copies them to their final sub-path in the rez package. Ie, python
 # source files are hard coded to be moved under the ``python`` sub-folder inside
-# the rez package, which then gets added to :envvar:`PYTHONPATH` upon ``rez-env``.
+# the rez package, which then gets added to :envvar:`PYTHONPATH` upon :ref:`rez-env`.
 #
 # When it can't find the file listed in the record AND the path starts
 # with a reference to the parent directory ``..``, the following remaps are
