@@ -49,7 +49,7 @@ don't require its command line tools to be available within a resolved environme
       Pip-based rez installation detected. Please be aware that rez command line tools
       are not guaranteed to function correctly in this case. See
       https://github.com/__GITHUB_REPO__/wiki/Installation#why-not-pip-for-production
-      for futher details.
+      for further details.
 
 Why Not Pip For Production?
 ===========================

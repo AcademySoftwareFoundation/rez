@@ -29,7 +29,7 @@ These are variables that rez generates within a resolved environment (a "context
 
 .. envvar:: REZ_USED_PACKAGES_PATH
 
-   The package searchpath used for this resolve.
+   The package search-path used for this resolve.
 
 .. envvar:: REZ_USED_RESOLVE
 

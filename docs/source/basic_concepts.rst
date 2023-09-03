@@ -129,7 +129,7 @@ Package Repositories
 Packages are installed into package repositories.
 
 .. caution::
-   The folowwing is an implementation of the filesystem repository plugin.
+   The following is an implementation of the filesystem repository plugin.
 
 A package repository is a directory on disk, with
 packages and their versions laid out in a known structure underneath. Going on with our (foo, bah,
@@ -187,7 +187,7 @@ will hide a later package ``foo-1.0.0``, but not ``foo-1.2.0``.
 The example search path shown is a typical setting. There are some central repositories later in the
 search path, where packages are released to so everyone can use them. But there is also a local
 package path at the front of the search path. This is where packages go that are being locally
-developed by a user. Having this at the start of the searchpath allows developers to resolve
+developed by a user. Having this at the start of the search-path allows developers to resolve
 environments that pull in test packages in preference to released ones, so they can test a package
 before releasing it for general use.
 
@@ -419,7 +419,7 @@ The following diagram shows what happens when the command ``rez-env mplugin-1.3.
    :align: center
    :class: rez-diagram
 
-The digram shows the following operations occurring:
+The diagram shows the following operations occurring:
 
 * Rez takes the user's request, and runs it through the dependency solver. The solver reads packages
   from the package repositories in order to complete the solve;

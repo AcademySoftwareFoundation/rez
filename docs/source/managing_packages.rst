@@ -10,7 +10,7 @@ repository, but it will not be visible to the rez API nor to any newly resolved
 runtimes. Any runtimes that are currently using an ignored package are unaffected,
 since the package's payload has not been removed.
 
-To ignore a package via comandline:
+To ignore a package via commandline:
 
 .. code-block:: console
 
@@ -249,7 +249,7 @@ Verifying
 ---------
 
 When you resolve an environment, you can see which variants have been cached by
-noting the ``cached`` label in the righthand column of the :ref:`rez-context` output,
+noting the ``cached`` label in the right-hand column of the :ref:`rez-context` output,
 as shown below:
 
 .. code-block:: console

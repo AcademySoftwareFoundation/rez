@@ -134,7 +134,7 @@ Object string expansion is also supported when setting an environment variable v
 Environment Variable Expansion
 ------------------------------
 
-Environment variable expansion is also supported when passed to rex functions. The syntaxes ``$FOO``
+Environment variable expansion is also supported when passed to rex functions. Both syntax ``$FOO``
 and ``${FOO}`` are supported, regardless of the syntax supported by the target shell.
 
 Literal Strings

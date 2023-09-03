@@ -91,7 +91,7 @@ which pip is used. Knowing the pip version comes in second place.
 At some point, we supported the :option:`--pip-version <rez-pip --pip-version>` argument, but considering what was just said
 above, we decided to deprecate it (but not yet removed) just for backward compatibility reasons.
 Pip is too much (read tightly) coupled to the python version/interpreter it is installed with
-for us to support having pip as a rez package. We just can't garantee that pip can be
+for us to support having pip as a rez package. We just can't guarantee that pip can be
 install once in a central way and work with multiple different python version, and potentially
 different implementations.
 
@@ -104,7 +104,7 @@ Following the :ref:`which-pip-will-be-used` section, we recommend to install
 pip inside your python packages. For Python 2, this can be done when you compile it with the
 ``--with-ensurepip`` flag of the ``configure`` script. This will install a version older than 19.0
 though, so you will need to upgrade it. For Python 3, it is already installed by default.
-Though your milleage may vary for the version installed, depending on which Python version you
+Though your mileage may vary for the version installed, depending on which Python version you
 installed. So check the pip version and update it if necessary. We also encourage you
 to install ``wheel`` and possibly update ``setuptools``. ``pip``, ``setuptools`` and ``wheel``
 are perfectly fine when installed in the interpreter directly as they are pretty core
@@ -112,7 +112,7 @@ packages and all have no dependencies (and that's what ``virtualenv`` does by de
 
 .. tip::
    When installing something in an interpreter, make sure you really install in this interpreter.
-   That means using somehting like:
+   That means using something like:
 
    .. code-block:: console
 

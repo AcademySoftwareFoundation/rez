@@ -52,7 +52,7 @@ Depending on how compiled libraries and executables within a rez package were
 built, it's possible that the dynamic linker will attempt to resolve them to
 libraries found outside of the bundle. For example, this is possible in linux
 if an `elf <https://en.wikipedia.org/wiki/Executable_and_Linkable_Format>`_ (``.so``)
-contains an absolute searchpath in its rpath/runpath header to a library in another package.
+contains an absolute search-path in its rpath/runpath header to a library in another package.
 
 Rez bundling performs a library patching step that applies various fixes to
 solve this issue (use :option:`--no-lib-patch <rez-bundle --no-lib-patch>` if you want to skip this step). This step
