@@ -242,7 +242,7 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
         full_cmd = parser.prog.replace(' ', '-')
 
         # Title
-        document = [f" .. _{full_cmd}:"]
+        document = [f".. _{full_cmd}:"]
         document.append("")
         document.append(f"{'='*len(parser.prog)}")
         document.append(f"{full_cmd}")
