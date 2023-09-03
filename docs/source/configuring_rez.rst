@@ -108,7 +108,7 @@ See :Class:`.DelayLoad`.
 Commandline Tool
 ================
 
-You can use the ``rez-config`` command line tool to see what the current configured settings are.
+You can use the :ref:`rez-config` command line tool to see what the current configured settings are.
 Called with no arguments, it prints all settings; if you specify an argument, it prints out just
 that setting::
 

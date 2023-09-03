@@ -2,7 +2,7 @@
 Context
 =======
 
-When you use ``rez-env`` to create a resolved environment, you are actually
+When you use :ref:`rez-env` to create a resolved environment, you are actually
 creating something called a *context*. A context is a store of information
 including:
 
@@ -15,7 +15,7 @@ stores a kind of handle for each, which gives enough information to know where
 to fetch the full package definition and contents from.
 
 Contexts themselves are quite small, and are stored in JSON format in a file
-with the extension ``rxt``. When you use ``rez-env``, it actually creates a temporary
+with the extension ``rxt``. When you use :ref:`rez-env`, it actually creates a temporary
 context file on disk, which is removed when the shell is exited:
 
 .. code-block:: console
@@ -44,7 +44,7 @@ context file on disk, which is removed when the shell is exited:
 Baking Resolves
 ===============
 
-You can use the ``rez-env`` flag ``--output`` to write a resolved context directly
+You can use the :option:`rez-env --output` flag to write a resolved context directly
 to file, rather than invoking a subshell:
 
 .. code-block:: console
@@ -76,7 +76,7 @@ Later, you can read the context back again, to reconstruct the same environment:
 Contexts do not store a copy of the environment that is configured (that is, the
 environment variables exported, for example). A context just stores the resolved
 list of packages that need to be applied in order to configure the environment.
-When you load a context via ``rez-env --input``, each of the packages' :attr:`commands`
+When you load a context via :option:`rez-env --input`, each of the packages' :attr:`commands`
 sections are interpreted once more.
 
 You can think of package :attr:`commands` like fragments of a wrapper script which
@@ -89,8 +89,8 @@ Jill read it because the commands are reinterpreted when Jill loads the context.
 The rez-context Tool
 ====================
 
-The ``rez-context`` tool inspects context files. When you're within a resolved
-subshell, ``rez-context`` inspects the current context, unless one is specified
+The :ref:`rez-context` tool inspects context files. When you're within a resolved
+subshell, :ref:`rez-context` inspects the current context, unless one is specified
 explicitly. For example, we can inspect the context created in the previous
 example, without actually being within it:
 

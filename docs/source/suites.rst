@@ -35,7 +35,7 @@ contexts.
 The rez-suite Tool
 ==================
 
-Let's go through the same example, this time using the ``rez-suite`` tool.
+Let's go through the same example, this time using the :ref:`rez-suite` tool.
 
 First, we create the suite. This creates a directory called ``mysuite`` in the
 current working directory:
@@ -51,7 +51,7 @@ Now we need to add contexts to our suite. First we create the contexts:
    $ rez-env maya-2016.2 --output maya.rxt
    $ rez-env nuke --output nuke.rxt
 
-Then, we add these contexts to the suite (note that the ``--context`` arg just
+Then, we add these contexts to the suite (note that the :option:`rez-suite --context` arg just
 gives each context a label. You would typically have this match the context
 filename as shown).
 
@@ -97,7 +97,7 @@ The tools in a context which are exposed by the suite is determined by the
    ]
 
 All these tools would be made available in the suite (although you can explicitly
-hide tools by using ``rez-suite``'s ``--hide`` argument).
+hide tools by using :option:`rez-suite --hide` argument).
 
 .. warning::
    Only packages listed in the context *requests*,
@@ -177,4 +177,4 @@ For example, to see information about the suite wrapper:
 .. tip::
    If the target tool also uses ``+`` for some of its
    own arguments, you can change the prefix character that rez uses for its
-   control arguments. See the ``rez-suite``\'s ``--prefix-char`` option.
+   control arguments. See the :option:`rez-suite --prefix-char` option.

@@ -245,9 +245,9 @@ The in_context Function
 
 When late binding functions are evaluated, a boolean function ``in_context`` is present, which
 returns ``True`` if the package is part of a resolved context, or ``False`` otherwise. For example,
-if you just use the rez API to iterate over packages (as the ``rez-search`` tool does), these
+if you just use the rez API to iterate over packages (as the :ref:`rez-search` tool does), these
 packages do not belong to a context. However if you create a :class:`~rez.resolved_context.ResolvedContext` object (as
-the ``rez-env`` tool does) and iterate over its resolved packages, these belong to a context.
+the :ref:`rez-env` tool does) and iterate over its resolved packages, these belong to a context.
 
 The in-context or not-in-context distinction is important, because often the package attribute
 will need information from the context to give desired behavior. For example, consider the
@@ -270,7 +270,7 @@ current env; if it was, a maya-specific tool ``maya-edit`` is added to the tool 
 .. warning::
    Always ensure your late binding function returns a sensible
    value regardless of whether :ref:`in_context <in_context>` is ``True`` or ``False``.
-   Otherwise, simply trying to query the package attributes (using ``rez-search`` for example)
+   Otherwise, simply trying to query the package attributes (using :ref:`rez-search` for example)
    may cause errors.
 
 Available Objects
@@ -294,7 +294,7 @@ The following objects are available in **all** cases:
    The :attr:`this` object may be either a package or a variant,
    depending on the situation. For example, if :ref:`in_context <in_context>` is ``True``,
    then :attr:`this` is a variant, because variants are the objects present in a resolved context. On the other
-   hand, if a package is accessed via API (for example, by using the ``rez-search`` tool),
+   hand, if a package is accessed via API (for example, by using the :ref:`rez-search` tool),
    then :attr:`this` may be a package. The difference matters, because variants have some
    attributes that packages don't, notably, ``root`` and ``index``. Use the properties
    :attr:`this.is_package` and :attr:`this.is_variant` to distinguish the case if needed.
@@ -622,7 +622,7 @@ the data type, and includes a code snippet.
    :type: list[str]
 
    This is the same as :attr:`requires`, except that these dependencies are only included during a build
-   (typically invoked using the ``rez-build`` tool).
+   (typically invoked using the :ref:`rez-build` tool).
 
    .. code-block:: python
 
@@ -692,7 +692,7 @@ the data type, and includes a code snippet.
    :type: bool
 
    Indicates that the package is an application that may have plugins. These plugins are often made
-   available as rez packages also. Used in conjuction with the ``rez-plugins`` command. Also, see :attr:`plugin_for`.
+   available as rez packages also. Used in conjuction with the :ref:`rez-plugins` command. Also, see :attr:`plugin_for`.
 
    .. code-block:: python
 
@@ -714,7 +714,7 @@ the data type, and includes a code snippet.
    :type: str | list[list[str]]
 
    URL for package webpage, or, if a string containing spaces, a command to run. You can show the help
-   for a package using the ``rez-help`` command line tool. If this value is a list of list, then this
+   for a package using the :ref:`rez-help` command line tool. If this value is a list of list, then this
    represents multiple help entries.
 
    .. code-block:: python
@@ -743,7 +743,7 @@ the data type, and includes a code snippet.
    :type: str
 
    Provided if this package is a plugin of another package. For example, this might be a maya plugin.
-   This is useful when using the ``rez-plugins`` command. Also, see :attr:`has_plugins`.
+   This is useful when using the :ref:`rez-plugins` command. Also, see :attr:`has_plugins`.
 
    .. code-block:: python
 
@@ -786,7 +786,7 @@ the data type, and includes a code snippet.
 .. py:attribute:: relocatable
    :type: bool
 
-   Determines whether a package can be copied to another package repository (using the ``rez-cp`` tool for
+   Determines whether a package can be copied to another package repository (using the :ref:`rez-cp` tool for
    example). If not provided, this is determined from the global config setting :data:`default_relocatable` and
    related ``default_relocatable_*`` settings.
 
@@ -820,7 +820,7 @@ the data type, and includes a code snippet.
 .. py:attribute:: tests
    :type: dict[str, str | dict]
 
-   This is a dict of tests that can be run on the package using the rez-test* tool.
+   This is a dict of tests that can be run on the package using the :ref:`rez-test` tool.
 
    If a test entry is a string or list of strings, this is interpreted as the command to run. Command
    strings will expand any references to package attributes, such as ``{root}``.
@@ -829,10 +829,10 @@ the data type, and includes a code snippet.
 
    * ``requires``: Extra package requirements to include in the test's runtime env.
    * ``run_on``: When to run this test. Valid values are:
-      * ``default`` (the default): Run when ``rez-test`` is run with test name (ie ``rez-test <pkg>``).
-      * ``pre_install``: Run before an install (ie ``rez-build -i``), and abort the install on fail.
+      * ``default`` (the default): Run when :ref:`rez-test` is run with test name (ie ``rez-test <pkg>``).
+      * ``pre_install``: Run before an install (ie :option:`rez-build -i`), and abort the install on fail.
       * ``pre_release``: Run before a release, and abort the release on fail.
-      * ``explicit``: Only run if specified when `rez-test` is run (ie ``rez-test <pkg> <test name>``).
+      * ``explicit``: Only run if specified when :ref:`rez-test` is run (ie ``rez-test <pkg> <test name>``).
       * ``on_variants``: Which variants the test should be run on. Valid values are:
          * ``True``: Run the test on all variants.
          * ``False`` (the default): Run the test only on one variant (ie the variant you get by
@@ -868,7 +868,7 @@ the data type, and includes a code snippet.
       ]$ rez-test maya_utils lint
 
    .. note::
-      Prior to running the tests, you will need to run ``rez-build``. ``rez-test`` can only
+      Prior to running the tests, you will need to run :ref:`rez-build`. :ref:`rez-test` can only
       run tests on already built packages.
 
 .. py:attribute:: tools
@@ -942,7 +942,7 @@ package once installed because they are only used at build time.
 .. py:attribute:: build_command
    :type: str | list[str] | False
 
-   Package build command. If present, this is used as the build command when ``rez-build`` is run,
+   Package build command. If present, this is used as the build command when :ref:`rez-build` is run,
    rather than detecting the build system from present build scripts (such as ``CMakeLists.txt``). If
    ``False``, this indicates that no build step is necessary (the package definition will still be
    installed, and this is enough to define the package).
@@ -977,7 +977,7 @@ package once installed because they are only used at build time.
    .. todo:: reference the real --build-system cli flag
 
    Specify the build system used to build this package. If not set, it is detected automatically when
-   a build occurs (or the user specifies if using rez-build's ``--build-system`` option).
+   a build occurs (or the user specifies if using :option:`rez-build --build-system` option).
 
    .. code-block:: python
 
@@ -1029,7 +1029,7 @@ Release Time Package Attributes
 -------------------------------
 
 The following package attributes are created for you by Rez when your package is released via the
-``rez-release`` tool. If you look at the released ``package.py`` file you will notice that some or all
+:ref:`rez-release` tool. If you look at the released ``package.py`` file you will notice that some or all
 of these attributes have been added.
 
 .. py:attribute:: changelog
@@ -1073,7 +1073,7 @@ of these attributes have been added.
 
    .. todo:: How should we document and link plugin settings? Like TODO_ADD_THIS.
 
-   The package release message. This is supplied either via the ``rez-release`` tool's ``--message``
+   The package release message. This is supplied either via the :option:`rez-release --message`
    option, or was entered in a text editor on release if rez is configured to do this (see the config
    setting ``TODO_ADD_THIS``). A package may not have a release message.
 

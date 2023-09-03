@@ -36,8 +36,8 @@ Via API:
 Both of these options generate a :file:`.ignore{{version}}` file (e.g.
 ``.ignore3.1.2``) next to the package version directory.
 
-You can also do the reverse (ie unignore a package). Use the ``-u`` option of
-``rez-pkg-ignore``, or the :meth:`~rez.package_repository.PackageRepository.unignore_package` method on the package repository
+You can also do the reverse (ie unignore a package). Use the :option:`-u <rez-pkg-ignore -u>` option of
+:ref:`rez-pkg-ignore`, or the :meth:`~rez.package_repository.PackageRepository.unignore_package` method on the package repository
 object.
 
 Copying Packages
@@ -84,8 +84,8 @@ created) respectively.
 
 .. danger::
    Do not simply copy package directories on disk.
-   You should always use ``rez-cp`` or use the API. Copying directly on disk is bypassing rez and
-   this can cause problems such as a stale resolve cache. Using ``rez-cp`` and the API give
+   You should always use :ref:`rez-cp` or use the API. Copying directly on disk is bypassing rez and
+   this can cause problems such as a stale resolve cache. Using :ref:`rez-cp` and the API give
    you more control anyway.
 
 .. _enabling-package-copying:
@@ -152,7 +152,7 @@ package repository. In case an old runtime needs to be resurrected, you would ad
 this archival repository to the packages path before performing the resolve.
 
 .. note::
-   You will probably want to use the ``--keep-timestamp`` option when doing this,
+   You will probably want to use the :option:`--keep-timestamp <rez-mv --keep-timestamp>` option when doing this,
    otherwise rez will think the package did not exist prior to its archival date.
 
 .. _removing-packages:
@@ -186,7 +186,7 @@ actually remove them at a later date. This gives you a safety buffer in case
 current runtimes are using the package. They won't be affected if the package is
 ignored, but could break if it is removed.
 
-To facilitate this workflow, ``rez-rm`` lets you remove all packages that have
+To facilitate this workflow, :ref:`rez-rm` lets you remove all packages that have
 been ignored for longer than N days (using the timestamp of the
 :file:`.ignore{{version}}` file). Here we remove all packages that have been ignored
 for 30 days or longer:
@@ -243,13 +243,13 @@ is not defined in a package's definition. For example, see
 and :data:`default_cachable_per_repository`.
 
 Note that you can also disable package caching on the command line, using
-``rez-env --no-pkg-caching``.
+:option:`rez-env --no-pkg-cache`.
 
 Verifying
 ---------
 
 When you resolve an environment, you can see which variants have been cached by
-noting the ``cached`` label in the righthand column of the ``rez-context`` output,
+noting the ``cached`` label in the righthand column of the :ref:`rez-context` output,
 as shown below:
 
 .. code-block:: console
@@ -289,7 +289,7 @@ How it Works
 Package caching actually caches :doc:`variants`, not entire packages. When you perform
 a resolve, or source an existing context, the variants required are copied to
 local disk asynchronously (if they are cachable), in a separate process called
-``rez-pkg-cache``. This means that a resolve will not necessarily use the cached
+:ref:`rez-pkg-cache`. This means that a resolve will not necessarily use the cached
 variants that it should, the first time around. Package caching is intended to have
 a cumulative effect, so that more cached variants will be used over time. This is
 a tradeoff to avoid blocking resolves while variant payloads are copied across
@@ -311,7 +311,7 @@ Commandline Tool
 Inspection
 ++++++++++
 
-Use the ``rez-pkg-cache`` tool to view the state of the cache, and to perform
+Use the :ref:`rez-pkg-cache` tool to view the state of the cache, and to perform
 warming and deletion operations. Example output follows:
 
 .. code-block:: console
@@ -366,19 +366,19 @@ configurable :data:`package_cache_max_variant_days`
 setting, that will delete variants that have not been used (ie that have not appeared
 in a created or sourced context) for more than N days.
 
-You can also manually remove variants from the cache using ``rez-pkg-cache -r``.
+You can also manually remove variants from the cache using :option:`rez-pkg-cache -r`.
 Note that when you do this, the variant is no longer available in the cache,
-however it is still stored on disk. You must perform a clean (``rez-pkg-cache --clean``)
+however it is still stored on disk. You must perform a clean (:option:`rez-pkg-cache --clean`)
 to purge unused cache files from disk.
 
 You can use the :data:`package_cache_clean_limit`
 setting to asynchronously perform some cleanup every time the cache is updated. If
 you do not use this setting, it is recommended that you set up a cron or other form
-of execution scheduler, to run ``rez-pkg-cache --clean`` periodically. Otherwise,
+of execution scheduler, to run :option:`rez-pkg-cache --clean` periodically. Otherwise,
 your cache will grow indefinitely.
 
 Lastly, note that a stalled variant will not attempt to be re-cached until it is
 removed by a clean operation. Using :data:`package_cache_clean_limit` will not clean
 stalled variants either, as that could result in a problematic variant getting
 cached, then stalled, then deleted, then cached again and so on. You must run
-``rez-pkg-cache --clean`` to delete stalled variants.
+:option:`rez-pkg-cache --clean` to delete stalled variants.

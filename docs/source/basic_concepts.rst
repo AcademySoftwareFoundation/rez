@@ -19,7 +19,7 @@ Rez lets you describe the environment you want in a natural way. For example, yo
 * PyQt-2.2 or greater, but less than PyQt-4.5.3
 
 In many examples in this documentation we will use the
-[rez-env](Command-Line-Tools#rez-env) command line tool. This tool takes a list of package
+:ref:`rez-env` command line tool. This tool takes a list of package
 requests and creates the resulting configured environment. It places you in a subshell. Simply
 exit the shell to return to a non-configured environment.
 
@@ -170,7 +170,7 @@ Package Search Path
 ===================
 
 Rez finds packages using a search path in much the same way that python finds python modules using
-``PYTHONPATH``. You can find out what the search path is, using the rez command line tool rez-config
+``PYTHONPATH``. You can find out what the search path is, using the rez command line tool :ref:`rez-config`
 (which you can also use to find any other rez setting):
 
 .. code-block:: text
@@ -225,9 +225,9 @@ Package Requests
 
 A *package request* is a string with a special syntax which matches a number of possible package
 versions. You use package requests in the requires section of a package definition file, and also
-when creating your own configured environment directly using tools such as ``rez-env``.
+when creating your own configured environment directly using tools such as :ref:`rez-env`.
 
-For example, here is a request (using the ``rez-env`` tool) to create an environment containing
+For example, here is a request (using the :ref:`rez-env` tool) to create an environment containing
 *python* version 2.6 or greater, and *my_py_utils* version 5.4 or greater, but less than 6:
 
 .. code-block:: text
@@ -303,7 +303,7 @@ Implicit Packages
 =================
 
 The *implicit packages* are a list of package requests that are automatically added to every rez
-request (for example, when you use ``rez-env``). They are set by the configuration setting
+request (for example, when you use :ref:`rez-env`). They are set by the configuration setting
 :data:`implicit_packages`. The default setting looks like so:
 
 .. todo:: document implicit_packages and make it referenceable
@@ -321,8 +321,8 @@ themselves. The default implicits are a set of *weak requirements* on each of ``
 ``os``. This ensures that if any platform-dependent package is requested, the platform, architecture
 and/or operating system it depends on, matches the current system.
 
-The list of implicits that were used in a request are printed by ``rez-env`` when you enter the newly
-configured subshell, and are also printed by the ``rez-context`` tool.
+The list of implicits that were used in a request are printed by :ref:`rez-env` when you enter the newly
+configured subshell, and are also printed by the :ref:`rez-context` tool.
 
 .. _dependency-resolving:
 
@@ -370,7 +370,7 @@ not possible. In this case, the resolve will fail, and rez will inform you of th
 Resolving An Environment
 ========================
 
-A user can create a resolved environment using the command line tool ``rez-env`` (also via the API -
+A user can create a resolved environment using the command line tool :ref:`rez-env` (also via the API -
 practically everything in rez can be done in python). When you create the environment, the current
 environment is not changed. You are placed into a sub-shell instead. Here is an example of using
 rez-env, assuming that the package repository is from our earlier (foo, bah, eek) example:

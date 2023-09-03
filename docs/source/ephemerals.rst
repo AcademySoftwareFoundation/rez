@@ -7,7 +7,7 @@ Ephemerals
 Ephemeral packages (or simply 'ephemerals') are requests for packages that do not
 exist. Ephemeral package names always begin with a dot (``.``). Like all package
 requests, ephemerals can be requested as part of packages' requires or variants
-lists, or directly by the user (via ``rez-env`` for eg).
+lists, or directly by the user (via :ref:`rez-env` for eg).
 
 Example:
 

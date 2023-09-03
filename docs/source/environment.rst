@@ -49,7 +49,7 @@ These are variables that rez generates within a resolved environment (a "context
 
 .. envvar:: REZ_USED_REQUESTED_TIMESTAMP
 
-   The epoch time of this resolved environment, explicitly set by the user with (for example) the rez-env ``--time`` flag; zero otherwise.
+   The epoch time of this resolved environment, explicitly set by the user with (for example) the :option:`rez-env --time` flag; zero otherwise.
 
 .. envvar:: REZ_USED_TIMESTAMP
 
@@ -132,7 +132,7 @@ to those listed :ref:`here <context-environment-variables>`.
 
 .. envvar:: REZ_BUILD_INSTALL
 
-   Has a value of 1 if an installation is taking place (either a ``rez-build -i`` or ``rez-release``), otherwise 0.
+   Has a value of 1 if an installation is taking place (either a :option:`rez-build -i` or :ref:`rez-release`), otherwise 0.
 
 .. envvar:: REZ_BUILD_INSTALL_PATH
 

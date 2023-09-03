@@ -20,7 +20,7 @@ When a rez environment is configured, every package in the resolve list has its 
 interpreted and converted into shell code (the language, bash or other, depends on the platform
 and is extensible). The resulting shell code is sourced, and this configures the environment.
 Within a configured environment, the variable :envvar:`REZ_CONTEXT_FILE` points at this shell code, and the
-command ``rez-context --interpet`` prints it.
+command :option:`rez-context --interpret` prints it.
 
 The python API that you use in the :func:`.commands` section is called ``rex`` (**R**\ez **EX**\ecution language). It
 is an API for performing shell operations in a shell-agnostic way. Some common operations you would
@@ -81,7 +81,7 @@ However, the first append/prepend operation on any given variable actually **ove
 variable, rather than appending. Why does this happen? Consider ``PYTHONPATH``: if an initial
 overwrite did not happen, then any modules visible on ``PYTHONPATH`` before the rez environment was
 configured would still be there. This would mean you may not have a properly configured
-environment. If your system ``PyQt`` were on ``PYTHONPATH`` for example, and you used ``rez-env`` to set
+environment. If your system ``PyQt`` were on ``PYTHONPATH`` for example, and you used :ref:`rez-env` to set
 a different ``PyQt`` version, an attempt to import it within the configured environment would still,
 incorrectly, import the system version.
 
@@ -363,7 +363,7 @@ Following is a list of the objects and functions available.
 .. py:attribute:: building
    :type: bool
 
-   This boolean variable is ``True`` if a build is occurring (typically done via the ``rez-build`` tool),
+   This boolean variable is ``True`` if a build is occurring (typically done via the :ref:`rez-build` tool),
    and ``False`` otherwise.
    
    However, the :func:`commands` block is only executed when the package is brought
@@ -408,7 +408,7 @@ Following is a list of the objects and functions available.
 .. py:function:: comment(arg: str)
 
    Creates a comment line in the converted shell script code. This is only visible if the user views
-   the current shell's code using the command ``rez-context --interpret`` or looks at the file
+   the current shell's code using the command :option:`rez-context --interpret` or looks at the file
    referenced by the environment variable :envvar:`REZ_CONTEXT_FILE`. You would create a comment for debugging
    purposes.
 

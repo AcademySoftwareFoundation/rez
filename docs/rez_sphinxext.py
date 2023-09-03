@@ -239,16 +239,17 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
             parsers += action.choices.values()
 
     for parser in sorted(parsers, key=lambda x: x.prog):
-        cmd = parser.prog.split(' ', 1)[-1]
-        # Title
-        document = [
-            f"{'='*len(parser.prog)}",
-            f"{parser.prog}",
-            f"{'='*len(parser.prog)}",
-            "",
-        ]
+        full_cmd = parser.prog.replace(' ', '-')
 
-        document.append(f".. program:: {cmd}")
+        # Title
+        document = [f" .. _{full_cmd}:"]
+        document.append("")
+        document.append(f"{'='*len(parser.prog)}")
+        document.append(f"{full_cmd}")
+        document.append(f"{'='*len(parser.prog)}")
+        document.append("")
+
+        document.append(f".. program:: {full_cmd}")
         document.append("")
         document.append("Usage")
         document.append("=====")
@@ -321,7 +322,7 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
 
         document = "\n".join(document)
 
-        dest = os.path.join(app.srcdir, "commands", f"{parser.prog.replace(' ', '-')}.rst")
+        dest = os.path.join(app.srcdir, "commands", f"{full_cmd}.rst")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
 
         if os.path.exists(dest):

@@ -55,7 +55,7 @@ if an `elf <https://en.wikipedia.org/wiki/Executable_and_Linkable_Format>`_ (``.
 contains an absolute searchpath in its rpath/runpath header to a library in another package.
 
 Rez bundling performs a library patching step that applies various fixes to
-solve this issue (use ``--no-lib-patch`` if you want to skip this step). This step
+solve this issue (use :option:`--no-lib-patch <rez-bundle --no-lib-patch>` if you want to skip this step). This step
 is platform-specific and is covered in the following sections.
 
 .. note::

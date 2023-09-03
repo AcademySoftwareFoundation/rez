@@ -35,7 +35,7 @@ It is possible to install rez with pip, like so::
    ]$ pip install rez
 
 However, this comes with a caveat. Rez command line tools **are not guaranteed
-to work correctly** once inside a rez environment (ie after using the ``rez-env``
+to work correctly** once inside a rez environment (ie after using the :ref:`rez-env`
 command). The reasons are given in the next section.
 
 Pip installation is adequate however, if all you require is the rez API, or you
@@ -58,7 +58,7 @@ Rez is not a normal python package. Although it can successfully be installed
 using standard mechanisms such as pip, this comes with a number of caveats.
 Specifically:
 
-* When within a rez environment (ie after using the ``rez-env`` command), the rez
+* When within a rez environment (ie after using the :ref:`rez-env` command), the rez
   command line tools are not guaranteed to function correctly;
 * When within a rez environment, other packages' tools (that were also installed
   with pip) remain visible, but are not guaranteed to work.

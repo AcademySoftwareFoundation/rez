@@ -2,7 +2,7 @@
 Building packages
 =================
 
-Rez packages can be built and locally installed using the ``rez-build`` tool. This
+Rez packages can be built and locally installed using the :ref:`rez-build` tool. This
 tool performs the following actions:
 
 * Iterates over a package's :doc:`variants <variants>`
@@ -141,12 +141,12 @@ Argument Passing
 
 There are two ways to pass arguments to the build system.
 
-First, some build system plugins add extra options to the ``rez-build`` command directly.
+First, some build system plugins add extra options to the :ref:`rez-build` command directly.
 For example, if you are in a CMake-based package, and you run ``rez-build -h``, you will
 see cmake-specific options listed, such as ``--build-target``.
 
 Second, you can pass arguments directly to the build system, either using the
-``rez-build``'s ``--build-args`` option or listing the build system arguments after ``--``.
+:option:`rez-build --build-args` option or listing the build system arguments after ``--``.
 
 For example, here we explicitly define a variable in a cmake build:
 
@@ -172,7 +172,7 @@ For example, consider the following ``package.py`` snippet:
 
    build_command = "bash {root}/build.sh {install}"
 
-When ``rez-build`` is run on this package, the given ``build.sh`` script will be executed
+When :ref:`rez-build` is run on this package, the given ``build.sh`` script will be executed
 with ``bash``. The ``{root}`` string expands to the root path of the package (the same
 directory containing ``package.py``. The ``{install}`` string expands to ``install`` if
 an install is occurring, or the empty string otherwise. This is useful for passing the
@@ -190,7 +190,7 @@ relying on a build script checking the :envvar:`REZ_BUILD_INSTALL` environment v
 Passing Arguments
 +++++++++++++++++
 
-You can add arguments for your build script to the ``rez-build`` command directly, by
+You can add arguments for your build script to the :ref:`rez-build` command directly, by
 providing a ``parse_build_args.py`` source file in the package root directory. Here is an example:
 
 .. code-block:: python
@@ -244,7 +244,7 @@ Local Package Installs
 ======================
 
 After you've made some code changes, you presumably want to test them. You do this
-by *locally installing* the package, then resolving an environment with ``rez-env``
+by *locally installing* the package, then resolving an environment with :ref:`rez-env`
 to test the package in. The cycle goes like this:
 
 * Make code changes;
@@ -263,11 +263,11 @@ package will typically be installed to :file:`~/packages/{name}/{version}`, for 
 within this install path (see :ref:`variants-disk-structure` for more details).
 
 .. tip::
-   You don't need to run ``rez-env`` after every install. If your
+   You don't need to run :ref:`rez-env` after every install. If your
    package's requirements haven't changed, you can keep using the existing test environment.
 
 You can make sure you've picked up your local package by checking the output of the
-``rez-env`` call:
+:ref:`rez-env` call:
 
 .. code-block:: console
 
