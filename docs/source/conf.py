@@ -46,10 +46,10 @@ html_theme = 'furo'
 html_static_path = ['_static']
 
 html_theme_options = {
-    'light_logo': 'rez-icon-black.svg',
-    'dark_logo': 'rez-icon-white.svg'
+    'light_logo': 'rez-horizontal-black.svg',
+    'dark_logo': 'rez-horizontal-white.svg',
+    'sidebar_hide_name': True,
 }
-
 
 # These paths are either relative to html_static_path
 # or fully qualified paths (eg. https://...)
