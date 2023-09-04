@@ -1383,7 +1383,9 @@ class ResolvedContext(object):
             Popen_args: args to pass to the shell process object constructor.
 
         Returns:
-            If blocking: A 3-tuple of (returncode, stdout, stderr);
+            If blocking: A 3-tuple of (returncode, stdout, stderr).
+                Note that if you want to get anything other than None for stdout
+                and/or stderr, you need to give stdout=PIPE and/or stderr=PIPE.
             If non-blocking - A subprocess.Popen object for the shell process.
         """
         sh = create_shell(shell)
