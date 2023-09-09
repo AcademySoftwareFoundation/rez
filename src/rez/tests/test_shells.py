@@ -419,6 +419,7 @@ class TestShells(TestBase, TempdirMixin):
             from rez.shells import create_shell
             sh = create_shell()
 
+            env.FOO.unset()
             env.FOO.append("hey")
             info(sh.get_key_token("FOO"))
             env.FOO.append(literal("$DAVE"))
@@ -433,6 +434,26 @@ class TestShells(TestBase, TempdirMixin):
         ]
 
         _execute_code(_rex_appending, expected_output)
+
+        def _rex_prepending():
+            from rez.shells import create_shell
+            sh = create_shell()
+
+            env.FOO.unset()
+            env.FOO.prepend("hey")
+            info(sh.get_key_token("FOO"))
+            env.FOO.prepend(literal("$DAVE"))
+            info(sh.get_key_token("FOO"))
+            env.FOO.prepend("Dave's not here man")
+            info(sh.get_key_token("FOO"))
+
+        expected_output = [
+            "hey",
+            sh.pathsep.join(["$DAVE", "hey"]),
+            sh.pathsep.join(["Dave's not here man", "$DAVE", "hey"])
+        ]
+
+        _execute_code(_rex_prepending, expected_output)
 
     @per_available_shell()
     def test_rex_code_alias(self, shell):
