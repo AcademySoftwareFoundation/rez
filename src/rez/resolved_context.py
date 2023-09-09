@@ -1443,7 +1443,8 @@ class ResolvedContext(object):
 
         # write out the native context file
         context_code = executor.get_output()
-        with open(context_file, 'w') as f:
+        encoding = {"encoding": "utf-8"} if six.PY3 else {}
+        with open(context_file, 'w', **encoding) as f:
             f.write(context_code)
 
         quiet = quiet or \
