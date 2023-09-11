@@ -53,7 +53,7 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None, env=None):
 
         # PATHEXT is necessary to check on Windows
         pathext = env.get("PATHEXT", _default_pathext).split(os.pathsep)
-        pathext = [x.lower() for x in pathext]
+        pathext = [x.lower() for x in pathext if x]
 
     # iterate over paths
     seen = set()
