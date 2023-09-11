@@ -9,15 +9,17 @@ import logging
 from rez.vendor import colorama
 from rez.config import config
 
+# Important - we don't want to init Colorama at startup,
+# because colorama prints a RESET_ALL character at exit. This in turn adds
+# unexpected output when capturing the output of a command run in a
+# ResolvedContext, for example.
+# While we're not initializing colorama at all anymore, this comment is left
+# in case someone thought about putting it back: Make sure to do it lazily.
 
-_initialised = False
 
-
-def _init_colorama():
-    global _initialised
-    if not _initialised:
-        colorama.init()
-        _initialised = True
+def colorama_wrap(stream):
+    """ Wrap the stream with colorama so that it can display colors on any OS """
+    return colorama.initialise.wrap_stream(stream, convert=None, strip=None, autoreset=False, wrap=True)
 
 
 def stream_is_tty(stream):
@@ -222,12 +224,6 @@ def _color(str_, fore_color=None, back_color=None, styles=None):
     if not config.get("color_enabled", False):
         return str_
 
-    # lazily init colorama. This is important - we don't want to init at startup,
-    # because colorama prints a RESET_ALL character atexit. This in turn adds
-    # unexpected output when capturing the output of a command run in a
-    # ResolvedContext, for example.
-    _init_colorama()
-
     colored = ""
     if not styles:
         styles = []
@@ -270,6 +266,10 @@ class ColorizedStreamHandler(logging.StreamHandler):
         10: debug,
         0: notset,
     }
+
+    def __init__(self, stream=None):
+        super(ColorizedStreamHandler, self).__init__(stream)
+        self.stream = colorama_wrap(self.stream)
 
     @property
     def is_tty(self):
@@ -315,11 +315,13 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
 class Printer(object):
     def __init__(self, buf=sys.stdout):
-        self.buf = buf
         self.colorize = (
             config.get("color_enabled", False) == "force"
             or stream_is_tty(buf)
         )
+        if self.colorize:
+            buf = colorama_wrap(buf)
+        self.buf = buf
 
     def __call__(self, msg='', style=None):
         print(self.get(msg, style), file=self.buf)
