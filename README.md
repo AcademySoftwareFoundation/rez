@@ -136,10 +136,10 @@ Resolved environments can also be created via the API:
 
 ## Quickstart
 
-First, install Rez. Download the source, and from the source directory, run
+First, install Rez using Python 3.7+. Download the source, and from the source directory, run
 (with DEST_DIR replaced with your install location):
 
-    ]$ python ./install.py -v DEST_DIR
+    ]$ python3 ./install.py -v DEST_DIR
 
 This installs the Rez command line tools. It will print a message at the end
 telling you how to use Rez when the installation has completed. Rez is not a
