@@ -232,7 +232,7 @@ class PackageTestRunner(object):
         """
         return self.test_results.num_skipped
 
-    def run_test(self, test_name):
+    def run_test(self, test_name, extra_test_args=None):
         """Run a test.
 
         Runs the test in its correct environment. Note that if tests share the
@@ -240,12 +240,16 @@ class PackageTestRunner(object):
 
         Args:
             test_name (str): Name of test to run.
+            extra_test_args (list of str): Any extra arguments that we want to
+                pass to the test command.
 
         Returns:
             int: Exit code of first failed test, or 0 if none failed. If the first
                 test to fail did so because it was not able to run (eg its
                 environment could not be configured), -1 is returned.
         """
+        if extra_test_args is None:
+            extra_test_args = []
         package = self.get_package()
         exitcode = 0
 
@@ -393,6 +397,12 @@ class PackageTestRunner(object):
                 command = variant.format(command)
             else:
                 command = map(variant.format, command)
+
+            if extra_test_args:
+                if isinstance(command, basestring):
+                    command = "{} {}".format(command, " ".join(map(quote, extra_test_args)))
+                else:
+                    command = list(map(quote, command)) + list(map(quote, extra_test_args))
 
             # run the test in the context
             if self.verbose:

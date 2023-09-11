@@ -59,7 +59,9 @@ subcommands = {
     },
     "status": {},
     "suite": {},
-    "test": {},
+    "test": {
+        "arg_mode": "grouped"
+    },
     "view": {},
     "yaml2py": {},
     "bundle": {},
