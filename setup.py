@@ -61,9 +61,10 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url="https://github.com/AcademySoftwareFoundation/rez",
-    author="Allan Johns",
+    author="Contributors to the rez project",
     author_email="rez-discussion@lists.aswf.io",
-    license="Apache License 2.0",
+    license="Apache-2.0",
+    license_files=["LICENSE"],
     entry_points={
         "console_scripts": get_specifications().values()
     },
