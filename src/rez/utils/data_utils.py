@@ -7,6 +7,7 @@ Utilities related to managing data types.
 """
 import os.path
 import json
+import functools
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
@@ -240,6 +241,8 @@ class cached_property(object):
     """
     def __init__(self, func, name=None):
         self.func = func
+        # Make sure that Sphinx autodoc can follow and get the docstring from our wrapped function.
+        functools.update_wrapper(self, func)
         self.name = name or func.__name__
 
     def __get__(self, instance, owner=None):
@@ -253,6 +256,10 @@ class cached_property(object):
             raise AttributeError("can't set attribute %r on %r"
                                  % (self.name, instance))
         return result
+
+    # This is to silence Sphinx that complains that cached_property is not a callable.
+    def __call__(self):
+        raise RuntimeError("@cached_property should not be called.")
 
     @classmethod
     def uncache(cls, instance, name):

@@ -176,12 +176,16 @@ class LazyArgumentParser(ArgumentParser):
 
     def format_help(self):
         """Sets up all sub-parsers when help is requested."""
+        self._setup_all_subparsers()
+        return super(LazyArgumentParser, self).format_help()
+
+    def _setup_all_subparsers(self):
+        """Sets up all sub-parsers on demand."""
         if self._subparsers:
             for action in self._subparsers._actions:
                 if isinstance(action, LazySubParsersAction):
                     for parser_name, parser in action._name_parser_map.items():
                         action._setup_subparser(parser_name, parser)
-        return super(LazyArgumentParser, self).format_help()
 
 
 _handled_int = False

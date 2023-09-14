@@ -190,16 +190,18 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 class Package(PackageBaseResourceWrapper):
     """A package.
 
-    Note:
+    Warning:
         Do not instantiate this class directly, instead use the function
-        `iter_packages` or `PackageFamily.iter_packages`.
+        :func:`iter_packages` or :meth:`PackageFamily.iter_packages`.
     """
     keys = schema_keys(package_schema)
 
-    # This is to allow for a simple check like 'this.is_package' in late-bound
-    # funcs, where 'this' may be a package or variant.
-    #
+    #: Allows for a simple check like ``this.is_package`` in late-bound
+    #: funcs, where ``this`` may be a package or variant.
     is_package = True
+
+    #: Allows for a simple check like ``this.is_variant`` in late-bound
+    #: funcs, where ``this`` may be a package or variant.
     is_variant = False
 
     def __init__(self, resource, context=None):
@@ -326,15 +328,17 @@ class Package(PackageBaseResourceWrapper):
 class Variant(PackageBaseResourceWrapper):
     """A package variant.
 
-    Note:
+    Warning:
         Do not instantiate this class directly, instead use the function
-        `Package.iter_variants`.
+        :meth:`Package.iter_variants`.
     """
     keys = schema_keys(variant_schema)
     keys.update(["index", "root", "subpath"])
 
-    # See comment in `Package`
+    #: See :attr:`Package.is_package`.
     is_package = False
+
+    #: See :attr:`Package.is_variant`.
     is_variant = True
 
     def __init__(self, resource, context=None, parent=None):

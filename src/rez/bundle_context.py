@@ -21,7 +21,7 @@ def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
 
     This creates a copy of a context with its variants retargeted to a local
     package repository containing only the variants the context uses. The
-    generated file structure looks like so:
+    generated file structure looks like so::
 
         /dest_dir/
             /context.rxt
