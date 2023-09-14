@@ -1,5 +1,23 @@
 # Change Log
 
+## 2.113.0 (2023-09-11)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.113.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.112.0...2.113.0)
+
+**Notes**
+
+Numerous maintenance updates to CI, TSC notes, docs, ownership, badges, and licensing not featured below.
+
+Expect [\#1469](https://github.com/AcademySoftwareFoundation/rez/pull/1469) to merge in 2.114.0, which will drop the ability to install rez with versions of python below 3.7.
+
+**Merged pull requests:**
+
+- powershell: fix prepend for new variables and fix unsetenv for non-existing variables [\#1477](https://github.com/AcademySoftwareFoundation/rez/pull/1477) ([maxnbk](https://github.com/maxnbk))
+- @include: Only include modules from the current package [\#1485](https://github.com/AcademySoftwareFoundation/rez/pull/1485) ([SitiSchu](https://github.com/SitiSchu))
+- Colorize: Granularly wrap each given stream with Colorama [\#1506](https://github.com/AcademySoftwareFoundation/rez/pull/1506) ([herronelou](https://github.com/herronelou))
+- Fix 'gbk' codec can't encode character '\u200b' when resolve context [\#1508](https://github.com/AcademySoftwareFoundation/rez/pull/1508) ([loonghao](https://github.com/loonghao))
+- Allow user to pass extra arguments to underlying rez test command (REP-001 part 3). [\#1523](https://github.com/AcademySoftwareFoundation/rez/pull/1523) ([bhawkyard1](https://github.com/bhawkyard1))
+- Filter out empty extensions when parsing PATHEXT on Windows [\#1528](https://github.com/AcademySoftwareFoundation/rez/pull/1528) ([herronelou](https://github.com/herronelou))
+
 ## 2.112.0 (2022-11-15)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.112.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.3...2.112.0)
 
