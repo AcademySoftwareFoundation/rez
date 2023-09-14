@@ -359,7 +359,7 @@ The digram shows the following operations occurring:
 * This results in a list of resolved packages. These are the packages that are used in the
   configured environment;
 * The commands from each package are concatenated together;
-* This master list of commands is then translated into the target shell language (in this example
+* This total list of commands is then translated into the target shell language (in this example
   that is *bash*);
 * A sub-shell is created and the translated command code is sourced within this environment,
   creating the final configured environment.
