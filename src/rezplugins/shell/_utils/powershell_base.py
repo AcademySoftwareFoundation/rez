@@ -290,6 +290,8 @@ class PowerShellBase(Shell):
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
+        # The nested Get-ChildItem call is set to SilentlyContinue to prevent
+        # an exception of the Environment Variable is not set already
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value)'
             .format(key, value, self.pathsep)
@@ -304,7 +306,7 @@ class PowerShellBase(Shell):
         # an exception of the Environment Variable is not set already
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'
-            .format(key, os.path.pathsep, value))
+            .format(key, self.pathsep, value))
 
     def unsetenv(self, key):
         self._addline(
