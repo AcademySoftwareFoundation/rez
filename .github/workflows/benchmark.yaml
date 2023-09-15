@@ -79,12 +79,6 @@ jobs:
       max-parallel: 1
 
     steps:
-      - name: Setup python ${{ matrix.python-version }}
-        uses: ./.github/actions/setup-python
-        with:
-          python-version: ${{ matrix.python-version }}
-          os: ubuntu
-
       - uses: actions/download-artifact@v3
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
@@ -101,6 +95,12 @@ jobs:
           # See https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/14
           #
           token: "${{ secrets.GH_ACTION_TOKEN }}"
+
+      - name: Setup python ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
+          os: ubuntu-latest
 
       # Note failing due to
       # https://github.com/actions/virtual-environments/issues/675
