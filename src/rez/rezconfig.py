@@ -578,8 +578,8 @@ pathed_env_vars = [
     "*PATH"
 ]
 
-# Much like `env_var_separators` and companion to `shell_pathed_env_vars`, this
-# setting provides control over separators for list-like env vars on a per-shell
+# Much like :data:`env_var_separators` and companion to :data:`shell_pathed_env_vars`,
+# this setting provides control over separators for list-like env vars on a per-shell
 # basis. Each shell has it's own pathsep but this provides more explicit control
 # and flexibility.
 shell_env_var_separators = {
@@ -590,17 +590,17 @@ shell_env_var_separators = {
 }
 
 # Some shells may require finer grained control over how path variables are
-# handled. Similar to `pathed_env_vars`, this option provides a way to define
+# handled. Similar to :data:`pathed_env_vars`, this option provides a way to define
 # variables the shell should handle, but on a per-shell basis. This setting can
-# be used in addition to the platform pathing strategy provided by `pathed_env_vars`
-# to override or disable it if that is desired.
+# be used in addition to the platform pathing strategy provided by
+# :data:`pathed_env_vars` to override or disable it if that is desired.
 #
 # A path-like variable defined in this setting should correspond to a pathsep
-# setting in either `env_var_separators` or `shell_env_var_separators`. It can be
-# both, but only one is necessary. A corresponding pathsep setting informs the shell
-# plugin how to join paths of that type.
+# setting in either :data:`env_var_separators` or :data:`shell_env_var_separators`.
+# It can be both, but only one is necessary. A corresponding pathsep setting informs
+# the shell plugin how to join paths of that type.
 #
-# Note that, similar to `pathed_env_vars`, wildcards are supported.
+# Note that, similar to :data:`pathed_env_vars`, wildcards are supported.
 shell_pathed_env_vars = {
     "gitbash": [
         "PYTHONPATH",
@@ -609,9 +609,10 @@ shell_pathed_env_vars = {
 }
 
 # Global toggle to perform path normalization to path-like environment variables.
-# Applies the `pathed_env_vars` and `shell_pathed_env_vars` setting to all shells.
-# If `shell_pathed_env_vars` setting is configured then it overrides `pathed_env_vars`
-# if the keys are the same. Setting this to `False` disables all normalization.
+# Applies the :data:`pathed_env_vars` and :data:`shell_pathed_env_vars` setting to all
+# shells. If :data:`shell_pathed_env_vars` setting is configured then it overrides
+# :data:`pathed_env_vars` if the keys are the same. Setting this to ``False`` disables
+# all normalization.
 enable_path_normalization = False
 
 # Defines what suites on ``$PATH`` stay visible when a new rez environment is resolved.
