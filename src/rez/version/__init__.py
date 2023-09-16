@@ -2,9 +2,9 @@
 # Copyright Contributors to the Rez Project
 
 
-from rez.version._requirement import Requirement, RequirementList, VersionedObject
-from rez.version._util import ParseException, VersionError
-from rez.version._version import (
+from rez.version._requirement import Requirement, RequirementList, VersionedObject  # noqa: F401
+from rez.version._util import ParseException, VersionError  # noqa: F401
+from rez.version._version import (  # noqa: F401
     AlphanumericVersionToken,
     NumericToken,
     Version,

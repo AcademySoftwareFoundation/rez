@@ -32,12 +32,12 @@ class TestVersionSchema(unittest.TestCase):
         self.assertTrue(a == a)
         self.assertTrue(b == b)
 
-        e       = (a == b)
-        ne      = (a != b)
-        lt      = (a < b)
-        lte     = (a <= b)
-        gt      = (a > b)
-        gte     = (a >= b)
+        e = (a == b)
+        ne = (a != b)
+        lt = (a < b)
+        lte = (a <= b)
+        gt = (a > b)
+        gte = (a >= b)
 
         _print('\n' + textwrap.dedent(
                """
@@ -69,7 +69,7 @@ class TestVersionSchema(unittest.TestCase):
     def _test_ordered(self, items):
         def _test(fn, items_, op_str):
             for i, a in enumerate(items_):
-                for b in items_[i+1:]:
+                for b in items_[i + 1:]:
                     _print("'%s' %s '%s'" % (a, op_str, b))
                     self.assertTrue(fn(a, b))
 

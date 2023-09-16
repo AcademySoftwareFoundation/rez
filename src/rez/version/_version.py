@@ -448,6 +448,7 @@ class _LowerBound(_Comparable):
         return (version > self.version) \
             or (self.inclusive and (version == self.version))
 
+
 _LowerBound.min = _LowerBound(Version(), True)
 
 
@@ -480,6 +481,7 @@ class _UpperBound(_Comparable):
         return (version < self.version) \
             or (self.inclusive and (version == self.version))
 
+
 _UpperBound.inf = _UpperBound(Version.inf, True)
 
 
@@ -490,10 +492,13 @@ class _Bound(_Comparable):
         self.lower = lower or _LowerBound.min
         self.upper = upper or _UpperBound.inf
 
-        if (invalid_bound_error and
-            (self.lower.version > self.upper.version
-             or ((self.lower.version == self.upper.version)
-                 and not (self.lower.inclusive and self.upper.inclusive)))):
+        if invalid_bound_error and (
+            self.lower.version > self.upper.version
+            or (
+                (self.lower.version == self.upper.version)
+                and not (self.lower.inclusive and self.upper.inclusive)
+            )
+        ):
             raise VersionError("Invalid bound")
 
     def __str__(self):
@@ -544,20 +549,21 @@ class _Bound(_Comparable):
         lower = max(self.lower, other.lower)
         upper = min(self.upper, other.upper)
 
-        return (lower.version < upper.version) or \
-            ((lower.version == upper.version) and
-             (lower.inclusive and upper.inclusive))
+        return (lower.version < upper.version) or (
+            (lower.version == upper.version) and (lower.inclusive and upper.inclusive)
+        )
 
     def intersection(self, other):
         lower = max(self.lower, other.lower)
         upper = min(self.upper, other.upper)
 
-        if (lower.version < upper.version) or \
-            ((lower.version == upper.version) and
-             (lower.inclusive and upper.inclusive)):
+        if (lower.version < upper.version) or (
+            (lower.version == upper.version) and (lower.inclusive and upper.inclusive)
+        ):
             return _Bound(lower, upper)
         else:
             return None
+
 
 _Bound.any = _Bound()
 
@@ -597,7 +603,7 @@ class _VersionRangeParser(object):
         # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
         "    ^(?P<inclusive_bound>"
         "        (?P<inclusive_lower_version>{version_group})?"
-        "        \.\."  # Required .. operator
+        r"        \.\."  # Required .. operator
         "        (?P<inclusive_upper_version>{version_group})?"
         "    )$"
         "|"
@@ -605,7 +611,7 @@ class _VersionRangeParser(object):
         "    ^(?P<lower_bound>"
         "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
         "        (?P<lower_version>{version_group})?"
-        "        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
+        r"        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
         "    )$"
         "|"
         # Or match an upper bound (e.g. <=1.0.0)
@@ -619,7 +625,7 @@ class _VersionRangeParser(object):
         "        (?P<range_lower_asc>"
         "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
         "           (?P<range_lower_asc_version>{version_group})?"
-        "           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
+        r"           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
         "       )(?P<range_upper_asc>"
         "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
         "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
@@ -632,10 +638,12 @@ class _VersionRangeParser(object):
         "        (?P<range_upper_desc>"
         "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
         "           (?P<range_upper_desc_version>{version_group})?"
-        "           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
+        r"           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
         "       )(?P<range_lower_desc>"
-        "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want to recognize something like "<4>3"
-        "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed by a version group
+        "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want
+                                                      # to recognize something like "<4>3"
+        "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed
+                                                                            # by a version group
         "           (?P<range_lower_desc_version>{version_group})?"
         "       )"
         "    )$"
@@ -1131,8 +1139,9 @@ class VersionRange(_Comparable):
         Returns:
             An iterator that returns items from `iterable` that intersect.
         """
-        return _ContainsVersionIterator(self, iterable, key, descending,
-            mode=_ContainsVersionIterator.MODE_INTERSECTING)
+        return _ContainsVersionIterator(
+            self, iterable, key, descending, mode=_ContainsVersionIterator.MODE_INTERSECTING
+        )
 
     def iter_non_intersecting(self, iterable, key=None, descending=False):
         """Like `iter_intersect_test`, but returns non-intersections only.
@@ -1140,8 +1149,9 @@ class VersionRange(_Comparable):
         Returns:
             An iterator that returns items from `iterable` that don't intersect.
         """
-        return _ContainsVersionIterator(self, iterable, key, descending,
-            mode=_ContainsVersionIterator.MODE_NON_INTERSECTING)
+        return _ContainsVersionIterator(
+            self, iterable, key, descending, mode=_ContainsVersionIterator.MODE_NON_INTERSECTING
+        )
 
     def span(self):
         """Return a contiguous range that is a superset of this range.
@@ -1352,7 +1362,7 @@ class _ContainsVersionIterator(object):
         self.fn = self._descending if descending else self._ascending
         self.it = iter(iterable)
         if key is None:
-            key = lambda x: x
+            key = lambda x: x  # noqa: E731
         self.keyfunc = key
 
         if mode == self.MODE_ALL:
