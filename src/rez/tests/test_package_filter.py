@@ -7,7 +7,7 @@ Test cases for package_filter.py (package filtering)
 """
 from rez.tests.util import TestBase
 from rez.packages import iter_packages
-from rez.vendor.version.requirement import Requirement
+from rez.version import Requirement
 from rez.package_filter import PackageFilter, PackageFilterList, GlobRule, \
     RegexRule, RangeRule, TimestampRule
 

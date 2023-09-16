@@ -5,7 +5,7 @@
 from __future__ import print_function, absolute_import
 
 from rez.packages import get_latest_package
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.enum.enum import Enum
 from rez.vendor.packaging.version import Version as PackagingVersion

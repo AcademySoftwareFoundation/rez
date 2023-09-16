@@ -13,8 +13,8 @@ from rez.rex_bindings import VersionBinding, VariantBinding, VariantsBinding, \
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
 import unittest
-from rez.vendor.version.version import Version
-from rez.vendor.version.requirement import Requirement
+from rez.version import Version
+from rez.version import Requirement
 from rez.tests.util import TestBase
 from rez.utils.backcompat import convert_old_commands
 from rez.package_repository import package_repository_manager

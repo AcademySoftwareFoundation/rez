@@ -9,7 +9,7 @@ from rezgui.widgets.PackageLoadingWidget import PackageLoadingWidget
 from rezgui.widgets.ChangelogEdit import ChangelogEdit
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.utils.formatting import positional_number_string
-from rez.vendor.version.version import VersionRange
+from rez.version import VersionRange
 
 
 class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):

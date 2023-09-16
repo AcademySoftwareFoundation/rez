@@ -54,7 +54,7 @@ def list_repos_containing_pkg(pkg_name, pkg_version):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.vendor.version.requirement import VersionedObject
+    from rez.version import VersionedObject
     from rez.packages import get_package_from_repository
     from rez.package_move import move_package
     import sys

@@ -16,8 +16,8 @@ from rez.vendor.packaging.version import (
     InvalidVersion as packaging_InvalidVersion
 )
 from rez.vendor.packaging.requirements import Requirement as packaging_Requirement
-from rez.vendor.version.requirement import Requirement
-from rez.vendor.version.version import Version, VersionRange
+from rez.version import Requirement
+from rez.version import Version, VersionRange
 
 from rez.utils.logging_ import print_warning
 from rez.exceptions import PackageRequestError

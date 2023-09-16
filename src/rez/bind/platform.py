@@ -7,7 +7,7 @@ Creates the system platform package.
 """
 from __future__ import absolute_import
 from rez.package_maker import make_package
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.bind._utils import check_version
 from rez.system import system
 

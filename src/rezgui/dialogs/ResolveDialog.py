@@ -11,7 +11,7 @@ from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.ResolveThread import ResolveThread
 from rezgui.objects.App import app
 from rez.vendor.six.six import StringIO
-from rez.vendor.version.requirement import Requirement
+from rez.version import Requirement
 from rez.config import config
 
 

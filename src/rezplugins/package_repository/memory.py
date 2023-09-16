@@ -10,7 +10,7 @@ from rez.package_resources import PackageFamilyResource, VariantResourceHelper, 
     PackageResourceHelper, package_pod_schema
 from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import ResourcePool, cached_property
-from rez.vendor.version.requirement import VersionedObject
+from rez.version import VersionedObject
 
 
 # This repository type is used when loading 'developer' packages (a package.yaml

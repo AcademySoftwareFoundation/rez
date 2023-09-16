@@ -10,7 +10,7 @@ from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_info, print_warning, print_error
 from rez.vendor.six import six
-from rez.vendor.version.requirement import Requirement, RequirementList
+from rez.version import Requirement, RequirementList
 from rez.utils.py23 import quote
 import time
 import sys

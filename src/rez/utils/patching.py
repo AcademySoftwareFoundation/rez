@@ -2,7 +2,7 @@
 # Copyright Contributors to the Rez Project
 
 
-from rez.vendor.version.requirement import Requirement
+from rez.version import Requirement
 
 
 def get_patched_request(requires, patchlist):

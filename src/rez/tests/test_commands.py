@@ -5,7 +5,7 @@
 """
 test package commands
 """
-from rez.vendor.version.requirement import VersionedObject
+from rez.version import VersionedObject
 from rez.rex import Comment, EnvAction, Shebang, Setenv, Alias, Appendenv
 from rez.resolved_context import ResolvedContext
 from rez.utils.filesystem import canonical_path
