@@ -15,7 +15,6 @@ find ./src/rez/bind -name '*.py' > .lic.tmp
 find ./src/rez/cli -name '*.py' >> .lic.tmp
 find ./src/rez/tests -name '*.py' >> .lic.tmp
 find ./src/rez/utils -name '*.py' >> .lic.tmp
-find ./src/rez/vendor/version -name '*.py' >> .lic.tmp
 find ./src/rez/bind -name '*.py' >> .lic.tmp
 find ./src/rezgui -name '*.py' >> .lic.tmp
 find ./src/rezplugins -name '*.py' >> .lic.tmp
