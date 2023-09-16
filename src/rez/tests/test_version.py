@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+"""
+unit tests for 'rez.version' module
+"""
+import random
+import textwrap
+import unittest
 
 from rez.version import Version, AlphanumericVersionToken, \
     VersionRange, reverse_sort_key
 from rez.version._version import _ReversedComparable
 from rez.version import Requirement, RequirementList
 from rez.version import VersionError
-import random
-import textwrap
-import unittest
-
 
 
 def _print(txt=''):

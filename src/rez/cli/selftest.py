@@ -59,6 +59,9 @@ def setup_parser(parser, completions=False):
 
     # create argparse entry for each module's unit test
     for name, module in sorted(tests):
+        if not module.__doc__:
+            raise RuntimeError("Module {0!r} doesn't have a docstring. Please add one.".format(module.__file__))
+
         parser.add_argument(
             "--%s" % name, action=AddTestModuleAction, nargs=0,
             dest="module_tests", default=[],
