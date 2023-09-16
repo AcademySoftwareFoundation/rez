@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 from string import Formatter
 from rez.vendor.enum import Enum
-from rez.vendor.version.requirement import Requirement
+from rez.version.requirement import Requirement
 from rez.exceptions import PackageRequestError
 from rez.vendor.six import six
 from pprint import pformat

@@ -11,8 +11,8 @@ The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
 from rez.vendor.six import six
-from rez.vendor.version.version import VersionRange
-from rez.vendor.version.requirement import Requirement
+from rez.version.version import VersionRange
+from rez.version.requirement import Requirement
 
 
 basestring = six.string_types[0]

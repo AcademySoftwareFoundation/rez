@@ -10,7 +10,7 @@ from rez.utils.memcached import memcached_client, pool_memcached_connections
 from rez.utils.logging_ import log_duration
 from rez.config import config
 from rez.vendor.enum import Enum
-from rez.vendor.version.requirement import Requirement
+from rez.version.requirement import Requirement
 from contextlib import contextmanager
 from hashlib import sha1
 

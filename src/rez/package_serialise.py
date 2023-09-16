@@ -7,7 +7,7 @@ from __future__ import print_function
 from rez.serialise import FileFormat
 from rez.package_resources import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
-from rez.vendor.version.version import Version
+from rez.version.version import Version
 from rez.utils.schema import extensible_schema_dict
 from rez.utils.sourcecode import SourceCode
 from rez.utils.formatting import PackageRequest, indent, \

@@ -21,9 +21,8 @@ version is used to denote unversioned objects. The empty version range, also
 known as the 'any' range, is used to refer to any version of an object.
 """
 from __future__ import print_function
-from .util import VersionError, ParseException, _Common, \
+from rez.version.util import VersionError, ParseException, _Common, \
     dedup
-import rez.vendor.pyparsing.pyparsing as pp
 from bisect import bisect_left
 import copy
 import string
