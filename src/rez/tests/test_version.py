@@ -2,10 +2,11 @@
 # Copyright Contributors to the Rez Project
 
 
-from rez.version.version import Version, AlphanumericVersionToken, \
-    VersionRange, reverse_sort_key, _ReversedComparable
-from rez.version.requirement import Requirement, RequirementList
-from rez.version.util import VersionError
+from rez.version import Version, AlphanumericVersionToken, \
+    VersionRange, reverse_sort_key
+from rez.version._version import _ReversedComparable
+from rez.version import Requirement, RequirementList
+from rez.version import VersionError
 import random
 import textwrap
 import unittest

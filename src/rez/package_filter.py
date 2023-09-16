@@ -7,7 +7,7 @@ from rez.exceptions import ConfigurationError
 from rez.config import config
 from rez.utils.data_utils import cached_property, cached_class_property
 from rez.vendor.six import six
-from rez.version.requirement import VersionedObject, Requirement
+from rez.version import VersionedObject, Requirement
 from hashlib import sha1
 import fnmatch
 import re

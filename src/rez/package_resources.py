@@ -12,7 +12,7 @@ from rez.utils.filesystem import find_matching_symlink
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
-from rez.version.version import Version
+from rez.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 from rez.vendor.six import six
 

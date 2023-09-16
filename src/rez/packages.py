@@ -14,8 +14,8 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
-from rez.version.version import Version, VersionRange
-from rez.version.requirement import VersionedObject
+from rez.version import Version, VersionRange
+from rez.version import VersionedObject
 from rez.vendor.six import six
 from rez.serialise import FileFormat
 from rez.config import config

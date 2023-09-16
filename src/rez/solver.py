@@ -23,9 +23,8 @@ from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError, RezSystemError
-from rez.version.version import VersionRange
-from rez.version.requirement import VersionedObject, Requirement, \
-    RequirementList
+from rez.version import VersionRange
+from rez.version import VersionedObject, Requirement, RequirementList
 from rez.vendor.enum import Enum
 from contextlib import contextmanager
 from itertools import product, chain

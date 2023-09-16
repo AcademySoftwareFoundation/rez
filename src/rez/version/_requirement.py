@@ -2,8 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
-from rez.version.version import Version, VersionRange
-from rez.version.util import _Common
+from rez.version._version import Version, VersionRange
+from rez.version._util import _Common
 import re
 
 

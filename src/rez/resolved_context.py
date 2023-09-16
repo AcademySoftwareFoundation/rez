@@ -36,8 +36,8 @@ from rez.utils.graph_utils import write_dot, write_compacted, \
     read_graph_from_string
 from rez.utils.resolve_graph import failure_detail_from_graph
 from rez.vendor.six import six
-from rez.version.version import VersionRange
-from rez.version.requirement import Requirement
+from rez.version import VersionRange
+from rez.version import Requirement
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils import json
