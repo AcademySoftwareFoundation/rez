@@ -1,0 +1,14 @@
+diff --git a/launcher.c b/launcher.c
+index 727f7916..2447d378 100644
+--- a/launcher.c
++++ b/launcher.c
+@@ -35,8 +35,6 @@
+ 
+ #pragma comment (lib, "Shlwapi.lib")
+ 
+-#define APPENDED_ARCHIVE
+-#define USE_ENVIRONMENT
+ #define SUPPORT_RELATIVE_PATH
+ 
+ #define MSGSIZE 1024
+
