@@ -19,23 +19,21 @@ jobs:
         arch: amd64
 
     - name: Build
+      shell: bash
       run: |
+        set -ex
+        ls -la launcher
         git clone https://github.com/pypa/distlib.git
-        cp launcher/CMakeLists.txt distlib/PC/
-        cd distlib/PC
-        # $devenv=(Split-Path -Path (vswhere -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | select-object -first 1))
-        # $env:PATH="$devenv;$env:PATH"
-        # echo $env:PATH
-        # echo $devenv
-        # ls
-        # msbuild SimpleLauncher.sln -p:Configuration=Release -p:Platform=x64
 
-        # $vsInstallation = (vswhere -products * 17.0 -property installationPath)
-        # echo $vsInstallation
-        # VC\\Auxiliary\\Build\\vcvarsall.bat<
-        # $env:VERBOSE=1
+        cp distlib/PC/launcher.c launcher/
 
-        cmake . -GNinja
-        cmake --build .
+        cd launcher
+        patch -Np1 -i remote-appended.patch --binary
 
-        ls
+        mkdir build
+        cd build
+
+        cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release
+        VERBOSE=1 cmake --build .
+
+        ls -la
