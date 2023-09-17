@@ -6,10 +6,15 @@ import fnmatch
 import os
 import os.path
 import sys
+import logging
+import tempfile
+import platform
+import shutil
 
 
 try:
     from setuptools import setup, find_packages
+    import distutils.command.build_scripts
 except ImportError:
     print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
@@ -43,6 +48,62 @@ with open(os.path.join(this_directory, 'README.md')) as f:
     long_description = f.read()
 
 
+SCRIPT_TEMPLATE = """#!/usr/bin/python -E
+# -*- coding: utf-8 -*-
+import re
+import sys
+from rez.cli._entry_points import {0}
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\\.pyw|\\.exe)?$', '', sys.argv[0])
+    sys.exit({0}())
+"""
+
+class build_scripts(distutils.command.build_scripts.build_scripts):
+    def finalize_options(self):
+        super().finalize_options()
+        self.build_dir = os.path.join(self.build_dir, "rez")
+
+    def run(self):
+        logging.getLogger().info("running rez's customized build_scripts command")
+
+        scripts = []
+        tmpdir = tempfile.mkdtemp("rez-scripts")
+
+        os.makedirs(self.build_dir)
+
+        for command in self.scripts:
+            spec = get_specifications()[command]
+
+            filename = "{0}.py".format(command)
+            if platform.system() == "Windows":
+                filename = "{0}-script.py".format(command)
+
+            path = os.path.join(tmpdir, filename)
+            with open(path, "w") as fd:
+                fd.write(SCRIPT_TEMPLATE.format(spec["func"]))
+
+            scripts.append(path)
+
+            if platform.system() == "Windows":
+                launcher = "t64.exe"
+                if spec["type"] == "window":
+                    launcher = "w64.exe"
+
+                self.copy_file(
+                    os.path.join("launcher", launcher),
+                    os.path.join(self.build_dir, "{0}.exe".format(command))
+                )
+
+        prod_install_path = os.path.join(tmpdir, ".rez_production_install")
+        with open(prod_install_path, "w") as fd:
+            fd.write("# Production install installed with pip")
+
+        scripts.append(prod_install_path)
+
+        self.scripts = scripts
+        return super().run()
+
+
 setup(
     name="rez",
     version=_rez_version,
@@ -59,10 +120,8 @@ setup(
     maintainer_email="rez-discussion@lists.aswf.io",
     license="Apache-2.0",
     license_files=["LICENSE"],
-    entry_points={
-        "console_scripts": get_specifications().values()
-    },
-    include_package_data=False,
+    scripts=list(get_specifications().keys()),
+    include_package_data=True,
     zip_safe=False,
     package_dir={'': 'src'},
     packages=find_packages('src', exclude=["build_utils",
@@ -97,4 +156,5 @@ setup(
         "Topic :: System :: Software Distribution"
     ],
     python_requires=">=3.7",
+    cmdclass={"build_scripts": build_scripts},
 )

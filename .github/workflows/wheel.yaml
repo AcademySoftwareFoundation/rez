@@ -36,4 +36,56 @@ jobs:
         cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release
         VERBOSE=1 cmake --build .
 
-        ls -la
+        mv simple_launcher_cli.exe t64.exe
+        mv simple_launcher_gui.exe w64.exe
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: launchers
+        path: 'launcher/build/*.exe'
+
+  wheel:
+    name: Build wheel
+    needs: ["launchers"]
+    runs-on: "windows-latest"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v3
+      with:
+        name: launchers
+        path: launcher
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Build wheel
+      shell: bash
+      run: |
+        set -ex
+        python -m pip install build
+        python -m build -w .
+
+    - name: Install wheel
+      shell: bash
+      run: |
+        set -ex
+        python -m venv .venv
+        .venv/Scripts/python.exe -m pip install dist/*
+        ls -la .venv/Scripts/
+        ls -la .venv/Scripts/rez
+
+    - name: Test commands
+      shell: bash
+      run: |
+        export PATH=$(pwd)/.venv/Scripts/rez:$PATH
+        set -ex
+        cat .venv/Scripts/rez/rez-script.py
+        cat .venv/Scripts/rez/jctest-script.py
+        jctest
+
+        rez --help
+        rez --version
+        rez-env --help
