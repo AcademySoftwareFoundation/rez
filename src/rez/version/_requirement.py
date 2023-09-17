@@ -8,18 +8,23 @@ import re
 
 
 class VersionedObject(_Common):
-    """Definition of a versioned object, eg "foo-1.0".
+    """Definition of a versioned object, eg ``foo-1.0``.
 
-    "foo" is also a valid object definiton - when there is no version part, we
+    ``foo`` is also a valid object definiton. When there is no version part, we
     are defining an unversioned object.
 
-    Note that '-', '@' or '#' can be used as the seperator between object name
-    and version, however this is purely cosmetic - "foo-1" is the same as "foo@1".
+    .. note::
+        Note that ``-``, ``@`` or ``#`` can be used as the seperator between object name
+        and version, however this is purely cosmetic. ``foo-1`` is the same as ``foo@1``.
     """
     sep_regex_str = r'[-@#]'
     sep_regex = re.compile(sep_regex_str)
 
     def __init__(self, s):
+        """
+        Args:
+            s (str):
+        """
         self.name_ = None
         self.version_ = None
         self.sep_ = '-'
@@ -42,8 +47,8 @@ class VersionedObject(_Common):
         """Create a VersionedObject directly from an object name and version.
 
         Args:
-            name: Object name string.
-            version: Version object.
+            name (str): Object name string.
+            version (typing.Optional[Version]): Version object.
         """
         other = VersionedObject(None)
         other.name_ = name
@@ -52,19 +57,27 @@ class VersionedObject(_Common):
 
     @property
     def name(self):
-        """Name of the object."""
+        """Name of the object.
+
+        Returns:
+            str:
+        """
         return self.name_
 
     @property
     def version(self):
-        """Version of the object."""
+        """Version of the object.
+
+        Returns:
+            Version:
+        """
         return self.version_
 
     def as_exact_requirement(self):
         """Get the versioned object, as an exact requirement string.
 
         Returns:
-            Equivalent requirement string, eg "maya==2016.1"
+            str: Equivalent requirement string, eg ``maya==2016.1``
         """
         sep_str = ''
         ver_str = ''
@@ -91,42 +104,46 @@ class VersionedObject(_Common):
 
 
 class Requirement(_Common):
-    """Requirement for a versioned object.
-
-    Examples of valid requirement strings:
-
-        foo-1.0
-        foo@1.0
-        foo#1.0
-        foo-1+
-        foo-1+<4.3
-        foo<3
-        foo==1.0.1
-
-    Defines a requirement for an object. For example, "foo-5+" means that you
-    require any version of "foo", version 5 or greater. An unversioned
-    requirement can also be used ("foo"), this means you require any version of
+    """
+    Defines a requirement for an object. For example, ``foo-5+`` means that you
+    require any version of ``foo``, version 5 or greater. An unversioned
+    requirement can also be used (``foo``), this means you require any version of
     foo. You can drop the hyphen between object name and version range if the
-    version range starts with a non-alphanumeric character - eg "foo<2".
+    version range starts with a non-alphanumeric character - eg ``foo<2``.
 
     There are two different prefixes that can be applied to a requirement:
 
-    - "!": The conflict requirement. This means that you require this version
+    - ``!``: The conflict requirement. This means that you require this version
       range of an object NOT to be present. To conflict with all versions of an
       object, use "!foo".
-
-    - "~": This is known as a "weak reference", and means, "I do not require this
+    - ``~``: This is known as a "weak reference", and means, "I do not require this
       object, but if present, it must be within this range." It is equivalent to
       the *conflict of the inverse* of the given version range.
 
-    There is one subtle case to be aware of. "~foo" is a requirement that has no
-    effect - ie, it means "I do not require foo, but if foo is present, it can
+    There is one subtle case to be aware of. ``~foo`` is a requirement that has no
+    effect. It means "I do not require foo, but if foo is present, it can
     be any version." This statement is still valid, but will produce a
     Requirement object with a None range.
+
+    Examples of valid requirement strings:
+
+    - ``foo-1.0``
+    - ``foo@1.0``
+    - ``foo#1.0``
+    - ``foo-1+``
+    - ``foo-1+<4.3``
+    - ``foo<3``
+    - ``foo==1.0.1``
     """
     sep_regex = re.compile(r'[-@#=<>]')
 
     def __init__(self, s, invalid_bound_error=True):
+        """
+        Args:
+            s (str): Requirement string
+            invalid_bound_error (bool): If True, raise :exc:`VersionError` if an
+                impossible range is given, such as ``3+<2``.
+        """
         self.name_ = None
         self.range_ = None
         self.negate_ = False
@@ -170,8 +187,8 @@ class Requirement(_Common):
         """Create a requirement directly from an object name and VersionRange.
 
         Args:
-            name: Object name string.
-            range: VersionRange object. If None, an unversioned requirement is
+            name (str): Object name string.
+            range (typing.Optional[VersionRange]): If None, an unversioned requirement is
                 created.
         """
         other = Requirement(None)
@@ -181,17 +198,28 @@ class Requirement(_Common):
 
     @property
     def name(self):
-        """Name of the required object."""
+        """Name of the required object.
+
+        Returns:
+            str:
+        """
         return self.name_
 
     @property
     def range(self):
-        """VersionRange of the requirement."""
+        """Version range of the requirement.
+
+        Returns:
+            VersionRange:
+        """
         return self.range_
 
     @property
     def conflict(self):
         """True if the requirement is a conflict requirement, eg "!foo", "~foo-1".
+
+        Returns:
+            bool:
         """
         return self.conflict_
 
@@ -199,20 +227,32 @@ class Requirement(_Common):
     def weak(self):
         """True if the requirement is weak, eg "~foo".
 
-        Note that weak requirements are also conflict requirements, but not
-        necessarily the other way around.
+        .. note::
+            Note that weak requirements are also conflict requirements, but not
+            necessarily the other way around.
+
+        Returns:
+            bool:
         """
         return self.negate_
 
     def safe_str(self):
         """Return a string representation that is safe for the current filesystem,
         and guarantees that no two different Requirement objects will encode to
-        the same value."""
+        the same value.
+
+        Returns:
+            str:
+        """
         return str(self)
 
     def conflicts_with(self, other):
-        """Returns True if this requirement conflicts with another `Requirement`
-        or `VersionedObject`."""
+        """Returns True if this requirement conflicts with another :class:`Requirement`
+        or :class:`VersionedObject`.
+
+        Returns:
+            bool:
+        """
         if isinstance(other, Requirement):
             if (self.name_ != other.name_) or (self.range is None) \
                     or (other.range is None):
@@ -233,16 +273,20 @@ class Requirement(_Common):
                 return (other.version_ not in self.range_)
 
     def merged(self, other):
-        """Returns the merged result of two requirements.
+        """Merge two requirements.
 
         Two requirements can be in conflict and if so, this function returns
-        None. For example, requests for "foo-4" and "foo-6" are in conflict,
+        None. For example, requests for ``foo-4`` and ``foo-6`` are in conflict,
         since both cannot be satisfied with a single version of foo.
 
         Some example successful requirements merges are:
-        - "foo-3+" and "!foo-5+" == "foo-3+<5"
-        - "foo-1" and "foo-1.5" == "foo-1.5"
-        - "!foo-2" and "!foo-5" == "!foo-2|5"
+
+        - ``foo-3+`` and ``!foo-5+`` == ``foo-3+<5``
+        - ``foo-1`` and ``foo-1.5`` == ``foo-1.5``
+        - ``!foo-2`` and ``!foo-5`` == ``!foo-2|5``
+
+        Returns:
+            Requirement: the merged result of two requirements.
         """
         if self.name_ != other.name_:
             return None  # cannot merge across object names
@@ -327,10 +371,9 @@ class RequirementList(_Common):
     is retained.
     """
     def __init__(self, requirements):
-        """Create a RequirementList.
-
+        """
         Args:
-            requirements: List of Requirement objects.
+            requirements (list[Requirement]): List of requirements.
         """
         self.requirements_ = []
         self.conflict_ = None
@@ -370,6 +413,9 @@ class RequirementList(_Common):
     def requirements(self):
         """Returns optimised list of requirements, or None if there are
         conflicts.
+
+        Returns:
+            list[Requirement]:
         """
         return self.requirements_
 
@@ -378,20 +424,27 @@ class RequirementList(_Common):
         """Get the requirement conflict, if any.
 
         Returns:
-            None if there is no conflict, otherwise a 2-tuple containing the
-            conflicting Requirement objects.
+            typing.Optional[tuple[Requirement]]: None if there is no conflict, otherwise a
+            2-tuple containing the conflicting requirement objects.
         """
         return self.conflict_
 
     @property
     def names(self):
         """Set of names of requirements, not including conflict requirements.
+
+        Returns:
+            set[str]:
         """
         return self.names_
 
     @property
     def conflict_names(self):
-        """Set of conflict requirement names."""
+        """Set of conflict requirement names.
+
+        Returns:
+            set[str]:
+        """
         return self.conflict_names_
 
     def __iter__(self):
@@ -399,7 +452,13 @@ class RequirementList(_Common):
             yield requirement
 
     def get(self, name):
-        """Returns the Requirement for the given object, or None.
+        """Returns the requirement for the given object, or None.
+
+        Args:
+            name (str): requirement to get.
+
+        Returns:
+            Requirement:
         """
         return self.requirements_dict.get(name)
 

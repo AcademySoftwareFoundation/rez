@@ -2,24 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-"""
-Implements a well defined versioning schema.
-
-There are three class types - VersionToken, Version and VersionRange. A Version
-is a set of zero or more VersionTokens, separate by '.'s or '-'s (eg "1.2-3").
-A VersionToken is a string containing alphanumerics, and default implemenations
-'NumericToken' and 'AlphanumericVersionToken' are supplied. You can implement
-your own if you want stricter tokens or different sorting behaviour.
-
-A VersionRange is a set of one or more contiguous version ranges - for example,
-"3+<5" contains any version >=3 but less than 5. Version ranges can be used to
-define dependency requirements between objects. They can be OR'd together, AND'd
-and inverted.
-
-The empty version '', and empty version range '', are also handled. The empty
-version is used to denote unversioned objects. The empty version range, also
-known as the 'any' range, is used to refer to any version of an object.
-"""
 from __future__ import print_function
 from rez.version._util import VersionError, ParseException, _Common, \
     dedup
@@ -70,33 +52,35 @@ class VersionToken(_Comparable):
     """Token within a version number.
 
     A version token is that part of a version number that appears between a
-    delimiter, typically '.' or '-'. For example, the version number '2.3.07b'
-    contains the tokens '2', '3' and '07b' respectively.
+    delimiter, typically ``.`` or ``-``. For example, the version number ``2.3.07b``
+    contains the tokens ``2``, ``3`` and ``07b`` respectively.
 
     Version tokens are only allowed to contain alphanumerics (any case) and
     underscores.
     """
     def __init__(self, token):
-        """Create a VersionToken.
-
+        """
         Args:
-            token: Token string, eg "rc02"
+            token (str): Token string, eg "rc02"
         """
         raise NotImplementedError
 
     @classmethod
     def create_random_token_string(cls):
-        """Create a random token string. For testing purposes only."""
+        """Create a random token string. For testing purposes only.
+
+        :meta private:
+        """
         raise NotImplementedError
 
     def less_than(self, other):
-        """Compare to another VersionToken.
+        """Compare to another :class:`VersionToken`.
 
         Args:
-            other: The VersionToken object to compare against.
+            other (VersionToken): The VersionToken object to compare against.
 
         Returns:
-            True if this token is less than other, False otherwise.
+            bool: True if this token is less than other, False otherwise.
         """
         raise NotImplementedError
 
@@ -174,23 +158,26 @@ class AlphanumericVersionToken(VersionToken):
     """Alphanumeric version token.
 
     These tokens compare as follows:
+
     - each token is split into alpha and numeric groups (subtokens);
     - the resulting subtoken list is compared.
     - alpha comparison is case-sensitive, numeric comparison is padding-sensitive.
 
     Subtokens compare as follows:
+
     - alphas come before numbers;
-    - alphas are compared alphabetically (_, then A-Z, then a-z);
-    - numbers are compared numerically. If numbers are equivalent but zero-
-      padded differently, they are then compared alphabetically. Thus "01" < "1".
+    - alphas are compared alphabetically (``_``, then A-Z, then a-z);
+    - numbers are compared numerically. If numbers are equivalent but zero-padded
+      differently, they are then compared alphabetically. Thus ``01`` < ``1``.
 
     Some example comparisons that equate to true:
-    - "3" < "4"
-    - "01" < "1"
-    - "beta" < "1"
-    - "alpha3" < "alpha4"
-    - "alpha" < "alpha3"
-    - "gamma33" < "33gamma"
+
+    - ``3`` < ``4``
+    - ``01`` < ``1``
+    - ``beta`` < ``1``
+    - ``alpha3`` < ``alpha4``
+    - ``alpha`` < ``alpha3``
+    - ``gamma33`` < ``33gamma``
     """
     numeric_regex = re.compile("[0-9]+")
     regex = re.compile(r"[a-zA-Z0-9_]+\Z")
@@ -265,33 +252,31 @@ def reverse_sort_key(comparable):
         False
 
     Args:
-        comparable (`Version` or `VesionRange`): Object to wrap.
+        comparable (Version or VersionRange): Object to wrap.
 
     Returns:
-        `_ReversedComparable`: Wrapper object that reverses comparisons.
+        _ReversedComparable: Wrapper object that reverses comparisons.
     """
     return _ReversedComparable(comparable)
 
 
 class Version(_Comparable):
-    """Version object.
-
+    """
     A Version is a sequence of zero or more version tokens, separated by either
-    a dot '.' or hyphen '-' delimiters. Note that separators only affect Version
-    objects cosmetically - in other words, the version '1.0.0' is equivalent to
-    '1-0-0'.
+    a dot ``.`` or hyphen ``-`` delimiters. Note that separators only affect Version
+    objects cosmetically. In other words, the version ``1.0.0`` is equivalent to
+    ``1-0-0``.
 
-    The empty version '' is the smallest possible version, and can be used to
+    The empty version ``''`` is the smallest possible version, and can be used to
     represent an unversioned resource.
     """
     inf = None
 
     def __init__(self, ver_str='', make_token=AlphanumericVersionToken):
-        """Create a Version object.
-
+        """
         Args:
-            ver_str: Version string.
-            make_token: Callable that creates a VersionToken subclass from a
+            ver_str (str): Version string.
+            make_token (typing.Callable[[str], None]): Callable that creates a VersionToken subclass from a
                 string.
         """
         self.tokens = []
@@ -318,7 +303,12 @@ class Version(_Comparable):
             self.seps = seps[1:-1]
 
     def copy(self):
-        """Returns a copy of the version."""
+        """
+        Returns a copy of the version.
+
+        Returns:
+            Version:
+        """
         other = Version(None)
         other.tokens = self.tokens[:]
         other.seps = self.seps[:]
@@ -330,6 +320,9 @@ class Version(_Comparable):
         Args:
             len_ (int): New version length. If >= current length, an
                 unchanged copy of the version is returned.
+
+        Returns:
+            Version:
         """
         other = Version(None)
         other.tokens = self.tokens[:len_]
@@ -337,7 +330,7 @@ class Version(_Comparable):
         return other
 
     def __next__(self):
-        """Return 'next' version. Eg, next(1.2) is 1.2_"""
+        """Return :meth:`next` version. Eg, ``next(1.2)`` is ``1.2_``"""
         if self.tokens:
             other = self.copy()
             tok = other.tokens.pop()
@@ -351,17 +344,29 @@ class Version(_Comparable):
 
     @property
     def major(self):
-        """Semantic versioning major version."""
+        """Semantic versioning major version.
+
+        Returns:
+            VersionToken: A VersionToken or a subclass of a VersionToken.
+        """
         return self[0]
 
     @property
     def minor(self):
-        """Semantic versioning minor version."""
+        """Semantic versioning minor version.
+
+        Returns:
+            VersionToken: A VersionToken or a subclass of a VersionToken.
+        """
         return self[1]
 
     @property
     def patch(self):
-        """Semantic versioning patch version."""
+        """Semantic versioning patch version.
+
+        Returns:
+            VersionToken: A VersionToken or a subclass of a VersionToken.
+        """
         return self[2]
 
     def as_tuple(self):
@@ -371,6 +376,9 @@ class Version(_Comparable):
 
             >>> print Version("1.2.12").as_tuple()
             ('1', '2', '12')
+
+        Returns:
+            tuple[str]:
         """
         return tuple(map(str, self.tokens))
 
@@ -803,17 +811,16 @@ class _VersionRangeParser(object):
 
 
 class VersionRange(_Comparable):
-    """Version range.
-
+    """
     A version range is a set of one or more contiguous ranges of versions. For
     example, "3.0 or greater, but less than 4" is a contiguous range that contains
-    versions such as "3.0", "3.1.0", "3.99" etc. Version ranges behave something
-    like sets - they can be intersected, added and subtracted, but can also be
-    inverted. You can test to see if a Version is contained within a VersionRange.
+    versions such as ``3.0``, ``3.1.0``, ``3.99`` etc. Version ranges behave something
+    like sets. They can be intersected, added and subtracted, but can also be
+    inverted. You can test to see if a :class:`Version` is contained within a :class:`VersionRange`.
 
-    A VersionRange "3" (for example) is the superset of any version "3[.X.X...]".
-    The version "3" itself is also within this range, and is smaller than "3.0"
-    - any version with common leading tokens, but with a larger token count, is
+    A VersionRange ``3`` (for example) is the superset of any version ``3[.X.X...]``.
+    The version ``3`` itself is also within this range, and is smaller than ``3.0``.
+    Any version with common leading tokens, but with a larger token count, is
     the larger version of the two.
 
     VersionRange objects have a flexible syntax that let you describe any
@@ -821,47 +828,53 @@ class VersionRange(_Comparable):
     and lower bounds. This is best explained by example (those listed on the
     same line are equivalent):
 
-        "3": 'superset' syntax, contains "3", "3.0", "3.1.4" etc;
-        "2+", ">=2": inclusive lower bound syntax, contains "2", "2.1", "5.0.0" etc;
-        ">2": exclusive lower bound;
-        "<5": exclusive upper bound;
-        "<=5": inclusive upper bound;
-        "==2": a range that contains only the exact single version "2".
+    - ``3``: 'superset' syntax, contains ``3``, ``3.0``, ``3.1.4`` etc;
+    - ``2+``, ``>=2``: inclusive lower bound syntax, contains ``2``, ``2.1``, ``5.0.0`` etc;
+    - ``>2``: exclusive lower bound;
+    - ``<5``: exclusive upper bound;
+    - ``<=5``: inclusive upper bound;
+    - ``==2``: a range that contains only the exact single version ``2``.
 
-        "1+<5", ">=1<5": inclusive lower, exclusive upper. The most common form of
-            a 'bounded' version range (ie, one with a lower and upper bound);
-        ">1<5": exclusive lower, exclusive upper;
-        ">1<=5": exclusive lower, inclusive upper;
-        "1+<=5", "1..5": inclusive lower, inclusive upper;
+    ..
 
-        "<=4,>2", "<4,>2", "<4,>=2": Reverse pip syntax (note comma)
+    - ``1+<5``, ``>=1<5``: inclusive lower, exclusive upper. The most common form of
+      a 'bounded' version range (ie, one with a lower and upper bound);
+
+    ..
+
+    - ``>1<5``: exclusive lower, exclusive upper;
+    - ``>1<=5``: exclusive lower, inclusive upper;
+    - ``1+<=5``, ``1..5``: inclusive lower, inclusive upper;
+
+    ..
+
+    - ``<=4,>2``, ``<4,>2``, ``<4,>=2``: Reverse pip syntax (note comma)
 
     To help with readability, bounded ranges can also have their bounds separated
-    with a comma, eg ">=2,<=6". The comma is purely cosmetic and is dropped in
+    with a comma, eg ``>=2,<=6``. The comma is purely cosmetic and is dropped in
     the string representation.
 
-    To describe more than one contiguous range, seperate ranges with the or '|'
-    symbol. For example, the version range "4|6+" contains versions such as "4",
-    "4.0", "4.3.1", "6", "6.1", "10.0.0", but does not contain any version
-    "5[.X.X...X]". If you provide multiple ranges that overlap, they will be
-    automatically optimised - for example, the version range "3+<6|4+<8"
-    becomes "3+<8".
+    To describe more than one contiguous range, seperate ranges with the or ``|``
+    symbol. For example, the version range ``4|6+`` contains versions such as ``4``,
+    ``4.0``, ``4.3.1``, ``6``, ``6.1``, ``10.0.0``, but does not contain any version
+    ``5[.X.X...X]``. If you provide multiple ranges that overlap, they will be
+    automatically optimised. For example, the version range ``3+<6|4+<8``
+    becomes ``3+<8``.
 
     Note that the empty string version range represents the superset of all
-    possible versions - this is called the "any" range. The empty version can
+    possible versions. This is called the "any" range. The empty version can
     also be used as an upper or lower bound, leading to some odd but perfectly
-    valid version range syntax. For example, ">" is a valid range - read like
-    ">''", it means "any version greater than the empty version".
+    valid version range syntax. For example, ``>`` is a valid range - read like
+    ``>''``, it means ``any version greater than the empty version``.
     """
     def __init__(self, range_str='', make_token=AlphanumericVersionToken,
                  invalid_bound_error=True):
-        """Create a VersionRange object.
-
+        """
         Args:
-            range_str: Range string, such as "3", "3+<4.5", "2|6+". The range
+            range_str (str): Range string, such as "3", "3+<4.5", "2|6+". The range
                 will be optimised, so the string representation of this instance
                 may not match range_str. For example, "3+<6|4+<8" == "3+<8".
-            make_token: Version token class to use.
+            make_token (typing.Type[VersionToken]): Version token class to use.
             invalid_bound_error (bool): If True, raise an exception if an
                 impossible range is given, such as '3+<2'.
         """
@@ -887,30 +900,46 @@ class VersionRange(_Comparable):
             self.bounds.append(_Bound.any)
 
     def is_any(self):
-        """Returns True if this is the "any" range, ie the empty string range
-        that contains all versions."""
+        """
+        Returns:
+            bool: True if this is the "any" range, ie the empty string range
+            that contains all versions.
+        """
         return (len(self.bounds) == 1) and (self.bounds[0] == _Bound.any)
 
     def lower_bounded(self):
-        """Returns True if the range has a lower bound (that is not the empty
-        version)."""
+        """
+        Returns:
+            bool: True if the range has a lower bound (that is not the empty
+            version).
+        """
         return self.bounds[0].lower_bounded()
 
     def upper_bounded(self):
-        """Returns True if the range has an upper bound."""
+        """
+        Returns:
+            bool: True if the range has an upper bound.
+        """
         return self.bounds[-1].upper_bounded()
 
     def bounded(self):
-        """Returns True if the range has a lower and upper bound."""
+        """
+        Returns:
+            bool: True if the range has a lower and upper bound.
+        """
         return (self.lower_bounded() and self.upper_bounded())
 
     def issuperset(self, range):
-        """Returns True if the VersionRange is contained within this range.
+        """
+        Returns:
+            bool: True if the VersionRange is contained within this range.
         """
         return self._issuperset(self.bounds, range.bounds)
 
     def issubset(self, range):
-        """Returns True if we are contained within the version range.
+        """
+        Returns:
+            bool: True if we are contained within the version range.
         """
         return range.issuperset(self)
 
@@ -920,10 +949,10 @@ class VersionRange(_Comparable):
         Calculates the union of this range with one or more other ranges.
 
         Args:
-            other: VersionRange object (or list of) to OR with.
+            other (VersionRange or list[VersionRange]): Version range object(s) to OR with.
 
         Returns:
-            New VersionRange object representing the union.
+            VersionRange: Range object representing the union.
         """
         if not hasattr(other, "__iter__"):
             other = [other]
@@ -942,10 +971,10 @@ class VersionRange(_Comparable):
         Calculates the intersection of this range with one or more other ranges.
 
         Args:
-            other: VersionRange object (or list of) to AND with.
+            other (VersionRange or list[VersionRange]): Version range object(s) to AND with.
 
         Returns:
-            New VersionRange object representing the intersection, or None if
+            typing.Optional[VersionRange]: New VersionRange object representing the intersection, or None if
             no ranges intersect.
         """
         if not hasattr(other, "__iter__"):
@@ -965,7 +994,7 @@ class VersionRange(_Comparable):
         """Calculate the inverse of the range.
 
         Returns:
-            New VersionRange object representing the inverse of this range, or
+            typing.Optional[VersionRange]: New VersionRange object representing the inverse of this range, or
             None if there is no inverse (ie, this range is the any range).
         """
         if self.is_any():
@@ -980,10 +1009,10 @@ class VersionRange(_Comparable):
         """Determine if we intersect with another range.
 
         Args:
-            other: VersionRange object.
+            other (VersionRange): Version range object.
 
         Returns:
-            True if the ranges intersect, False otherwise.
+            bool: True if the ranges intersect, False otherwise.
         """
         return self._intersects(self.bounds, other.bounds)
 
@@ -991,8 +1020,8 @@ class VersionRange(_Comparable):
         """Split into separate contiguous ranges.
 
         Returns:
-            A list of VersionRange objects. For example, the range "3|5+" will
-            be split into ["3", "5+"].
+            list[VersionRange]: A list of VersionRange objects. For example, the range ``3|5+`` will
+            be split into ``["3", "5+"]``.
         """
         ranges = []
         for bound in self.bounds:
@@ -1007,11 +1036,12 @@ class VersionRange(_Comparable):
         """Create a range from lower_version..upper_version.
 
         Args:
-            lower_version: Version object representing lower bound of the range.
-            upper_version: Version object representing upper bound of the range.
-
+            lower_version (Version): Version object representing lower bound of the range.
+            upper_version (Version): Version object representing upper bound of the range.
+            lower_inclusive (bool): Include lower_version into the span.
+            upper_inclusive (bool): Include upper_inclusive into the span.
         Returns:
-            `VersionRange` object.
+            VersionRange:
         """
         lower = (None if lower_version is None
                  else _LowerBound(lower_version, lower_inclusive))
@@ -1028,14 +1058,14 @@ class VersionRange(_Comparable):
         """Create a range from a version.
 
         Args:
-            version: Version object. This is used as the upper/lower bound of
+            version (Version): This is used as the upper/lower bound of
                 the range.
-            op: Operation as a string. One of 'gt'/'>', 'gte'/'>=', lt'/'<',
-                'lte'/'<=', 'eq'/'=='. If None, a bounded range will be created
+            op (typing.Optional[str]): Operation as a string. One of: gt, >, gte, >=, lt, <,
+                lte, <=, eq, ==. If None, a bounded range will be created
                 that contains the version superset.
 
         Returns:
-            `VersionRange` object.
+            VersionRange:
         """
         lower = None
         upper = None
@@ -1067,13 +1097,13 @@ class VersionRange(_Comparable):
         """Create a range from a list of versions.
 
         This method creates a range that contains only the given versions and
-        no other. Typically the range looks like (for eg) "==3|==4|==5.1".
+        no other. Typically the range looks like (for eg) ``==3|==4|==5.1``.
 
         Args:
-            versions: List of Version objects.
+            versions (list[Version]): List of Version objects.
 
         Returns:
-            `VersionRange` object.
+            VersionRange:
         """
         range = cls(None)
         range.bounds = []
@@ -1087,6 +1117,9 @@ class VersionRange(_Comparable):
     def to_versions(self):
         """Returns exact version ranges as Version objects, or None if there
         are no exact version ranges present.
+
+        Returns:
+            typing.Optional[list[Version]]:
         """
         versions = []
         for bound in self.bounds:
@@ -1097,7 +1130,11 @@ class VersionRange(_Comparable):
         return versions or None
 
     def contains_version(self, version):
-        """Returns True if version is contained in this range."""
+        """Returns True if version is contained in this range.
+
+        Returns:
+            bool:
+        """
         if len(self.bounds) < 5:
             # not worth overhead of binary search
             for bound in self.bounds:
@@ -1121,20 +1158,20 @@ class VersionRange(_Comparable):
         Args:
             iterable: An ordered sequence of versioned objects. If the list
                 is not sorted by version, behaviour is undefined.
-            key (callable): Function that returns a `Version` given an object
-                from `iterable`. If None, the identity function is used.
-            descending (bool): Set to True if `iterable` is in descending
+            key (callable): Function that returns a :class:`Version` given an object
+                from ``iterable``. If None, the identity function is used.
+            descending (bool): Set to True if ``iterable`` is in descending
                 version order.
 
         Returns:
-            An iterator that returns (bool, object) tuples, where 'object' is
-            the original object in `iterable`, and the bool indicates whether
+            ~collections.abc.Iterator[tuple[bool, typing.Any]]: An iterator that returns (bool, object) tuples, where 'object' is
+            the original object in ``iterable``, and the bool indicates whether
             that version is contained in this range.
         """
         return _ContainsVersionIterator(self, iterable, key, descending)
 
     def iter_intersecting(self, iterable, key=None, descending=False):
-        """Like `iter_intersect_test`, but returns intersections only.
+        """Like :meth:iter_intersect_test`, but returns intersections only.
 
         Returns:
             An iterator that returns items from `iterable` that intersect.
@@ -1144,7 +1181,7 @@ class VersionRange(_Comparable):
         )
 
     def iter_non_intersecting(self, iterable, key=None, descending=False):
-        """Like `iter_intersect_test`, but returns non-intersections only.
+        """Like :meth:`iter_intersect_test`, but returns non-intersections only.
 
         Returns:
             An iterator that returns items from `iterable` that don't intersect.
@@ -1157,8 +1194,8 @@ class VersionRange(_Comparable):
         """Return a contiguous range that is a superset of this range.
 
         Returns:
-            A VersionRange object representing the span of this range. For
-            example, the span of "2+<4|6+<8" would be "2+<8".
+            VersionRange: A range object representing the span of this range. For
+            example, the span of ``2+<4|6+<8`` would be ``2+<8``.
         """
         other = VersionRange(None)
         bound = _Bound(self.bounds[0].lower, self.bounds[-1].upper)
@@ -1172,7 +1209,7 @@ class VersionRange(_Comparable):
 
         This is for advanced usage only.
 
-        If `func` returns a `Version`, this call will change the versions in
+        If ``func`` returns a :class:`Version`, this call will change the versions in
         place.
 
         It is possible to change versions in a way that is nonsensical - for
@@ -1180,10 +1217,13 @@ class VersionRange(_Comparable):
         Use at your own risk.
 
         Args:
-            func (callable): Takes a `Version` instance arg, and is applied to
-                every version in the range. If `func` returns a `Version`, it
-                will replace the existing version, updating this `VersionRange`
-                instance in place.
+            func (typing.Callable[[Version], typing.Optional[Version]]): Takes a
+                version, and is applied to every version in the range.
+                If ``func`` returns a :class:`Version`, it will replace the existing version,
+                updating this :class:`VersionRange` instance in place.
+
+        Returns:
+            None:
         """
         for bound in self.bounds:
             if bound.lower is not _LowerBound.min:
