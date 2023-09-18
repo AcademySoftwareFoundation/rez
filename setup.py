@@ -9,12 +9,11 @@ import sys
 import logging
 import tempfile
 import platform
-import shutil
 
 
 try:
     from setuptools import setup, find_packages
-    import distutils.command.build_scripts
+    from distutils.command.build_scripts import build_scripts
 except ImportError:
     print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
@@ -58,9 +57,9 @@ if __name__ == '__main__':
     sys.exit({0}())
 """
 
-class build_scripts(distutils.command.build_scripts.build_scripts):
+class rez_build_scripts(build_scripts):
     def finalize_options(self):
-        super().finalize_options()
+        build_scripts.finalize_options(self)
         self.build_dir = os.path.join(self.build_dir, "rez")
 
     def run(self):
@@ -101,7 +100,7 @@ class build_scripts(distutils.command.build_scripts.build_scripts):
         scripts.append(prod_install_path)
 
         self.scripts = scripts
-        return super().run()
+        return build_scripts.run(self)
 
 
 setup(
@@ -156,5 +155,5 @@ setup(
         "Topic :: System :: Software Distribution"
     ],
     python_requires=">=3.7",
-    cmdclass={"build_scripts": build_scripts},
+    cmdclass={"build_scripts": rez_build_scripts},
 )
