@@ -1,4 +1,5 @@
-[![Google Group](https://img.shields.io/badge/rez--config-Google%20Group-blue?style=flat-square&logo=google)](https://groups.google.com/forum/#!forum/rez-config)
+[![Google Group](https://img.shields.io/badge/rez--config_%28retired%29-Google%20Group-blue?style=flat-square&logo=google)](https://groups.google.com/forum/#!forum/rez-config)
+[![LFX ASWF Email List](https://img.shields.io/badge/rez--discussion-lists.aswf.io-003366?style=flat-square&logo=linuxfoundation)](https://lists.aswf.io/g/rez-discussion)
+[![Slack](https://img.shields.io/badge/Slack-ASWF_%23rez-7a6800?style=flat-square&logo=slack)](https://academysoftwarefdn.slack.com/archives/C0321B828FM)
 [![Contributing Guidelines](https://img.shields.io/badge/rez-Contributing%20Guidelines-0b610e?style=flat-square&logo=github)](https://github.com/__GITHUB_REPO__/blob/main/CONTRIBUTING.md)
 [![Report A Bug](https://img.shields.io/badge/rez-Report%20A%20Bug-critical?style=flat-square&logo=github)](https://github.com/__GITHUB_REPO__/issues/new)
-[![Slack](https://img.shields.io/badge/slack-rez--talk-7a6800?style=flat-square&logo=slack)](https://rez-talk.slack.com/)
