@@ -58,9 +58,7 @@ import platform
 # Note that this is not done on Windows because the Windows launcher
 # already does this.
 if not sys.flags.ignore_environment and platform.system() != 'Windows':
-    args = sys.orig_argv[:]
-    args[0] = sys.executable
-    args.insert(1, '-E')
+    args = [sys.executable, '-E'] + sys.argv
     if os.getenv('REZ_LAUNCHER_DEBUG'):
         print('Launching:', ' '.join(args))
     os.execvp(sys.executable, args)
@@ -112,7 +110,7 @@ class rez_build_scripts(build_scripts):
 
         prod_install_path = os.path.join(tmpdir, ".rez_production_install")
         with open(prod_install_path, "w") as fd:
-            fd.write("# Production install installed with pip")
+            fd.write(_rez_version)
 
         scripts.append(prod_install_path)
 
