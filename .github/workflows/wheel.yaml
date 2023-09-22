@@ -85,6 +85,8 @@ jobs:
         set -ex
         cat .venv/Scripts/rez/rez-script.py
         cat .venv/Scripts/rez/jctest-script.py
+        export REZ_LAUNCHER_DEBUG=1
+
         jctest
 
         rez --help
