@@ -38,8 +38,8 @@ def get_github_repo_owner():
 
 
 _repo_owner = get_github_repo_owner()
-github_baseurl = "github.com/repos/%s/rez" % _repo_owner
-github_baseurl2 = "github.com/%s/rez" % _repo_owner
+github_baseurl = "github.com/repos/AcademySoftwareFoundation/rez"
+github_baseurl2 = "github.com/AcademySoftwareFoundation/rez"
 verbose = False
 
 # https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
