@@ -18,7 +18,7 @@ To release a new version of rez:
    ```
    This command prints the changelog entry to stdout, which you can then paste in
    to the top of CHANGELOG.md. Add any additional notes as needed.
-6. Commit (make sure you sign your commit!) and push to `main`.
+6. Commit (make sure you sign (`--signoff`) your commit!) and push to `main`.
 7. Wait for all Github workflows to pass;
 8. Ensure that you have the `GITHUB_RELEASE_REZ_TOKEN` environment variable set to a valid GitHub token.
    * The token will need permission to perform the release on the rez repo.
@@ -30,7 +30,7 @@ To release a new version of rez:
    ```
 10. After all workflows and automations complete, check that:
    * The GitHub release was created.
-   * The Pypi release was created.
+   * The PyPI release was created.
    * The RTD docs were generated successfully.
    * The benchmark workflow successfully pushed results to the repo.
 11. Write up an announcement for the ASWF rez Slack channel.
