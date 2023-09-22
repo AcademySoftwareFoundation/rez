@@ -29,7 +29,7 @@ jobs:
         cp distlib/PC/launcher.c launcher/
 
         cd launcher
-        patch -Np1 -i remote-appended.patch --binary
+        patch -Np1 -i rez.patch --binary
 
         mkdir build
         cd build
@@ -85,6 +85,8 @@ jobs:
         set -ex
         cat .venv/Scripts/rez/rez-script.py
         cat .venv/Scripts/rez/jctest-script.py
+
+        echo 'Running jctest with REZ_LAUNCHER_DEBUG=1'
         export REZ_LAUNCHER_DEBUG=1
 
         jctest
