@@ -47,10 +47,22 @@ with open(os.path.join(this_directory, 'README.md')) as f:
     long_description = f.read()
 
 
-SCRIPT_TEMPLATE = """#!/usr/bin/python -E
+SCRIPT_TEMPLATE = """#!/usr/bin/python
 # -*- coding: utf-8 -*-
+import os
 import re
 import sys
+import platform
+# If -E is not passed, then inject it and re-execute outself.
+# Note that this is not done on Windows because the Windows launcher
+# already does this.
+if not sys.flags.ignore_environment and platform.system() != 'Windows':
+    args = sys.orig_argv[:]
+    args[0] = sys.executable
+    args.insert(1, '-E')
+    if os.getenv('REZ_LAUNCHER_DEBUG'):
+        print('Launching:', ' '.join(args))
+    os.execvp(sys.executable, args)
 from rez.cli._entry_points import {0}
 if __name__ == '__main__':
     sys.argv[0] = re.sub(r'(-script\\.pyw|\\.exe)?$', '', sys.argv[0])
@@ -68,12 +80,12 @@ class rez_build_scripts(build_scripts):
         scripts = []
         tmpdir = tempfile.mkdtemp("rez-scripts")
 
-        os.makedirs(self.build_dir)
+        os.makedirs(self.build_dir, exist_ok=True)
 
         for command in self.scripts:
             spec = get_specifications()[command]
 
-            filename = "{0}.py".format(command)
+            filename = command
             if platform.system() == "Windows":
                 filename = "{0}-script.py".format(command)
 
