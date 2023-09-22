@@ -162,7 +162,7 @@ def install(dest_dir, print_welcome=False, editable=False):
     install_rez_from_source(dest_dir, editable=editable)
 
     # patch the rez binaries
-    patch_rez_binaries(dest_dir)
+    # patch_rez_binaries(dest_dir)
 
     # copy completion scripts into virtualenv
     completion_path = copy_completion_scripts(dest_dir)
@@ -170,15 +170,15 @@ def install(dest_dir, print_welcome=False, editable=False):
     # mark virtualenv as production rez install. Do not remove - rez uses this!
     virtualenv_bin_dir = get_virtualenv_bin_dir(dest_dir)
     dest_bin_dir = os.path.join(virtualenv_bin_dir, "rez")
-    validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
-    with open(validation_file, 'w') as f:
-        f.write(_rez_version)
+    # validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
+    # with open(validation_file, 'w') as f:
+    #     f.write(_rez_version)
 
     # done
     if print_welcome:
         print()
         print("SUCCESS!")
-        rez_exe = os.path.realpath(os.path.join(dest_bin_dir, "rez"))
+        rez_exe = os.path.realpath(os.path.join(dest_bin_dir))
         print("Rez executable installed to: %s" % rez_exe)
 
         try:
