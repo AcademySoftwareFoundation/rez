@@ -69,6 +69,7 @@ if __name__ == '__main__':
     sys.exit({0}())
 """
 
+
 class rez_build_scripts(build_scripts):
     def finalize_options(self):
         build_scripts.finalize_options(self)
@@ -132,7 +133,6 @@ setup(
     license="Apache-2.0",
     license_files=["LICENSE"],
     scripts=list(get_specifications().keys()),
-    include_package_data=True,
     zip_safe=False,
     package_dir={'': 'src'},
     packages=find_packages('src', exclude=["build_utils",
@@ -144,6 +144,7 @@ setup(
             ['utils/logging.conf'] +
             ['README*'] +
             ["py.typed"] +
+            find_files('README*') +
             find_files('*', 'completion') +
             find_files('*', 'data') +
             find_files('*.exe', 'vendor/distlib'),
@@ -152,6 +153,7 @@ setup(
             find_files('*.cmake', 'build_system', root='rezplugins') +
             find_files('*', 'build_system/template_files', root='rezplugins'),
         'rezgui':
+            find_files('README*', root='rezgui') +
             find_files('rezguiconfig', root='rezgui') +
             find_files('*', 'icons', root='rezgui')
     },
