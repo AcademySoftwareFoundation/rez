@@ -14,6 +14,7 @@ import platform
 try:
     from setuptools import setup, find_packages
     from distutils.command.build_scripts import build_scripts
+    from wheel.bdist_wheel import bdist_wheel, get_platform
 except ImportError:
     print("install failed - requires setuptools", file=sys.stderr)
     sys.exit(1)
@@ -119,6 +120,16 @@ class rez_build_scripts(build_scripts):
         return build_scripts.run(self)
 
 
+class rez_wheel(bdist_wheel):
+    def finalize_options(self):
+        self.universal = True  # Support python 2 and 3
+        if platform.system() == "Windows":
+            self.plat_name_supplied = True
+            self.plat_name = get_platform("")
+
+        bdist_wheel.finalize_options(self)
+
+
 setup(
     name="rez",
     version=_rez_version,
@@ -172,5 +183,8 @@ setup(
         "Topic :: System :: Software Distribution"
     ],
     python_requires=">=3.7",
-    cmdclass={"build_scripts": rez_build_scripts},
+    cmdclass={
+        "build_scripts": rez_build_scripts,
+        "bdist_wheel": rez_wheel,
+    },
 )
