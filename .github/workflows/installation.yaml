@@ -47,7 +47,7 @@ jobs:
 
         - os: ubuntu-latest
           method: pip
-          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin PYTHONPATH=${PYTHONPATH}:/opt/rez'
+          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin/rez PYTHONPATH=${PYTHONPATH}:/opt/rez'
           REZ_INSTALL_COMMAND: |
             set -ex
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
@@ -74,7 +74,7 @@ jobs:
             python ./install.py ~/rez
         - os: macos-latest
           method: pip
-          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
+          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin/rez" PYTHONPATH=$PYTHONPATH:$HOME/rez'
           REZ_INSTALL_COMMAND: |
             set -ex
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
@@ -94,7 +94,7 @@ jobs:
             python ./install.py C:\ProgramData\rez
         - os: windows-2019
           method: pip
-          REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
+          REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin\rez"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
           REZ_INSTALL_COMMAND: |
             if ($env:MATRIX_PYTHON_VERSION -eq "2.7") {
                 & 'C:\Miniconda\shell\condabin\conda-hook.ps1'

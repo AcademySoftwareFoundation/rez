@@ -65,7 +65,6 @@ def check_production_install():
 @register("jctest")
 def run_jctest():
     print("argv:", sys.argv)
-    print("orig_argv", sys.orig_argv)
     print("executable:", sys.executable)
     print("sys.flags:", sys.flags)
     return 0
