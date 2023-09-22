@@ -81,7 +81,10 @@ class rez_build_scripts(build_scripts):
         scripts = []
         tmpdir = tempfile.mkdtemp("rez-scripts")
 
-        os.makedirs(self.build_dir, exist_ok=True)
+        try:
+            os.makedirs(self.build_dir)
+        except OSError:
+            pass
 
         for command in self.scripts:
             spec = get_specifications()[command]
