@@ -48,12 +48,19 @@ jobs:
   wheel:
     name: Build wheel
     needs: ["launchers"]
-    runs-on: "windows-latest"
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v4
 
     - uses: actions/download-artifact@v3
+      if: ${{ matrix.os == 'windows-latest' }}
       with:
         name: launchers
         path: launcher
@@ -67,24 +74,61 @@ jobs:
       run: |
         set -ex
         python -m pip install build
-        python -m build -w .
+        python -m build -w . --outdir ./dist
+
+    - uses: actions/upload-artifact@v3
+      with:
+        path: dist
+        name: wheels
+
+  test:
+    name: Test wheels
+    needs: ["wheel"]
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    env:
+      CURRENT_PLATFORM: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - uses: actions/download-artifact@v3
+      with:
+        name: wheels
+        path: wheels
 
     - name: Install wheel
       shell: bash
       run: |
         set -ex
         python -m venv .venv
-        .venv/Scripts/python.exe -m pip install dist/*
-        ls -la .venv/Scripts/
-        ls -la .venv/Scripts/rez
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            .venv/Scripts/python.exe -m pip install rez --find-links ./wheels --no-index
+            ls -la .venv/Scripts/
+            ls -la .venv/Scripts/rez
+        else
+            .venv/bin/python -m pip install rez --find-links ./wheels --no-index
+            ls -la .venv/bin/
+            ls -la .venv/bin/rez
+        fi
 
     - name: Test commands
       shell: bash
       run: |
-        export PATH=$(pwd)/.venv/Scripts/rez:$PATH
         set -ex
-        cat .venv/Scripts/rez/rez-script.py
-        cat .venv/Scripts/rez/jctest-script.py
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            export PATH=$(pwd)/.venv/Scripts/rez:$PATH
+        else
+            export PATH=$(pwd)/.venv/bin/rez:$PATH
+        fi
 
         echo 'Running jctest with REZ_LAUNCHER_DEBUG=1'
         export REZ_LAUNCHER_DEBUG=1
