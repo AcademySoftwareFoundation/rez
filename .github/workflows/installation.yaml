@@ -47,14 +47,16 @@ jobs:
 
         - os: ubuntu-latest
           method: pip
-          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin/rez PYTHONPATH=${PYTHONPATH}:/opt/rez'
+          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin/rez'
           REZ_INSTALL_COMMAND: |
             set -ex
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
                 eval "$(conda shell.bash hook)"
                 conda activate python
             fi
-            pip install --target /opt/rez .
+            python -m pip install virtualenv
+            python -m virtualenv /opt/rez
+            /opt/rez/bin/python -m pip install .
         # macOS
         - os: macos-latest
           method: install
@@ -74,14 +76,16 @@ jobs:
             python ./install.py ~/rez
         - os: macos-latest
           method: pip
-          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin/rez" PYTHONPATH=$PYTHONPATH:$HOME/rez'
+          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin/rez"'
           REZ_INSTALL_COMMAND: |
             set -ex
             if [[ "${MATRIX_PYTHON_VERSION}" == "2.7" ]]; then
                 eval "$(conda shell.bash hook)"
                 conda activate python
             fi
-            pip install --target ~/rez .
+            python -m pip install virtualenv
+            python -m virtualenv ~/rez
+            ~/rez/bin/python -m pip install .
         # windows
         - os: windows-2019
           method: install
@@ -94,13 +98,16 @@ jobs:
             python ./install.py C:\ProgramData\rez
         - os: windows-2019
           method: pip
-          REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin\rez"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
+          REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin\rez")'
           REZ_INSTALL_COMMAND: |
             if ($env:MATRIX_PYTHON_VERSION -eq "2.7") {
                 & 'C:\Miniconda\shell\condabin\conda-hook.ps1'
                 conda activate python
             }
-            pip install --target C:\ProgramData\rez .
+
+            python -m pip install virtualenv
+            python -m virtualenv C:\ProgramData\rez
+            C:\ProgramData\rez\Scripts\python.exe -m pip install .
 
     steps:
     - uses: actions/checkout@v3
