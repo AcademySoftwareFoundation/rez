@@ -129,11 +129,21 @@ class rez_build_scripts(build_scripts):
 class rez_wheel(bdist_wheel):
     def finalize_options(self):
         self.universal = True  # Support python 2 and 3
-        if platform.system() == "Windows":
-            self.plat_name_supplied = True
-            self.plat_name = _get_platform()
-
         bdist_wheel.finalize_options(self)
+        if platform.system() == "Windows":
+            # Make sure the wheel is marked as non pure.
+            # The cmake package does the same thing.
+            self.root_is_pure = False
+
+    def get_tag(self):
+        if platform.system() == "Windows":
+            plat_name = _get_platform()
+            plat_name = (
+                plat_name.lower().replace("-", "_").replace(".", "_").replace(" ", "_")
+            )
+            # Use same tag as cmake package.
+            return ("py2.py3", "none", plat_name)
+        return bdist_wheel.get_tag(self)
 
 
 setup(
