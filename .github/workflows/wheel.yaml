@@ -59,7 +59,7 @@ jobs:
         path: 'launcher/build/*.exe'
 
   wheel:
-    name: Build ${{ matrix.os }} ${{ matrix.arch }} wheel
+    name: Build ${{ matrix.title }} wheel
     needs: ["launchers"]
 
     runs-on: ${{ matrix.os }}
@@ -69,10 +69,13 @@ jobs:
       matrix:
         include:
         - os: ubuntu-latest
+          title: pure
         - os: windows-latest
           arch: win_amd64
+          title: windows amd64
         - os: windows-latest
           arch: win_arm64
+          title: windows arm64
 
     steps:
     - uses: actions/checkout@v4
