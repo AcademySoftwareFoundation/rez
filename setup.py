@@ -69,6 +69,13 @@ if __name__ == '__main__':
 """
 
 
+def _get_platform():
+    if os.environ.get("PYTHON_PLAT_NAME"):
+        return os.environ.get("PYTHON_PLAT_NAME")
+
+    return get_platform(None)
+
+
 class rez_build_scripts(build_scripts):
     def finalize_options(self):
         build_scripts.finalize_options(self)
@@ -99,9 +106,10 @@ class rez_build_scripts(build_scripts):
             scripts.append(path)
 
             if platform.system() == "Windows":
-                launcher = "t64.exe"
+                arch = _get_platform().split("_", 1)[-1]
+                launcher = f"t-{arch}.exe"
                 if spec["type"] == "window":
-                    launcher = "w64.exe"
+                    launcher = f"w-{arch}.exe"
 
                 self.copy_file(
                     os.path.join("launcher", launcher),
@@ -123,7 +131,7 @@ class rez_wheel(bdist_wheel):
         self.universal = True  # Support python 2 and 3
         if platform.system() == "Windows":
             self.plat_name_supplied = True
-            self.plat_name = get_platform("")
+            self.plat_name = _get_platform()
 
         bdist_wheel.finalize_options(self)
 
