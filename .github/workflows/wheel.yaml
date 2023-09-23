@@ -9,15 +9,25 @@ concurrency:
 
 jobs:
   launchers:
-    name: launcher
+    name: Build Windows ${{ matrix.artifact }} launcher
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - msvc-arch: amd64_arm64
+          cmake-arch: ARM64
+          artifact: arm64
+        - msvc-arch: amd64
+          cmake-arch: x64
+          artifact: amd64
 
     steps:
     - uses: actions/checkout@v4
 
     - uses: ilammy/msvc-dev-cmd@v1
       with:
-        arch: amd64
+        arch: ${{ matrix.msvc-arch }}
 
     - name: Build
       shell: bash
@@ -34,11 +44,14 @@ jobs:
         mkdir build
         cd build
 
-        cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release
-        VERBOSE=1 cmake --build .
+        cmake .. -A "${GENERATOR_PLATFORM}" -DCMAKE_CONFIGURATION_TYPES=Release
+        VERBOSE=1 cmake --build . --config Release
 
-        mv simple_launcher_cli.exe t64.exe
-        mv simple_launcher_gui.exe w64.exe
+        mv Release/simple_launcher_cli.exe "t-${REZ_ARTIFACT_NAME}.exe"
+        mv Release/simple_launcher_gui.exe "w-${REZ_ARTIFACT_NAME}.exe"
+      env:
+        GENERATOR_PLATFORM: ${{ matrix.cmake-arch }}
+        REZ_ARTIFACT_NAME: ${{ matrix.artifact }}
 
     - uses: actions/upload-artifact@v3
       with:
@@ -46,7 +59,7 @@ jobs:
         path: 'launcher/build/*.exe'
 
   wheel:
-    name: Build wheel
+    name: Build ${{ matrix.os }} ${{ matrix.arch }} wheel
     needs: ["launchers"]
 
     runs-on: ${{ matrix.os }}
@@ -54,7 +67,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+        - os: ubuntu-latest
+        - os: windows-latest
+          arch: win_amd64
+        - os: windows-latest
+          arch: win_arm64
 
     steps:
     - uses: actions/checkout@v4
@@ -75,6 +93,8 @@ jobs:
         set -ex
         python -m pip install build
         python -m build -w . --outdir ./dist
+      env:
+        PYTHON_PLAT_NAME: ${{ matrix.arch }}
 
     - uses: actions/upload-artifact@v3
       with:
