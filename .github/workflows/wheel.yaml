@@ -119,6 +119,8 @@ jobs:
       CURRENT_PLATFORM: ${{ matrix.os }}
 
     steps:
+    - uses: actions/checkout@v4
+
     - uses: actions/setup-python@v4
       with:
         python-version: 3.11
@@ -156,8 +158,46 @@ jobs:
         echo 'Running jctest with REZ_LAUNCHER_DEBUG=1'
         export REZ_LAUNCHER_DEBUG=1
 
-        jctest
+        _rez-install-test
 
         rez --help
         rez --version
         rez-env --help
+
+    - name: Integration test
+      shell: bash
+      run: |
+        set -e
+
+        if [[ "${CURRENT_PLATFORM}" != "windows-latest" ]]; then
+            eval "$(conda shell.bash hook)"
+            conda activate base
+        fi
+
+        set -x
+
+        interpreter_path=""
+        export REZ_PACKAGES_PATH="~/rez_packages"
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            interpreter_path='.venv/Scripts/python.exe'
+            export PATH=$(pwd)/.venv/Scripts/rez:$PATH
+        else
+            interpreter_path=.'venv/bin/python'
+            export PATH=$(pwd)/.venv/bin/rez:$PATH
+        fi
+        "${interpreter_path}" .github/scripts/create_python_package.py 3.7.9 $REZ_PACKAGES_PATH
+
+        # First, test that the "python" package is found and is the right version.
+        test "$(rez-env python -- python --version)" = 'Python 3.7.9'
+
+        # Now test that the -E flag is used. This manifest with sys.flags.ignore_environment=1
+        test $(rez-env python -- _rez-install-test | jq '.sysflags.ignore_environment' -r) -eq 1
+
+        # Now test that the executable used for runnin the rez command is the one from the rez
+        # install, not the rez package.
+        expected_path="$(pwd)/${interpreter_path}"
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            # Convert unix path to windows path
+            expected_path=$(cygpath -w "${expected_path}")
+        fi
+        test $(rez-env python -- _rez-install-test | jq '.executable' -r) = "${expected_path}"

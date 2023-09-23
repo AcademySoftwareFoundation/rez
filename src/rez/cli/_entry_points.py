@@ -8,6 +8,7 @@ Entry points.
 import os
 import os.path
 import sys
+import json
 
 
 ### Utility functions
@@ -61,14 +62,6 @@ def check_production_install():
 
 
 ### Entry points
-
-@register("jctest")
-def run_jctest():
-    print("argv:", sys.argv)
-    print("executable:", sys.executable)
-    print("sys.flags:", sys.flags)
-    return 0
-
 
 @register("rez")
 def run_rez():
@@ -322,3 +315,19 @@ def run_rez_rm():
     check_production_install()
     from rez.cli._main import run
     return run("rm")
+
+
+@register("_rez-install-test")
+def run_rez_install_test():
+    data = {
+        "argv": sys.argv,
+        "executable": sys.executable,
+        "sysflags": {
+            attr: getattr(sys.flags, attr)
+            for attr in dir(sys.flags)
+            if not attr.startswith("_") and not callable(getattr(sys.flags, attr))
+        }
+    }
+
+    print(json.dumps(data, indent=4))
+    return 0
