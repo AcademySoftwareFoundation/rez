@@ -107,9 +107,9 @@ class rez_build_scripts(build_scripts):
 
             if platform.system() == "Windows":
                 arch = _get_platform().split("_", 1)[-1]
-                launcher = f"t-{arch}.exe"
+                launcher = "t-{0}.exe".format(arch)
                 if spec["type"] == "window":
-                    launcher = f"w-{arch}.exe"
+                    launcher = "w-{0}.exe".format(arch)
 
                 self.copy_file(
                     os.path.join("launcher", launcher),
