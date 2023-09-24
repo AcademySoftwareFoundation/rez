@@ -9,14 +9,16 @@ import sys
 import logging
 import tempfile
 import platform
+import subprocess
 
 
 try:
     from setuptools import setup, find_packages
     from distutils.command.build_scripts import build_scripts
     from wheel.bdist_wheel import bdist_wheel, get_platform
+    import packaging.tags
 except ImportError:
-    print("install failed - requires setuptools", file=sys.stderr)
+    print("install failed - requires setuptools, distutils, wheel and packaging", file=sys.stderr)
     sys.exit(1)
 
 # carefully import some sourcefiles that are standalone
@@ -73,7 +75,7 @@ def _get_platform():
     if os.environ.get("PYTHON_PLAT_NAME"):
         return os.environ.get("PYTHON_PLAT_NAME")
 
-    return get_platform(None)
+    return next(packaging.tags.sys_tags()).platform
 
 
 class rez_build_scripts(build_scripts):
@@ -86,11 +88,51 @@ class rez_build_scripts(build_scripts):
 
         scripts = []
         tmpdir = tempfile.mkdtemp("rez-scripts")
+        tmpdir_launchers = tempfile.mkdtemp("rez-scripts-launchers")
 
         try:
             os.makedirs(self.build_dir)
         except OSError:
             pass
+
+        cli_launcher_path = os.path.join(
+            tmpdir_launchers,
+            "t-{0}.exe".format(_get_platform().split("_", 1)[-1]),
+        )
+
+        gui_launcher_path = os.path.join(
+            tmpdir_launchers,
+            "w-{0}.exe".format(_get_platform().split("_", 1)[-1]),
+        )
+
+        if platform.system() == "Windows":
+            mapping = {"win_amd64": "x86_64", "win_arm64": "aarch64"}
+            zig_args = [
+                sys.executable,
+                "-m",
+                "ziglang",
+                "cc",
+                os.path.join("launcher", "launcher.c"),
+                "-std=c99",
+                # Optimize for size.
+                "-Os",
+                # Prevent undefined behavior from becoming illegal instructions.
+                "-fno-sanitize=undefined",
+                "-target",
+                "{0}-windows".format(mapping[_get_platform()]),
+                "-DWIN32",
+                "-DNDEBUG",
+            ]
+
+            args = zig_args + ["-D_CONSOLE", "-o", cli_launcher_path]
+            logging.getLogger().info("Compiling CLI launcher using: %r", " ".join(args))
+            # We compile the console (CLI) launcher.
+            subprocess.check_call(args)
+
+            args = zig_args + ["-D_WINDOWS", "-o", gui_launcher_path]
+            logging.getLogger().info("Compiling GUI launcher using: %r", " ".join(args))
+            # We compile the windows (GUI) launcher.
+            subprocess.check_call(args)
 
         for command in self.scripts:
             spec = get_specifications()[command]
@@ -106,13 +148,12 @@ class rez_build_scripts(build_scripts):
             scripts.append(path)
 
             if platform.system() == "Windows":
-                arch = _get_platform().split("_", 1)[-1]
-                launcher = "t-{0}.exe".format(arch)
+                launcher_path = cli_launcher_path
                 if spec["type"] == "window":
-                    launcher = "w-{0}.exe".format(arch)
+                    launcher_path = gui_launcher_path
 
                 self.copy_file(
-                    os.path.join("launcher", launcher),
+                    launcher_path,
                     os.path.join(self.build_dir, "{0}.exe".format(command))
                 )
 
@@ -137,13 +178,9 @@ class rez_wheel(bdist_wheel):
 
     def get_tag(self):
         if platform.system() == "Windows":
-            plat_name = _get_platform()
-            plat_name = (
-                plat_name.lower().replace("-", "_").replace(".", "_").replace(" ", "_")
-            )
             # Use same tag as cmake package.
-            return ("py2.py3", "none", plat_name)
-        return bdist_wheel.get_tag(self)
+            return ("py2.py3", "none", _get_platform())
+        return ("py2.py3", "none", "any")
 
 
 setup(
