@@ -42,7 +42,11 @@ jobs:
         - os: ubuntu-latest
           method: pip
           REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin PYTHONPATH=${PYTHONPATH}:/opt/rez'
-          REZ_INSTALL_COMMAND: pip install --target /opt/rez .
+          REZ_INSTALL_COMMAND: |
+            set -ex
+            python -m pip install virtualenv
+            python -m virtualenv /opt/rez
+            /opt/rez/bin/python -m pip install .
         # macOS
         - os: macos-latest
           method: install
@@ -51,7 +55,11 @@ jobs:
         - os: macos-latest
           method: pip
           REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
-          REZ_INSTALL_COMMAND: pip install --target ~/rez .
+          REZ_INSTALL_COMMAND: |
+            set -ex
+            python -m pip install virtualenv
+            python -m virtualenv /opt/rez
+            /opt/rez/bin/python -m pip install .
         # macOS
         # Python 3.7 is not supported on Apple Silicon.
         # macos-13 is the last macos runner image to run on Intel CPUs.
@@ -64,7 +72,11 @@ jobs:
           python-version: '3.7'
           method: pip
           REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
-          REZ_INSTALL_COMMAND: pip install --target ~/rez .
+          REZ_INSTALL_COMMAND: |
+            set -ex
+            python -m pip install virtualenv
+            python -m virtualenv /opt/rez
+            /opt/rez/bin/python -m pip install .
         # windows
         - os: windows-latest
           method: install
@@ -72,8 +84,11 @@ jobs:
           REZ_INSTALL_COMMAND: python ./install.py C:\ProgramData\rez
         - os: windows-latest
           method: pip
-          REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
-          REZ_INSTALL_COMMAND: pip install --target C:\ProgramData\rez .
+          REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\Scripts\rez")'
+          REZ_INSTALL_COMMAND: |
+            python -m pip install virtualenv
+            python -m virtualenv C:\ProgramData\rez
+            C:\ProgramData\rez\Scripts\python.exe -m pip install .
 
     steps:
     - uses: actions/checkout@v4
