@@ -34,7 +34,7 @@ jobs:
       run: |
         set -ex
         ls -la launcher
-        git clone https://github.com/pypa/distlib.git
+        git clone https://github.com/pypa/distlib.git -b 0.3.7
 
         cp distlib/PC/launcher.c launcher/
 
