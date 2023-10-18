@@ -255,6 +255,9 @@ class CMD(Shell):
 
     def setenv(self, key, value):
         value = self.escape_string(value, is_path=self._is_pathed_key(key))
+        if key == "CMAKE_MODULE_PATH":
+            # Fix CMake build in Windows for `CMAKE_MODULE_PATH` force to use "/"
+            value = value.replace("\\", "/")
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):
