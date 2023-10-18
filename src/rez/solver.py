@@ -1383,10 +1383,13 @@ class _ResolvePhase(_Common):
                                 # Raise with more info when match found
                                 searched = "; ".join(self.solver.package_paths)
                                 requested = ", ".join(requesters)
+
+                                fail_message = "package family not found: {}, was required by: {} (searched: {})".format(req.name, requested, searched)
+                                if not config.error_on_missing_variant_packages:
+                                    print(fail_message, file=sys.stderr)
+                                    return _create_phase(SolverStatus.failed)
                                 raise PackageFamilyNotFoundError(
-                                    "package family not found: %s, "
-                                    "was required by: %s (searched: %s)"
-                                    % (req.name, requested, searched))
+                                    fail_message)
 
                         scopes.append(scope)
                         if self.pr:
