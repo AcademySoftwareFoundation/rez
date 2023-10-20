@@ -2401,7 +2401,10 @@ class Solver(_Common):
         except IndexError:
             raise IndexError("failure index out of range")
 
-        fail_description = phase.failure_reason.description()
+        if phase.failure_reason is None:
+            fail_description = "Solver failed with unknown reason."
+        else:
+            fail_description = phase.failure_reason.description()
         if prepend_abort_reason and self.abort_reason:
             fail_description = "%s:\n%s" % (self.abort_reason, fail_description)
 
