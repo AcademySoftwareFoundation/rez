@@ -7,6 +7,7 @@ test dependency resolving algorithm
 """
 from __future__ import print_function
 
+import rez.exceptions
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 from rez.config import config
@@ -248,6 +249,13 @@ class TestSolver(TestBase):
                      "test_variant_split_mid2-2.0[0]",
                      "test_variant_split_start-1.0[1]"])
 
+    def test_12_missing_variant_package(self):
+        config.override("error_on_missing_variant_packages", True)
+        with self.assertRaises(rez.exceptions.PackageFamilyNotFoundError):
+            self._solve(["missing_variant_package"], [])
+
+        config.override("error_on_missing_variant_packages", False)
+        self._solve(["missing_variant_package"], ["nada[]", "missing_variant_package-1[1]"])
 
 if __name__ == '__main__':
     unittest.main()
