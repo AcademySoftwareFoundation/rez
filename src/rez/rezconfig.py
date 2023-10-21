@@ -499,6 +499,11 @@ package_orderers = None
 # this value is False.
 allow_unversioned_packages = True
 
+# Defines whether a resolve should immediately fail if any variants have a required package that can't be found.
+# It is enabled by default.
+# If disabled, it will try other variants before giving up.
+# This can be useful if you have variants that aren't available to all users.
+error_on_missing_variant_requires = True
 
 ###############################################################################
 # Environment Resolution
@@ -656,12 +661,6 @@ package_preprocess_function = None
 # - "after": Package's preprocess function is executed after the global preprocess;
 # - "override": Package's preprocess function completely overrides the global preprocess.
 package_preprocess_mode = "override"
-
-# Defines whether a resolve should immediately fail if any variants have a required package that can't be found.
-# It is enabled by default.
-# If disabled, it will try other variants before giving up.
-# This can be useful if you have variants that aren't available to all users.
-error_on_missing_variant_requires = True
 
 ###############################################################################
 # Context Tracking
