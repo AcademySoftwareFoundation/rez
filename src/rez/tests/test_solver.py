@@ -249,13 +249,13 @@ class TestSolver(TestBase):
                      "test_variant_split_mid2-2.0[0]",
                      "test_variant_split_start-1.0[1]"])
 
-    def test_12_missing_variant_package(self):
-        config.override("error_on_missing_variant_packages", True)
+    def test_12_missing_variant_requires(self):
+        config.override("error_on_missing_variant_requires", True)
         with self.assertRaises(rez.exceptions.PackageFamilyNotFoundError):
-            self._solve(["missing_variant_package"], [])
+            self._solve(["missing_variant_requires"], [])
 
-        config.override("error_on_missing_variant_packages", False)
-        self._solve(["missing_variant_package"], ["nada[]", "missing_variant_package-1[1]"])
+        config.override("error_on_missing_variant_requires", False)
+        self._solve(["missing_variant_requires"], ["nada[]", "missing_variant_requires-1[1]"])
 
 if __name__ == '__main__':
     unittest.main()

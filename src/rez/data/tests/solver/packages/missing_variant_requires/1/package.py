@@ -1,4 +1,4 @@
-name = "missing_variant_package"
+name = "missing_variant_requires"
 version = "1"
 
 def commands():
