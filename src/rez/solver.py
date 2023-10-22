@@ -1384,7 +1384,8 @@ class _ResolvePhase(_Common):
                                 searched = "; ".join(self.solver.package_paths)
                                 requested = ", ".join(requesters)
 
-                                fail_message = "package family not found: {}, was required by: {} (searched: {})".format(req.name, requested, searched)
+                                fail_message = ("package family not found: {}, was required by: {} (searched: {})"
+                                                .format(req.name, requested, searched))
                                 if not config.error_on_missing_variant_requires:
                                     print(fail_message, file=sys.stderr)
                                     return _create_phase(SolverStatus.failed)
