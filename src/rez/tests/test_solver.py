@@ -215,6 +215,7 @@ class TestSolver(TestBase):
 
     def test_08(self):
         """Cyclic failures."""
+
         def _test(*pkgs):
             s = self._fail(*pkgs)
             self.assertTrue(isinstance(s.failure_reason(), Cycle))
@@ -256,6 +257,7 @@ class TestSolver(TestBase):
 
         config.override("error_on_missing_variant_requires", False)
         self._solve(["missing_variant_requires"], ["nada[]", "missing_variant_requires-1[1]"])
+
 
 if __name__ == '__main__':
     unittest.main()
