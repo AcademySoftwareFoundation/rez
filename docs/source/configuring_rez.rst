@@ -28,6 +28,12 @@ variable :envvar:`REZ_CONFIG_FILE` is then set to for all your users.
 
 .. _configuring-rez-settings-merge-rules:
 
+Supported Configuration File Types
+====================
+
+Rez supports both YAML configuration files and Python configuration files. You may prefer Python files if you need vary
+and of your configuration settings based on your current platform.
+
 Settings Merge Rules
 ====================
 
