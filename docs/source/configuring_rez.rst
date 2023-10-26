@@ -26,8 +26,8 @@ variable :envvar:`REZ_CONFIG_FILE` is then set to for all your users.
    You do not need to provide a copy of all settings in this file. Just provide those
    that are changed from the defaults.
 
-Supported Configuration File Types
-====================
+Supported Configuration File Formats
+====================================
 
 Rez supports both YAML configuration files and Python configuration files.
 
