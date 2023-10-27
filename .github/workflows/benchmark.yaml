@@ -21,12 +21,6 @@ jobs:
           - '2.7'
           - '3.7'
 
-      # without this, we're sometimes getting at the end of this job:
-      # '[error] The operation was canceled'.
-      # Do we hit a resource limit?
-      #
-      max-parallel: 1
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -130,6 +124,14 @@ jobs:
               conda activate python
           fi
           python ./.github/scripts/store_benchmark.py
+        working-directory: src
+
+      - name: Create summary
+        run: |
+          echo '<details>' >> $GITHUB_STEP_SUMMARY
+          echo '<summary>Results</summary>' >> $GITHUB_STEP_SUMMARY
+          cat metrics/benchmarking/RESULTS.md >> $GITHUB_STEP_SUMMARY
+          echo '</details>' >> $GITHUB_STEP_SUMMARY
         working-directory: src
 
       - name: Setup git config
