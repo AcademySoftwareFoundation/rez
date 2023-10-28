@@ -1164,7 +1164,8 @@ class VersionRange(_Comparable):
                 version order.
 
         Returns:
-            ~collections.abc.Iterator[tuple[bool, typing.Any]]: An iterator that returns (bool, object) tuples, where 'object' is
+            ~collections.abc.Iterator[tuple[bool, typing.Any]]: An iterator that returns (bool, object) tuples,
+                where 'object' is
             the original object in ``iterable``, and the bool indicates whether
             that version is contained in this range.
         """
