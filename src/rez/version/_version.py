@@ -1158,15 +1158,14 @@ class VersionRange(_Comparable):
         Args:
             iterable: An ordered sequence of versioned objects. If the list
                 is not sorted by version, behaviour is undefined.
-            key (callable): Function that returns a :class:`Version` given an object
+            key (typing.Callable[typing.Any]): Function that returns a :class:`Version` given an object
                 from ``iterable``. If None, the identity function is used.
             descending (bool): Set to True if ``iterable`` is in descending
                 version order.
 
         Returns:
             ~collections.abc.Iterator[tuple[bool, typing.Any]]: An iterator that returns (bool, object) tuples,
-                where 'object' is
-            the original object in ``iterable``, and the bool indicates whether
+            where 'object' is the original object in ``iterable``, and the bool indicates whether
             that version is contained in this range.
         """
         return _ContainsVersionIterator(self, iterable, key, descending)
