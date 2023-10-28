@@ -41,7 +41,9 @@ def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
         quiet (bool): Suppress all output
         patch_libs (bool): If True, modify libs and executables within the
             bundle to patch any references to external packages back to their
-            equivalents within the bundle. See the wiki for more details on this.
+            equivalents within the bundle. See
+            https://rez.readthedocs.io/en/stable/context_bundles.html#patching-libraries
+            for more details on this.
         verbose (bool): Verbose mode (quiet will override)
     """
     bundler = _ContextBundler(

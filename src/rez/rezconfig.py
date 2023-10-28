@@ -40,7 +40,7 @@ Paths should use the path separator appropriate for the operating system
 (based on Python's os.path.sep).  So for Linux paths, / should be used. On
 Windows \ (unescaped) should be used.
 
-Note: The comments in this file are extracted and turned into Wiki content. Pay
+Note: The comments in this file are extracted and turned into documentation. Pay
 attention to the comment formatting and follow the existing style closely.
 """
 

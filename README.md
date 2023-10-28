@@ -6,7 +6,6 @@
 [![Windows](https://github.com/AcademySoftwareFoundation/rez/workflows/windows/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3AWindows+branch%3Amain)<br>
 [![Installation](https://github.com/AcademySoftwareFoundation/rez/workflows/installation/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Ainstallation+branch%3Amain)
 [![Flake8](https://github.com/AcademySoftwareFoundation/rez/workflows/flake8/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aflake8+branch%3Amain)
-[![Wiki](https://github.com/AcademySoftwareFoundation/rez/workflows/wiki/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Awiki+event%3Arelease)
 [![Pypi](https://github.com/AcademySoftwareFoundation/rez/workflows/pypi/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Apypi+event%3Arelease)
 [![Benchmark](https://github.com/AcademySoftwareFoundation/rez/workflows/benchmark/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)

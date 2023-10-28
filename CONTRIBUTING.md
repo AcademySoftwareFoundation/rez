@@ -15,10 +15,10 @@ sending a pull request. Please follow these guidelines:
 7.  Use [this format](https://help.github.com/articles/closing-issues-using-keywords/)
     to mention the issue(s) your PR closes;
 8.  Add relevant tests to demonstrate that your changes work;
-9.  Add relevant documentation [here](wiki/pages) to document your changes, if applicable. Those
+9.  Add relevant documentation [here](docs/source) to document your changes, if applicable. Those
     markdown files prefixed with `_` are internal and should not be changed.
 10. If your changes add a new rez config setting, update [rezconfig.py](src/rez/rezconfig.py) and
-    document the setting. The comments in this file are extracted and turned into Wiki content. Pay
+    document the setting. The comments in this file are extracted and turned into documentation. Pay
     attention to the comment formatting and follow the existing style closely.
 
 ## CLA
