@@ -265,7 +265,7 @@ def install_dependent():
             else:
                 self.skipTest(
                     "Must be run via 'rez-selftest' tool, see "
-                    "https://github.com/AcademySoftwareFoundation/rez/wiki/Installation#installation-script"
+                    "https://rez.readthedocs.io/en/stable/installation.html#installation-script"
                 )
         return wrapper
     return decorator

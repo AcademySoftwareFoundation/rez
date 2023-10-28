@@ -55,7 +55,7 @@ def check_production_install():
         sys.stderr.write(
             "Pip-based rez installation detected. Please be aware that rez command "
             "line tools are not guaranteed to function correctly in this case. See "
-            "https://github.com/AcademySoftwareFoundation/rez/wiki/Installation#why-not-pip-for-production "
+            "https://rez.readthedocs.io/en/stable/installation.html#why-not-pip-for-production "
             " for futher details.\n"
         )
 
