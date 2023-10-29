@@ -34,7 +34,13 @@ def get_build_process_types():
 def create_build_process(process_type, working_dir, build_system, package=None,
                          vcs=None, ensure_latest=True, skip_repo_errors=False,
                          ignore_existing_tag=False, verbose=False, quiet=False):
-    """Create a `BuildProcess` instance."""
+    """Create a :class:`BuildProcess` instance.
+
+    .. warning::
+
+       The working_dir argument and the pacakge keyword argument will are deprecated
+       and will be removed in rez 3.0.0
+    """
     from rez.plugin_managers import plugin_manager
     process_types = get_build_process_types()
     if process_type not in process_types:
@@ -79,9 +85,9 @@ class BuildProcess(object):
         """Create a BuildProcess.
 
         Args:
-            working_dir (DEPRECATED): Ignored.
+            working_dir (DEPRECATED): Will be removed in rez 3.0.0.
             build_system (`BuildSystem`): Build system used to build the package.
-            package (DEPRECATED): Ignored.
+            package (DEPRECATED): Will be removed in rez 3.0.0.
             vcs (`ReleaseVCS`): Version control system to use for the release
                 process.
             ensure_latest: If True, do not allow the release process to occur

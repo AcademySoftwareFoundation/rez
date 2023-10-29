@@ -1009,6 +1009,11 @@ pip_install_remaps = [
 #            ...
 optionvars = None
 
+# Forces rez to log all deprecation warnings, ignoring :envvar:`PYTHONWARNINGS`.
+# This is handy if you want to migrate to a new rez version and you are not
+# sure if you are using any deprecated features.
+log_all_deprecation_warnings = False
+
 ###############################################################################
 # Rez-1 Compatibility
 #
