@@ -23,9 +23,42 @@ from inspect import ismodule
 import os
 import re
 import copy
+import warnings
 
 
 basestring = six.string_types[0]
+
+
+def _warn_deprecated_settings(data, filepath):
+    for key in data:
+        if key in _deprecated_settings:
+            message = (
+                "rez config setting named {0!r} is "
+                "deprecated and will be removed in 3.0.0."
+            ).format(key)
+
+            if os.getenv("REZ_LOG_ALL_DEPRECATION_WARNINGS"):
+                with warnings.catch_warnings():
+                    # Cause all warnings to always be triggered.
+                    warnings.simplefilter("always")
+                    warnings.warn_explicit(
+                        message,
+                        DeprecationWarning,
+                        filepath,
+                        0,
+                        module=__name__,
+                    )
+            else:
+                with warnings.catch_warnings():
+                    # Cause all warnings to always be triggered.
+                    warnings.simplefilter("always")
+                    warnings.warn_explicit(
+                        message,
+                        DeprecationWarning,
+                        filepath,
+                        0,
+                        module=__name__,
+                    )
 
 
 # -----------------------------------------------------------------------------
@@ -72,12 +105,14 @@ class Setting(object):
             # next, env-var
             value = os.getenv(self._env_var_name)
             if value is not None:
+                _warn_deprecated_settings({self.key: ""}, "${}".format(self._env_var_name))
                 return self._parse_env_var(value)
 
             # next, JSON-encoded env-var
             varname = self._env_var_name + "_JSON"
             value = os.getenv(varname)
             if value is not None:
+                _warn_deprecated_settings({self.key: ""}, "${}".format(varname))
                 from rez.utils import json
 
                 try:
@@ -468,13 +503,22 @@ config_schema = Schema({
     "context_tracking_amqp":                        OptionalDict,
     "context_tracking_extra_fields":                OptionalDict,
     "optionvars":                                   OptionalDict,
-    "log_all_deprecation_warnings":                 Bool,
 
     # GUI settings
     "use_pyside":                                   Bool,
     "use_pyqt":                                     Bool,
     "gui_threads":                                  Bool
 })
+
+
+# List of settings that are deprecated and should raise
+# deprecation warnings if referenced in config files.
+_deprecated_settings = [
+    "warn_old_commands",
+    "debug_old_commands",
+    "warn_commads2",
+    "error_commands2",
+]
 
 
 # settings common to each plugin type
@@ -951,6 +995,7 @@ def _load_config_from_filepaths(filepaths):
     loaders = ((".py", _load_config_py),
                ("", _load_config_yaml))
 
+    root_config = get_module_root_config()
     for filepath in filepaths:
         for extension, loader in loaders:
             if extension:
@@ -963,6 +1008,10 @@ def _load_config_from_filepaths(filepaths):
                 continue
 
             data_ = loader(filepath_with_ext)
+
+            if filepath != root_config:
+                _warn_deprecated_settings(data_, filepath_with_ext)
+
             deep_update(data, data_)
             sourced_filepaths.append(filepath_with_ext)
             break
@@ -976,3 +1025,9 @@ def get_module_root_config():
 
 # singleton
 config = Config._create_main_config()
+
+if os.getenv("REZ_LOG_ALL_DEPRECATION_WARNINGS"):
+    # If REZ_LOG_ALL_DEPRECATION_WARNINGS is set, force all configs
+    # to be loaded so that we can raise warnings appropriately with all
+    # the commands, etc.
+    config.data

@@ -243,11 +243,23 @@ operation of rez.
    If set to a non-empty string, this prevents rez from
    cleaning up any temporary directories. This is for debugging purposes.
 
-.. envvar:: REZ_SIGUSR1_ACTION
-
-   If you set this to ``print_stack``, rez will prints its
-   current stacktrace to stdout if sent a USR1 signal. This is for debugging purposes.
-
 .. envvar:: REZ_ENV_PROMPT
 
    See the :data:`set_prompt` and :data:`prefix_prompt` settings.
+
+Development Environment Variables
+=================================
+
+.. envvar:: REZ_LOG_ALL_DEPRECATION_WARNINGS
+
+   Enable all deprecation warnings to be logged regardless of how you have configured
+   your python interpreter. This is usefull to help upgrading to newer versions of rez.
+   Prior to updating, you should set this environment variable to see if you need to
+   change some things to be compatible with newer versions.
+
+.. envvar:: REZ_SIGUSR1_ACTION
+
+   If you set this to ``print_stack``, rez will prints its
+   current stacktrace to stdout if sent a USR1 signal. This is for debugging purposes only.
+
+
