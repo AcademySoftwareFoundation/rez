@@ -1020,6 +1020,9 @@ optionvars = None
 # written in JSON, which is a LOT faster. You would only set to true for
 # backwards compatibility reasons. Note that rez will detect either format on
 # rxt file load.
+#
+# .. deprecated:: 2.114.0
+#    The ability to store RXT files in the YAML format will be removed in 3.0.0.
 rxt_as_yaml = False
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.

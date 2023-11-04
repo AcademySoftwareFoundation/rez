@@ -504,6 +504,7 @@ config_schema = Schema({
 # List of settings that are deprecated and should raise
 # deprecation warnings if referenced in config files.
 _deprecated_settings = {
+    "rxt_as_yaml": {"removed_in": "3.0.0"},
     "warn_old_commands": {"removed_in": "3.0.0"},
     "debug_old_commands": {"removed_in": "3.0.0"},
     "warn_commads2": {"removed_in": "3.0.0"},
