@@ -1009,7 +1009,6 @@ pip_install_remaps = [
 #            ...
 optionvars = None
 
-
 ###############################################################################
 # Rez-1 Compatibility
 #
@@ -1083,7 +1082,13 @@ rez_1_cmake_variables = True
 #
 # You should aim to do this - it will mean your packages are more strictly
 # validated, and you can more easily use future versions of Rez.
-disable_rez_1_compatibility = False
+#
+# .. versionchanged:: 2.114.0
+#    Now enabled by default.
+#
+# .. deprecated:: 2.114.0
+#    This will be removed in 3.0.0.
+disable_rez_1_compatibility = True
 
 
 ###############################################################################
