@@ -1,3 +1,4 @@
 sphinx
 furo
 sphinx-autobuild
+myst-parser

@@ -33,6 +33,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+    "myst_parser",
     # Rez custom extension
     'rez_sphinxext'
 ]

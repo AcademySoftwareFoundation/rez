@@ -12,9 +12,9 @@ using ``3.0.0``. We hope that this guide will help make the upgrade process smoo
 Steps for smooth upgrade
 ========================
 
-#. Read the `release notes <https://github.com/AcademySoftwareFoundation/rez/blob/main/CHANGELOG.md>`_
-   for ``2.114.0`` and ``3.0.0`` (once released). The release notes will contain a
-   list of everything that was deprecated in ``2.114.0`` and will be removed in ``3.0.0``.
+#. Read the `release notes <../CHANGELOG.html>`_ for ``2.114.0`` and ``3.0.0`` (once released). The release
+   notes will contain a list of everything that was deprecated in ``2.114.0`` and will
+   be removed in ``3.0.0``.
 
 #. Upgrade to ``2.114.0``.
 
