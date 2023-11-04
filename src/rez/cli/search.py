@@ -84,7 +84,7 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.sort:
         rez.deprecations.warn(
             "the '--sort' argument is deprecated and will be removed in 3.0.0. It currently has no effect.",
-            DeprecationWarning,
+            rez.deprecations.RezDeprecationWarning,
         )
 
     if opts.no_warnings:

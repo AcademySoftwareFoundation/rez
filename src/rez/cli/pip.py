@@ -57,8 +57,8 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.pip_ver:
         rez.deprecations.warn(
-            "The option --pip-version is deprecated and will be removed in a future version",
-            category=DeprecationWarning
+            "The option --pip-version is deprecated and will be removed in 3.0.0",
+            category=rez.deprecations.RezDeprecationWarning,
         )
 
     pip_install_package(

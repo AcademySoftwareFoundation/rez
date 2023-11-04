@@ -23,42 +23,31 @@ from inspect import ismodule
 import os
 import re
 import copy
-import warnings
+import rez.deprecations
 
 
 basestring = six.string_types[0]
 
 
-def _warn_deprecated_settings(data, filepath):
+def _warn_deprecated_settings(data, filepath, envvar=None):
     for key in data:
         if key in _deprecated_settings:
             message = (
-                "rez config setting named {0!r} is "
+                "config setting named {0!r} {1}is "
                 "deprecated and will be removed in 3.0.0."
-            ).format(key)
+            ).format(
+                key,
+                "(configured through the {0} environment variable) ".format(envvar)
+                if envvar
+                else "",
+            )
 
-            if os.getenv("REZ_LOG_ALL_DEPRECATION_WARNINGS"):
-                with warnings.catch_warnings():
-                    # Cause all warnings to always be triggered.
-                    warnings.simplefilter("always")
-                    warnings.warn_explicit(
-                        message,
-                        DeprecationWarning,
-                        filepath,
-                        0,
-                        module=__name__,
-                    )
-            else:
-                with warnings.catch_warnings():
-                    # Cause all warnings to always be triggered.
-                    warnings.simplefilter("always")
-                    warnings.warn_explicit(
-                        message,
-                        DeprecationWarning,
-                        filepath,
-                        0,
-                        module=__name__,
-                    )
+            rez.deprecations.warn(
+                message,
+                rez.deprecations.RezDeprecationWarning,
+                pre_formatted=True,
+                filename=not envvar and filepath,
+            )
 
 
 # -----------------------------------------------------------------------------
@@ -105,14 +94,14 @@ class Setting(object):
             # next, env-var
             value = os.getenv(self._env_var_name)
             if value is not None:
-                _warn_deprecated_settings({self.key: ""}, "${}".format(self._env_var_name))
+                _warn_deprecated_settings({self.key: ""}, "", envvar=self._env_var_name)
                 return self._parse_env_var(value)
 
             # next, JSON-encoded env-var
             varname = self._env_var_name + "_JSON"
             value = os.getenv(varname)
             if value is not None:
-                _warn_deprecated_settings({self.key: ""}, "${}".format(varname))
+                _warn_deprecated_settings({self.key: ""}, "", envvar=varname)
                 from rez.utils import json
 
                 try:

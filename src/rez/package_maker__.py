@@ -8,5 +8,5 @@ from rez.package_maker import *  # noqa
 
 rez.deprecations.warn(
     "rez.package_maker__ is deprecated; import rez.package_maker instead",
-    DeprecationWarning
+    rez.deprecations.RezDeprecationWarning,
 )
