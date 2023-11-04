@@ -34,12 +34,13 @@ def _warn_deprecated_settings(data, filepath, envvar=None):
         if key in _deprecated_settings:
             message = (
                 "config setting named {0!r} {1}is "
-                "deprecated and will be removed in 3.0.0."
+                "deprecated and will be removed in {2}."
             ).format(
                 key,
                 "(configured through the {0} environment variable) ".format(envvar)
                 if envvar
                 else "",
+                _deprecated_settings[key]["removed_in"],
             )
 
             rez.deprecations.warn(
@@ -502,12 +503,12 @@ config_schema = Schema({
 
 # List of settings that are deprecated and should raise
 # deprecation warnings if referenced in config files.
-_deprecated_settings = [
-    "warn_old_commands",
-    "debug_old_commands",
-    "warn_commads2",
-    "error_commands2",
-]
+_deprecated_settings = {
+    "warn_old_commands": {"removed_in": "3.0.0"},
+    "debug_old_commands": {"removed_in": "3.0.0"},
+    "warn_commads2": {"removed_in": "3.0.0"},
+    "error_commands2": {"removed_in": "3.0.0"},
+}
 
 
 # settings common to each plugin type
