@@ -16,6 +16,7 @@ Welcome to rez's documentation!
    building_packages
    context
    variants
+   guides/index
 
 .. toctree::
    :maxdepth: 2
