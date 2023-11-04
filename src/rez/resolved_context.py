@@ -2088,7 +2088,8 @@ class ResolvedContext(object):
                 commands.set_package(pkg)
 
                 try:
-                    executor.execute_code(commands, isolate=True)
+                    with executor.reset_globals():
+                        executor.execute_code(commands)
                 except exc_type as e:
                     exc = e
 
