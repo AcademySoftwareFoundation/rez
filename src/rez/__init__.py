@@ -68,5 +68,5 @@ if action:
 # because python reads PYTHONWARNINGS before it actually can import modules. So it
 # basically can't import rez when PYTHONWARNINGS is read.
 # This means we have to rely on a custom environment variable.
-if os.getenv("REZ_LOG_ALL_DEPRECATION_WARNINGS"):
+if os.getenv("REZ_LOG_DEPRECATION_WARNINGS"):
     warnings.filterwarnings("default", category=rez.deprecations.RezDeprecationWarning)

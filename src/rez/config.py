@@ -1017,8 +1017,8 @@ def get_module_root_config():
 # singleton
 config = Config._create_main_config()
 
-if os.getenv("REZ_LOG_ALL_DEPRECATION_WARNINGS"):
-    # If REZ_LOG_ALL_DEPRECATION_WARNINGS is set, force all configs
+if os.getenv("REZ_LOG_DEPRECATION_WARNINGS"):
+    # If REZ_LOG_DEPRECATION_WARNINGS is set, force all configs
     # to be loaded so that we can raise warnings appropriately with all
     # the commands, etc.
     config.data

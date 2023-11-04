@@ -250,7 +250,7 @@ operation of rez.
 Development Environment Variables
 =================================
 
-.. envvar:: REZ_LOG_ALL_DEPRECATION_WARNINGS
+.. envvar:: REZ_LOG_DEPRECATION_WARNINGS
 
    Enable all deprecation warnings to be logged regardless of how you have configured
    your python interpreter. This is usefull to help upgrading to newer versions of rez.
