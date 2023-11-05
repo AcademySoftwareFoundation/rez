@@ -18,37 +18,35 @@ from rez.vendor import yaml
 from rez.vendor.six import six
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
+import rez.deprecations
 from contextlib import contextmanager
 from inspect import ismodule
 import os
 import re
 import copy
-import rez.deprecations
 
 
 basestring = six.string_types[0]
 
 
-def _warn_deprecated_settings(data, filepath, envvar=None):
-    for key in data:
-        if key in _deprecated_settings:
-            message = (
-                "config setting named {0!r} {1}is "
-                "deprecated and will be removed in {2}."
-            ).format(
-                key,
-                "(configured through the {0} environment variable) ".format(envvar)
-                if envvar
-                else "",
-                _deprecated_settings[key]["removed_in"],
-            )
+class _Deprecation(object):
+    def __init__(self, removed_in, extra=None):
+        self.__removed_in = removed_in
+        self.__extra = extra or ""
 
-            rez.deprecations.warn(
-                message,
-                rez.deprecations.RezDeprecationWarning,
-                pre_formatted=True,
-                filename=not envvar and filepath,
-            )
+    def get_message(self, name, env_var=False):
+        if self.__removed_in:
+            return (
+                "config setting named {0!r} {1}is "
+                "deprecated and will be removed in {2}. {3}"
+            ).format(
+                name,
+                "(configured through the {0} environment variable) ".format(env_var)
+                if env_var
+                else "",
+                self.__removed_in,
+                self.__extra
+            ).strip()
 
 
 # -----------------------------------------------------------------------------
@@ -95,14 +93,30 @@ class Setting(object):
             # next, env-var
             value = os.getenv(self._env_var_name)
             if value is not None:
-                _warn_deprecated_settings({self.key: ""}, "", envvar=self._env_var_name)
+                if self.key in _deprecated_settings:
+                    rez.deprecations.warn(
+                        _deprecated_settings[self.key].get_message(
+                            self.key, env_var=self._env_var_name
+                        ),
+                        rez.deprecations.RezDeprecationWarning,
+                        pre_formatted=True,
+                        filename=self._env_var_name,
+                    )
                 return self._parse_env_var(value)
 
             # next, JSON-encoded env-var
             varname = self._env_var_name + "_JSON"
             value = os.getenv(varname)
             if value is not None:
-                _warn_deprecated_settings({self.key: ""}, "", envvar=varname)
+                if self.key in _deprecated_settings:
+                    rez.deprecations.warn(
+                        _deprecated_settings[self.key].get_message(
+                            self.key, env_var=varname
+                        ),
+                        rez.deprecations.RezDeprecationWarning,
+                        pre_formatted=True,
+                        filename=varname,
+                    )
                 from rez.utils import json
 
                 try:
@@ -504,11 +518,24 @@ config_schema = Schema({
 # List of settings that are deprecated and should raise
 # deprecation warnings if referenced in config files.
 _deprecated_settings = {
-    "rxt_as_yaml": {"removed_in": "3.0.0"},
-    "warn_old_commands": {"removed_in": "3.0.0"},
-    "debug_old_commands": {"removed_in": "3.0.0"},
-    "warn_commads2": {"removed_in": "3.0.0"},
-    "error_commands2": {"removed_in": "3.0.0"},
+    "rxt_as_yaml": _Deprecation("3.0.0"),
+    "warn_old_commands": _Deprecation("the future"),
+    "error_old_commands": _Deprecation("the future"),
+    # Remove in 3.0 because it's currently a no-op
+    "debug_old_commands": _Deprecation("3.0.0"),
+    # Remove in 3.0 because it's currently a no-op
+    "warn_commands2": _Deprecation("3.0.0"),
+    # Remove in 3.0 because it's currently a no-op
+    "error_commands2": _Deprecation("3.0.0"),
+    "rez_1_environment_variables": _Deprecation(
+        "the future",
+        extra="Additionally, it will become disabled by default in 3.0.0.",
+    ),
+    "rez_1_cmake_variables": _Deprecation("3.0.0"),
+    "disable_rez_1_compatibility": _Deprecation(
+        "the future",
+        extra="Additionally, it will become enabled by default in 3.0.0.",
+    )
 }
 
 
@@ -1001,7 +1028,14 @@ def _load_config_from_filepaths(filepaths):
             data_ = loader(filepath_with_ext)
 
             if filepath != root_config:
-                _warn_deprecated_settings(data_, filepath_with_ext)
+                for key in data_:
+                    if key in _deprecated_settings:
+                        rez.deprecations.warn(
+                            _deprecated_settings[key].get_message(),
+                            rez.deprecations.RezDeprecationWarning,
+                            pre_formatted=True,
+                            filename=filepath_with_ext,
+                        )
 
             deep_update(data, data_)
             sourced_filepaths.append(filepath_with_ext)

@@ -10,28 +10,28 @@ can still be used with Python 2.7+ but this will be dropped in 3.0.0
 ### Deprecations
 
 We decided to deprecated some things that have been "deprecated" for a while but were never
-officially marked as deprecated. Everything listed below will be removed in 3.0.0.
+officially marked as deprecated.
 
 - Configuration settings:
-  - [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility). Will be removed in 3.0.0.
-  - [debug_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#debug_old_commands). Will be removed in 3.0.0.
-  - [warn_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_old_commands). Will be removed in 3.0.0.
-  - [error_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_old_commands). Will be removed in 3.0.0.
-  - [warn_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_commands2). Will be removed in 3.0.0.
-  - [error_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_commands2). Will be removed in 3.0.0.
-  - [rez_1_cmake_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_cmake_variables). Will be removed in 3.0.0.
-  - [rez_1_environment_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_environment_variables). Will be removed in 3.0.0.
-  - [rxt_as_yaml](https://rez.readthedocs.io/en/stable/configuring_rez.html#rxt_as_yaml). Will be removed in 3.0.0.
+  - [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility): Will be removed in 3.0.0.
+  - [debug_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#debug_old_commands): Will be removed in 3.0.0. This setting is currently a no-op.
+  - [warn_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_old_commands): Will be removed in a yet to be determined future release.
+  - [error_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_old_commands): Will be removed in a yet to be determined future release.
+  - [warn_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_commands2): Will be removed in 3.0.0. This setting is currently a no-op.
+  - [error_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_commands2): Will be removed in 3.0.0. This setting is currently a no-op.
+  - [rez_1_cmake_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_cmake_variables): Will be removed in a yet to be determined future release.
+  - [rez_1_environment_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_environment_variables): Will be removed in a yet to be determined future release.
+  - [rxt_as_yaml](https://rez.readthedocs.io/en/stable/configuring_rez.html#rxt_as_yaml): Will be removed in 3.0.0.
 - Modules:
-  - `rez.vendor.version`. Use `rez.version` instead.
-  - `rez.packages_maker__`. Use `rez.packages_maker` inestead.
-  - `rez.package_resources_`. Use `rez.package_resources_` instead.
-  - `rez.packages_`. Use `rez.packages` instead.
+  - `rez.vendor.version`. Use `rez.version` instead. Will be removed in 3.0.0.
+  - `rez.packages_maker__`. Use `rez.packages_maker` instead. Will be removed in 3.0.0.
+  - `rez.package_resources_`. Use `rez.package_resources_` instead. Will be removed in 3.0.0.
+  - `rez.packages_`. Use `rez.packages` instead. Will be removed in 3.0.0.
 - CLI:
-  - rez-pip: The `--pip-version` argument is deprecated.
-  - rez-search: The `--sort` argument is deprecated and has been a no-op for a while now.
+  - rez-pip: The `--pip-version` argument is deprecated. Will be removed in 3.0.0.
+  - rez-search: The `--sort` argument is deprecated and has been a no-op for a while now. Will be removed in 3.0.0.
 - API:
-  - The `isolate` keyword argument of the `rez.rex.RexExecutor.execute_code` method is now officially deprecated.
+  - The `isolate` keyword argument of the `rez.rex.RexExecutor.execute_code` method is now officially deprecated and will be removed in 3.0.0.
     Instead of `executor.execute_code(..., isolate=True)`, use
     ```python
     with executor.reset_globals():
@@ -43,9 +43,12 @@ officially marked as deprecated. Everything listed below will be removed in 3.0.
 
 Some default values have changed:
 
-- [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility) is now enabled by default.
 - [rez_1_cmake_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_cmake_variables) is now disabled by default.
-- [rez_1_environment_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_environment_variables) is now disabled by default.
+
+Some default values will change in 3.0.0:
+
+- [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility) will become enabled by default.
+- [rez_1_environment_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_environment_variables) will become disabled by default.
 
 ## 2.113.0 (2023-09-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.113.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.112.0...2.113.0)

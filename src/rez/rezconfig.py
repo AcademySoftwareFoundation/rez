@@ -1022,17 +1022,28 @@ optionvars = None
 # rxt file load.
 #
 # .. deprecated:: 2.114.0
-#    The ability to store RXT files in the YAML format will be removed in 3.0.0.
+#    The ability to store RXT files using the YAML format will be removed in 3.0.0.
 rxt_as_yaml = False
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
+#
+# .. deprecated:: 2.114.0
+#    Will be removed in a future release.
 warn_old_commands = True
 
 # See :data:`warn_old_commands`.
+#
+# .. deprecated:: 2.114.0
+#    Will be removed in a future release.
 error_old_commands = False
 
 # Print old commands and their converted rex equivalent. Note that this can
 # cause very verbose output.
+#
+# This currently has no effect.
+#
+# .. deprecated:: 2.114.0
+#    Will be removed in rez 3.0.0.
 debug_old_commands = False
 
 # Warn or disallow an extra commands entry called "commands2". This is provided
@@ -1041,15 +1052,28 @@ debug_old_commands = False
 # instead of "commands". Unlike "commands", "commands2" only allows new rex-
 # style commands. Once you have fully deprecated Rez-1, you should stop using
 # "commands2".
-# TODO: DEPRECATE
+#
+# This currently has no effect.
+#
+# .. deprecated:: 2.114.0
+#    Will be removed in rez 3.0.0.
 warn_commands2 = False
 
 # See :data:`warn_commands2`.
+#
+# This currently has no effect.
+#
+# .. deprecated:: 2.114.0
+#    Will be removed in rez 3.0.0.
 error_commands2 = False
 
 # If True, Rez will continue to generate the given environment variables in
 # resolved environments, even though their use has been deprecated in Rez-2.
 # The variables in question, and their Rez-2 equivalent (if any) are:
+#
+# .. deprecated:: 2.114.0
+#    Will be removed in a future release. Additionally, the default will change
+#    from disabled to enabled in rez 3.0.0.
 #
 # ================== ==========================
 # REZ-1              REZ-2
@@ -1068,12 +1092,18 @@ rez_1_environment_variables = True
 # release time, even though their use has been deprecated in Rez-2. The
 # variables in question, and their Rez-2 equivalent (if any) are:
 #
+# .. versionchanged:: 2.114.0
+#    Now disabled by default.
+#
+# .. deprecated:: 2.114.0
+#    This will be removed in 3.0.0.
+#
 # ======= ========================
 # REZ-1   REZ-2
 # ======= ========================
 # CENTRAL :envvar:`REZ_BUILD_TYPE`
 # ======= ========================
-rez_1_cmake_variables = True
+rez_1_cmake_variables = False
 
 # If True, override all compatibility-related settings so that Rez-1 support is
 # deprecated. This means that:
@@ -1083,15 +1113,16 @@ rez_1_cmake_variables = True
 # * :data:`rez_1_environment_variables` will be set to False.
 # * :data:`rez_1_cmake_variables` will be set to False.
 #
-# You should aim to do this - it will mean your packages are more strictly
+# You should aim to do this. It will mean your packages are more strictly
 # validated, and you can more easily use future versions of Rez.
 #
 # .. versionchanged:: 2.114.0
 #    Now enabled by default.
 #
 # .. deprecated:: 2.114.0
-#    This will be removed in 3.0.0.
-disable_rez_1_compatibility = True
+#    Will be removed in a future release. Additionally, the default will change
+#    from disabled to enabled in rez 3.0.0.
+disable_rez_1_compatibility = False
 
 
 ###############################################################################
