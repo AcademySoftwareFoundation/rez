@@ -14,7 +14,7 @@ Steps for smooth upgrade
 
 #. Read the `release notes <../CHANGELOG.html>`_ for ``2.114.0`` and ``3.0.0`` (once released). The release
    notes will contain a list of everything that was deprecated in ``2.114.0`` and will
-   be removed in ``3.0.0``.
+   be removed or changed in ``3.0.0``.
 
 #. Upgrade to ``2.114.0``.
 
@@ -39,34 +39,47 @@ Steps for smooth upgrade
 
 #. Address each warning one by one.
 
-#. Verify that your package repositories don't contain packages that
-   use old-style commands.
-
-   You can use this python snippet to discover all your packages and variants
-   that contain old style commands. It will print a colored warning for every
-   package/variant that uses old-style commands.
-
-   .. code-block:: python
-
-      from rez.config import config
-      from rez.packages import iter_packages, iter_package_families
-
-      config.warn_old_commands = True
-      config.error_old_commands = False
-      config.disable_rez_1_compatibility = False
-
-      for family_name in iter_package_families():
-         packages = iter_packages(family_name.name)
-
-         for package in packages:
-            package.validate_data()
-
-            for variant in package.iter_variants():
-                  variant.validate_data()
-
-   .. hint::
-
-      Remember to run it over all your repositories!
-
 #. Once you think you have addressed all warnings, upgrade to 3.0.0 (or wait for ``3.0.0`` to
    be released if it's not yet available).
+
+Optional
+========
+
+Since some default configuration default values will change in ``3.0.0``, we highly suggest
+that you run some anslysis scripts to see if you will be impacted by these changes.
+
+Detect old-style commands in your repositories
+----------------------------------------------
+
+Verify that your package repositories don't contain packages that
+use old-style commands.
+
+You can use this python snippet to discover all your packages and variants
+that contain old style commands. It will print a colored warning for every
+package/variant that use old-style commands.
+
+.. code-block:: python
+
+   from rez.config import config
+   from rez.packages import iter_packages, iter_package_families
+
+   config.warn_old_commands = True
+   config.error_old_commands = False
+   config.disable_rez_1_compatibility = False
+
+   for family_name in iter_package_families():
+      packages = iter_packages(family_name.name)
+
+      for package in packages:
+         package.validate_data()
+
+         for variant in package.iter_variants():
+               variant.validate_data()
+
+.. hint::
+
+   Remember to run it over all your repositories!
+
+If you see any warnings, we suggest that you move or remove the packages/variants
+from your repositories. This might require some work but it should hopefully not
+be too difficult.
