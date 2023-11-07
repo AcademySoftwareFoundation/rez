@@ -13,6 +13,12 @@ import sys
 from rez.vendor.six import six
 
 try:
+    from html import escape
+except ImportError:
+    # Python 2
+    from cgi import escape
+
+try:
     from shlex import quote
 except ImportError:
     # Python 2
