@@ -11,7 +11,7 @@ import os
 
 __version__ = _rez_version
 __author__ = "Allan Johns"
-__license__ = "LGPL"
+__license__ = "Apache-2.0"
 
 
 module_root_path = __path__[0]  # noqa

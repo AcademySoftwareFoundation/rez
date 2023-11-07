@@ -215,7 +215,7 @@ Updated (July 2019) along with pydot to allow for packaging lib to be used.
 <tr><td>
 schema
 </td><td>
-0.3.1 (Apr 28, 2014)
+0.3.1 (Apr 28, 2014) (https://github.com/keleshev/schema/blob/916ba05e22b7b370b3586f97c40695e7b9e7fe33)
 </td><td>
 MIT
 </td><td>
