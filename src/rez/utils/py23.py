@@ -13,16 +13,16 @@ import sys
 from rez.vendor.six import six
 
 try:
-    from html import escape
+    from html import escape  # noqa: F401
 except ImportError:
     # Python 2
-    from cgi import escape
+    from cgi import escape  # noqa: F401
 
 try:
-    from shlex import quote
+    from shlex import quote  # noqa: F401
 except ImportError:
     # Python 2
-    from pipes import quote
+    from pipes import quote  # noqa: F401
 
 
 def get_function_arg_names(func):
