@@ -12,6 +12,12 @@ import sys
 
 from rez.vendor.six import six
 
+try:
+    from shlex import quote
+except ImportError:
+    # Python 2
+    from pipes import quote
+
 
 def get_function_arg_names(func):
     """Get names of a function's args.
