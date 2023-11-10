@@ -243,11 +243,30 @@ operation of rez.
    If set to a non-empty string, this prevents rez from
    cleaning up any temporary directories. This is for debugging purposes.
 
-.. envvar:: REZ_SIGUSR1_ACTION
-
-   If you set this to ``print_stack``, rez will prints its
-   current stacktrace to stdout if sent a USR1 signal. This is for debugging purposes.
-
 .. envvar:: REZ_ENV_PROMPT
 
    See the :data:`set_prompt` and :data:`prefix_prompt` settings.
+
+.. envvar:: REZ_LOGGING_CONF
+
+   Path to a file that will be consumed by :func:`logging.config.fileConfig` to configure
+   the logger.
+
+Development Environment Variables
+=================================
+
+.. envvar:: REZ_SIGUSR1_ACTION
+
+   If you set this to ``print_stack``, rez will prints its
+   current stacktrace to stdout if sent a USR1 signal. This is for debugging purposes only.
+
+.. envvar:: _REZ_NO_KILLPG
+
+   By default, rez will try to kill its process group when it receives a :data:`SIGINT <signal.SIGINT>`
+   or :data:`SIGTERM <signal.SIGTERM>` signal. Setting ``_REZ_NO_KILLPG`` to either "1", "true", "on"
+   or "yes" disables this behavior. This is handy when developing rez itself.
+
+.. envvar:: _REZ_QUIET_ON_SIG
+
+   Print a message if rez receives a :data:`SIGINT <signal.SIGINT>`
+   or :data:`SIGTERM <signal.SIGTERM>` signal.
