@@ -63,7 +63,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Determine base image tag
         id: base
@@ -223,7 +223,7 @@ jobs:
 
       - name: Checkout
         if: steps.inspect.outputs.image_exists == 'false'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build base image
         if: steps.inspect.outputs.image_exists == 'false'
@@ -287,7 +287,7 @@ jobs:
 
       - name: Checkout
         if: steps.inspect.outputs.image_exists == 'false'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Pull base image
         if: steps.inspect.outputs.image_exists == 'false'
@@ -344,7 +344,7 @@ jobs:
           Write-Output "Using image ${docker_image}..."
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Pull py image
         run: |
