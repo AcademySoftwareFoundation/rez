@@ -8,7 +8,7 @@ from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import walk_up_dirs
-from pipes import quote
+from rez.utils.py23 import quote
 import subprocess
 
 
