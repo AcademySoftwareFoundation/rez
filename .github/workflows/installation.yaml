@@ -102,8 +102,12 @@ jobs:
             }
             pip install --target C:\ProgramData\rez .
 
+        exclude:
+        - method: install
+          python-version: '2.7'
+
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup python ${{ matrix.python-version }}
       uses: ./.github/actions/setup-python

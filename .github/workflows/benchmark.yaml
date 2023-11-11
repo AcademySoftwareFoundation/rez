@@ -5,11 +5,15 @@ name: benchmark
 on:
   release:
     types: [released]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
 jobs:
   run_benchmark:
     name: run_benchmark
     runs-on: ubuntu-latest
+
+    if: ${{ github.event_name == 'release' || contains(github.event.pull_request.labels.*.name, 'run-benchmarks') }}
 
     strategy:
       matrix:
@@ -17,15 +21,9 @@ jobs:
           - '2.7'
           - '3.7'
 
-      # without this, we're sometimes getting at the end of this job:
-      # '[error] The operation was canceled'.
-      # Do we hit a resource limit?
-      #
-      max-parallel: 1
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
@@ -84,8 +82,9 @@ jobs:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: .
 
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout (release)
+        uses: actions/checkout@v4
+        if: ${{ github.event_name =='release' }}
         with:
           ref: main
           path: src
@@ -96,8 +95,14 @@ jobs:
           #
           token: "${{ secrets.GH_ACTION_TOKEN }}"
 
+      - name: Checkout (pr)
+        uses: actions/checkout@v4
+        if: ${{ github.event_name !='release' }}
+        with:
+          path: src
+
       - name: Setup python ${{ matrix.python-version }}
-        uses: ./.github/actions/setup-python
+        uses: ./src/.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
           os: ubuntu-latest
@@ -121,13 +126,23 @@ jobs:
           python ./.github/scripts/store_benchmark.py
         working-directory: src
 
+      - name: Create summary
+        run: |
+          echo '<details>' >> $GITHUB_STEP_SUMMARY
+          echo '<summary>Results</summary>' >> $GITHUB_STEP_SUMMARY
+          cat metrics/benchmarking/RESULTS.md >> $GITHUB_STEP_SUMMARY
+          echo '</details>' >> $GITHUB_STEP_SUMMARY
+        working-directory: src
+
       - name: Setup git config
+        if: ${{ github.event_name == 'release' }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
         working-directory: src
 
       - name: Git commit and push
+        if: ${{ github.event_name == 'release' }}
         run: |
           if [[ "$(git status --porcelain)" == "" ]]; then
             echo "Nothing new to commit"

@@ -325,7 +325,8 @@ class Client(threading.local):
             readline = s.readline
             while 1:
                 line = readline()
-                if not line or line.decode('ascii').strip() == 'END':
+                # Rez: Patch for https://github.com/AcademySoftwareFoundation/rez/issues/1563.
+                if not line or line.decode('ascii').strip() in ('END', 'RESET'):
                     break
                 stats = line.decode('ascii').split(' ', 2)
                 serverData[stats[1]] = stats[2]

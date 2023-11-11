@@ -28,13 +28,12 @@ jobs:
         os-version:
           - '11'
         python-version:
-          - '2.7'
           - '3.7'
       fail-fast: false
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python

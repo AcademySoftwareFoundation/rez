@@ -10,7 +10,7 @@ try:
     from builtins import map
 except ImportError:
     pass
-from pipes import quote
+from rez.utils.py23 import quote
 import functools
 import os.path
 import sys

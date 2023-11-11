@@ -17,7 +17,7 @@ from rez.config import config
 from rez.vendor.six import six
 import os
 import os.path
-import pipes
+from rez.utils.py23 import quote
 
 
 basestring = six.string_types[0]
@@ -507,7 +507,7 @@ class UnixShell(Shell):
         try:
             p = Popen(cmd, env=env, **Popen_args)
         except Exception as e:
-            cmd_str = ' '.join(map(pipes.quote, cmd))
+            cmd_str = ' '.join(map(quote, cmd))
             raise RezSystemError("Error running command:\n%s\n%s"
                                  % (cmd_str, str(e)))
         return p

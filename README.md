@@ -11,8 +11,7 @@
 [![Windows](https://github.com/AcademySoftwareFoundation/rez/workflows/windows/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3AWindows+branch%3Amain)<br>
 [![Installation](https://github.com/AcademySoftwareFoundation/rez/workflows/installation/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Ainstallation+branch%3Amain)
 [![Flake8](https://github.com/AcademySoftwareFoundation/rez/workflows/flake8/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aflake8+branch%3Amain)
-[![Wiki](https://github.com/AcademySoftwareFoundation/rez/workflows/wiki/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Awiki+event%3Arelease)
-[![docs](https://readthedocs.org/projects/rez/badge/?version=latest)](https://rez.readthedocs.io/en/latest)
+[![Docs](https://readthedocs.org/projects/rez/badge/?version=stable)](https://rez.readthedocs.io/en/stable)
 [![Pypi](https://github.com/AcademySoftwareFoundation/rez/workflows/pypi/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Apypi+event%3Arelease)
 [![Benchmark](https://github.com/AcademySoftwareFoundation/rez/workflows/benchmark/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
@@ -41,18 +40,18 @@ environments reference these existing packages. This means that configured envir
 are lightweight, and very fast to create, often taking just a few seconds to configure
 despite containing hundreds of packages.
 
-See [the wiki](https://github.com/AcademySoftwareFoundation/rez/wiki) for full documentation.
+See [the wiki](https://rez.readthedocs.io) for full documentation.
 
 <p align="center">
-<a href="https://github.com/AcademySoftwareFoundation/rez/wiki/media/other_pkg_mgr.png">
-<img src="https://github.com/AcademySoftwareFoundation/rez/wiki/media/other_pkg_mgr.png"></a>
+<a href="https://github.com/AcademySoftwareFoundation/rez/raw/main/docs/source/_static/other_pkg_mgr.png">
+<img src="https://github.com/AcademySoftwareFoundation/rez/raw/main/docs/source/_static/other_pkg_mgr.png"></a>
 <br><i>Typical package managers install packages into an environment</i>
 </p>
 
 <br>
 <p align="center">
-<a href="https://github.com/AcademySoftwareFoundation/rez/wiki/media/rez_pkg_mgr.png">
-<img src="https://github.com/AcademySoftwareFoundation/rez/wiki/media/rez_pkg_mgr.png"></a>
+<a href="https://github.com/AcademySoftwareFoundation/rez/raw/main/docs/source/_static/rez_pkg_mgr.png">
+<img src="https://github.com/AcademySoftwareFoundation/rez/raw/main/docs/source/_static/rez_pkg_mgr.png"></a>
 <br><i>Rez installs packages once, and configures environments dynamically</i>
 </p>
 
@@ -96,7 +95,7 @@ and when re-evaluated later will reconstruct the same environment once more.
 ## Examples
 
 This example places the user into a resolved shell containing the requested packages,
-using the [rez-env](https://github.com/AcademySoftwareFoundation/rez/wiki/Command-Line-Tools#rez-env) tool:
+using the [rez-env](https://rez.readthedocs.io/en/stable/commands/rez-env.html) tool:
 
     ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
 
@@ -142,10 +141,10 @@ Resolved environments can also be created via the API:
 
 ## Quickstart
 
-First, install Rez. Download the source, and from the source directory, run
+First, install Rez using Python 3.7+. Download the source, and from the source directory, run
 (with DEST_DIR replaced with your install location):
 
-    ]$ python ./install.py -v DEST_DIR
+    ]$ python3 ./install.py -v DEST_DIR
 
 This installs the Rez command line tools. It will print a message at the end
 telling you how to use Rez when the installation has completed. Rez is not a

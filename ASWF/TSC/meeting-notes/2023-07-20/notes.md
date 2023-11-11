@@ -134,7 +134,7 @@
   * Several people got interested by the openmoonray rez package and some of what it had inside it, so dreamworks graciously agreed to talk about some of what they do, how they do it, etc.
 * (JB):
   * I have some slides, manage our team, and we have a few people here to answer questions and so forth.
-  * (Demo)
+  * Presentation: [Slides](presentation.pdf).
   * (Q&A with Joel Pollock, Matthew Low, Ibrahim Sani Kache)
 
 ### Ending remarks
