@@ -6,7 +6,7 @@ Installation Script
 ===================
 
 .. warning::
-   Since rez 2.114.0, only Python 3.7+ is supported by the installation script.
+   The install script only supports Python 3.7+.
 
 To install rez, download the source. Then from the root directory, run::
 
@@ -39,7 +39,7 @@ It is possible to install rez with pip, like so::
 
 .. note::
    While the ``install.py`` script only supports Python 3.7+,
-   rez is still usable with Python when installed via pip. In other words, the API
+   rez is still usable with Python 2.7 when installed via pip. In other words, the API
    is fully compatible with Python 2 and 3.
 
 However, this comes with a caveat. Rez command line tools **are not guaranteed
