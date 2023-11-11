@@ -546,6 +546,9 @@ all_resetting_variables = False
 # The default shell type to use when creating resolved environments (eg when using
 # :ref:`rez-env`, or calling :meth:`.ResolvedContext.execute_shell`). If empty or None, the
 # current shell is used (for eg, "bash").
+#
+# .. versionchanged:: 3.0.0
+#    The default value on Windows was changed to "powershell".
 default_shell = ""
 
 # The command to use to launch a new Rez environment in a separate terminal (this

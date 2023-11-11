@@ -73,7 +73,7 @@ class System(object):
             raise RezSystemError("no shells available")
 
         if self.platform == "windows":
-            return "cmd"
+            return "powershell"
         else:
             import subprocess as sp
             shell = None
