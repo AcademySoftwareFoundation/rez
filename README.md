@@ -1,12 +1,17 @@
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/AcademySoftwareFoundation/rez/blob/main/LICENSE)<br>
 [![Release](https://shields.io/github/v/release/AcademySoftwareFoundation/rez)](https://github.com/AcademySoftwareFoundation/rez/releases)
-[![Pypy Release](https://shields.io/pypi/v/rez)](https://pypi.org/project/rez)<br>
+[![PyPI Release](https://shields.io/pypi/v/rez)](https://pypi.org/project/rez)<br>
+[![Mailing List](https://img.shields.io/badge/rez--discussion-lists.aswf.io-003366?style=flat-square&logo=linuxfoundation)](https://lists.aswf.io/g/rez-discussion)
+[![Slack](https://img.shields.io/badge/Slack-ASWF_%23rez-7a6800?style=flat-square&logo=slack)](https://slack.awsf.io/)
+[![Contributing Guidelines](https://img.shields.io/badge/rez-Contributing%20Guidelines-0b610e?style=flat-square&logo=github)](https://github.com/AcademySoftwareFoundation/rez/blob/main/CONTRIBUTING.md)<br>
 [![Core](https://github.com/AcademySoftwareFoundation/rez/workflows/core/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Acore+branch%3Amain)
 [![Ubuntu](https://github.com/AcademySoftwareFoundation/rez/workflows/ubuntu/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aubuntu+branch%3Amain)
 [![Mac](https://github.com/AcademySoftwareFoundation/rez/workflows/mac/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Amac+branch%3Amain)
 [![Windows](https://github.com/AcademySoftwareFoundation/rez/workflows/windows/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3AWindows+branch%3Amain)<br>
 [![Installation](https://github.com/AcademySoftwareFoundation/rez/workflows/installation/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Ainstallation+branch%3Amain)
 [![Flake8](https://github.com/AcademySoftwareFoundation/rez/workflows/flake8/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aflake8+branch%3Amain)
-[![Pypi](https://github.com/AcademySoftwareFoundation/rez/workflows/pypi/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Apypi+event%3Arelease)
+[![Docs](https://readthedocs.org/projects/rez/badge/?version=stable)](https://rez.readthedocs.io/en/stable)
+[![PyPI](https://github.com/AcademySoftwareFoundation/rez/workflows/pypi/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Apypi+event%3Arelease)
 [![Benchmark](https://github.com/AcademySoftwareFoundation/rez/workflows/benchmark/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=bugs)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
