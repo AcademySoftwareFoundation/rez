@@ -120,6 +120,8 @@ Now you are within the configured environment. The caret (>) prefixed to your pr
 telling you that you're within a rez-configured subshell. Rez does not update the currect environment,
 instead it configures a subshell and puts you within it.
 
+> __Note for `zsh` users__: If you have a `.zshenv` file defined you may experience [this issue](https://github.com/AcademySoftwareFoundation/rez/issues/837). One solution would be to paste `alias rez-env="rez-env --shell=bash"` in `~/.zshrc` to make sure you always run your rez contexts using `bash`. However, any logic that you run in your `.zshrc` won't be rerun by the rez context.
+
 Now you can run the *hello* tool in our *hello_world* package:
 
     > ]$ hello
