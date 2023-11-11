@@ -70,7 +70,7 @@ setup(
     entry_points={
         "console_scripts": get_specifications().values()
     },
-    include_package_data=True,
+    include_package_data=False,
     zip_safe=False,
     package_dir={'': 'src'},
     packages=find_packages('src', exclude=["build_utils",

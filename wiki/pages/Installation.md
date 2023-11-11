@@ -1,5 +1,8 @@
 ## Installation Script
 
+> [[media/icons/warning.png]] Only Python greater or eual to 3.7 is supported
+> when installing via the install script!
+
 To install rez, download the source. Then from the root directory, run:
 
 ```
@@ -32,6 +35,10 @@ It is possible to install rez with pip, like so:
 ]$ pip install rez
 ```
 
+> [[media/icons/info.png]] While the `install.py` script only supoprts Python 3,
+> rez is still usable with Python when installed via pip. In other words, the API
+> is fully compatible with Python 2 and 3.
+
 However, this comes with a caveat - rez command line tools _are not guaranteed
 to work correctly_ once inside a rez environment (ie after using the `rez-env`
 command). The reasons are given in the next section.
@@ -44,7 +51,7 @@ Note that running pip-installed rez command line tools will print a warning like
 ```
 Pip-based rez installation detected. Please be aware that rez command line tools
 are not guaranteed to function correctly in this case. See
-https://github.com/__GITHUB_REPO__/wiki/Installation#why-not-pip-for-production
+https://github.com/AcademySoftwareFoundation/rez/wiki/Installation#why-not-pip-for-production
 for futher details.
 ```
 
