@@ -903,6 +903,7 @@ setting 'TODO_ADD_THIS'). A package may not have a release message.
         {'branch': 'main',
          'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
          'fetch_url': 'git@github.com:foo/dummy.git',
+         'path': 'folder/to/package',  # Root packages will show '.'
          'push_url': 'git@github.com:foo/dummy.git',
          'tracking_branch': 'origin/main'}
 

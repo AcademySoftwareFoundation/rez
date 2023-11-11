@@ -188,6 +188,11 @@ class GitReleaseVCS(ReleaseVCS):
                 print_error("Error retrieving %s: %s" % (key, str(e)))
                 return False
 
+        def _relative_path():
+            root = self.git("rev-parse", "--show-toplevel")[0]  # Repository root
+
+            return os.path.relpath(self.pkg_root, root)
+
         def _tracking_branch():
             remote, remote_branch = self.get_tracking_branch()
             if remote is None:
@@ -196,6 +201,7 @@ class GitReleaseVCS(ReleaseVCS):
                 return "%s/%s" % (remote, remote_branch)
 
         _get("branch", self.get_local_branch)
+        _get("path", _relative_path)
         if _get("tracking_branch", _tracking_branch):
             _get("fetch_url", functools.partial(_url, "fetch"))
             _get("push_url", functools.partial(_url, "push"))
