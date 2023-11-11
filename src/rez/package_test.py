@@ -1,14 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+import functools
+import itertools
 
 from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.packages import get_latest_package_from_string
-from rez.exceptions import RezError, PackageNotFoundError, PackageTestError
+from rez.exceptions import RezError, PackageNotFoundError, PackageTestError, ResolvedContextError
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_info, print_warning, print_error
+from rez.utils.formatting import PackageRequest
 from rez.vendor.six import six
 from rez.vendor.version.requirement import Requirement, RequirementList
 from rez.utils.py23 import quote
@@ -426,24 +429,13 @@ class PackageTestRunner(object):
                 )
                 continue
 
-            def _pre_test_commands(executor):
-                # run package.py:pre_test_commands() if present
-                pre_test_commands = getattr(variant, "pre_test_commands")
-                if not pre_test_commands:
-                    return
-
-                test_ns = {
-                    "name": test_name
-                }
-
-                with executor.reset_globals():
-                    executor.bind("this", variant)
-                    executor.bind("test", RO_AttrDictWrapper(test_ns))
-                    executor.execute_code(pre_test_commands)
-
             retcode, _, _ = context.execute_shell(
                 command=command,
-                actions_callback=_pre_test_commands,
+                actions_callback=functools.partial(
+                    _pre_test_commands,
+                    test_name,
+                    variant,
+                ),
                 stdout=self.stdout,
                 stderr=self.stderr,
                 block=True
@@ -481,6 +473,110 @@ class PackageTestRunner(object):
                 break
 
         return exitcode
+
+    def run_test_env(self, test_name):
+        """Open an interactive shell which resolves ``test_names``.
+
+        Args:
+            test_name (str):
+                The ``tests`` key to get a resolve for. This key must already
+                be defined in this instance's Rez package.
+
+        Raises:
+            ResolvedContextError:
+                If resolving the current package including ``test_name`` /
+                extra Rez packages fails, for any reason.
+
+        Returns:
+            int: The return code of the interactive shell.
+
+        """
+
+        def _get_test_requests(variant, test_name):
+            """Convert ``test_name`` into a Rez package requests.
+
+            Args:
+                variant (Variant or Package):
+                    The Rez data used to get test requirements.
+                test_name (str):
+                    The Rez test name  to include in the resolve.
+
+            Raises:
+                PackageTestError:
+                    If a test name in ``test_names`` is not defined in ``variant``.
+
+            Returns:
+                set[str]: All found Rez package requests.
+
+            """
+            requires = set(variant.requires or set())
+            is_variant = hasattr(variant, "variant_requires")
+
+            if is_variant:
+                requires.update(variant.variant_requires)
+
+            data = self._get_test_info(test_name, variant) or dict()
+
+            if not data:
+                raise PackageTestError(
+                    'Cannot create context. Rez Test "{test_name}" is missing '
+                    'in package "{self.package.name}".'.format(
+                        test_name=test_name, self=self,
+                    )
+                )
+
+            test_requires = [PackageRequest(request) for request in data.get("requires", [])]
+
+            return {str(request) for request in test_requires}
+
+        def _get_test_requires_as_requests(test_name):
+            """Get the ``requires`` of every Rez test in ``test_names``.
+
+            Args:
+                test_name (iter[str]): The Rez test name to query.
+
+            Returns:
+                set[PackageRequest]: The found requests in that test.
+
+            """
+            data = self._get_test_info(test_name, self.package) or dict()
+            requires = {PackageRequest(request) for request in data.get("requires") or []}
+
+            if data and data["on_variants"] and data["on_variants"]["type"] == "requires":
+                requires.update(data["on_variants"]["value"])
+
+            return requires
+
+        extra_packages = {PackageRequest(request) for request in self.extra_package_requests or set()}
+        test_requires = _get_test_requires_as_requests(test_name)
+        test_requires -= extra_packages
+
+        _validate_test_requests(test_requires, extra_packages)
+
+        extra_packages = extra_packages or set()
+        variant = _choose_test_object(
+            self.package,
+            test_requires=test_requires,
+            extra_packages=extra_packages,
+        )
+
+        requires = _get_test_requests(variant, test_name)
+        context = self.contexts.get(tuple(requires)) or self._get_test_context(requires)
+
+        if not context.success:
+            context.print_info()
+
+            raise ResolvedContextError(
+                "The context failed to resolve. The interactive test shell failed."
+            )
+
+        return_code, _, _ = context.execute_shell(
+            actions_callback=functools.partial(
+                _pre_test_env_commands, test_name, variant,
+            ),
+        )
+
+        return return_code
 
     def print_summary(self):
         self.test_results.print_summary()
@@ -653,6 +749,33 @@ class PackageTestRunner(object):
         # just iterate over all variants
         return list(package.iter_variants())
 
+    def _get_test_context(self, requires):
+        """Generate a Rez context with this Package + ``requires``.
+
+        Args:
+            requires (set[str]):
+                Each package request to add into the context. e.g. ``{"python-2", }``.
+
+        Returns:
+            ResolvedContext: The generated context.
+
+        """
+        if self.verbose:
+            self._print_header(
+                "Resolving test environment: %s\n",
+                " ".join(map(quote, requires)),
+            )
+
+        kwargs = dict(
+            package_requests=requires,
+            package_paths=self.package_paths,
+            buf=self.stdout,
+            timestamp=self.timestamp,
+        )
+        kwargs.update(self.context_kwargs)
+
+        return ResolvedContext(**kwargs)
+
 
 class PackageTestResults(object):
     """Contains results of running tests with a `PackageTestRunner`.
@@ -728,3 +851,158 @@ class PackageTestResults(object):
 
         strs = columnise(rows)
         print('\n'.join(strs))
+
+
+def _is_conflict(*requires):
+    """Check if any of the requirements have a conflict.
+
+    Example:
+        >>> _is_conflict([PackageRequest("foo-2")], [PackageRequest("!foo-2")])
+        # True
+        >>> _is_conflict([PackageRequest("foo-2")], [PackageRequest("foo-1+")])
+        # False
+
+    Args:
+        requires (tuple[iter[PackageRequest]]):
+            A series of Rez packages requests to check for conflicts.
+
+    Returns:
+        bool: If conflict, return True, otherwise, return False.
+
+    """
+    requirement = RequirementList(itertools.chain(*requires))
+
+    return requirement.conflict
+
+
+def _choose_test_object(package, test_requires, extra_packages=frozenset()):
+    """Find the most appropriate Rez object for ``rez-test --interactive``.
+
+    If ``package`` has variants, find a valid variant, given ``test_requires``
+    and ``extra_packages``.
+
+    Args:
+        package (Package):
+            The installed Rez package to query variant / test data from.
+        test_requires (set[PackageRequest]):
+            Include these Rez package versions in the check, if provided. If
+            the Rez test has no defined ``"requires"``, this parameter is empty.
+        extra_packages (set[PackageRequest], optional):
+            Include these Rez package versions in the check, if provided.  This
+            is usually empty unless the user explicitly asks for them, e.g.
+            using ``rez-test foo --interactive bar --extra-packages thing-1``.
+
+    Raises:
+        PackageTestError:
+            If ``test_requires`` or ``extra_packages`` result in a Rez request conflict.
+
+    Returns:
+        Package or Variant:
+            Get a specific variant to return. If ``package`` has no variants
+            defined then this function returns ``package``, instead.
+
+    """
+    variants = package.variants
+
+    if not variants:
+        return package
+
+    candidates = []
+
+    for variant_index, package_requests in enumerate(variants):
+        if not _is_conflict(package_requests, test_requires, extra_packages):
+            candidates.append(package.get_variant(variant_index))
+
+    if not candidates:
+        if not extra_packages:
+            raise PackageTestError(
+                "No valid variant could match your given Rez test requires."
+            )
+
+        raise PackageTestError(
+            "No valid variant could match your given Rez test requires + extra packages."
+        )
+
+    return candidates[0]
+
+
+def _pre_test_env_commands(test_name, variant, executor):
+    """Run package.py:pre_test_commands() if present.
+
+    Args:
+        test_name (str):
+            The Rez test name which will be ran.
+        variant (Package or Variant):
+            A Rez object which may define ``pre_test_commands``.
+        executor (RexExecutor):
+            An interpreter to load commands during the ``rez-env``.
+
+    """
+    _pre_test_commands(test_name, variant, executor)
+
+    if hasattr(variant, "index"):
+        executor.setenv("REZ_CURRENT_TEST_VARIANT_INDEX", variant.index)
+
+
+def _pre_test_commands(test_name, variant, executor):
+    """Run package.py:pre_test_commands(), if present.
+
+    Args:
+        test_name (str):
+            The Rez test name to add to ``$REZ_CURRENT_TEST_NAME``, which is
+            useful for debugging.
+        variant (Package or Variant):
+            A Rez object which may define ``pre_test_commands``.
+        executor (RexExecutor):
+            An interpreter to load commands during the ``rez-env``.
+
+    """
+    pre_test_commands = getattr(variant, "pre_test_commands")
+
+    with executor.reset_globals():
+        executor.setenv("REZ_CURRENT_TEST_NAME", test_name)
+
+        if not pre_test_commands:
+            return
+
+        executor.bind("this", variant)
+        executor.bind("test", RO_AttrDictWrapper({"name": test_name}))
+        executor.execute_code(pre_test_commands)
+        executor.setenv("REZ_CURRENT_TEST_NAME", test_name)
+
+
+def _validate_test_requests(test_requires, extra_packages):
+    """Make sure all requirements from a Rez test don't conflict with ``extra_packages``.
+
+    Args:
+        test_requires (container[PackageRequest]):
+            The combination of a Rez test's "requires" and "on_variants", if any.
+        extra_packages (container[PackageRequest]):
+            Extra Rez package requests the user wants to consider, if any.
+
+    Raises:
+        PackageTestError: If any conflict between the given parameters was found.
+
+    """
+    if _is_conflict(test_requires):
+        test_requires_names = ", ".join(str(request) for request in test_requires)
+
+        raise PackageTestError(
+            'Test has conflicting requires {test_requires_names!r}.'.format(
+                test_requires_names=test_requires_names,
+            )
+        )
+
+    if not _is_conflict(test_requires, extra_packages):
+        return
+
+    test_requires_names = ", ".join(str(request) for request in test_requires)
+    extra_package_names = ", ".join(str(request) for request in extra_packages)
+
+    raise PackageTestError(
+        'Test requires "{test_requires_names}" conflicts with '
+        '"{extra_package_names}" extra packages.'.format(
+            test_requires_names=test_requires_names,
+            extra_package_names=extra_package_names,
+        )
+    )

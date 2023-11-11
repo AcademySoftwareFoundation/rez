@@ -119,8 +119,29 @@ def setup_parser():
     return parser
 
 
-def run(command=None):
+def parse_command(command=None, argv=None):
+    """Convert a user's CLI command into a callable object.
+
+    Args:
+        command (str, optional):
+            The raw Rez command. e.g. ``"build"``, ``"env"``, ``"selftest"``.
+            If no command is given, we assume the command is already in
+            ``argv`` and extract it there.
+        argv (list[str], optional):
+            Arguments to go along with ``command``. This is typically raw,
+            space separated user text, such as ``sys.argv[1:]``.
+
+    Returns:
+        tuple[callable -> int, argparse.Namespace]:
+            The callable is a function which takes no arguments and returns an
+            exit code.  Returning 0 indicates success, all other codes indicate
+            failure. The namespace is the parsed ``argv`` values.
+
+    """
     global _hyphened_command
+
+    if not argv:
+        argv = sys.argv
 
     sys.dont_write_bytecode = True
 
@@ -129,15 +150,15 @@ def run(command=None):
     #
     if command:
         # like 'rez-foo arg1 arg2'
-        args = [command] + sys.argv[1:]
+        args = [command] + argv[1:]
         _hyphened_command = True
-    elif len(sys.argv) > 1 and sys.argv[1] in subcommands:
+    elif len(argv) > 1 and argv[1] in subcommands:
         # like 'rez foo arg1 arg2'
-        command = sys.argv[1]
-        args = sys.argv[1:]
+        command = argv[1]
+        args = argv[1:]
     else:
         # like 'rez -i'
-        args = sys.argv[1:]
+        args = argv[1:]
 
     # parse args depending on subcommand behaviour
     if command:
@@ -152,7 +173,9 @@ def run(command=None):
         for arg in args:
             if arg == '--':
                 arg_groups.append([])
+
                 continue
+
             arg_groups[-1].append(arg)
 
         opts = parser.parse_args(arg_groups[0])
@@ -166,11 +189,6 @@ def run(command=None):
         opts = parser.parse_args(args)
         extra_arg_groups = []
 
-    if opts.debug or _env_var_true("REZ_DEBUG"):
-        exc_type = _NeverError
-    else:
-        exc_type = RezError
-
     def run_cmd():
         try:
             # python3 will not automatically handle cases where no sub parser
@@ -181,6 +199,29 @@ def run(command=None):
             parser.error("too few arguments.")
         else:
             return func(opts, opts.parser, extra_arg_groups)
+
+    return run_cmd, opts
+
+
+def run(command=None):
+    """Parse and run ``command``.
+
+    Note:
+        This function assumes extra arguments are passed via ``sys.argv[1:]``.
+
+    Args:
+        command (str, optional):
+            The raw Rez command. e.g. ``"build"``, ``"env"``, ``"selftest"``.
+            If no command is given, we assume the command is already in
+            ``argv`` and extract it there.
+
+    """
+    run_cmd, opts = parse_command(command=command)
+
+    if opts.debug or _env_var_true("REZ_DEBUG"):
+        exc_type = _NeverError
+    else:
+        exc_type = RezError
 
     if opts.profile:
         import cProfile
