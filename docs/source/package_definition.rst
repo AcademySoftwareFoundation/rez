@@ -719,7 +719,7 @@ the data type, and includes a code snippet.
 
    .. code-block:: python
 
-      help = "https://github.com/__GITHUB_REPO__/wiki"
+      help = "https://example.com"
 
    .. code-block::
 

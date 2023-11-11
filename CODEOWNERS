@@ -18,7 +18,7 @@ NOTICE                  @AcademySoftwareFoundation/rez-tsc
 /src/rez/data/          @AcademySoftwareFoundation/rez-tsc
 
 # Docs
-/wiki/                  @AcademySoftwareFoundation/rez-tsc
+/docs/                  @AcademySoftwareFoundation/rez-tsc
 
 # Core
 /src/rez/backport       @AcademySoftwareFoundation/rez-tsc

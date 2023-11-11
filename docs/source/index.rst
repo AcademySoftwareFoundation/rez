@@ -12,6 +12,7 @@ Welcome to rez's documentation!
    :hidden:
 
    installation
+   getting_started
    basic_concepts
    building_packages
    context
