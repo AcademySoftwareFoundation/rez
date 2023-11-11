@@ -1,6 +1,6 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/AcademySoftwareFoundation/rez/blob/main/LICENSE)<br>
 [![Release](https://shields.io/github/v/release/AcademySoftwareFoundation/rez)](https://github.com/AcademySoftwareFoundation/rez/releases)
-[![Pypi Release](https://shields.io/pypi/v/rez)](https://pypi.org/project/rez)<br>
+[![PyPI Release](https://shields.io/pypi/v/rez)](https://pypi.org/project/rez)<br>
 [![Mailing List](https://img.shields.io/badge/rez--discussion-lists.aswf.io-003366?style=flat-square&logo=linuxfoundation)](https://lists.aswf.io/g/rez-discussion)
 [![Slack](https://img.shields.io/badge/Slack-ASWF_%23rez-7a6800?style=flat-square&logo=slack)](https://slack.awsf.io/)
 [![Contributing Guidelines](https://img.shields.io/badge/rez-Contributing%20Guidelines-0b610e?style=flat-square&logo=github)](https://github.com/AcademySoftwareFoundation/rez/blob/main/CONTRIBUTING.md)<br>
