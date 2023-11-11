@@ -2,7 +2,7 @@
 [![Release](https://shields.io/github/v/release/AcademySoftwareFoundation/rez)](https://github.com/AcademySoftwareFoundation/rez/releases)
 [![PyPI Release](https://shields.io/pypi/v/rez)](https://pypi.org/project/rez)<br>
 [![Mailing List](https://img.shields.io/badge/rez--discussion-lists.aswf.io-003366?style=flat-square&logo=linuxfoundation)](https://lists.aswf.io/g/rez-discussion)
-[![Slack](https://img.shields.io/badge/Slack-ASWF_%23rez-7a6800?style=flat-square&logo=slack)](https://slack.awsf.io/)
+[![Slack](https://img.shields.io/badge/Slack-ASWF_%23rez-7a6800?style=flat-square&logo=slack)](https://slack.aswf.io/)
 [![Contributing Guidelines](https://img.shields.io/badge/rez-Contributing%20Guidelines-0b610e?style=flat-square&logo=github)](https://github.com/AcademySoftwareFoundation/rez/blob/main/CONTRIBUTING.md)<br>
 [![Core](https://github.com/AcademySoftwareFoundation/rez/workflows/core/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Acore+branch%3Amain)
 [![Ubuntu](https://github.com/AcademySoftwareFoundation/rez/workflows/ubuntu/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aubuntu+branch%3Amain)
