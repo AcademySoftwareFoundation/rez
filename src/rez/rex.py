@@ -906,7 +906,7 @@ class EscapedString(object):
         """Return the string with non-literal parts formatted.
 
         Args:
-            func (callable): Callable that translates a string into a
+            func (typing.Callable): Callable that translates a string into a
                 formatted string.
 
         Returns:

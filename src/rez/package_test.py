@@ -27,14 +27,16 @@ class PackageTestRunner(object):
 
     An example tests entry in a package.py might look like this:
 
-        tests = {
-            "unit": "python -m unittest -s {root}/tests",
-            "CI": {
-                "command": "python {root}/ci_tests/main.py",
-                "requires": ["maya-2017"],
-                "replace": True
-            }
-        }
+    .. code-block:: python
+
+       tests = {
+           "unit": "python -m unittest -s {root}/tests",
+           "CI": {
+               "command": "python {root}/ci_tests/main.py",
+               "requires": ["maya-2017"],
+               "replace": True
+           }
+       }
 
     By default tests are run in an environment containing the current package.
 
@@ -42,8 +44,8 @@ class PackageTestRunner(object):
     command. If a dict, the "command" string is the command, and the "requires"
     list is added to the test env.
 
-    Command strings automatically expand references such as '{root}', much
-    as happens in a *commands* function.
+    Command strings automatically expand references such as ``{root}``, much
+    as happens in a :data:`commands` function.
 
     Commands can also be a list - in this case, the test process is launched
     directly, rather than interpreted via a shell.
@@ -55,23 +57,23 @@ class PackageTestRunner(object):
         """Create a package tester.
 
         Args:
-            package_request (str or `PackageRequest`): The package to test.
+            package_request (str or PackageRequest): The package to test.
             use_current_env (bool): If True, run the test directly in the current
                 rez-resolved environment, if there is one, and if it contains
                 packages that meet the test's requirements.
-            extra_package_requests (list of str or `PackageRequest`): Extra
+            extra_package_requests (list[str] or PackageRequest): Extra
                 requests, these are appended to the test environment.
             package_paths: List of paths to search for pkgs, defaults to
-                config.packages_path.
-            stdout (file-like object): Defaults to sys.stdout.
-            stderr (file-like object): Defaults to sys.stderr.
+                :data:`packages_path`.
+            stdout (typing.IO): Defaults to :data:`sys.stdout`.
+            stderr (typing.IO): Defaults to :data:`sys.stderr`.
             verbose (int): Verbose mode (valid values: 0, 1, 2)
             dry_run (bool): If True, do everything except actually run tests.
-            cumulative_test_results (`PackageTestResults`): If supplied, test
+            cumulative_test_results (PackageTestResults): If supplied, test
                 run results can be stored across multiple runners.
-            context_kwargs: Extra arguments which are passed to the
-                `ResolvedContext` instances used to run the tests within.
-                Ignored if `use_current_env` is True.
+            context_kwargs (dict[typing.Any, typing.Any]): Extra arguments which are passed to the
+                :class:`~rez.resolved_context.ResolvedContext` instances used to run the tests within.
+                Ignored if ``use_current_env`` is True.
         """
         self.package_request = package_request
         self.use_current_env = use_current_env
@@ -105,7 +107,7 @@ class PackageTestRunner(object):
         """Get the target package.
 
         Returns:
-            `Package`: Package to run tests on.
+            Package: Package to run tests on.
         """
         if self.package is not None:
             return self.package
@@ -616,7 +618,7 @@ class PackageTestRunner(object):
     def _get_target_variants(self, test_name):
         """
         If the test is not variant-specific, then attempt to find the 'preferred'
-        variant (as per setting 'variant_select_mode'). Otherwise, just run tests
+        variant (as per setting :data:`variant_select_mode`). Otherwise, just run tests
         over all variants.
         """
         package = self.get_package()
@@ -655,9 +657,9 @@ class PackageTestRunner(object):
 
 
 class PackageTestResults(object):
-    """Contains results of running tests with a `PackageTestRunner`.
+    """Contains results of running tests with a :class:`PackageTestRunner`.
 
-    Use this class (and pass it to the `PackageTestRunner` constructor) if you
+    Use this class (and pass it to the :class:`PackageTestRunner` constructor) if you
     need to gather test run results from separate runners, and display them in
     a single table.
     """

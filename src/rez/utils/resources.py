@@ -67,16 +67,14 @@ class Resource(six.with_metaclass(LazyAttributeMeta, object)):
     Note:
         You can access the entire validated resource data dict using the
         `validated_data` function, and test full validation using `validate_data`.
-
-    Attributes:
-        key (str): Unique identifier of the resource type.
-        schema (Schema): Schema for the resource data. Must validate a dict.
-            Can be None, in which case the resource does not load any data.
-        schema_error (Exception): The exception type to raise on key
-            validation failure.
     """
+    #: Unique identifier of the resource type.
     key = None
+    #: Schema for the resource data.
+    #: Must validate a dict. Can be None, in which case the resource does
+    #: not load any data.
     schema = None
+    #: The exception type to raise on key validation failure.
     schema_error = Exception
 
     @classmethod

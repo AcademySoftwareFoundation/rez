@@ -117,7 +117,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         """Print the contents of the package.
 
         Args:
-            buf (file-like object): Stream to write to.
+            buf (typing.IO): Stream to write to.
             format_ (`FileFormat`): Format to write in.
             skip_attributes (list of str): List of attributes to not print.
             include_release (bool): If True, include release-related attributes,
@@ -530,7 +530,7 @@ def iter_package_families(paths=None):
     families.
 
     Args:
-        paths (list of str, optional): paths to search for package families,
+        paths (typing.Optional[list[str]]): paths to search for package families,
             defaults to `config.packages_path`.
 
     Returns:
@@ -553,7 +553,7 @@ def iter_packages(name, range_=None, paths=None):
         name (str): Name of the package, eg 'maya'.
         range_ (VersionRange or str): If provided, limits the versions returned
             to those in `range_`.
-        paths (list of str, optional): paths to search for packages, defaults
+        paths (typing.Optional[list[str]]): paths to search for packages, defaults
             to `config.packages_path`.
 
     Returns:
@@ -584,7 +584,7 @@ def get_package(name, version, paths=None):
     Args:
         name (str): Name of the package, eg 'maya'.
         version (Version or str): Version of the package, eg '1.0.0'
-        paths (list of str, optional): paths to search for package, defaults
+        paths (typing.Optional[list[str]]): paths to search for package, defaults
             to `config.packages_path`.
 
     Returns:
@@ -665,7 +665,7 @@ def get_package_from_string(txt, paths=None):
 
     Args:
         txt (str): String such as 'foo', 'bah-1.3'.
-        paths (list of str, optional): paths to search for package, defaults
+        paths (typing.Optional[list[str]]): paths to search for package, defaults
             to `config.packages_path`.
 
     Returns:
@@ -914,7 +914,7 @@ def get_latest_package(name, range_=None, paths=None, error=False):
     Args:
         name (str): Package name.
         range_ (`VersionRange`): Version range to search within.
-        paths (list of str, optional): paths to search for package families,
+        paths (typing.Optional[list[str]]): paths to search for package families,
             defaults to `config.packages_path`.
         error (bool): If True, raise an error if no package is found.
 
@@ -937,7 +937,7 @@ def get_latest_package_from_string(txt, paths=None, error=False):
 
     Args:
         txt (str): Request, eg 'foo-1.2+'
-        paths (list of str, optional): paths to search for packages, defaults
+        paths (typing.Optional[list[str]]): paths to search for packages, defaults
             to `config.packages_path`.
         error (bool): If True, raise an error if no package is found.
 

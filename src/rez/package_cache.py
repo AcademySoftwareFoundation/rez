@@ -149,7 +149,7 @@ class PackageCache(object):
                 is no guarantee the resulting variant payload will be functional).
 
         Returns:
-            2-tuple:
+            tuple: 2-tuple:
             - str: Path to cached payload
             - int: One of VARIANT_FOUND, VARIANT_CREATED, VARIANT_COPYING, VARIANT_COPY_STALLED
         """
@@ -477,7 +477,8 @@ class PackageCache(object):
         """Get variants and their current statuses from the cache.
 
         Returns:
-            List of 3-tuple:
+            tuple: List of 3-tuple:
+
             - `Variant`: The cached variant
             - str: Local cache path for variant, if determined ('' otherwise)
             - int: Status. One of:

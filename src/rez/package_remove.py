@@ -57,7 +57,7 @@ def remove_packages_ignored_since(days, paths=None, dry_run=False, verbose=False
 
     Args:
         days (int): Remove packages ignored >= this many days
-        paths (list of str, optional): Paths to search for packages, defaults
+        paths (typing.Optional[list[str]]): Paths to search for packages, defaults
             to `config.packages_path`.
         dry_run: Dry run mode
         verbose (bool): Verbose mode

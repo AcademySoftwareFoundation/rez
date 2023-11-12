@@ -162,7 +162,7 @@ class ReleaseVCS(object):
 
         Args:
             previous_revision: The revision to give the changelog since. If
-            None, give the entire changelog.
+                None, give the entire changelog.
 
         Returns:
             Changelog, as a string.

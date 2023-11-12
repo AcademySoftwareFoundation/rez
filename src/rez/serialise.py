@@ -111,17 +111,17 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
     """Load data from a file.
 
     Note:
-        Any functions from a .py file will be converted to `SourceCode` objects.
+        Any functions from a .py file will be converted to :class:`.SourceCode` objects.
 
     Args:
         filepath (str): File to load.
-        format_ (`FileFormat`): Format of file contents.
-        update_data_callback (callable): Used to change data before it is
+        format_ (FileFormat): Format of file contents.
+        update_data_callback (typing.Callable): Used to change data before it is
             returned or cached.
         disable_memcache (bool): If True, don't r/w to memcache.
 
     Returns:
-        dict.
+        dict:
     """
     filepath = os.path.realpath(filepath)
     cache_filepath = file_cache.get(filepath)
@@ -224,10 +224,10 @@ def load_py(stream, filepath=None):
     """Load python-formatted data from a stream.
 
     Args:
-        stream (file-like object).
+        stream (typing.IO):
 
     Returns:
-        dict.
+        dict:
     """
     with add_sys_paths(config.package_definition_build_python_paths):
         return _load_py(stream, filepath=filepath)
@@ -273,7 +273,7 @@ def _load_py(stream, filepath=None):
 
 
 class EarlyThis(object):
-    """The 'this' object for @early bound functions.
+    """The ``this`` object for ``@early`` bound functions.
 
     Just exposes raw package data as object attributes.
     """
@@ -298,10 +298,11 @@ def process_python_objects(data, filepath=None):
     """Replace certain values in the given package data dict.
 
     Does things like:
-    * evaluates @early decorated functions, and replaces with return value;
-    * converts functions into `SourceCode` instances so they can be serialized
+
+    * evaluates ``@early`` decorated functions, and replaces with return value;
+    * converts functions into :class:`.SourceCode` instances so they can be serialized
       out to installed packages, and evaluated later;
-    * strips some values (modules, __-leading variables) that are never to be
+    * strips some values (modules, ``__``-leading variables) that are never to be
       part of installed packages.
 
     Returns:
@@ -401,10 +402,10 @@ def load_yaml(stream, **kwargs):
     """Load yaml-formatted data from a stream.
 
     Args:
-        stream (file-like object).
+        stream (typing.IO):
 
     Returns:
-        dict.
+        dict:
     """
     # if there's an error parsing the yaml, and you pass yaml.load a string,
     # it will print lines of context, but will print "<string>" instead of a
@@ -430,10 +431,10 @@ def load_txt(stream, **kwargs):
     """Load text data from a stream.
 
     Args:
-        stream (file-like object).
+        stream (typing.IO):
 
     Returns:
-        string.
+        str:
     """
     content = stream.read()
     return content

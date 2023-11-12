@@ -2212,6 +2212,7 @@ class Solver(_Common):
             failure_index: Index of the fail to return the graph for (can be
                 negative). If None, the most appropriate failure is chosen
                 according to these rules:
+
                 - If the fail is cyclic, the most recent fail (the one containing
                   the cycle) is used;
                 - If a callback has caused a failure, the most recent fail is used;

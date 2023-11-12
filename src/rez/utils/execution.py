@@ -125,7 +125,7 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
 
     Args:
         filepath (str): File to create.
-        body (str or callable): Contents of the script. If a callable, its code
+        body (str or typing.Callable): Contents of the script. If a callable, its code
             is used as the script body.
         program (str): Name of program to launch the script. Default is 'python'
         py_script_mode(ExecutableScriptMode): What kind of script to create.

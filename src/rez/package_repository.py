@@ -108,7 +108,7 @@ class PackageRepository(object):
         database address + index, and so on.
 
         Returns:
-            hashable value: Value that uniquely identifies this repository.
+            tuple[str, str]: Value that uniquely identifies this repository.
         """
         return self._uid()
 

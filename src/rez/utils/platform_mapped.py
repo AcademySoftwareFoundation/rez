@@ -14,16 +14,18 @@ def platform_mapped(func):
     regular expression is being used.
     For example:
 
-    config.platform_map = {
-        "os": {
-            r"Scientific Linux-(.*)": r"Scientific-\1",    # Scientific Linux-x.x -> Scientific-x.x
-            r"Ubuntu-14.\d": r"Ubuntu-14",                 # Any Ubuntu-14.x      -> Ubuntu-14
-        },
-        "arch": {
-            "x86_64": "64bit",                             # Maps both x86_64 and amd64 -> 64bit (don't)
-            "amd64": "64bit",
-        },
-    }
+    .. code-block:: python
+
+       config.platform_map = {
+           "os": {
+               r"Scientific Linux-(.*)": r"Scientific-\1",    # Scientific Linux-x.x -> Scientific-x.x
+               r"Ubuntu-14.\d": r"Ubuntu-14",                 # Any Ubuntu-14.x      -> Ubuntu-14
+           },
+           "arch": {
+               "x86_64": "64bit",                             # Maps both x86_64 and amd64 -> 64bit (don't)
+               "amd64": "64bit",
+           },
+       }
     """
     def inner(*args, **kwargs):
 
