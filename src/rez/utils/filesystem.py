@@ -507,7 +507,7 @@ def to_posixpath(path):
 
 
 def canonical_path(path, platform=None):
-    """ Resolves symlinks, and formats filepath.
+    r""" Resolves symlinks, and formats filepath.
 
     Resolves symlinks, lowercases if filesystem is case-insensitive,
     formats filepath using slashes appropriate for platform.

@@ -323,7 +323,7 @@ class Shell(ActionInterpreter):
 
 
 class UnixShell(Shell):
-    """
+    r"""
     A base class for common \*nix shells, such as bash and tcsh.
     """
     rcfile_arg = None

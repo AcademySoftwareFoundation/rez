@@ -33,8 +33,9 @@ class PackageOrder(object):
 
         Args:
             iterable: Iterable list of packages, or objects that contain packages.
-            key (typing.Callable[typing.Any, Package]): Callable, where key(iterable) gives a :class:`~rez.packages.Package`. If
-                None, iterable is assumed to be a list of :class:`~rez.packages.Package` objects.
+            key (typing.Callable[typing.Any, Package]): Callable, where key(iterable)
+                gives a :class:`~rez.packages.Package`. If None, iterable is assumed
+                to be a list of :class:`~rez.packages.Package` objects.
 
         Returns:
             list: Reordered ``iterable``
