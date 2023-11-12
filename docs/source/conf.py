@@ -87,6 +87,7 @@ autodoc_class_signature = 'separated'
 autodoc_member_order = 'bysource'
 autodoc_inherit_docstrings = True
 autodoc_default_options = {
+    "show-inheritance": True,
     "undoc-members": True,
     "inherited-members": True,
 }
