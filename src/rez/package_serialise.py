@@ -121,7 +121,7 @@ def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
 
     Args:
         data (dict): Data source - must conform to `package_serialise_schema`.
-        buf (file-like object): Destination stream.
+        buf (typing.IO): Destination stream.
         format_ (`FileFormat`): Format to dump data in.
         skip_attributes (list of str): List of attributes to not print.
     """

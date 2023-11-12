@@ -23,10 +23,12 @@ def schema_keys(schema):
     Non-string keys are ignored.
 
     Returns:
-        Set of string keys of a schema which is in the form (eg):
+        set[str]: Set of string keys of a schema which is in the form (eg):
 
-            schema = Schema({Required("foo"): int,
-                             Optional("bah"): basestring})
+        .. code-block:: python
+
+           schema = Schema({Required("foo"): int,
+                            Optional("bah"): basestring})
     """
     def _get_leaf(value):
         if isinstance(value, Schema):
@@ -50,9 +52,9 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
 
     Args:
         required (bool): Whether to make schema keys optional or required.
-        allow_custom_keys (bool, optional): If True, creates a schema that
+        allow_custom_keys (typing.Optional[bool]): If True, creates a schema that
             allows custom items in dicts.
-        modifier (callable): Functor to apply to dict values - it is applied
+        modifier (typing.Optional[typing.Callable]): Functor to apply to dict values - it is applied
             via `Schema.Use`.
 
     Returns:

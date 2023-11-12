@@ -251,13 +251,11 @@ class ColorizedStreamHandler(logging.StreamHandler):
     This handler uses the `Colorama`_ module to style the log messages based
     on the rez configuration.
 
-    Attributes:
-      STYLES (dict): A mapping between the Python logger levels and a function
-        that can be used to provide the appropriate styling.
-
     .. _Colorama:
         https://pypi.python.org/pypi/colorama
     """
+    #: A mapping between the Python logger levels and a function that can be used
+    #: to provide the appropriate styling.
     STYLES = {
         50: critical,
         40: error,

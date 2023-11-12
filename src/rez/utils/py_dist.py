@@ -134,6 +134,7 @@ def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
         ignore_dirs (bool): List of directory names to not copy from the dist.
         python_requirement (str): How the package should depend on python.
             One of:
+
             - "major": depend on python-X
             - "major_minor": depend on python-X.X
             - any other value: this string is used as the literal version

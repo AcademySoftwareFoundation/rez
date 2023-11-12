@@ -27,7 +27,7 @@ def get_shell_types():
     """Returns the available shell types: bash, tcsh etc.
 
     Returns:
-    List of str: Shells.
+        list[str]: Shells.
     """
     from rez.plugin_managers import plugin_manager
     return list(plugin_manager.get_plugins('shell'))
@@ -37,7 +37,7 @@ def get_shell_class(shell=None):
     """Get the plugin class associated with the given or current shell.
 
     Returns:
-        class: Plugin class for shell.
+        type[Shell]: Plugin class for shell.
     """
     if not shell:
         shell = config.default_shell
@@ -53,7 +53,7 @@ def create_shell(shell=None, **kwargs):
     """Returns a Shell of the given or current type.
 
     Returns:
-        `Shell`: Instance of given shell.
+        Shell: Instance of given shell.
     """
     if not shell:
         shell = config.default_shell
@@ -120,7 +120,9 @@ class Shell(ActionInterpreter):
         """
         Given a set of options related to shell startup, return the actual
         options that will be applied.
-        @returns 4-tuple representing applied value of each option.
+
+        Returns:
+            tuple: 4-tuple representing applied value of each option.
         """
         raise NotImplementedError
 
@@ -203,8 +205,9 @@ class Shell(ActionInterpreter):
                     pre_command=None, add_rez=True,
                     package_commands_sourced_first=None, **Popen_args):
         """Spawn a possibly interactive subshell.
+
         Args:
-            context:_file File that must be sourced in the new shell, this
+            context_file: File that must be sourced in the new shell, this
                 configures the Rez environment.
             tmpdir: Tempfiles, if needed, should be created within this path.
             rcfile: Custom startup script.
@@ -230,7 +233,7 @@ class Shell(ActionInterpreter):
             popen_args: args to pass to the shell process object constructor.
 
         Returns:
-            A subprocess.Popen object representing the shell process.
+            subprocess.Popen: A subprocess.Popen object representing the shell process.
         """
         raise NotImplementedError
 
@@ -321,7 +324,7 @@ class Shell(ActionInterpreter):
 
 class UnixShell(Shell):
     """
-    A base class for common *nix shells, such as bash and tcsh.
+    A base class for common \*nix shells, such as bash and tcsh.
     """
     rcfile_arg = None
     norc_arg = None
@@ -352,6 +355,7 @@ class UnixShell(Shell):
     def get_startup_sequence(cls, rcfile, norc, stdin, command):
         """
         Return a dict containing:
+
         - 'stdin': resulting stdin setting.
         - 'command': resulting command setting.
         - 'do_rcfile': True if a file should be sourced directly.

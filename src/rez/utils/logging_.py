@@ -85,7 +85,7 @@ def view_file_logs(globbed_path, loglevel_index=None):
     Prints to stdout.
 
     Args:
-        globbed_path (str): Logfiles, eg '/foo/logs/*.log'
+        globbed_path (str): Logfiles, eg ``/foo/logs/*.log``
         loglevel_index (int): Position on each log line where log level
             (INFO etc) is expected. This is used for colorisation only, and if
             None, no colors are applied.

@@ -514,7 +514,7 @@ def canonical_path(path, platform=None):
 
     Args:
         path (str): Filepath being formatted
-        platform (rez.utils.platform_.Platform): Indicates platform path is being
+        platform (rez.utils.platform\_.Platform): Indicates platform path is being
             formatted for. Defaults to current platform.
 
     Returns:
@@ -542,38 +542,38 @@ def encode_filesystem_name(input_str):
 
     The rules for the encoding are:
 
-    1) Any lowercase letter, digit, period, or dash (a-z, 0-9, ., or -) is
+    1. Any lowercase letter, digit, period, or dash (a-z, 0-9, ., or -) is
     encoded as-is.
 
-    2) Any underscore is encoded as a double-underscore ("__")
+    2. Any underscore is encoded as a double-underscore (``__``)
 
-    3) Any uppercase ascii letter (A-Z) is encoded as an underscore followed
+    3. Any uppercase ascii letter (A-Z) is encoded as an underscore followed
     by the corresponding lowercase letter (ie, "A" => "_a")
 
-    4) All other characters are encoded using their UTF-8 encoded unicode
-    representation, in the following format: "_NHH..., where:
-        a) N represents the number of bytes needed for the UTF-8 encoding,
-        except with N=0 for one-byte representation (the exception for N=1
-        is made both because it means that for "standard" ascii characters
-        in the range 0-127, their encoding will be _0xx, where xx is their
-        ascii hex code; and because it mirrors the ways UTF-8 encoding
-        itself works, where the number of bytes needed for the character can
-        be determined by counting the number of leading "1"s in the binary
-        representation of the character, except that if it is a 1-byte
-        sequence, there are 0 leading 1's).
-        b) HH represents the bytes of the corresponding UTF-8 encoding, in
-        hexadecimal (using lower-case letters)
+    4. All other characters are encoded using their UTF-8 encoded unicode
+       representation, in the following format: ``_NHH...``, where:
 
-        As an example, the character "*", whose (hex) UTF-8 representation
-        of 2A, would be encoded as "_02a", while the "euro" symbol, which
-        has a UTF-8 representation of E2 82 AC, would be encoded as
-        "_3e282ac".  (Note that, strictly speaking, the "N" part of the
-        encoding is redundant information, since it is essentially encoded
-        in the UTF-8 representation itself, but it makes the resulting
-        string more human-readable, and easier to decode).
+       * N represents the number of bytes needed for the UTF-8 encoding,
+         except with N=0 for one-byte representation (the exception for N=1
+         is made both because it means that for "standard" ascii characters
+         in the range 0-127, their encoding will be _0xx, where xx is their
+         ascii hex code; and because it mirrors the ways UTF-8 encoding
+         itself works, where the number of bytes needed for the character can
+         be determined by counting the number of leading "1"s in the binary
+         representation of the character, except that if it is a 1-byte
+         sequence, there are 0 leading 1's).
+       * HH represents the bytes of the corresponding UTF-8 encoding, in
+         hexadecimal (using lower-case letters)
 
-    As an example, the string "Foo_Bar (fun).txt" would get encoded as:
-        _foo___bar_020_028fun_029.txt
+         As an example, the character ``*``, whose (hex) UTF-8 representation
+         of 2A, would be encoded as "_02a", while the "euro" symbol, which
+         has a UTF-8 representation of E2 82 AC, would be encoded as
+         "_3e282ac".  (Note that, strictly speaking, the "N" part of the
+         encoding is redundant information, since it is essentially encoded
+         in the UTF-8 representation itself, but it makes the resulting
+         string more human-readable, and easier to decode).
+
+    As an example, the string "Foo_Bar (fun).txt" would get encoded as ``_foo___bar_020_028fun_029.txt``.
     """
     if isinstance(input_str, six.string_types):
         input_str = unicode(input_str)

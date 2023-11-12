@@ -28,7 +28,7 @@ def get_valid_build_systems(working_dir, package=None):
             must be present for the 'custom' build system type.
 
     Returns:
-        List of class: Valid build system class types.
+        list[type[BuildSystem]]: Valid build system class types.
     """
     from rez.plugin_managers import plugin_manager
     from rez.exceptions import PackageMetadataError
@@ -221,16 +221,17 @@ class BuildSystem(object):
             build_type: A BuildType (i.e local or central).
 
         Returns:
-            A dict containing the following information:
+            dict: A dict containing the following information:
+
             - success: Bool indicating if the build was successful.
             - extra_files: List of created files of interest, not including
-                build targets. A good example is the interpreted context file,
-                usually named 'build.rxt.sh' or similar. These files should be
-                located under build_path. Rez may install them for debugging
-                purposes.
+              build targets. A good example is the interpreted context file,
+              usually named 'build.rxt.sh' or similar. These files should be
+              located under build_path. Rez may install them for debugging
+              purposes.
             - build_env_script: If this instance was created with write_build_scripts
-                as True, then the build should generate a script which, when run
-                by the user, places them in the build environment.
+              as True, then the build should generate a script which, when run
+              by the user, places them in the build environment.
         """
         raise NotImplementedError
 
