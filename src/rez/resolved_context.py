@@ -187,7 +187,7 @@ class ResolvedContext(object):
                 is used.
             package_paths (list[str]): List of paths to search for pkgs, defaults to
                 :data:`packages_path`.
-            package_filter (PackageFilterBase): Filter used to exclude certain
+            package_filter (PackageFilterList): Filter used to exclude certain
                 packages. Defaults to settings from :data:`package_filter`. Use
                 :data:`rez.package_filter.no_filter` to remove all filtering.
             package_orderers (list[PackageOrder]): Custom package ordering.
