@@ -25,7 +25,7 @@ officially marked as deprecated.
 - Modules:
   - `rez.vendor.version`. Use `rez.version` instead. Will be removed in 3.0.0.
   - `rez.packages_maker__`. Use `rez.packages_maker` instead. Will be removed in 3.0.0.
-  - `rez.package_resources_`. Use `rez.package_resources_` instead. Will be removed in 3.0.0.
+  - `rez.package_resources_`. Use `rez.package_resources` instead. Will be removed in 3.0.0.
   - `rez.packages_`. Use `rez.packages` instead. Will be removed in 3.0.0.
 - CLI:
   - rez-pip: The `--pip-version` argument is deprecated. Will be removed in 3.0.0.
