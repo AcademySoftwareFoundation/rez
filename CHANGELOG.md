@@ -10,7 +10,12 @@ can still be used with Python 2.7+ but this will be dropped in 3.0.0
 ### Deprecations
 
 We decided to deprecated some things that have been "deprecated" for a while but were never
-officially marked as deprecated.
+officially marked as deprecated. We have prepared
+[a guide](https://rez.readthedocs.io/en/stable/guides/prepare_for_3.html)
+to help you navigate these deprecations.
+
+What follows is everything that is marked as deprecated with information on when
+removal will happen or when defaults will change.
 
 - Configuration settings:
   - [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility): Will be removed in 3.0.0.
