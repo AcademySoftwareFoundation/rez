@@ -1386,6 +1386,8 @@ class _ResolvePhase(_Common):
 
                                 fail_message = ("package family not found: {}, was required by: {} (searched: {})"
                                                 .format(req.name, requested, searched))
+                                # TODO: Test with memcached to see if this can cause any conflicting behaviour
+                                #       where a package may show as missing/available inadvertently
                                 if not config.error_on_missing_variant_requires:
                                     print(fail_message, file=sys.stderr)
                                     return _create_phase(SolverStatus.failed)
