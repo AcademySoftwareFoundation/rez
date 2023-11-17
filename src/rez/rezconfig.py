@@ -499,6 +499,17 @@ package_orderers = None
 # this value is False.
 allow_unversioned_packages = True
 
+# Defines whether a resolve should immediately fail if any variants have a required package that can't be found.
+# This can be useful to disable if you have packages that aren't available to all users.
+# It is enabled by default. If a variant has requires that cannot be found , it will error immediately rather than
+# trying the other variants.
+# If disabled, it will try other variants before giving up.
+#
+# .. warning::
+#    Memcached isn't tested with scenarios where you expect users to have access to different sets of packages.
+#    It expects that every user can access the same set of packages, which may cause incorrect resolves
+#    when this option is disabled.
+error_on_missing_variant_requires = True
 
 ###############################################################################
 # Environment Resolution
@@ -656,7 +667,6 @@ package_preprocess_function = None
 # - "after": Package's preprocess function is executed after the global preprocess;
 # - "override": Package's preprocess function completely overrides the global preprocess.
 package_preprocess_mode = "override"
-
 
 ###############################################################################
 # Context Tracking
