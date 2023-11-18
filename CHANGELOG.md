@@ -27,15 +27,24 @@ What follows is everything that is marked as deprecated with information on when
 removal will happen or when defaults will change.
 
 - Configuration settings:
-  - [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility): Will be removed in 3.0.0.
-  - [debug_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#debug_old_commands): Will be removed in 3.0.0. This setting is currently a no-op.
-  - [warn_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_old_commands): Will be removed in a yet to be determined future release.
-  - [error_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_old_commands): Will be removed in a yet to be determined future release.
-  - [warn_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_commands2): Will be removed in 3.0.0. This setting is currently a no-op.
-  - [error_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_commands2): Will be removed in 3.0.0. This setting is currently a no-op.
-  - [rez_1_cmake_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_cmake_variables): Will be removed in a yet to be determined future release.
-  - [rez_1_environment_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_environment_variables): Will be removed in a yet to be determined future release.
-  - [rxt_as_yaml](https://rez.readthedocs.io/en/stable/configuring_rez.html#rxt_as_yaml): Will be removed in 3.0.0.
+  - [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility):
+    Will be removed in a yet to be determined future release.
+  - [debug_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#debug_old_commands):
+    Will be removed in 3.0.0. This setting is currently a no-op.
+  - [warn_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_old_commands):
+    Will be removed in a yet to be determined future release.
+  - [error_old_commands](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_old_commands):
+    Will be removed in a yet to be determined future release.
+  - [warn_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#warn_commands2):
+    Will be removed in 3.0.0. This setting is currently a no-op.
+  - [error_commands2](https://rez.readthedocs.io/en/stable/configuring_rez.html#error_commands2):
+    Will be removed in 3.0.0. This setting is currently a no-op.
+  - [rez_1_cmake_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_cmake_variables):
+    Will be removed in 3.0.0.
+  - [rez_1_environment_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_environment_variables):
+    Will be removed in a yet to be determined future release.
+  - [rxt_as_yaml](https://rez.readthedocs.io/en/stable/configuring_rez.html#rxt_as_yaml):
+    Will be removed in 3.0.0.
 - Modules:
   - `rez.vendor.version`. Use `rez.version` instead. Will be removed in 3.0.0.
   - `rez.packages_maker__`. Use `rez.packages_maker` instead. Will be removed in 3.0.0.
@@ -57,7 +66,8 @@ removal will happen or when defaults will change.
 
 Some default values have changed:
 
-- [rez_1_cmake_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_cmake_variables) is now disabled by default.
+- [rez_1_cmake_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_cmake_variables)
+  is now disabled by default.
 
 Some default values will change in 3.0.0:
 
