@@ -48,7 +48,9 @@ nitpick_ignore = [
     # TODO: Remove once we unvendor enum.
     ("py:class", "rez.solver._Common"),
     ("py:class", "_thread._local"),
-    ("py:class", "rez.utils.platform_._UnixPlatform")
+    ("py:class", "rez.utils.platform_._UnixPlatform"),
+    ("py:class", "rez.version._util._Common"),
+    ("py:class", "rez.version._version._Comparable"),
 ]
 
 nitpick_ignore_regex = [
