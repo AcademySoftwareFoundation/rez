@@ -263,6 +263,11 @@ Development Environment Variables
    Prior to updating, you should set this environment variable to see if you need to
    change some things to be compatible with newer versions.
 
+   .. warning::
+
+      Enabling this will forcefully load every configuration file instead of loading them
+      lazilly. This can have an impact on startup time.
+
 .. envvar:: REZ_SIGUSR1_ACTION
 
    If you set this to ``print_stack``, rez will prints its

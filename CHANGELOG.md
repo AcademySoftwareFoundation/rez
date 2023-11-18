@@ -7,6 +7,13 @@ Probably the last release before 3.0.0
 Rez installations now only support Python 3.7+. It is important to note that the API
 can still be used with Python 2.7+ but this will be dropped in 3.0.0
 
+### Features
+
+* New environment variable `REZ_LOG_DEPRECATION_WARNINGS` that will force
+  all deprecation warnings to be printed, ignoring `PYTHONWARNINGS` and custom
+  warning filters. Note that enabling this will forcefully load every
+  configuration file instead of loading them lazilly.
+
 ### Deprecations
 
 We decided to deprecated some things that have been "deprecated" for a while but were never
