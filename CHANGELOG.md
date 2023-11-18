@@ -1,5 +1,7 @@
 # Change log
 
+<!-- start-here-sphinx-start-after -->
+
 ## 2.114.0 (TBD)
 
 Probably the last release before 3.0.0
@@ -2319,42 +2321,42 @@ be on the lookout for unintended side effects and report them if they arise.
 
 ## 2.26.4 [[#562](https://github.com/AcademySoftwareFoundation/rez/pull/562)] Fixed Regression in 2.24.0
 
-#### Addressed Issues
+### Addressed Issues
 
 * [#561](https://github.com/AcademySoftwareFoundation/rez/issues/561) timestamp not written to installed package
 
 
 ## 2.26.3 [[#560](https://github.com/AcademySoftwareFoundation/rez/pull/560)] Package.py permissions issue
 
-#### Addressed Issues
+### Addressed Issues
 
 * [#559](https://github.com/AcademySoftwareFoundation/rez/issues/559) package.py permissions issue
 
-#### Notes
+### Notes
 
 Fixes issue where installed `package.py` can be set to r/w for only the current user.
 
 
 ## 2.26.2 [[#557](https://github.com/AcademySoftwareFoundation/rez/pull/557)] Package Copy Fixes For Non-Varianted Packages
 
-#### Addressed Issues
+### Addressed Issues
 
 * [#556](https://github.com/AcademySoftwareFoundation/rez/issues/556) rez-cp briefly copies original package definition in non-varianted packages
 * [#555](https://github.com/AcademySoftwareFoundation/rez/issues/555) rez-cp inconsistent symlinking when --shallow=true
 * [#554](https://github.com/AcademySoftwareFoundation/rez/issues/554) rez-cp doesn't keep file metadata in some cases
 
-#### Notes
+### Notes
 
 There were various minor issues related to copying non-varianted packages.
 
 
 ## 2.26.1 [[#552](https://github.com/AcademySoftwareFoundation/rez/pull/552)] Bugfix in Package Copy
 
-#### Addressed Issues
+### Addressed Issues
 
 * [#551](https://github.com/AcademySoftwareFoundation/rez/issues/551) package copy fails if symlinks in root dir
 
-#### Notes
+### Notes
 
 This was failing when symlinks were present within a non-varianted package being copied. Now, these
 symlinks are retained in the target package, unless `--follow-symlinks` is specified.
@@ -2362,19 +2364,19 @@ symlinks are retained in the target package, unless `--follow-symlinks` is speci
 
 ## 2.26.0 [[#550](https://github.com/AcademySoftwareFoundation/rez/pull/550)] Build System Detection Fixes
 
-#### Addressed Issues
+### Addressed Issues
 
 * [#549](https://github.com/AcademySoftwareFoundation/rez/issues/549) '--build-system' rez-build option not always
   available
 
-#### Notes
+### Notes
 
 To fix this issue:
 * The '--build-system' rez-build option is now always present.
 * To provide further control over the build system type, the package itself can now specify its build
   system - see https://github.com/AcademySoftwareFoundation/rez/wiki/Package-Definition-Guide#build_system
 
-#### COMPATIBILITY ISSUE!
+### COMPATIBILITY ISSUE!
 
 Unfortunately, the 'cmake' build system had its own '--build-system' commandline option also. This
 was possible because previous rez versions suppressed the standard '--build-system' option if only
@@ -2384,7 +2386,7 @@ changed to '--cmake-build-system'**.
 
 ## 2.25.0 [[#548](https://github.com/AcademySoftwareFoundation/rez/pull/548)] Various Build-related issues
 
-#### Addressed Issues
+### Addressed Issues
 
 * [#433](https://github.com/AcademySoftwareFoundation/rez/issues/433): "package_definition_build_python_paths" defined
   paths are not available from top level in package.py
@@ -2392,7 +2394,7 @@ changed to '--cmake-build-system'**.
 * [#416](https://github.com/AcademySoftwareFoundation/rez/issues/416): Need currently-building-variant build variables
 * [#547](https://github.com/AcademySoftwareFoundation/rez/issues/547): rez-cp follows symlinks within package payload
 
-#### Notes
+### Notes
 
 The biggest update in this release is the introduction of new variables accessible at early-bind time:
 building, build_variant_index and build_variant_requires. This allows you to do things like define
@@ -2423,13 +2425,13 @@ intact - but hte previous behavior can still be accessed with the rez-cp --follo
 This release adds a new tool, rez-cp, for copying packages/variants from one package repository to
 another, with optional renaming/reversioning. The associated API can be found in src/package_copy.py.
 
-#### Addressed Issues
+### Addressed Issues
 
 * #541
 * #510
 * #477
 
-#### Notes
+### Notes
 
 * Package definition file writes are now atomic;
 * private_build_requires is kept in installed/released packages;
@@ -2439,22 +2441,22 @@ another, with optional renaming/reversioning. The associated API can be found in
 
 ## 2.23.1: Fixed Regression in 2.20.0
 
-#### Addressed Issues
+### Addressed Issues
 
 * #532
 
-#### Notes
+### Notes
 
 Bug was introduced in: https://github.com/AcademySoftwareFoundation/rez/releases/tag/2.20.0
 
 
 ## 2.23.0: Package Usage Tracking, Better Config Overrides
 
-#### Addressed Issues
+### Addressed Issues
 
 * #528
 
-#### Notes
+### Notes
 
 Two new features are added in this release:
 
@@ -2473,7 +2475,7 @@ The embedded simplejson lib was removed. The native json lib is used instead, an
 
 ## 2.22.1: Stdin-related fixes
 
-#### Addressed Issues
+### Addressed Issues
 
 * #512
 * #526
@@ -2483,7 +2485,7 @@ The embedded simplejson lib was removed. The native json lib is used instead, an
 
 PR: #213
 
-#### Notes
+### Notes
 
 Package/variant/family search API is now available in package_search.py. This gives the same
 functionality as provided by the rez-search CLI tool.
@@ -2496,13 +2498,13 @@ PR: #501
 
 ## 2.20.1: Windows Fixes
 
-#### Merged PRs
+### Merged PRs
 
 * #490: Fix alias command in Windows when PATH is modified
 * #489: Fix cmd.exe not escaping special characters
 * #482: Fix selftest getting stuck on Windows
 
-#### Addressed Issues
+### Addressed Issues
 
 * #389
 * #343
@@ -2514,11 +2516,11 @@ PR: #501
 
 PR: #523
 
-#### Addressed Issues
+### Addressed Issues
 
 * #492
 
-#### Notes
+### Notes
 
 The rez-python command now supports all native python args and passes those through to its python
 subprocess - so you can now shebang with rez-python if that is useful.
@@ -2530,15 +2532,15 @@ extraneous args after -- tokens.
 
 ## 2.19.1: Fixed bug with rez-build and package preprocess
 
-#### Merged PRs
+### Merged PRs
 
 * #522
 
-#### Addressed Issues
+### Addressed Issues
 
 * #514
 
-#### Notes
+### Notes
 
 The problem occurred because the preprocess function was attempting to be serialized when the package
 definition is cached to memcache. However, this function is stripped in installed packages;
