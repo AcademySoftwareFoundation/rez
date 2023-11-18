@@ -18,7 +18,6 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - '2.7'
           - '3.7'
 
     steps:
@@ -35,11 +34,6 @@ jobs:
         run: |
           mkdir ./installdir
 
-          if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
-              eval "$(conda shell.bash hook)"
-              conda activate python
-          fi
-
           python ./install.py ./installdir
 
       - name: Run Benchmark
@@ -51,10 +45,6 @@ jobs:
 
       - name: Validate Result
         run: |
-          if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
-              eval "$(conda shell.bash hook)"
-              conda activate python
-          fi
           python ./.github/scripts/validate_benchmark.py
 
       - uses: actions/upload-artifact@v3
@@ -70,7 +60,6 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - '2.7'
           - '3.7'
 
       # so we don't have jobs trying to push to git at the same time
@@ -119,10 +108,6 @@ jobs:
 
       - name: Store Benchmark Result
         run: |
-          if [[ "${{ matrix.python-version }}" == "2.7" ]]; then
-              eval "$(conda shell.bash hook)"
-              conda activate python
-          fi
           python ./.github/scripts/store_benchmark.py
         working-directory: src
 
