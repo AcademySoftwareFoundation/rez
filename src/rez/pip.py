@@ -23,7 +23,7 @@ from rez.package_maker import make_package
 from rez.config import config
 
 import os
-from pipes import quote
+from rez.utils.py23 import quote
 from pprint import pformat
 import re
 import shutil

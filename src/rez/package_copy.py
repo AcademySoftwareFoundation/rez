@@ -31,19 +31,21 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
     """Copy a package from one package repository to another.
 
     This copies the package definition and payload. The package can also be
-    re-named and/or re-versioned using the `dest_name` and `dest_version` args.
+    re-named and/or re-versioned using the ``dest_name`` and ``dest_version`` args.
 
     The result is a dict describing which package variants were and were not
     copied. For example:
 
-        {
-            "copied": [
-                (`Variant`, `Variant`)
-            ],
-            "skipped": [
-                (`Variant`, `Variant`)
-            ]
-        }
+    .. code-block:: text
+
+       {
+           "copied": [
+               (`Variant`, `Variant`)
+           ],
+           "skipped": [
+               (`Variant`, `Variant`)
+           ]
+       }
 
     Each 2-tuple in the 'copied' or 'skipped' list contains the source and
     destination variant respectively. In the 'skipped' list, the source variant
@@ -51,21 +53,21 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
     target variant that caused the source not to be copied. Skipped variants
     will only be present when `overwrite` is False.
 
-    Note:
-        Whether or not a package can be copied is determined by its 'relocatable'
-        attribute (see the `default_relocatable` config setting for more details).
-        An attempt to copy a non-relocatable package will fail. You can override
-        this behaviour with the `force` argument.
+    .. note::
+       Whether or not a package can be copied is determined by its :attr:`relocatable`
+       attribute (see the :data:`default_relocatable` config setting for more details).
+       An attempt to copy a non-relocatable package will fail. You can override
+       this behaviour with the ``force`` argument.
 
     Args:
-        package (`Package`): Package to copy.
-        dest_repository (`PackageRepository` or str): The package repository, or
+        package (Package): Package to copy.
+        dest_repository (PackageRepository or str): The package repository, or
             a package repository path, to copy the package into.
-        variants (list of int): Indexes of variants to build, or all if None.
+        variants (list[int]): Indexes of variants to build, or all if None.
         shallow (bool): If True, symlinks of each variant's root directory are
             created, rather than the payload being copied.
         dest_name (str): If provided, copy the package to a new package name.
-        dest_version (str or `Version`): If provided, copy the package to a new
+        dest_version (str or Version): If provided, copy the package to a new
             version.
         overwrite (bool): Overwrite variants if they already exist in the
             destination package. In this case, the existing payload is removed
@@ -81,7 +83,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
             is kept intact. Note that this will have no effect if variant(s)
             are copied into an existing package.
         skip_payload (bool): If True, do not copy the package payload.
-        overrides (dict): See `PackageRepository.install_variant`.
+        overrides (dict): See :meth:`.PackageRepository.install_variant`.
         verbose (bool): Verbose mode.
         dry_run (bool): Dry run mode. Dest variants in the result will be None
             in this case.

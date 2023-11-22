@@ -6,7 +6,7 @@
 Functions that wrap readelf/patchelf utils on linux.
 """
 import os
-import pipes
+from rez.utils.py23 import quote
 import subprocess
 
 from rez.utils.filesystem import make_path_writable
@@ -64,7 +64,7 @@ def _run(*nargs, **popen_kwargs):
     out, err = proc.communicate()
 
     if proc.returncode:
-        cmd_ = ' '.join(pipes.quote(x) for x in nargs)
+        cmd_ = ' '.join(quote(x) for x in nargs)
 
         raise RuntimeError(
             "Command %s - failed with exitcode %d: %s"

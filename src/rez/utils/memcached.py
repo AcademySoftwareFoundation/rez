@@ -283,7 +283,9 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
     being returned. If you do not want a result to be cached, wrap the return
     value of your function in a `DoNotCache` object.
 
-    Example:
+    Examples:
+
+    .. code-block:: python
 
         @memcached('127.0.0.1:11211')
         def _listdir(path):
@@ -300,11 +302,11 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
     Args:
         servers (str or list of str): memcached server uri(s), eg '127.0.0.1:11211'.
             This arg can be None also, in which case memcaching is disabled.
-        key (callable, optional): Function that, given the target function's args,
+        key (typing.Optional[typing.Callable]): Function that, given the target function's args,
             returns the string key to use in memcached.
-        from_cache (callable, optional): If provided, and a cache hit occurs, the
+        from_cache (typing.Optional[typing.Callable]): If provided, and a cache hit occurs, the
             cached value will be translated by this function before being returned.
-        to_cache (callable, optional): If provided, and a cache miss occurs, the
+        to_cache (typing.Optional[typing.Callable]): If provided, and a cache miss occurs, the
             function's return value will be translated by this function before
             being cached.
         time (int): Tells memcached the time which this value should expire, either

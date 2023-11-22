@@ -270,13 +270,9 @@ package_pod_schema = Schema(package_pod_schema_dict)
 
 class PackageRepositoryResource(Resource):
     """Base class for all package-related resources.
-
-    Attributes:
-        schema_error (`Exception`): Type of exception to throw on bad data.
-        repository_type (str): Type of package repository associated with this
-            resource type.
     """
     schema_error = PackageMetadataError
+    #: Type of package repository associated with this resource type.
     repository_type = None
 
     @classmethod

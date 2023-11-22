@@ -7,13 +7,13 @@ SH shell
 """
 import os
 import os.path
-import pipes
 import subprocess
 from rez.config import config
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
 from rez.rex import EscapedString
+from rez.utils.py23 import quote
 
 
 class SH(UnixShell):
@@ -126,7 +126,7 @@ class SH(UnixShell):
 
         for is_literal, txt in value.strings:
             if is_literal:
-                txt = pipes.quote(txt)
+                txt = quote(txt)
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:

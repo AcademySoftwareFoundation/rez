@@ -149,7 +149,7 @@ class PackageCache(object):
                 is no guarantee the resulting variant payload will be functional).
 
         Returns:
-            2-tuple:
+            tuple: 2-tuple:
             - str: Path to cached payload
             - int: One of VARIANT_FOUND, VARIANT_CREATED, VARIANT_COPYING, VARIANT_COPY_STALLED
         """
@@ -205,7 +205,7 @@ class PackageCache(object):
 
             # Package belongs to a temp repo (this occurs when a package is
             # tested on pre_build/pre_release - see
-            # https://github.com/AcademySoftwareFoundation/rez/wiki/Package-Definition-Guide#tests)
+            # https://rez.readthedocs.io/en/stable/package_definition.html#tests)
             #
             if package.repository.name() == "filesystem" and \
                     package.repository.location.startswith(config.tmpdir + os.sep):
@@ -477,7 +477,8 @@ class PackageCache(object):
         """Get variants and their current statuses from the cache.
 
         Returns:
-            List of 3-tuple:
+            tuple: List of 3-tuple:
+
             - `Variant`: The cached variant
             - str: Local cache path for variant, if determined ('' otherwise)
             - int: Status. One of:

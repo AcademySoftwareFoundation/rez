@@ -5,7 +5,6 @@
 """
 CSH shell
 """
-import pipes
 import os.path
 import subprocess
 import re
@@ -16,6 +15,7 @@ from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
 from rez.rex import EscapedString
+from rez.utils.py23 import quote
 
 
 class CSH(UnixShell):
@@ -105,7 +105,7 @@ class CSH(UnixShell):
 
         for is_literal, txt in value.strings:
             if is_literal:
-                txt = pipes.quote(txt)
+                txt = quote(txt)
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
