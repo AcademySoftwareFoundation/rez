@@ -477,7 +477,7 @@ Following is a list of the objects and functions available.
       if "foo.cli" in ephemerals:
          info("Foo cli option is being specified!")
 
-.. py:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.vendor.version.version.VersionRange
+.. py:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.version.VersionRange
 
    Use ``get_range`` to test with the :func:`intersects` function.
    Here, we enable ``foo``'s commandline tools by default, unless explicitly disabled via
@@ -539,7 +539,7 @@ Following is a list of the objects and functions available.
 
       info("floob version is %s" % resolve.floob.version)
 
-.. py:function:: intersects(range1: str | ~rez.vendor.version.version.VersionRange | ~rez.rex_bindings.VariantBinding | ~rez.rex_bindings.VersionBinding, range2: str) -> bool
+.. py:function:: intersects(range1: str | ~rez.version.VersionRange | ~rez.rex_bindings.VariantBinding | ~rez.rex_bindings.VersionBinding, range2: str) -> bool
 
    A boolean function that returns True if the version or version range of the given
    object, intersects with the given version range. Valid objects to query include:

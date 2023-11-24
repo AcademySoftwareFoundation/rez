@@ -3,7 +3,7 @@
 
 
 from rez.package_repository import package_repository_manager
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.utils.logging_ import print_info
 from rez.vendor.six import six
 from rez.config import config

@@ -10,7 +10,7 @@ import rez
 from rez.package_maker import make_package
 from rez.bind._utils import check_version, make_dirs
 from rez.system import system
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.utils.lint_helper import env
 from rez.utils.execution import create_executable_script
 import shutil

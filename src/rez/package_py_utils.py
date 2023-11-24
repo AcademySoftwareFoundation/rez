@@ -56,8 +56,8 @@ def expand_requirement(request, paths=None):
     if '*' not in request:
         return request
 
-    from rez.vendor.version.version import VersionRange
-    from rez.vendor.version.requirement import Requirement
+    from rez.version import VersionRange
+    from rez.version import Requirement
     from rez.packages import get_latest_package
     from uuid import uuid4
 

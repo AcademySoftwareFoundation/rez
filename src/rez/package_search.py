@@ -23,7 +23,7 @@ from rez.utils.formatting import expand_abbreviations
 
 from rez.config import config
 
-from rez.vendor.version.requirement import Requirement
+from rez.version import Requirement
 
 
 def get_reverse_dependency_tree(package_name, depth=None, paths=None,

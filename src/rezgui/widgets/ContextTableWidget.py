@@ -12,8 +12,8 @@ from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
 from rez.packages import iter_packages
-from rez.vendor.version.requirement import Requirement
-from rez.vendor.version.version import VersionRange
+from rez.version import Requirement
+from rez.version import VersionRange
 from functools import partial
 import os.path
 

@@ -63,7 +63,7 @@ def list_repos_containing_pkg(pkg_name, pkg_version):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.package_repository import package_repository_manager
-    from rez.vendor.version.requirement import VersionedObject
+    from rez.version import VersionedObject
     import sys
 
     obj = VersionedObject(opts.PKG)

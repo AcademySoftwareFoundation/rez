@@ -7,7 +7,7 @@ from hashlib import sha1
 
 from rez.config import config
 from rez.utils.data_utils import cached_class_property
-from rez.vendor.version.version import Version
+from rez.version import Version
 
 
 class PackageOrder(object):

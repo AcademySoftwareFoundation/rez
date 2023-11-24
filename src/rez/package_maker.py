@@ -16,7 +16,7 @@ from rez.packages import Package
 from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.vendor.six import six
-from rez.vendor.version.version import Version
+from rez.version import Version
 from contextlib import contextmanager
 import os
 

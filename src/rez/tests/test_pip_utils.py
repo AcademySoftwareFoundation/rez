@@ -9,8 +9,8 @@ import unittest
 
 import rez.vendor.packaging.version
 import rez.vendor.distlib.database
-from rez.vendor.version.version import VersionRange
-from rez.vendor.version.requirement import Requirement
+from rez.version import VersionRange
+from rez.version import Requirement
 from rez.vendor.packaging.requirements import Requirement as packaging_Requirement
 from rez.vendor.packaging.specifiers import SpecifierSet
 from rez.exceptions import PackageRequestError

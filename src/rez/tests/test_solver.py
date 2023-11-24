@@ -8,7 +8,7 @@ test dependency resolving algorithm
 from __future__ import print_function
 
 import rez.exceptions
-from rez.vendor.version.requirement import Requirement
+from rez.version import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 from rez.config import config
 import unittest

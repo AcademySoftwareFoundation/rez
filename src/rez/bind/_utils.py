@@ -6,7 +6,7 @@
 Utility functions for bind modules.
 """
 from __future__ import absolute_import
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
 from rez.util import which

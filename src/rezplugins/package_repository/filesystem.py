@@ -35,7 +35,7 @@ from rez.config import config
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
 from rez.vendor.six import six
-from rez.vendor.version.version import Version, VersionRange
+from rez.version import Version, VersionRange
 
 
 basestring = six.string_types[0]
