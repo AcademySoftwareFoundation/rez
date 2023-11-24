@@ -2,11 +2,11 @@
 # Copyright Contributors to the Rez Project
 
 
-import warnings
+import rez.deprecations
 from rez.build_process import *  # noqa
 
 
-warnings.warn(
+rez.deprecations.warn(
     "rez.build_process_ is deprecated; import rez.build_process instead",
-    DeprecationWarning
+    rez.deprecations.RezDeprecationWarning,
 )

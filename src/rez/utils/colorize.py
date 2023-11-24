@@ -7,7 +7,6 @@ from __future__ import print_function
 import sys
 import logging
 from rez.vendor import colorama
-from rez.config import config
 
 # Important - we don't want to init Colorama at startup,
 # because colorama prints a RESET_ALL character at exit. This in turn adds
@@ -221,6 +220,7 @@ def _color(str_, fore_color=None, back_color=None, styles=None):
     .. _Colorama:
         https://pypi.python.org/pypi/colorama
     """
+    from rez.config import config  # Avoid circular import
     if not config.get("color_enabled", False):
         return str_
 
@@ -239,6 +239,7 @@ def _color(str_, fore_color=None, back_color=None, styles=None):
 
 
 def _get_style_from_config(key):
+    from rez.config import config  # Avoid circular import
     fore_color = config.get("%s_fore" % key, '')
     back_color = config.get("%s_back" % key, '')
     styles = config.get("%s_styles" % key, None)
@@ -281,6 +282,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
     @property
     def is_colorized(self):
+        from rez.config import config  # Avoid circular import
         return config.get("color_enabled", False) == "force" or self.is_tty
 
     def _get_style_function_for_level(self, level):
@@ -313,6 +315,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
 class Printer(object):
     def __init__(self, buf=sys.stdout):
+        from rez.config import config  # Avoid circular import
         self.colorize = (
             config.get("color_enabled", False) == "force"
             or stream_is_tty(buf)

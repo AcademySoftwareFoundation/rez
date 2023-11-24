@@ -252,8 +252,21 @@ operation of rez.
    Path to a file that will be consumed by :func:`logging.config.fileConfig` to configure
    the logger.
 
+
 Development Environment Variables
 =================================
+
+.. envvar:: REZ_LOG_DEPRECATION_WARNINGS
+
+   Enable all deprecation warnings to be logged regardless of how you have configured
+   your python interpreter. This is usefull to help upgrading to newer versions of rez.
+   Prior to updating, you should set this environment variable to see if you need to
+   change some things to be compatible with newer versions.
+
+   .. warning::
+
+      Enabling this will forcefully load every configuration file instead of loading them
+      lazilly. This can have an impact on startup time.
 
 .. envvar:: REZ_SIGUSR1_ACTION
 

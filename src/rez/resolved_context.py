@@ -43,6 +43,7 @@ from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
+import rez.deprecations
 
 from contextlib import contextmanager
 from functools import wraps
@@ -659,6 +660,12 @@ class ResolvedContext(object):
         doc = self.to_dict()
 
         if config.rxt_as_yaml:
+            rez.deprecations.warn(
+                "Writing the RXT file using the YAML format is deprecated. "
+                "Both this functionality and the rxt_as_yaml setting will "
+                "be removed in rez 3.0.0",
+                rez.deprecations.RezDeprecationWarning,
+            )
             content = dump_yaml(doc)
         else:
             content = json.dumps(doc, indent=4, separators=(",", ": "),
@@ -2102,7 +2109,8 @@ class ResolvedContext(object):
                 commands.set_package(pkg)
 
                 try:
-                    executor.execute_code(commands, isolate=True)
+                    with executor.reset_globals():
+                        executor.execute_code(commands)
                 except exc_type as e:
                     exc = e
 
