@@ -2,7 +2,7 @@
 
 <!-- start-here-sphinx-start-after -->
 
-## 2.114.0 (TBD)
+## 2.114.0 (2023-11-23)
 
 Probably the last release before 3.0.0
 
