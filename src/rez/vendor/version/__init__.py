@@ -2,10 +2,10 @@
 # Copyright Contributors to the Rez Project
 
 
-import warnings
+import rez.deprecations
 
-warnings.warn(
+rez.deprecations.warn(
     "module 'rez.vendor.version' is deprecated and will be removed in 3.0.0. Use 'rez.version' instead.",
-    DeprecationWarning,
+    rez.deprecations.RezDeprecationWarning,
     stacklevel=2
 )
