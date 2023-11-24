@@ -3,6 +3,7 @@
 <!-- start-here-sphinx-start-after -->
 
 ## 2.114.0 (2023-11-23)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.114.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.113.0...2.114.0)
 
 Probably the last release before 3.0.0
 
@@ -15,6 +16,17 @@ can still be used with Python 2.7+ but this will be dropped in 3.0.0
   all deprecation warnings to be printed, ignoring `PYTHONWARNINGS` and custom
   warning filters. Note that enabling this will forcefully load every
   configuration file instead of loading them lazilly.
+* This PR adds a new config variable called `error_on_missing_variant_requires` that controls what happens when
+  a variant lists missing packages in its requirements.
+
+  By default, it is True and will continue the existing behaviour of erroring when it encounters
+  a variant with missing packages in its list of requirements. This means that if the first variant
+  encounters a missing package in its request, it will not continue even if the second variant can resolve.
+
+  If it is disabled, it will print to stderr, treat the current phase as failed and continue on to the next phase.
+  If all variants fail, it will be the same as if no variants could resolve.
+
+  This feature was added by [dgovil](https://github.com/dgovil) in [\#1550](https://github.com/AcademySoftwareFoundation/rez/pull/1550).
 
 ### Deprecations
 
