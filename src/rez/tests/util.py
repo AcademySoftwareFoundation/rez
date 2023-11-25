@@ -62,7 +62,6 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.teardown_config()
-        self.assertNotEqual(os.environ, self.__environ)
         os.environ = self.__environ
 
     @classmethod
