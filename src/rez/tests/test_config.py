@@ -15,11 +15,13 @@ from rez.packages import get_developer_package
 from rez.vendor.six import six
 from rez.deprecations import RezDeprecationWarning
 import os
+import sys
 import os.path
 import subprocess
-import unittest.mock
 import functools
 import shutil
+if sys.version_info[:3] >= (3, 3):
+    import unittest.mock
 
 
 class TestConfig(TestBase):
@@ -297,6 +299,7 @@ class TestConfig(TestBase):
                 raise
 
 
+@unittest.skipIf(sys.version_info[0] < 3, "Skip on python 2")
 class TestDeprecations(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
