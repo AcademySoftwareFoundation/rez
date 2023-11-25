@@ -25,6 +25,9 @@ def setup_parser(parser, completions=False):
         "--create", action="store_true",
         help="create an empty suite at DIR")
     parser.add_argument(
+        "-u", "--update", action="store_true",
+        help="update the suite contexts with resolved packages")
+    parser.add_argument(
         "-c", "--context", type=str, metavar="NAME",
         help="specify a context name (only used when using a context-specific "
         "option, such as --add)")
@@ -93,10 +96,29 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.resolved_context import ResolvedContext
     import sys
 
-    context_needed = set(("add", "prefix", "suffix", "hide", "unhide", "alias",
-                          "unalias", "interactive"))
-    save_needed = set(("add", "remove", "bump", "prefix", "suffix", "hide",
-                       "unhide", "alias", "unalias"))
+    context_needed = {
+        "add",
+        "prefix",
+        "suffix",
+        "hide",
+        "unhide",
+        "alias",
+        "unalias",
+        "interactive"
+    }
+
+    save_needed = {
+        "update",
+        "add",
+        "remove",
+        "bump",
+        "prefix",
+        "suffix",
+        "hide",
+        "unhide",
+        "alias",
+        "unalias"
+    }
 
     def _pr(s):
         if opts.verbose:
@@ -147,6 +169,8 @@ def command(opts, parser, extra_arg_groups=None):
             print('\n'.join(context_names))
     elif _option("print_tools"):
         suite.print_tools(verbose=opts.verbose, context_name=opts.context)
+    elif _option("update"):
+        suite.update(verbose=opts.verbose)
     elif _option("add"):
         _pr("loading context at %r..." % opts.add)
         context = ResolvedContext.load(opts.add)

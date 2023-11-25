@@ -391,6 +391,24 @@ class Suite(object):
         self._update_tools()
         return self.tool_conflicts.get(tool_alias)
 
+    def update(self, verbose=False):
+        for context_name in self.context_names:
+            context = self.context(context_name)
+            updated_context = ResolvedContext(
+                package_requests=context.requested_packages(),
+                package_paths=context.package_paths,
+                verbosity=verbose
+            )
+            if not updated_context.success:
+                raise SuiteError("Context is not resolved: %r" % context_name)
+            try:
+                self.contexts[context_name]['context'] = updated_context
+            except KeyError as e:
+                raise SuiteError(
+                    "Error updating context %r: %s" % (context_name, str(e))
+                )
+        self._flush_tools()
+
     def validate(self):
         """Validate the suite."""
         for context_name in self.context_names:
