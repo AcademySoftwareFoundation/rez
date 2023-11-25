@@ -1032,7 +1032,10 @@ def _load_config_from_filepaths(filepaths):
                 for key in data_:
                     if key in _deprecated_settings:
                         rez.deprecations.warn(
-                            _deprecated_settings[key].get_message(),
+                            _deprecated_settings[key].get_message(
+                                key,
+                                env_var=False,
+                            ),
                             rez.deprecations.RezDeprecationWarning,
                             pre_formatted=True,
                             filename=filepath_with_ext,

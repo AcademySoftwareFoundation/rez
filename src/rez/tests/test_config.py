@@ -6,16 +6,20 @@
 test configuration settings
 """
 import unittest
-from rez.tests.util import TestBase
+from rez.tests.util import TestBase, TempdirMixin, restore_os_environ
 from rez.exceptions import ConfigurationError
-from rez.config import Config, get_module_root_config, _replace_config
+from rez.config import Config, get_module_root_config, _replace_config, _Deprecation
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages import get_developer_package
 from rez.vendor.six import six
+from rez.deprecations import RezDeprecationWarning
 import os
 import os.path
 import subprocess
+import unittest.mock
+import functools
+import shutil
 
 
 class TestConfig(TestBase):
@@ -291,6 +295,90 @@ class TestConfig(TestBase):
             except subprocess.CalledProcessError as error:
                 print(error.stdout)
                 raise
+
+
+class TestDeprecations(TestBase, TempdirMixin):
+    @classmethod
+    def setUpClass(cls):
+        cls.settings = {}
+        TempdirMixin.setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
+
+    def test_deprecation_from_user_config(self):
+        user_home = os.path.join(self.root, "user_home")
+        self.addCleanup(functools.partial(shutil.rmtree, user_home))
+
+        os.makedirs(user_home)
+
+        with open(os.path.join(user_home, ".rezconfig.py"), "w") as fd:
+            fd.write("packages_path = ['/tmp/asd']")
+
+        fake_deprecated_settings = {
+            "packages_path": _Deprecation("0.0.0"),
+        }
+
+        with unittest.mock.patch(
+            "rez.config._deprecated_settings",
+            fake_deprecated_settings
+        ):
+            with restore_os_environ():
+                os.environ['HOME'] = user_home
+                config = Config._create_main_config()
+                with self.assertWarns(RezDeprecationWarning) as warn:
+                    _ = config.data
+                    # Assert just to ensure the test was set up properly.
+                    self.assertEqual(config.data["packages_path"], ["/tmp/asd"])
+
+                self.assertEqual(
+                    str(warn.warning),
+                    "config setting named 'packages_path' is deprecated and will be removed in 0.0.0.",
+                )
+
+    def test_deprecation_from_env_var(self):
+        fake_deprecated_settings = {
+            "packages_path": _Deprecation("0.0.0"),
+        }
+
+        with unittest.mock.patch(
+            "rez.config._deprecated_settings",
+            fake_deprecated_settings
+        ):
+            with restore_os_environ():
+                # Test with non-json env var
+                os.environ["REZ_PACKAGES_PATH"] = "/tmp/asd2"
+                os.environ["REZ_DISABLE_HOME_CONFIG"] = "1"
+                config = Config._create_main_config()
+                with self.assertWarns(RezDeprecationWarning) as warn:
+                    _ = config.data
+                    # Assert just to ensure the test was set up properly.
+                    self.assertEqual(config.data["packages_path"], ["/tmp/asd2"])
+
+                self.assertEqual(
+                    str(warn.warning),
+                    "config setting named 'packages_path' (configured through the "
+                    "REZ_PACKAGES_PATH environment variable) is deprecated and will "
+                    "be removed in 0.0.0.",
+                )
+
+            with restore_os_environ():
+                # Test with json env var
+                os.environ["REZ_PACKAGES_PATH_JSON"] = '["/tmp/asd2"]'
+                os.environ["REZ_DISABLE_HOME_CONFIG"] = "1"
+                config = Config._create_main_config()
+                with self.assertWarns(RezDeprecationWarning) as warn:
+                    _ = config.data
+                    # Assert just to ensure the test was set up properly.
+                    self.assertEqual(config.data["packages_path"], ["/tmp/asd2"])
+
+                self.assertEqual(
+                    str(warn.warning),
+                    "config setting named 'packages_path' (configured through the "
+                    "REZ_PACKAGES_PATH_JSON environment variable) is deprecated and will "
+                    "be removed in 0.0.0.",
+                )
 
 
 if __name__ == "__main__":
