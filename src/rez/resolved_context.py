@@ -708,15 +708,29 @@ class ResolvedContext(object):
                 context = cls.read_from_buffer(f, path)
 
         context.set_load_path(path)
+        context.implicit_packages = [
+            PackageRequest(x) for x in config.implicit_packages
+        ]
         return context
 
     @classmethod
     def read_from_buffer(cls, buf, identifier_str=None):
         """Load the context from a buffer."""
         try:
-            return cls._read_from_buffer(buf, identifier_str)
+            content = buf.read()
+            if content.startswith('{'):  # assume json content
+                doc = json.loads(content)
+            else:
+                doc = yaml.load(content, Loader=yaml.FullLoader)
+            context = cls.from_dict(doc, identifier_str)
+            return context
+
         except Exception as e:
-            cls._load_error(e, identifier_str)
+            exc_name = e.__class__.__name__
+            msg = "Failed to load context"
+            if identifier_str:
+                msg += " from %s" % identifier_str
+            raise ResolvedContextError("%s: %s: %s" % (msg, exc_name, str(e)))
 
     def get_resolve_diff(self, other):
         """Get the difference between the resolve in this context and another.
@@ -1926,25 +1940,6 @@ class ResolvedContext(object):
                 e.__class__.__name__, e
             )
 
-    @classmethod
-    def _read_from_buffer(cls, buf, identifier_str=None):
-        content = buf.read()
-
-        if content.startswith('{'):  # assume json content
-            doc = json.loads(content)
-        else:
-            doc = yaml.load(content, Loader=yaml.FullLoader)
-
-        context = cls.from_dict(doc, identifier_str)
-        return context
-
-    @classmethod
-    def _load_error(cls, e, path=None):
-        exc_name = e.__class__.__name__
-        msg = "Failed to load context"
-        if path:
-            msg += " from %s" % path
-        raise ResolvedContextError("%s: %s: %s" % (msg, exc_name, str(e)))
 
     def _set_parent_suite(self, suite_path, context_name):
         self.parent_suite_path = suite_path
