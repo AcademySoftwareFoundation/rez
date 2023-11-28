@@ -223,7 +223,7 @@ the cache is to copy that content locally instead, and avoid the network cost.
    definitions. Only their payloads (ie, the package root directory).
 
 Build behavior
-------------------------------
+--------------
 
 Package caching during a package build is disabled by default. To enable caching during
 a package build, you can set :data:`package_cache_during_build` to True.
