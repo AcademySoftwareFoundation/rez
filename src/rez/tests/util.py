@@ -18,6 +18,7 @@ import os
 import functools
 import sys
 import json
+import copy
 from contextlib import contextmanager
 
 # https://pypi.org/project/parameterized
@@ -39,6 +40,11 @@ class TestBase(unittest.TestCase):
         cls.settings = {}
 
     def setUp(self):
+        # We have some tests that unfortunately don't clean themselves up
+        # after they are done. Store the origianl environment to be
+        # restored in tearDown
+        self.__environ = copy.deepcopy(os.environ)
+
         self.maxDiff = None
         os.environ["REZ_QUIET"] = "true"
 
@@ -56,6 +62,7 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.teardown_config()
+        os.environ = self.__environ
 
     @classmethod
     def data_path(cls, *dirs):
