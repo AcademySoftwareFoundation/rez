@@ -82,7 +82,8 @@ jobs:
           # protected branch (main) from this workflow.
           # See https://github.community/t/how-to-push-to-protected-branches-in-a-github-action/16101/14
           #
-          token: "${{ secrets.GH_ACTION_TOKEN }}"
+          # Disable for now until we find a better solution.
+          # token: "${{ secrets.GH_ACTION_TOKEN }}"
 
       - name: Checkout (pr)
         uses: actions/checkout@v4
@@ -119,21 +120,21 @@ jobs:
           echo '</details>' >> $GITHUB_STEP_SUMMARY
         working-directory: src
 
-      - name: Setup git config
-        if: ${{ github.event_name == 'release' }}
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-        working-directory: src
+      # - name: Setup git config
+      #   if: ${{ github.event_name == 'release' }}
+      #   run: |
+      #     git config user.name 'github-actions[bot]'
+      #     git config user.email 'github-actions[bot]@users.noreply.github.com'
+      #   working-directory: src
 
-      - name: Git commit and push
-        if: ${{ github.event_name == 'release' }}
-        run: |
-          if [[ "$(git status --porcelain)" == "" ]]; then
-            echo "Nothing new to commit"
-          else
-            git add --all
-            git commit -m "Generated from GitHub "${{ github.workflow }}" Workflow"
-            git push origin main
-          fi
-        working-directory: src
+      # - name: Git commit and push
+      #   if: ${{ github.event_name == 'release' }}
+      #   run: |
+      #     if [[ "$(git status --porcelain)" == "" ]]; then
+      #       echo "Nothing new to commit"
+      #     else
+      #       git add --all
+      #       git commit -m "Generated from GitHub "${{ github.workflow }}" Workflow"
+      #       git push origin main
+      #     fi
+      #   working-directory: src
