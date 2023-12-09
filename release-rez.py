@@ -11,7 +11,7 @@ from __future__ import print_function
 import argparse
 import os
 from datetime import date
-from rez.utils.py23 import quote
+from shlex import quote
 import subprocess
 import sys
 

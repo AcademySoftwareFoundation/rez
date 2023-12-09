@@ -2,6 +2,14 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## 2.114.1 (2023-12-09)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.114.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.114.0...2.114.1)
+
+**Merged pull requests:**
+
+- Fix exception when deprecated settings appear in a user config [\#1595](https://github.com/AcademySoftwareFoundation/rez/pull/1595) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Add cross reference for package_cache_during_build in docs [\#1598](https://github.com/AcademySoftwareFoundation/rez/pull/1598) ([brycegbrazen](https://github.com/brycegbrazen))
+
 ## 2.114.0 (2023-11-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.114.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.113.0...2.114.0)
 
