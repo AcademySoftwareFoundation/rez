@@ -1,0 +1,176 @@
+# This file establishes email equivalences so we can resolve what look like
+# multiple authors, but actually are the same author who has used multiple
+# emails over the course of their involvement with the project.
+#
+# The format is any of the following:
+#     <CANONICAL-EMAIL> <alternate-email>
+#     CANONICAL-NAME <CANONICAL-EMAIL> <alternate-email>
+#     CANONICAL-NAME <CANONICAL-EMAIL> alternate-name <alternate-email>
+#
+# You can check for duplicates with this command:
+#     git shortlog -sne --all
+# That command (and others) will use this file to collapse the duplicates.
+#
+# If you see any duplicates we don't account for here, or if you look at your
+# own entry here and want a different name or email to be your canonical one
+# (we may not have guessed correctly and matched your preferences), please
+# file a PR with the edits to this file.
+
+Allan Johns <nerdvegas@gmail.com> <allan.johns@methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <aljohns@nvidia.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@14apr07.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@14apr13.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@14may03.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@14may07.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@la01-mgos01.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@la-gitproxy02.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@la-ub12-git01.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@la-ws012.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@la-ws024.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@nn045.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@nn188.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@rebspc.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> <ajohns@sw-reference-ub12-01.(none)>
+Allan Johns <nerdvegas@gmail.com> <ajohns@va1ws5076.methodstudios.net>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas at gee mail dot com>
+Allan Johns <nerdvegas@gmail.com> <allan.johns@acapella.method-lc.dlx.com.au>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@050f4f8a113a4cb5adbff2a58650524c795f41f1>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@0cd80db3de1611e76c6e2be22f0b7c21626df368>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@0e674b847e678c2afc7c7980ec45f4b65dde61e7>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@0f81c204c7ac32fd4a496eaa2c2869bea108d42a>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@102970c59027ebd747a6c55ad8d6fd1173f0301f>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@106b71a98ea7616aa219db92efdd1f0bd2bffc66>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@14e4d6a791526831c37630ee164cb570aaaf7664>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@1a8e8ea565a3788f58c8a653c4c252bf05eeeca6>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@204245764620c1aaf9901432b0fc324674406c06>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@27f0ef98dfeb254594a992408268f6390200fe61>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@2990208e7b8ba9e8d2b23b3d1dd0ba05176b7b23>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@2e1d1a4ba2c600e60ac7a23869ab957a99ecf12f>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@3561085ab4c920e299e9512211cca323e8e6138b>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@3b2d2d78362e96b409b52661c831963b6c2c85bf>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@3c7d26924b101650964760606712ece9628ed3e7>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@3e51bae23cc22f4aa64a20791f528218245a3dbd>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@3f0833449c1c7c0f3ca885d2acb02ae6389898f6>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@3f66e9ca1a0db227af608757e8dced08e88bd461>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@3fa37b84e674ee9eaa887b41d8b8eb5f91e6b90f>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@40d9c9f085ebe656a62382edc360fbe615b31cb4>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@446d4d48e4a21fb8a1037e590533164ac2f495b8>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@485b5137b25f1244f50f19d6082f7fc6c9e1734e>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@495e43787a9d9ede1f3f4e8560db586d3b752a7c>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@4ec736c1bce325b840f4a17cfb4dd2aa179a8f7f>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@50285ef01718626115c1532f2894d5173f86200f>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@515e9fc849bb2c623557bdf8cccdd701c2c5df60>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@549cbba49d41ec58f8601011f112336865b2805d>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@57498dfa3f64392177a122407e35271cac51d0a8>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@5ab8827de41f501ffec398435fb3a47fa41005dc>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@5f222c6bedc403463c61da491b39458b555a9e1f>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@5fa39cc4967c9ac7e98d12c35ec6d5ae6f65f839>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@6071fe5be609d7b68685583d7830241a83bd1134>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@65e46ccdee35a5da41b67e451b01dde397e09f86>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@6bd2f451e2ca464abcdcca3c7060a81fca1c2765>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@6c7efaf8bd04d6e7fdff327e8abb92e1bceb0c8c>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@72f5a3ad1d7d269c76da54ed8e6a7c4013ed43c6>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@7ac15cb31ba07c3d998bc811cd53319b7486750e>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@7c002c1357c144c392785464952a52dc90b21199>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@7cbf2396db8c351089c19eaf20d4345d45cab30d>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@7ef100c3d50705227fc3216a4cfeddfec5d1072a>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@893ca12dc19db22ecbd76a8d9867204b22a6ae8c>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@9453be8d561fc2c5c737048bcccfe0cd5c2fb4b4>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@97c32c68b4b12a5cca2681a823c5fbac0eaf9ea0>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@97ced4bcedbde71ae14396564908b3f47acc8de9>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@9aeb934e51808c865f03206ba248842ef8a04f56>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@9cad36cc3f0f8df5b678851599f5f551e83bfa6c>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@a01b0dae399be8e81f4bcbe6d211cbfb12045786>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@a043125d43e01f8c1ae440f0086f712c86b67214>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@a195feaba4867f6b00a4c78c9dee3e206d258345>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@a55d76dfd60cba0a9836e7bdd9853967925816ba>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@a7ea1c858e37f7c01a8a83c9c2a0c56792f43e89>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@a9d1ec92b8534dcb6bd9c9470abeda62c6501d2f>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@aa0b1b7b451a9c6e2bfe1d5f6992ad7fc47b3c03>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@ac451cdb7469305f91119baff17117b6748899fc>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@af5d3072b82bd74f59fed95518ee821483698166>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@b0b8f28fd5f6a3e216e3b721d82b1a798b30cfd4>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@b1c61467e6a7696187255695151594ec07168b70>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@b4e3ffcb5f29e17b9073fe7ebc48300544657ffe>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@b52ef8059c66715a44220bbdb6f7464b55536e0e>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@b5aa0055f2d4865561b4fa884607a41c9dd7fabc>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@b7a0d01f0f741caa1b8b73d5a697b93b3507c173>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@b82c012232438f5c3997ce0c36199231cd684975>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@baee9736ca04825620acb765e1d2ba91ed5c5dd4>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@bee7e7f8637a854ba31f0bda85708f2cb8b18263>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@c04643e63751b8137dcbaf3b066b90fefc5f1ac1>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@c1edca5f4d912bd51985ce8f1b0738224b387ec1>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@c4b4b8191b68fb136336bf967a6964d7d537950e>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@c6954d5f15592dd259baf93218c240441f895534>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@c8108c54069c8fd990504dc5304d5df03b401efa>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@cdf0aa9d44531fa7f727fcef16188def0e55f435>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@d25797bc9df95982bd6f2da04f1f9f20c4d4e1f4>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@d26d740b1731121bcd17da069614f6f5bced75bb>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@d6ce71bec0d9c20fdccfc7d57db0d44ea0822bc5>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@dadecde7c4252574d7892ca5aa9482da0341bced>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@dc198c6d4431ea91d3b777b1e5236e0351c42f5e>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@dccba0d2533d29a3276211783d423f71c817d9a6>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@e16126a4d34acc055c114bc7b5f6e0d55de7c09b>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@e77cf307df8a951997a9d7d1b384f76324eed5d4>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@ed8f8e29e3824d58256185bff2eb050b7ad1bfae>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@fdb7885a1725d2e281e426a2500a6590f9f801f2>
+Allan Johns <nerdvegas@gmail.com> <nerdvegas@gmail.com@e6eb1edf-3a88-c135-55be-1f5b7bf7ed03>
+Allan Johns <nerdvegas@gmail.com> <(no author)@e6eb1edf-3a88-c135-55be-1f5b7bf7ed03>
+Allan Johns <nerdvegas@gmail.com> RACHEL JOHNS <racheljohns@RACHELs-MacBook-Air.local>
+Allan Johns <nerdvegas@gmail.com> <root@nn188.methodstudios.com>
+Allan Johns <nerdvegas@gmail.com> ajohns <nerdvegas@gmail.com>
+Allan Johns <nerdvegas@gmail.com> allan johns <nerdvegas@gmail.com>
+Allan Johns <nerdvegas@gmail.com> nerdvegas <nerdvegas@gmail.com>
+
+Alexandra Lefève-Gourmelon <gou@mikrosimage.eu> Alexandra Lefeve <alefeve@superprod.net>
+
+Ben Dickson <dbr.onix@gmail.com> dbr <dbr.onix@gmail.com>
+
+Blazej Floch <register@bfloch.com> <b.floch@toonboxent.com>
+Blazej Floch <register@bfloch.com> <blazej.floch@tangent-animation.com>
+
+Brendan Abel <007brendan@gmail.com> <babel@ssla.local>
+Brendan Abel <007brendan@gmail.com> <brendan.abel@saatchi.com>
+Brendan Abel <007brendan@gmail.com> <brendan.p.abel@disney.com>
+
+David Lai <davidlatwe@gmail.com> davidlatwe <davidlatwe@gmail.com>
+
+Fabio Piparo <fabiop@themill.com> <fpiparo2@gfxuk057.london.methodstudios.com>
+Fabio Piparo <fabiop@themill.com> <fabio.piparo@methodstudios.com>
+
+Hal <13111745+loonghao@users.noreply.github.com> longhao <longhao@corp.netease.com>
+
+Jason Scott <jason@thescottclan.org> <jason_scott@siggraph.org>
+
+Jean-Christophe Morin <jean_christophe_morin@hotmail.com> <38703886+JeanChristopheMorinPerso@users.noreply.github.com>
+Jean-Christophe Morin <jean_christophe_morin@hotmail.com> <jcmorin@rodeofx.com>
+
+Joseph Yu <josephyu2712+github@gmail.com> <josephyu2712+github@gmail.com>
+Joseph Yu <josephyu2712+github@gmail.com> <joseph.yu@wwfx.co.uk>
+
+Mark Streatfield <mstreatfield@gmail.com> <markst@al.com.au>
+Mark Streatfield <mstreatfield@gmail.com> <Mark.Streatfield@al.com.au>
+
+Stephen Mackenzie <maxnbk@gmail.com> maxnbk <maxnbk@gmail.com>
+Stephen Mackenzie <maxnbk@gmail.com> <maxnbk@users.noreply.github.com>
+Stephen Mackenzie <maxnbk@gmail.com> <maxnbk@74ebe1db6aa56ce76629f3825b76ce8f8d17574c>
+Stephen Mackenzie <maxnbk@gmail.com> <stephen.mackenzie@methodstudios.com>
+
+Michael Morehouse <michaelmovies@users.noreply.github.com> <michael.morehouse@pixomondo.com>
+
+Morné Chamberlain <thefreeman.za@gmail.com> <morne@blackginger.tv>
+
+Paul Molodowitch <elrond79@gmail.com> <paulm@luma-pictures.com>
+
+Sylvain Maziere <sylvain@predat.fr> predat <sylvain@predat.fr>
+Sylvain Maziere <sylvain@predat.fr> <sylvain.maziere@mikrosimage.com>
+
+Renaud Lessard Larouche <renaudll@users.noreply.github.com> <rlessard@rodeofx.com>
+Renaud Lessard Larouche <renaudll@users.noreply.github.com> <rlessard@squeezestudio.com>
+
+Sebastian Kral <git@sebastiankral.de> <sebastian.kral@pixomondo.com>
+Sebastian Kral <git@sebastiankral.de> skral <git@sebastiankral.de>
+
+Thomas Mansencal <thomas.mansencal@gmail.com> <thomas@wingnutar.com>
+
+Thorsten Kaufmann <instinctvfx@googlemail.com> <Thorsten.Kaufmann@mackevision.com>
