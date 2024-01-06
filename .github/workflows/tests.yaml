@@ -1,0 +1,80 @@
+name: tests
+on:
+  pull_request:
+    paths:
+    - 'src/**'
+    - '.github/workflows/tests.yaml'
+    - '!src/rez/utils/_version.py'
+    - '!**.md'
+  push:
+    paths:
+    - 'src/**'
+    - '.github/workflows/tests.yaml'
+    - '!src/rez/utils/_version.py'
+    - '!**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Tests
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: ['macos-latest', 'ubuntu-latest', 'windows-latest']
+        python-version: ['3.7', '3.9', '3.10', '3.11']
+        include:
+        - os: macos-latest
+          shells: 'sh,csh,bash,tcsh,zsh,pwsh'
+          rez-path: /installdir/bin/rez
+        - os: ubuntu-latest
+          shells: 'sh,csh,bash,tcsh,zsh,pwsh'
+          rez-path: /installdir/bin/rez
+        - os: windows-latest
+          shells: 'cmd,pwsh,gitbash'
+          rez-path: \installdir\Scripts\rez
+
+      fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install test system dependencies (linux)
+      if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+      run: |
+        set -ex
+        sudo apt-get update
+
+        cmake --version
+        pwsh --version
+
+        sudo apt-get install -y csh tcsh zsh
+
+    - name: Install rez
+      run: python ./install.py ./installdir
+
+    - name: Setup environment variables
+      shell: bash
+      env:
+        _GH_REZ_INSTALL_PATH: ${{ github.workspace }}${{ matrix.rez-path }}
+      run: |
+        echo "$_GH_REZ_INSTALL_PATH" >> $GITHUB_PATH
+
+    - name: Install test dependencies
+      run: rez-python -m pip install pytest-cov parameterized
+
+    - name: Run tests
+      run: rez-selftest -v
+      env:
+        _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
