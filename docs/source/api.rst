@@ -2,6 +2,13 @@
 Python API
 ==========
 
+WARNING
+=============
+Please note the following warnings prior to using the Rez Python API:
+
+* We try our best to not break users, but there are no compatibility guarantees between different versions of Rez.
+* The Python API does not currently support rereading from configuration files, or changing to new configuration files after the Python API has initially been imported. If you need to support this functionality, prefer the CLI instead.
+
 .. autosummary::
    :toctree: api
    :recursive:
