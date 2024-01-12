@@ -81,6 +81,13 @@ version than ``1.0``.
    a version number doesn't matter, you can have as many as you like. While you are encouraged to use
    semantic versioning (see `<https://semver.org>`_), it is not enforced.
 
+.. note::
+   If you are using semantic versioning, please note that version ordering will NOT behave like described
+   in the semantic versioning 2.0.0 spec. Rez gives no special bearing to "pre release" identifiers (as defined by
+   semantic versioning).
+
+   Ex. foo-1.0.0 < foo-1.0.0-beta.1
+
 .. _packages-concept:
 
 Packages
