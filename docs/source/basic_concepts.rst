@@ -78,13 +78,11 @@ version than ``1.0``.
 .. note::
    No special importance is given to specific characters or letters in Rez version numbers.
    The terms ``alpha`` and ``beta`` for example have no special meaning. Similarly, the number of tokens in
-   a version number doesn't matter, you can have as many as you like. While you are encouraged to use
-   semantic versioning (see `<https://semver.org>`_), it is not enforced.
+   a version number doesn't matter, you can have as many as you like.
 
-.. note::
-   If you are using semantic versioning, please note that version ordering will NOT behave like described
-   in the semantic versioning 2.0.0 spec. Rez gives no special bearing to "pre release" identifiers (as defined by
-   semantic versioning).
+   While you are encouraged to use semantic versioning (see `<https://semver.org>`_), it is not enforced. Please note
+   that if you are using semantic versioning, version ordering will NOT behave like described in the semantic versioning
+   2.0.0 spec.
 
    Ex. foo-1.0.0 < foo-1.0.0-beta.1
 
