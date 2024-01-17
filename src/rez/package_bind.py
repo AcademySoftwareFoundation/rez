@@ -19,10 +19,10 @@ def get_bind_modules(verbose=False):
     """Get available bind modules.
 
     Returns:
-        dict: Map of (name, filepath) listing all bind modules.
+        dict[str, str]: Map of (name, filepath) listing all bind modules.
     """
     builtin_path = os.path.join(module_root_path, "bind")
-    searchpaths = config.bind_module_path + [builtin_path]
+    searchpaths = [builtin_path] + config.bind_module_path
     bindnames = {}
 
     for path in searchpaths:
@@ -85,14 +85,14 @@ def bind_package(name, path=None, version_range=None, no_deps=False,
     Args:
         name (str): Package name.
         path (str): Package path to install into; local packages path if None.
-        version_range (`VersionRange`): If provided, only bind the software if
+        version_range (rez.vendor.version.version.VersionRange): If provided, only bind the software if
             it falls within this version range.
         no_deps (bool): If True, don't bind dependencies.
         bind_args (list of str): Command line options.
         quiet (bool): If True, suppress superfluous output.
 
     Returns:
-        List of `Variant`: The variant(s) that were installed as a result of
+        list[rez.packages.Variant]: The variant(s) that were installed as a result of
         binding this package.
     """
     pending = set([name])
