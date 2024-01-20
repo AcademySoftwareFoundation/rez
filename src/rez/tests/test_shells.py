@@ -70,7 +70,9 @@ class TestShells(TestBase, TempdirMixin):
         shells = set(x for x in shells if x)
 
         if not shells:
-            self.skipTest("Not ensuring presence of shells from explicit list")
+            self.skipTest(
+                "Not ensuring presence of shells from explicit list because $_REZ_ENSURE_TEST_SHELLS is either empty or not defined"
+            )
             return
 
         # check for missing shells
