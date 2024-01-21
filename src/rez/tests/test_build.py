@@ -184,6 +184,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_translate_lib()
         self._test_build_sup_world()
 
+    @unittest.skipIf(platform_.name == "windows", "Skipping because make and GCC are not common on Windows")
     @program_dependent("make", "g++")
     def test_build_custom(self):
         """Test a make-based package that uses the custom_build attribute."""
