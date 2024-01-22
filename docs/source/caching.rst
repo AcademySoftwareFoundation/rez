@@ -14,6 +14,7 @@ Setup
 To enable memcached caching, you need to configure the :data:`memcached_uri` config variable. This variable accepts a list of memcached uri servers or None. Example with memcached running on localhost on its default port:
 
 .. code-block:: console
+
    memcached_uri = ["127.0.0.1:11211"]
 
 This is the only parameter you need to configure to enable caching of the content and location of package file definitions and resolutions in Rez.
@@ -32,7 +33,7 @@ There are several variables that can be accessed to modify the default behavior 
 * :data:`memcached_resolve_min_compress_len`
 
 
-Validate caching operation
+Validating operation
 --------------------------
 To print debugging information about memcached usage, you can temporarily declare the following variables in a terminal:
 
@@ -42,6 +43,16 @@ To print debugging information about memcached usage, you can temporarily declar
    $env:REZ_DEBUG_MEMCACHE=1 (powershell)
 
 or set :data:`debug_memcache` to True in your rezconfig.py.
+
+Cache invalidation
+----------------------
+Cache entries will automatically be invalidated when a newer package version is released that would change the result
+of an existing resolve.
+
+For example, let's say you are running rez-env with the package ``foo1+<2``, and originally, the only available
+``foo`` package version is ``1.0.0``, so the cached resolve points to ``1.0.0``. However, at some point afterwards
+you release a new version ``1.0.1``. The cache would invalidate for the request ``foo1+<2`` and the next resolve
+would correctly retrieve package version ``1.0.1``.
 
 
 Show stats from memcached server
