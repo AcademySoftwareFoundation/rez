@@ -5,7 +5,8 @@ Caching
 Resolve Caching
 ===============
 
-Resolve caching is a feature that caches resolves to a memcached server.
+Resolve caching is a feature that caches resolves to a memcached (in-memory) server. Because the server is in-memory,
+the full contents of the cache are lost if the memcached service shuts down by any means.
 
 Setup
 -----
@@ -21,21 +22,14 @@ Configuration
 -------------
 There are several variables that can be accessed to modify the default behavior of resolve caching:
 
-:data:`resolve_caching`: enabled by default; cache resolves in memcached. Note that these cache entries will be correctly invalidated if, for example, a new version of the package is released and modifies the result of an existing resolve.
-
-:data:`cache_package_files`: enabled by default; Cache package file definition reads to memcached. Updated package files will still be read correctly (ie, the cache invalidates when the filesystem changes).
-
-:data:`cache_listdir`: enabled by default; Cache directory traversals to memcached. Updated directory entries will still be read correctly (ie, the cache invalidates when the filesystem changes).
-
-:data:`resource_caching_maxsize`: -1 by default; The size of the local (in-process) resource cache. Resources include package families, packages and variants. A value of 0 disables caching; -1 sets a cache of unlimited size. The size refers to the number of entries, not byte count.
-
-:data:`memcached_package_file_min_compress_len`: 16384 by default; Bytecount beyond which memcached entries are compressed, for cached package files (such as package.yaml, package.py). Zero means never compress.
-
-:data:`memcached_context_file_min_compress_len`: 1 by default; Bytecount beyond which memcached entries are compressed, for cached context files (aka .rxt files). Zero means never compress.
-
-:data:`memcached_listdir_min_compress_len`: 16384 by default; Bytecount beyond which memcached entries are compressed, for directory listings. Zero means never compress.
-
-:data:`memcached_resolve_min_compress_len`: 1 by default; Bytecount beyond which memcached entries are compressed, for resolves. Zero means never compress.
+* :data:`resolve_caching`
+* :data:`cache_package_files`
+* :data:`cache_listdir`
+* :data:`resource_caching_maxsize`
+* :data:`memcached_package_file_min_compress_len`
+* :data:`memcached_context_file_min_compress_len`
+* :data:`memcached_listdir_min_compress_len`
+* :data:`memcached_resolve_min_compress_len`
 
 
 Validate caching operation
