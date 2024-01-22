@@ -7,6 +7,59 @@ Resolve Caching
 
 Resolve caching is a feature that caches resolves to a memcached server.
 
+Setup
+-----
+
+To enable memcached caching, you need to configure the :data:`memcached_uri` config variable. This variable accepts a list of memcached uri servers or None. Example with memcached running on localhost on its default port:
+
+.. code-block:: console
+   memcached_uri = ["127.0.0.1:11211"]
+
+This is practically the only parameter you need to configure to enable caching of the content and location of package file definitions and resolutions in Rez.
+However, several variables can be accessed to modify the default behavior:
+
+:data:`resolve_caching`: enabled by default; cache resolves in memcached. Note that these cache entries will be correctly invalidated if, for example, a new version of the package is released and modifies the result of an existing resolve.
+
+:data:`cache_package_files`: enabled by default; Cache package file definition reads to memcached. Updated package files will still be read correctly (ie, the cache invalidates when the filesystem changes).
+
+:data:`cache_listdir`: enabled by default; Cache directory traversals to memcached. Updated directory entries will still be read correctly (ie, the cache invalidates when the filesystem changes).
+
+:data:`resource_caching_maxsize`: -1 by default; The size of the local (in-process) resource cache. Resources include package families, packages and variants. A value of 0 disables caching; -1 sets a cache of unlimited size. The size refers to the number of entries, not byte count.
+
+:data:`memcached_package_file_min_compress_len`: 16384 by default; Bytecount beyond which memcached entries are compressed, for cached package files (such as package.yaml, package.py). Zero means never compress.
+
+:data:`memcached_context_file_min_compress_len`: 1 by default; Bytecount beyond which memcached entries are compressed, for cached context files (aka .rxt files). Zero means never compress.
+
+:data:`memcached_listdir_min_compress_len`: 16384 by default; Bytecount beyond which memcached entries are compressed, for directory listings. Zero means never compress.
+
+:data:`memcached_resolve_min_compress_len`: 1 by default; Bytecount beyond which memcached entries are compressed, for resolves. Zero means never compress.
+
+
+Validate caching operation
+--------------------------
+To print debugging information about memcached usage, you can temporarily declare the following variables in a terminal:
+
+.. code-block:: console
+   export REZ_DEBUG_MEMCACHE=1 (linux/macos bash)
+   $env:REZ_DEBUG_MEMCACHE=1 (powershell)
+
+or set :data:`debug_memcache` to True in you rezconfig.py.
+
+
+Show stats from memcached server
+--------------------------------
+Rez provides a command-line tool :ref:`rez-memcache` for query the memcached server and obtaining status information and statistics.
+
+.. code-block:: console
+   $ rez-memcache
+
+   CACHE SERVER               UPTIME      HITS      MISSES  HIT RATIO  MEMORY  USED
+   ------------               ------      ----      ------  ---------  ------  ----
+   127.0.0.1:11211            20 hours    27690     5205    84%        119 Gb  10 Mb (0%)
+   central.example.com:11211  6.2 months  19145089  456     99%        64 Mb   1.9 Mb (2%)
+
+Benefits and Downsides
+----------------------
 TODO.
 
 .. _package-caching:
