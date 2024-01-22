@@ -5,12 +5,7 @@
 """
 Package-defined build command
 """
-try:
-    from builtins import str
-    from builtins import map
-except ImportError:
-    pass
-from rez.utils.py23 import quote
+from shlex import quote
 import functools
 import os.path
 import sys
@@ -25,10 +20,7 @@ from rez.shells import create_shell
 from rez.exceptions import PackageMetadataError
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_warning
-from rez.vendor.six import six
 from rez.config import config
-
-basestring = six.string_types[0]
 
 
 class CustomBuildSystem(BuildSystem):
@@ -156,7 +148,7 @@ class CustomBuildSystem(BuildSystem):
                 version=self.package.version
             ).strip()
 
-        if isinstance(command, basestring):
+        if isinstance(command, str):
             if self.build_args:
                 command = command + ' ' + ' '.join(map(quote, self.build_args))
 

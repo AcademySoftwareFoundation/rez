@@ -11,7 +11,6 @@ from string import Formatter
 from rez.vendor.enum import Enum
 from rez.version import Requirement
 from rez.exceptions import PackageRequestError
-from rez.vendor.six import six
 from pprint import pformat
 import os
 import os.path
@@ -117,16 +116,7 @@ class ObjectStringFormatter(Formatter):
             if value is None:
                 return ''
             elif isinstance(value, list):
-                def _str(x):
-                    if six.PY2:
-                        if isinstance(x, unicode):
-                            return x
-                        else:
-                            return str(x)
-                    else:
-                        return str(x)
-
-                return ' '.join(map(_str, value))
+                return ' '.join(map(str, value))
 
         return Formatter.convert_field(self, value, conversion)
 

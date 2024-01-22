@@ -12,16 +12,13 @@ from rez.config import Config, get_module_root_config, _replace_config, _Depreca
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages import get_developer_package
-from rez.vendor.six import six
 from rez.deprecations import RezDeprecationWarning
 import os
-import sys
 import os.path
 import subprocess
 import functools
 import shutil
-if sys.version_info[:3] >= (3, 3):
-    import unittest.mock
+import unittest.mock
 
 
 class TestConfig(TestBase):
@@ -280,14 +277,15 @@ class TestConfig(TestBase):
                 stdout = subprocess.check_output(
                     config_args + ["--json", config_key],
                     env=env,
+                    text=True,
                 )
                 self.assertEqual(
-                    six.ensure_str(stdout).strip(),
-                    six.ensure_str(json.dumps(getattr(c, config_key))),
+                    stdout.strip(),
+                    json.dumps(getattr(c, config_key)),
                 )
 
                 # Test setting via env var and fetching custom value
-                test_json_value = six.ensure_str(json.dumps(test_value))
+                test_json_value = json.dumps(test_value)
                 env["REZ_%s_JSON" % config_key.upper()] = test_json_value
                 stdout = subprocess.check_output(
                     config_args + ["--json", config_key],
@@ -299,7 +297,6 @@ class TestConfig(TestBase):
                 raise
 
 
-@unittest.skipIf(sys.version_info[0] < 3, "Skip on python 2")
 class TestDeprecations(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):

@@ -7,7 +7,6 @@ import re
 from subprocess import PIPE
 
 from rez.config import config
-from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
 from rez.shells import Shell
 from rez.system import system
@@ -327,7 +326,7 @@ class PowerShellBase(Shell):
 
     @classmethod
     def join(cls, command):
-        if isinstance(command, six.string_types):
+        if isinstance(command, str):
             return command
 
         replacements = [

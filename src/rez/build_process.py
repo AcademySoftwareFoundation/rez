@@ -16,7 +16,7 @@ from rez.resolver import ResolverStatus
 from rez.config import config
 from rez.vendor.enum import Enum
 from contextlib import contextmanager
-from rez.utils.py23 import quote
+from shlex import quote
 import getpass
 import os.path
 import sys

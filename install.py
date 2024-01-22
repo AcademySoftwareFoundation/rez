@@ -13,18 +13,6 @@ import os
 import sys
 import shutil
 import subprocess
-
-if sys.version_info[:2] < (3, 7):
-    sys.stderr.write(
-        'Error: rez can only be installed with python greater or equal to 3.7. You are trying to install using Python {0}.{1}.{2} ({3}).\n'.format(
-            sys.version_info[0],
-            sys.version_info[1],
-            sys.version_info[2],
-            sys.executable,
-        )
-    )
-    exit(1)
-
 import venv
 
 

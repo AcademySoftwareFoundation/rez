@@ -16,15 +16,11 @@ from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.version import Version, VersionRange
 from rez.version import VersionedObject
-from rez.vendor.six import six
 from rez.serialise import FileFormat
 from rez.config import config
 
 import os
 import sys
-
-
-basestring = six.string_types[0]
 
 # ------------------------------------------------------------------------------
 # package-related classes
@@ -570,7 +566,7 @@ def iter_packages(name, range_=None, paths=None):
 
             seen.add(key)
             if range_:
-                if isinstance(range_, basestring):
+                if isinstance(range_, str):
                     range_ = VersionRange(range_)
                 if package_resource.version not in range_:
                     continue
@@ -590,7 +586,7 @@ def get_package(name, version, paths=None):
     Returns:
         `Package` object, or None if the package was not found.
     """
-    if isinstance(version, basestring):
+    if isinstance(version, str):
         range_ = VersionRange("==%s" % version)
     else:
         range_ = VersionRange.from_version(version, "==")
@@ -632,7 +628,7 @@ def get_package_from_repository(name, version, path):
     """
     repo = package_repository_manager.get_repository(path)
 
-    if isinstance(version, basestring):
+    if isinstance(version, str):
         version = Version(version)
 
     package_resource = repo.get_package(name, version)

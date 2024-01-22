@@ -15,28 +15,24 @@ from rez.package_repository import create_memory_package_repository
 from rez.packages import Package
 from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
-from rez.vendor.six import six
 from rez.version import Version
 from contextlib import contextmanager
 import os
 
 
-basestring = six.string_types[0]
-
-
 # this schema will automatically harden request strings like 'python-*'; see
 # the 'expand_requires' function for more info.
 #
-package_request_schema = Or(And(basestring, Use(expand_requirement)),
+package_request_schema = Or(And(str, Use(expand_requirement)),
                             And(PackageRequest, Use(str)))
 
 tests_schema = Schema({
-    Optional(basestring): Or(
-        Or(basestring, [basestring]),
+    Optional(str): Or(
+        Or(str, [str]),
         extensible_schema_dict({
-            "command": Or(basestring, [basestring]),
+            "command": Or(str, [str]),
             Optional("requires"): [package_request_schema],
-            Optional("run_on"): Or(basestring, [basestring]),
+            Optional("run_on"): Or(str, [str]),
             Optional("on_variants"): Or(
                 bool,
                 {
@@ -50,14 +46,14 @@ tests_schema = Schema({
 
 
 package_schema = Schema({
-    Optional("requires_rez_version"):   And(basestring, Use(Version)),
+    Optional("requires_rez_version"):   And(str, Use(Version)),
 
-    Required("name"):                   basestring,
-    Optional("base"):                   basestring,
-    Optional("version"):                Or(basestring,
+    Required("name"):                   str,
+    Optional("base"):                   str,
+    Optional("version"):                Or(str,
                                            And(Version, Use(str))),
-    Optional('description'):            basestring,
-    Optional('authors'):                [basestring],
+    Optional('description'):            str,
+    Optional('authors'):                [str],
 
     Optional('requires'):               late_bound([package_request_schema]),
     Optional('build_requires'):         late_bound([package_request_schema]),
@@ -71,9 +67,9 @@ package_schema = Schema({
     Optional('relocatable'):            late_bound(Or(None, bool)),
     Optional('cachable'):               late_bound(Or(None, bool)),
 
-    Optional('uuid'):                   basestring,
+    Optional('uuid'):                   str,
     Optional('config'):                 dict,
-    Optional('tools'):                  late_bound([basestring]),
+    Optional('tools'):                  late_bound([str]),
     Optional('help'):                   late_bound(help_schema),
 
     Optional('tests'):                  late_bound(tests_schema),
@@ -85,12 +81,12 @@ package_schema = Schema({
     Optional('pre_test_commands'):      _commands_schema,
 
     # attributes specific to pre-built packages
-    Optional("build_system"):           basestring,
-    Optional("build_command"):          Or([basestring], basestring, False),
+    Optional("build_system"):           str,
+    Optional("build_command"):          Or([str], str, False),
     Optional("preprocess"):             _function_schema,
 
     # arbitrary fields
-    Optional(basestring):               object
+    Optional(str):               object
 })
 
 

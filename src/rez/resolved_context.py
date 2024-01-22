@@ -35,7 +35,6 @@ from rez.exceptions import ResolvedContextError, PackageCommandError, \
 from rez.utils.graph_utils import write_dot, write_compacted, \
     read_graph_from_string
 from rez.utils.resolve_graph import failure_detail_from_graph
-from rez.vendor.six import six
 from rez.version import VersionRange
 from rez.version import Requirement
 from rez.vendor.enum import Enum
@@ -54,9 +53,6 @@ import time
 import sys
 import os
 import os.path
-
-
-basestring = six.string_types[0]
 
 
 class RezToolsVisibility(Enum):
@@ -225,7 +221,7 @@ class ResolvedContext(object):
 
         self._package_requests = []
         for req in package_requests:
-            if isinstance(req, basestring):
+            if isinstance(req, str):
                 req = PackageRequest(req)
             self._package_requests.append(req)
 
@@ -587,7 +583,7 @@ class ResolvedContext(object):
             request_ = []
 
             for req in package_requests:
-                if isinstance(req, basestring):
+                if isinstance(req, str):
                     req = PackageRequest(req)
 
                 if req.name in request_dict:
@@ -1464,8 +1460,7 @@ class ResolvedContext(object):
 
         # write out the native context file
         context_code = executor.get_output()
-        encoding = {"encoding": "utf-8"} if six.PY3 else {}
-        with open(context_file, 'w', **encoding) as f:
+        with open(context_file, 'w', encoding="utf-8") as f:
             f.write(context_code)
 
         quiet = quiet or \
@@ -1884,7 +1879,7 @@ class ResolvedContext(object):
         # remove fields with unexpanded env-vars, or empty string
         def _del(value):
             return (
-                isinstance(value, basestring)
+                isinstance(value, str)
                 and (not value or ENV_VAR_REGEX.search(value))
             )
 

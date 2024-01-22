@@ -112,7 +112,7 @@ def load_plugin_cmd():
         except Exception:
             if config.debug("plugins"):
                 import traceback
-                from rez.vendor.six.six import StringIO
+                from io import StringIO
                 out = StringIO()
                 traceback.print_exc(file=out)
                 print_debug(out.getvalue())

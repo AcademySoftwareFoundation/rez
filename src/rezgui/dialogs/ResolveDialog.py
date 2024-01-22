@@ -2,6 +2,7 @@
 # Copyright Contributors to the Rez Project
 
 
+from io import StringIO
 from Qt import QtCore, QtWidgets, QtGui
 from rezgui.util import create_pane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
@@ -10,7 +11,6 @@ from rezgui.widgets.TimestampWidget import TimestampWidget
 from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.ResolveThread import ResolveThread
 from rezgui.objects.App import app
-from rez.vendor.six.six import StringIO
 from rez.version import Requirement
 from rez.config import config
 
