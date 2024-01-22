@@ -107,6 +107,7 @@ class TestRelease(TestBase, TempdirMixin):
     @install_dependent()
     def test_1(self, shell):
         """Basic release."""
+        self.inject_python_repo()
         config.override("default_shell", shell)
 
         # release should fail because release path does not exist
@@ -171,6 +172,7 @@ class TestRelease(TestBase, TempdirMixin):
     def test_2_variant_add(self, shell):
         """Test variant installation on release
         """
+        self.inject_python_repo()
         config.override("default_shell", shell)
 
         orig_src_path = self.src_path

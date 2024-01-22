@@ -152,6 +152,7 @@ class TestBuild(TestBase, TempdirMixin):
         """Test an interdependent set of builds.
         """
         config.override("default_shell", shell)
+        self.inject_python_repo()
 
         self._test_build_build_util()
         self._test_build_floob()
@@ -165,6 +166,7 @@ class TestBuild(TestBase, TempdirMixin):
         """Test we can build packages that contain anti packages
         """
         config.override("default_shell", shell)
+        self.inject_python_repo()
 
         self._test_build_build_util()
         self._test_build_floob()

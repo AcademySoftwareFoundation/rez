@@ -6,7 +6,7 @@ description = "foo thing"
 
 build_requires = ["floob"]
 
-private_build_requires = ["build_util"]
+private_build_requires = ["build_util", "python"]
 
 def pre_build_commands():
     env.FOO_TEST_VAR = "hello"

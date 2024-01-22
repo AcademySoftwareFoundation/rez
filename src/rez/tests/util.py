@@ -131,6 +131,13 @@ class TestBase(unittest.TestCase):
             for k, v in self.settings.items()
         )
 
+    def inject_python_repo(self):
+        self.update_settings(
+            {
+                "packages_path": config.packages_path + [os.environ["__REZ_SELFTEST_PYTHON_REPO"]],
+            }
+        )
+
 
 class TempdirMixin(object):
     """Mixin that adds tmpdir create/delete."""
