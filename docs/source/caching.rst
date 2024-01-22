@@ -40,6 +40,7 @@ Validate caching operation
 To print debugging information about memcached usage, you can temporarily declare the following variables in a terminal:
 
 .. code-block:: console
+
    export REZ_DEBUG_MEMCACHE=1 (linux/macos bash)
    $env:REZ_DEBUG_MEMCACHE=1 (powershell)
 
@@ -51,6 +52,7 @@ Show stats from memcached server
 Rez provides a command-line tool :ref:`rez-memcache` for query the memcached server and obtaining status information and statistics.
 
 .. code-block:: console
+
    $ rez-memcache
 
    CACHE SERVER               UPTIME      HITS      MISSES  HIT RATIO  MEMORY  USED
