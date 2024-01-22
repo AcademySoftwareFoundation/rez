@@ -15,8 +15,11 @@ To enable memcached caching, you need to configure the :data:`memcached_uri` con
 .. code-block:: console
    memcached_uri = ["127.0.0.1:11211"]
 
-This is practically the only parameter you need to configure to enable caching of the content and location of package file definitions and resolutions in Rez.
-However, several variables can be accessed to modify the default behavior:
+This is the only parameter you need to configure to enable caching of the content and location of package file definitions and resolutions in Rez.
+
+Configuration
+-------------
+There are several variables that can be accessed to modify the default behavior of resolve caching:
 
 :data:`resolve_caching`: enabled by default; cache resolves in memcached. Note that these cache entries will be correctly invalidated if, for example, a new version of the package is released and modifies the result of an existing resolve.
 
@@ -44,7 +47,7 @@ To print debugging information about memcached usage, you can temporarily declar
    export REZ_DEBUG_MEMCACHE=1 (linux/macos bash)
    $env:REZ_DEBUG_MEMCACHE=1 (powershell)
 
-or set :data:`debug_memcache` to True in you rezconfig.py.
+or set :data:`debug_memcache` to True in your rezconfig.py.
 
 
 Show stats from memcached server
@@ -60,9 +63,16 @@ Rez provides a command-line tool :ref:`rez-memcache` for query the memcached ser
    127.0.0.1:11211            20 hours    27690     5205    84%        119 Gb  10 Mb (0%)
    central.example.com:11211  6.2 months  19145089  456     99%        64 Mb   1.9 Mb (2%)
 
-Benefits and Downsides
-----------------------
-TODO.
+Benefits
+--------
+In a studio environment (with many machines), machines that perform a solve that is already cached to the
+resolve cache will simply receive the cached result rather than preforming a re-solve.
+
+Downsides
+---------
+Resolve caching has almost no downsides. Only in rare edge cases where you have to "hack" a released package into
+production do you see any issues. In this case, because resolves are cached, you may receive a different package than
+you expect. In this case however, it's better to just manually invalidate the cache anyway.
 
 .. _package-caching:
 
