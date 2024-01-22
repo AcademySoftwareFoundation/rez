@@ -8,6 +8,14 @@ Resolve Caching
 Resolve caching is a feature that caches resolves to a memcached (in-memory) server. Because the server is in-memory,
 the full contents of the cache are lost if the memcached service shuts down by any means.
 
+Cache contents
+--------------
+The following information is stored to the memcached server for each solve:
+
+* Solver information about the previously cached solve.
+* Release times information about when each package variant in the resolve was last released.
+* Variant states information about the state of a variant. For example, in the 'filesystem' repository type, the 'state' is the last modified date of the file associated with the variant (perhaps a package.py). If the state of any variant has changed from a cached resolve - eg. if a file has been modified - the cached resolve is discarded.
+
 Setup
 -----
 
