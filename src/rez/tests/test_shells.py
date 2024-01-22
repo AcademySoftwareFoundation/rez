@@ -71,7 +71,8 @@ class TestShells(TestBase, TempdirMixin):
 
         if not shells:
             self.skipTest(
-                "Not ensuring presence of shells from explicit list because $_REZ_ENSURE_TEST_SHELLS is either empty or not defined"
+                "Not ensuring presence of shells from explicit list because "
+                "$_REZ_ENSURE_TEST_SHELLS is either empty or not defined"
             )
             return
 

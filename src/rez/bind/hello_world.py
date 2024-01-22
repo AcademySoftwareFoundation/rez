@@ -17,7 +17,6 @@ from rez.utils.lint_helper import env
 from rez.utils.execution import create_executable_script, ExecutableScriptMode
 from rez.vendor.distlib.scripts import ScriptMaker
 from rez.bind._utils import make_dirs, check_version
-from rez.system import system
 import os.path
 import shutil
 

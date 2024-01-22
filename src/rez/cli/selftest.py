@@ -98,7 +98,7 @@ def command(opts, parser, extra_arg_groups=None):
             os.chdir(tests_dir)
             try:
                 run_pytest(module_tests, opts.tests, opts.verbose,
-                        extra_arg_groups)
+                           extra_arg_groups)
             finally:
                 os.chdir(cwd)
 

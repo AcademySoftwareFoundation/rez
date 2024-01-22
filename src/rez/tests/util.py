@@ -246,7 +246,7 @@ def per_available_shell(exclude=None):
 
         class rez_parametrized(parameterized):
 
-            # Taken from https://github.com/wolever/parameterized/blob/b9f6a640452bcfdea08efc4badfe5bfad043f099/parameterized/parameterized.py#L612
+            # Taken from https://github.com/wolever/parameterized/blob/b9f6a640452bcfdea08efc4badfe5bfad043f099/parameterized/parameterized.py#L612  # noqa
             @classmethod
             def param_as_standalone_func(cls, p, func, name):
                 # @wraps(func)
