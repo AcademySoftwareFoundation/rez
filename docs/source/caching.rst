@@ -29,6 +29,15 @@ This is the only parameter you need to configure to enable caching of the conten
 
 Please refer to the :ref:`caching` configuration section for a complete list of settings.
 
+Cache invalidation
+----------------------
+Cache entries will automatically be invalidated when a newer package version is released that would change the result
+of an existing resolve.
+
+For example, let's say you are running rez-env with the package ``foo1+<2``, and originally, the only available
+``foo`` package version is ``1.0.0``, so the cached resolve points to ``1.0.0``. However, at some point afterwards
+you release a new version ``1.0.1``. The cache would invalidate for the request ``foo1+<2`` and the next resolve
+would correctly retrieve package version ``1.0.1``.
 
 Validating operation
 --------------------------
@@ -40,17 +49,6 @@ To print debugging information about memcached usage, you can temporarily declar
    $env:REZ_DEBUG_MEMCACHE=1 (powershell)
 
 or set :data:`debug_memcache` to True in your rezconfig.py.
-
-Cache invalidation
-----------------------
-Cache entries will automatically be invalidated when a newer package version is released that would change the result
-of an existing resolve.
-
-For example, let's say you are running rez-env with the package ``foo1+<2``, and originally, the only available
-``foo`` package version is ``1.0.0``, so the cached resolve points to ``1.0.0``. However, at some point afterwards
-you release a new version ``1.0.1``. The cache would invalidate for the request ``foo1+<2`` and the next resolve
-would correctly retrieve package version ``1.0.1``.
-
 
 Show stats from memcached server
 --------------------------------
