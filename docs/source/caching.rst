@@ -9,7 +9,7 @@ Resolve caching is a feature that caches resolves to a `memcached <https://memca
 Because the data store is in-memory, the full contents of the cache are lost if the memcached service shuts down
 by any means.
 
-Memcached is widely used, easy to deploy (because there is no storage needed because it's a single
+Memcached is widely used, easy to deploy (because there is no storage needed since it's a single
 process/executable), and therefore only requires a simple server.
 
 In a studio environment (with many machines), machines that perform a solve that is already cached to the
