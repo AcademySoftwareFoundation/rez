@@ -8,6 +8,13 @@ Resolve Caching
 Resolve caching is a feature that caches resolves to a memcached (in-memory) server. Because the server is in-memory,
 the full contents of the cache are lost if the memcached service shuts down by any means.
 
+In a studio environment (with many machines), machines that perform a solve that is already cached to the
+resolve cache will simply receive the cached result rather than preforming a re-solve.
+
+Resolve caching has almost no downsides. Only in rare edge cases where you have to "hack" a released package into
+production do you see any issues. In this case, because resolves are cached, you may receive a different package than
+you expect. In this case however, it's better to just manually invalidate the cache anyway.
+
 Cache contents
 --------------
 The following information is stored to the memcached server for each solve:
@@ -63,17 +70,6 @@ reset the memcached cache.
    ------------               ------      ----      ------  ---------  ------  ----
    127.0.0.1:11211            20 hours    27690     5205    84%        119 Gb  10 Mb (0%)
    central.example.com:11211  6.2 months  19145089  456     99%        64 Mb   1.9 Mb (2%)
-
-Benefits
---------
-In a studio environment (with many machines), machines that perform a solve that is already cached to the
-resolve cache will simply receive the cached result rather than preforming a re-solve.
-
-Downsides
----------
-Resolve caching has almost no downsides. Only in rare edge cases where you have to "hack" a released package into
-production do you see any issues. In this case, because resolves are cached, you may receive a different package than
-you expect. In this case however, it's better to just manually invalidate the cache anyway.
 
 .. _package-caching:
 
