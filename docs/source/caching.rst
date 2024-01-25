@@ -30,7 +30,7 @@ This is the only parameter you need to configure to enable caching of the conten
 Please refer to the :ref:`caching` configuration section for a complete list of settings.
 
 Cache invalidation
-----------------------
+------------------
 Cache entries will automatically be invalidated when a newer package version is released that would change the result
 of an existing resolve.
 
@@ -40,7 +40,7 @@ you release a new version ``1.0.1``. The cache would invalidate for the request 
 would correctly retrieve package version ``1.0.1``.
 
 Validating operation
---------------------------
+--------------------
 To print debugging information about memcached usage, you can temporarily declare the following variables in a terminal:
 
 .. code-block:: console
