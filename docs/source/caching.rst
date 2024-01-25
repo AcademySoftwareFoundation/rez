@@ -83,7 +83,7 @@ Package Caching
 Package caching is a feature that copies package payloads onto local disk in
 order to speed up runtime environments. For example, if your released packages
 reside on shared storage (which is common), then running say, a Python process,
-will fetch all source from the shared storage across your network. The point of
+will load all source from the shared storage across your network. The point of
 the cache is to copy that content locally instead, and avoid the network cost.
 
 .. note::
