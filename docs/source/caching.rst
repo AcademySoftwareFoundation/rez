@@ -52,7 +52,8 @@ or set :data:`debug_memcache` to True in your rezconfig.py.
 
 Show stats from memcached server
 --------------------------------
-Rez provides a command-line tool :ref:`rez-memcache` for query the memcached server and obtaining status information and statistics.
+Rez provides a command-line tool :ref:`rez-memcache` that can be used to see stats about cache misses/hits and to
+reset the memcached cache.
 
 .. code-block:: console
 
