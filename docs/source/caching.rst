@@ -87,8 +87,8 @@ will load all source from the shared storage across your network. The point of
 the cache is to copy that content locally instead, and avoid the network cost.
 
 .. note::
-   Please note: Package caching does **NOT** cache package
-   definitions. Only their payloads (ie, the package root directory).
+   Package caching does **NOT** cache package definitions.
+   Only their payloads (ie, the package root directory).
 
 Build behavior
 --------------
