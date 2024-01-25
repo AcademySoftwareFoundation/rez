@@ -27,18 +27,7 @@ To enable memcached caching, you need to configure the :data:`memcached_uri` con
 
 This is the only parameter you need to configure to enable caching of the content and location of package file definitions and resolutions in Rez.
 
-Configuration
--------------
-There are several variables that can be accessed to modify the default behavior of resolve caching:
-
-* :data:`resolve_caching`
-* :data:`cache_package_files`
-* :data:`cache_listdir`
-* :data:`resource_caching_maxsize`
-* :data:`memcached_package_file_min_compress_len`
-* :data:`memcached_context_file_min_compress_len`
-* :data:`memcached_listdir_min_compress_len`
-* :data:`memcached_resolve_min_compress_len`
+Please refer to the :ref:`caching` configuration section for a complete list of settings.
 
 
 Validating operation
