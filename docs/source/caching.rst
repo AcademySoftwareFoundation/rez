@@ -30,7 +30,9 @@ The following information is stored to the memcached server for each solve:
 Setup
 -----
 
-To enable memcached caching, you need to configure the :data:`memcached_uri` config variable. This variable accepts a list of memcached uri servers or None. Example with memcached running on localhost on its default port:
+To enable memcached caching, you need to configure the :data:`memcached_uri` config variable.
+This variable accepts a list of URI to your memcached servers or None. Example with memcached running on
+localhost on its default port:
 
 .. code-block:: console
 
