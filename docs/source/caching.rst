@@ -10,7 +10,7 @@ Because the data store is in-memory, the full contents of the cache are lost if 
 by any means.
 
 Memcached is widely used, easy to deploy (because there is no storage needed since it's a single
-process/executable), and therefore only requires a simple server.
+process/executable), and is very fast.
 
 In a studio environment (with many machines), machines that perform a solve that is already cached to the
 resolve cache will simply receive the cached result rather than preforming a re-solve.
