@@ -328,7 +328,12 @@ class TestDeprecations(TestBase, TempdirMixin):
             fake_deprecated_settings
         ):
             with restore_os_environ():
-                os.environ['HOME'] = user_home
+                os.environ["HOME"] = user_home
+                # On Windows, os.path.expanduser will read HOME and then USERPROFILE with Python 3.7.
+                # https://docs.python.org/3.7/library/os.path.html#os.path.expanduser
+                # Also on Windows but for Python 3.8+, it will look for USERPROFILE and then HOME.
+                # https://docs.python.org/3.8/library/os.path.html#os.path.expanduser
+                os.environ["USERPROFILE"] = user_home
                 config = Config._create_main_config()
                 with self.assertWarns(RezDeprecationWarning) as warn:
                     _ = config.data
