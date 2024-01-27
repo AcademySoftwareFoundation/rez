@@ -21,16 +21,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: 
-          - ubuntu-latest
-          - macos-latest
-          - windows-2019
-        python-version:
-          - '2.7'
-          - '3.7'
-        method:
-          - 'install'
-          - 'pip'
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        python-version: ['2.7', '3.7', '3.8', '3.9', '3.10', '3.11']
+        method: ['install' ,'pip']
 
         include:
         # ubuntu
@@ -83,7 +76,7 @@ jobs:
             fi
             pip install --target ~/rez .
         # windows
-        - os: windows-2019
+        - os: windows-latest
           method: install
           REZ_SET_PATH_COMMAND: '$env:PATH="$env:PATH;C:\ProgramData\rez\Scripts\rez"'
           REZ_INSTALL_COMMAND: |
@@ -92,7 +85,7 @@ jobs:
                 conda activate python
             }
             python ./install.py C:\ProgramData\rez
-        - os: windows-2019
+        - os: windows-latest
           method: pip
           REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
           REZ_INSTALL_COMMAND: |

@@ -51,6 +51,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
 
     def setup_once(self):
         # build packages used by this test
+        self.inject_python_repo()
         self._build_package("build_util", "1")
         self._build_package("floob")
         self._build_package("foo", "1.0.0")

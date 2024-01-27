@@ -10,6 +10,7 @@ import os
 import sys
 import inspect
 import argparse
+import shutil
 from pkgutil import iter_modules
 
 try:
@@ -37,6 +38,9 @@ def setup_parser(parser, completions=False):
         help="limit shell-dependent tests to the specified shell. Note: This "
              "flag shadowed pytest '–capture=no' shorthand '-s', so the long "
              "name must be used for disabling stdout/err capturing in pytest."
+    )
+    parser.add_argument(
+        "--keep-tmpdirs", action="store_true", help="Keep temporary directories."
     )
 
     # make an Action that will append the appropriate test to the "--test" arg
@@ -74,22 +78,34 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.only_shell:
         os.environ["__REZ_SELFTEST_SHELL"] = opts.only_shell
 
+    if opts.keep_tmpdirs:
+        os.environ["REZ_KEEP_TMPDIRS"] = "1"
+
     if not opts.module_tests and not opts.tests:
         module_tests = all_module_tests
     else:
         module_tests = opts.module_tests
 
-    if use_pytest:
-        cwd = os.getcwd()
-        os.chdir(tests_dir)
-        try:
-            run_pytest(module_tests, opts.tests, opts.verbose,
-                       extra_arg_groups)
-        finally:
-            os.chdir(cwd)
+    repo = os.path.join(os.getcwd(), "__tests_pkg_repo")
+    os.makedirs(repo, exist_ok=True)
+    create_python_package(os.path.join(os.getcwd(), "__tests_pkg_repo"))
 
-    else:
-        run_unittest(module_tests, opts.tests, opts.verbose)
+    os.environ["__REZ_SELFTEST_PYTHON_REPO"] = repo
+
+    try:
+        if use_pytest:
+            cwd = os.getcwd()
+            os.chdir(tests_dir)
+            try:
+                run_pytest(module_tests, opts.tests, opts.verbose,
+                           extra_arg_groups)
+            finally:
+                os.chdir(cwd)
+
+        else:
+            run_unittest(module_tests, opts.tests, opts.verbose)
+    finally:
+        shutil.rmtree(repo)
 
 
 def run_unittest(module_tests, tests, verbosity):
@@ -133,3 +149,25 @@ def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
 
     exitcode = main(args=argv)
     sys.exit(exitcode)
+
+
+def create_python_package(repo):
+    from rez.package_maker import make_package
+    from rez.utils.lint_helper import env, system
+    import venv
+
+    print("Creating python package in {0!r}".format(repo))
+
+    def make_root(variant, root):
+        venv.create(root)
+
+    def commands():
+        if system.platform == "windows":
+            env.PATH.prepend("{this.root}/Scripts")
+        else:
+            env.PATH.prepend("{this.root}/bin")
+
+    with make_package("python", repo, make_root=make_root, warn_on_skip=False) as pkg:
+        pkg.version = ".".join(map(str, sys.version_info[:3]))
+        pkg.tools = ["python"]
+        pkg.commands = commands
