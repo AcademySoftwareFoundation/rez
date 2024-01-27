@@ -131,6 +131,13 @@ class TestBase(unittest.TestCase):
             for k, v in self.settings.items()
         )
 
+    def inject_python_repo(self):
+        self.update_settings(
+            {
+                "packages_path": config.packages_path + [os.environ["__REZ_SELFTEST_PYTHON_REPO"]],
+            }
+        )
+
 
 class TempdirMixin(object):
     """Mixin that adds tmpdir create/delete."""
@@ -236,15 +243,51 @@ def per_available_shell(exclude=None):
 
     # https://pypi.org/project/parameterized
     if use_parameterized:
-        return parameterized.expand(shells)
+
+        class rez_parametrized(parameterized):
+
+            # Taken from https://github.com/wolever/parameterized/blob/b9f6a640452bcfdea08efc4badfe5bfad043f099/parameterized/parameterized.py#L612  # noqa
+            @classmethod
+            def param_as_standalone_func(cls, p, func, name):
+                # @wraps(func)
+                def standalone_func(*args, **kwargs):
+                    # Make sure to set the default shell to the requested shell. This
+                    # simplifies tests and removes the need to remember passing the shell
+                    # kward to execute_shell and co inside the tests.
+                    # Subclassing parameterized is fragile, but we can't do better for now.
+                    args[0].update_settings({"default_shell": p.args[0]})
+                    return func(*(args + p.args), **p.kwargs, **kwargs)
+
+                standalone_func.__name__ = name
+
+                # place_as is used by py.test to determine what source file should be
+                # used for this test.
+                standalone_func.place_as = func
+
+                # Remove __wrapped__ because py.test will try to look at __wrapped__
+                # to determine which parameters should be used with this test case,
+                # and obviously we don't need it to do any parameterization.
+                try:
+                    del standalone_func.__wrapped__
+                except AttributeError:
+                    pass
+                return standalone_func
+
+        return rez_parametrized.expand(shells)
 
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, shell=None):
+
             for shell in shells:
                 print("\ntesting in shell: %s..." % shell)
 
                 try:
+                    # Make sure to set the default shell to the requested shell. This
+                    # simplifies tests and removes the need to remember passing the shell
+                    # kward to execute_shell and co inside the tests.
+                    self.update_settings({"default_shell": shell})
+
                     func(self, shell=shell)
                 except Exception as e:
                     # Add the shell to the exception message, if possible.
