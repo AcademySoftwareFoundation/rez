@@ -7,11 +7,13 @@ from hashlib import sha1
 
 from rez.config import config
 from rez.utils.data_utils import cached_class_property
-from rez.vendor.version.version import Version
+from rez.version import Version
 
 
 class PackageOrder(object):
     """Package reorderer base class."""
+
+    #: Orderer name
     name = None
 
     def __init__(self):
@@ -31,11 +33,12 @@ class PackageOrder(object):
 
         Args:
             iterable: Iterable list of packages, or objects that contain packages.
-            key (callable): Callable, where key(iterable) gives a `Package`. If
-                None, iterable is assumed to be a list of `Package` objects.
+            key (typing.Callable[typing.Any, Package]): Callable, where key(iterable)
+                gives a :class:`~rez.packages.Package`. If None, iterable is assumed
+                to be a list of :class:`~rez.packages.Package` objects.
 
         Returns:
-            List of `iterable` type, reordered.
+            list: Reordered ``iterable``
         """
         raise NotImplementedError
 
@@ -64,7 +67,7 @@ class NullPackageOrder(PackageOrder):
 
     This orderer is useful in cases where you want to apply some default orderer
     to a set of packages, but may want to explicitly NOT reorder a particular
-    package. You would use a `NullPackageOrder` in a `PerFamilyOrder` to do this.
+    package. You would use a :class:`NullPackageOrder` in a :class:`PerFamilyOrder` to do this.
     """
     name = "no_order"
 
@@ -81,7 +84,9 @@ class NullPackageOrder(PackageOrder):
         """
         Example (in yaml):
 
-            type: no_order
+        .. code-block:: yaml
+
+           type: no_order
         """
         return {}
 
@@ -91,7 +96,7 @@ class NullPackageOrder(PackageOrder):
 
 
 class SortedOrder(PackageOrder):
-    """An orderer that sorts wrt version.
+    """An orderer that sorts based on :attr:`Package.version <rez.packages.Package.version>`.
     """
     name = "sorted"
 
@@ -116,8 +121,10 @@ class SortedOrder(PackageOrder):
         """
         Example (in yaml):
 
-            type: sorted
-            descending: true
+        .. code-block:: yaml
+
+           type: sorted
+           descending: true
         """
         return {"descending": self.descending}
 
@@ -135,10 +142,10 @@ class PerFamilyOrder(PackageOrder):
         """Create a reorderer.
 
         Args:
-            order_dict (dict of (str, `PackageOrder`): Orderers to apply to
+            order_dict (dict[str, PackageOrder]): Orderers to apply to
                 each package family.
-            default_order (`PackageOrder`): Orderer to apply to any packages
-                not specified in `order_dict`.
+            default_order (PackageOrder): Orderer to apply to any packages
+                not specified in ``order_dict``.
         """
         self.order_dict = order_dict.copy()
         self.default_order = default_order
@@ -175,17 +182,19 @@ class PerFamilyOrder(PackageOrder):
         """
         Example (in yaml):
 
-            type: per_family
-            orderers:
-            - packages: ['foo', 'bah']
-              type: version_split
-              first_version: '4.0.5'
-            - packages: ['python']
-              type: sorted
-              descending: false
-            default_order:
-              type: sorted
-              descending: true
+        .. code-block:: yaml
+
+           type: per_family
+           orderers:
+           - packages: ['foo', 'bah']
+             type: version_split
+             first_version: '4.0.5'
+           - packages: ['python']
+             type: sorted
+             descending: false
+           default_order:
+             type: sorted
+             descending: true
         """
         orderers = {}
         packages = {}
@@ -234,7 +243,7 @@ class VersionSplitPackageOrder(PackageOrder):
     """Orders package versions <= a given version first.
 
     For example, given the versions [5, 4, 3, 2, 1], an orderer initialized
-    with version=3 would give the order [3, 2, 1, 5, 4].
+    with ``version=3`` would give the order [3, 2, 1, 5, 4].
     """
     name = "version_split"
 
@@ -242,7 +251,7 @@ class VersionSplitPackageOrder(PackageOrder):
         """Create a reorderer.
 
         Args:
-            first_version (`Version`): Start with versions <= this value.
+            first_version (Version): Start with versions <= this value.
         """
         self.first_version = first_version
 
@@ -281,8 +290,10 @@ class VersionSplitPackageOrder(PackageOrder):
         """
         Example (in yaml):
 
-            type: version_split
-            first_version: "3.0.0"
+        .. code-block:: yaml
+
+           type: version_split
+           first_version: "3.0.0"
         """
         return dict(first_version=str(self.first_version))
 
@@ -294,37 +305,41 @@ class VersionSplitPackageOrder(PackageOrder):
 class TimestampPackageOrder(PackageOrder):
     """A timestamp order function.
 
-    Given a time T, this orderer returns packages released before T, in descending
-    order, followed by those released after. If `rank` is non-zero, version
+    Given a time ``T``, this orderer returns packages released before ``T``, in descending
+    order, followed by those released after. If ``rank`` is non-zero, version
     changes at that rank and above are allowed over the timestamp.
 
     For example, consider the common case where we want to prioritize packages
-    released before T, except for newer patches. Consider the following package
-    versions, and time T:
+    released before ``T``, except for newer patches. Consider the following package
+    versions, and time ``T``:
 
-        2.2.1
-        2.2.0
-        2.1.1
-        2.1.0
-        2.0.6
-        2.0.5
-              <-- T
-        2.0.0
-        1.9.0
+    .. code-block:: text
 
-    A timestamp orderer set to rank=3 (patch versions) will attempt to consume
+       2.2.1
+       2.2.0
+       2.1.1
+       2.1.0
+       2.0.6
+       2.0.5
+             <-- T
+       2.0.0
+       1.9.0
+
+    A timestamp orderer set to ``rank=3`` (patch versions) will attempt to consume
     the packages in the following order:
 
-        2.0.6
-        2.0.5
-        2.0.0
-        1.9.0
-        2.1.1
-        2.1.0
-        2.2.1
-        2.2.0
+    .. code-block:: text
 
-    Notice that packages before T are preferred, followed by newer versions.
+       2.0.6
+       2.0.5
+       2.0.0
+       1.9.0
+       2.1.1
+       2.1.0
+       2.2.1
+       2.2.0
+
+    Notice that packages before ``T`` are preferred, followed by newer versions.
     Newer versions are consumed in ascending order, except within rank (this is
     why 2.1.1 is consumed before 2.1.0).
     """
@@ -421,9 +436,11 @@ class TimestampPackageOrder(PackageOrder):
         """
         Example (in yaml):
 
-            type: soft_timestamp
-            timestamp: 1234567
-            rank: 3
+        .. code-block:: yaml
+
+           type: soft_timestamp
+           timestamp: 1234567
+           rank: 3
         """
         return dict(timestamp=self.timestamp,
                     rank=self.rank)
@@ -478,6 +495,14 @@ def from_pod(data):
 
 
 def register_orderer(cls):
+    """Register an orderer
+
+    Args:
+        cls (type[PackageOrder]): Package orderer class to register.
+
+    returns:
+        bool: True if successfully registered, else False.
+    """
     if isclass(cls) and issubclass(cls, PackageOrder) and \
             hasattr(cls, "name") and cls.name:
         _orderers[cls.name] = cls

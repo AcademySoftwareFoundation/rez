@@ -5,28 +5,33 @@ on:
 
 jobs:
   publish:
-    name: Publish to PyPi
+    name: Publish to PyPI
     runs-on: ubuntu-latest
+
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: 3
+          python-version: 3.11
 
       - name: Install Dependencies
         run: |
-          pip install wheel
+          pip install build
 
       - name: Build rez
         run: |
-          python setup.py sdist bdist_wheel
+          python -m build --sdist --wheel --outdir dist .
 
-      - name: Upload to PyPi
+      # Note that we don't need credentials.
+      # We rely on https://docs.pypi.org/trusted-publishers/.
+      - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: '${{ secrets.PYPI_API_TOKEN }}'
+          packages-dir: dist

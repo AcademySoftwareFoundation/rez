@@ -8,7 +8,7 @@ from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import walk_up_dirs
-from pipes import quote
+from rez.utils.py23 import quote
 import subprocess
 
 
@@ -162,7 +162,7 @@ class ReleaseVCS(object):
 
         Args:
             previous_revision: The revision to give the changelog since. If
-            None, give the entire changelog.
+                None, give the entire changelog.
 
         Returns:
             Changelog, as a string.

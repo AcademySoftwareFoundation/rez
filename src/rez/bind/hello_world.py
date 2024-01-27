@@ -12,19 +12,13 @@ case, and for that reason we do not want any dependencies.
 from __future__ import absolute_import, print_function
 
 from rez.package_maker import make_package
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.utils.lint_helper import env
 from rez.utils.execution import create_executable_script, ExecutableScriptMode
+from rez.vendor.distlib.scripts import ScriptMaker
 from rez.bind._utils import make_dirs, check_version
 import os.path
-
-
-def setup_parser(parser):
-    parser.add_argument(
-        "--py-script-mode", type=str, default="platform_specific", metavar="PY_SCRIPT_MODE",
-        help="py script mode to use (default: %(default)s).",
-        choices=(ExecutableScriptMode._member_names_),
-    )
+import shutil
 
 
 def commands():
@@ -48,35 +42,28 @@ def hello_world_source():
     sys.exit(opts.retcode)
 
 
-def bind(path, version_range=None, py_script_mode=None, opts=None, parser=None):
+def bind(path, version_range=None, opts=None, parser=None):
     version = Version("1.0")
     check_version(version, version_range)
 
-    # Allow the user to override the `py_script_mode` via the command line
-    # or via python API, as is the case for unit tests. Fall back to
-    # `platform_specific` if not specified.
-    py_script_mode = opts.py_script_mode if opts else py_script_mode
-    if py_script_mode is None:
-        py_script_mode = ExecutableScriptMode.platform_specific
-    else:
-        # Extra error checking for the python API
-        if py_script_mode not in ExecutableScriptMode._member_names_:
-            raise ValueError(
-                "Invalid py_script_mode: {!r} Choose between: {!r}".format(
-                    py_script_mode, ExecutableScriptMode._member_names_
-                )
-            )
-        py_script_mode = ExecutableScriptMode[py_script_mode]
-
     def make_root(variant, root):
         binpath = make_dirs(root, "bin")
-        filepath = os.path.join(binpath, "hello_world")
+        binpathtmp = make_dirs(root, "bintmp")
+        filepath = os.path.join(binpathtmp, "hello_world")
 
         create_executable_script(
             filepath,
             hello_world_source,
-            py_script_mode=py_script_mode,
+            py_script_mode=ExecutableScriptMode.single,
         )
+
+        # We want to use ScriptMaker on all platofrms. This allows us to
+        # correctly setup the script to work everywhere, even on Windows.
+        # create_executable_script should be fixed to use ScriptMaker
+        # instead.
+        maker = ScriptMaker(binpathtmp, make_dirs(binpath))
+        maker.make("hello_world")
+        shutil.rmtree(binpathtmp)
 
     with make_package("hello_world", path, make_root=make_root) as pkg:
         pkg.version = version

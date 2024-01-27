@@ -50,8 +50,8 @@ class DelayLoad(object):
 
     Supported formats:
 
-        - yaml (*.yaml, *.yml)
-        - json (*.json)
+    - yaml (``*.yaml``, ``*.yml``)
+    - json (``*.json``)
     """
     def __init__(self, filepath):
         self.filepath = os.path.expanduser(filepath)
@@ -168,7 +168,7 @@ def get_dict_diff(d1, d2):
     was affected.
 
     Returns:
-        3-tuple:
+        tuple: 3-tuple:
         - list of added keys;
         - list of removed key;
         - list of changed keys.
@@ -286,6 +286,9 @@ class cached_class_property(object):
     """
     def __init__(self, func, name=None):
         self.func = func
+        # Make sure that Sphinx autodoc can follow and get the docstring from our wrapped function.
+        # TODO: Doesn't work...
+        functools.update_wrapper(self, func)
 
     def __get__(self, instance, owner=None):
         assert owner

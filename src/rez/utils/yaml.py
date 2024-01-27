@@ -5,8 +5,8 @@
 from rez.utils.sourcecode import SourceCode
 from rez.vendor import yaml
 from rez.vendor.yaml.dumper import SafeDumper
-from rez.vendor.version.version import Version
-from rez.vendor.version.requirement import Requirement
+from rez.version import Version
+from rez.version import Requirement
 from types import FunctionType, BuiltinFunctionType
 from inspect import getsourcelines
 from textwrap import dedent

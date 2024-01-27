@@ -23,9 +23,8 @@ from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError, RezSystemError
-from rez.vendor.version.version import VersionRange
-from rez.vendor.version.requirement import VersionedObject, Requirement, \
-    RequirementList
+from rez.version import VersionRange
+from rez.version import VersionedObject, Requirement, RequirementList
 from rez.vendor.enum import Enum
 from contextlib import contextmanager
 from itertools import product, chain
@@ -1383,10 +1382,16 @@ class _ResolvePhase(_Common):
                                 # Raise with more info when match found
                                 searched = "; ".join(self.solver.package_paths)
                                 requested = ", ".join(requesters)
+
+                                fail_message = ("package family not found: {}, was required by: {} (searched: {})"
+                                                .format(req.name, requested, searched))
+                                # TODO: Test with memcached to see if this can cause any conflicting behaviour
+                                #       where a package may show as missing/available inadvertently
+                                if not config.error_on_missing_variant_requires:
+                                    print(fail_message, file=sys.stderr)
+                                    return _create_phase(SolverStatus.failed)
                                 raise PackageFamilyNotFoundError(
-                                    "package family not found: %s, "
-                                    "was required by: %s (searched: %s)"
-                                    % (req.name, requested, searched))
+                                    fail_message)
 
                         scopes.append(scope)
                         if self.pr:
@@ -2212,6 +2217,7 @@ class Solver(_Common):
             failure_index: Index of the fail to return the graph for (can be
                 negative). If None, the most appropriate failure is chosen
                 according to these rules:
+
                 - If the fail is cyclic, the most recent fail (the one containing
                   the cycle) is used;
                 - If a callback has caused a failure, the most recent fail is used;
@@ -2398,7 +2404,10 @@ class Solver(_Common):
         except IndexError:
             raise IndexError("failure index out of range")
 
-        fail_description = phase.failure_reason.description()
+        if phase.failure_reason is None:
+            fail_description = "Solver failed with unknown reason."
+        else:
+            fail_description = phase.failure_reason.description()
         if prepend_abort_reason and self.abort_reason:
             fail_description = "%s:\n%s" % (self.abort_reason, fail_description)
 

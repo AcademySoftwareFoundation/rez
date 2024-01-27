@@ -6,6 +6,10 @@
 import os
 import sys
 
+import sphinx.domains
+import sphinx.addnodes
+import sphinx.application
+
 # Add path to rez's source.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
@@ -33,11 +37,25 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+    "myst_parser",
     # Rez custom extension
     'rez_sphinxext'
 ]
 
 templates_path = ['_templates']
+
+nitpick_ignore = [
+    # TODO: Remove once we unvendor enum.
+    ("py:class", "rez.solver._Common"),
+    ("py:class", "_thread._local"),
+    ("py:class", "rez.utils.platform_._UnixPlatform"),
+    ("py:class", "rez.version._util._Common"),
+    ("py:class", "rez.version._version._Comparable"),
+]
+
+nitpick_ignore_regex = [
+    ("py:class", r"rez\.vendor\..*"),
+]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -70,6 +88,12 @@ intersphinx_mapping = {
 # autoclass_content = 'both'
 autodoc_class_signature = 'separated'
 autodoc_member_order = 'bysource'
+autodoc_inherit_docstrings = True
+autodoc_default_options = {
+    "show-inheritance": True,
+    "undoc-members": True,
+    "inherited-members": True,
+}
 
 
 # -- Options for extlinks extension -----------------------------------------
@@ -82,4 +106,40 @@ extlinks = {
 # -- Options for todo extension ---------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/todo.html
 
-todo_emit_warnings = True
+todo_emit_warnings = False
+
+
+# -- Custom -----------------------------------------------------------------
+
+def handle_ref_warning(
+    app: sphinx.application.Sphinx,
+    domain: sphinx.domains.Domain,
+    node: sphinx.addnodes.pending_xref,
+) -> bool | None:
+    """
+    Emitted when a cross-reference to an object cannot be resolved even
+    after missing-reference. If the event handler can emit warnings for the
+    missing reference, it should return True. The configuration variables
+    nitpick_ignore and nitpick_ignore_regex prevent the event from being
+    emitted for the corresponding nodes.
+    """
+    if domain and domain.name != 'py':
+        return None
+
+    from docutils.utils import get_source_line
+
+    source, line = get_source_line(node)
+    if 'docstring of collections.abc.' in source:
+        # Silence warnings that come from collections.abc
+        return True
+
+    return False
+
+
+def setup(app: sphinx.application.Sphinx) -> dict[str, bool | str]:
+    app.connect('warn-missing-reference', handle_ref_warning)
+
+    return {
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
+    }

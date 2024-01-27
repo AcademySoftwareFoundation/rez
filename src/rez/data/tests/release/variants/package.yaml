@@ -7,4 +7,6 @@ variants:
 - ['spangle-1.0']
 - ['spangle-1.1']
 
+private_build_requires: ["python"]
+
 build_command: "python {root}/build.py {install}"

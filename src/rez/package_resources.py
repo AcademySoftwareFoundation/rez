@@ -12,7 +12,7 @@ from rez.utils.filesystem import find_matching_symlink
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 from rez.vendor.six import six
 
@@ -270,13 +270,9 @@ package_pod_schema = Schema(package_pod_schema_dict)
 
 class PackageRepositoryResource(Resource):
     """Base class for all package-related resources.
-
-    Attributes:
-        schema_error (`Exception`): Type of exception to throw on bad data.
-        repository_type (str): Type of package repository associated with this
-            resource type.
     """
     schema_error = PackageMetadataError
+    #: Type of package repository associated with this resource type.
     repository_type = None
 
     @classmethod

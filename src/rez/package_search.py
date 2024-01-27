@@ -23,7 +23,7 @@ from rez.utils.formatting import expand_abbreviations
 
 from rez.config import config
 
-from rez.vendor.version.requirement import Requirement
+from rez.version import Requirement
 
 
 def get_reverse_dependency_tree(package_name, depth=None, paths=None,
@@ -46,7 +46,8 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
             private_build_requires.
 
     Returns:
-        A 2-tuple:
+        tuple: A 2-tuple:
+
         - (list of list of str): Lists of package names, where each list is a
           single depth in the tree. The first list is always [`package_name`].
         - `pygraph.digraph` object, where nodes are package names, and
@@ -219,7 +220,8 @@ class ResourceSearcher(object):
                 are supported. If None, returns all matching resource types.
 
         Returns:
-            2-tuple:
+            tuple: 2-tuple:
+
             - str: resource type (family, package, variant);
             - Iterator of `ResourceSearchResult`: Matching resources. Will be
               in alphabetical order if families, and version ascending for
@@ -234,7 +236,8 @@ class ResourceSearcher(object):
                 are supported. If None, returns all matching resource types.
 
         Returns:
-            2-tuple:
+            tuple: 2-tuple:
+
             - str: resource type (family, package, variant);
             - List of `ResourceSearchResult`: Matching resources. Will be in
               alphabetical order if families, and version ascending for
@@ -382,7 +385,7 @@ class ResourceSearchResultFormatter(object):
             search_results (list of `ResourceSearchResult`): Search to format.
 
         Returns:
-            List of 2-tuple: Text and color to print in.
+            tuple: List of 2-tuple: Text and color to print in.
         """
         formatted_lines = []
 

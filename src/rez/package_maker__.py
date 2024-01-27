@@ -2,11 +2,11 @@
 # Copyright Contributors to the Rez Project
 
 
-import warnings
+import rez.deprecations
 from rez.package_maker import *  # noqa
 
 
-warnings.warn(
+rez.deprecations.warn(
     "rez.package_maker__ is deprecated; import rez.package_maker instead",
-    DeprecationWarning
+    rez.deprecations.RezDeprecationWarning,
 )

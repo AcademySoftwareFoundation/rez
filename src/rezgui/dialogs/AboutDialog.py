@@ -5,7 +5,7 @@
 from Qt import QtCore, QtWidgets
 from rezgui.util import create_pane, get_icon
 from rez import __version__
-from rez.vendor.version.version import Version
+from rez.version import Version
 
 
 class AboutDialog(QtWidgets.QDialog):

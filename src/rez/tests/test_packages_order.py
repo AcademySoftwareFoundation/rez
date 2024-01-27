@@ -12,7 +12,7 @@ from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, Ve
     TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
-from rez.vendor.version.version import Version
+from rez.version import Version
 
 
 class _BaseTestPackagesOrder(TestBase, TempdirMixin):

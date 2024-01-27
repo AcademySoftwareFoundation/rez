@@ -16,8 +16,8 @@ from rez.vendor.packaging.version import (
     InvalidVersion as packaging_InvalidVersion
 )
 from rez.vendor.packaging.requirements import Requirement as packaging_Requirement
-from rez.vendor.version.requirement import Requirement
-from rez.vendor.version.version import Version, VersionRange
+from rez.version import Requirement
+from rez.version import Version, VersionRange
 
 from rez.utils.logging_ import print_warning
 from rez.exceptions import PackageRequestError
@@ -49,23 +49,23 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
 
     The python version schema specification isn't 100% compatible with rez.
 
-    1: version epochs (they make no sense to rez, so they'd just get stripped
-       of the leading N!;
-    2: python versions are case insensitive, so they should probably be
+    1. version epochs (they make no sense to rez, so they'd just get stripped
+       of the leading ``N!``;
+    2. python versions are case insensitive, so they should probably be
        lowercased when converted to a rez version.
-    3: local versions are also not compatible with rez
+    3. local versions are also not compatible with rez
 
     The canonical public version identifiers MUST comply with the following scheme:
-    [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
+    ``[N!]N(.N)*[{a|b|rc}N][.postN][.devN]``
 
-    Epoch segment: N! - skip
-    Release segment: N(.N)* 0 as is
-    Pre-release segment: {a|b|c|rc|alpha|beta|pre|preview}N - always lowercase
-    Post-release segment: .{post|rev|r}N - always lowercase
-    Development release segment: .devN - always lowercase
+    Epoch segment: ``N!`` - skip
+    Release segment: N(.N)* 0`` as is
+    Pre-release segment: ``{a|b|c|rc|alpha|beta|pre|preview}N`` - always lowercase
+    Post-release segment: ``.{post|rev|r}N`` - always lowercase
+    Development release segment: ``.devN`` - always lowercase
 
     Local version identifiers MUST comply with the following scheme:
-    <public version identifier>[+<local version label>] - use - instead of +
+    ``<public version identifier>[+<local version label>]`` - use - instead of +
 
     Args:
         dist_version (str): The distribution version to be converted.
@@ -76,7 +76,7 @@ def pip_to_rez_version(dist_version, allow_legacy=True):
 
     Raises:
         InvalidVersion: When legacy mode is not allowed and a PEP440
-        incompatible version is detected.
+            incompatible version is detected.
 
     .. _PEP 440 (all possible matches):
         https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
@@ -164,20 +164,22 @@ def pip_specifier_to_rez_requirement(specifier):
 
     Example conversions:
 
-        |   PEP440    |     rez     |
-        |-------------|-------------|
-        | ==1         | 1+<1.1      |
-        | ==1.*       | 1           |
-        | >1          | 1.1+        |
-        | <1          | <1          |
-        | >=1         | 1+          |
-        | <=1         | <1.1        |
-        | ~=1.2       | 1.2+<2      |
-        | ~=1.2.3     | 1.2.3+<1.3  |
-        | !=1         | <1|1.1+     |
-        | !=1.2       | <1.2|1.2.1+ |
-        | !=1.*       | <1|2+       |
-        | !=1.2.*     | <1.2|1.3+   |
+    ============== ===============
+    PEP440         rez
+    ============== ===============
+    ``==1``        ``1+<1.1``
+    ``==1.*``      ``1``
+    ``>1``         ``1.1+``
+    ``<1``         ``<1``
+    ``>=1``        ``1+``
+    ``<=1``        ``<1.1``
+    ``~=1.2``      ``1.2+<2``
+    ``~=1.2.3``    ``1.2.3+<1.3``
+    ``!=1``        ``<1|1.1+``
+    ``!=1.2``      ``<1.2|1.2.1+``
+    ``!=1.*``      ``<1|2+``
+    ``!=1.2.*``    ``<1.2|1.3+``
+    ============== ===============
 
     Args:
         specifier (`package.SpecifierSet`): Pip specifier.
@@ -353,14 +355,16 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
 
     Example result:
 
-        {
-            "requires": ["foo-1.2+<2"],
-            "variant_requires": ["future", "python-2.7"],
-            "metadata": {
-                # metadata pertinent to rez
-                ...
-            }
-        }
+    .. code-block:: python
+
+       {
+           "requires": ["foo-1.2+<2"],
+           "variant_requires": ["future", "python-2.7"],
+           "metadata": {
+               # metadata pertinent to rez
+               ...
+           }
+       }
 
     Each requirement has had its package name converted to the rez equivalent.
     The 'variant_requires' key contains requirements specific to the current

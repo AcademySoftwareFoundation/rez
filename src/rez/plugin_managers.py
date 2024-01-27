@@ -383,7 +383,7 @@ class RezPluginManager(object):
         """Return a list of plugins for the given type that failed to load.
 
         Returns:
-            List of 2-tuples:
+            tuple: List of 2-tuples:
             name (str): Name of the plugin.
             reason (str): Error message.
         """

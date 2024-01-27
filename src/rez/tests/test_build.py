@@ -178,6 +178,8 @@ class TestBuild(TestBase, TempdirMixin):
     def test_builds(self, shell):
         """Test an interdependent set of builds.
         """
+        self.inject_python_repo()
+
         self._test_build_build_util()
         self._test_build_floob()
         self._test_build_foo()
@@ -189,6 +191,8 @@ class TestBuild(TestBase, TempdirMixin):
     def test_builds_anti(self, shell):
         """Test we can build packages that contain anti packages
         """
+        self.inject_python_repo()
+
         self._test_build_build_util()
         self._test_build_floob()
         self._test_build_anti()
@@ -207,6 +211,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_translate_lib()
         self._test_build_sup_world()
 
+    @unittest.skipIf(platform_.name == "windows", "Skipping because make and GCC are not common on Windows")
     @program_dependent("make", "g++")
     def test_build_custom(self):
         """Test a make-based package that uses the custom_build attribute."""

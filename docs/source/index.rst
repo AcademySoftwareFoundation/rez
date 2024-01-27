@@ -12,10 +12,12 @@ Welcome to rez's documentation!
    :hidden:
 
    installation
+   getting_started
    basic_concepts
    building_packages
    context
    variants
+   guides/index
 
 .. toctree::
    :maxdepth: 2
@@ -45,6 +47,7 @@ Welcome to rez's documentation!
    commands_index
    environment
    api
+   changelog.md
 
 Rez is a cross-platform package manager with a difference. Using Rez you can create
 standalone environments configured for a given set of packages. However, unlike many

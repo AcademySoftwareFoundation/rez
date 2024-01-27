@@ -43,5 +43,5 @@ Python API
    rez.system
    rez.util
    rez.utils
-   rez.vendor.version
+   rez.version
    rez.wrapper

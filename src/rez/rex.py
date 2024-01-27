@@ -12,6 +12,7 @@ from fnmatch import fnmatch
 from contextlib import contextmanager
 from string import Formatter
 
+import rez.deprecations
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, \
@@ -987,7 +988,7 @@ class EscapedString(object):
         """Return the string with non-literal parts formatted.
 
         Args:
-            func (callable): Callable that translates a string into a
+            func (typing.Callable): Callable that translates a string into a
                 formatted string.
 
         Returns:
@@ -1510,6 +1511,12 @@ class RexExecutor(object):
                               exec_namespace=self.globals)
 
         if isolate:
+            rez.deprecations.warn(
+                "the 'isolate' argument is deprecated and will be removed in 3.0.0. "
+                "Use the reset_globals method/context manager instead.",
+                category=rez.deprecations.RezDeprecationWarning,
+                stacklevel=2,
+            )
             with self.reset_globals():
                 _apply()
         else:

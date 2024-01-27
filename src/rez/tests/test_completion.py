@@ -52,7 +52,7 @@ class TestCompletion(TestBase):
         _eq("", ["bahish", "nada", "nopy", "pybah", "pydad", "pyfoo", "pymum",
                  "pyodd", "pyson", "pysplit", "python", "pyvariants",
                  "test_variant_split_start", "test_variant_split_mid1",
-                 "test_variant_split_mid2", "test_variant_split_end"])
+                 "test_variant_split_mid2", "test_variant_split_end", "missing_variant_requires"])
         _eq("py", ["pybah", "pydad", "pyfoo", "pymum", "pyodd", "pyson",
             "pysplit", "python", "pyvariants"])
         _eq("pys", ["pyson", "pysplit"])

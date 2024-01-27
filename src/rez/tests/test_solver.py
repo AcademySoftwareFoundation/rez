@@ -7,7 +7,8 @@ test dependency resolving algorithm
 """
 from __future__ import print_function
 
-from rez.vendor.version.requirement import Requirement
+import rez.exceptions
+from rez.version import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 from rez.config import config
 import unittest
@@ -214,6 +215,7 @@ class TestSolver(TestBase):
 
     def test_08(self):
         """Cyclic failures."""
+
         def _test(*pkgs):
             s = self._fail(*pkgs)
             self.assertTrue(isinstance(s.failure_reason(), Cycle))
@@ -247,6 +249,14 @@ class TestSolver(TestBase):
                     ["test_variant_split_end-1.0[1]",
                      "test_variant_split_mid2-2.0[0]",
                      "test_variant_split_start-1.0[1]"])
+
+    def test_12_missing_variant_requires(self):
+        config.override("error_on_missing_variant_requires", True)
+        with self.assertRaises(rez.exceptions.PackageFamilyNotFoundError):
+            self._solve(["missing_variant_requires"], [])
+
+        config.override("error_on_missing_variant_requires", False)
+        self._solve(["missing_variant_requires"], ["nada[]", "missing_variant_requires-1[1]"])
 
 
 if __name__ == '__main__':

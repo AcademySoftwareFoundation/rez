@@ -73,12 +73,19 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.package_search import ResourceSearcher, ResourceSearchResultFormatter
     from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config
+    import rez.deprecations
 
     before_time = get_epoch_time_from_str(opts.before)
     after_time = get_epoch_time_from_str(opts.after)
 
     if after_time and before_time and (after_time >= before_time):
         parser.error("non-overlapping --before and --after")
+
+    if opts.sort:
+        rez.deprecations.warn(
+            "the '--sort' argument is deprecated and will be removed in 3.0.0. It currently has no effect.",
+            rez.deprecations.RezDeprecationWarning,
+        )
 
     if opts.no_warnings:
         config.override("warn_none", True)

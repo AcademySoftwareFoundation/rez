@@ -11,8 +11,8 @@ The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
 from rez.vendor.six import six
-from rez.vendor.version.version import VersionRange
-from rez.vendor.version.requirement import Requirement
+from rez.version import VersionRange
+from rez.version import Requirement
 
 
 basestring = six.string_types[0]
@@ -37,6 +37,8 @@ class Binding(object):
 
 class VersionBinding(Binding):
     """Binds a version.Version object.
+
+    Examples:
 
         >>> v = VersionBinding(Version("1.2.3alpha"))
         >>> v.major
@@ -212,11 +214,14 @@ class RequirementsBinding(RO_MappingBinding):
 class EphemeralsBinding(RO_MappingBinding):
     """Binds a list of resolved ephemeral packages.
 
-    Note that the leading '.' is implied when referring to ephemerals. Eg:
+    Note:
+        The leading '.' is implied when referring to ephemerals. Eg:
 
-        # in package.py
-        def commands():
-            if "foo.cli" in ephemerals:  # will match '.foo.cli-*' request
+        .. code-block:: python
+
+           # in package.py
+           def commands():
+               if "foo.cli" in ephemerals:  # will match '.foo.cli-*' request
     """
     def __init__(self, ephemerals):
         doc = dict(
@@ -244,24 +249,28 @@ def intersects(obj, range_):
 
     Examples:
 
-        # in package.py
-        def commands():
-            # test a request
-            if intersects(request.maya, '2019+'):
-                info('requested maya allows >=2019.*')
+        .. code-block:: python
 
-            # tests if a resolved version intersects with given range
-            if intersects(resolve.maya, '2019+')
-                ...
+            # in package.py
+            def commands():
+                # test a request
+                if intersects(request.maya, '2019+'):
+                    info('requested maya allows >=2019.*')
 
-            # same as above
-            if intersects(resolve.maya.version, '2019+')
-                ...
+                # tests if a resolved version intersects with given range
+                if intersects(resolve.maya, '2019+')
+                    ...
 
-        # disable my cli tools if .foo.cli-0 was specified
-        def commands():
-            if intersects(ephemerals.get('foo.cli', '1'), '1'):
-                env.PATH.append('{root}/bin')
+                # same as above
+                if intersects(resolve.maya.version, '2019+')
+                    ...
+
+        .. code-block:: python
+
+            # disable my cli tools if .foo.cli-0 was specified
+            def commands():
+                if intersects(ephemerals.get('foo.cli', '1'), '1'):
+                    env.PATH.append('{root}/bin')
 
     Args:
         obj (VariantBinding or str): Object to test, either a

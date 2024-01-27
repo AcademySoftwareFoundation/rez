@@ -5,13 +5,15 @@
 from __future__ import print_function
 
 from rez.utils._version import _rez_version
+import rez.deprecations
 import sys
 import os
+import warnings
 
 
 __version__ = _rez_version
 __author__ = "Allan Johns"
-__license__ = "LGPL"
+__license__ = "Apache-2.0"
 
 
 module_root_path = __path__[0]  # noqa
@@ -59,3 +61,19 @@ if action:
 
     if callback:
         signal.signal(signal.SIGUSR1, callback)  # Register handler
+
+
+# Log all rez warnings, ignoring possible user defined warning filters.
+# We can't tell users to use something like PYTHONWARNINGS=default::rez.deprecations.RezDeprecationWarning
+# because python reads PYTHONWARNINGS before it actually can import modules. So it
+# basically can't import rez when PYTHONWARNINGS is read.
+# This means we have to rely on a custom environment variable.
+if os.getenv("REZ_LOG_DEPRECATION_WARNINGS"):
+    warnings.filterwarnings("default", category=rez.deprecations.RezDeprecationWarning)
+
+
+if sys.version_info[:2] < (3, 7):
+    rez.deprecations.warn(
+        "Support for Python less than 3.7 is deprecated and will be removed in rez 3.0.0.",
+        rez.deprecations.RezDeprecationWarning,
+    )

@@ -86,7 +86,10 @@ class TestShells(TestBase, TempdirMixin):
         shells = set(x for x in shells if x)
 
         if not shells:
-            self.skipTest("Not ensuring presence of shells from explicit list")
+            self.skipTest(
+                "Not ensuring presence of shells from explicit list because "
+                "$_REZ_ENSURE_TEST_SHELLS is either empty or not defined"
+            )
             return
 
         # check for missing shells
@@ -187,6 +190,71 @@ class TestShells(TestBase, TempdirMixin):
             p = r.execute_shell(command="hello_world",
                                 stdout=subprocess.PIPE, text=True)
             self.assertEqual(_stdout(p), "Hello Rez World!")
+
+    @per_available_shell()
+    def test_per_available_shell_decorator(self, shell):
+        """
+        Test that the "per_available_shell" decorator correctly sets the default shell
+        and that ResolvedContext.execute_shell will use the default shell as expected.
+        """
+        # Based on:
+        # * https://stackoverflow.com/a/3327022
+        # * https://stackoverflow.com/a/61469226
+        # * https://stackoverflow.com/a/27776822
+        data = {
+            "bash": {
+                "command": "echo $BASH",
+                "assert": lambda x: self.assertEqual(os.path.basename(x), "bash"),
+            },
+            "gitbash": {
+                "command": "uname -s",
+                "assert": lambda x: self.assertRegex(x, r"^(MINGW|CYGWIN|MSYS).*$")
+            },
+            "csh": {
+                "command": "echo $shell",
+                # csh should usually resolve to csh, but on macOS, it will resolve to tcsh,
+                # at least on GitHub Actions Hosted runners.
+                "assert": lambda x: self.assertEqual(
+                    os.path.basename(x), "csh" if system.platform != "osx" else "tcsh"
+                ),
+            },
+            "tcsh": {
+                "command": "echo $shell",
+                "assert": lambda x: self.assertEqual(os.path.basename(x), "tcsh"),
+            },
+            "sh": {
+                # This is a hack. $0 doesn't work when run through execute_shell,
+                # but will work when running "rez-env --shell sh -c 'echo $0'"
+                # Output result to /dev/null because we don't want the content to affect the test,
+                # we just want to test is the variable exists.
+                "command": "set -o nounset; echo $REZ_STORED_PROMPT_SH > /dev/null",
+                "assert": lambda x: self.assertEqual(x, ""),
+            },
+            "zsh": {
+                "command": "echo $ZSH_NAME",
+                "assert": lambda x: self.assertEqual(os.path.basename(x), "zsh"),
+            },
+            "powershell": {
+                "command": "echo $PSVersionTable.PSEdition",
+                "assert": lambda x: self.assertEqual(x, "Desktop"),
+            },
+            "pwsh": {
+                "command": "echo $PSVersionTable.PSEdition",
+                "assert": lambda x: self.assertEqual(x, "Core"),
+            },
+            "cmd": {
+                "command": "dir 2>&1 *`|echo CMD",
+                "assert": lambda x: self.assertEqual(x, "CMD"),
+            },
+        }
+
+        if shell not in data:
+            self.fail("Please add support for {0!r} in the test".format(shell))
+
+        r = self._create_context([])
+        p = r.execute_shell(command=data[shell]["command"],
+                            stdout=subprocess.PIPE, text=True)
+        data[shell]["assert"](_stdout(p).strip())
 
     @per_available_shell()
     def test_command_returncode(self, shell):

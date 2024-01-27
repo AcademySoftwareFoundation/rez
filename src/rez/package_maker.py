@@ -16,7 +16,7 @@ from rez.packages import Package
 from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.vendor.six import six
-from rez.vendor.version.version import Version
+from rez.version import Version
 from contextlib import contextmanager
 import os
 
@@ -175,9 +175,9 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
     Args:
         name (str): Package name.
         path (str): Package repository path to install package into.
-        make_base (callable): Function that is used to create the package
+        make_base (typing.Callable): Function that is used to create the package
             payload, if applicable.
-        make_root (callable): Function that is used to create the package
+        make_root (typing.Callable): Function that is used to create the package
             variant payloads, if applicable.
         skip_existing (bool): If True, detect if a variant already exists, and
             skip with a warning message if so.

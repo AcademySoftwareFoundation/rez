@@ -6,7 +6,7 @@ from Qt import QtCore, QtWidgets, QtGui
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import get_completions, iter_packages
-from rez.vendor.version.requirement import Requirement
+from rez.version import Requirement
 
 
 class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):

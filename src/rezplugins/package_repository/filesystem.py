@@ -35,7 +35,7 @@ from rez.config import config
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
 from rez.vendor.six import six
-from rez.vendor.version.version import Version, VersionRange
+from rez.version import Version, VersionRange
 
 
 basestring = six.string_types[0]
@@ -208,6 +208,7 @@ class FileSystemPackageResource(PackageResourceHelper):
 
         return data
 
+    # TODO: Deprecate
     def _load_old_formats(self):
         data = None
 
@@ -245,6 +246,7 @@ class FileSystemPackageResource(PackageResourceHelper):
         if not maxlen:
             return data
 
+        # TODO: Deprecate
         if file_format == FileFormat.yaml:
             changelog = data.get("changelog")
             if changelog:
@@ -334,6 +336,7 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
             yield package
 
     def _load(self):
+        # TODO: Deprecate: What is self.ext?
         format_ = FileFormat[self.ext]
         data = load_from_file(
             self.filepath,
@@ -433,6 +436,7 @@ class FileSystemCombinedVariantResource(VariantResourceHelper):
 class FileSystemPackageRepository(PackageRepository):
     """A filesystem-based package repository.
 
+    TODO: Deprecate YAML
     Packages are stored on disk, in either 'package.yaml' or 'package.py' files.
     These files are stored into an organised directory structure like so:
 
@@ -1182,6 +1186,7 @@ class FileSystemPackageRepository(PackageRepository):
             package_filenames = _settings.package_filenames
 
         for name in package_filenames:
+            # TODO: Deprecate YAML
             for format_ in (FileFormat.py, FileFormat.yaml):
                 filename = "%s.%s" % (name, format_.extension)
                 filepath = os.path.join(path, filename)

@@ -6,14 +6,14 @@
 Utility functions for bind modules.
 """
 from __future__ import absolute_import
-from rez.vendor.version.version import Version
+from rez.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
 from rez.util import which
 from rez.utils.execution import Popen
 from rez.utils.logging_ import print_debug
 from rez.vendor.six import six
-from pipes import quote
+from rez.utils.py23 import quote
 import subprocess
 import os.path
 import os

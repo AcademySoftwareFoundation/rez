@@ -39,6 +39,7 @@ class Suite(object):
     context's tools override tools from other contexts.
 
     There are several ways to avoid tool name clashes:
+
     - Hide a tool. This removes it from the suite even if it does not clash;
     - Prefix/suffix a context. When you do this, all the tools in the context
       have the prefix/suffix applied;
@@ -300,7 +301,8 @@ class Suite(object):
         """Get the tools exposed by this suite.
 
         Returns:
-            A dict, keyed by aliased tool name, with dict entries:
+            dict: A dict, keyed by aliased tool name, with dict entries:
+
             - tool_name (str): The original, non-aliased name of the tool;
             - tool_alias (str): Aliased tool name (same as key);
             - context_name (str): Name of the context containing the tool;
@@ -354,7 +356,8 @@ class Suite(object):
         Hidden tools are those that have been explicitly hidden via `hide_tool`.
 
         Returns:
-            A list of dicts, where each dict contains:
+            list[dict]: A list of dicts, where each dict contains:
+
             - tool_name (str): The original, non-aliased name of the tool;
             - tool_alias (str): Aliased tool name (same as key);
             - context_name (str): Name of the context containing the tool;

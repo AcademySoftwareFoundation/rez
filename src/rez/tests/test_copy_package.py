@@ -16,7 +16,7 @@ from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.packages import get_latest_package
 from rez.package_copy import copy_package
-from rez.vendor.version.version import VersionRange
+from rez.version import VersionRange
 from rez.tests.util import TestBase, TempdirMixin
 
 
@@ -51,6 +51,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
 
     def setup_once(self):
         # build packages used by this test
+        self.inject_python_repo()
         self._build_package("build_util", "1")
         self._build_package("floob")
         self._build_package("foo", "1.0.0")
