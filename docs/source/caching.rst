@@ -5,9 +5,7 @@ Caching
 Resolve Caching
 ===============
 
-Resolve caching is a feature that caches resolves to a `memcached <https://memcached.org/>`_ (in-memory) data store.
-Because the data store is in-memory, the full contents of the cache are lost if the memcached service shuts down
-by any means.
+Resolve caching is a feature that caches resolves to a `memcached <https://memcached.org/>`_, an in-memory database.
 
 Memcached is widely used, easy to deploy (because there is no storage needed since it's a single
 process/executable), and is very fast.
@@ -21,11 +19,14 @@ you expect. In this case however, it's better to just manually invalidate the ca
 
 Cache contents
 --------------
+
 The following information is stored to the memcached server for each solve:
 
-* Solver information about the previously cached solve.
-* Release times information about when each package variant in the resolve was last released.
-* Variant states information about the state of a variant. For example, in the 'filesystem' repository type, the 'state' is the last modified date of the file associated with the variant (perhaps a package.py). If the state of any variant has changed from a cached resolve - eg. if a file has been modified - the cached resolve is discarded.
+* Solver information about previously cached solves.
+* Timestamps of packages seen in previous solves.
+* Variant states information about the state of a variant. For example, in the 'filesystem' repository type,
+  the 'state' is the last modified date of the file associated with the variant (perhaps a package.py).
+  If the state of any variant has changed from a cached resolve - eg. if a file has been modified - the cached resolve is discarded.
 
 Setup
 -----
@@ -34,16 +35,17 @@ To enable memcached caching, you need to configure the :data:`memcached_uri` con
 This variable accepts a list of URI to your memcached servers or None. Example with memcached running on
 localhost on its default port:
 
-.. code-block:: console
+.. code-block:: python
 
    memcached_uri = ["127.0.0.1:11211"]
 
 This is the only parameter you need to configure to enable caching of the content and location of package file definitions and resolutions in Rez.
 
-Please refer to the :ref:`caching` configuration section for a complete list of settings.
+Please refer to the :ref:`caching <config-caching>` configuration section for a complete list of settings.
 
 Cache invalidation
 ------------------
+
 Cache entries will automatically be invalidated when a newer package version is released that would change the result
 of an existing resolve.
 
@@ -54,17 +56,13 @@ would correctly retrieve package version ``1.0.1``.
 
 Validating operation
 --------------------
-To print debugging information about memcached usage, you can temporarily declare the following variables in a terminal:
 
-.. code-block:: console
-
-   export REZ_DEBUG_MEMCACHE=1 (linux/macos bash)
-   $env:REZ_DEBUG_MEMCACHE=1 (powershell)
-
-or set :data:`debug_memcache` to True in your rezconfig.py.
+To print debugging information about memcached usage, you can set the :envvar:`REZ_DEBUG_MEMCACHE` environment
+variable or you can use the :data:`debug_memcache` setting.
 
 Show stats from memcached server
 --------------------------------
+
 Rez provides a command-line tool :ref:`rez-memcache` that can be used to see stats about cache misses/hits and to
 reset the memcached cache.
 

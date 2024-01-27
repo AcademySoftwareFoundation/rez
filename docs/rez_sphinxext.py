@@ -93,6 +93,8 @@ def convert_rez_config_to_rst() -> list[str]:
 
         for section in settings:
             rst.append('')
+            rst.append(".. _config-{}:".format(section.replace(' ', '-').lower()))
+            rst.append("")
             rst.append(section)
             rst.append("-" * len(section))
             rst.append('')
