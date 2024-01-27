@@ -11,7 +11,8 @@ Memcached is widely used, easy to deploy (because there is no storage needed sin
 process/executable), and is very fast.
 
 In a studio environment (with many machines), machines that perform a solve that is already cached to the
-resolve cache will simply receive the cached result rather than preforming a re-solve.
+resolve cache will simply receive the cached result rather than preforming a re-solve. This can significantly
+decrease the time it takes to resolve environments. Slow solves will now be almost instantaneous.
 
 Resolve caching has almost no downsides. Only in rare edge cases where you have to "hack" a released package into
 production do you see any issues. In this case, because resolves are cached, you may receive a different package than
