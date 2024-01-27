@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 """
 unit tests for 'utils.resolve_graph' module
 """
