@@ -53,7 +53,7 @@ def _cycled_detail_from_graph(graph, cycled_edge):
         visited = list()
         while True:
             visited.append(node)
-            down = next((ne for ne in graph.node_neighbors[node]), None)
+            down = next((ne for ne in graph.node_neighbors[node] if ne not in visited), None)
             if down in cycled_edge:
                 visited.append(down)
                 break
@@ -83,7 +83,7 @@ def _conflicted_detail_from_graph(graph, conflicted_edge):
         visited = list()
         while True:
             visited.append(node)
-            down = next((ne for ne in graph.node_neighbors[node]), None)
+            down = next((ne for ne in graph.node_neighbors[node] if ne not in visited), None)
             if down is None:
                 break
 
