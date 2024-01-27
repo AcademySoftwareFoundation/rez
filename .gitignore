@@ -19,3 +19,4 @@ __pycache__
 .venv/
 docs/source/api/
 docs/source/commands/
+__tests_pkg_repo/

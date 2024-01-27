@@ -152,6 +152,7 @@ class TestBuild(TestBase, TempdirMixin):
         """Test an interdependent set of builds.
         """
         config.override("default_shell", shell)
+        self.inject_python_repo()
 
         self._test_build_build_util()
         self._test_build_floob()
@@ -165,6 +166,7 @@ class TestBuild(TestBase, TempdirMixin):
         """Test we can build packages that contain anti packages
         """
         config.override("default_shell", shell)
+        self.inject_python_repo()
 
         self._test_build_build_util()
         self._test_build_floob()
@@ -184,6 +186,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_translate_lib()
         self._test_build_sup_world()
 
+    @unittest.skipIf(platform_.name == "windows", "Skipping because make and GCC are not common on Windows")
     @program_dependent("make", "g++")
     def test_build_custom(self):
         """Test a make-based package that uses the custom_build attribute."""

@@ -4,10 +4,7 @@
 [![Mailing List](https://img.shields.io/badge/rez--discussion-lists.aswf.io-003366?style=flat-square&logo=linuxfoundation)](https://lists.aswf.io/g/rez-discussion)
 [![Slack](https://img.shields.io/badge/Slack-ASWF_%23rez-7a6800?style=flat-square&logo=slack)](https://slack.aswf.io/)
 [![Contributing Guidelines](https://img.shields.io/badge/rez-Contributing%20Guidelines-0b610e?style=flat-square&logo=github)](https://github.com/AcademySoftwareFoundation/rez/blob/main/CONTRIBUTING.md)<br>
-[![Core](https://github.com/AcademySoftwareFoundation/rez/workflows/core/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Acore+branch%3Amain)
-[![Ubuntu](https://github.com/AcademySoftwareFoundation/rez/workflows/ubuntu/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aubuntu+branch%3Amain)
-[![Mac](https://github.com/AcademySoftwareFoundation/rez/workflows/mac/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Amac+branch%3Amain)
-[![Windows](https://github.com/AcademySoftwareFoundation/rez/workflows/windows/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3AWindows+branch%3Amain)<br>
+[![Tests](https://github.com/AcademySoftwareFoundation/rez/workflows/tests/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Atests+branch%3Amain)
 [![Installation](https://github.com/AcademySoftwareFoundation/rez/workflows/installation/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Ainstallation+branch%3Amain)
 [![Flake8](https://github.com/AcademySoftwareFoundation/rez/workflows/flake8/badge.svg?branch=main)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Aflake8+branch%3Amain)
 [![Docs](https://readthedocs.org/projects/rez/badge/?version=stable)](https://rez.readthedocs.io/en/stable)

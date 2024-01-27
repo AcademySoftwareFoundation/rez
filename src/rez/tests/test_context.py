@@ -73,7 +73,8 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_execute_command_environ(self):
         """Test that execute_command properly sets environ dict."""
-        r = ResolvedContext(["hello_world"])
+        self.inject_python_repo()
+        r = ResolvedContext(["hello_world", "python"])
         self._test_execute_command_environ(r)
 
     def _test_execute_command_environ(self, r):
@@ -110,14 +111,15 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_retarget(self):
         """Test that a retargeted context behaves identically."""
+        self.inject_python_repo()
 
         # make a copy of the pkg repo
         packages_path2 = os.path.join(self.root, "packages2")
         shutil.copytree(self.packages_path, packages_path2)
 
         # create a context, retarget to pkg repo copy
-        r = ResolvedContext(["hello_world"])
-        r2 = r.retargeted(package_paths=[packages_path2])
+        r = ResolvedContext(["hello_world", "python"])
+        r2 = r.retargeted(package_paths=[packages_path2, os.environ["__REZ_SELFTEST_PYTHON_REPO"]])
 
         # check the pkg we contain is in the copied pkg repo
         variant = r2.resolved_packages[0]
@@ -127,6 +129,8 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_bundled(self):
         """Test that a bundled context behaves identically."""
+
+        self.inject_python_repo()
 
         def _test_bundle(path):
             # load the bundled context
@@ -145,7 +149,7 @@ class TestContext(TestBase, TempdirMixin):
         bundle_path = os.path.join(self.root, "bundle")
 
         # create context and bundle it
-        r = ResolvedContext(["hello_world"])
+        r = ResolvedContext(["hello_world", "python"])
         bundle_context(
             context=r,
             dest_dir=bundle_path,
@@ -172,7 +176,7 @@ class TestContext(TestBase, TempdirMixin):
             os.mkdir(hard_path)
             os.symlink(hard_path, bundles_path)
 
-            r = ResolvedContext(["hello_world"])
+            r = ResolvedContext(["hello_world", "python"])
             bundle_context(
                 context=r,
                 dest_dir=bundle_path3,
