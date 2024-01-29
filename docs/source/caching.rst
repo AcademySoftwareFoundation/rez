@@ -5,7 +5,7 @@ Caching
 Resolve Caching
 ===============
 
-Resolve caching is a feature that caches resolves to a `memcached <https://memcached.org/>`_, an in-memory database.
+Resolve caching is a feature that caches resolves to a `memcached <https://memcached.org/>`_ in-memory database.
 
 Memcached is widely used, easy to deploy (because there is no storage needed since it's a single
 process/executable), and is very fast.
