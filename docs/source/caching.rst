@@ -5,10 +5,10 @@ Caching
 Resolve Caching
 ===============
 
-Resolve caching is a feature that caches resolves to a `memcached <https://memcached.org/>`_ in-memory database.
+Resolve caching is a feature that caches resolves to a `memcached <https://memcached.org/>`_ database.
 
 Memcached is widely used, easy to deploy (because there is no storage needed since it's a single
-process/executable), and is very fast.
+process/executable), and is very fast due to the data residing in memory.
 
 In a studio environment (with many machines), machines that perform a solve that is already cached to the
 resolve cache will simply receive the cached result rather than preforming a re-solve. This can significantly
