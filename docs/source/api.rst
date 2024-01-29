@@ -2,8 +2,10 @@
 Python API
 ==========
 
+.. warning::
+
 WARNING
-=============
+=======
 Please note the following warnings prior to using the Rez Python API:
 
 * We try our best to not break users, but there are no compatibility guarantees between different versions of Rez.
