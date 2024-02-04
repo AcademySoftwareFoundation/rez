@@ -1046,8 +1046,10 @@ error_old_commands = False
 # The variables in question, and their Rez-2 equivalent (if any) are:
 #
 # .. deprecated:: 2.114.0
-#    Will be removed in a future release. Additionally, the default will change
-#    from disabled to enabled in rez 3.0.0.
+#    Will be removed in a future release.
+#
+# .. versionchanged:: 3.0.0
+#    Changed the default value to False in preparation of future removal.
 #
 # ================== ==========================
 # REZ-1              REZ-2
@@ -1060,7 +1062,7 @@ error_old_commands = False
 # REZ_RAW_REQUEST    not set
 # REZ_IN_REZ_RELEASE not set
 # ================== ==========================
-rez_1_environment_variables = True
+rez_1_environment_variables = False
 
 # If True, override all compatibility-related settings so that Rez-1 support is
 # deprecated. This means that:
@@ -1072,13 +1074,13 @@ rez_1_environment_variables = True
 # You should aim to do this. It will mean your packages are more strictly
 # validated, and you can more easily use future versions of Rez.
 #
-# .. versionchanged:: 2.114.0
-#    Now enabled by default.
-#
 # .. deprecated:: 2.114.0
-#    Will be removed in a future release. Additionally, the default will change
-#    from disabled to enabled in rez 3.0.0.
-disable_rez_1_compatibility = False
+#    Will be removed in a future release.
+#
+# .. versionchanged:: 3.0.0
+#    Changed the default value to True in preparation of future removal.
+#
+disable_rez_1_compatibility = True
 
 
 ###############################################################################
