@@ -13,7 +13,6 @@ from contextlib import contextmanager
 from string import Formatter
 from collections.abc import MutableMapping
 
-import rez.deprecations
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, \
@@ -1404,31 +1403,16 @@ class RexExecutor(object):
 
         return pyc
 
-    def execute_code(self, code, filename=None, isolate=False):
+    def execute_code(self, code, filename=None):
         """Execute code within the execution context.
 
         Args:
             code (str or SourceCode): Rex code to execute.
             filename (str): Filename to report if there are syntax errors.
-            isolate (bool): If True, do not affect `self.globals` by executing
-                this code. DEPRECATED - use `self.reset_globals` instead.
         """
-        def _apply():
-            self.compile_code(code=code,
-                              filename=filename,
-                              exec_namespace=self.globals)
-
-        if isolate:
-            rez.deprecations.warn(
-                "the 'isolate' argument is deprecated and will be removed in 3.0.0. "
-                "Use the reset_globals method/context manager instead.",
-                category=rez.deprecations.RezDeprecationWarning,
-                stacklevel=2,
-            )
-            with self.reset_globals():
-                _apply()
-        else:
-            _apply()
+        self.compile_code(code=code,
+                            filename=filename,
+                            exec_namespace=self.globals)
 
     def execute_function(self, func, *nargs, **kwargs):
         """

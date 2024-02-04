@@ -1029,15 +1029,6 @@ optionvars = None
 #
 ###############################################################################
 
-# If this is True, rxt files are written in YAML format. If False, they are
-# written in JSON, which is a LOT faster. You would only set to true for
-# backwards compatibility reasons. Note that rez will detect either format on
-# rxt file load.
-#
-# .. deprecated:: 2.114.0
-#    The ability to store RXT files using the YAML format will be removed in 3.0.0.
-rxt_as_yaml = False
-
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 #
 # .. deprecated:: 2.114.0
@@ -1049,36 +1040,6 @@ warn_old_commands = True
 # .. deprecated:: 2.114.0
 #    Will be removed in a future release.
 error_old_commands = False
-
-# Print old commands and their converted rex equivalent. Note that this can
-# cause very verbose output.
-#
-# This currently has no effect.
-#
-# .. deprecated:: 2.114.0
-#    Will be removed in rez 3.0.0.
-debug_old_commands = False
-
-# Warn or disallow an extra commands entry called "commands2". This is provided
-# as a temporary measure for porting packages to rez-based commands without
-# breaking compatibility with Rez-1. If "commands2" is present, it is used
-# instead of "commands". Unlike "commands", "commands2" only allows new rex-
-# style commands. Once you have fully deprecated Rez-1, you should stop using
-# "commands2".
-#
-# This currently has no effect.
-#
-# .. deprecated:: 2.114.0
-#    Will be removed in rez 3.0.0.
-warn_commands2 = False
-
-# See :data:`warn_commands2`.
-#
-# This currently has no effect.
-#
-# .. deprecated:: 2.114.0
-#    Will be removed in rez 3.0.0.
-error_commands2 = False
 
 # If True, Rez will continue to generate the given environment variables in
 # resolved environments, even though their use has been deprecated in Rez-2.
@@ -1101,30 +1062,12 @@ error_commands2 = False
 # ================== ==========================
 rez_1_environment_variables = True
 
-# If True, Rez will continue to generate the given CMake variables at build and
-# release time, even though their use has been deprecated in Rez-2. The
-# variables in question, and their Rez-2 equivalent (if any) are:
-#
-# .. versionchanged:: 2.114.0
-#    Now disabled by default.
-#
-# .. deprecated:: 2.114.0
-#    This will be removed in 3.0.0.
-#
-# ======= ========================
-# REZ-1   REZ-2
-# ======= ========================
-# CENTRAL :envvar:`REZ_BUILD_TYPE`
-# ======= ========================
-rez_1_cmake_variables = False
-
 # If True, override all compatibility-related settings so that Rez-1 support is
 # deprecated. This means that:
 #
 # * All warn/error settings in this section of the config will be set to
 #   warn=False, error=True;
 # * :data:`rez_1_environment_variables` will be set to False.
-# * :data:`rez_1_cmake_variables` will be set to False.
 #
 # You should aim to do this. It will mean your packages are more strictly
 # validated, and you can more easily use future versions of Rez.

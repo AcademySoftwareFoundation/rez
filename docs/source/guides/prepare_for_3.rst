@@ -46,7 +46,7 @@ Optional
 ========
 
 Since some default configuration default values will change in ``3.0.0``, we highly suggest
-that you run some anslysis scripts to see if you will be impacted by these changes.
+that you run some analysis scripts to see if you will be impacted by these changes.
 
 Detect old-style commands in your repositories
 ----------------------------------------------

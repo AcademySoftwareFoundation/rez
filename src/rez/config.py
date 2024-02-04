@@ -451,7 +451,6 @@ config_schema = Schema({
     "package_cache_max_variant_days":               Int,
     "package_cache_clean_limit":                    Float,
     "allow_unversioned_packages":                   Bool,
-    "rxt_as_yaml":                                  Bool,
     "package_cache_during_build":                   Bool,
     "package_cache_local":                          Bool,
     "package_cache_same_device":                    Bool,
@@ -487,11 +486,7 @@ config_schema = Schema({
     "prefix_prompt":                                Bool,
     "warn_old_commands":                            Bool,
     "error_old_commands":                           Bool,
-    "debug_old_commands":                           Bool,
-    "warn_commands2":                               Bool,
-    "error_commands2":                              Bool,
     "rez_1_environment_variables":                  Bool,
-    "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
     "make_package_temporarily_writable":            Bool,
     "read_package_cache":                           Bool,
@@ -515,24 +510,10 @@ config_schema = Schema({
 # List of settings that are deprecated and should raise
 # deprecation warnings if referenced in config files.
 _deprecated_settings = {
-    "rxt_as_yaml": _Deprecation("3.0.0"),
     "warn_old_commands": _Deprecation("the future"),
     "error_old_commands": _Deprecation("the future"),
-    # Remove in 3.0 because it's currently a no-op
-    "debug_old_commands": _Deprecation("3.0.0"),
-    # Remove in 3.0 because it's currently a no-op
-    "warn_commands2": _Deprecation("3.0.0"),
-    # Remove in 3.0 because it's currently a no-op
-    "error_commands2": _Deprecation("3.0.0"),
-    "rez_1_environment_variables": _Deprecation(
-        "the future",
-        extra="Additionally, it will become disabled by default in 3.0.0.",
-    ),
-    "rez_1_cmake_variables": _Deprecation("3.0.0"),
-    "disable_rez_1_compatibility": _Deprecation(
-        "the future",
-        extra="Additionally, it will become enabled by default in 3.0.0.",
-    )
+    "rez_1_environment_variables": _Deprecation("the future"),
+    "disable_rez_1_compatibility": _Deprecation("the future")
 }
 
 

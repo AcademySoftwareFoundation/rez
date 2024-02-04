@@ -204,7 +204,7 @@ class FileSystemPackageResource(PackageResourceHelper):
 
         return data
 
-    # TODO: Deprecate
+    # TODO: Deprecate? How could we add deprecation warnings without flooding the user?
     def _load_old_formats(self):
         data = None
 

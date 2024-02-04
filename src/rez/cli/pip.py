@@ -17,10 +17,6 @@ def setup_parser(parser, completions=False):
         "that the pip package(s) will be installed with a dependency on "
         "python-MAJOR.MINOR.")
     parser.add_argument(
-        "--pip-version", dest="pip_ver", metavar="VERSION",
-        help="pip version (rez package) to use, default is latest."
-        " This option is deprecated and will be removed in 3.0.0.")
-    parser.add_argument(
         "-i", "--install", action="store_true",
         help="install the package")
     parser.add_argument(
@@ -49,17 +45,10 @@ def command(opts, parser, extra_arg_groups=None):
         logging.getLogger('rez').setLevel(logging.INFO)
 
     from rez.pip import pip_install_package
-    import rez.deprecations
 
     # a bit weird, but there used to be more options. Leave like this for now
     if not opts.install:
         parser.error("Expected one of: --install")
-
-    if opts.pip_ver:
-        rez.deprecations.warn(
-            "The option --pip-version is deprecated and will be removed in 3.0.0",
-            category=rez.deprecations.RezDeprecationWarning,
-        )
 
     pip_install_package(
         opts.PACKAGE,
