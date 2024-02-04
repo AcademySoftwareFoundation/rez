@@ -52,7 +52,6 @@ def command(opts, parser, extra_arg_groups=None):
 
     pip_install_package(
         opts.PACKAGE,
-        pip_version=opts.pip_ver,
         python_version=opts.py_ver,
         release=opts.release,
         prefix=opts.prefix,
