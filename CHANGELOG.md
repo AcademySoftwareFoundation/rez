@@ -81,7 +81,7 @@ As communicated in the 2.114.0 release notes, we've followed through on the remo
 
 ### Changed
 
-Change of default value as announced in 2.114.0:
+Change of default values as announced in 2.114.0:
 
 - `rez_1_environment_variables`: Now disabled by default.
 - `disable_rez_1_compatibility`: Now enabled by default.
@@ -98,7 +98,7 @@ The effort to improve and add content to our docs continues.
 * New documentation dedicated to [caching](https://rez.readthedocs.io/en/stable/caching.html).
   This is only the beginning and only contains information on package payload caching and
   memcached. We hope to add more content in the future. [\#1615](https://github.com/AcademySoftwareFoundation/rez/pull/1615) ([@brycegbrazen](https://github.com/brycegbrazen))
-- The note about SemVer in https://rez.readthedocs.io/en/stable/basic_concepts.html#versions
+- The note about SemVer in the [docs](https://rez.readthedocs.io/en/stable/basic_concepts.html#versions)
   has been clarified. While we encourage SemVer like versioning, rez doesn't know
   what SemVer is. This has been a source of confusion in the past. [\#1614](https://github.com/AcademySoftwareFoundation/rez/pull/1614) ([@brycegbrazen](https://github.com/brycegbrazen))
 
