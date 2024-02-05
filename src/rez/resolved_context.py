@@ -42,7 +42,6 @@ from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
-import rez.deprecations
 
 from contextlib import contextmanager
 from functools import wraps

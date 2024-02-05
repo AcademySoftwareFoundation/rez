@@ -1410,9 +1410,11 @@ class RexExecutor(object):
             code (str or SourceCode): Rex code to execute.
             filename (str): Filename to report if there are syntax errors.
         """
-        self.compile_code(code=code,
-                            filename=filename,
-                            exec_namespace=self.globals)
+        self.compile_code(
+            code=code,
+            filename=filename,
+            exec_namespace=self.globals
+        )
 
     def execute_function(self, func, *nargs, **kwargs):
         """
