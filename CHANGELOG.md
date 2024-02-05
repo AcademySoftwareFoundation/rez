@@ -58,7 +58,6 @@ As communicated in the 2.114.0 release notes, we've followed through on the remo
 
 - Configuration settings
   - `rtx_as_yaml`: No replacement. This functionality will be completely removed in the future.
-  - `debug_old_commands`: No replacement. This was a no-op.
   - `warn_commands2`: No replacement. This was a no-op.
   - `error_commands2`: No replacement. This was a no-op.
   - `rez_1_cmake_variables`: You can use the `REZ_BUILD_TYPE` CMake variable instead of `CENTRAL`.

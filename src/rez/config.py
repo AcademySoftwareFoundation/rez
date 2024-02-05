@@ -484,8 +484,11 @@ config_schema = Schema({
     "default_relocatable":                          Bool,
     "set_prompt":                                   Bool,
     "prefix_prompt":                                Bool,
+    # Note that if you want to remove a warn_* or debug_* config, you will
+    # need to search for "config.warn(" or "config.debug(" to see if it's used.
     "warn_old_commands":                            Bool,
     "error_old_commands":                           Bool,
+    "debug_old_commands":                           Bool,
     "rez_1_environment_variables":                  Bool,
     "disable_rez_1_compatibility":                  Bool,
     "make_package_temporarily_writable":            Bool,

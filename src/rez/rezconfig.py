@@ -1041,6 +1041,15 @@ warn_old_commands = True
 #    Will be removed in a future release.
 error_old_commands = False
 
+# Print old commands and their converted rex equivalent. Note that this can
+# cause very verbose output.
+#
+# This currently has no effect.
+#
+# .. deprecated:: 2.114.0
+#    Will be removed in a future version.
+debug_old_commands = False
+
 # If True, Rez will continue to generate the given environment variables in
 # resolved environments, even though their use has been deprecated in Rez-2.
 # The variables in question, and their Rez-2 equivalent (if any) are:
