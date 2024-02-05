@@ -2,8 +2,6 @@
 Python API
 ==========
 
-.. warning::
-
 WARNING
 =======
 Please note the following warnings prior to using the Rez Python API:
