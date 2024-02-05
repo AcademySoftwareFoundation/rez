@@ -57,7 +57,7 @@ As communicated in the 2.114.0 release notes, we've followed through on the remo
   - `rez.packages_`: Use `rez.packages` instead.
 
 - Configuration settings
-  - `rtx_as_yaml`: No replacement. This functionality will be completely removed in the future.
+  - `rxt_as_yaml`: No replacement.
   - `warn_commands2`: No replacement. This was a no-op.
   - `error_commands2`: No replacement. This was a no-op.
   - `rez_1_cmake_variables`: You can use the `REZ_BUILD_TYPE` CMake variable instead of `CENTRAL`.
