@@ -9,7 +9,6 @@ from rez.tests.util import TestBase, TempdirMixin, \
     per_available_shell, install_dependent
 from rez.resolved_context import ResolvedContext
 from rez.suite import Suite
-from rez.config import config
 from rez.system import system
 import subprocess
 import unittest
@@ -158,8 +157,6 @@ class TestRezSuites(TestBase, TempdirMixin):
         ```
 
         """
-        config.override("default_shell", shell)
-
         c_pooh = ResolvedContext(["pooh"])
         s = Suite()
         s.add_context("pooh", c_pooh)
@@ -167,8 +164,7 @@ class TestRezSuites(TestBase, TempdirMixin):
         expected_tools = set(["hunny"])
         self.assertEqual(set(s.get_tools().keys()), expected_tools)
 
-        per_shell = config.get("default_shell")
-        suite_path = os.path.join(self.root, "test_suites", per_shell, "pooh")
+        suite_path = os.path.join(self.root, "test_suites", shell, "pooh")
         s.save(suite_path)
 
         bin_path = os.path.join(suite_path, "bin")

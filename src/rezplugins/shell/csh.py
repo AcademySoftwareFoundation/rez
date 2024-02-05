@@ -98,7 +98,7 @@ class CSH(UnixShell):
             source_bind_files=(not norc)
         )
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path=False, is_shell_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -110,7 +110,9 @@ class CSH(UnixShell):
                     txt = "'%s'" % txt
             else:
                 if is_path:
-                    txt = self.normalize_paths(txt)
+                    txt = self.as_path(txt)
+                elif is_shell_path:
+                    txt = self.as_shell_path(txt)
 
                 txt = txt.replace('"', '"\\""')
                 txt = txt.replace('!', '\\!')
@@ -157,8 +159,8 @@ class CSH(UnixShell):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
     def setenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
-        self._addline('setenv %s %s' % (key, value))
+        new_value = self.escape_string(value, is_path=self._is_pathed_key(key))
+        self._addline('setenv %s %s' % (key, new_value))
 
     def unsetenv(self, key):
         self._addline("unsetenv %s" % key)

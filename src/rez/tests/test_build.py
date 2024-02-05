@@ -5,15 +5,15 @@
 """
 test the build system
 """
-from rez.config import config
 from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
+from rez.shells import get_shell_class
 from rez.exceptions import BuildError, BuildContextResolveError,\
     PackageFamilyNotFoundError
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
-    per_available_shell, install_dependent, program_dependent
+    per_available_shell, install_dependent, platform_dependent, program_dependent
 from rez.utils.platform_ import platform_
 import shutil
 import os.path
@@ -136,12 +136,39 @@ class TestBuild(TestBase, TempdirMixin):
         self.assertEqual('hola amigo', stdout.strip())
 
     @per_available_shell()
+    @program_dependent("cmake", "make")
+    @platform_dependent(["windows"])
+    @install_dependent()
+    def test_build_winning(self, shell):
+        """Build, install, test the winning package."""
+        sh_cls = get_shell_class(shell)
+
+        cmake_exe = sh_cls.find_executable("cmake")
+        make_exe = sh_cls.find_executable("make")
+
+        self.update_settings(
+            dict(
+                default_shell=shell,
+                enable_path_normalization=True,
+                plugins=dict(
+                    build_system=dict(
+                        cmake=dict(
+                            install_pyc=False,
+                            build_system="make",
+                            cmake_binary=cmake_exe,
+                            make_binary=make_exe,
+                        )
+                    )
+                )
+            )
+        )
+        self._test_build("winning", "9.6")
+
+    @per_available_shell()
     @install_dependent()
     def test_build_whack(self, shell):
         """Test that a broken build fails correctly.
         """
-        config.override("default_shell", shell)
-
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
         self.assertRaises(BuildError, builder.build, clean=True)
@@ -151,7 +178,6 @@ class TestBuild(TestBase, TempdirMixin):
     def test_builds(self, shell):
         """Test an interdependent set of builds.
         """
-        config.override("default_shell", shell)
         self.inject_python_repo()
 
         self._test_build_build_util()
@@ -165,7 +191,6 @@ class TestBuild(TestBase, TempdirMixin):
     def test_builds_anti(self, shell):
         """Test we can build packages that contain anti packages
         """
-        config.override("default_shell", shell)
         self.inject_python_repo()
 
         self._test_build_build_util()

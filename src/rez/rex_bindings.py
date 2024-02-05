@@ -134,7 +134,7 @@ class VariantBinding(Binding):
         root = self.__cached_root or self.__variant.root
 
         if self.__interpreter:
-            root = self.__interpreter.normalize_path(root)
+            root = self.__interpreter.as_path(root)
 
         return root
 

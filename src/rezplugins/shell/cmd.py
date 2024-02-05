@@ -7,12 +7,12 @@ Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
 from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
-from rez.shells import Shell
+from rez.shells import Shell, log
 from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.vendor.six import six
-from ._utils.windows import to_windows_path, get_syspaths_from_registry
+from ._utils.windows import get_syspaths_from_registry
 from functools import partial
 import os
 import re
@@ -217,14 +217,18 @@ class CMD(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path=False, is_shell_path=False):
         """Escape the <, >, ^, and & special characters reserved by Windows.
+
+        ``is_path`` and ``is_shell_path`` are mutually exclusive.
 
         Args:
             value (str/EscapedString): String or already escaped string.
 
         Returns:
-            str: The value escaped for Windows.
+            value (str): The value escaped for Windows.
+            is_path (bool): True if the value is path-like.
+            is_shell_path (bool): True if the value is a shell-path.
 
         """
         value = EscapedString.promote(value)
@@ -239,13 +243,68 @@ class CMD(Shell):
             else:
                 if is_path:
                     txt = self.normalize_paths(txt)
+                elif is_shell_path:
+                    txt = self.as_shell_path(txt)
 
                 txt = self._escaper(txt)
             result += txt
         return result
 
+    def as_path(self, path):
+        """
+        Return the given path as a system path.
+        Used if the path needs to be reformatted to suit a specific case.
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Transformed file path.
+        """
+        return self.normalize_path(path)
+
+    def as_shell_path(self, path):
+        """
+        Return the given path as a shell path.
+        Used if the shell requires a different pathing structure.
+
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Transformed file path.
+        """
+        return self.normalize_path(path)
+
     def normalize_path(self, path):
-        return to_windows_path(path)
+        """Normalize a path to the current platform's path format.
+
+        This isn't explicitely necessary on Windows since around Windows 7,
+        CMD has supported mixed slashes as a path separator. However,
+        we can still call this method to normalize paths for consistency and
+        have better interoperability with some software such as cmake which
+        prefer forward slashes e.g. GH issue #1321.
+
+        Args:
+            path (str): Path to normalize.
+
+        Returns:
+            str: Normalized path.
+        """
+        # Prevent path conversion if normalization is disabled in the config.
+        if not config.enable_path_normalization:
+            return path
+
+        path = os.path.normpath(path)
+        normalized_path = path.replace("\\", "/")
+
+        if path != normalized_path:
+            log("CMD normalize_path()")
+            log("path normalized: {!r} -> {!r}".format(path, normalized_path))
+            self._addline(
+                "REM normalized path: {!r} -> {}".format(path, normalized_path)
+            )
+
+        return normalized_path
 
     def _saferefenv(self, key):
         pass
@@ -254,8 +313,13 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
-        self._addline('set %s=%s' % (key, value))
+        new_value = self.escape_string(
+            value,
+            is_path=self._is_pathed_key(key),
+            is_shell_path=self._is_shell_pathed_key(key),
+        )
+
+        self._addline('set %s=%s' % (key, new_value))
 
     def unsetenv(self, key):
         self._addline("set %s=" % key)

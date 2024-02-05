@@ -9,12 +9,11 @@ from subprocess import PIPE
 from rez.config import config
 from rez.vendor.six import six
 from rez.rex import RexExecutor, OutputStyle, EscapedString
-from rez.shells import Shell
+from rez.shells import Shell, log
 from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
-from .windows import to_windows_path
 
 
 class PowerShellBase(Shell):
@@ -232,7 +231,7 @@ class PowerShellBase(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path=False, is_shell_path=False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -243,14 +242,42 @@ class PowerShellBase(Shell):
             else:
                 if is_path:
                     txt = self.normalize_paths(txt)
+                elif is_shell_path:
+                    txt = self.as_shell_path(txt)
 
                 txt = self._escape_quotes(txt)
             result += txt
         return result
 
     def normalize_path(self, path):
+        """Normalize a path to the current platform's path format.
+
+        This isn't explicitely necessary on Windows since around Windows 7,
+        PowerShell has supported mixed slashes as a path separator. However,
+        we can still call this method to normalize paths for consistency, and
+        have better interoperability with some software such as cmake which
+        prefer forward slashes e.g. GH issue #1321.
+
+        Args:
+            path (str): Path to normalize.
+
+        Returns:
+            str: Normalized path.
+        """
+        # Prevent path conversion if normalization is disabled in the config.
+        if not config.enable_path_normalization:
+            return path
+
         if platform_.name == "windows":
-            return to_windows_path(path)
+            path = os.path.normpath(path)
+            normalized_path = path.replace("\\", "/")
+            if path != normalized_path:
+                log("PowerShellBase normalize_path()")
+                log("Path normalized: {!r} -> {!r}".format(path, normalized_path))
+                self._addline(
+                    "# Path normalized: {!r} -> {!r}".format(path, normalized_path)
+                )
+            return normalized_path
         else:
             return path
 
@@ -269,6 +296,8 @@ class PowerShellBase(Shell):
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
+        # The nested Get-ChildItem call is set to SilentlyContinue to prevent
+        # an exception of the Environment Variable is not set already
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value)'
             .format(key, value, self.pathsep)
@@ -283,7 +312,7 @@ class PowerShellBase(Shell):
         # an exception of the Environment Variable is not set already
         self._addline(
             'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'
-            .format(key, os.path.pathsep, value))
+            .format(key, self.pathsep, value))
 
     def unsetenv(self, key):
         self._addline(
@@ -336,6 +365,8 @@ class PowerShellBase(Shell):
         if isinstance(command, six.string_types):
             return command
 
+        find_unsafe = re.compile(r'[^\w@%+`:,./-]').search
+
         replacements = [
             # escape ` as ``
             ('`', "``"),
@@ -344,7 +375,7 @@ class PowerShellBase(Shell):
             ('"', '`"')
         ]
 
-        joined = shlex_join(command, replacements=replacements)
+        joined = shlex_join(command, unsafe_regex=find_unsafe, replacements=replacements)
 
         # add call operator in case executable gets quotes applied
         # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_operators?view=powershell-7.1#call-operator-

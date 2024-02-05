@@ -10,7 +10,9 @@ private_build_requires = ["build_util", "python"]
 
 @include("late_utils")
 def commands():
-    env.PYTHONPATH.append('{root}/python')
+    # Test prepends by throwing in an extra python path
+    env.PYTHONPATH.prepend('{root}/python')
+    env.PYTHONPATH.append('{root}/noexist')
     env.FOO_IN_DA_HOUSE = "1"
 
     late_utils.add_eek_var(env)

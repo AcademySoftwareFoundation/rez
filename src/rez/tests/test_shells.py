@@ -11,10 +11,12 @@ from rez.system import system
 from rez.shells import create_shell, get_shell_types, get_shell_class
 from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
+from rez.rex_bindings import VariantBinding
 from rez.plugin_managers import plugin_manager
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
+from rez.utils.filesystem import canonical_path
 from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
-    install_dependent
+    install_dependent, platform_dependent
 from rez.bind import hello_world
 from rez.config import config
 import unittest
@@ -23,6 +25,8 @@ import tempfile
 import inspect
 import textwrap
 import os
+
+from functools import partial
 
 
 def _stdout(proc):
@@ -39,8 +43,13 @@ class TestShells(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
+        # Build tests are very sensitive to stdout
+        if not config.debug("none"):
+            config.override("debug_none", True)
+
         packages_path = os.path.join(cls.root, "packages")
         os.makedirs(packages_path)
+
         hello_world.bind(packages_path)
 
         cls.settings = dict(
@@ -361,8 +370,6 @@ class TestShells(TestBase, TempdirMixin):
         """Test that Rex code run in the shell creates the environment variable
         values that we expect.
         """
-        config.override("default_shell", shell)
-
         def _execute_code(func, expected_output):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -532,8 +539,6 @@ class TestShells(TestBase, TempdirMixin):
         the absolute path to doskey.exe before we modify PATH and continue to
         use the absolute path after the modifications.
         """
-        config.override("default_shell", shell)
-
         def _execute_code(func):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -560,8 +565,6 @@ class TestShells(TestBase, TempdirMixin):
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
         """
-        config.override("default_shell", shell)
-
         def _make_alias(ex):
             ex.alias('hi', 'echo "hi"')
 
@@ -580,8 +583,6 @@ class TestShells(TestBase, TempdirMixin):
         This is important for Windows CMD shell because the doskey.exe isn't
         executed yet when the alias is being passed.
         """
-        config.override("default_shell", shell)
-
         def _make_alias(ex):
             ex.alias('tell', 'echo')
 
@@ -592,6 +593,93 @@ class TestShells(TestBase, TempdirMixin):
 
         out, _ = p.communicate()
         self.assertEqual(0, p.returncode)
+
+    @per_available_shell()
+    def test_root_normalization(self, shell):
+        """Test root variant binding is normalized as expected."""
+        r = self._create_context(["hello_world"])
+
+        variant_bindings = dict(
+            (variant.name, VariantBinding(variant))
+            for variant in r.resolved_packages
+        )
+
+        self.assertEqual(
+            variant_bindings["hello_world"].root,
+            canonical_path(
+                os.path.join(
+                    self.settings["packages_path"][0], "hello_world", "1.0"
+                )
+            )
+        )
+
+    @per_available_shell(include=["cmd", "powershell", "pwsh"])
+    @platform_dependent(["windows"])
+    def test_enabled_path_normalization(self, shell):
+        """Test enabling path normalization via the config."""
+        config.override('enable_path_normalization', True)
+
+        sh = create_shell(shell)
+        test_path = r'C:\foo\bar\spam'
+        normalized_path = sh.normalize_path(test_path)
+        expected_path = 'C:/foo/bar/spam'
+
+        self.assertEqual(normalized_path, expected_path)
+
+    @per_available_shell()
+    def test_disabled_path_normalization(self, shell):
+        """Test disabling path normalization via the config."""
+        config.override('enable_path_normalization', False)
+
+        sh = create_shell(shell)
+        test_path = r'C:\foo\bar\spam'
+        normalized_path = sh.normalize_path(test_path)
+        expected_path = r'C:\foo\bar\spam'
+
+        self.assertEqual(normalized_path, expected_path)
+
+    @per_available_shell()
+    def test_implicit_string_expansion(self, shell):
+        r"""Test variable expansions likely to contain version requirement strings.
+
+        We're mainly testing for cases where `~` in implicit package strings could
+        expand to the user home directory on Windows.
+
+        For example:
+            '~platform==windows ~arch==AMD64 ~os==windows-10.0.19045.SP0'
+        Can expand to:
+            'C:\\Users\platform==windows ~arch==AMD64 ~os==windows-10.0.19045.SP0'
+        """
+        def cb_(ctx, executor):
+            keys = [
+                "REZ_USED_IMPLICIT_PACKAGES",
+                "REZ_REQUEST",
+                "REZ_RAW_REQUEST",
+            ]
+            implicits_str = " ".join(str(p) for p in ctx.implicit_packages)
+            expected = dict((k, implicits_str) for k in keys)
+            result = dict(
+                (k, v) for k, v in executor.manager.environ.items() if k in keys
+            )
+            self.assertEqual(result, expected)
+
+        self.update_settings(
+            dict(
+                implicit_packages=[
+                    "~platform=={system.platform}",
+                    "~arch=={system.arch}",
+                    "~os=={system.os}",
+                ]
+            )
+        )
+
+        r = self._create_context([])
+        r.execute_shell(
+            command="echo asd",
+            stdout=subprocess.PIPE,
+            text=True,
+            post_actions_callback=partial(cb_, r)
+        )
 
 
 if __name__ == '__main__':

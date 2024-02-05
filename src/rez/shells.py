@@ -8,7 +8,7 @@ Pluggable API for creating subshells using different programs, such as bash.
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils.which import which
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_debug, print_warning
 from rez.utils.execution import Popen
 from rez.system import system
 from rez.exceptions import RezSystemError
@@ -21,6 +21,11 @@ from rez.utils.py23 import quote
 
 
 basestring = six.string_types[0]
+
+
+def log(*msg):
+    if config.debug("shells"):
+        print_debug(*msg)
 
 
 def get_shell_types():
@@ -70,6 +75,9 @@ class Shell(ActionInterpreter):
     """
     schema_dict = {
         "prompt": basestring}
+
+    env_sep_map_setting = "env_var_separators"
+    shell_env_sep_map_setting = "shell_env_var_separators"
 
     @classmethod
     def name(cls):
@@ -133,6 +141,47 @@ class Shell(ActionInterpreter):
     def __init__(self):
         self._lines = []
         self.settings = config.plugins.shell[self.name()]
+        self.env_sep_map = self._shell_env_seps()
+
+    def _global_env_seps(self):
+        setting = self.env_sep_map_setting
+        value = config.get(setting, {})
+        return value
+
+    def _shell_env_seps(self):
+        self.validate_env_sep_map()
+        shell = self.name()
+        setting = self.shell_env_sep_map_setting
+        values = config.get(setting, {})
+        value = values.get(shell, {})
+        return value
+
+    def validate_env_sep_map(self):
+        """
+        Validate environment path separator settings.
+        """
+        # Return early if validation is disabled.
+        if not config.warn("shell_startup"):
+            return
+
+        global_env_seps = self._global_env_seps()
+        shell_env_seps = self._shell_env_seps()
+
+        # Check for conflicting values and log debug info
+        if global_env_seps and shell_env_seps:
+            for var, pathsep in global_env_seps.items():
+                shell_pathsep = shell_env_seps.get(var, "")
+                if shell_pathsep and shell_pathsep != pathsep:
+                    log(
+                        "'%s' is configured in '%s' and configured in "
+                        "'%s'. In this case, the shell setting '%s' will "
+                        "trump the global setting '%s'",
+                        var,
+                        self.env_sep_map_setting,
+                        self.shell_env_sep_map_setting,
+                        shell_pathsep,
+                        pathsep,
+                    )
 
     def _addline(self, line):
         self._lines.append(line)
@@ -321,6 +370,45 @@ class Shell(ActionInterpreter):
 
         return shlex_join(command, replacements=replacements)
 
+    def as_path(self, path):
+        """
+        Return the given path as a system path.
+        Used if the path needs to be reformatted to suit a specific case.
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Transformed file path.
+        """
+        return path
+
+    def as_shell_path(self, path):
+        """
+        Return the given path as a shell path.
+        Used if the shell requires a different pathing structure.
+
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Transformed file path.
+        """
+        return path
+
+    def normalize_path(self, path):
+        """
+        Normalize the path to fit the environment.
+        For example, POSIX paths, Windows path, etc. If no transformation is
+        necessary, just return the path.
+
+        Args:
+            path (str): File path.
+
+        Returns:
+            (str): Normalized file path.
+        """
+        return path
+
 
 class UnixShell(Shell):
     r"""
@@ -431,13 +519,13 @@ class UnixShell(Shell):
         else:
             if d["stdin"]:
                 assert self.stdin_arg
-                shell_command = "%s %s" % (self.executable, self.stdin_arg)
+                shell_command = "'{}' {}".format(self.executable, self.stdin_arg)
                 quiet = True
             elif do_rcfile:
                 assert self.rcfile_arg
-                shell_command = "%s %s" % (self.executable, self.rcfile_arg)
+                shell_command = "'{}' {}".format(self.executable, self.rcfile_arg)
             else:
-                shell_command = self.executable
+                shell_command = "'{}'".format(self.executable)
 
             if do_rcfile:
                 # hijack rcfile to insert our own script

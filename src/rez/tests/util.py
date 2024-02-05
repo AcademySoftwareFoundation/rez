@@ -9,6 +9,7 @@ from rez import module_root_path
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types, get_shell_class
 from rez.system import system
+from rez.utils import platform_
 import tempfile
 import threading
 import time
@@ -27,6 +28,14 @@ try:
     use_parameterized = True
 except ImportError:
     use_parameterized = False
+
+# For py2 backwards compatibility
+if not hasattr(unittest.TestCase, 'assertRaisesRegex'):
+    setattr(
+        unittest.TestCase,
+        'assertRaisesRegex',
+        unittest.TestCase.assertRaisesRegexp
+    )
 
 
 class TestBase(unittest.TestCase):
@@ -223,16 +232,20 @@ def program_dependent(program_name, *program_names):
     return decorator
 
 
-def per_available_shell(exclude=None):
+def per_available_shell(exclude=None, include=None):
     """Function decorator that runs the function over all available shell types.
     """
     exclude = exclude or []
+    include = include or []
 
     shells = get_shell_types()
 
     only_shell = os.getenv("__REZ_SELFTEST_SHELL")
     if only_shell:
         shells = [only_shell]
+
+    if include:
+        shells = [sh for sh in shells if sh in include]
 
     # filter to only those shells available
     shells = [
@@ -255,7 +268,15 @@ def per_available_shell(exclude=None):
                     # simplifies tests and removes the need to remember passing the shell
                     # kward to execute_shell and co inside the tests.
                     # Subclassing parameterized is fragile, but we can't do better for now.
-                    args[0].update_settings({"default_shell": p.args[0]})
+                    settings = {"default_shell": p.args[0]}
+
+                    # TODO: If & when path normalization is set to True by default,
+                    # this should be removed. For now, we need to enable it for
+                    # gitbash, because it requires path normalization.
+                    if p.args[0] == "gitbash":
+                        settings["enable_path_normalization"] = True
+
+                    args[0].update_settings(settings)
                     return func(*(args + p.args), **p.kwargs, **kwargs)
 
                 standalone_func.__name__ = name
@@ -273,7 +294,7 @@ def per_available_shell(exclude=None):
                     pass
                 return standalone_func
 
-        return rez_parametrized.expand(shells)
+        return rez_parametrized.expand(shells, skip_on_empty=True)
 
     def decorator(func):
         @functools.wraps(func)
@@ -281,13 +302,23 @@ def per_available_shell(exclude=None):
 
             for shell in shells:
                 print("\ntesting in shell: %s..." % shell)
+                # The default shell if none is configured is the system shell
+                # (bash or cmd ususally), so in order to test the other shells
+                # we need to override the default shell to the one we are
+                # testing to get a accurate results with more complete coverage.
+                #
+                # E.g. create_shell() will use the shell provided by this decorator
+                # but resoved_context.execute_shell() will use the default shell to
+                # execute a command if no shell is passed in.
+                config.override("default_shell", shell)
+
+                # TODO: If & when path normalization is set to True by default,
+                # this should be removed. For now, we need to enable it for
+                # gitbash, because it requires path normalization.
+                if shell == "gitbash":
+                    config.override("enable_path_normalization", True)
 
                 try:
-                    # Make sure to set the default shell to the requested shell. This
-                    # simplifies tests and removes the need to remember passing the shell
-                    # kward to execute_shell and co inside the tests.
-                    self.update_settings({"default_shell": shell})
-
                     func(self, shell=shell)
                 except Exception as e:
                     # Add the shell to the exception message, if possible.
@@ -317,6 +348,19 @@ def install_dependent():
                     "Must be run via 'rez-selftest' tool, see "
                     "https://rez.readthedocs.io/en/stable/installation.html#installation-script"
                 )
+        return wrapper
+    return decorator
+
+
+def platform_dependent(platforms):
+    """Function decorator that skips tests if not run on the target platforms"""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if platform_.name in platforms:
+                return func(self, *args, **kwargs)
+            else:
+                self.skipTest("Must be run on platform(s): %s" % platforms)
         return wrapper
     return decorator
 

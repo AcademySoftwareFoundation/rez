@@ -36,7 +36,7 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-s", "--only-shell", metavar="SHELL",
         help="limit shell-dependent tests to the specified shell. Note: This "
-             "flag shadowed pytest '–capture=no' shorthand '-s', so the long "
+             "flag shadowed pytest '-capture=no' shorthand '-s', so the long "
              "name must be used for disabling stdout/err capturing in pytest."
     )
     parser.add_argument(

@@ -567,13 +567,64 @@ env_var_separators = {
 }
 
 # This setting identifies path-like environment variables. This is required
-# because some shells need to apply path normalization. For example, the command
-# ``env.PATH.append("{root}/bin")`` will be normalized to (eg) ``C:\...\bin`` in a
-# ``cmd`` shell on Windows. Note that wildcards are supported. If this setting is
-# not correctly configured, then your shell may not work correctly.
+# because some path vars need platform normalization. For example, a setting
+# such as ``["PATH"]`` with the command ``env.PATH.append("{root}/bin")`` will cause
+# ``{root}`` to be normalized to (eg) ``C:\...\bin`` in a ``cmd`` shell on Windows.
+#
+# Note that wildcards are supported, ``[*PATH]`` for example. Like the previous
+# example, a setting like this means ``env.PYTHONPATH.append("{root}/python")``
+# would similarly normalize to ``C:\...\python`` in a ``cmd`` shell on Windows.
+#
+# Conversely to path-like variables, it should be obvious that this setting is
+# not applied to variables that are not path-like. For example, if you set
+# ``env.FOO = "{root}/foo"``, then ``{root}`` will not be normalized and on the same
+# token ``this.root`` in ``foo = os.path.join(this.root, "foo")`` will also expand
+# to the platform native path.
+#
+# Use caution if experimenting with this setting, if it is not correctly
+# configured, then your shell may not work correctly. Also see
+# :data:`shell_pathed_env_vars` below for more more control over how shells handle
+# these path variables.
 pathed_env_vars = [
     "*PATH"
 ]
+
+# Much like :data:`env_var_separators` and companion to :data:`shell_pathed_env_vars`,
+# this setting provides control over separators for list-like env vars on a per-shell
+# basis. Each shell has it's own pathsep but this provides more explicit control
+# and flexibility.
+shell_env_var_separators = {
+    "gitbash": {
+        "PATH": ":",
+        "PYTHONPATH": ";",
+    }
+}
+
+# Some shells may require finer grained control over how path variables are
+# handled. Similar to :data:`pathed_env_vars`, this option provides a way to define
+# variables the shell should handle, but on a per-shell basis. This setting can
+# be used in addition to the platform pathing strategy provided by
+# :data:`pathed_env_vars` to override or disable it if that is desired.
+#
+# A path-like variable defined in this setting should correspond to a pathsep
+# setting in either :data:`env_var_separators` or :data:`shell_env_var_separators`.
+# It can be both, but only one is necessary. A corresponding pathsep setting informs
+# the shell plugin how to join paths of that type.
+#
+# Note that, similar to :data:`pathed_env_vars`, wildcards are supported.
+shell_pathed_env_vars = {
+    "gitbash": [
+        "PYTHONPATH",
+        "CMAKE_MODULE_PATH",
+    ]
+}
+
+# Global toggle to perform path normalization to path-like environment variables.
+# Applies the :data:`pathed_env_vars` and :data:`shell_pathed_env_vars` setting to all
+# shells. If :data:`shell_pathed_env_vars` setting is configured then it overrides
+# :data:`pathed_env_vars` if the keys are the same. Setting this to ``False`` disables
+# all normalization.
+enable_path_normalization = False
 
 # Defines what suites on ``$PATH`` stay visible when a new rez environment is resolved.
 # Possible values are:
@@ -749,6 +800,12 @@ warn_all = False
 
 # Turn off all warnings. This overrides :data:`warn_all`.
 warn_none = False
+
+# Print debugging info for shells
+debug_shells = False
+
+# Print debugging info for the cygpath module
+debug_cygpath = False
 
 # Print info whenever a file is loaded from disk, or saved to disk.
 debug_file_loads = False

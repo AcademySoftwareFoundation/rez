@@ -104,8 +104,14 @@ class SH(UnixShell):
             self._addline(cmd % r"\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
-        value = self.escape_string(value, is_path=self._is_pathed_key(key))
-        self._addline('export %s=%s' % (key, value))
+        # Doesn't just escape, but can also perform path normalization
+        modified_value = self.escape_string(
+            value,
+            is_path=self._is_pathed_key(key),
+            is_shell_path=self._is_shell_pathed_key(key),
+        )
+
+        self._addline("export %s=%s" % (key, modified_value))
 
     def unsetenv(self, key):
         self._addline("unset %s" % key)
@@ -119,9 +125,12 @@ class SH(UnixShell):
         value = self.escape_string(value)
         self._addline('. %s' % value)
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(
+        self, value, is_path=False, is_shell_path=False
+    ):
         value = EscapedString.promote(value)
         value = value.expanduser()
+
         result = ''
 
         for is_literal, txt in value.strings:
@@ -130,13 +139,16 @@ class SH(UnixShell):
                 if not txt.startswith("'"):
                     txt = "'%s'" % txt
             else:
-                if is_path:
+                if is_shell_path:
+                    txt = self.as_shell_path(txt)
+                elif is_path:
                     txt = self.normalize_paths(txt)
 
                 txt = txt.replace('\\', '\\\\')
                 txt = txt.replace('"', '\\"')
                 txt = '"%s"' % txt
             result += txt
+
         return result
 
     def _saferefenv(self, key):
