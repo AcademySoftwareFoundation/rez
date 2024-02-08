@@ -6,10 +6,6 @@ from rez.exceptions import PackageMoveError
 from rez.package_copy import copy_package
 from rez.package_repository import package_repository_manager
 from rez.utils.logging_ import print_info
-from rez.vendor.six import six
-
-
-basestring = six.string_types[0]
 
 
 def move_package(package, dest_repository, keep_timestamp=False, force=False,
@@ -41,7 +37,7 @@ def move_package(package, dest_repository, keep_timestamp=False, force=False,
             print_info(msg, *nargs)
 
     # get dest repo
-    if isinstance(dest_repository, basestring):
+    if isinstance(dest_repository, str):
         repo_path = dest_repository
         dest_pkg_repo = package_repository_manager.get_repository(repo_path)
     else:

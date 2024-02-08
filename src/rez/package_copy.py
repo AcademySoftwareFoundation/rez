@@ -18,10 +18,6 @@ from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.logging_ import print_info, print_warning
 from rez.utils.filesystem import replacing_symlink, replacing_copy, \
     safe_makedirs, additive_copytree, make_path_writable, get_existing_path
-from rez.vendor.six import six
-
-
-basestring = six.string_types[0]
 
 
 def copy_package(package, dest_repository, variants=None, shallow=False,
@@ -106,7 +102,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
             "Cannot copy non-relocatable package: %s" % package.uri
         )
 
-    if isinstance(dest_repository, basestring):
+    if isinstance(dest_repository, str):
         repo_path = dest_repository
         dest_pkg_repo = package_repository_manager.get_repository(repo_path)
     else:

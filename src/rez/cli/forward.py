@@ -4,12 +4,8 @@
 
 """See util.create_forwarding_script()."""
 import argparse
-from rez.vendor.six import six
 
 __doc__ = argparse.SUPPRESS
-
-
-basestring = six.string_types[0]
 
 
 def setup_parser(parser, completions=False):
@@ -55,7 +51,7 @@ def command(opts, parser, extra_arg_groups=None):
     nargs = doc.get("nargs", [])
     kwargs = doc.get("kwargs", {})
 
-    if isinstance(doc["module"], basestring):
+    if isinstance(doc["module"], str):
         # refers to a rez module
         from rez.backport.importlib import import_module
         namespace = "rez.%s" % doc["module"]

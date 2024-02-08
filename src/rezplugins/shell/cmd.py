@@ -11,15 +11,11 @@ from rez.shells import Shell
 from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
-from rez.vendor.six import six
 from ._utils.windows import to_windows_path, get_syspaths_from_registry
 from functools import partial
 import os
 import re
 import subprocess
-
-
-basestring = six.string_types[0]
 
 
 class CMD(Shell):
@@ -184,7 +180,7 @@ class CMD(Shell):
 
         cmd = []
         if pre_command:
-            if isinstance(pre_command, basestring):
+            if isinstance(pre_command, str):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command

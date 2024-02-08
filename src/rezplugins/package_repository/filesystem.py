@@ -34,11 +34,7 @@ from rez.utils.yaml import load_yaml
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
-from rez.vendor.six import six
 from rez.version import Version, VersionRange
-
-
-basestring = six.string_types[0]
 
 
 debug_print = config.debug_printer("resources")
@@ -260,7 +256,7 @@ class FileSystemPackageResource(PackageResourceHelper):
                 if changed:
                     data["changelog"] = changelog
         else:
-            assert isinstance(data, basestring)
+            assert isinstance(data, str)
             if len(data) > (maxlen + 3):
                 data = data[:maxlen] + "..."
 
@@ -289,10 +285,10 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
 
     schema = Schema({
         Optional("versions"): [
-            And(basestring, Use(Version))
+            And(str, Use(Version))
         ],
         Optional("version_overrides"): {
-            And(basestring, Use(VersionRange)): dict
+            And(str, Use(VersionRange)): dict
         }
     })
 
@@ -472,7 +468,7 @@ class FileSystemPackageRepository(PackageRepository):
     schema_dict = {"file_lock_timeout": int,
                    "file_lock_dir": Or(None, str),
                    "file_lock_type": Or("default", "link", "mkdir"),
-                   "package_filenames": [basestring]}
+                   "package_filenames": [str]}
 
     building_prefix = ".building"
     ignore_prefix = ".ignore"
@@ -918,7 +914,7 @@ class FileSystemPackageRepository(PackageRepository):
                 raise PackageRepositoryError(
                     "Cannot remove package attribute 'version'")
 
-            if isinstance(ver, basestring):
+            if isinstance(ver, str):
                 ver = Version(ver)
                 overrides = overrides.copy()
                 overrides["version"] = ver

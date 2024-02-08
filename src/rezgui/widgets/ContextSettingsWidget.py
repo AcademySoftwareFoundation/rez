@@ -8,13 +8,9 @@ from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rez.config import config
 from rez.vendor import yaml
-from rez.vendor.six import six
 from rez.vendor.yaml.error import YAMLError
 from rez.vendor.schema.schema import Schema, SchemaError, Or, And, Use
 from functools import partial
-
-
-basestring = six.string_types[0]
 
 
 class ContextSettingsWidget(QtWidgets.QWidget, ContextViewMixin):
@@ -27,8 +23,8 @@ class ContextSettingsWidget(QtWidgets.QWidget, ContextViewMixin):
     }
 
     schema_dict = {
-        "packages_path":        [basestring],
-        "implicit_packages":    [basestring],
+        "packages_path":        [str],
+        "implicit_packages":    [str],
         "package_filter":       Or(And(None, Use(lambda x: [])),
                                    And(dict, Use(lambda x: [x])),
                                    [dict]),

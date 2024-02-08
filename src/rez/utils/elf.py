@@ -6,7 +6,7 @@
 Functions that wrap readelf/patchelf utils on linux.
 """
 import os
-from rez.utils.py23 import quote
+from shlex import quote
 import subprocess
 
 from rez.utils.filesystem import make_path_writable

@@ -13,15 +13,11 @@ from rez.utils.colorize import warning, critical, Printer, alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.utils.yaml import dump_yaml
-from rez.vendor.six import six
 from collections import defaultdict
 import os
 import os.path
 import shutil
 import sys
-
-
-basestring = six.string_types[0]
 
 
 class Suite(object):
@@ -155,7 +151,7 @@ class Suite(object):
             names = [x for x in names if _in_request(x)]
 
         if in_resolve:
-            if isinstance(in_resolve, basestring):
+            if isinstance(in_resolve, str):
                 in_resolve = PackageRequest(in_resolve)
 
             def _in_resolve(name):

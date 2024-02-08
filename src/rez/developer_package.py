@@ -10,13 +10,9 @@ from rez.utils.execution import add_sys_paths
 from rez.utils.sourcecode import SourceCode
 from rez.utils.logging_ import print_info, print_error
 from rez.vendor.enum import Enum
-from rez.vendor.six import six
 from inspect import isfunction
 import os.path
 import stat
-
-
-basestring = six.string_types[0]
 
 
 class PreprocessMode(Enum):
@@ -97,13 +93,13 @@ class DeveloperPackage(Package):
                     break
             if data:
                 name = data.get("name")
-                if name is not None or isinstance(name, basestring):
+                if name is not None or isinstance(name, str):
                     break
 
         if data is None:
             raise PackageMetadataError("No package definition file found at %s" % path)
 
-        if name is None or not isinstance(name, basestring):
+        if name is None or not isinstance(name, str):
             raise PackageMetadataError(
                 "Error in %r - missing or non-string field 'name'" % filepath)
 
@@ -208,7 +204,7 @@ class DeveloperPackage(Package):
                         "preprocessing has not been applied.")
                     return None
 
-                elif isinstance(package_preprocess_function, basestring):
+                elif isinstance(package_preprocess_function, str):
                     if '.' not in package_preprocess_function:
                         print_error(
                             "Setting 'package_preprocess_function' must be of "

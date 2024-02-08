@@ -14,13 +14,9 @@ from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
-from rez.vendor.six import six
 import os
 import os.path
-from rez.utils.py23 import quote
-
-
-basestring = six.string_types[0]
+from shlex import quote
 
 
 def get_shell_types():
@@ -68,8 +64,7 @@ def create_shell(shell=None, **kwargs):
 class Shell(ActionInterpreter):
     """Class representing a shell, such as bash or tcsh.
     """
-    schema_dict = {
-        "prompt": basestring}
+    schema_dict = {"prompt": str}
 
     @classmethod
     def name(cls):
@@ -502,7 +497,7 @@ class UnixShell(Shell):
 
         cmd = []
         if pre_command:
-            if isinstance(pre_command, basestring):
+            if isinstance(pre_command, str):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command

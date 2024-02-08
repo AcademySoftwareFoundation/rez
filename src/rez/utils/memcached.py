@@ -14,10 +14,6 @@ from functools import update_wrapper
 from inspect import isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
-from rez.vendor.six import six
-
-
-basestring = six.string_types[0]
 
 
 # this version should be changed if and when the caching interface changes
@@ -33,9 +29,8 @@ class Client(object):
     - ability to cache None.
     """
     class _Miss(object):
-        def __nonzero__(self):
+        def __bool__(self):
             return False
-        __bool__ = __nonzero__  # py3 compat
 
     miss = _Miss()
 
@@ -50,16 +45,14 @@ class Client(object):
                 debugging - run 'memcached -vv' in the foreground to see the keys
                 being get/set/stored.
         """
-        self.servers = [servers] if isinstance(servers, basestring) else servers
+        self.servers = [servers] if isinstance(servers, str) else servers
         self.key_hasher = self._debug_key_hash if debug else self._key_hash
         self._client = None
         self.debug = debug
         self.current = ''
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.servers)
-
-    __bool__ = __nonzero__  # py3 compat
 
     @property
     def client(self):

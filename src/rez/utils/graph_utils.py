@@ -19,10 +19,6 @@ from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.vendor.pygraph.classes.digraph import digraph
-from rez.vendor.six import six
-
-
-basestring = six.string_types[0]
 
 
 def read_graph_from_string(txt):
@@ -36,7 +32,7 @@ def read_graph_from_string(txt):
         return read_dot(txt)  # standard dot format
 
     def conv(value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             return '"' + value + '"'
         else:
             return value
@@ -49,7 +45,7 @@ def read_graph_from_string(txt):
         attrs = [(k, conv(v)) for k, v in attrs]
 
         for value in values:
-            if isinstance(value, basestring):
+            if isinstance(value, str):
                 node_name = value
                 attrs_ = attrs
             else:
@@ -84,7 +80,7 @@ def write_compacted(g):
     d_edges = {}
 
     def conv(value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             return value.strip('"')
         else:
             return value

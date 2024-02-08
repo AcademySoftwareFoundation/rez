@@ -8,18 +8,10 @@ Utilities related to managing data types.
 import os.path
 import json
 import functools
+from collections.abc import MutableMapping
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
-from rez.vendor.six import six
-
-if six.PY2:
-    from collections import MutableMapping
-else:
-    from collections.abc import MutableMapping
-
-
-basestring = six.string_types[0]
 
 
 class ModifyList(object):
@@ -455,7 +447,7 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
     attrs = dir(instance)
     try:
         for attr in instance:
-            if isinstance(attr, basestring):
+            if isinstance(attr, str):
                 attrs.append(attr)
     except TypeError:
         pass
@@ -521,14 +513,12 @@ class AttributeForwardMeta(type):
 
     Example:
 
-        >>> import six
-        >>>
         >>> class Foo(object):
         >>>     def __init__(self):
         >>>         self.a = "a_from_foo"
         >>>         self.b = "b_from_foo"
         >>>
-        >>> class Bah(six.with_metaclass(AttributeForwardMeta, object)):
+        >>> class Bah(object, metaclass=AttributeForwardMeta):
         >>>     keys = ["a", "b", "c"]
         >>>
         >>>     @property
@@ -610,7 +600,7 @@ class LazyAttributeMeta(type):
                 optional = isinstance(key, Optional)
                 while isinstance(key, Schema):
                     key = key._schema
-                if isinstance(key, basestring):
+                if isinstance(key, str):
                     keys.add(key)
 
                     if _defined(key):

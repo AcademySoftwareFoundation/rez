@@ -10,7 +10,6 @@ from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.enum.enum import Enum
 from rez.vendor.packaging.version import Version as PackagingVersion
 from rez.vendor.packaging.specifiers import Specifier
-from rez.vendor.six.six import StringIO
 from rez.resolved_context import ResolvedContext
 from rez.utils.execution import Popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
@@ -23,7 +22,7 @@ from rez.package_maker import make_package
 from rez.config import config
 
 import os
-from rez.utils.py23 import quote
+from shlex import quote
 from pprint import pformat
 import re
 import shutil
@@ -31,6 +30,7 @@ import subprocess
 import sys
 from tempfile import mkdtemp
 from textwrap import dedent
+from io import StringIO
 
 
 PIP_SPECIFIER = Specifier(">=19")  # rez pip only compatible with pip>=19
