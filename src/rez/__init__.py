@@ -70,10 +70,3 @@ if action:
 # This means we have to rely on a custom environment variable.
 if os.getenv("REZ_LOG_DEPRECATION_WARNINGS"):
     warnings.filterwarnings("default", category=rez.deprecations.RezDeprecationWarning)
-
-
-if sys.version_info[:2] < (3, 7):
-    rez.deprecations.warn(
-        "Support for Python less than 3.7 is deprecated and will be removed in rez 3.0.0.",
-        rez.deprecations.RezDeprecationWarning,
-    )

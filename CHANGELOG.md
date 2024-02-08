@@ -2,6 +2,105 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## 3.0.0 (TBD)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.0.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.114.1...3.0.0)
+
+This release marks a big turning point for rez by completely dropping support for Python 2.
+In 2.114.0, it was still possible to install rez with Python 2 using pip. This functionality has
+now been removed. As of now, rez will support Python 3.7+. As of now, we test against 3.7, 3.8, 3.9,
+3.10 and 3.11.
+
+This was a tough decision to make considering that we still have users relying on Python 2, but
+it was becoming more and more complicated and time-consuming to maintain support for Python 2.
+
+Thank you to everyone who's put a lot of effort into supporting Python 2 for that long. Without
+you, it wouldn't have been possible.
+
+As part of the effort to remove support for Python 2, we also refreshed our CI a bit:
+- The GitHub Action workflows are now simplified and unified. We now have one workflow to
+  run all tests for all platforms instead of four.
+- We also got rid of the Windows containers. With these changes, our Windows tests are now
+  as fast as Linux and macOS tests, it's easier to see test results and we can also more
+  easily test all support python versions.
+- Running the tests directly on the GH hosted runners instead of containers,
+  we discovered some big flaws in how our tests were set up. These issues are now
+  fixed and our tests are now much more portable and don't rely on a centrally installed
+  Python or `PATHEXT` to be set. Big thanks to [@Dennis-Lehmann](https://github.com/Dennis-Lehmann)
+  and [@MrLixm](https://github.com/MrLixm) for helping us with debugging our Window tests!
+
+The CI refresh is not user-facing, but it took us a significant amount of effort
+and time to do and we hope that it will help increase the quality of rez and make
+for a better contributor experience. This is why we mention these in the release notes.
+
+### Features
+
+- It is now possible to configure the execution policy used when starting PowerShell (and pwsh) shells
+  by setting the `execution_policy` setting in the shell's config file. This should hopefully help to
+  smooth the transition from the cmd shell to powershell/pwsh.[\#1505](https://github.com/AcademySoftwareFoundation/rez/pull/1505) ([@herronelou](https://github.com/herronelou))
+- Built-in bind modules can now be overridden by adding your custom implementations to `bind_module_path`. [\#1557](https://github.com/AcademySoftwareFoundation/rez/pull/1557) ([@Pantsworth](https://github.com/Pantsworth))
+
+### Fixes
+
+- Fix infinite loop in the dot graph generation when `--fail-graph` is used and there are indirect cycles. [\#1620](https://github.com/AcademySoftwareFoundation/rez/pull/1620) ([@Pantsworth](https://github.com/Pantsworth))
+
+### Removed
+
+As communicated in the 2.114.0 release notes, we've followed through on the removal of certain things.
+
+- Python 2: It is now impossible to install and use rez with Python 2.
+
+- Modules
+  - `rez.vendor.version`: Use `rez.version` instead.
+  - `rez.build_process_`: Use `rez.build_process` instead.
+  - `rez.package_maker__`: Use `rez.package_maker` instead.
+  - `rez.package_resources_`: Use `rez.package_resources` instead.
+  - `rez.packages_`: Use `rez.packages` instead.
+
+- Configuration settings
+  - `rxt_as_yaml`: No replacement.
+  - `warn_commands2`: No replacement. This was a no-op.
+  - `error_commands2`: No replacement. This was a no-op.
+  - `rez_1_cmake_variables`: You can use the `REZ_BUILD_TYPE` CMake variable instead of `CENTRAL`.
+
+- CLI
+  - rez-pip: The `--pip-version` is removed.
+  - rez-search: The `--sort` is removed.
+
+- API
+  - The `isolate` keyword argument of the `rez.rex.RexExecutor.execute_code` method is now officially removed.
+    Instead of `executor.execute_code(..., isolate=True)`, use
+    ```python
+    with executor.reset_globals():
+        executor.execute_code(...)
+    ```
+
+- Build system:
+  - `CMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT` and `_ECLIPSE_VERSION` were removed from the list of default variables passed to CMake. [\#1623](https://github.com/AcademySoftwareFoundation/rez/pull/1623) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+  - rez will no longer print a custom error message if no build system is detected or set and an old "bez" `rezbuild.py` is detected. [\#1624](https://github.com/AcademySoftwareFoundation/rez/pull/1624) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Changed
+
+Change of default values as announced in 2.114.0:
+
+- `rez_1_environment_variables`: Now disabled by default.
+- `disable_rez_1_compatibility`: Now enabled by default.
+
+New unannounced changes:
+
+- The default shell on Windows is now PowerShell unless you configure `default_shell`
+  to a different value. The previous default was `cmd` and was causing a lot of problems.
+
+### Docs
+
+The effort to improve and add content to our docs continues.
+
+* New documentation dedicated to [caching](https://rez.readthedocs.io/en/stable/caching.html).
+  This is only the beginning and only contains information on package payload caching and
+  memcached. We hope to add more content in the future. [\#1615](https://github.com/AcademySoftwareFoundation/rez/pull/1615) ([@brycegbrazen](https://github.com/brycegbrazen))
+- The note about SemVer in the [docs](https://rez.readthedocs.io/en/stable/basic_concepts.html#versions)
+  has been clarified. While we encourage SemVer like versioning, rez doesn't know
+  what SemVer is. This has been a source of confusion in the past. [\#1614](https://github.com/AcademySoftwareFoundation/rez/pull/1614) ([@brycegbrazen](https://github.com/brycegbrazen))
+
 ## 2.114.1 (2023-12-09)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.114.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.114.0...2.114.1)
 

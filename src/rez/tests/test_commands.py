@@ -11,7 +11,9 @@ from rez.resolved_context import ResolvedContext
 from rez.utils.filesystem import canonical_path
 import unittest
 from rez.tests.util import TestBase
+from rez.vendor.schema.schema import SchemaError
 import os
+import logging
 
 
 class TestCommands(TestBase):
@@ -100,8 +102,19 @@ class TestCommands(TestBase):
         # first prepend should still override
         self._test_package(pkg, {"REXTEST_DIRS": "TEST"}, cmds)
 
-    def test_old_yaml(self):
+    def test_old_yaml_raises(self):
         """Resolve a yaml-based package with old-style bash commands."""
+        self.update_settings({"disable_rez_1_compatibility": True, "warn_old_commands": False})
+        with self.assertRaises(SchemaError):
+            self._test_rextest_package("1.1")
+
+    def test_old_yaml_compatibility_enabled(self):
+        """Resolve a yaml-based package with old-style bash commands."""
+        self.update_settings({"disable_rez_1_compatibility": False, "warn_old_commands": True})
+        with self.assertLogs(logger=logging.getLogger("rez.utils.logging_"), level=logging.WARNING):
+            self._test_rextest_package("1.1")
+
+        self.update_settings({"disable_rez_1_compatibility": False, "warn_old_commands": False})
         self._test_rextest_package("1.1")
 
     def test_new_yaml(self):

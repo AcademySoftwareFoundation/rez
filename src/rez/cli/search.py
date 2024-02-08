@@ -57,9 +57,6 @@ def setup_parser(parser, completions=False):
         help="only show packages released after the given time. Supported "
         "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
         "-5m, -0.5h, -10d)")
-    parser.add_argument(
-        "-s", "--sort", action="store_true",
-        help="print results in sorted order (deprecated)")
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='?',
         help="packages to search, glob-style patterns are supported")
@@ -73,19 +70,12 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.package_search import ResourceSearcher, ResourceSearchResultFormatter
     from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config
-    import rez.deprecations
 
     before_time = get_epoch_time_from_str(opts.before)
     after_time = get_epoch_time_from_str(opts.after)
 
     if after_time and before_time and (after_time >= before_time):
         parser.error("non-overlapping --before and --after")
-
-    if opts.sort:
-        rez.deprecations.warn(
-            "the '--sort' argument is deprecated and will be removed in 3.0.0. It currently has no effect.",
-            rez.deprecations.RezDeprecationWarning,
-        )
 
     if opts.no_warnings:
         config.override("warn_none", True)

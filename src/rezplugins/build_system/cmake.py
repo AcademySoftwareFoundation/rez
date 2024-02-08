@@ -142,11 +142,6 @@ class CMakeBuildSystem(BuildSystem):
         cmd.append("-DREZ_BUILD_INSTALL=%d" % (1 if install else 0))
         cmd.extend(["-G", self.build_systems[self.cmake_build_system]])
 
-        if config.rez_1_cmake_variables and \
-                not config.disable_rez_1_compatibility and \
-                build_type == BuildType.central:
-            cmd.append("-DCENTRAL=1")
-
         # execute cmake within the build env
         _pr("Executing: %s" % ' '.join(cmd))
         if not os.path.abspath(build_path):
