@@ -65,7 +65,8 @@ class System(object):
         """Get the current shell.
 
         Returns:
-            The current shell this process is running in (bash, tcsh, pwsh, etc).
+            The current shell this process is running in (bash, tcsh, pwsh, etc). On Windows,
+            the return value is always "powershell".
         """
         from rez.shells import get_shell_types
         shells = set(get_shell_types())
@@ -73,7 +74,7 @@ class System(object):
             raise RezSystemError("no shells available")
 
         if self.platform == "windows":
-            return "cmd"
+            return "powershell"
         else:
             import subprocess as sp
             shell = None
