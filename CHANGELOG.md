@@ -87,7 +87,7 @@ Change of default values as announced in 2.114.0:
 
 New unannounced changes:
 
-- The default shell on Windows will now be PowerShell unless you configure `default_shell`
+- The default shell on Windows is now PowerShell unless you configure `default_shell`
   to a different value. The previous default was `cmd` and was causing a lot of problems.
 
 ### Docs
