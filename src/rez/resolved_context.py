@@ -42,7 +42,6 @@ from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
-import rez.deprecations
 
 from contextlib import contextmanager
 from functools import wraps
@@ -655,17 +654,7 @@ class ResolvedContext(object):
         """Save the context to a buffer."""
         doc = self.to_dict()
 
-        if config.rxt_as_yaml:
-            rez.deprecations.warn(
-                "Writing the RXT file using the YAML format is deprecated. "
-                "Both this functionality and the rxt_as_yaml setting will "
-                "be removed in rez 3.0.0",
-                rez.deprecations.RezDeprecationWarning,
-            )
-            content = dump_yaml(doc)
-        else:
-            content = json.dumps(doc, indent=4, separators=(",", ": "),
-                                 sort_keys=True)
+        content = json.dumps(doc, indent=4, separators=(",", ": "), sort_keys=True)
 
         buf.write(content)
 
