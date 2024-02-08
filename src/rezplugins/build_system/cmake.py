@@ -17,15 +17,11 @@ from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.utils.which import which
 from rez.vendor.schema.schema import Or
-from rez.vendor.six import six
 from rez.shells import create_shell
 import functools
 import os.path
 import sys
 import os
-
-
-basestring = six.string_types[0]
 
 
 class RezCMakeError(BuildSystemError):
@@ -62,9 +58,9 @@ class CMakeBuildSystem(BuildSystem):
     schema_dict = {
         "build_target": Or(*build_targets),
         "build_system": Or(*list(build_systems.keys())),
-        "cmake_args": [basestring],
-        "cmake_binary": Or(None, basestring),
-        "make_binary": Or(None, basestring)
+        "cmake_args": [str],
+        "cmake_binary": Or(None, str),
+        "make_binary": Or(None, str)
     }
 
     @classmethod

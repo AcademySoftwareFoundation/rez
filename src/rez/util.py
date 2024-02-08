@@ -6,14 +6,13 @@
 Misc useful stuff.
 TODO: Move this into rez.utils.?
 """
-import collections
+import collections.abc
 import atexit
 import os
 import os.path
 import re
 from rez.exceptions import RezError
 from rez.vendor.progress.bar import Bar
-from rez.vendor.six import six
 
 
 class ProgressBar(Bar):
@@ -66,7 +65,7 @@ def shlex_join(value, unsafe_regex=None, replacements=None,
             return s
 
         for from_, to_ in (replacements or []):
-            if isinstance(from_, six.string_types):
+            if isinstance(from_, str):
                 s = s.replace(from_, to_)
             else:
                 s = from_.sub(to_, s)  # assume from_ is re.compile
@@ -153,13 +152,7 @@ def _atexit():
 
 def is_non_string_iterable(arg):
     """Python 2 and 3 compatible non-string iterable identifier"""
-
-    if six.PY2:
-        iterable_class = collections.Iterable
-    else:
-        iterable_class = collections.abc.Iterable
-
     return (
-        isinstance(arg, iterable_class)
-        and not isinstance(arg, six.string_types)
+        isinstance(arg, collections.abc.Iterable)
+        and not isinstance(arg, str)
     )

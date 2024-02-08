@@ -8,6 +8,7 @@ CSH shell
 import os.path
 import subprocess
 import re
+from shlex import quote
 
 from rez.config import config
 from rez.util import shlex_join
@@ -15,7 +16,6 @@ from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
 from rez.rex import EscapedString
-from rez.utils.py23 import quote
 
 
 class CSH(UnixShell):

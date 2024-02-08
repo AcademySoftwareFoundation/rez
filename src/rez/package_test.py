@@ -9,15 +9,11 @@ from rez.exceptions import RezError, PackageNotFoundError, PackageTestError
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_info, print_warning, print_error
-from rez.vendor.six import six
 from rez.version import Requirement, RequirementList
-from rez.utils.py23 import quote
+from shlex import quote
 import time
 import sys
 import os
-
-
-basestring = six.string_types[0]
 
 
 class PackageTestRunner(object):
@@ -164,7 +160,7 @@ class PackageTestRunner(object):
 
                 if value is None:
                     return ("default" in run_on)
-                elif isinstance(value, basestring):
+                elif isinstance(value, str):
                     return (value in run_on)
                 else:
                     return bool(set(value) & set(run_on))
@@ -395,13 +391,13 @@ class PackageTestRunner(object):
                 continue
 
             # expand refs like {root} in commands
-            if isinstance(command, basestring):
+            if isinstance(command, str):
                 command = variant.format(command)
             else:
                 command = map(variant.format, command)
 
             if extra_test_args:
-                if isinstance(command, basestring):
+                if isinstance(command, str):
                     command = "{} {}".format(command, " ".join(map(quote, extra_test_args)))
                 else:
                     command = list(map(quote, command)) + list(map(quote, extra_test_args))
@@ -412,7 +408,7 @@ class PackageTestRunner(object):
                     context.print_info(self.stdout)
                     print('')
 
-                if isinstance(command, basestring):
+                if isinstance(command, str):
                     cmd_str = command
                 else:
                     cmd_str = ' '.join(map(quote, command))
@@ -553,7 +549,7 @@ class PackageTestRunner(object):
         # construct run_on
         run_on = test_entry.get("run_on")
         if run_on:
-            if isinstance(run_on, basestring):
+            if isinstance(run_on, str):
                 run_on = [run_on]
         else:
             run_on = ["default"]

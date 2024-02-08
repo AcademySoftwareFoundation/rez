@@ -9,7 +9,7 @@ from rez.utils.platform_ import platform_
 from rezplugins.shell.csh import CSH
 from rez import module_root_path
 from rez.rex import EscapedString
-from rez.utils.py23 import quote
+from shlex import quote
 import os.path
 
 

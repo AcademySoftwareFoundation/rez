@@ -10,12 +10,8 @@ dependency between rex code in package.py files, and versions of Rez.
 The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
-from rez.vendor.six import six
 from rez.version import VersionRange
 from rez.version import Requirement
-
-
-basestring = six.string_types[0]
 
 
 class Binding(object):
@@ -283,7 +279,7 @@ def intersects(obj, range_):
     range1 = VersionRange(range_)
 
     # eg 'if intersects(request.maya, ...)'
-    if isinstance(obj, basestring):
+    if isinstance(obj, str):
         req = Requirement(obj)
         if req.conflict:
             return False

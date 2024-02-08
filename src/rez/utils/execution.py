@@ -6,7 +6,6 @@
 Utilities related to process/script execution.
 """
 
-from rez.vendor.six import six
 from rez.utils.yaml import dump_yaml
 from rez.vendor.enum import Enum
 from contextlib import contextmanager
@@ -30,22 +29,12 @@ def add_sys_paths(paths):
         sys.path = original_syspath
 
 
-if six.PY2:
-    class _PopenBase(subprocess.Popen):
-        def __enter__(self):
-            return self
+class Popen(subprocess.Popen):
+    """:class:`subprocess.Popen` wrapper.
 
-        def __exit__(self, exc_type, value, traceback):
-            self.wait()
-
-else:  # py3
-    _PopenBase = subprocess.Popen
-
-
-class Popen(_PopenBase):
-    """subprocess.Popen wrapper.
-
-    Allows for Popen to be used as a context in both py2 and py3.
+    It fixes some issues encountered in Maya and Katana (and potentially other DCCs)
+    and also forces the encoding to be utf-8 if text=True or universal_newlines=True
+    is set without specifying the encoding.
     """
     def __init__(self, args, **kwargs):
         # Avoids python bug described here: https://bugs.python.org/issue3905.
@@ -69,23 +58,12 @@ class Popen(_PopenBase):
             if file_no not in (0, 1, 2):
                 kwargs["stdin"] = subprocess.PIPE
 
-        # Add support for the new py3 "text" arg, which is equivalent to
-        # "universal_newlines".
+        # Keep support for the old "universal_newlines" arg, which is equivalent to
+        # "text".
         # https://docs.python.org/3/library/subprocess.html#frequently-used-arguments
-        #
-        text = kwargs.pop("text", None)
-        universal_newlines = kwargs.pop("universal_newlines", None)
-
-        if text or universal_newlines:
-            kwargs["universal_newlines"] = True
-
-            # fixes py3/cmd.exe UnicodeDecodeError() with some characters.
-            #    UnicodeDecodeError: 'charmap' codec can't decode byte
-            #    0x8d in position 1023172: character maps to <undefined>
-            #
-            # NOTE: currently no solution for `python3+<3.6`
-            #
-            if sys.version_info[:2] >= (3, 6) and "encoding" not in kwargs:
+        if kwargs.get("text") or kwargs.get("universal_newlines"):
+            kwargs["text"] = True
+            if "encoding" not in kwargs:
                 kwargs["encoding"] = "utf-8"
 
         super(Popen, self).__init__(args, **kwargs)

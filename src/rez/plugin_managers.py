@@ -10,15 +10,11 @@ from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
 from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
-from rez.vendor.six import six
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
 import pkgutil
 import os.path
 import sys
-
-
-basestring = six.string_types[0]
 
 
 # modified from pkgutil standard library:
@@ -123,7 +119,7 @@ class RezPluginType(object):
         # extend_path, above). this means that `walk_packages` will walk over all
         # modules on the search path at the same level (.e.g in a
         # 'rezplugins/type_name' sub-directory).
-        paths = [package.__path__] if isinstance(package.__path__, basestring) \
+        paths = [package.__path__] if isinstance(package.__path__, str) \
             else package.__path__
 
         # reverse plugin path order, so that custom plugins have a chance to
@@ -200,7 +196,7 @@ class RezPluginType(object):
                     self.failed_plugins[nameish] = str(e)
                     if config.debug("plugins"):
                         import traceback
-                        from rez.vendor.six.six import StringIO
+                        from io import StringIO
                         out = StringIO()
                         traceback.print_exc(file=out)
                         print_debug(out.getvalue())

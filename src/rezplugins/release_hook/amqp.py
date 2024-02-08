@@ -10,11 +10,7 @@ from __future__ import print_function
 from rez.release_hook import ReleaseHook
 from rez.utils.logging_ import print_error, print_debug
 from rez.utils.amqp import publish_message
-from rez.vendor.six import six
 from rez.config import config
-
-
-basestring = six.string_types[0]
 
 
 class AmqpReleaseHook(ReleaseHook):
@@ -38,12 +34,12 @@ class AmqpReleaseHook(ReleaseHook):
         }
     """
     schema_dict = {
-        "host":                     basestring,
-        "userid":                   basestring,
-        "password":                 basestring,
+        "host":                     str,
+        "userid":                   str,
+        "password":                 str,
         "connect_timeout":          int,
-        "exchange_name":            basestring,
-        "exchange_routing_key":     basestring,
+        "exchange_name":            str,
+        "exchange_routing_key":     str,
         "message_delivery_mode":    int,
         "message_attributes":       dict}
 

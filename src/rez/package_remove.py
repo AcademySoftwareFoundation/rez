@@ -5,11 +5,7 @@
 from rez.package_repository import package_repository_manager
 from rez.version import Version
 from rez.utils.logging_ import print_info
-from rez.vendor.six import six
 from rez.config import config
-
-
-basestring = six.string_types[0]
 
 
 def remove_package_family(name, path, force=False):
@@ -45,7 +41,7 @@ def remove_package(name, version, path):
     Returns:
         bool: True if the package was removed, False if package not found.
     """
-    if isinstance(version, basestring):
+    if isinstance(version, str):
         version = Version(version)
 
     repo = package_repository_manager.get_repository(path)

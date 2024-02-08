@@ -8,7 +8,6 @@ test rex string formatting
 import unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
-from rez.vendor.six import six
 
 
 class TestFormatter(TestBase):
@@ -222,10 +221,7 @@ class TestFormatter(TestBase):
         self.assert_formatter_raises("{0.}", IndexError)
         self.assert_formatter_raises("{0.}", ValueError, 0)
 
-        if six.PY2:
-            self.assert_formatter_raises("{0[}", IndexError)
-        else:
-            self.assert_formatter_raises("{0[}", ValueError)
+        self.assert_formatter_raises("{0[}", ValueError)
 
         self.assert_formatter_raises("{0[}", ValueError, [])
         self.assert_formatter_raises("{0]}", KeyError)
@@ -242,17 +238,10 @@ class TestFormatter(TestBase):
         self.assert_formatter_raises("{0!rs}", ValueError, 0)
         self.assert_formatter_raises("{!}", ValueError)
 
-        # in python 2.7 onwards, string.Formatter raises KeyError here, rather
-        # than ValueError. In rex we keep this as ValueError (the change is due
-        # to implicit positional arguments, not applicable in rex).
-        if six.PY2:
-            self.assert_formatter_raises("{:}", ValueError)
-            self.assert_formatter_raises("{:s}", ValueError)
-            self.assert_formatter_raises("{}", ValueError)
-        else:
-            self.assert_formatter_raises("{:}", IndexError)
-            self.assert_formatter_raises("{:s}", IndexError)
-            self.assert_formatter_raises("{}", IndexError)
+        # TODO: Check this...
+        self.assert_formatter_raises("{:}", IndexError)
+        self.assert_formatter_raises("{:s}", IndexError)
+        self.assert_formatter_raises("{}", IndexError)
 
         # issue 6089
         self.assert_formatter_raises("{0[0]x}", ValueError, [None])

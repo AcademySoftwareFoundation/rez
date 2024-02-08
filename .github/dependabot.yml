@@ -7,13 +7,6 @@ updates:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
 
-  # https://github.com/dependabot/dependabot-core/issues/6704
-  - package-ecosystem: "github-actions"
-    directory: "/.github/actions/setup-python"
-    schedule:
-      # Check for updates to GitHub Actions every week
-      interval: "weekly"
-
   - package-ecosystem: "pip"
     directory: "/docs"
     schedule:

@@ -11,6 +11,7 @@ import traceback
 from fnmatch import fnmatch
 from contextlib import contextmanager
 from string import Formatter
+from collections.abc import MutableMapping
 
 import rez.deprecations
 from rez.system import system
@@ -25,16 +26,6 @@ from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
 from rez.utils.platform_ import platform_
 from rez.vendor.enum import Enum
-from rez.vendor.six import six
-
-
-basestring = six.string_types[0]
-
-# http://python3porting.com/problems.html#replacing-userdict
-if six.PY2:
-    from UserDict import DictMixin
-else:
-    from collections.abc import MutableMapping as DictMixin
 
 
 #===============================================================================
@@ -246,7 +237,7 @@ class ActionManager(object):
         # It would be unexpected to get var expansion on the str repr of an
         # object, so don't do that.
         #
-        if not isinstance(value, (basestring, EscapedString)):
+        if not isinstance(value, (str, EscapedString)):
             return str(value)
 
         # Perform expansion on non-literal parts of the string. If any
@@ -704,7 +695,7 @@ class Python(ActionInterpreter):
             self.target_environ.update(self.manager.environ)
         self.adjust_env_for_platform(self.target_environ)
 
-        shell_mode = isinstance(args, basestring)
+        shell_mode = isinstance(args, str)
         return Popen(args,
                      shell=shell_mode,
                      env=self.target_environ,
@@ -871,7 +862,7 @@ class EscapedString(object):
         return "%s(%r)" % (self.__class__.__name__, self.strings)
 
     def __eq__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             return (str(self) == str(other))
         else:
             return (
@@ -1093,7 +1084,7 @@ class NamespaceFormatter(Formatter):
 # Environment Classes
 #===============================================================================
 
-class EnvironmentDict(DictMixin):
+class EnvironmentDict(MutableMapping):
     """
     Provides a mapping interface to `EnvironmentVariable` instances,
     which provide an object-oriented interface for recording environment

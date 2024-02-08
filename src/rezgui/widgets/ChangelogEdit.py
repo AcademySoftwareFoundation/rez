@@ -3,10 +3,10 @@
 
 
 from Qt import QtCore, QtWidgets, QtGui
-import rez.utils.py23
+import html
 
 def plaintext_to_html(txt):
-    out = rez.utils.py23.escape(txt)
+    out = html.escape(txt)
     out = out.replace('\t', "    ")
     out = out.replace(' ', "&nbsp;")
     out = out.replace('\n', "<br>")

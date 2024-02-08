@@ -3,7 +3,6 @@
 
 
 import sys
-from rez.vendor.six import six
 from contextlib import contextmanager
 
 
@@ -14,4 +13,16 @@ def with_noop():
 
 def reraise(exc, new_exc_cls):
     traceback = sys.exc_info()[2]
-    six.reraise(new_exc_cls, exc, traceback)
+
+    # TODO test this.
+    def reraise_(tp, value, tb=None):
+        try:
+            if value is None:
+                value = tp()
+            if value.__traceback__ is not tb:
+                raise value.with_traceback(tb)
+            raise value
+        finally:
+            value = None
+            tb = None
+    reraise_(new_exc_cls, exc, traceback)

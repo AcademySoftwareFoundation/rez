@@ -24,7 +24,6 @@ import stat
 import platform
 import uuid
 
-from rez.vendor.six import six
 from rez.utils.platform_ import platform_
 
 
@@ -216,9 +215,6 @@ def forceful_rmtree(path):
         * path length over 259 char (on Windows)
         * unicode path
     """
-    if six.PY2:
-        path = unicode(path)
-
     def _on_error(func, path, exc_info):
         try:
             if is_windows:
@@ -575,10 +571,9 @@ def encode_filesystem_name(input_str):
 
     As an example, the string "Foo_Bar (fun).txt" would get encoded as ``_foo___bar_020_028fun_029.txt``.
     """
-    if isinstance(input_str, six.string_types):
-        input_str = unicode(input_str)
-    elif not isinstance(input_str, unicode):
-        raise TypeError("input_str must be a %s" % six.string_types[0].__name__)
+    # TODO: Test this
+    if isinstance(input_str, str):
+        input_str = input_str.encode(encoding="utf-8")
 
     as_is = u'abcdefghijklmnopqrstuvwxyz0123456789.-'
     uppercase = u'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
