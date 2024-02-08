@@ -2,7 +2,7 @@
 
 <!-- start-here-sphinx-start-after -->
 
-## 3.0.0 (TBD)
+## 3.0.0 (2024-02-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.0.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.114.1...3.0.0)
 
 This release marks a big turning point for rez by completely dropping support for Python 2.
