@@ -110,7 +110,7 @@ class RezPluginType(object):
 
     def load_plugins(self):
         import pkgutil
-        from rez.backport.importlib import import_module
+        from importlib import import_module
         type_module_name = 'rezplugins.' + self.type_name
         package = import_module(type_module_name)
 

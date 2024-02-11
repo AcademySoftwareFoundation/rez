@@ -81,7 +81,7 @@ def command(opts, parser, extra_arg_groups=None):
             comp_point += len(s)
 
     # create parser for subcommand
-    from rez.backport.importlib import import_module
+    from importlib import import_module
     data = subcommands[subcommand]
     module_name = data.get("module_name", "rez.cli.%s" % subcommand)
     mod = import_module(module_name)
