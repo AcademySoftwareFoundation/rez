@@ -20,3 +20,5 @@ __pycache__
 docs/source/api/
 docs/source/commands/
 __tests_pkg_repo/
+.idea/
+venv/
