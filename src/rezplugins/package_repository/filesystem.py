@@ -6,6 +6,7 @@
 Filesystem-based package repository
 """
 from contextlib import contextmanager
+from functools import lru_cache
 import os.path
 import os
 import stat
@@ -32,7 +33,6 @@ from rez.utils.filesystem import make_path_writable, \
 from rez.utils.platform_ import platform_
 from rez.utils.yaml import load_yaml
 from rez.config import config
-from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
 from rez.version import Version, VersionRange
 
