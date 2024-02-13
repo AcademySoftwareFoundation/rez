@@ -5,8 +5,6 @@
 """
 Functions for converting python distributions to rez packages.
 """
-from __future__ import print_function
-
 from rez.exceptions import RezSystemError
 import pkg_resources
 import shutil

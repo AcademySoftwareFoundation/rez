@@ -5,8 +5,6 @@
 '''
 Print current rez settings.
 '''
-from __future__ import print_function
-
 import json
 
 

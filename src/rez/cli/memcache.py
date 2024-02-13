@@ -5,7 +5,6 @@
 """
 Manage and query memcache server(s).
 """
-from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):

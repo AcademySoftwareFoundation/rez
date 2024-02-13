@@ -5,8 +5,6 @@
 '''
 Run a benchmarking suite for runtime resolves.
 '''
-from __future__ import print_function
-
 import json
 import os
 import os.path

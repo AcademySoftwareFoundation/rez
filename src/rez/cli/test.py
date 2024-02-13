@@ -5,8 +5,6 @@
 '''
 Run tests listed in a package's definition file.
 '''
-from __future__ import print_function
-
 
 def setup_parser(parser, completions=False):
     parser.add_argument(

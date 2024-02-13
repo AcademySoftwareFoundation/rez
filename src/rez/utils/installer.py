@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 import rez
 from rez.package_maker import make_package
 from rez.system import system

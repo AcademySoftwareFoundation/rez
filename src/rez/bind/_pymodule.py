@@ -9,8 +9,6 @@ Note that we subproc out to python at various points here because we can't use
 the current python interpreter - this is rez's, inside its installation
 virtualenv.
 """
-from __future__ import absolute_import, print_function
-
 from rez.bind._utils import check_version, find_exe, make_dirs, \
     get_version_in_python, run_python_command, log
 from rez.package_maker import make_package

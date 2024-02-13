@@ -2,7 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
 from rez.version._util import VersionError, ParseException, _Common, \
     dedup
 from bisect import bisect_left

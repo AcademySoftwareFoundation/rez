@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 import unittest
 from rez import module_root_path
 from rez.config import config, _create_locked_config

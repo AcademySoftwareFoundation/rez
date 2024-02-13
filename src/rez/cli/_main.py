@@ -5,8 +5,6 @@
 """
 The main command-line entry point.
 """
-from __future__ import print_function
-
 import sys
 import importlib
 from argparse import _StoreTrueAction, SUPPRESS

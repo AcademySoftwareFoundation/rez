@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 from rez.exceptions import RezBindError, _NeverError
 from rez import module_root_path
 from rez.util import get_close_pkgs

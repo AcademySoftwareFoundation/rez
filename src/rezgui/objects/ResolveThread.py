@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 from Qt import QtCore
 from rez.exceptions import RezError
 

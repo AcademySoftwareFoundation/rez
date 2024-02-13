@@ -5,7 +5,6 @@
 """
 Utility for displaying help for the given package.
 """
-from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
