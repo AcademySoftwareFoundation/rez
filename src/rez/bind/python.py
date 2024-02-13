@@ -5,7 +5,6 @@
 """
 Binds a python executable as a rez package.
 """
-from __future__ import absolute_import
 from rez.bind._utils import check_version, find_exe, extract_version, \
     make_dirs, log, run_python_command
 from rez.package_maker import make_package

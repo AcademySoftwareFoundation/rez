@@ -5,8 +5,6 @@
 """
 CMake-based build system
 """
-from __future__ import print_function
-
 from rez.build_system import BuildSystem
 from rez.build_process import BuildType
 from rez.resolved_context import ResolvedContext

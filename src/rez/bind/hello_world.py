@@ -9,8 +9,6 @@ Note: Even though this is a python-based package, it does not list python as a
 requirement. This is not typical! This package is intended as a very simple test
 case, and for that reason we do not want any dependencies.
 """
-from __future__ import absolute_import, print_function
-
 from rez.package_maker import make_package
 from rez.version import Version
 from rez.utils.lint_helper import env

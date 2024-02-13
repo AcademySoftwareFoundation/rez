@@ -2,7 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
 from contextlib import contextmanager
 import logging
 import time

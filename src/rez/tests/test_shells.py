@@ -5,8 +5,6 @@
 """
 test shell invocation
 """
-from __future__ import print_function
-
 from rez.system import system
 from rez.shells import create_shell, get_shell_types, get_shell_class
 from rez.resolved_context import ResolvedContext

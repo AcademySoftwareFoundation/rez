@@ -5,8 +5,6 @@
 """
 Executes pre- and post-release shell commands
 """
-from __future__ import print_function
-
 import getpass
 import sys
 import os

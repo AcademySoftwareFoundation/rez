@@ -2,7 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import absolute_import
 import json
 from json import dumps  # noqa (forwarded)
 import sys

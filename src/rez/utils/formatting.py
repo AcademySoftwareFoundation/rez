@@ -5,8 +5,6 @@
 """
 Utilities related to formatting output or translating input.
 """
-from __future__ import absolute_import
-
 from string import Formatter
 from rez.vendor.enum import Enum
 from rez.version import Requirement

@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function, absolute_import
-
 from rez.packages import get_latest_package
 from rez.version import Version
 from rez.vendor.distlib.database import DistributionPath

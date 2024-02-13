@@ -5,8 +5,6 @@
 """
 Stub version control system, for testing purposes
 """
-from __future__ import print_function
-
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_warning
 from rez.utils.yaml import dump_yaml
