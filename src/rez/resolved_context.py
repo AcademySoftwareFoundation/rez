@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 from rez import __version__, module_root_path
 from rez.package_repository import package_repository_manager
 from rez.solver import SolverCallbackReturn

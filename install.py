@@ -6,8 +6,6 @@
 This script uses venv/virtualenv to create a standalone, production-ready Rez
 installation in the specified directory.
 """
-from __future__ import print_function
-
 import argparse
 import os
 import platform

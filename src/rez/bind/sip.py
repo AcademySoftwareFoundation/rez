@@ -5,7 +5,6 @@
 """
 Binds the python PyQt module as a rez package.
 """
-from __future__ import absolute_import
 from rez.bind import _pymodule
 from rez.bind._utils import get_version_in_python
 

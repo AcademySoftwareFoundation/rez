@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 from rez.packages import iter_packages
 from rez.config import config
 from rez.plugin_managers import plugin_manager

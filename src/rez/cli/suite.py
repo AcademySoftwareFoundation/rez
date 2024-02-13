@@ -5,7 +5,6 @@
 '''
 Manage a suite or print information about an existing suite.
 '''
-from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):

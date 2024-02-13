@@ -5,7 +5,6 @@
 '''
 Manipulate a package cache.
 '''
-from __future__ import print_function
 from argparse import SUPPRESS
 import os.path
 import sys
