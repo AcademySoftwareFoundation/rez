@@ -6,6 +6,7 @@
 Run tests listed in a package's definition file.
 '''
 
+
 def setup_parser(parser, completions=False):
     parser.add_argument(
         "-l", "--list", action="store_true",
