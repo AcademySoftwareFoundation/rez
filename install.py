@@ -10,10 +10,17 @@ from __future__ import print_function
 
 import argparse
 import os
+import platform
 import sys
 import shutil
 import subprocess
-import venv
+
+USE_VIRTUALENV = False
+try:
+    import venv
+except ImportError:
+    USE_VIRTUALENV = True
+    import virtualenv
 
 
 source_path = os.path.dirname(os.path.realpath(__file__))
@@ -30,14 +37,22 @@ from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
 
 def create_virtual_environment(dest_dir):
-    builder = venv.EnvBuilder(with_pip=True)
-    builder.create(dest_dir)
+    """Create a virtual environment in the given directory."""
+    if USE_VIRTUALENV:
+        try:
+            subprocess.run(["virtualenv", dest_dir], check=True)
+        except subprocess.CalledProcessError as err:
+            print(f"Failed to create virtual environment: {err}")
+            sys.exit(1)
+    else:
+        builder = venv.EnvBuilder(with_pip=True)
+        builder.create(dest_dir)
 
 
 def get_virtualenv_bin_dir(dest_dir):
-    builder = venv.EnvBuilder()
-    context = builder.ensure_directories(dest_dir)
-    return context.bin_path
+    """Get the bin directory of the virtual environment."""
+    bin_dir = "Scripts" if platform.system() == "Windows" else "bin"
+    return os.path.join(dest_dir, bin_dir)
 
 
 def get_virtualenv_py_executable(dest_dir):
