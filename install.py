@@ -36,8 +36,13 @@ from rez.cli._entry_points import get_specifications  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
 
-def create_virtual_environment(dest_dir):
-    """Create a virtual environment in the given directory."""
+def create_virtual_environment(dest_dir) -> None:
+    """Create a virtual environment in the given directory.
+
+    Args:
+        dest_dir (str): Full path to the virtual environment directory.
+
+    """
     if USE_VIRTUALENV:
         try:
             subprocess.run(["virtualenv", dest_dir], check=True)
@@ -49,8 +54,13 @@ def create_virtual_environment(dest_dir):
         builder.create(dest_dir)
 
 
-def get_virtualenv_bin_dir(dest_dir):
-    """Get the bin directory of the virtual environment."""
+def get_virtualenv_bin_dir(dest_dir) -> str:
+    """Get the bin directory of the virtual environment.
+
+    Args:
+        dest_dir (str): The directory of the virtual environment.
+
+    """
     bin_dir = "Scripts" if platform.system() == "Windows" else "bin"
     return os.path.join(dest_dir, bin_dir)
 
