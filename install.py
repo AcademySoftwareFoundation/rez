@@ -45,7 +45,10 @@ def create_virtual_environment(dest_dir) -> None:
     """
     if USE_VIRTUALENV:
         try:
-            subprocess.run(["virtualenv", dest_dir], check=True)
+            subprocess.run(
+                [sys.executable, "-m", "virtualenv", dest_dir],
+                check=True
+            )
         except subprocess.CalledProcessError as err:
             print(f"Failed to create virtual environment: {err}")
             sys.exit(1)
