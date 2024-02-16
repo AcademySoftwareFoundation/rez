@@ -1,4 +1,4 @@
-from rez.vendor.enum import Enum
+from enum import Enum
 
 
 class ExchangeType(Enum) :

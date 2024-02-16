@@ -5,7 +5,6 @@
 from rez.packages import get_latest_package
 from rez.version import Version
 from rez.vendor.distlib.database import DistributionPath
-from rez.vendor.enum.enum import Enum
 from rez.vendor.packaging.version import Version as PackagingVersion
 from rez.vendor.packaging.specifiers import Specifier
 from rez.resolved_context import ResolvedContext
@@ -29,6 +28,7 @@ import sys
 from tempfile import mkdtemp
 from textwrap import dedent
 from io import StringIO
+from enum import Enum
 
 
 PIP_SPECIFIER = Specifier(">=19")  # rez pip only compatible with pip>=19

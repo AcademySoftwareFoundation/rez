@@ -35,13 +35,13 @@ from rez.utils.graph_utils import write_dot, write_compacted, \
 from rez.utils.resolve_graph import failure_detail_from_graph
 from rez.version import VersionRange
 from rez.version import Requirement
-from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils import json
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
 
 from contextlib import contextmanager
+from enum import Enum
 from functools import wraps
 import getpass
 import socket

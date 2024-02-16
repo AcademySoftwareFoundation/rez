@@ -23,8 +23,8 @@ from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError, RezSystemError
 from rez.version import VersionRange
 from rez.version import VersionedObject, Requirement, RequirementList
-from rez.vendor.enum import Enum
 from contextlib import contextmanager
+from enum import Enum
 from itertools import product, chain
 import copy
 import time

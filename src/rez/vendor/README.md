@@ -94,19 +94,6 @@ https://github.com/python-distro/distro
 
 <!-- ######################################################### -->
 <tr><td>
-enum
-</td><td>
-?
-</td><td>
-BSD
-</td><td>
-https://pypi.org/project/enum34/<br>
-By looking at the code, it's probably enum34. If so, the latest version is
-1.1.6 (May 15, 2016)
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
 lockfile
 </td><td>
 0.9.1 (Sep 19, 2010)
