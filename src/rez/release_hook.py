@@ -4,7 +4,7 @@
 
 from rez.utils.logging_ import print_warning, print_debug
 from rez.packages import get_developer_package
-from rez.vendor.enum import Enum
+from enum import Enum
 
 
 def get_release_hook_types():

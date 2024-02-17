@@ -7,8 +7,8 @@ Utilities related to process/script execution.
 """
 
 from rez.utils.yaml import dump_yaml
-from rez.vendor.enum import Enum
 from contextlib import contextmanager
+from enum import Enum
 import subprocess
 import sys
 import stat
