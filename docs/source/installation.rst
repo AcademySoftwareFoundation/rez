@@ -16,7 +16,7 @@ Then from the root directory, run::
 
    ]$ python ./install.py
 
-This installs rez to ``/opt/rez``. See ``install.py -h`` to see the different install options.
+This installs rez to ``/opt/rez``. Use ``install.py -h`` to see the different install options.
 
 Once the installation is complete, a message tells you how to run it::
 
