@@ -5,9 +5,6 @@ Installation
 Installation Script
 ===================
 
-.. warning::
-   The install script only supports Python 3.7+.
-
 To install rez, download the source by either cloning the `repository <https://github.com/AcademySoftwareFoundation/rez>`_
 with git or downloading it from the `latest release <https://github.com/AcademySoftwareFoundation/rez/releases/latest>`_.
 If you download rez from the release page on GitHub, don't forget to unpack the downloaded archive.
