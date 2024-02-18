@@ -7,7 +7,6 @@ import os.path
 import errno
 from hashlib import sha1
 from uuid import uuid4
-import shutil
 import stat
 import subprocess
 import sys

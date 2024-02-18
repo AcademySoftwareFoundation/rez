@@ -20,7 +20,7 @@ class ArtifactRepository(object):
 
     def __init__(self, location: str):
         """Create an artifact repository.
-        
+
         Args:
             location (str): Path containing the artifact repository.
         """
@@ -55,7 +55,7 @@ class ArtifactRepository(object):
 
 class ArtifactRepositoryManager(object):
     """Artifact repository manager.
-    
+
     Manages retrieval of resources (package and variants) from
     `ArtifactRepository` instances.
     """
@@ -73,7 +73,7 @@ class ArtifactRepositoryManager(object):
 
     def get_repository(self, path):
         """Get an artifact repository.
-        
+
         Args:
             path (str): A string in the form "type@location", where
                 'type' identifies the repository plugin type to use.

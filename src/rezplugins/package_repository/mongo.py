@@ -48,13 +48,13 @@ class MongoUrlError(RezError):
 def _format(uri):
     username = quote_plus(os.getenv("REZ_MONGO_USERNAME", ""))
     password = quote_plus(os.getenv("REZ_MONGO_PASSWORD", ""))
-    
+
     if username and password:
         uri = username + ":" + password + "@" + uri
-    
+
     if not uri.startswith(SCHEME):
         uri = SCHEME + uri
-        
+
     return uri
 
 
@@ -121,7 +121,7 @@ class MongoPackageResource(PackageResourceHelper):
             path += "/" + version
 
         return path
-    
+
     @property
     def base(self):
         return self.path
@@ -255,17 +255,17 @@ class MongoPackageRepository(PackageRepository):
         """Return a variant resource document post from Mongo.
         """
         install_path = self.get_package_payload_path(
-                                    variant_resource.name,
-                                    variant_resource.version
-                                )
+            variant_resource.name,
+            variant_resource.version
+        )
 
         pkg_file = os.path.join(install_path, "package.py")
         with open(pkg_file, "r") as stream:
             data = stream.read()
 
         res = self.packages.find_one({
-                                "name": variant_resource.name,
-                                "version": str(variant_resource.version)})
+            "name": variant_resource.name,
+            "version": str(variant_resource.version)})
 
         if not res:
             res = {
@@ -278,7 +278,7 @@ class MongoPackageRepository(PackageRepository):
         post["data"] = data
         post["timestamp"] = datetime.datetime.utcnow()
 
-        return post    
+        return post
 
     def install_variant(self, variant_resource, artifact_path=None, dry_run=False, overrides=None):
         overrides = overrides or {}
@@ -321,10 +321,10 @@ class MongoPackageRepository(PackageRepository):
             self.packages.insert_one(post)
 
         variant = self.find_variant(
-                        self.get_package_family(variant_name),
-                        variant_name,
-                        variant_version
-                    )
+            self.get_package_family(variant_name),
+            variant_name,
+            variant_version
+        )
 
         if not variant:
             raise PackageRepositoryError(
@@ -349,6 +349,6 @@ class MongoPackageRepository(PackageRepository):
 
         return path
 
- 
+
 def register_plugin():
     return MongoPackageRepository
