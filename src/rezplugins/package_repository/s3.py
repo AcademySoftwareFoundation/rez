@@ -7,43 +7,19 @@ AWS S3 package repository
 """
 
 
-from functools import cache
-import re
 import os
 import subprocess
 import tempfile
-import urllib.parse
 
-from rez.config import config
-from rezplugins.package_repository.filesystem import FileSystemPackageRepository
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
-    PackageResourceHelper, package_pod_schema, \
-    package_release_keys, package_build_only_keys
-from rez.serialise import clear_file_caches, open_file_for_write, load_from_file, \
-    FileFormat
-from rez.package_serialise import dump_package_data
-from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
-    ConfigurationError, PackageRepositoryError
-from rez.utils.resources import ResourcePool
+    PackageResourceHelper, package_pod_schema
+from rez.serialise import load_from_file, FileFormat
 from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
-from rez.utils.logging_ import print_warning, print_info
-from rez.utils.memcached import memcached, pool_memcached_connections
-from rez.utils.filesystem import make_path_writable, \
-    canonical_path, is_subdirectory
-from rez.utils.platform_ import platform_
 from rez.utils.yaml import load_yaml
-from rez.config import config
-from rez.backport.lru_cache import lru_cache
-from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
-from rez.vendor.six import six
-from rez.vendor.version.version import Version, VersionRange
-from rez.plugin_managers import plugin_manager, RezPluginType
 
 from rez.config import config
-from rezplugins.package_repository.filesystem import FileSystemPackageRepository
-from rez.artifact_repository import artifact_repository_manager
 
 
 try:
