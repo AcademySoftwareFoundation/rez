@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
+
+
 from typing import Any
 
 from rez.package_resources import VariantResource
