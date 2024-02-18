@@ -133,7 +133,10 @@ except ImportError:
 try:
     from collections import OrderedDict as _OrderedDict
 except ImportError:
-    _OrderedDict = None
+    try:
+        from ordereddict import OrderedDict as _OrderedDict
+    except ImportError:
+        _OrderedDict = None
 
 try:
     from types import SimpleNamespace
