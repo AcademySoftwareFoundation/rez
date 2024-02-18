@@ -173,7 +173,7 @@ class S3PackageFamilyResource(PackageFamilyResource):
 
 class Server:
     """ Base class for a server instance.
-    
+
     Note:
 
         This class is meant to provide an interface to different servers
@@ -182,7 +182,7 @@ class Server:
 
     def __init__(self, location):
         """ Create a server instance.
-        
+
         Args:
             location (str): Location of the server.
         """
@@ -284,10 +284,10 @@ class S3PackageRepository(PackageRepository):
 
     def __str__(self):
         return "%s@%s" % (self.name(), self.server.location)
-                
+
     def get_variants(self, package_resource):
         return [x for x in package_resource.iter_variants()]
-                
+
     def iter_variants(self, package_resource):
         for variant in self.get_variants(package_resource):
             yield variant
@@ -297,7 +297,7 @@ class S3PackageRepository(PackageRepository):
 
     def get_parent_package(self, variant_resource):
         return variant_resource.parent
-                
+
     def get_packages(self, package_family_resource):
         return [x for x in package_family_resource.iter_packages()]
 
@@ -314,7 +314,7 @@ class S3PackageRepository(PackageRepository):
             location=self.location,
             name=name
         )
-            
+
 
 def register_plugin():
     return S3PackageRepository
