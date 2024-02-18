@@ -5,8 +5,6 @@
 """
 Sends a post-release email
 """
-from __future__ import print_function
-
 from rez.release_hook import ReleaseHook
 from rez.system import system
 from email.mime.text import MIMEText

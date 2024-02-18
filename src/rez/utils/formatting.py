@@ -5,13 +5,11 @@
 """
 Utilities related to formatting output or translating input.
 """
-from __future__ import absolute_import
-
 from string import Formatter
-from rez.vendor.enum import Enum
 from rez.version import Requirement
 from rez.exceptions import PackageRequestError
 from pprint import pformat
+from enum import Enum
 import os
 import os.path
 import re

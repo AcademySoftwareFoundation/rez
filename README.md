@@ -207,6 +207,17 @@ like any other package:
 * Has a package filtering feature, allowing for staged package releases such as
   alpha and beta packages.
 
+## You have a problem or want to talk to us?
+
+If you find a bug, need help, or want to talk to the developers, here is a list of the different
+ways to get in touch with us:
+
+* [Report an issue](https://github.com/AcademySoftwareFoundation/rez/issues)
+* [Chat room](https://slack.aswf.io): Join the ``#rez`` channel
+* [Start a discussion](https://github.com/AcademySoftwareFoundation/rez/discussions)
+* [Mailing list](mail:main@lists.aswf.io): Note that are way less active on the mailing
+  list than on any other communication channel.
+
 ## Known issues and limitations
 
 * Currently CMake builds do not function on Windows with Rez and
@@ -214,4 +225,3 @@ like any other package:
   the roadmap. Users have successfully implemented workarounds to utilize
   CMake with Rez under Windows, but the goal is to provide a seamless experience
   on any platform in the future. For details see this [issue](/../../issues/703)
-
