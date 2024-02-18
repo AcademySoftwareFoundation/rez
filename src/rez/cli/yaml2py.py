@@ -5,7 +5,6 @@
 """
 Print a package.yaml file in package.py format.
 """
-from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):

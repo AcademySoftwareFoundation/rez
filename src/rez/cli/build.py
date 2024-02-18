@@ -5,8 +5,6 @@
 '''
 Build a package from source.
 '''
-from __future__ import print_function
-
 import os
 
 

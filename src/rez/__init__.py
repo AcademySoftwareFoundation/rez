@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 from rez.utils._version import _rez_version
 import rez.deprecations
 import sys

@@ -2,12 +2,9 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function, absolute_import
-
 from rez.packages import get_latest_package
 from rez.version import Version
 from rez.vendor.distlib.database import DistributionPath
-from rez.vendor.enum.enum import Enum
 from rez.vendor.packaging.version import Version as PackagingVersion
 from rez.vendor.packaging.specifiers import Specifier
 from rez.resolved_context import ResolvedContext
@@ -24,6 +21,7 @@ from rez.config import config
 import os
 from shlex import quote
 from pprint import pformat
+from enum import Enum
 import re
 import shutil
 import subprocess

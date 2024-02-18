@@ -6,6 +6,7 @@
 Read and write data from file. File caching via a memcached server is supported.
 """
 from contextlib import contextmanager
+from enum import Enum
 from inspect import isfunction, ismodule
 import sys
 import stat
@@ -25,7 +26,6 @@ from rez.utils.execution import add_sys_paths
 from rez.utils import py23
 from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
-from rez.vendor.enum import Enum
 from rez.vendor import yaml
 
 

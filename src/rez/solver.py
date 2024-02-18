@@ -11,8 +11,6 @@ with a faster resolve.
 
 See SOLVER.md for an in-depth description of how this module works.
 """
-from __future__ import print_function
-
 from rez.config import config
 from rez.packages import iter_packages
 from rez.package_repository import package_repo_stats
@@ -25,8 +23,8 @@ from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError, RezSystemError
 from rez.version import VersionRange
 from rez.version import VersionedObject, Requirement, RequirementList
-from rez.vendor.enum import Enum
 from contextlib import contextmanager
+from enum import Enum
 from itertools import product, chain
 import copy
 import time

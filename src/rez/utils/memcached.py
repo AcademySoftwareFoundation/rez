@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 from rez.config import config
 from rez.vendor.memcache.memcache import Client as Client_, \
     SERVER_MAX_KEY_LENGTH, __version__ as memcache_client_version

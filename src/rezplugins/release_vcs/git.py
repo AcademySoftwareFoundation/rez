@@ -5,8 +5,6 @@
 """
 Git version control
 """
-from __future__ import print_function
-
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_error, print_debug
 from rez.exceptions import ReleaseVCSError
