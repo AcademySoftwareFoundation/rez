@@ -28,6 +28,7 @@ from rez.utils.colorize import ColorizedStreamHandler
 from rez.utils.logging_ import print_warning
 from rez.packages import get_variant
 from rez.system import system
+from rez.utils.filesystem import rename
 
 
 class PackageCache(object):
@@ -337,7 +338,7 @@ class PackageCache(object):
                     os.chmod(rootpath, st.st_mode | stat.S_IWUSR)
 
                 # actually a mv
-                os.rename(rootpath, dest_rootpath)
+                rename(rootpath, dest_rootpath)
 
             except OSError as e:
                 if e.errno == errno.ENOENT:
