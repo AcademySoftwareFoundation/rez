@@ -38,7 +38,17 @@ ways you can do it, but this is the recommended approach.
 1. Fork the repo and clone it.
 2. Create a new Git branch and check it out.
 3. Create a virtual environment in the same directory as the repo by running `python -m venv venv`.
-4. Pip install your local Rez code by running `pip install .`
+4. Activate the virtual environment by running the `activate` file.
+5. Install your local Rez code by running the `install.py` in the repo.
+
+There is an alternative method of setting up your development environment, that doesn't use the `install.py`
+script. This method is not recommended however, as not all tests will be run this way.
+
+1. Fork the repo and clone it.
+2. Create a new Git branch and check it out.
+3. Create a virtual environment in the same directory as the repo by running `python -m venv venv`.
+4. Activate the virtual environment by running the `activate` file.
+5. Pip install your local Rez code by running `pip install .`
 
 ### Running Tests
 
