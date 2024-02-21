@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function, with_statement
-
 import fnmatch
 import os
 import os.path

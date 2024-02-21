@@ -5,8 +5,6 @@
 """
 test dependency resolving algorithm
 """
-from __future__ import print_function
-
 import rez.exceptions
 from rez.version import Requirement
 from rez.solver import Solver, Cycle, SolverStatus

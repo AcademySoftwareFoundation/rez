@@ -2,7 +2,6 @@
 #
 # dumb script to update copyright notice in a py sourcefile
 #
-from __future__ import print_function
 import argparse
 import sys
 import os

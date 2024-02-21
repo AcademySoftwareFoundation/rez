@@ -7,7 +7,6 @@ Release a new version of rez.
 
 Read RELEASE.md before using this utility.
 """
-from __future__ import print_function
 import argparse
 import os
 from datetime import date

@@ -5,7 +5,6 @@
 '''
 Move a package from one repository to another.
 '''
-from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):

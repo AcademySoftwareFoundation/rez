@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from build_util import build_directory_recurse, check_visible
 import os.path
 

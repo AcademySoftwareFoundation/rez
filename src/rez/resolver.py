@@ -9,9 +9,9 @@ from rez.package_filter import PackageFilterList, TimestampRule
 from rez.utils.memcached import memcached_client, pool_memcached_connections
 from rez.utils.logging_ import log_duration
 from rez.config import config
-from rez.vendor.enum import Enum
 from rez.version import Requirement
 from contextlib import contextmanager
+from enum import Enum
 from hashlib import sha1
 
 
