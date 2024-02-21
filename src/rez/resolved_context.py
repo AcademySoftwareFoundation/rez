@@ -1301,7 +1301,7 @@ class ResolvedContext(object):
             # Default to copy of os.environ to avoid modifying current process
             target_environ = os.environ.copy()
         else:
-            # Copy provide var, avoid modifying of called with os.environ, and harmless on anything else
+            # Copy provide var, avoid modifying if called with os.environ, and harmless on anything else
             target_environ = parent_environ.copy()
 
         interpreter = Python(target_environ=target_environ)
