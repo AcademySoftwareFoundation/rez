@@ -1,27 +1,5 @@
 # Contributing To Rez
 
-## Development Environment
-
-### Prerequisites 
-
-On Windows, make sure to set your PowerShell execution policy as shown [here](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-5.1),
-otherwise the PowerShell tests will fail.
-
-### Setting Up
-
-To begin development on Rez you'll first need to set up your development environment. There are many 
-ways you can do it, but this is the recommended approach.
-
-1. Fork the repo and clone it.
-2. Create a new Git branch and check it out.
-3. Create a virtual environment in the same directory as the repo by running `python -m venv venv`.
-4. Pip install your local Rez code by running `pip install .`
-
-### Running Tests
-
-1. Set up your development environment as shown above.
-2. Run `rez selftest`.
-
 ## Guidelines
 
 If you would like to contribute code you can do so through GitHub by forking the repository and
@@ -44,6 +22,28 @@ sending a pull request. Please follow these guidelines:
 10. If your changes add a new rez config setting, update [rezconfig.py](src/rez/rezconfig.py) and
     document the setting. The comments in this file are extracted and turned into documentation. Pay
     attention to the comment formatting and follow the existing style closely.
+
+## Development Environment
+
+### Prerequisites 
+
+On Windows, make sure to set your PowerShell execution policy as shown [here](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-5.1),
+otherwise the PowerShell tests will fail.
+
+### Setting Up
+
+To begin development on Rez you'll first need to set up your development environment. There are many 
+ways you can do it, but this is the recommended approach.
+
+1. Fork the repo and clone it.
+2. Create a new Git branch and check it out.
+3. Create a virtual environment in the same directory as the repo by running `python -m venv venv`.
+4. Pip install your local Rez code by running `pip install .`
+
+### Running Tests
+
+1. Set up your development environment as shown above.
+2. Run `rez selftest`.
 
 ## CLA
 
