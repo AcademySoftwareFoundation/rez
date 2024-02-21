@@ -34,7 +34,7 @@ otherwise the PowerShell tests will fail.
 
 To begin development on Rez you'll first need to set up your development environment. There are many 
 ways you can do it, but this is the recommended approach. This approach will automatically create a virtual
-environment for you, patches the Rez binaries, and copies completion scripts. All tests will be run this way.
+environment for you, patch the Rez binaries, and copy completion scripts. All tests will be run this way.
 
 1. Fork the repo and clone it.
 2. Create a new Git branch and check it out.
