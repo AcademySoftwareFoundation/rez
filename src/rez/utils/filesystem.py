@@ -5,8 +5,6 @@
 """
 Filesystem-related utilities.
 """
-from __future__ import print_function
-
 from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager

@@ -2,8 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import print_function
-
 from rez.resolved_context import ResolvedContext
 from rez.utils.colorize import heading, local, critical, Printer
 from rez.utils.data_utils import cached_property

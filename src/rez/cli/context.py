@@ -5,8 +5,6 @@
 '''
 Print information about the current rez context, or a given context file.
 '''
-from __future__ import print_function
-
 # Disable the following:
 # - context tracking
 # - package caching

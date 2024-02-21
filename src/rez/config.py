@@ -2,7 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from __future__ import absolute_import
 from rez import __version__
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
     convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \

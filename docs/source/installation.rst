@@ -5,15 +5,20 @@ Installation
 Installation Script
 ===================
 
-.. warning::
-   The install script only supports Python 3.7+.
+To install rez, you will need:
 
-To install rez, download the source. Then from the root directory, run::
+1. Python 3.7 or above. We support 3.7, 3.8, 3.9, 3.10 and 3.11.
+   The python interpreter you use to run the install script will be the interpreter
+   used by rez itself.
+2. The source code. You can get it by either cloning the `repository <https://github.com/AcademySoftwareFoundation/rez>`_
+   with git or downloading it from the `latest release <https://github.com/AcademySoftwareFoundation/rez/releases/latest>`_.
+   If you download rez from the release page on GitHub, don't forget to unpack the downloaded archive.
+
+Then from the root directory, run::
 
    ]$ python ./install.py
 
-This installs rez to ``/opt/rez``. See ```install.py -h``` for how to install to a
-different location.
+This installs rez to ``/opt/rez``. Use ``install.py -h`` to see the different install options.
 
 Once the installation is complete, a message tells you how to run it::
 
@@ -36,11 +41,6 @@ Installation via pip
 It is possible to install rez with pip, like so::
 
    ]$ pip install rez
-
-.. note::
-   While the ``install.py`` script only supports Python 3.7+,
-   rez is still usable with Python 2.7 when installed via pip. In other words, the API
-   is fully compatible with Python 2 and 3.
 
 However, this comes with a caveat. Rez command line tools **are not guaranteed
 to work correctly** once inside a rez environment (ie after using the :ref:`rez-env`

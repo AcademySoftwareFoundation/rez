@@ -5,7 +5,6 @@
 '''
 Remove package(s) from a repository.
 '''
-from __future__ import print_function
 import sys
 
 
