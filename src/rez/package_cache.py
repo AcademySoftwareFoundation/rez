@@ -165,6 +165,12 @@ class PackageCache(object):
                 % variant.uri
             )
 
+        if package.repository.name() == "filesystem" and not os.path.isdir(variant_root):
+            raise PackageCacheError(
+                "Not cached - variant %s root does not appear on disk: %s"
+                % (variant.uri, variant_root)
+            )
+
         if not force:
             # package is configured to not be cachable
             if not package.is_cachable:
