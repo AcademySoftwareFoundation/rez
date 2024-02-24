@@ -40,6 +40,7 @@ environment for you, patch the Rez binaries, and copy completion scripts. All te
 2. Create a new Git branch and check it out.
 3. Install your local Rez code by running `python install.py venv`.
 4. Activate the virtual environment by running the `activate` file.
+5. Add the `Scripts/rez` folder on Windows or the `bin/rez` folder on Mac/Linux to the `PATH` environment variable.
 
 There is an alternative method of setting up your development environment, that doesn't use the `install.py`
 script. This method is not recommended however, as not all tests will be run this way.
@@ -53,7 +54,8 @@ script. This method is not recommended however, as not all tests will be run thi
 ### Running Tests
 
 1. Set up your development environment as shown above.
-2. Run `rez selftest`.
+2. Install the `pytest` and `parameterized` Python packages to your virtual environment for improved test output.
+3. Run `rez selftest`.
 
 ## CLA
 
