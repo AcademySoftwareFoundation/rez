@@ -17,7 +17,7 @@ from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper,\
     PackageResourceHelper, package_pod_schema
 from rez.serialise import load_from_file, FileFormat
-from rez.utils.resources import cached_property
+from rez.utils.resources import cached_property, ResourcePool
 from rez.vendor.six import six
 
 from pymongo import MongoClient
@@ -191,11 +191,12 @@ class MongoPackageRepository(PackageRepository):
     def name(cls):
         return "mongo"
 
-    def __init__(self, location, resource_pool):
+    def __init__(self, location: str, resource_pool: ResourcePool):
         """Create a mongo package repository.
 
         Args:
             location (str): Path containing the package repository.
+            resource_pool (`ResourcePool`): Resource manager.
         """
         super().__init__(location, resource_pool)
 
@@ -208,9 +209,9 @@ class MongoPackageRepository(PackageRepository):
         self.register_resource(MongoVariantResource)
 
     def _uid(self):
-        return (self.location)
+        return self.location
 
-    def find_variant(self, package_family_resource, variant_name, variant_version):
+    def find_variant(self, package_family_resource: PackageFamilyResource, variant_name, variant_version):
         for package_resource in self.iter_packages(package_family_resource):
             for variant in self.iter_variants(package_resource):
                 if variant.name == variant_name and \
