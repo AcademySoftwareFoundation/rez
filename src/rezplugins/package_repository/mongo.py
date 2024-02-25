@@ -265,7 +265,7 @@ class MongoPackageRepository(PackageRepository):
             }
 
         post = res.copy()
-        post = post.update(overrides)
+        post.update(overrides)
         post["data"] = data
         post["timestamp"] = datetime.datetime.utcnow()
 
