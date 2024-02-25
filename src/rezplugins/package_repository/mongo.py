@@ -8,23 +8,20 @@ from tempfile import NamedTemporaryFile
 from urllib.parse import quote_plus
 import datetime
 from tempfile import gettempdir
+from typing import Dict
 
 from rez.artifact_repository import artifact_repository_manager
 from rez.config import config
 from rez.exceptions import RezError, PackageRepositoryError
 from rez.packages import Version
 from rez.package_repository import PackageRepository
-from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper,\
-    PackageResourceHelper, package_pod_schema
+from rez.package_resources import PackageFamilyResource, VariantResourceHelper,\
+    PackageResourceHelper, package_pod_schema, VariantResource
 from rez.serialise import load_from_file, FileFormat
 from rez.utils.resources import cached_property, ResourcePool
-from rez.vendor.six import six
 
 from pymongo import MongoClient
 from pymongo.uri_parser import SCHEME
-
-
-basestring = six.string_types[0]
 
 debug_print = config.debug_printer("resources")
 
@@ -127,6 +124,7 @@ class MongoPackageResource(PackageResourceHelper):
         return self.path
 
     def _load(self):
+        print('loading!')
         res = self._repository.packages.find_one({"name": self.name, "version": self.get("version")})
         if not res:
             return {}
@@ -252,9 +250,8 @@ class MongoPackageRepository(PackageRepository):
 
         return None
 
-    def _get_variant_document(self, variant_resource, overrides=None):
-        """Return a variant resource document post from Mongo.
-        """
+    def _get_variant_document(self, variant_resource, overrides=None) -> Dict[str, str]:
+        """Return a variant resource document post from Mongo."""
         install_path = self.get_package_payload_path(
             variant_resource.name,
             variant_resource.version
@@ -281,7 +278,7 @@ class MongoPackageRepository(PackageRepository):
 
         return post
 
-    def install_variant(self, variant_resource, artifact_path=None, dry_run=False, overrides=None):
+    def install_variant(self, variant_resource: VariantResource, artifact_path=None, dry_run=False, overrides=None):
         overrides = overrides or {}
 
         # Name and version overrides are a special case - they change the
@@ -304,7 +301,7 @@ class MongoPackageRepository(PackageRepository):
                 raise PackageRepositoryError(
                     "Cannot remove package attribute 'version'")
 
-            if isinstance(ver, basestring):
+            if isinstance(ver, str):
                 ver = Version(ver)
                 overrides = overrides.copy()
                 overrides["version"] = ver
