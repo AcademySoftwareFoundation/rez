@@ -266,7 +266,8 @@ class MongoPackageRepository(PackageRepository):
 
         post = res.copy()
         post.update(overrides)
-        post["data"] = data
+        # We need to convert all data to string representation, so it can be added to the DB.
+        post["data"] = str(data)
         post["timestamp"] = datetime.datetime.utcnow()
 
         return post
