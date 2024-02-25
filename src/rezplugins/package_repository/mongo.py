@@ -250,16 +250,9 @@ class MongoPackageRepository(PackageRepository):
 
         return None
 
-    def _get_variant_document(self, variant_resource, overrides=None) -> Dict[str, str]:
-        """Return a variant resource document post from Mongo."""
-        install_path = self.get_package_payload_path(
-            variant_resource.name,
-            variant_resource.version
-        )
-
-        pkg_file = os.path.join(install_path, "package.py")
-        with open(pkg_file, "r") as stream:
-            data = stream.read()
+    def _get_variant_document(self, variant_resource: VariantResource, overrides=None) -> Dict[str, str]:
+        """Return a variant resource document to post to Mongo."""
+        data = variant_resource.parent.validated_data()
 
         res = self.packages.find_one({
             "name": variant_resource.name,
@@ -286,6 +279,8 @@ class MongoPackageRepository(PackageRepository):
         #
         variant_name = variant_resource.name
         variant_version = variant_resource.version
+
+        # At this point, the variant_resource is in memory repository...?
 
         variant_location = artifact_path
 
