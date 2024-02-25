@@ -17,6 +17,7 @@ from rez.packages import Version
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper,\
     PackageResourceHelper, package_pod_schema, VariantResource
+from rez.package_serialise import dump_package_data
 from rez.serialise import load_from_file, FileFormat
 from rez.utils.resources import cached_property, ResourcePool
 
@@ -124,14 +125,14 @@ class MongoPackageResource(PackageResourceHelper):
         return self.path
 
     def _load(self):
-        print('loading!')
         res = self._repository.packages.find_one({"name": self.name, "version": self.get("version")})
         if not res:
             return {}
 
         file = NamedTemporaryFile(prefix=self.name, suffix=".py").name
+
         with open(file, "w") as stream:
-            stream.write(res.get("data"))
+            dump_package_data(res.get("data"), stream)
 
         return load_from_file(file, FileFormat.py)
 
@@ -266,8 +267,10 @@ class MongoPackageRepository(PackageRepository):
 
         post = res.copy()
         post.update(overrides)
-        # We need to convert all data to string representation, so it can be added to the DB.
-        post["data"] = str(data)
+        # We need to convert all data to string representation, so it can be added to the DB. Maybe there's a
+        # built-in way to do this in Rez?
+        str_data = {k: str(v) for k, v in data.items()}
+        post["data"] = str_data
         post["timestamp"] = datetime.datetime.utcnow()
 
         return post
