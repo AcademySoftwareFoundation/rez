@@ -87,10 +87,8 @@ jobs:
       env:
         _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
 
-    - name: SonarCloud Scan
-      uses: sonarsource/sonarcloud-github-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
       with:
-        args: -Dsonar.python.coverage.reportPaths=coverage.xml
+        slug: AcademySoftwareFoundation/rez
+        files: 'coverage.xml'
