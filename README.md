@@ -10,6 +10,7 @@
 [![Docs](https://readthedocs.org/projects/rez/badge/?version=stable)](https://rez.readthedocs.io/en/stable)
 [![PyPI](https://github.com/AcademySoftwareFoundation/rez/workflows/pypi/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Apypi+event%3Arelease)
 [![Benchmark](https://github.com/AcademySoftwareFoundation/rez/workflows/benchmark/badge.svg)](https://github.com/AcademySoftwareFoundation/rez/actions?query=workflow%3Abenchmark+event%3Arelease)<br>
+[![Coverage](https://codecov.io/gh/AcademySoftwareFoundation/rez/graph/badge.svg?token=FLYggQOE7W)](https://codecov.io/gh/AcademySoftwareFoundation/rez)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=bugs)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
