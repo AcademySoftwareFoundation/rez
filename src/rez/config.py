@@ -15,9 +15,9 @@ from rez.system import system
 from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
-from rez.backport.lru_cache import lru_cache
 import rez.deprecations
 from contextlib import contextmanager
+from functools import lru_cache
 from inspect import ismodule
 import os
 import re
