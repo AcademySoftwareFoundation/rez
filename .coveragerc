@@ -1,4 +1,6 @@
 [run]
+# Relative is needed for coverage to be merged by SonarCloud
+relative_files = True
 branch = True
 omit =
     src/rez/tests/*,
