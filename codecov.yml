@@ -1,0 +1,11 @@
+coverage:
+  status:
+    project: off
+
+github_checks:
+  annotations: false
+
+ignore:
+  - "src/rez/tests"
+  - "src/rez/vendor"
+  - "src/rez/completion"

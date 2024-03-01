@@ -8,6 +8,7 @@ build/
 dist/
 htmlcov/
 .coverage
+coverage.xml
 *~
 docs/_build
 .DS_Store
