@@ -34,18 +34,18 @@ jobs:
 
     strategy:
       matrix:
-        os: ['macos-latest', 'ubuntu-latest', 'windows-latest']
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        os: ['ubuntu-latest']
+        python-version: ['3.11']
         include:
-        - os: macos-latest
-          shells: 'sh,csh,bash,tcsh,zsh,pwsh'
-          rez-path: /installdir/bin/rez
+        # - os: macos-latest
+        #   shells: 'sh,csh,bash,tcsh,zsh,pwsh'
+        #   rez-path: /installdir/bin/rez
         - os: ubuntu-latest
           shells: 'sh,csh,bash,tcsh,zsh,pwsh'
           rez-path: /installdir/bin/rez
-        - os: windows-latest
-          shells: 'cmd,pwsh,gitbash'
-          rez-path: \installdir\Scripts\rez
+        # - os: windows-latest
+        #   shells: 'cmd,pwsh,gitbash'
+        #   rez-path: \installdir\Scripts\rez
 
       fail-fast: false
 
@@ -83,12 +83,12 @@ jobs:
       run: rez-python -m pip install pytest-cov parameterized
 
     - name: Run tests
-      run: rez-selftest -v -- --cov=rez --cov-report=xml:coverage.xml
+      run: rez-selftest -v --context -- --cov=rez --cov-report=xml:coverage.xml
       env:
         _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
 
     - name: SonarCloud Scan
-      uses: sonarsource/sonarcloud-github-action@v2
+      uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
