@@ -284,10 +284,6 @@ class MongoPackageRepository(PackageRepository):
         variant_name = variant_resource.name
         variant_version = variant_resource.version
 
-        # At this point, the variant_resource is in memory repository...?
-
-        variant_location = artifact_path
-
         if "name" in overrides:
             variant_name = overrides["name"]
             if variant_name is self.remove:
@@ -307,7 +303,8 @@ class MongoPackageRepository(PackageRepository):
 
             variant_version = ver
 
-        overrides["location"] = variant_location
+        if artifact_path:
+            overrides["location"] = artifact_path
 
         post = self._get_variant_document(variant_resource, overrides)
         post_id = post.get("_id")
