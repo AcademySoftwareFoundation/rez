@@ -60,8 +60,7 @@ packages for improved test output: `pytest` and `parameterized`. You can install
 ### Running Tests
 
 1. Set up your development environment as shown above.
-2. Install the `pytest` and `parameterized` Python packages to your virtual environment for improved test output.
-3. Run `rez selftest`.
+2. Run `rez selftest`.
 
 ## CLA
 
