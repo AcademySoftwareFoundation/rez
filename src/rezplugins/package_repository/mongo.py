@@ -14,9 +14,10 @@ from rez.config import config
 from rez.exceptions import RezError, PackageRepositoryError
 from rez.packages import Version
 from rez.package_repository import PackageRepository
-from rez.package_resources import PackageFamilyResource, VariantResourceHelper,\
-    PackageResourceHelper, package_pod_schema, VariantResource
+from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
+    PackageResourceHelper, package_pod_schema, VariantResource, PackageResource
 from rez.utils.resources import cached_property, ResourcePool
+from rez.utils.sourcecode import SourceCode
 
 from pymongo import MongoClient
 from pymongo.uri_parser import SCHEME
@@ -210,14 +211,14 @@ class MongoPackageRepository(PackageRepository):
 
         return None
 
-    def get_variants(self, package_resource):
+    def get_variants(self, package_resource: PackageResource):
         return [x for x in package_resource.iter_variants()]
 
-    def iter_variants(self, package_resource):
+    def iter_variants(self, package_resource: PackageResource):
         for variant in self.get_variants(package_resource):
             yield variant
 
-    def get_parent_package_family(self, package_resource):
+    def get_parent_package_family(self, package_resource: PackageResource):
         return package_resource.parent
 
     def get_parent_package(self, variant_resource):
@@ -258,9 +259,19 @@ class MongoPackageRepository(PackageRepository):
 
         post = res.copy()
         post.update(overrides)
-        # We need to convert all data to string representation, so it can be added to the DB. Maybe there's a
-        # built-in way to do this in Rez?
-        str_data = {k: str(v) for k, v in data.items() if v is not None}
+        # We need to convert all complex data types to string representation, so it can be added to the DB. Maybe
+        # there's a built-in way to do this in Rez?
+        # This code is very similar to some in utils/yaml.py...
+        str_data = dict()
+        for k, v in data.items():
+            if v is None:
+                continue
+            if type(v) is SourceCode:
+                code = v.source
+                v = str(code)
+            if type(v) is Version:
+                v = str(v)
+            str_data[k] = v
         post["data"] = str_data
         post["timestamp"] = datetime.datetime.utcnow()
 
