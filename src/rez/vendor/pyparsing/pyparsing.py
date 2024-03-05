@@ -581,7 +581,6 @@ class ParseResults(object):
 
     def __len__( self ): return len( self.__toklist )
     def __bool__(self): return ( not not self.__toklist )
-    __nonzero__ = __bool__
     def __iter__( self ): return iter( self.__toklist )
     def __reversed__( self ): return iter( self.__toklist[::-1] )
     def _iterkeys( self ):
@@ -4405,7 +4404,7 @@ class ZeroOrMore(_MultipleMatch):
 class _NullToken(object):
     def __bool__(self):
         return False
-    __nonzero__ = __bool__
+
     def __str__(self):
         return ""
 

@@ -68,9 +68,6 @@ class _CallbackResult(object):
         """
         return self.is_ready()
 
-    # python 2.x version of __bool__
-    __nonzero__ = __bool__
-
     def __enter__(self):
         """ Entry into context manager that automatically resets the object
         on exit; this usage pattern helps garbage-collection by eliminating
