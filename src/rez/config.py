@@ -112,7 +112,7 @@ class Setting(object):
                         pre_formatted=True,
                         filename=varname,
                     )
-                from rez.utils import json
+                import json
 
                 try:
                     return json.loads(value)
