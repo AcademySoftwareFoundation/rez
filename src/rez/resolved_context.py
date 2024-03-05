@@ -36,7 +36,6 @@ from rez.utils.resolve_graph import failure_detail_from_graph
 from rez.version import VersionRange
 from rez.version import Requirement
 from rez.vendor import yaml
-from rez.utils import json
 from rez.utils.yaml import dump_yaml
 from rez.utils.platform_ import platform_
 
@@ -44,6 +43,7 @@ from contextlib import contextmanager
 from functools import wraps
 from enum import Enum
 import getpass
+import json
 import socket
 import threading
 import time
