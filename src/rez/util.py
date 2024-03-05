@@ -11,6 +11,7 @@ import atexit
 import os
 import os.path
 import re
+import inspect
 from rez.exceptions import RezError
 from rez.vendor.progress.bar import Bar
 
@@ -156,3 +157,34 @@ def is_non_string_iterable(arg):
         isinstance(arg, collections.abc.Iterable)
         and not isinstance(arg, str)
     )
+
+
+def get_function_arg_names(func):
+    """Get names of a function's args.
+
+    Gives full list of positional and keyword-only (py3 only) args.
+    """
+    spec = inspect.getfullargspec(func)
+    return spec.args + spec.kwonlyargs
+
+
+def load_module_from_file(name, filepath):
+    """Load a python module from a sourcefile.
+
+    Args:
+        name (str): Module name.
+        filepath (str): Python sourcefile.
+
+    Returns:
+        `module`: Loaded module.
+    """
+
+    # The below code will import the module _without_ adding it to
+    # sys.modules. We want this otherwise we can't import multiple
+    # versions of the same module
+    # See: https://github.com/AcademySoftwareFoundation/rez/issues/1483
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, filepath)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

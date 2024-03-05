@@ -94,19 +94,6 @@ https://github.com/python-distro/distro
 
 <!-- ######################################################### -->
 <tr><td>
-enum
-</td><td>
-?
-</td><td>
-BSD
-</td><td>
-https://pypi.org/project/enum34/<br>
-By looking at the code, it's probably enum34. If so, the latest version is
-1.1.6 (May 15, 2016)
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
 lockfile
 </td><td>
 0.9.1 (Sep 19, 2010)
@@ -222,20 +209,6 @@ MIT
 https://github.com/keleshev/schema<br>
 Our version is patched.
 </td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
-six
-</td><td>
-1.12.0 (Dec 9, 2018)
-</td><td>
-MIT
-</td><td>
-https://github.com/benjaminp/six<br>
-Updated (July 2019) to coincide with packaging lib addition that depends on.
-Also now required to support py2/3 interoperability.
-</td></tr>
-
 <!-- ######################################################### -->
 <tr><td>
 yaml lib (PyYAML)
@@ -245,19 +218,7 @@ yaml lib (PyYAML)
 MIT
 </td><td>
 https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
+
 </td></tr>
 
 <!-- ######################################################### -->
-<tr><td>
-yaml lib3 (PyYAML)
-</td><td>
-5.1 (May 30, 2011)
-</td><td>
-MIT
-</td><td>
-https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
-</td></tr>
-
-</table>

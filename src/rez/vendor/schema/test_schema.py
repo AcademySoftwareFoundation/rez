@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import unittest
 import os
 import tempfile
-from rez.vendor.six import six
 
 from .schema import Schema, Use, And, Or, Optional, SchemaError
 
@@ -34,9 +33,6 @@ from .schema import Schema, Use, And, Or, Optional, SchemaError
 # ^\n\n( *)def test_([a-zA-Z0-9_]+)\(\):
 # re replace:
 # \n\1def test_\2(self):
-
-if not six.PY2:
-    basestring = str
 
 def ve(_):
     raise ValueError()
@@ -178,7 +174,7 @@ class TestSchema(unittest.TestCase):
         assert Schema({'a': 1, Optional('b'): 2}).validate(
                 {'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
         # Make sure Optionals are favored over types:
-        assert Schema({basestring: 1,
+        assert Schema({str: 1,
                        Optional('b'): 2}).validate({'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
     
     
@@ -190,7 +186,7 @@ class TestSchema(unittest.TestCase):
         # Optionals take precedence over types. Here, the "a" is served by the
         # Optional:
         assert Schema({Optional('a', default=1): 11,
-                       basestring: 22}).validate({'b': 22}) == {'a': 1, 'b': 22}
+                       str: 22}).validate({'b': 22}) == {'a': 1, 'b': 22}
     
         self.assertRaises(TypeError, Optional, And(str, Use(int)), default=7)
 
@@ -318,9 +314,9 @@ class TestSchema(unittest.TestCase):
     def test_use_json(self):
         import json
         gist_schema = Schema(And(Use(json.loads),  # first convert from JSON
-                                 {Optional('description'): basestring,
+                                 {Optional('description'): str,
                                   'public': bool,
-                                  'files': {basestring: {'content': basestring}}}))
+                                  'files': {str: {'content': str}}}))
         gist = '''{"description": "the description for this gist",
                    "public": true,
                    "files": {

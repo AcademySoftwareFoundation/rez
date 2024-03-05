@@ -9,7 +9,7 @@ import re
 from rez.vendor.pyparsing.pyparsing import stringStart, stringEnd, originalTextFor, ParseException
 from rez.vendor.pyparsing.pyparsing import ZeroOrMore, Word, Optional, Regex, Combine
 from rez.vendor.pyparsing.pyparsing import Literal as L  # noqa
-from rez.vendor.six.six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from .markers import MARKER_EXPR, Marker
 from .specifiers import LegacySpecifier, Specifier, SpecifierSet
