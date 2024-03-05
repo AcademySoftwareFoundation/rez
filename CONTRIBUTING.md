@@ -32,7 +32,7 @@ otherwise the PowerShell tests will fail.
 
 ### Setting Up
 
-To begin development on Rez you'll first need to set up your development environment. There are many 
+To begin development on rez you'll first need to set up your development environment. There are many 
 ways you can do it, but these are the recommended approaches.
 
 This first approach will automatically create a virtual environment for you, patch the Rez binaries, 
@@ -40,18 +40,18 @@ and copy completion scripts. All tests will be run this way.
 
 1. Fork the repo and clone it.
 2. Create a new Git branch and check it out.
-3. Install your local Rez code by running `python install.py venv`.
+3. Install your local rez code by running `python install.py venv`.
 4. Activate the virtual environment by running the `activate` file.
 5. Add the `Scripts/rez` folder on Windows or the `bin/rez` folder on Mac/Linux to the `PATH` environment variable.
 
 There is an alternative method of setting up your development environment, that doesn't use the `install.py`
-script. Please note that not all tests will be run if Rez is installed this way.
+script. Please note that not all tests will be run if rez is installed this way.
 
 1. Fork the repo and clone it.
 2. Create a new Git branch and check it out.
 3. Create a virtual environment in the same directory as the repo by running `python -m venv venv`.
 4. Activate the virtual environment by running the `activate` file.
-5. Pip install your local Rez code by running `pip install .`.
+5. Pip install your local rez code by running `pip install .`.
 
 Additionally, if you are going to run tests in the repo, you may want to install two additional optional 
 packages for improved test output: `pytest` and `parameterized`. You can install these by running 
