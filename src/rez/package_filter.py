@@ -157,10 +157,8 @@ class PackageFilter(PackageFilterBase):
             result.add_inclusion(rule)
         return result
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self._excludes)
-
-    __bool__ = __nonzero__  # py3 compat
 
     @cached_property
     def cost(self):
@@ -304,10 +302,8 @@ class PackageFilterList(PackageFilterBase):
             data.append(f.to_pod())
         return data
 
-    def __nonzero__(self):
+    def __bool__(self):
         return any(self.filters)
-
-    __bool__ = __nonzero__  # py3 compat
 
     def __str__(self):
         filters = sorted(self.filters, key=lambda x: (x.cost, str(x)))

@@ -62,10 +62,8 @@ class _Printer(object):
                 msg = msg % nargs
             self.printer_function(msg)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.printer_function)
-
-    __bool__ = __nonzero__  # py3 compat
 
 
 @contextmanager
