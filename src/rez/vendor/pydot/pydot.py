@@ -16,12 +16,6 @@ __version__ = '1.4.2.dev0'
 __license__ = 'MIT'
 
 
-PY3 = sys.version_info >= (3, 0, 0)
-if PY3:
-    str_type = str
-else:
-    str_type = basestring
-
 
 GRAPH_ATTRIBUTES = { 'Damping', 'K', 'URL', 'aspect', 'bb', 'bgcolor',
     'center', 'charset', 'clusterrank', 'colorscheme', 'comment', 'compound',
@@ -244,7 +238,7 @@ def quote_if_necessary(s):
             return 'True'
         return 'False'
 
-    if not isinstance( s, str_type):
+    if not isinstance( s, str):
         return s
 
     if not s:
@@ -288,8 +282,6 @@ def graph_from_dot_file(path, encoding=None):
     """
     with io.open(path, 'rt', encoding=encoding) as f:
         s = f.read()
-    if not PY3:
-        s = unicode(s)
     graphs = graph_from_dot_data(s)
     return graphs
 
@@ -598,7 +590,7 @@ class Node(Common):
             # Remove the compass point
             #
             port = None
-            if isinstance(name, str_type) and not name.startswith('"'):
+            if isinstance(name, str) and not name.startswith('"'):
                 idx = name.find(':')
                 if idx > 0 and idx+1 < len(name):
                     name, port = name[:idx], name[idx:]
@@ -1758,7 +1750,7 @@ class Dot(Graph):
         graph is going to be rendered.
         """
 
-        if isinstance( file_paths, str_type):
+        if isinstance( file_paths, str):
             self.shape_files.append( file_paths )
 
         if isinstance( file_paths, (list, tuple) ):
@@ -1803,8 +1795,6 @@ class Dot(Graph):
             prog = self.prog
         if format == 'raw':
             s = self.to_string()
-            if not PY3:
-                s = unicode(s)
             with io.open(path, mode='wt', encoding=encoding) as f:
                 f.write(s)
         else:

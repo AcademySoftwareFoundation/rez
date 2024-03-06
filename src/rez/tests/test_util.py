@@ -1,16 +1,9 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright Contributors to the Rez Project
-
-
-"""
-unit tests for 'utils.py23' module
-"""
 import os
 import sys
 import tempfile
 
 from rez.tests.util import TestBase
-from rez.utils import py23
+from rez.util import load_module_from_file
 
 
 class TestLoadModuleFromFile(TestBase):
@@ -27,7 +20,7 @@ class TestLoadModuleFromFile(TestBase):
         with open(os.path.join(tmpdir, filename), 'w') as fd:
             fd.write('')
 
-        py23.load_module_from_file(
+        load_module_from_file(
             module,
             os.path.join(tmpdir, filename)
         )

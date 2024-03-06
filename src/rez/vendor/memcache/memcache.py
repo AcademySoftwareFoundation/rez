@@ -45,8 +45,6 @@ More detailed documentation is available in the L{Client} class.
 
 """
 
-from __future__ import print_function
-
 import binascii
 from io import BytesIO
 import re
@@ -55,14 +53,7 @@ import sys
 import threading
 import time
 import zlib
-
-from rez.vendor.six import six
-
-if six.PY2:
-    # With Python 2, the faster C implementation has to be imported explicitly.
-    import cPickle as pickle
-else:
-    import pickle
+import pickle
 
 
 def cmemcache_hash(key):
@@ -243,19 +234,18 @@ class Client(threading.local):
 
     def _encode_key(self, key):
         if isinstance(key, tuple):
-            if isinstance(key[1], six.text_type):
+            if isinstance(key[1], str):
                 return (key[0], key[1].encode('utf8'))
-        elif isinstance(key, six.text_type):
+        elif isinstance(key, str):
             return key.encode('utf8')
         return key
 
     def _encode_cmd(self, cmd, key, headers, noreply, *args):
-        cmd_bytes = cmd.encode('utf-8') if six.PY3 else cmd
+        cmd_bytes = cmd.encode('utf-8')
         fullcmd = [cmd_bytes, b' ', key]
 
         if headers:
-            if six.PY3:
-                headers = headers.encode('utf-8')
+            headers = headers.encode('utf-8')
             fullcmd.append(b' ')
             fullcmd.append(headers)
 
@@ -435,7 +425,7 @@ class Client(threading.local):
                 # print("(using server %s)" % server,)
                 return server, key
             serverhash = str(serverhash) + str(i)
-            if isinstance(serverhash, six.text_type):
+            if isinstance(serverhash, str):
                 serverhash = serverhash.encode('ascii')
             serverhash = serverHashFunction(serverhash)
         return None, None
@@ -480,7 +470,7 @@ class Client(threading.local):
         dead_servers = []
 
         rc = 1
-        for server in six.iterkeys(server_keys):
+        for server in iter(server_keys.keys()):
             bigcmd = []
             write = bigcmd.append
             if time is not None:
@@ -507,7 +497,7 @@ class Client(threading.local):
         for server in dead_servers:
             del server_keys[server]
 
-        for server, keys in six.iteritems(server_keys):
+        for server, keys in iter(server_keys.items()):
             try:
                 for key in keys:
                     server.expect(b"DELETED")
@@ -790,11 +780,10 @@ class Client(threading.local):
                 serverhash, key = orig_key
 
                 key = self._encode_key(key)
-                if not isinstance(key, six.binary_type):
+                if not isinstance(key, bytes):
                     # set_multi supports int / long keys.
                     key = str(key)
-                    if six.PY3:
-                        key = key.encode('utf8')
+                    key = key.encode('utf8')
                 bytes_orig_key = key
 
                 # Gotta pre-mangle key before hashing to a
@@ -805,11 +794,10 @@ class Client(threading.local):
                 orig_key = orig_key[1]
             else:
                 key = self._encode_key(orig_key)
-                if not isinstance(key, six.binary_type):
+                if not isinstance(key, bytes):
                     # set_multi supports int / long keys.
                     key = str(key)
-                    if six.PY3:
-                        key = key.encode('utf8')
+                    key = key.encode('utf8')
                 bytes_orig_key = key
                 server, key = self._get_server(key_prefix + key)
 
@@ -894,13 +882,13 @@ class Client(threading.local):
         self._statlog('set_multi')
 
         server_keys, prefixed_to_orig_key = self._map_and_prefix_keys(
-            six.iterkeys(mapping), key_prefix)
+            iter(mapping.keys()), key_prefix)
 
         # send out all requests on each server before reading anything
         dead_servers = []
         notstored = []  # original keys.
 
-        for server in six.iterkeys(server_keys):
+        for server in iter(server_keys.keys()):
             bigcmd = []
             write = bigcmd.append
             try:
@@ -936,7 +924,7 @@ class Client(threading.local):
         if not server_keys:
             return list(mapping.keys())
 
-        for server, keys in six.iteritems(server_keys):
+        for server, keys in iter(server_keys.items()):
             try:
                 for key in keys:
                     if server.readline() == b'STORED':
@@ -961,23 +949,15 @@ class Client(threading.local):
         # subclasses of native types (such as markup-safe strings) are pickled
         # and restored as instances of the correct class.
         val_type = type(val)
-        if val_type == six.binary_type:
+        if val_type == bytes:
             pass
-        elif val_type == six.text_type:
+        elif val_type == str:
             flags |= Client._FLAG_TEXT
             val = val.encode('utf-8')
         elif val_type == int:
             flags |= Client._FLAG_INTEGER
             val = '%d' % val
-            if six.PY3:
-                val = val.encode('ascii')
-            # force no attempt to compress this silly string.
-            min_compress_len = 0
-        elif six.PY2 and isinstance(val, long):  # noqa: F821
-            flags |= Client._FLAG_LONG
-            val = str(val)
-            if six.PY3:
-                val = val.encode('ascii')
+            val = val.encode('ascii')
             # force no attempt to compress this silly string.
             min_compress_len = 0
         else:
@@ -1072,7 +1052,7 @@ class Client(threading.local):
             self._statlog(cmd)
 
             try:
-                cmd_bytes = cmd.encode('utf-8') if six.PY3 else cmd
+                cmd_bytes = cmd.encode('utf-8')
                 fullcmd = b''.join((cmd_bytes, b' ', key))
                 server.send_cmd(fullcmd)
                 rkey = flags = rlen = cas_id = None
@@ -1190,7 +1170,7 @@ class Client(threading.local):
 
         # send out all requests on each server before reading anything
         dead_servers = []
-        for server in six.iterkeys(server_keys):
+        for server in iter(server_keys.keys()):
             try:
                 fullcmd = b"get " + b" ".join(server_keys[server])
                 server.send_cmd(fullcmd)
@@ -1205,7 +1185,7 @@ class Client(threading.local):
             del server_keys[server]
 
         retvals = {}
-        for server in six.iterkeys(server_keys):
+        for server in iter(server_keys.keys()):
             try:
                 line = server.readline()
                 while line and line != b'END':
@@ -1265,10 +1245,7 @@ class Client(threading.local):
         elif flags & Client._FLAG_INTEGER:
             val = int(buf)
         elif flags & Client._FLAG_LONG:
-            if six.PY3:
-                val = int(buf)
-            else:
-                val = long(buf)  # noqa: F821
+            val = int(buf)
         elif flags & Client._FLAG_PICKLE:
             try:
                 file = BytesIO(buf)
@@ -1308,7 +1285,7 @@ class Client(threading.local):
             #  key is empty but there is some other component to key
             return
 
-        if not isinstance(key, six.binary_type):
+        if not isinstance(key, bytes):
             raise Client.MemcachedKeyTypeError("Key must be a binary string")
 
         if (self.server_max_key_length != 0 and
@@ -1421,13 +1398,13 @@ class _Host(object):
             self.socket = None
 
     def send_cmd(self, cmd):
-        if isinstance(cmd, six.text_type):
+        if isinstance(cmd, str):
             cmd = cmd.encode('utf8')
         self.socket.sendall(cmd + b'\r\n')
 
     def send_cmds(self, cmds):
         """cmds already has trailing \r\n's applied."""
-        if isinstance(cmds, six.text_type):
+        if isinstance(cmds, str):
             cmds = cmds.encode('utf8')
         self.socket.sendall(cmds)
 
@@ -1463,11 +1440,8 @@ class _Host(object):
     def expect(self, text, raise_exception=False):
         line = self.readline(raise_exception)
         if self.debug and line != text:
-            if six.PY3:
-                text = text.decode('utf8')
-                log_line = line.decode('utf8', 'replace')
-            else:
-                log_line = line
+            text = text.decode('utf8')
+            log_line = line.decode('utf8', 'replace')
             self.debuglog("while expecting %r, got unexpected response %r"
                           % (text, log_line))
         return line

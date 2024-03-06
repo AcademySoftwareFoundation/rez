@@ -5,7 +5,7 @@
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug
-from rez.utils import py23
+from rez.util import load_module_from_file
 from inspect import getsourcelines
 from textwrap import dedent
 from glob import glob
@@ -351,7 +351,7 @@ class IncludeModuleManager(object):
         if config.debug("file_loads"):
             print_debug("Loading include sourcefile: %s" % filepath)
 
-        module = py23.load_module_from_file(name, filepath)
+        module = load_module_from_file(name, filepath)
         self.modules[hash_str] = module
         return module
 

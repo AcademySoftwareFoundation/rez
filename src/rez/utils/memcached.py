@@ -5,7 +5,7 @@
 from rez.config import config
 from rez.vendor.memcache.memcache import Client as Client_, \
     SERVER_MAX_KEY_LENGTH, __version__ as memcache_client_version
-from rez.utils import py23
+from rez.util import get_function_arg_names
 from threading import local
 from contextlib import contextmanager
 from functools import update_wrapper
@@ -318,7 +318,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
     """
     def default_key(func, *nargs, **kwargs):
         parts = [func.__module__]
-        argnames = py23.get_function_arg_names(func)
+        argnames = get_function_arg_names(func)
 
         if argnames:
             if argnames[0] == "cls":

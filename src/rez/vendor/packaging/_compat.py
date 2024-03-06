@@ -3,19 +3,6 @@
 # for complete details.
 from __future__ import absolute_import, division, print_function
 
-import sys
-
-
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
-
-# flake8: noqa
-
-if PY3:
-    string_types = (str,)
-else:
-    string_types = (basestring,)
-
 
 def with_metaclass(meta, *bases):
     """
