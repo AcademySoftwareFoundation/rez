@@ -25,7 +25,7 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
 from rez import package_order
 from rez.packages import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
-from rez.package_order import PackageOrderList
+from rez.package_order import OrdererDict
 from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
@@ -184,7 +184,7 @@ class ResolvedContext(object):
             package_filter (PackageFilterList): Filter used to exclude certain
                 packages. Defaults to settings from :data:`package_filter`. Use
                 :data:`rez.package_filter.no_filter` to remove all filtering.
-            package_orderers (list[PackageOrder]): Custom package ordering.
+            package_orderers (Optional[OrdererDict]): Custom package ordering.
                 Defaults to settings from :data:`package_orderers`.
             add_implicit_packages (bool): If True, the implicit package list defined
                 by :data:`implicit_packages` is appended to the request.
@@ -234,7 +234,7 @@ class ResolvedContext(object):
                                else package_filter)
 
         self.package_orderers = (
-            PackageOrderList.singleton if package_orderers is None
+            OrdererDict.singleton if package_orderers is None
             else package_orderers
         )
 
@@ -1527,9 +1527,10 @@ class ResolvedContext(object):
             data["patch_locks"] = dict((k, v.name) for k, v in self.patch_locks)
 
         if _add("package_orderers"):
-            package_orderers = [package_order.to_pod(x)
-                                for x in (self.package_orderers or [])]
-            data["package_orderers"] = package_orderers or None
+            if self.package_orderers:
+                data["package_orderers"] = self.package_orderers.to_pod()
+            else:
+                data["package_orderers"] = None
 
         if _add("package_filter"):
             data["package_filter"] = self.package_filter.to_pod()
@@ -1687,7 +1688,7 @@ class ResolvedContext(object):
 
         data = d.get("package_orderers")
         if data:
-            r.package_orderers = [package_order.from_pod(x) for x in data]
+            r.package_orderers = package_order.OrdererDict(data)
         else:
             r.package_orderers = None
 

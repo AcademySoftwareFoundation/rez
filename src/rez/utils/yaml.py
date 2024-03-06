@@ -7,9 +7,18 @@ from rez.vendor import yaml
 from rez.vendor.yaml.dumper import SafeDumper
 from rez.version import Version
 from rez.version import Requirement
+from abc import ABCMeta, abstractmethod
 from types import FunctionType, BuiltinFunctionType
 from inspect import getsourcelines
 from textwrap import dedent
+
+
+class YamlDumpable(object, metaclass=ABCMeta):
+    """A class that can be sedrialized to yaml"""
+
+    @abstractmethod
+    def to_yaml_pod(self):
+        raise NotImplementedError
 
 
 class _Dumper(SafeDumper):
@@ -32,6 +41,9 @@ class _Dumper(SafeDumper):
         code = data.source
         return self.represent_str(code)
 
+    def represent_yaml_dumpable(self, data):
+        return self.represent_data(data.to_yaml_pod())
+
 
 _Dumper.add_representer(str, _Dumper.represent_str)
 _Dumper.add_representer(Version, _Dumper.represent_as_str)
@@ -39,6 +51,7 @@ _Dumper.add_representer(Requirement, _Dumper.represent_as_str)
 _Dumper.add_representer(FunctionType, _Dumper.represent_function)
 _Dumper.add_representer(BuiltinFunctionType, _Dumper.represent_builtin_function)
 _Dumper.add_representer(SourceCode, _Dumper.represent_sourcecode)
+_Dumper.add_multi_representer(YamlDumpable, _Dumper.represent_yaml_dumpable)
 
 
 def dump_yaml(data, Dumper=_Dumper, default_flow_style=False):

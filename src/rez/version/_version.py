@@ -29,7 +29,10 @@ class _ReversedComparable(_Common):
         self.value = value
 
     def __lt__(self, other):
-        return not (self.value < other.value)
+        return self.value > other.value
+
+    def __eq__(self, other):
+        return self.value == other.value
 
     def __gt__(self, other):
         return not (self < other or self == other)
@@ -41,10 +44,12 @@ class _ReversedComparable(_Common):
         return not self < other
 
     def __str__(self):
-        return "reverse(%s)" % str(self.value)
+        # enclose self.value in a tuple in case it IS a tuple
+        return "reverse(%s)" % (self.value,)
 
     def __repr__(self):
-        return "reverse(%r)" % self.value
+        # enclose self.value in a tuple in case it IS a tuple
+        return "reverse(%r)" % (self.value,)
 
 
 class VersionToken(_Comparable):

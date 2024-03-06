@@ -61,7 +61,7 @@ class Resolver(object):
         self.package_paths = package_paths
         self.timestamp = timestamp
         self.callback = callback
-        self.package_orderers = package_orderers
+        self.package_orderers = package_orderers or config.package_orderers
         self.package_load_callback = package_load_callback
         self.building = building
         self.verbosity = verbosity
@@ -72,7 +72,7 @@ class Resolver(object):
 
         # store hash of package orderers. This is used in the memcached key
         if package_orderers:
-            sha1s = ''.join(x.sha1 for x in package_orderers)
+            sha1s = ''.join(x.sha1 for x in package_orderers.values())
             self.package_orderers_hash = sha1(sha1s.encode("utf8")).hexdigest()
         else:
             self.package_orderers_hash = ''

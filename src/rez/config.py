@@ -83,9 +83,8 @@ class Setting(object):
         if self.key in self.config.overrides:
             return data
 
-        if not self.config.locked:
-
-            # next, env-var
+        # next, env-var
+        if self._env_var_name and not self.config.locked:
             value = os.getenv(self._env_var_name)
             if value is not None:
                 if self.key in _deprecated_settings:
@@ -361,6 +360,19 @@ class BuildThreadCount_(Setting):
             return value
 
 
+class PackageOrderers(Setting):
+    @cached_class_property
+    def schema(cls):
+        from rez.package_order import from_pod, OrdererDict
+        return Or(
+            Schema(And(
+                [Use(from_pod)],
+                Use(OrdererDict)
+            )), None)
+
+    _env_var_name = None
+
+
 config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
@@ -496,7 +508,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
-    "package_orderers":                             OptionalDictOrDictList,
+    "package_orderers":                             PackageOrderers,
     "new_session_popen_args":                       OptionalDict,
     "context_tracking_amqp":                        OptionalDict,
     "context_tracking_extra_fields":                OptionalDict,

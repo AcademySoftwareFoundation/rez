@@ -11,6 +11,7 @@ from rez.resolved_context import ResolvedContext
 from rez.bundle_context import bundle_context
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
+from rez.config import config
 from rez.utils.filesystem import is_subdirectory
 import unittest
 import subprocess
@@ -26,11 +27,19 @@ class TestContext(TestBase, TempdirMixin):
         TempdirMixin.setUpClass()
 
         cls.packages_path = os.path.join(cls.root, "packages")
+
+        cls.py_packages_path = cls.data_path("packages", "py_packages")
+        cls.solver_packages_path = cls.data_path("solver", "packages")
+
         os.makedirs(cls.packages_path)
         hello_world.bind(cls.packages_path)
 
         cls.settings = dict(
-            packages_path=[cls.packages_path],
+            packages_path=[
+                cls.packages_path,
+                cls.solver_packages_path,
+                cls.py_packages_path,
+            ],
             package_filter=None,
             implicit_packages=[],
             warn_untimestamped=False,
@@ -185,6 +194,71 @@ class TestContext(TestBase, TempdirMixin):
             )
 
             _test_bundle(bundle_path3)
+
+    def test_orderer(self):
+        """Test a resolve with an orderer"""
+        from rez.package_order import CustomPackageOrder, OrdererDict, VersionSplitPackageOrder
+        from rez.version import Version
+
+        orderers = OrdererDict([
+            VersionSplitPackageOrder(packages=["python"],
+                                     first_version=Version("2.6"))])
+        r = ResolvedContext(["python", "!python-2.6"],
+                            package_orderers=orderers)
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ["python-2.5.2"])
+
+        # make sure serializing the orderer works
+        file = os.path.join(self.root, "test_orderers.rxt")
+        r.save(file)
+        r2 = ResolvedContext.load(file)
+        self.assertEqual(r, r2)
+        self.assertEqual(r.package_orderers, r2.package_orderers)
+
+        # Test that forcibly omitting the first entry in a custom order choose the second
+        orderers = OrdererDict([
+            CustomPackageOrder(packages={"multi": ["1.2", "2.0", "1.0", "1.1"]}),
+        ])
+        r = ResolvedContext(["multi", "!multi-1.2"], package_orderers=orderers)
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ["multi-2.0"])
+
+        # Test that package orderers also apply to variants, not just requirements
+
+    def test_orderer_fallback(self):
+        """Test that we fall back to sorted order for unspecified packages."""
+        from rez.package_order import VersionSplitPackageOrder, OrdererDict
+        from rez.resolved_context import ResolvedContext
+        from rez.version import Version
+
+        # Test that we correctly apply the orderer to the expected family
+        orderers = OrdererDict([
+            VersionSplitPackageOrder(packages=["multi"],
+                                     first_version=Version("1.2"))])
+        r = ResolvedContext(["multi"], package_orderers=orderers)
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ["multi-1.2"])
+
+        # Test that an unordered family will get the correct default behavior.
+        r = ResolvedContext(["python"], package_orderers=orderers)
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ["python-2.7.0"])
+
+    def test_orderer_variants(self):
+        """Test that package orderers apply to the variants of packacges, not just requires."""
+        from rez.package_order import CustomPackageOrder, OrdererDict
+        # Verify that we get the latest python without an orderer
+        r = ResolvedContext(["pyvariants", "!nada"])
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ['python-2.7.0', 'pyvariants-2'])
+
+        # Now verify that we correctly get python-2.6.8 when the orderer demands it.
+        orderers = OrdererDict([
+            CustomPackageOrder(packages={"python": ["2.6"]}),
+        ])
+        r = ResolvedContext(["pyvariants", "!nada"], package_orderers=orderers)
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ['python-2.6.8', 'pyvariants-2'])
 
 
 if __name__ == '__main__':

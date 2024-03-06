@@ -30,7 +30,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    from rez.utils.yaml import dump_yaml
+    from rez.utils.yaml import dump_yaml, YamlDumpable
     from rez.utils.data_utils import convert_json_safe
 
     if opts.search_list:
@@ -54,7 +54,7 @@ def command(opts, parser, extra_arg_groups=None):
             except KeyError:
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
-    if isinstance(data, (dict, list)):
+    if isinstance(data, (dict, list, YamlDumpable)):
         if opts.json:
             txt = json.dumps(convert_json_safe(data))
         else:
