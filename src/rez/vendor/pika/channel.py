@@ -8,7 +8,7 @@ implementing the methods and behaviors for an AMQP Channel.
 import collections
 import logging
 import uuid
-from rez.vendor.enum import Enum
+from enum import Enum
 
 from rez.vendor.pika import frame
 from rez.vendor.pika import exceptions
