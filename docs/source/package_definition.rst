@@ -116,7 +116,7 @@ implicit :attr:`this` object:
 .. warning::
    Certain package attributes cannot be accessed inside of an early bound function such as this.root.
 
-   Additionally, :ref: `build environment variables <context-environment-variables>` cannot be accessed inside
+   Additionally, :ref:`build environment variables <context-environment-variables>` cannot be accessed inside
    of early bound functions.
 
 Early binding functions are a convenience. You can always use an arbitrary function instead, like so:
