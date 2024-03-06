@@ -113,6 +113,12 @@ implicit :attr:`this` object:
    Do not reference other early bound or late bound attributes in
    your early bound function. An error will be raised if you do.
 
+.. warning::
+   Certain package attributes cannot be accessed inside of an early bound function such as this.root.
+
+   Additionally, :ref: `build environment variables <context-environment-variables>` cannot be accessed inside
+   of early bound functions.
+
 Early binding functions are a convenience. You can always use an arbitrary function instead, like so:
 
 .. code-block:: python
