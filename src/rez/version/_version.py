@@ -390,11 +390,9 @@ class Version(_Comparable):
         except IndexError:
             raise IndexError("version token index out of range")
 
-    def __nonzero__(self):
+    def __bool__(self):
         """The empty version equates to False."""
         return bool(self.tokens)
-
-    __bool__ = __nonzero__  # py3 compat
 
     def __eq__(self, other):
         return isinstance(other, Version) and self.tokens == other.tokens
