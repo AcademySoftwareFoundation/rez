@@ -114,7 +114,7 @@ implicit :attr:`this` object:
    your early bound function. An error will be raised if you do.
 
 .. warning::
-   Certain package attributes cannot be accessed inside of an early bound function such as this.root.
+   Certain package attributes cannot be accessed inside of an early bound function such as :attr:`this.root`.
 
    Additionally, :ref:`build environment variables <build-environment-variables>` cannot be accessed inside
    of early bound functions.
