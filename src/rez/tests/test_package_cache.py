@@ -193,7 +193,7 @@ class TestPackageCache(TestBase, TempdirMixin):
 
             # Creating the context will synchronously add variants to the cache
             c = ResolvedContext(
-                ["timestamped-1.2.0", "pyfoo-3.1.0",],
+                ["timestamped-1.2.0", "pyfoo-3.1.0"],
                 package_cache_async=False,
             )
 
