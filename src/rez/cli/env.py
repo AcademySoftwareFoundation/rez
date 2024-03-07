@@ -117,6 +117,10 @@ def setup_parser(parser, completions=False):
         "--no-pkg-cache", action="store_true",
         help="Disable package caching")
     parser.add_argument(
+        "--pkg-cache-sync", action="store_true",
+        help="Disable asynchronous package caching.  "
+             "Process will block until packages are cached.")
+    parser.add_argument(
         "--pre-command", type=str, help=SUPPRESS)
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
@@ -212,7 +216,8 @@ def command(opts, parser, extra_arg_groups=None):
             caching=(not opts.no_cache),
             suppress_passive=opts.no_passive,
             print_stats=opts.stats,
-            package_caching=(not opts.no_pkg_cache)
+            package_caching=(not opts.no_pkg_cache),
+            package_cache_async=(not opts.pkg_cache_sync),
         )
 
     success = (context.status == ResolverStatus.solved)

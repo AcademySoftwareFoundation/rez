@@ -279,7 +279,8 @@ package_cache_max_variant_days = 30
 package_cache_during_build = False
 
 # Enable package caching to run asynchronously during a resolve.
-package_cache_async = True 
+# If this is false, a resolve will block until all packages are cached.
+package_cache_async = True
 
 # Allow caching of local packages. You would only want to set this True for
 # testing purposes.
@@ -316,7 +317,7 @@ implicit_packages = [
 # This is useful as Platform.os might show different
 # values depending on the availability of ``lsb-release`` on the system.
 # The map supports regular expression, e.g. to keep versions.
-# 
+#
 # .. note::
 #    The following examples are not necessarily recommendations.
 #
@@ -1122,7 +1123,7 @@ documentation_url = "https://rez.readthedocs.io"
 
 # Enables/disables colorization globally.
 #
-# .. warning:: 
+# .. warning::
 #    Turned off for Windows currently as there seems to be a problem with the colorama module.
 #
 # May also set to the string ``force``, which will make rez output color styling

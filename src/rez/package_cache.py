@@ -366,7 +366,7 @@ class PackageCache(object):
 
         return self.VARIANT_REMOVED
 
-    def add_variants(self, variants, _async=True):
+    def add_variants(self, variants, package_cache_async=True):
         """Update the package cache by adding some or all of the given variants.
 
         This method is called when a context is created or sourced. Variants
@@ -460,18 +460,14 @@ class PackageCache(object):
                 else:
                     out_target = devnull
 
-                func = subprocess.Popen
-
-                # use subprocess.call blocks where subprocess.Popen doesn't
-                if not _async:
-                    func = subprocess.call
-
-                func(
+                process = subprocess.Popen(
                     args,
                     stdout=out_target,
                     stderr=out_target,
                     **kwargs
                 )
+                if not package_cache_async:
+                    process.wait()
 
         except Exception as e:
             print_warning(
