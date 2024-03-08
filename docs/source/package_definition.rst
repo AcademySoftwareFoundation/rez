@@ -85,7 +85,7 @@ the :ref:`build environment <the-build-environment>` is constructed. Therefore i
 behaviors of early bound functions:
 
 - The :attr:`this` object only exposes package attributes and nothing else when used inside an early bound function.
-- No Rez-set :ref:`environment variables <environment-variables>` can be accessed inside an early bound function.
+- No Rez-set :doc:`environment variables <environment>` can be accessed inside an early bound function.
 
 Any package attribute can be implemented as an early binding function. Here is an example of an :attr:`authors`
 attribute that is automatically set to the contributors of the package's git project:
