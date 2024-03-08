@@ -281,7 +281,7 @@ package_cache_during_build = False
 # Asynchronously cache packages. If this is false, resolves will block until
 # all packages are cached.
 #
-# .. versionadded:: 2.1.0
+# .. versionadded:: 3.1.0
 package_cache_async = True
 
 # Allow caching of local packages. You would only want to set this True for
