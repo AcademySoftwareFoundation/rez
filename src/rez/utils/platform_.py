@@ -464,9 +464,6 @@ class OSXPlatform(_UnixPlatform):
 class WindowsPlatform(Platform):
     name = "windows"
 
-    def _arch(self):
-        return super(WindowsPlatform, self)._arch()
-
     def _os(self):
         release, version, csd, ptype = platform.win32_ver()
         toks = []
