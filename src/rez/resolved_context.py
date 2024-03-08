@@ -248,7 +248,6 @@ class ResolvedContext(object):
                 package_caching = config.package_cache_during_build
             else:
                 package_caching = True
-
         self.package_caching = package_caching
 
         if package_cache_async is None:

@@ -117,9 +117,9 @@ def setup_parser(parser, completions=False):
         "--no-pkg-cache", action="store_true",
         help="Disable package caching")
     parser.add_argument(
-        "--pkg-cache-sync", action="store_true",
-        help="Disable asynchronous package caching.  "
-             "Process will block until packages are cached.")
+        "--pkg-cache-mode", choices=["sync", "async"],
+        help="Optionally disable for force enable asynchronous package caching.  "
+             "If 'sync', the process will block until packages are cached.")
     parser.add_argument(
         "--pre-command", type=str, help=SUPPRESS)
     PKG_action = parser.add_argument(
@@ -202,6 +202,13 @@ def command(opts, parser, extra_arg_groups=None):
             rule = Rule.parse_rule(rule_str)
             package_filter.add_inclusion(rule)
 
+        if opts.pkg_cache_sync == "async":
+            package_cache_async = True
+        elif opts.pkg_cache_sync == "sync":
+            package_cache_async = False
+        else:
+            package_cache_async = None
+
         # perform the resolve
         context = ResolvedContext(
             package_requests=request,
@@ -217,7 +224,7 @@ def command(opts, parser, extra_arg_groups=None):
             suppress_passive=opts.no_passive,
             print_stats=opts.stats,
             package_caching=(not opts.no_pkg_cache),
-            package_cache_async=(not opts.pkg_cache_sync),
+            package_cache_async=package_cache_async,
         )
 
     success = (context.status == ResolverStatus.solved)

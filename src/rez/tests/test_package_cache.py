@@ -140,6 +140,9 @@ class TestPackageCache(TestBase, TempdirMixin):
                 "pyfoo-3.1.0"
             ])
 
+        # Prove that the resolved context used async mode.
+        self.assertTrue(c.package_cache_async)
+
         variant = c.get_resolved_package("timestamped")
 
         # Retry 50 times with 0.1 sec interval, 5 secs is more than enough for
@@ -154,7 +157,8 @@ class TestPackageCache(TestBase, TempdirMixin):
             resolve_not_always_cached = True
             time.sleep(0.1)
 
-        self.assertNotEqual(cached_root, None)
+        self.assertNotEqual(cached_root, None,
+                            msg="Packages were expected to be cached, but were not.")
 
         # Test that the package is not immediately cached, since it is asynchronous
         # WARNING: This is dangerous since it does open the test to a race condition and

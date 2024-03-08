@@ -366,6 +366,16 @@ class PackageCache(object):
 
         return self.VARIANT_REMOVED
 
+    def add_variants_async(self, variants):
+        """Update the package cache by adding some or all of the given variants.
+
+        This method is called when a context is created or sourced. Variants
+        are then added to the cache in a separate process.
+
+        This method is left for backwards compatibility.
+        """
+        return self.add_variants(variants, package_cache_async=True)
+
     def add_variants(self, variants, package_cache_async=True):
         """Update the package cache by adding some or all of the given variants.
 
@@ -467,7 +477,7 @@ class PackageCache(object):
                     **kwargs
                 )
                 if not package_cache_async:
-                    process.wait()
+                    process.communicate()
 
         except Exception as e:
             print_warning(
