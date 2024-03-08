@@ -19,7 +19,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import RezSystemError
     from rez.vendor import yaml
     from rez.vendor.yaml.error import YAMLError
-    from rez.utils import py23
+    from rez.util import get_function_arg_names
     import os.path
 
     # we don't usually want warnings printed in a wrapped tool. But in cases
@@ -63,7 +63,7 @@ def command(opts, parser, extra_arg_groups=None):
         module = plugin_manager.get_plugin_module(plugin_type, plugin_name)
 
     target_func = getattr(module, func_name)
-    func_args = py23.get_function_arg_names(target_func)
+    func_args = get_function_arg_names(target_func)
 
     if "_script" in func_args:
         kwargs["_script"] = yaml_file

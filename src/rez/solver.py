@@ -134,10 +134,8 @@ class _Printer(object):
     def pr(self, txt='', *args):
         print(txt % args, file=self.buf)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.verbosity > 0
-
-    __bool__ = __nonzero__  # py3 compat
 
 
 class SolverState(object):

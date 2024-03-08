@@ -23,7 +23,7 @@ from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
 from rez.utils.execution import add_sys_paths
-from rez.utils import py23
+from rez.util import get_function_arg_names
 from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor import yaml
@@ -332,7 +332,7 @@ def process_python_objects(data, filepath=None):
                 fn.__globals__.update(get_objects())
 
                 # execute the function
-                args = py23.get_function_arg_names(func)
+                args = get_function_arg_names(func)
 
                 if len(args) not in (0, 1):
                     raise ResourceError("@early decorated function must "

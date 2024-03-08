@@ -3,7 +3,6 @@
 
 
 import platform
-import sys
 import os
 import os.path
 import re
@@ -464,15 +463,6 @@ class OSXPlatform(_UnixPlatform):
 
 class WindowsPlatform(Platform):
     name = "windows"
-
-    def _arch(self):
-        # http://stackoverflow.com/questions/7164843/in-python-how-do-you-determine-whether-the-kernel-is-running-in-32-bit-or-64-bi
-        if os.name == 'nt' and sys.version_info[:2] < (2, 7):
-            arch = os.environ.get("PROCESSOR_ARCHITEW6432",
-                                  os.environ.get('PROCESSOR_ARCHITECTURE'))
-            if arch:
-                return arch
-        return super(WindowsPlatform, self)._arch()
 
     def _os(self):
         release, version, csd, ptype = platform.win32_ver()
