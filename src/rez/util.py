@@ -164,7 +164,7 @@ def is_non_string_iterable(arg):
 def get_function_arg_names(func):
     """Get names of a function's args.
 
-    Gives full list of positional and keyword-only (py3 only) args.
+    Gives full list of positional and keyword-only args.
     """
     spec = inspect.getfullargspec(func)
     return spec.args + spec.kwonlyargs
