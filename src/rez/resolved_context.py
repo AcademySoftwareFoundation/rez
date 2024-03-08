@@ -205,7 +205,7 @@ class ResolvedContext(object):
             package_caching (bool|None): If True, apply package caching settings
                 as per the config. If None, enable as determined by config
                 setting :data:`package_cache_during_build`.
-            package_cache_async (Optional[bool]): If True, cache packages asynchronously.
+            package_cache_async (bool|None): If True, cache packages asynchronously.
                 If None, use the config setting :data:`package_cache_async`
         """
         self.load_path = None
