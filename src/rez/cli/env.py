@@ -118,8 +118,9 @@ def setup_parser(parser, completions=False):
         help="Disable package caching")
     parser.add_argument(
         "--pkg-cache-mode", choices=["sync", "async"],
-        help="Optionally disable for force enable asynchronous package caching.  "
-             "If 'sync', the process will block until packages are cached.")
+        help="If provided, override the rezconfig's package_cache_async key. "
+             "If 'sync', the process will block until packages are cached. "
+             "If 'async', the process will not block while packages are cached.")
     parser.add_argument(
         "--pre-command", type=str, help=SUPPRESS)
     PKG_action = parser.add_argument(
@@ -202,12 +203,12 @@ def command(opts, parser, extra_arg_groups=None):
             rule = Rule.parse_rule(rule_str)
             package_filter.add_inclusion(rule)
 
-        if opts.pkg_cache_sync == "async":
-            package_cache_async = True
-        elif opts.pkg_cache_sync == "sync":
-            package_cache_async = False
+        if opts.pkg_cache_mode == "async":
+            package_cache_mode = True
+        elif opts.pkg_cache_mode == "sync":
+            package_cache_mode = False
         else:
-            package_cache_async = None
+            package_cache_mode = None
 
         # perform the resolve
         context = ResolvedContext(
@@ -224,7 +225,7 @@ def command(opts, parser, extra_arg_groups=None):
             suppress_passive=opts.no_passive,
             print_stats=opts.stats,
             package_caching=(not opts.no_pkg_cache),
-            package_cache_async=package_cache_async,
+            package_cache_async=package_cache_mode,
         )
 
     success = (context.status == ResolverStatus.solved)
