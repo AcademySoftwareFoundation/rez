@@ -160,7 +160,6 @@ def is_non_string_iterable(arg):
     )
 
 
-
 def get_function_arg_names(func):
     """Get names of a function's args.
 
@@ -168,7 +167,6 @@ def get_function_arg_names(func):
     """
     spec = inspect.getfullargspec(func)
     return spec.args + spec.kwonlyargs
-
 
 
 def load_module_from_file(name, filepath):
