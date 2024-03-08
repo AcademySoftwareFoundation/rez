@@ -11,7 +11,6 @@ from rez.resolved_context import ResolvedContext
 from rez.bundle_context import bundle_context
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
-from rez.config import config
 from rez.utils.filesystem import is_subdirectory
 import unittest
 import subprocess

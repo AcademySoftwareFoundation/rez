@@ -222,8 +222,8 @@ class TestSolver(TestBase):
         """Cyclic failures."""
 
         def _test(*pkgs):
-            s = self._fail(*pkgs)
-            self.assertTrue(isinstance(s.failure_reason(), Cycle))
+            _s = self._fail(*pkgs)
+            self.assertTrue(isinstance(_s.failure_reason(), Cycle))
 
         _test("pymum-1")
         _test("pydad-1")
@@ -348,17 +348,18 @@ class TestSolver(TestBase):
 
     def _test_complete_ordering(self, request, expected_order):
         exclude = []
-        for next in expected_order:
-            self._solve(request + exclude, [next + '[]'],
+        for next_item in expected_order:
+            self._solve(request + exclude, [next_item + '[]'],
                         do_permutations=False)
-            exclude.append('!{}'.format(next))
+            exclude.append('!{}'.format(next_item))
 
     def test_17_timestamp_no_rank_exact_timestamp(self):
         config.override("package_orderers",
-                        [{"type": "soft_timestamp",
-                          "packages": ["reorderable"],
-                          "timestamp": 1470728472,
-                         }])
+                        [{
+                            "type": "soft_timestamp",
+                            "packages": ["reorderable"],
+                            "timestamp": 1470728472,
+                        }])
         self._test_complete_ordering(
             ['reorderable'],
             [
@@ -397,7 +398,6 @@ class TestSolver(TestBase):
                 "reorderable-2.2.1",
             ])
 
-
     def test_19_timestamp_rank2_exact_timestamp(self):
         config.override("package_orderers",
                         [{"type": "soft_timestamp",
@@ -421,7 +421,6 @@ class TestSolver(TestBase):
                 "reorderable-3.1.1",
                 "reorderable-3.0.0",
             ])
-
 
     def test_20_timestamp_rank2_inexact_timestamp(self):
         config.override("package_orderers",
@@ -471,7 +470,6 @@ class TestSolver(TestBase):
                 "reorderable-3.1.1",
             ])
 
-
     def test_22_timestamp_rank3_inexact_timestamp(self):
         config.override("package_orderers",
                         [{"type": "soft_timestamp",
@@ -496,7 +494,6 @@ class TestSolver(TestBase):
                 "reorderable-3.1.1",
             ])
 
-
     def test_23_timestamp_rank4_exact_timestamp(self):
         config.override("package_orderers",
                         [{"type": "soft_timestamp",
@@ -520,7 +517,6 @@ class TestSolver(TestBase):
                 "reorderable-3.0.0",
                 "reorderable-3.1.1",
             ])
-
 
     def test_24_timestamp_rank4_inexact_timestamp(self):
         config.override("package_orderers",
@@ -702,7 +698,7 @@ class TestSolver(TestBase):
                           [{
                               "type": "custom",
                               "packages": {"python": ["2.6.0", False, False, "2.5"]}
-                            }]
+                          }]
                           )
         self.assertRaises(ConfigurationError,
                           config.override,
@@ -710,7 +706,7 @@ class TestSolver(TestBase):
                           [{
                               "type": "custom",
                               "packages": {"python": ["2.6.0", "", "", "2.5"]}
-                            }]
+                          }]
                           )
         self.assertRaises(ConfigurationError,
                           config.override,
@@ -718,15 +714,19 @@ class TestSolver(TestBase):
                           [{
                               "type": "custom",
                               "packages": {"python": ["2.6.0", "", False, "2.5"]}
-                            }]
+                          }]
                           )
 
     def test_32_multiple_matches(self):
         """Test that if matches more than one, higher-priority is used
         """
         config.override("package_orderers",
-                        [{"type": "custom",
-                          "packages": {"python": ["2.7.0|2.6.8", "2.5", "2.6.8|2.6.0"]}}])
+                        [{
+                            "type": "custom",
+                            "packages": {
+                                "python": ["2.7.0|2.6.8", "2.5", "2.6.8|2.6.0"]
+                            }
+                        }])
         self._solve(["python<2.7"],
                     ["python-2.6.8[]"])
 

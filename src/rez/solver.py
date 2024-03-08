@@ -849,6 +849,7 @@ class _PackageVariantSlice(_Common):
 
         orderer = get_orderer(self.package_name,
                               self.solver.package_orderers or {})
+
         def sort_key(entry):
             return orderer.sort_key(entry.package.name, entry.version)
 
