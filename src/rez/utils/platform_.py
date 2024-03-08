@@ -3,7 +3,6 @@
 
 
 import platform
-import sys
 import os
 import os.path
 import re
