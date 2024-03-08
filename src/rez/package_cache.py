@@ -372,7 +372,8 @@ class PackageCache(object):
         This method is called when a context is created or sourced. Variants
         are then added to the cache in a separate process.
 
-        This method is left for backwards compatibility.
+        .. deprecated:: 3.1.0
+           Use :method:`add_variants` instead.
         """
         return self.add_variants(variants, package_cache_async=True)
 
