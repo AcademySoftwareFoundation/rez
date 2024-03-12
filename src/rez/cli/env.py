@@ -29,8 +29,8 @@ def setup_parser(parser, completions=False):
         help="skip loading of startup scripts")
     command_action = parser.add_argument(
         "-c", "--command", type=str,
-        help="read commands from string. Alternatively, list command arguments "
-        "after a '--'")
+        help="read commands from a string and exit, instead of starting an interactive shell. "
+        "Alternatively, list command arguments after a '--'")
     parser.add_argument(
         "-s", "--stdin", action="store_true",
         help="read commands from standard input")
