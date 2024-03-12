@@ -262,9 +262,11 @@ class PackageCache(object):
                                        f"{self.STATUS_DESCRIPTIONS[status]}")
                     elif status == self.VARIANT_FOUND:
                         # We have resolved into a satisfactory state
-                        logger.info(f"{variant.name}-{variant.version} {self.STATUS_DESCRIPTIONS[status]}")
+                        logger.info(f"{variant.name}-{variant.version} "
+                                    f"{self.STATUS_DESCRIPTIONS[status]}")
                     else:
-                        logger.warning(f"{variant.name}-{variant.version} {self.STATUS_DESCRIPTIONS[status]}")
+                        logger.warning(f"{variant.name}-{variant.version} "
+                                       f"{self.STATUS_DESCRIPTIONS[status]}")
                 return (rootpath, status)
 
         # 1.
