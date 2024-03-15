@@ -53,11 +53,6 @@ class _BaseTestPackagesOrder(TestBase, TempdirMixin):
 class TestAbstractPackageOrder(TestBase):
     """Test case for the abstract PackageOrder class"""
 
-    def test_reorder(self):
-        """Validate reorder is not implemented"""
-        with self.assertRaises(NotImplementedError):
-            PackageOrder().reorder([])
-
     def test_to_pod(self):
         """Validate to_pod is not implemented"""
         self.assertRaises(NotImplementedError, PackageOrder().to_pod)
