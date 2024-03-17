@@ -1,6 +1,9 @@
 # Build instructions
 
-To build the docs you must use Python 3.11.
+To build the docs you must install the following requirements:
+
+- GNU Make
+- Python 3.11
 
 To create a build environment run the following commands:
 ```python
