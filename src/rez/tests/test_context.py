@@ -215,7 +215,7 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_orderer_package_argument(self):
         """Test that the packages argument to an orderer gives expected results."""
-        from rez.package_order import PackageOrderList, PerFamilyOrder, VersionSplitPackageOrder
+        from rez.package_order import VersionSplitPackageOrder
         from rez.version import Version
 
         packages_path = self.data_path("solver", "packages")
