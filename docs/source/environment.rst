@@ -121,8 +121,8 @@ removed**:
 Build Environment Variables
 ===========================
 
-These are variables that rez generates within a build environment, in addition
-to those listed :ref:`here <context-environment-variables>`.
+These are variables that rez generates within a :ref:`build environment <the-build-environment>`, in addition
+to context environment variables listed :ref:`here <context-environment-variables>`.
 
 .. glossary::
 
