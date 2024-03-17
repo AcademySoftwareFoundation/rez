@@ -28,6 +28,7 @@ Welcome to rez's documentation!
    context_bundles
    suites
    managing_packages
+   releasing_packages
    caching
    pip
 
