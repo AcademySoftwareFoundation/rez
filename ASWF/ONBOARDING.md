@@ -7,11 +7,11 @@ https://github.com/AcademySoftwareFoundation/asfw-sample-project/blob/main/tsc/p
 
 Misc stuff not covered in the ASWF list
 
-- [ ] Move from master to main branch [#1203](/../../issues/1203)
-- [ ] Remove hardcoded references to `nerdvegas` where possible (some of these won't make sense to do until after gh migration) [#1205](/../../issues/1205)
+- [X] Move from master to main branch [#1203](/../../issues/1203)
+- [X] Remove hardcoded references to `nerdvegas` where possible (some of these won't make sense to do until after gh migration) [#1205](/../../issues/1205)
   - TODO: inline links in comments (will need a script to batch convert)
   - TODO: README.md
-- [ ] Update Github slack integration [#1204](/../../issues/1204)
+- [X] Update Github slack integration [#1204](/../../issues/1204)
 
 # ASWF Onboarding Checklist
 - Existing Project Governance
@@ -25,11 +25,10 @@ Misc stuff not covered in the ASWF list
   - [X] A [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) file that sets the ground rules for participants’ behavior associated and helps to facilitate a friendly, welcoming environment. By default, projects should leverage the Linux Foundation Code of Conduct unless an alternate Code of Conduct was previously approved. [#1227](/../../issues/1227)
   - [ ] A [RELEASE.md](process/release.md) file that provides documentation on the release methodology, cadence, criteria, etc.
     - (exists but requires review)
-  - [ ] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance. [#1229](/../../issues/1229)
+  - [X] A [GOVERNANCE.md](../GOVERNANCE.md) file that documents the project’s technical governance. [#1229](/../../issues/1229)
   - [ ] A [SUPPORT.md](../SUPPORT.md) file to let users and developers know about ways to get help with your project. [#1230](/../../issues/1230)
 - Infrastructure/Assets
-  - [!] License scan completed and no issues found 
-    - **NOTE: we need to fix: https://github.com/AcademySoftwareFoundation/rez/issues/1349**
+  - [X] License scan completed and no issues found 
   - [X] Code repository imported to ASWF GitHub organization or ownership of current GitHub organization given to `thelinuxfoundation` user
     - [X] Developer Certificate of Origin past commit signoff done and DCO Probot enabled.
   - [X] Issue/feature tracker established (JIRA, GitHub issues)
@@ -48,16 +47,16 @@ Misc stuff not covered in the ASWF list
 - New Project Goverance
   - [X] TSC members identified
   - [X] First TSC meeting held
-  - [ ] TSC meeting cadence set and added to project calendar
-  - [ ] CLA Approved ( if used ) ( [CCLA](ccla.md) and [ICLA](icla.md) )
+  - [X] TSC meeting cadence set and added to project calendar
+  - [x] CLA Approved ( if used ) ( [CCLA](ccla.md) and [ICLA](icla.md) )
   - Project charter ( [charter.md](charter.md) )
-    - [ ] Approved by TSC
-    - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
+    - [x] Approved by TSC
+    - [x] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
   - [ ] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
-  - [ ] TAC representative appointed
+  - [X] TAC representative appointed
 - Outreach
   - [X] New project annoucement done ( create [issue on foundation repo](https://github.com/AcademySoftwareFoundation/foundation/issues/new) to trigger )
-  - [ ] Project added to ASWF website and ASWF landscape
+  - [X] Project added to ASWF website and ASWF landscape
 - Adopted Stage graduation requirements
   - [ ] CII Badge   achieved
   - [ ] Demonstrate a substantial ongoing flow of commits and merged contributions, authored by a healthy number of diverse contributors*.
