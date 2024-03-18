@@ -48,10 +48,10 @@ Misc stuff not covered in the ASWF list
   - [X] TSC members identified
   - [X] First TSC meeting held
   - [X] TSC meeting cadence set and added to project calendar
-  - [ ] CLA Approved ( if used ) ( [CCLA](ccla.md) and [ICLA](icla.md) )
+  - [x] CLA Approved ( if used ) ( [CCLA](ccla.md) and [ICLA](icla.md) )
   - Project charter ( [charter.md](charter.md) )
-    - [ ] Approved by TSC
-    - [ ] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
+    - [x] Approved by TSC
+    - [x] Filed ( create pull request against [foundation repo](https://github.com/AcademySoftwareFoundation/foundation) )
   - [ ] [Core Infrastructure Initiative Best Practices Badge](https://bestpractices.coreinfrastructure.org/) achieved as the 'Passing' level.
   - [X] TAC representative appointed
 - Outreach
