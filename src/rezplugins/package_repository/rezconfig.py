@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 filesystem = {
     # The mechanism used to create the lockfile. If set to 'default', this will
     # use hardlinks if the 'os.link' method is present, otherwise mkdir is used.

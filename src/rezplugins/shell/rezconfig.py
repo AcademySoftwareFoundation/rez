@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
 sh = {
     "prompt": '>',
     "executable_fullpath": None
