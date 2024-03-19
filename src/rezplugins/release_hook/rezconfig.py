@@ -30,24 +30,24 @@ emailer = {
     #   - count: The number of variants that were released;
     #   - paths: Newline-separated paths to the root of each variant.
     "body": \
-"""
-Package '{package.qualified_name}' was released by {system.user}@{system.fqdn}.
-
-USER: {system.user}
-PACKAGE: {package.qualified_name}
-RELEASED TO: {release.path}
-PREVIOUS VERSION: {release.previous_version}
-REZ VERSION: {system.rez_version}
-
-{variants.count} VARIANTS:
-{variants.paths}
-
-MESSAGE:
-{release.message}
-
-CHANGELOG:
-{release.changelog}
-""".strip()
+    """
+    Package '{package.qualified_name}' was released by {system.user}@{system.fqdn}.
+    
+    USER: {system.user}
+    PACKAGE: {package.qualified_name}
+    RELEASED TO: {release.path}
+    PREVIOUS VERSION: {release.previous_version}
+    REZ VERSION: {system.rez_version}
+    
+    {variants.count} VARIANTS:
+    {variants.paths}
+    
+    MESSAGE:
+    {release.message}
+    
+    CHANGELOG:
+    {release.changelog}
+    """.strip()
 }
 
 command = {
