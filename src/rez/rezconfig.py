@@ -824,7 +824,7 @@ build_thread_count = "physical_cores"
 # a plugin listed here is not present, a warning message is printed. Note that a
 # release hook plugin being loaded does not mean it will run. It needs to be
 # listed here as well. Several built-in release hooks are available, see
-# rezplugins/release_hook.
+# :gh-rez:`src/rezplugins/release_hook`.
 release_hooks = []
 
 # Prompt for release message using an editor. If set to False, there will be
