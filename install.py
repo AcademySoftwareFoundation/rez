@@ -147,19 +147,19 @@ def copy_completion_scripts(dest_dir):
     return None
 
 
-def install(dest_dir, print_welcome=False):
+def install(dest_dir, print_welcome=False, editable=False):
     """Install rez into the given directory.
 
     Args:
         dest_dir (str): Full path to the install directory.
     """
-    print("installing rez to %s..." % dest_dir)
+    print("installing rez%s to %s..." % (" (editable mode)" if editable else "", dest_dir))
 
     # create the virtualenv
     create_virtual_environment(dest_dir)
 
     # install rez from source
-    install_rez_from_source(dest_dir)
+    install_rez_from_source(dest_dir, editable=editable)
 
     # patch the rez binaries
     patch_rez_binaries(dest_dir)
@@ -222,11 +222,15 @@ def install(dest_dir, print_welcome=False):
         print('')
 
 
-def install_rez_from_source(dest_dir):
+def install_rez_from_source(dest_dir, editable):
     _, py_executable = get_virtualenv_py_executable(dest_dir)
 
     # install via pip
-    run_command([py_executable, "-m", "pip", "install", "."])
+    args = [py_executable, "-m", "pip", "install"]
+    if editable:
+        args.append("-e")
+    args.append(".")
+    run_command(args)
 
 
 def install_as_rez_package(repo_path):
@@ -281,6 +285,11 @@ if __name__ == "__main__":
         "only (no cli tools), and DIR is expected to be the path to a rez "
         "package repository (and will default to ~/packages instead).")
     parser.add_argument(
+        "-e", "--editable", action="store_true",
+        help="Make the install an editable install (pip install -e). This should "
+        "only be used for development purposes"
+    )
+    parser.add_argument(
         "DIR", nargs='?',
         help="Destination directory. If '{version}' is present, it will be "
         "expanded to the rez version. Default: /opt/rez")
@@ -314,4 +323,4 @@ if __name__ == "__main__":
     if opts.as_rez_package:
         install_as_rez_package(dest_dir)
     else:
-        install(dest_dir, print_welcome=True)
+        install(dest_dir, print_welcome=True, editable=opts.editable)
