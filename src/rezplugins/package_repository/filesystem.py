@@ -893,7 +893,7 @@ class FileSystemPackageRepository(PackageRepository):
         family_path = os.path.join(self.location, variant_resource.name)
         self._delete_stale_build_tagfiles(family_path)
 
-    def install_variant(self, variant_resource, dry_run=False, overrides=None):
+    def install_variant(self, variant_resource, artifact_path=None, dry_run=False, overrides=None):
         overrides = overrides or {}
 
         # Name and version overrides are a special case - they change the
