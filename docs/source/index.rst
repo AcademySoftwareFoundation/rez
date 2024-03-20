@@ -30,6 +30,7 @@ Welcome to rez's documentation!
    managing_packages
    caching
    pip
+   security
 
 .. toctree::
    :maxdepth: 2
