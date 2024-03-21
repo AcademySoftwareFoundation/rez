@@ -1299,9 +1299,12 @@ class ResolvedContext(object):
         Note:
             This does not alter the current python session.
         """
-        if parent_environ in (None, os.environ):
-            target_environ = {}
+        # Create env for Python intepreter
+        if parent_environ is None:
+            # Default to copy of os.environ to avoid modifying current process
+            target_environ = os.environ.copy()
         else:
+            # Copy provide var, avoid modifying if called with os.environ, and harmless on anything else
             target_environ = parent_environ.copy()
 
         interpreter = Python(target_environ=target_environ)
