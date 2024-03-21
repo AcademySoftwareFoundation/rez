@@ -453,6 +453,7 @@ config_schema = Schema({
     "package_cache_during_build":                   Bool,
     "package_cache_local":                          Bool,
     "package_cache_same_device":                    Bool,
+    "package_cache_async":                          Bool,
     "color_enabled":                                ForceOrBool,
     "resolve_caching":                              Bool,
     "cache_package_files":                          Bool,
