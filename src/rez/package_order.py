@@ -4,6 +4,7 @@
 
 from inspect import isclass
 from hashlib import sha1
+import collections
 
 from rez.config import config
 from rez.utils.data_utils import cached_class_property
@@ -60,6 +61,144 @@ class PackageOrder(object):
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
+
+
+class FavorPathsOrder(PackageOrder):
+    """Order installed Rez packages depending on where they exist on-disk.
+
+    If you have a package installed to two or more directories:
+
+    (package name: foo)
+
+    ::
+
+        /some/packages/path/
+            foo/
+                2.0.0/
+        /another/root/path/
+            foo/
+                1.0.0/
+                2.0.1/
+                2.1.0/
+                3.0.0/
+
+    and then you create an orderer like so:
+
+    .. code-block:: python
+
+        from rez.resolved_context import ResolvedContext
+
+        orderer = FavorPathsOrder(["/some/packages/path"])
+        context = ResolvedContext(
+            "foo",
+            package_orderers=[orderer],
+            package_paths=["/another/root/path", "/some/packages/path"],
+        )
+        str(context.get_resolved_package("foo").version)  # "2.0.0"
+
+    The resolved package will be **foo version 2.0.0**, from
+    ``/some/packages/path``. Normally, foo version 3.0.0 would be chosen from
+    ``/another/root/path`` but, because the orderer is tracking
+    "/some/packages/path", foo version 2.0.0 is used instead.
+
+    .. code-block:: python
+
+        orderer = FavorPathsOrder(["/some/packages/path", "/extra/place/here"])
+
+    An orderer with multiple paths like the one above means "use the packages
+    found from ``/some/packages/path``. If the package isn't found there, try
+    ``/extra/place/here`` next". Once all paths are exhausted, we check
+    packages_path like normal.
+
+    """
+
+    name = "favor_paths"
+    _paths_key = "paths"
+
+    def __init__(self, paths):
+        """Keep track of some root directories containing Rez packages.
+
+        Args:
+            paths (list[str]):
+                Each path, usually an installed path like ``"~/packages"``, to
+                reference while ordering packages.
+
+        """
+        super(FavorPathsOrder, self).__init__()
+
+        self._paths = paths
+
+    @classmethod
+    def from_pod(cls, data):
+        """Create a package from data.
+
+        See Also:
+            :meth:`FavorPathsOrder.to_pod`
+
+        Args:
+            data (dict[str, list[str]]):
+                The serialized content to make an instance from. e.g.
+                ``{"paths": ["~/packages"]}``.
+
+        Returns:
+            FavorPathsOrder: The generated instance.
+
+        """
+        return cls(data[cls._paths_key])
+
+    def reorder(self, iterable, key=None):
+        """Sort ``iterable`` depending on if the come from known paths.
+
+        Args:
+            iterable (list[Package] or list[object]):
+                If ``key`` is not provided, ``iterable`` must be a list of
+                packages.  If ``key`` is provided, it will be used to "find"
+                the package within each enty from ``iterable``.
+            key (callable[object] -> Package, optional):
+                A function which queries each entry in ``iterable`` for a Rez package.
+
+        Returns:
+            list[Package] or list[object]:
+                The sorted packages (if ``key`` is None) or the sorted objects.
+
+        """
+
+        def _sort(key, entries):
+            return sorted(entries, key=lambda entry: key(entry).version, reverse=True)
+
+        key = key or (lambda package: package)
+        buckets = collections.OrderedDict([(path, []) for path in self._paths])
+        unordered = []
+
+        for entry in iterable:
+            package = key(entry)
+            location = package.resource.location
+
+            if location in buckets:
+                buckets[location].append(entry)
+            else:
+                unordered.append(entry)
+
+        known_paths = [
+            entry
+            for entries in buckets.values()
+            for entry in _sort(key, entries)
+        ]
+        all_others = _sort(key, unordered)
+
+        return known_paths + all_others
+
+    def to_pod(self):
+        """dict[str, list[str]]: A JSON-friendly representation of this instance."""
+        return {self._paths_key: self._paths}
+
+    def __str__(self):
+        """str: The paths which make up this instance."""
+        return str(self._paths)
+
+    def __eq__(self, other):
+        """bool: Check if ``other`` matches this instance."""
+        return type(self) == type(other) and self._paths == other._paths
 
 
 class NullPackageOrder(PackageOrder):

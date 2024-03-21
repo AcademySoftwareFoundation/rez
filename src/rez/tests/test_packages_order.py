@@ -8,8 +8,17 @@ Test cases for package_order.py (package ordering)
 import json
 
 from rez.config import config
-from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
-    TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
+from rez.package_order import (
+    FavorPathsOrder,
+    NullPackageOrder,
+    PackageOrder,
+    PackageOrderList,
+    PerFamilyOrder,
+    SortedOrder,
+    TimestampPackageOrder,
+    VersionSplitPackageOrder,
+    from_pod,
+)
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
@@ -71,6 +80,90 @@ class TestAbstractPackageOrder(TestBase):
         """Validate __eq__ is not implemented"""
         with self.assertRaises(NotImplementedError):
             PackageOrder() == PackageOrder()
+
+
+class TestFavorPathsOrder(_BaseTestPackagesOrder):
+    """Make sure :class:`.FavorPathsOrder` works as expected."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Add extra packages_path for tests in this class."""
+        super(TestFavorPathsOrder, cls).setUpClass()
+
+        cls.first_packages_path = cls.data_path("solver", "favor_paths_first")
+        cls.second_packages_path = cls.data_path("solver", "favor_paths_second")
+        cls.third_packages_path = cls.data_path("solver", "favor_paths_third")
+
+        cls.settings = {
+            "packages_path": [
+                cls.first_packages_path,
+                cls.second_packages_path,
+                cls.third_packages_path,
+            ],
+        }
+
+    def test_comparison(self):
+        """Validate we can compare :class:`.FavorPathsOrder` together."""
+        one = FavorPathsOrder([self.solver_packages_path])
+        two = FavorPathsOrder([self.solver_packages_path])
+        three = FavorPathsOrder([self.py_packages_path])
+        four = FavorPathsOrder([])
+        five = FavorPathsOrder([])
+
+        self.assertEqual(one, two)
+        self.assertEqual(four, five)
+        self.assertEqual(three, three)
+        self.assertNotEqual(two, three)
+        self.assertNotEqual(one, three)
+        self.assertNotEqual(one, four)
+        self.assertNotEqual(one, five)
+        self.assertNotEqual(two, four)
+        self.assertNotEqual(three, four)
+
+    def test_multi_paths(self):
+        """Prefer favored paths in the exact, preferred order."""
+        self._test_reorder(
+            FavorPathsOrder(
+                [
+                    self.second_packages_path,
+                    self.third_packages_path,
+                ],
+            ),
+            "pyfoo",
+            ["1.1.1", "1.1.0", "1.0.0", "3.0.0", "2.0.0"],
+        )
+
+    def test_newer_package(self):
+        """Prefer favored paths, even if packages in non-favored are newer."""
+        self._test_reorder(
+            FavorPathsOrder([self.second_packages_path]),
+            "pyfoo",
+            ["1.1.1", "1.1.0", "1.0.0", "3.0.0", "2.0.0"],
+        )
+
+    def test_non_existent(self):
+        """Use packages_path if the favored paths don't exist or don't have packages."""
+        self._test_reorder(
+            FavorPathsOrder(["/does/not/exist"]),
+            "pyfoo",
+            ["3.0.0", "2.0.0", "1.1.1", "1.1.0", "1.0.0"],
+        )
+
+    def test_pod_empty(self):
+        """Ensure :meth:`.FavorPathsOrder.to_pod` works."""
+        self._test_pod(FavorPathsOrder([]))
+
+    def test_pod_normal(self):
+        """Ensure :meth:`.FavorPathsOrder.to_pod` works."""
+        self._test_pod(FavorPathsOrder([self.py_packages_path]))
+
+    def test_repr(self):
+        """Validate we can represent a :class:`.FavorPathsOrder` as a string."""
+        orderer = FavorPathsOrder([self.solver_packages_path])
+        self.assertEqual(
+            "FavorPathsOrder([{path!r}])".format(path=self.solver_packages_path),
+            repr(orderer),
+        )
 
 
 class TestNullPackageOrder(_BaseTestPackagesOrder):
