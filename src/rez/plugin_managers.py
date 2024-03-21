@@ -452,6 +452,12 @@ class CommandPluginType(RezPluginType):
     type_name = "command"
 
 
+class ArtifactRepositoryPluginType(RezPluginType):
+    """Support for different artifact repositories for pulling packages.
+    """
+    type_name = "artifact_repository"
+
+
 plugin_manager = RezPluginManager()
 
 
@@ -462,3 +468,4 @@ plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
 plugin_manager.register_plugin_type(CommandPluginType)
+plugin_manager.register_plugin_type(ArtifactRepositoryPluginType)

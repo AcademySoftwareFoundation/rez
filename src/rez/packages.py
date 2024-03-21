@@ -431,7 +431,7 @@ class Variant(PackageBaseResourceWrapper):
 
         return requires
 
-    def install(self, path, dry_run=False, overrides=None):
+    def install(self, path, artifact_path=None, dry_run=False, overrides=None):
         """Install this variant into another package repository.
 
         If the package already exists, this variant will be correctly merged
@@ -453,6 +453,7 @@ class Variant(PackageBaseResourceWrapper):
         """
         repo = package_repository_manager.get_repository(path)
         resource = repo.install_variant(self.resource,
+                                        artifact_path,
                                         dry_run=dry_run,
                                         overrides=overrides)
         if resource is None:

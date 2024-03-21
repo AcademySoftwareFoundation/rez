@@ -18,6 +18,7 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 from textwrap import dedent
 import os.path
 from hashlib import sha1
+import shutil
 
 
 # package attributes created at release time
@@ -302,6 +303,11 @@ class PackageRepositoryResource(Resource):
         uniquely identifies this resource.
         """
         raise NotImplementedError
+
+    def install(self, location):
+        """Install resource to a location.
+        """
+        shutil.copytree(self.root, location)
 
 
 class PackageFamilyResource(PackageRepositoryResource):

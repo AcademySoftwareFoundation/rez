@@ -321,7 +321,7 @@ class PackageRepository(object):
         """
         pass
 
-    def install_variant(self, variant_resource, dry_run=False, overrides=None):
+    def install_variant(self, variant_resource, artifact_path=None, dry_run=False, overrides=None):
         """Install a variant into this repository.
 
         Use this function to install a variant from some other package repository
