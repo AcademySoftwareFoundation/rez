@@ -12,7 +12,7 @@ def warn(message, category, pre_formatted=False, stacklevel=1, filename=None, **
     from python files, like environment variables, etc.
     """
     if not pre_formatted:
-        message = warnings.warn(
+        warnings.warn(
             message, category=category, stacklevel=stacklevel + 1, **kwargs
         )
         return
