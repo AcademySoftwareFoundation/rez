@@ -10,6 +10,7 @@ from rez.version import Requirement
 from rez.exceptions import PackageRequestError
 from pprint import pformat
 from enum import Enum
+import math
 import os
 import os.path
 import re
@@ -382,7 +383,8 @@ def _readable_units(value, divs, plural_aware=False):
             rounding = 0 if f > threshold else 1
             f = round(f, rounding)
             f = int(f * 10) / 10.0
-            if plural_aware and f == 1.0:
+            is_one = math.isclose(f, 1.0, rel_tol=1e-09, abs_tol=1e-09)
+            if plural_aware and is_one:
                 unit = unit[:-1]
             txt = "%g %s" % (f, unit)
             break
