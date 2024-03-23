@@ -12,7 +12,7 @@ from rez.config import Config, get_module_root_config, _replace_config, _Depreca
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages import get_developer_package
-from rez.deprecations import RezDeprecationWarning
+from rez.deprecations import RezDeprecationWarning, warn
 import os
 import os.path
 import subprocess
@@ -332,13 +332,13 @@ class TestDeprecations(TestBase, TempdirMixin):
                 # https://docs.python.org/3.8/library/os.path.html#os.path.expanduser
                 os.environ["USERPROFILE"] = user_home
                 config = Config._create_main_config()
-                with self.assertWarns(RezDeprecationWarning) as warn:
+                with self.assertWarns(RezDeprecationWarning) as warning:
                     _ = config.data
                     # Assert just to ensure the test was set up properly.
                     self.assertEqual(config.data["packages_path"], ["/tmp/asd"])
 
                 self.assertEqual(
-                    str(warn.warning),
+                    str(warning.warning),
                     "config setting named 'packages_path' is deprecated and will be removed in 0.0.0.",
                 )
 
@@ -356,13 +356,13 @@ class TestDeprecations(TestBase, TempdirMixin):
                 os.environ["REZ_PACKAGES_PATH"] = "/tmp/asd2"
                 os.environ["REZ_DISABLE_HOME_CONFIG"] = "1"
                 config = Config._create_main_config()
-                with self.assertWarns(RezDeprecationWarning) as warn:
+                with self.assertWarns(RezDeprecationWarning) as warning:
                     _ = config.data
                     # Assert just to ensure the test was set up properly.
                     self.assertEqual(config.data["packages_path"], ["/tmp/asd2"])
 
                 self.assertEqual(
-                    str(warn.warning),
+                    str(warning.warning),
                     "config setting named 'packages_path' (configured through the "
                     "REZ_PACKAGES_PATH environment variable) is deprecated and will "
                     "be removed in 0.0.0.",
@@ -373,17 +373,22 @@ class TestDeprecations(TestBase, TempdirMixin):
                 os.environ["REZ_PACKAGES_PATH_JSON"] = '["/tmp/asd2"]'
                 os.environ["REZ_DISABLE_HOME_CONFIG"] = "1"
                 config = Config._create_main_config()
-                with self.assertWarns(RezDeprecationWarning) as warn:
+                with self.assertWarns(RezDeprecationWarning) as warning:
                     _ = config.data
                     # Assert just to ensure the test was set up properly.
                     self.assertEqual(config.data["packages_path"], ["/tmp/asd2"])
 
                 self.assertEqual(
-                    str(warn.warning),
+                    str(warning.warning),
                     "config setting named 'packages_path' (configured through the "
                     "REZ_PACKAGES_PATH_JSON environment variable) is deprecated and will "
                     "be removed in 0.0.0.",
                 )
+
+    def test_non_preformatted_warning(self):
+        with self.assertWarns(DeprecationWarning) as warning:
+            warn('Warning Message', DeprecationWarning, pre_formatted=False)
+        self.assertEqual(str(warning.warning), 'Warning Message')
 
 
 if __name__ == "__main__":
