@@ -12,7 +12,7 @@ from rez.config import Config, get_module_root_config, _replace_config, _Depreca
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages import get_developer_package
-from rez.deprecations import RezDeprecationWarning
+from rez.deprecations import RezDeprecationWarning, warn
 import os
 import os.path
 import subprocess
@@ -384,6 +384,11 @@ class TestDeprecations(TestBase, TempdirMixin):
                     "REZ_PACKAGES_PATH_JSON environment variable) is deprecated and will "
                     "be removed in 0.0.0.",
                 )
+
+    def test_non_preformatted_warning(self):
+        with self.assertWarns(DeprecationWarning) as warning:
+            warn('Warning Message', DeprecationWarning, pre_formatted=False)
+        self.assertEqual(str(warning.warning), 'Warning Message')
 
 
 if __name__ == "__main__":
