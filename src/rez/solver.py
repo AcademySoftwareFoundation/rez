@@ -428,7 +428,7 @@ class _PackageEntry(object):
                 if not request.conflict:
                     req = variant.requires_list.get(request.name)
                     if req is not None:
-                        orderer = get_orderer(req.name, self.solver.package_orderers or {})
+                        orderer = get_orderer(req.name, orderers=self.solver.package_orderers or {})
                         range_key = orderer.sort_key(req.name, req.range)
                         requested_key.append((-i, range_key))
                         names.add(req.name)
@@ -436,7 +436,7 @@ class _PackageEntry(object):
             additional_key = []
             for request in variant.requires_list:
                 if not request.conflict and request.name not in names:
-                    orderer = get_orderer(request.name, self.solver.package_orderers)
+                    orderer = get_orderer(request.name, orderers=self.solver.package_orderers)
                     range_key = orderer.sort_key(request.name, request.range)
                     additional_key.append((range_key, request.name))
 
@@ -843,7 +843,7 @@ class _PackageVariantSlice(_Common):
         if self.sorted:
             return
 
-        orderer = get_orderer(self.package_name, self.solver.package_orderers or {})
+        orderer = get_orderer(self.package_name, orderers=self.solver.package_orderers or {})
 
         def sort_key(entry):
             return orderer.sort_key(entry.package.name, entry.version)
