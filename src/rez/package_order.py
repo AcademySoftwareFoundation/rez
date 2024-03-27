@@ -150,7 +150,9 @@ class PackageOrder(object):
             version: (Version) the version object you wish to generate a key for
 
         Returns:
-            Comparable object
+            Sortable object
+                The returned object must be sortable, which means that it must implement __lt__.
+                The specific return type is not important.
         """
         raise NotImplementedError
 
