@@ -10,7 +10,7 @@ from rez.config import config
 from rez.utils.data_utils import cached_class_property
 from rez.version import Version, VersionRange
 from rez.version._version import _Comparable, _ReversedComparable, _LowerBound, _UpperBound, _Bound
-
+from rez.packages import iter_packages
 
 ALL_PACKAGES = "*"
 
@@ -120,7 +120,9 @@ class PackageOrder(object):
                 the version-like object you wish to generate a key for
 
         Returns:
-            Comparable object
+            Sortable object
+                The returned object must be sortable, which means that it must implement __lt__.
+                The specific return type is not important.
         """
         if isinstance(version_like, VersionRange):
             return tuple(self.sort_key(package_name, bound) for bound in version_like.bounds)
@@ -500,14 +502,14 @@ class TimestampPackageOrder(PackageOrder):
 
     def _get_first_after(self, package_family):
         """Get the first package version that is after the timestamp"""
-        first_after = self._cached_first_after.get(package_family, KeyError)
-        if first_after is KeyError:
+        try:
+            first_after = self._cached_first_after[package_family]
+        except KeyError:
             first_after = self._calc_first_after(package_family)
             self._cached_first_after[package_family] = first_after
         return first_after
 
     def _calc_first_after(self, package_family):
-        from rez.packages import iter_packages
         descending = sorted(iter_packages(package_family),
                             key=lambda p: p.version,
                             reverse=True)
