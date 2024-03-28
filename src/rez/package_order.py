@@ -437,7 +437,7 @@ class VersionSplitPackageOrder(PackageOrder):
     @classmethod
     def from_pod(cls, data):
         return cls(
-            first_version=Version(data["first_version"]),
+            Version(data["first_version"]),
             packages=data.get("packages"),
         )
 
