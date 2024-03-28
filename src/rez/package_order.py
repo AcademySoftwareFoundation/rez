@@ -267,7 +267,7 @@ class SortedOrder(PackageOrder):
     @classmethod
     def from_pod(cls, data):
         return cls(
-            descending=data["descending"],
+            data["descending"],
             packages=data.get("packages"),
         )
 
