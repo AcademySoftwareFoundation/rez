@@ -636,7 +636,7 @@ class PackageOrderList(list):
 
     @staticmethod
     def _to_orderer(orderer: Union[dict, PackageOrder]) -> PackageOrder:
-        if not isinstance(orderer, PackageOrder):
+        if isinstance(orderer, dict):
             orderer = from_pod(orderer)
         return orderer
 
