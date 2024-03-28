@@ -28,8 +28,11 @@ class _ReversedComparable(_Common):
     def __init__(self, value):
         self.value = value
 
+    def __eq__(self, other):
+        return self.value == other.value
+
     def __lt__(self, other):
-        return not (self.value < other.value)
+        return self.value > other.value
 
     def __gt__(self, other):
         return not (self < other or self == other)
@@ -41,7 +44,7 @@ class _ReversedComparable(_Common):
         return not self < other
 
     def __str__(self):
-        return "reverse(%s)" % str(self.value)
+        return f"reverse({self.value!r})"
 
     def __repr__(self):
         return "reverse(%r)" % self.value

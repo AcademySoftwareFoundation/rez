@@ -186,6 +186,70 @@ class TestContext(TestBase, TempdirMixin):
 
             _test_bundle(bundle_path3)
 
+    def test_orderer_variants(self):
+        """Test that package orderers apply to the variants of packages, not just requires."""
+        from rez.package_order import PerFamilyOrder, VersionSplitPackageOrder
+        from rez.version import Version
+
+        packages_path = self.data_path("solver", "packages")
+
+        # Verify that we get the latest python without an orderer
+        r = ResolvedContext(
+            ["pyvariants", "!nada"],
+            package_paths=[packages_path],
+        )
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ['python-2.7.0', 'pyvariants-2'])
+
+        # Now verify that we correctly get python-2.6.8 when the orderer demands it.
+        orderers = [PerFamilyOrder({
+            "python": VersionSplitPackageOrder(Version("2.6.8")),
+        })]
+        r = ResolvedContext(
+            ["pyvariants", "!nada"],
+            package_orderers=orderers,
+            package_paths=[packages_path],
+        )
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ['python-2.6.8', 'pyvariants-2'])
+
+    def test_orderer_package_argument(self):
+        """Test that the packages argument to an orderer gives expected results."""
+        from rez.package_order import VersionSplitPackageOrder
+        from rez.version import Version
+
+        packages_path = self.data_path("solver", "packages")
+
+        # Verify that the orderer applies to all packages.
+        orderers = [VersionSplitPackageOrder(Version("2.6.8"))]
+        r = ResolvedContext(
+            ["python"],
+            package_orderers=orderers,
+            package_paths=[packages_path],
+        )
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ['python-2.6.8'])
+
+        # Verify that the orderer applies to a specified package.
+        orderers = [VersionSplitPackageOrder(Version("2.6.8"), packages="python")]
+        r = ResolvedContext(
+            ["python"],
+            package_orderers=orderers,
+            package_paths=[packages_path],
+        )
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ['python-2.6.8'])
+
+        # Verify that the orderer does not apply to a packages that are not requested.
+        orderers = [VersionSplitPackageOrder(Version("2.6.8"), packages="pyfoo")]
+        r = ResolvedContext(
+            ["python"],
+            package_orderers=orderers,
+            package_paths=[packages_path],
+        )
+        resolved = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolved, ['python-2.7.0'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -233,7 +233,7 @@ class ResolvedContext(object):
         self.package_filter = (PackageFilterList.singleton if package_filter is None
                                else package_filter)
 
-        self.package_orderers = (
+        self.package_orderers = PackageOrderList(
             PackageOrderList.singleton if package_orderers is None
             else package_orderers
         )
@@ -1527,9 +1527,10 @@ class ResolvedContext(object):
             data["patch_locks"] = dict((k, v.name) for k, v in self.patch_locks)
 
         if _add("package_orderers"):
-            package_orderers = [package_order.to_pod(x)
-                                for x in (self.package_orderers or [])]
-            data["package_orderers"] = package_orderers or None
+            if self.package_orderers:
+                data["package_orderers"] = self.package_orderers.to_pod()
+            else:
+                data["package_orderers"] = None
 
         if _add("package_filter"):
             data["package_filter"] = self.package_filter.to_pod()
