@@ -603,7 +603,7 @@ class TimestampPackageOrder(PackageOrder):
     @classmethod
     def from_pod(cls, data):
         return cls(
-            timestamp=data["timestamp"],
+            data["timestamp"],
             rank=data.get("rank", 0),
             packages=data.get("packages"),
         )
