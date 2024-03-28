@@ -306,13 +306,14 @@ class PerFamilyOrder(PackageOrder):
     def sort_key_implementation(self, package_name, version):
         orderer = self.order_dict.get(package_name)
         if orderer is None:
-            if self.default_order is not None:
-                orderer = self.default_order
-            else:
+            
+            if self.default_order is None:
                 # shouldn't get here, because applies_to should protect us...
                 raise RuntimeError(
                     "package family orderer %r does not apply to package family %r",
                     (self, package_name))
+
+            orderer = self.default_order
 
         return orderer.sort_key_implementation(package_name, version)
 
