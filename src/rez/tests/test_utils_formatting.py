@@ -34,3 +34,10 @@ class TestFormatting(TestBase):
             formatting.memory_divs
         )
         self.assertEqual(readable_units, "-29 Kb")
+
+        readable_units = formatting._readable_units(
+            1024,
+            formatting.memory_divs,
+            plural_aware=True
+        )
+        self.assertEqual(readable_units, "1 K")
