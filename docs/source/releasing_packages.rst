@@ -7,12 +7,12 @@ using the :ref:`rez-release` tool. This tool performs the following actions:
 
 * All :doc:`actions <building_packages>` that the ``rez-build`` tool performs.
 * Executes all configured :data:`release_hooks`.
-* Executes all configured `release_vcs`.
+* Executes all configured :gh-rez:`src/rezplugins/release_vcs` plugins.
 
 When to release vs build
 ============================
 Packages *can* be installed to the :data:`release_packages_path` manually
-by running ``rez-build <release_packages_path>``, so why would you use
+by running :option:`rez-build -i --prefix /path/to/repo <rez-build --prefix>`, so why would you use
 ``rez-release``?
 
 Well, here are a few benefits of ``rez-release``:
@@ -21,7 +21,7 @@ Well, here are a few benefits of ``rez-release``:
 * Tests being run by with the :ref:`rez-test` tool can run specifically prior to release, ensuring that releases pass any configured tests first.
 * Automatic sanity checks to ensure local repo is ready for release.
 * Automatic VCS tagging.
-* Many :ref:`helpful package attributes <release-package-attributes>` added to the released `package.py` at build time.
+* Many :ref:`helpful package attributes <release-package-attributes>` are automatically added to the released package definition file.
 
 If you're working locally, it these additional steps and checks may slow you
 down, so it may be better to stick with :ref:`rez-build`.
