@@ -454,8 +454,8 @@ package_filter = None
 #
 #
 # Package orderers will also apply to variants of packages.
-# Consider a package called `pipeline-1.0` which has the following variants:
-# [["python-2.7.4", "python-2.7.16", "python-3.7.4"]]
+# Consider a package "pipeline-1.0" which has the following variants:
+# ``[["python-2.7.4", "python-2.7.16", "python-3.7.4"]]``
 #
 # ============================= ==========================
 # Example                       Result
