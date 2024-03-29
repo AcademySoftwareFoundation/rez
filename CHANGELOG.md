@@ -23,6 +23,7 @@
 - Add development environment docs to [CONTRIBUTING.md](./CONTRIBUTING.md) [\#1633](https://github.com/AcademySoftwareFoundation/rez/pull/1633) ([@BryceGattis](https://github.com/BryceGattis))
 - Improve clarity and expliciteness of `rez-env --command` flag help [\#1682](https://github.com/AcademySoftwareFoundation/rez/pull/1682) ([@BryceGattis](https://github.com/BryceGattis))
 - Add releasing packages documentation [\#1689](https://github.com/AcademySoftwareFoundation/rez/pull/1689) ([@BryceGattis](https://github.com/BryceGattis))
+- Improve clarify of early binding functions documentation [\#1677](https://github.com/AcademySoftwareFoundation/rez/pull/1677) ([@BryceGattis](https://github.com/BryceGattis))
 
 ### Miscellaneous
 
