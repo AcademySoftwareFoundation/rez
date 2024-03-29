@@ -2,7 +2,7 @@
 Plugins
 =======
 
-Plugins are extensions of rez that extend rez functionality.
+Rez is designed around the concept of plugins. Plugins can be used to extend rez's functionalities without modifying any of rez's source code.
 
 Plugins are currently bundled in the main rez repo, but will be split out
 to their own repos in the future.
