@@ -22,6 +22,7 @@
 - Installation instructions now include how to download rez [\#1660](https://github.com/AcademySoftwareFoundation/rez/pull/1660) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
 - Add development environment docs to [CONTRIBUTING.md](./CONTRIBUTING.md) [\#1633](https://github.com/AcademySoftwareFoundation/rez/pull/1633) ([@BryceGattis](https://github.com/BryceGattis))
 - Improve clarity and expliciteness of `rez-env --command` flag help [\#1682](https://github.com/AcademySoftwareFoundation/rez/pull/1682) ([@BryceGattis](https://github.com/BryceGattis))
+- Add releasing packages documentation [\#1689](https://github.com/AcademySoftwareFoundation/rez/pull/1689) ([@BryceGattis](https://github.com/BryceGattis))
 
 ### Miscellaneous
 
