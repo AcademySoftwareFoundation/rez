@@ -7,7 +7,7 @@ Plugins are extensions of rez that extend rez functionality.
 Plugins are currently bundled in the main rez repo, but will be split out
 to their own repos in the future.
 
-The plugins that exist are currently located at :gh-rez:`src/rezplugins`.
+The built-in plugins are located at :gh-rez:`src/rezplugins`.
 
 Existing plugins
 ================
