@@ -79,10 +79,10 @@ and *late binding* functions - and these are decorated using ``@early`` and ``@l
 Early Binding Functions
 +++++++++++++++++++++++
 
-Early binding functions use the ``@early`` decorator. They are evaluated at *build time*, hence the
-'early' in 'early binding' and their definition persists into the
-``package.py``. By 'build time', it is meant that they are evaluated before the
-resolve has occurred, and as such, before the
+Early binding functions use the ``@early`` decorator. They are evaluated at
+*build time*, hence the 'early' in 'early binding' and their definition persists
+in the installed ``package.py``. By 'build time', it is meant that they are
+evaluated before the resolve has occurred, and as such, before the
 :ref:`build environment <the-build-environment>` has been constructed. Therefore
 there are some important distinctions that set early-bound functions apart from
 other function attributes:
