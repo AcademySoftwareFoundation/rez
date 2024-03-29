@@ -364,7 +364,9 @@ memory_divs = (
 
 
 def readable_memory_size(bytes_):
-    """Convert number of bytes into human readable form, eg '1.2 Kb'.
+    """Convert number of bytes into human-readable form.
+
+    This method rounds to 1 decimal place eg '1.2 Kb'.
     """
     return _readable_units(bytes_, memory_divs)
 
