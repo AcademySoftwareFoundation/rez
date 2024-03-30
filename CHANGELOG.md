@@ -2,7 +2,7 @@
 
 <!-- start-here-sphinx-start-after -->
 
-## 3.1.0 (TBD)
+## 3.1.0 (2024-03-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.3.0...3.1.0)
 
 ### Features
