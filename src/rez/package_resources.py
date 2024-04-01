@@ -396,7 +396,13 @@ class PackageResourceHelper(PackageResource):
         return self._convert_to_rex(self._post_commands)
 
     def iter_variants(self):
-        num_variants = len(self.variants or [])
+        try:
+            num_variants = len(self.variants or [])
+        except PackageMetadataError:
+            # Package has no package file.
+            if config.skip_invalid_packages:
+                return
+            raise
 
         if num_variants == 0:
             indexes = [None]

@@ -313,7 +313,7 @@ implicit_packages = [
 # This is useful as Platform.os might show different
 # values depending on the availability of ``lsb-release`` on the system.
 # The map supports regular expression, e.g. to keep versions.
-# 
+#
 # .. note::
 #    The following examples are not necessarily recommendations.
 #
@@ -523,6 +523,12 @@ allow_unversioned_packages = True
 #    It expects that every user can access the same set of packages, which may cause incorrect resolves
 #    when this option is disabled.
 error_on_missing_variant_requires = True
+
+# Defines whether package files that cannot be read should cause an error.
+# This can be useful to enable if you have syntax in package files that is not readable by all
+# versions of python.  It can also be useful if a package file is missing entirely due to
+# checking out a new git branch not removing empty folders near package recipe locations.
+skip_invalid_packages = False
 
 ###############################################################################
 # Environment Resolution
@@ -1132,7 +1138,7 @@ documentation_url = "https://rez.readthedocs.io"
 
 # Enables/disables colorization globally.
 #
-# .. warning:: 
+# .. warning::
 #    Turned off for Windows currently as there seems to be a problem with the colorama module.
 #
 # May also set to the string ``force``, which will make rez output color styling

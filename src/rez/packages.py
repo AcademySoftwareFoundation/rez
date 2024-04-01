@@ -307,8 +307,14 @@ class Package(PackageBaseResourceWrapper):
         Returns:
             `Variant` iterator.
         """
-        for variant in self.repository.iter_variants(self.resource):
-            yield Variant(variant, context=self.context, parent=self)
+        try:
+            for variant in self.repository.iter_variants(self.resource):
+                yield Variant(variant, context=self.context, parent=self)
+        except ResourceError:
+            # Package has an invalid package file
+            if config.skip_invalid_packages:
+                return
+            raise
 
     def get_variant(self, index=None):
         """Get the variant with the associated index.
