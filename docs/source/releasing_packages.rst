@@ -23,5 +23,5 @@ Well, here are a few benefits of ``rez-release``:
 * Automatic VCS tagging.
 * Many :ref:`helpful package attributes <release-package-attributes>` are automatically added to the released package definition file.
 
-If you're working locally, it these additional steps and checks may slow you
+If you're working locally, these additional steps and checks may slow you
 down, so it may be better to stick with :ref:`rez-build`.
