@@ -8,8 +8,10 @@ Test cases for package_order.py (package ordering)
 import json
 
 from rez.config import config
-from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
-    TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
+from rez.package_order import (
+    NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder,
+    TimestampPackageOrder, SortedOrder, CustomPackageOrder, PyPAPackageOrder,
+    PackageOrderList, from_pod)
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
@@ -287,6 +289,287 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
     def test_pod(self):
         """Validate we can save and load a TimestampPackageOrder to pod representation."""
         self._test_pod(TimestampPackageOrder(timestamp=3001, rank=3))
+
+
+class TestCustomPackageOrder(_BaseTestPackagesOrder):
+    """Test case for the CustomPackageOrder class"""
+
+    def test_reorder(self):
+        """Validate we can sort packages in a custom order."""
+        # Test that a pretty random order can be applied
+        self._test_reorder(CustomPackageOrder({
+            "python": ['2.6.8', '2.7.0', '2.6.0', '2.5.2'],
+        }), "python", ['2.6.8', '2.7.0', '2.6.0', '2.5.2'])
+
+        # Test that version supersets apply correctly and that the rest are sorted descending
+        self._test_reorder(CustomPackageOrder({
+            "python": ["2.6"],
+        }), "python", ['2.6.8', '2.6.0', '2.7.0', '2.5.2'])
+
+        # Test that version supersets apply correctly to multiple subsets of versions
+        self._test_reorder(CustomPackageOrder({
+            "python": ["2.6", "2.5"],
+        }), "python", ['2.6.8', '2.6.0', '2.5.2', '2.7.0'])
+
+        # Test that version supersets apply correctly to multiple subsets of versions
+        self._test_reorder(CustomPackageOrder({
+            "python": ["<=2.7", "2.5"],
+        }), "python", ['2.6.8', '2.6.0', '2.5.2', '2.7.0'])
+
+    def test_reorder_sorted_version_orderer(self):
+        """Validate we can sort packages in a custom order with sorted version sorting."""
+        self._test_reorder(CustomPackageOrder({
+            "python": ['2.6'],
+        },
+            version_orderer=SortedOrder(descending=True),
+        ), "python", [
+            # 2.6 from highest to lowest
+            '2.6.8', '2.6.0',
+            # Remaining from highest to lowest
+            '2.7.0', '2.5.2',
+        ])
+
+        self._test_reorder(CustomPackageOrder({
+            "python": ['2.6'],
+        },
+            version_orderer=SortedOrder(descending=False),
+        ), "python", [
+            # 2.6 from lowest to highest
+            '2.6.0', '2.6.8',
+            # Remaining from lowest to highest
+            '2.5.2', '2.7.0',
+        ])
+
+    def test_reorder_pypa_version_orderer(self):
+        """Validate we can sort packages in a custom order with pypa version sorting."""
+        self._test_reorder(CustomPackageOrder({
+            "pypa": ['1+<1.1', "2", "1.1+<2"],
+        },
+            version_orderer=PyPAPackageOrder(),
+        ), "pypa", [
+            # 1+<1.1 release versions at the front
+            '1.0.1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            # Followed by 1+<1.1 prerelease versions
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.2.a1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.1.a1',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+            # Followed by version 2 prerelease (no releases for 2.0)
+            '2.0.0.a2',
+            '2.0.0.a1',
+            # Lastly, followed by 1.1 prerelease (no releases for 1.1)
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+        ])
+
+        # Test getting a pypa risk tolerance of beta changes things
+        self._test_reorder(CustomPackageOrder({
+            "pypa": ['1+<1.1', "2", "1.1+<2"],
+        },
+            version_orderer=PyPAPackageOrder(prerelease="b"),
+        ), "pypa", [
+            # Release and prerelease up to beta for 1+<1.1 to the front
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+            # Followed by 1+<1.1 prerelease below beta
+            '1.0.2.a1',
+            '1.0.1.a1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+            # Followed by version 2
+            '2.0.0.a2',
+            '2.0.0.a1',
+            # Lastly followed by 1.1
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+        ])
+
+    def test_repr(self):
+        """Validate we can represent a CustomPackageOrder as a string."""
+        self.assertEqual(
+            "CustomPackageOrder({"
+            "'python': [VersionRange('1.2'), VersionRange('5.6')], "
+            "'pymum': [VersionRange('2'), VersionRange('1')]})",
+            repr(CustomPackageOrder({
+                "python": ["1.2", "5.6"],
+                "pymum": ["2", "1"],
+            })))
+
+    def test_pod(self):
+        """Validate we can save and load a CustomPackageOrder to its pod representation."""
+        self._test_pod(CustomPackageOrder({
+            "python": ["1.2", "5.6", "3.4"],
+            "pymum": ["2", "1", "3"],
+        }))
+
+
+class TestPyPAPackageOrder(_BaseTestPackagesOrder):
+    """Test case for the PyPAPackageOrder class"""
+
+    def test_reorder(self):
+        """Validate package ordering with a PyPAPackageOrder"""
+        # First test that we can sort packages prerelease=None,
+        # so we expect non-prerelease versions on top.
+        orderer = PyPAPackageOrder()
+        expected = [
+            # Release and post releases first.
+            '1.0.1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+
+            # Followed by higher version prerelease versions, sorted according to pypa
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.2.a1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.1.a1',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pypa", expected)
+
+        # Test that we can allow RC versions ahead of release
+        orderer = PyPAPackageOrder(prerelease="rc")
+        expected = [
+            # We allow beta and RC versions to sort ahead of release.
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+
+            # Followed by alpha and beta versions, which are not preferred.
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+            '1.0.2.b1',
+            '1.0.2.a1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.1.a1',
+            '1.0.0.b1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pypa", expected)
+
+        # Test allowing beta releases to be preferred
+        orderer = PyPAPackageOrder(prerelease="b")
+        expected = [
+            # We allow beta and RC versions to sort ahead of release.
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+
+            # Followed by alpha versions, which are not preferred.
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.a1',
+            '1.0.2.a1',
+            '1.0.1.a1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pypa", expected)
+
+        # Test that we can get access to alpha releases if requested
+        orderer = PyPAPackageOrder(prerelease="a")
+        expected = [
+            # We allow all prereleases to sort ahead of release.
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.2.a1',
+            '1.0.1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.1.a1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pypa", expected)
+
+    def test_repr(self):
+        """Validate we can represent a PyPAPackageOrder as a string."""
+        inst = PyPAPackageOrder(prerelease="a")
+        self.assertEqual("PyPAPackageOrder(a)", repr(inst))
+
+    def test_pod(self):
+        """Validate we can save and load a PyPAPackageOrder to its pod representation."""
+        self._test_pod(PyPAPackageOrder(prerelease="a"))
 
 
 class TestPackageOrdererList(_BaseTestPackagesOrder):
