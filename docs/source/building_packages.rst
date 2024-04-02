@@ -23,6 +23,8 @@ package with two python-based variants might look like this:
 
 The current working directory is set to the *build path* during a build.
 
+.. _the-build-environment:
+
 The Build Environment
 =====================
 

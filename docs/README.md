@@ -1,6 +1,9 @@
 # Build instructions
 
-To build the docs you must use Python 3.11.
+To build the docs you must install the following requirements:
+
+- GNU Make (Linux + Mac only)
+- Python 3.11
 
 To create a build environment run the following commands:
 ```python
@@ -9,7 +12,7 @@ source .venv/bin/activate
 pip install -r docs/requirements.txt
 
 cd docs
-make html
+make html # .\make html on Windows
 ```
 
 # Example Headers

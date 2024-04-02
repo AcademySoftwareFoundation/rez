@@ -2,6 +2,37 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## 3.1.0 (2024-03-30)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.3.0...3.1.0)
+
+### Features
+
+- Add support for `virtualenv` in the installer [\#1645](https://github.com/AcademySoftwareFoundation/rez/pull/1645) ([@Pixel-Minions](https://github.com/Pixel-Minions))
+- Add `-e/--editable` flag to the installer to create an editable install [\#1672](https://github.com/AcademySoftwareFoundation/rez/pull/1672) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Fixes
+
+- Add retry mechanism when renaming folders on Windows [\#1666](https://github.com/AcademySoftwareFoundation/rez/pull/1666) ([@loonghao](https://github.com/loonghao))
+- Apply package orderers on variants [\#1684](https://github.com/AcademySoftwareFoundation/rez/pull/1684) ([@isohedronpipeline](https://github.com/isohedronpipeline) and [@pmolodo](https://github.com/pmolodo))
+
+### Documentation
+
+- Remove the note about Python 2.7 compatibility from the docs [\#1644](https://github.com/AcademySoftwareFoundation/rez/pull/1644) ([@vergeev](https://github.com/vergeev))
+- Add clear information on how to contact maintainers [\#1659](https://github.com/AcademySoftwareFoundation/rez/pull/1659) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Installation instructions now include how to download rez [\#1660](https://github.com/AcademySoftwareFoundation/rez/pull/1660) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Add development environment docs to [CONTRIBUTING.md](./CONTRIBUTING.md) [\#1633](https://github.com/AcademySoftwareFoundation/rez/pull/1633) ([@BryceGattis](https://github.com/BryceGattis))
+- Improve clarity and expliciteness of `rez-env --command` flag help [\#1682](https://github.com/AcademySoftwareFoundation/rez/pull/1682) ([@BryceGattis](https://github.com/BryceGattis))
+- Add releasing packages documentation [\#1689](https://github.com/AcademySoftwareFoundation/rez/pull/1689) ([@BryceGattis](https://github.com/BryceGattis))
+- Improve clarify of early binding functions documentation [\#1677](https://github.com/AcademySoftwareFoundation/rez/pull/1677) ([@BryceGattis](https://github.com/BryceGattis))
+
+### Miscellaneous
+
+- Remove Python2-related `__future__` imports [\#1640](https://github.com/AcademySoftwareFoundation/rez/pull/1640) ([@vergeev](https://github.com/vergeev))
+- Replace usages of `rez.vendor.enum` with the built-in enum module [\#1649](https://github.com/AcademySoftwareFoundation/rez/pull/1649) ([@predat](https://github.com/predat))
+- Remove `rez.backport` [\#1634](https://github.com/AcademySoftwareFoundation/rez/pull/1634) ([@BryceGattis](https://github.com/BryceGattis))
+- Remove `rez.utils.json` [\#1673](https://github.com/AcademySoftwareFoundation/rez/pull/1673) ([@BryceGattis](https://github.com/BryceGattis))
+- Remove `rez.utils.py23` and cleanup more python 2.7 leftovers [\#1678](https://github.com/AcademySoftwareFoundation/rez/pull/1678) ([@wandth](https://github.com/wandth))
+
 ## 3.0.0 (2024-02-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.0.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.114.1...3.0.0)
 

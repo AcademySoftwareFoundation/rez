@@ -79,11 +79,19 @@ and *late binding* functions - and these are decorated using ``@early`` and ``@l
 Early Binding Functions
 +++++++++++++++++++++++
 
-Early binding functions use the ``@early`` decorator. They are evaluated at *build time*, hence the
-'early' in 'early binding'. Any package attribute can be implemented as an early binding function.
+Early binding functions use the ``@early`` decorator. They are evaluated at
+*build time*, hence the 'early' in 'early binding' and their definition persists
+in the installed ``package.py``. By 'build time', it is meant that they are
+evaluated before the resolve has occurred, and as such, before the
+:ref:`build environment <the-build-environment>` has been constructed. Therefore
+there are some important distinctions that set early-bound functions apart from
+other function attributes:
 
-Here is an example of an :attr:`authors` attribute that is automatically set to the contributors of the
-package's git project:
+- The :attr:`this` object only exposes package attributes. Nothing else is accessible when inside an early-bound function.
+- No rez-set :doc:`environment variables <environment>` can be accessed inside an early bound function.
+
+Any package attribute can be implemented as an early binding function. Here is an example of an :attr:`authors`
+attribute that is automatically set to the contributors of the package's git project:
 
 .. code-block:: python
 
