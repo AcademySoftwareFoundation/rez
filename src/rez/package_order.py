@@ -608,7 +608,7 @@ class TimestampPackageOrder(PackageOrder):
         )
 
 
-class PyPAPackageOrder(PackageOrder):
+class PEP440PackageOrder(PackageOrder):
     """
     Here's how this package orderer behaves:
     1. First separate versions into two groups based on the value of
@@ -634,11 +634,11 @@ class PyPAPackageOrder(PackageOrder):
      [1.2b1, 1.1, 1.1b2, 1.0, 1.0rc1, 1.0b2, 1.0a1].
     """
 
-    name = "pypa"
+    name = "pep440"
 
     # We can normalize all the possible prerelease values to a, b, or rc.  For more info, see:
     # https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-release-spelling
-    pypa_prerelease_map = {
+    pep440_prerelease_map = {
         None: None,
         "release": None,
         "a": "a",
@@ -657,21 +657,21 @@ class PyPAPackageOrder(PackageOrder):
                  ):
         super().__init__(packages)
         # Raises a KeyError if the value is unknown
-        self.prerelease = self.pypa_prerelease_map[prerelease]
+        self.prerelease = self.pep440_prerelease_map[prerelease]
 
     def sort_key_implementation(self, package_name, version):
         """
-        Get a sort key for sorting Versions by PyPA rules.
+        Get a sort key for sorting Versions by PEP440 rules.
 
         The prerelease argument allows for risk tolerance to be set, such that we can opt into
         allowing preview/rc versions ahead of release versions.
         """
-        import rez.vendor.packaging.version as pypa
-        pypa_version = pypa.parse(str(version))
+        import rez.vendor.packaging.version as pep440
+        pep440_version = pep440.parse(str(version))
 
-        key = pypa_version._key
-        if not isinstance(pypa_version, pypa.Version):
-            # Fallback to pypa legacy sorting if this isn't a compatible version format.
+        key = pep440_version._key
+        if not isinstance(pep440_version, pep440.Version):
+            # Fallback to pep440 legacy sorting if this isn't a compatible version format.
             return key
 
         # We want to allow prerelease versions up to a specific level above release versions.
@@ -686,22 +686,22 @@ class PyPAPackageOrder(PackageOrder):
         # Or a version number along with the prerelease (a, b, rc) token.
         # Note that the pre key takes advantage of the alphabetcal sorting of
         # a, b, and rc to sort properly.
-        pre: Tuple[Union[pypa.Infinity, int, str], ...] = key_list[2]
+        pre: Tuple[Union[pep440.Infinity, int, str], ...] = key_list[2]
 
-        if pre in (pypa.Infinity, -pypa.Infinity):
+        if pre in (pep440.Infinity, -pep440.Infinity):
             # Keep the relative order the same for packages that have no prerelease, but
             # Make sure the first key forces them to be after our prerelease preference.
-            risk_allowance_token = pypa.Infinity
+            risk_allowance_token = pep440.Infinity
         elif not self.prerelease:
             # We have no risk tolerance, so sort prereleases to the bottom.
-            risk_allowance_token = -pypa.Infinity
+            risk_allowance_token = -pep440.Infinity
         elif pre >= (self.prerelease, ):
             # This version is a preprelase, but is within our risk tolerance, so allow
             # it to sort ahead with release versions.
-            risk_allowance_token = pypa.Infinity
+            risk_allowance_token = pep440.Infinity
         else:
             # This version should remain below releases, but otherwise sort the same way.
-            risk_allowance_token = -pypa.Infinity
+            risk_allowance_token = -pep440.Infinity
 
         # Insert the risk allowance sorting key at the front to force higher version
         # prereleases below *any* release versions.
@@ -723,7 +723,7 @@ class PyPAPackageOrder(PackageOrder):
 
         .. code-block:: yaml
 
-           type: pypa
+           type: pep440
            prerelease: "a"
            packages: ["foo"]
         """

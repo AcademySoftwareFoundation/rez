@@ -10,7 +10,7 @@ import json
 from rez.config import config
 from rez.package_order import (
     NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder,
-    TimestampPackageOrder, SortedOrder, PyPAPackageOrder, PackageOrderList, from_pod)
+    TimestampPackageOrder, SortedOrder, PEP440PackageOrder, PackageOrderList, from_pod)
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
@@ -290,14 +290,14 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
         self._test_pod(TimestampPackageOrder(timestamp=3001, rank=3))
 
 
-class TestPyPAPackageOrder(_BaseTestPackagesOrder):
-    """Test case for the PyPAPackageOrder class"""
+class TestPEP440PackageOrder(_BaseTestPackagesOrder):
+    """Test case for the PEP440PackageOrder class"""
 
     def test_reorder(self):
-        """Validate package ordering with a PyPAPackageOrder"""
+        """Validate package ordering with a PEP440PackageOrder"""
         # First test that we can sort packages prerelease=None,
         # so we expect non-prerelease versions on top.
-        orderer = PyPAPackageOrder()
+        orderer = PEP440PackageOrder()
         expected = [
             # Release and post releases first.
             '1.0.1',
@@ -305,7 +305,7 @@ class TestPyPAPackageOrder(_BaseTestPackagesOrder):
             '1.0.0+local',
             '1.0.0',
 
-            # Followed by higher version prerelease versions, sorted according to pypa
+            # Followed by higher version prerelease versions, sorted according to pep440
             '2.0.0.a2',
             '2.0.0.a1',
             '1.1.0.b2',
@@ -326,10 +326,10 @@ class TestPyPAPackageOrder(_BaseTestPackagesOrder):
             '1.0.0.a2',
             '1.0.0.a1',
         ]
-        self._test_reorder(orderer, "pypa", expected)
+        self._test_reorder(orderer, "pep440", expected)
 
         # Test that we can allow RC versions ahead of release
-        orderer = PyPAPackageOrder(prerelease="rc")
+        orderer = PEP440PackageOrder(prerelease="rc")
         expected = [
             # We allow beta and RC versions to sort ahead of release.
             '1.0.2.rc2',
@@ -358,10 +358,10 @@ class TestPyPAPackageOrder(_BaseTestPackagesOrder):
             '1.0.0.a2',
             '1.0.0.a1',
         ]
-        self._test_reorder(orderer, "pypa", expected)
+        self._test_reorder(orderer, "pep440", expected)
 
         # Test allowing beta releases to be preferred
-        orderer = PyPAPackageOrder(prerelease="b")
+        orderer = PEP440PackageOrder(prerelease="b")
         expected = [
             # We allow beta and RC versions to sort ahead of release.
             '1.1.0.b2',
@@ -390,10 +390,10 @@ class TestPyPAPackageOrder(_BaseTestPackagesOrder):
             '1.0.0.a2',
             '1.0.0.a1',
         ]
-        self._test_reorder(orderer, "pypa", expected)
+        self._test_reorder(orderer, "pep440", expected)
 
         # Test that we can get access to alpha releases if requested
-        orderer = PyPAPackageOrder(prerelease="a")
+        orderer = PEP440PackageOrder(prerelease="a")
         expected = [
             # We allow all prereleases to sort ahead of release.
             '2.0.0.a2',
@@ -420,16 +420,16 @@ class TestPyPAPackageOrder(_BaseTestPackagesOrder):
             '1.0.0.a2',
             '1.0.0.a1',
         ]
-        self._test_reorder(orderer, "pypa", expected)
+        self._test_reorder(orderer, "pep440", expected)
 
     def test_repr(self):
-        """Validate we can represent a PyPAPackageOrder as a string."""
-        inst = PyPAPackageOrder(prerelease="a")
-        self.assertEqual("PyPAPackageOrder(a)", repr(inst))
+        """Validate we can represent a PEP440PackageOrder as a string."""
+        inst = PEP440PackageOrder(prerelease="a")
+        self.assertEqual("PEP440PackageOrder(a)", repr(inst))
 
     def test_pod(self):
-        """Validate we can save and load a PyPAPackageOrder to its pod representation."""
-        self._test_pod(PyPAPackageOrder(prerelease="a"))
+        """Validate we can save and load a PEP440PackageOrder to its pod representation."""
+        self._test_pod(PEP440PackageOrder(prerelease="a"))
 
 
 class TestPackageOrdererList(_BaseTestPackagesOrder):

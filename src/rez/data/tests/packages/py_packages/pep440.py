@@ -1,4 +1,4 @@
-name = 'pypa'
+name = 'pep440'
 
 versions = [
     # 1.0.0 has a full release, as well as post and local releases
