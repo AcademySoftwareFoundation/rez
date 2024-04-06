@@ -8,8 +8,9 @@ Test cases for package_order.py (package ordering)
 import json
 
 from rez.config import config
-from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
-    TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
+from rez.package_order import (
+    NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder,
+    TimestampPackageOrder, SortedOrder, PEP440PackageOrder, PackageOrderList, from_pod)
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
@@ -287,6 +288,148 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
     def test_pod(self):
         """Validate we can save and load a TimestampPackageOrder to pod representation."""
         self._test_pod(TimestampPackageOrder(timestamp=3001, rank=3))
+
+
+class TestPEP440PackageOrder(_BaseTestPackagesOrder):
+    """Test case for the PEP440PackageOrder class"""
+
+    def test_reorder(self):
+        """Validate package ordering with a PEP440PackageOrder"""
+        # First test that we can sort packages prerelease=None,
+        # so we expect non-prerelease versions on top.
+        orderer = PEP440PackageOrder()
+        expected = [
+            # Release and post releases first.
+            '1.0.1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+
+            # Followed by higher version prerelease versions, sorted according to pep440
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.2.a1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.1.a1',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pep440", expected)
+
+        # Test that we can allow RC versions ahead of release
+        orderer = PEP440PackageOrder(prerelease="rc")
+        expected = [
+            # We allow beta and RC versions to sort ahead of release.
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+
+            # Followed by alpha and beta versions, which are not preferred.
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+            '1.0.2.b1',
+            '1.0.2.a1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.1.a1',
+            '1.0.0.b1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pep440", expected)
+
+        # Test allowing beta releases to be preferred
+        orderer = PEP440PackageOrder(prerelease="b")
+        expected = [
+            # We allow beta and RC versions to sort ahead of release.
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+
+            # Followed by alpha versions, which are not preferred.
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.a1',
+            '1.0.2.a1',
+            '1.0.1.a1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pep440", expected)
+
+        # Test that we can get access to alpha releases if requested
+        orderer = PEP440PackageOrder(prerelease="a")
+        expected = [
+            # We allow all prereleases to sort ahead of release.
+            '2.0.0.a2',
+            '2.0.0.a1',
+            '1.1.0.b2',
+            '1.1.0.b1',
+            '1.1.0.a1',
+            '1.0.2.rc2',
+            '1.0.2.rc1',
+            '1.0.2.b1',
+            '1.0.2.a1',
+            '1.0.1',
+            '1.0.1.rc2',
+            '1.0.1.rc1',
+            '1.0.1.b2',
+            '1.0.1.b1',
+            '1.0.1.a1',
+            '1.0.0.post1',
+            '1.0.0+local',
+            '1.0.0',
+            '1.0.0.rc2',
+            '1.0.0.rc1',
+            '1.0.0.b1',
+            '1.0.0.a2',
+            '1.0.0.a1',
+        ]
+        self._test_reorder(orderer, "pep440", expected)
+
+    def test_repr(self):
+        """Validate we can represent a PEP440PackageOrder as a string."""
+        inst = PEP440PackageOrder(prerelease="a")
+        self.assertEqual("PEP440PackageOrder(a)", repr(inst))
+
+    def test_pod(self):
+        """Validate we can save and load a PEP440PackageOrder to its pod representation."""
+        self._test_pod(PEP440PackageOrder(prerelease="a"))
 
 
 class TestPackageOrdererList(_BaseTestPackagesOrder):

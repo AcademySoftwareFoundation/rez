@@ -4,7 +4,7 @@
 
 from inspect import isclass
 from hashlib import sha1
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from rez.config import config
 from rez.utils.data_utils import cached_class_property
@@ -604,6 +604,138 @@ class TimestampPackageOrder(PackageOrder):
         return cls(
             data["timestamp"],
             rank=data.get("rank", 0),
+            packages=data.get("packages"),
+        )
+
+
+class PEP440PackageOrder(PackageOrder):
+    """
+    Here's how this package orderer behaves:
+    1. First separate versions into two groups based on the value of
+       ``prerelease``:  a disallowed/non-preferential group and those which are allowed/preferred
+    2. Sort each group from step 1 in the order defined by the pep440 spec.
+        e.g.  1.1 > 1.1rc1 > 1.1b1 > 1.1a1
+    3. Concatenate the two groups: placing the non-preferred group -- in sorted order --
+        after the preferred group.
+
+    Note that since the package orderer does not have the ability to filter the versions
+    in the non-preferred group it could be possible for a request to choose a non-preferred
+    version if all preferred versions are eliminated during resolution.
+
+    With prerelease set to None, non-prerelease versions will be sorted before all prerelease
+    versions.  With prerelease set to a prerelease string, order will prefer prerelease up
+    to and including that level of risk tolerance (i.e. "beta", allows for "b" and "rc" releases)
+    as well as non-prerelease versions.
+
+    For example, given the versions [1.0b2, 1.0a1, 1.0, 1.1, 1.0rc1, 1.1b2, 1.2b1],
+    an orderer initialized with ``prerelease=None`` would give the order:
+     [1.1, 1.0, 1.2b1, 1.1b2, 1.0rc1, 1.0b2, 1.0a1].
+    an orderer initialized with ``prerelease="b"`` would give the order:
+     [1.2b1, 1.1, 1.1b2, 1.0, 1.0rc1, 1.0b2, 1.0a1].
+    """
+
+    name = "pep440"
+
+    # We can normalize all the possible prerelease values to a, b, or rc.  For more info, see:
+    # https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-release-spelling
+    pep440_prerelease_map = {
+        None: None,
+        "release": None,
+        "a": "a",
+        "alpha": "a",
+        "b": "b",
+        "beta": "b",
+        "rc": "rc",
+        "c": "rc",
+        "pre": "rc",
+        "preview": "rc",
+    }
+
+    def __init__(self,
+                 prerelease: Optional[str] = None,
+                 packages: Optional[Iterable[str]] = None,
+                 ):
+        super().__init__(packages)
+        # Raises a KeyError if the value is unknown
+        self.prerelease = self.pep440_prerelease_map[prerelease]
+
+    def sort_key_implementation(self, package_name, version):
+        """
+        Get a sort key for sorting Versions by PEP440 rules.
+
+        The prerelease argument allows for risk tolerance to be set, such that we can opt into
+        allowing preview/rc versions ahead of release versions.
+        """
+        import rez.vendor.packaging.version as pep440
+        pep440_version = pep440.parse(str(version))
+
+        key = pep440_version._key
+        if not isinstance(pep440_version, pep440.Version):
+            # Fallback to pep440 legacy sorting if this isn't a compatible version format.
+            return key
+
+        # We want to allow prerelease versions up to a specific level above release versions.
+        # If the prerelease token is not set, then we will sort release versions to the front.
+        # To do this, we are going to replace the "pre" component of the sort key tuple
+        # provided by packaging.
+        key_list = list(key)
+        # The packaging key comprises (epoch, release, pre, post, dev, local)
+        # And since tuples sort lexicographically, we can insert a new tuple item at the
+        # front of the sort key to impact whether we prefer it or not.
+        # The "pre" key is a tuple that may contain Infinity (if there is no pre)
+        # Or a version number along with the prerelease (a, b, rc) token.
+        # Note that the pre key takes advantage of the alphabetcal sorting of
+        # a, b, and rc to sort properly.
+        pre: Tuple[Union[pep440.Infinity, int, str], ...] = key_list[2]
+
+        if pre in (pep440.Infinity, -pep440.Infinity):
+            # Keep the relative order the same for packages that have no prerelease, but
+            # Make sure the first key forces them to be after our prerelease preference.
+            risk_allowance_token = pep440.Infinity
+        elif not self.prerelease:
+            # We have no risk tolerance, so sort prereleases to the bottom.
+            risk_allowance_token = -pep440.Infinity
+        elif pre >= (self.prerelease, ):
+            # This version is a preprelase, but is within our risk tolerance, so allow
+            # it to sort ahead with release versions.
+            risk_allowance_token = pep440.Infinity
+        else:
+            # This version should remain below releases, but otherwise sort the same way.
+            risk_allowance_token = -pep440.Infinity
+
+        # Insert the risk allowance sorting key at the front to force higher version
+        # prereleases below *any* release versions.
+        key_list.insert(0, risk_allowance_token)
+        return tuple(key_list)
+
+    def __str__(self):
+        return str(self.prerelease)
+
+    def __eq__(self, other):
+        return (
+            type(self) == type(other)
+            and self.prerelease == other.prerelease
+        )
+
+    def to_pod(self):
+        """
+        Example (in yaml):
+
+        .. code-block:: yaml
+
+           type: pep440
+           prerelease: "a"
+           packages: ["foo"]
+        """
+        return {
+            "prerelease": self.prerelease,
+            "packages": self.packages,
+        }
+
+    @classmethod
+    def from_pod(cls, data):
+        return cls(
+            prerelease=data.get("prerelease"),
             packages=data.get("packages"),
         )
 

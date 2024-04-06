@@ -58,7 +58,14 @@ ALL_PACKAGES = set([
     'timestamped-1.0.5', 'timestamped-1.0.6', 'timestamped-1.1.0', 'timestamped-1.1.1',
     'timestamped-1.2.0', 'timestamped-2.0.0', 'timestamped-2.1.0', 'timestamped-2.1.5',
     'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0',
-    'missing_variant_requires-1'
+    'missing_variant_requires-1',
+    'pep440-1.0.0.a1', 'pep440-1.0.0.a2', 'pep440-1.0.0.b1', 'pep440-1.0.0.rc1', 'pep440-1.0.0.rc2',
+    'pep440-1.0.0', 'pep440-1.0.0.post1', 'pep440-1.0.0+local',
+    'pep440-1.0.1.a1', 'pep440-1.0.1.b2', 'pep440-1.0.1.b1', 'pep440-1.0.1.rc1', 'pep440-1.0.1.rc2',
+    'pep440-1.0.1',
+    'pep440-1.0.2.a1', 'pep440-1.0.2.b1', 'pep440-1.0.2.rc1', 'pep440-1.0.2.rc2',
+    'pep440-1.1.0.b1', 'pep440-1.1.0.b2', 'pep440-1.1.0.a1',
+    'pep440-2.0.0.a1', 'pep440-2.0.0.a2',
 ])
 
 
