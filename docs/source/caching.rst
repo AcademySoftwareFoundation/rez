@@ -2,6 +2,8 @@
 Caching
 =======
 
+.. _resolve-caching:
+
 Resolve Caching
 ===============
 
