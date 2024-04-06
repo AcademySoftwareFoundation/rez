@@ -86,7 +86,7 @@ To register a plugin and expose a new subcommand, the plugin module:
 For example, a plugin named 'foo' and this is the ``foo.py``:
 
 .. code-block:: python
-   :caption: your_plugin_file.py
+   :caption: foo.py
 
    '''The docstring for command help, this is required.
    '''
