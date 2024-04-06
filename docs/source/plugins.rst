@@ -9,8 +9,8 @@ to their own repos in the future.
 
 The built-in plugins are located at :gh-rez:`src/rezplugins`.
 
-Existing plugins
-================
+Existing plugin types
+=====================
 
 - :gh-rez:`src/rezplugins/build_process`
 - :gh-rez:`src/rezplugins/build_system`
@@ -27,7 +27,7 @@ Rez plugins require a specific folder structure as follows:
 
 .. code-block:: text
 
-    /plugin_name
+    /plugin_type
         /__init__.py (adds plugin path to rez)
         /rezconfig.py (defines configuration settings for your plugin)
         /plugin_file1.py (your plugin file)
