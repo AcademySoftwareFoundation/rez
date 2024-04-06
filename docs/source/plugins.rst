@@ -9,6 +9,38 @@ to their own repos in the future.
 
 The built-in plugins are located at :gh-rez:`src/rezplugins`.
 
+Loaded plugins
+==============
+
+Currently loaded plugins can be queried by running ``rez -i``
+
+.. code-block:: console
+
+   $ rez -i
+
+   Rez 2.113.0
+
+   PLUGIN TYPE         NAME        DESCRIPTION                                        STATUS
+   -----------         ----        -----------                                        ------
+   build process       local       Builds packages on local host                      loaded
+   build process       remote      Builds packages on remote hosts                    loaded
+   build system        cmake       CMake-based build system                           loaded
+   build system        custom      Package-defined build command                      loaded
+   build system        make        Make-based build system                            loaded
+   package repository  filesystem  Filesystem-based package repository                loaded
+   package repository  memory      In-memory package repository                       loaded
+   release hook        amqp        Publishes a message to the broker.                 loaded
+   release hook        command     Executes pre- and post-release shell commands      loaded
+   release hook        emailer     Sends a post-release email                         loaded
+   release vcs         git         Git version control                                loaded
+   release vcs         hg          Mercurial version control                          loaded
+   release vcs         stub        Stub version control system, for testing purposes  loaded
+   release vcs         svn                                                            FAILED: No module named 'pysvn'
+   shell               cmd         Windows Command Prompt (DOS) shell.                loaded
+   shell               gitbash     Git Bash (for Windows) shell                       loaded
+   shell               powershell  Windows PowerShell 5                               loaded
+   shell               pwsh        PowerShell Core 6+                                 loaded
+
 Existing plugin types
 =====================
 
@@ -38,16 +70,12 @@ To make your plugin available to rez, you can install them directly under
 ``src/rezplugins`` (that's called a namespace package) or you can add
 the path to :envvar:`REZ_PLUGIN_PATH`.
 
-Plugin types
+Extending rez
 ------------
 
-There are two different plugin types in Rez.
+Optionally, plugins can provide new ``rez`` commands.
 
-- Plugin
-- Extension
-
-Extensions differ from standard plugins in that they add a new command to rez's
-CLI.
+# TODO: How do you provide new rez commands.
 
 Required file contents
 ----------------------
