@@ -47,10 +47,10 @@ Existing plugin types
 - :gh-rez:`src/rezplugins/build_process`
 - :gh-rez:`src/rezplugins/build_system`
 - :gh-rez:`src/rezplugins/command`
-- :gh-rez:`src/rezplugins/build_process/package_repository`
-- :gh-rez:`src/rezplugins/build_process/release_hook`
-- :gh-rez:`src/rezplugins/build_process/release_vcs`
-- :gh-rez:`src/rezplugins/build_process/shell`
+- :gh-rez:`src/rezplugins/package_repository`
+- :gh-rez:`src/rezplugins/release_hook`
+- :gh-rez:`src/rezplugins/release_vcs`
+- :gh-rez:`src/rezplugins/shell`
 
 Developing your own plugin
 ==========================
@@ -70,15 +70,51 @@ To make your plugin available to rez, you can install them directly under
 ``src/rezplugins`` (that's called a namespace package) or you can add
 the path to :envvar:`REZ_PLUGIN_PATH`.
 
-Extending rez
-------------
+Registering subcommands
+-----------------------
 
-Optionally, plugins can provide new ``rez`` commands.
+Optionally, plugins can provide new ``rez`` subcommands.
 
-# TODO: How do you provide new rez commands.
+To register a plugin and expose a new subcommand, the plugin module:
 
-Required file contents
-----------------------
+- MUST have a module-level docstring (used as the command help)
+- MUST provide a `setup_parser()` function
+- MUST provide a `command()` function
+- MUST provide a `register_plugin()` function
+- SHOULD have a module-level attribute `command_behavior`
+
+For example, a plugin named 'foo' and this is the ``foo.py``:
+
+.. code-block:: python
+   :caption: your_plugin_file.py
+
+   '''The docstring for command help, this is required.
+   '''
+   from rez.command import Command
+
+   command_behavior = {
+       "hidden": False,   # optional: bool
+       "arg_mode": None,  # optional: None, "passthrough", "grouped"
+   }
+
+   def setup_parser(parser, completions=False):
+       parser.add_argument("--hello", ...)
+
+   def command(opts, parser=None, extra_arg_groups=None):
+       if opts.hello:
+           print("world")
+
+   class CommandFoo(Command):
+       schema_dict = {}
+       @classmethod
+       def name(cls):
+           return "foo"
+
+   def register_plugin():
+       return CommandFoo
+
+Other required file contents
+----------------------------
 .. code-block:: python
    :caption: __init__.py
 
@@ -86,9 +122,3 @@ Required file contents
     __path__ = extend_path(__path__, __name__)
 
 
-
-.. code-block:: python
-   :caption: your_plugin_file.py
-
-    def register_plugin():
-        return YourPluginClass
