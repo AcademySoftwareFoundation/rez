@@ -51,16 +51,16 @@ CLI.
 
 Required file contents
 ----------------------
-``__init__.py``
-
 .. code-block:: python
+   :caption: __init__.py
 
     from rez.plugin_managers import extend_path
     __path__ = extend_path(__path__, __name__)
 
-``your_plugin_file.py``
+
 
 .. code-block:: python
+   :caption: your_plugin_file.py
 
     def register_plugin():
         return YourPluginClass
