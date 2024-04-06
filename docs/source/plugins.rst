@@ -41,6 +41,12 @@ Currently loaded plugins can be queried by running ``rez -i``
    shell               powershell  Windows PowerShell 5                               loaded
    shell               pwsh        PowerShell Core 6+                                 loaded
 
+
+Configuring plugins
+===================
+
+# TODO: Write this part.
+
 Existing plugin types
 =====================
 
