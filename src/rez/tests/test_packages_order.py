@@ -10,8 +10,7 @@ import json
 from rez.config import config
 from rez.package_order import (
     NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder,
-    TimestampPackageOrder, SortedOrder, PyPAPackageOrder,
-    PackageOrderList, from_pod)
+    TimestampPackageOrder, SortedOrder, PyPAPackageOrder, PackageOrderList, from_pod)
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version

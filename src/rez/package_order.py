@@ -7,7 +7,6 @@ from hashlib import sha1
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from rez.config import config
-from rez.exceptions import ConfigurationError
 from rez.utils.data_utils import cached_class_property
 from rez.version import Version, VersionRange
 from rez.version._version import _Comparable, _ReversedComparable, _LowerBound, _UpperBound, _Bound
