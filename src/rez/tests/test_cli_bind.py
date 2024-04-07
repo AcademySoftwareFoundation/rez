@@ -21,7 +21,7 @@ class TestBindCLI(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
 
         cls.settings = dict(
-            packages_path=[cls.install_root]
+            local_packages_path=[cls.install_root]
         )
 
     @classmethod
