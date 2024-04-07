@@ -5,6 +5,7 @@
 """
 test running rez bind commandline tool
 """
+import rez
 from rez.tests.util import restore_os_environ, TestBase, TempdirMixin
 import os.path
 import subprocess
@@ -75,6 +76,44 @@ class TestBindCLI(TestBase, TempdirMixin):
             subprocess.check_output([binfile, "-i", custom_path, "platform"])
         package_exists = os.path.exists(os.path.join(custom_path, 'platform'))
         self.assertTrue(package_exists)
+
+    def test_list(self):
+        """run list bind test"""
+
+        # skip if cli not available
+        if not system.rez_bin_path:
+            self.skipTest("Not a production install")
+
+        binfile = os.path.join(system.rez_bin_path, 'rez-bind')
+        proc = subprocess.run([binfile, "-l"],
+                              capture_output=True, text=True)
+        output = proc.stdout
+        self.assertIn("PACKAGE      BIND MODULE", output)
+        self.assertIn("-------      -----------", output)
+        expected_bind_packages = [
+            "arch",
+            "cmake",
+            "gcc",
+            "hello_world",
+            "os",
+            "pip",
+            "platform",
+            "PyQt",
+            "PySide",
+            "python",
+            "rez",
+            "rezgui",
+            "setuptools",
+            "sip"
+        ]
+        for expected_bind_pkg in expected_bind_packages:
+            expected_bind_file_path = os.path.join(
+                rez.module_root_path,
+                'bind',
+                expected_bind_pkg + '.py'
+            )
+            self.assertIn(expected_bind_pkg, output)
+            self.assertIn(expected_bind_file_path, output)
 
 
 if __name__ == '__main__':
