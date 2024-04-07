@@ -18,10 +18,12 @@ class TestBindCLI(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
-        cls.install_root = os.path.join(cls.root, "packages")
+        cls.local_root = os.path.join(cls.root, "local", "packages")
+        cls.release_root = os.path.join(cls.root, "release", "packages")
 
         cls.settings = dict(
-            local_packages_path=cls.install_root
+            local_packages_path=cls.local_root,
+            release_packages_path=cls.release_root
         )
 
         # set config settings into env so subprocess sees them
@@ -40,7 +42,19 @@ class TestBindCLI(TestBase, TempdirMixin):
 
         binfile = os.path.join(system.rez_bin_path, 'rez-bind')
         subprocess.check_output([binfile, "platform"])
-        package_exists = os.path.exists(os.path.join(self.install_root, 'platform'))
+        package_exists = os.path.exists(os.path.join(self.local_root, 'platform'))
+        self.assertTrue(package_exists)
+
+    def test_release(self):
+        """run release bind test"""
+
+        # skip if cli not available
+        if not system.rez_bin_path:
+            self.skipTest("Not a production install")
+
+        binfile = os.path.join(system.rez_bin_path, 'rez-bind')
+        subprocess.check_output([binfile, "-r", "platform"])
+        package_exists = os.path.exists(os.path.join(self.release_root, 'platform'))
         self.assertTrue(package_exists)
 
 
