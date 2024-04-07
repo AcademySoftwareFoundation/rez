@@ -60,6 +60,22 @@ class TestBindCLI(TestBase, TempdirMixin):
         package_exists = os.path.exists(os.path.join(self.release_root, 'platform'))
         self.assertTrue(package_exists)
 
+    def test_custom_path(self):
+        """run custom path bind test"""
+
+        # skip if cli not available
+        if not system.rez_bin_path:
+            self.skipTest("Not a production install")
+
+        binfile = os.path.join(system.rez_bin_path, 'rez-bind')
+        custom_path = os.path.join(self.root, "custom", "packages")
+        with restore_os_environ():
+            # set config settings into env so subprocess sees them
+            os.environ.update(self.get_settings_env())
+            subprocess.check_output([binfile, "-i", custom_path, "platform"])
+        package_exists = os.path.exists(os.path.join(custom_path, 'platform'))
+        self.assertTrue(package_exists)
+
 
 if __name__ == '__main__':
     unittest.main()
