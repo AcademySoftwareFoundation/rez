@@ -21,8 +21,11 @@ class TestBindCLI(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
 
         cls.settings = dict(
-            local_packages_path=[cls.install_root]
+            local_packages_path=cls.install_root
         )
+
+        # set config settings into env so subprocess sees them
+        os.environ.update(cls.get_settings_env(cls))
 
     @classmethod
     def tearDownClass(cls):
