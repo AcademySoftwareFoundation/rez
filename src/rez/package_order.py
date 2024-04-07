@@ -4,7 +4,7 @@
 
 from inspect import isclass
 from hashlib import sha1
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 from rez.config import config
 from rez.exceptions import ConfigurationError
