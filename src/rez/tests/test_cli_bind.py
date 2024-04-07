@@ -5,7 +5,7 @@
 """
 test running rez bind commandline tool
 """
-from rez.tests.util import TestBase, TempdirMixin
+from rez.tests.util import restore_os_environ, TestBase, TempdirMixin
 import os.path
 import subprocess
 import unittest
@@ -26,9 +26,6 @@ class TestBindCLI(TestBase, TempdirMixin):
             release_packages_path=cls.release_root
         )
 
-        # set config settings into env so subprocess sees them
-        os.environ.update(cls.get_settings_env(cls))
-
     @classmethod
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
@@ -41,7 +38,10 @@ class TestBindCLI(TestBase, TempdirMixin):
             self.skipTest("Not a production install")
 
         binfile = os.path.join(system.rez_bin_path, 'rez-bind')
-        subprocess.check_output([binfile, "platform"])
+        with restore_os_environ():
+            # set config settings into env so subprocess sees them
+            os.environ.update(self.get_settings_env())
+            subprocess.check_output([binfile, "platform"])
         package_exists = os.path.exists(os.path.join(self.local_root, 'platform'))
         self.assertTrue(package_exists)
 
@@ -53,7 +53,10 @@ class TestBindCLI(TestBase, TempdirMixin):
             self.skipTest("Not a production install")
 
         binfile = os.path.join(system.rez_bin_path, 'rez-bind')
-        subprocess.check_output([binfile, "-r", "platform"])
+        with restore_os_environ():
+            # set config settings into env so subprocess sees them
+            os.environ.update(self.get_settings_env())
+            subprocess.check_output([binfile, "-r", "platform"])
         package_exists = os.path.exists(os.path.join(self.release_root, 'platform'))
         self.assertTrue(package_exists)
 
