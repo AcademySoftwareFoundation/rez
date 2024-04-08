@@ -4,7 +4,7 @@
 
 filesystem = {
     # The mechanism used to create the lockfile. If set to 'default', this will
-    # use hardlinks if the 'os.link' method is present, otherwise mkdir is used.
+    # use hardlinks (link) if the 'os.link' method is present, otherwise mkdir is used.
     # It can also be explicitly set to use only 'link', 'symlink', or only 'mkdir'.
     # Valid options are 'default', 'mkdir', 'link', or 'symlink'
     "file_lock_type": "default",
