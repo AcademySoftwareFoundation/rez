@@ -45,7 +45,14 @@ Currently installed plugins can be queried by running :option:`rez -i`
 Configuring plugins
 ===================
 
-# TODO: Write this part.
+Plugins can be configured by adding a ``plugins`` key to your ``rezconfig.py``
+like this:
+
+.. code-block:: python
+
+   plugins = {
+       "filesystem": {}
+   }
 
 Existing plugin types
 =====================
