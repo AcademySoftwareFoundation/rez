@@ -285,9 +285,9 @@ class ScriptMaker(object):
         if '' in self.variants:
             scriptnames.add(name)
         if 'X' in self.variants:
-            scriptnames.add('%s%s' % (name, sys.version[0]))
+            scriptnames.add('%s%d' % (name, sys.version_info[0]))
         if 'X.Y' in self.variants:
-            scriptnames.add('%s-%s' % (name, sys.version[:3]))
+            scriptnames.add('%s-%d.%d' % (name, *sys.version_info[0:2]))
         if options and options.get('gui', False):
             ext = 'pyw'
         else:
