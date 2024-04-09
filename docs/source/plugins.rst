@@ -10,7 +10,7 @@ to their own repos in the future.
 The built-in plugins are located at :gh-rez:`src/rezplugins`.
 
 List installed plugins
-==============
+======================
 
 Currently installed plugins can be queried by running :option:`rez -i`
 
