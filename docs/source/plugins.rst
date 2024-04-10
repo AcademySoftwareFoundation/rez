@@ -122,8 +122,6 @@ For example, a plugin named 'foo' and this is the ``foo.py``:
    def register_plugin():
        return CommandFoo
 
-Other required file contents
-----------------------------
 .. code-block:: python
    :caption: __init__.py
 
