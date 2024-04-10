@@ -57,13 +57,13 @@ like this:
 Existing plugin types
 =====================
 
-- :gh-rez:`src/rezplugins/build_process`
-- :gh-rez:`src/rezplugins/build_system`
-- :gh-rez:`src/rezplugins/command`
-- :gh-rez:`src/rezplugins/package_repository`
-- :gh-rez:`src/rezplugins/release_hook`
-- :gh-rez:`src/rezplugins/release_vcs`
-- :gh-rez:`src/rezplugins/shell`
+- :gh-rez:`build_process <src/rezplugins/build_process>`
+- :gh-rez:`build_system <src/rezplugins/build_system>`
+- :gh-rez:`command <src/rezplugins/command>`
+- :gh-rez:`package_repository <src/rezplugins/package_repository>`
+- :gh-rez:`release_hook <src/rezplugins/release_hook>`
+- :gh-rez:`release_vcs <src/rezplugins/release_vcs>`
+- :gh-rez:`shell <src/rezplugins/shell>`
 
 Developing your own plugin
 ==========================
