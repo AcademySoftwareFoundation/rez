@@ -8,6 +8,7 @@ from rez.utils.execution import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
 from rez.utils.data_utils import cached_property
+from rez.utils.filesystem import safe_rmtree
 from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.colorize import warning, critical, Printer, alias as alias_col
 from rez.vendor import yaml
@@ -17,7 +18,6 @@ from collections import defaultdict
 from typing import cast, TYPE_CHECKING, Any, NoReturn, TypedDict
 import os
 import os.path
-import shutil
 import sys
 
 if TYPE_CHECKING:
@@ -465,7 +465,7 @@ class Suite(object):
                     print("saving over previous suite...")
                 for context_name in self.context_names:
                     self.context(context_name)  # load before dir deleted
-                shutil.rmtree(path)
+                safe_rmtree(path)
             else:
                 raise SuiteError("Cannot save, path exists: %r" % path)
 
