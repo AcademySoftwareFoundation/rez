@@ -93,7 +93,8 @@ To register a plugin and expose a new subcommand, the plugin module:
 - MUST provide a `register_plugin()` function
 - SHOULD have a module-level attribute `command_behavior`
 
-For example, a plugin named 'foo' and this is the ``foo.py``:
+For example, a plugin named 'foo' and this is the ``foo.py`` in the plugin type
+root directory:
 
 .. code-block:: python
    :caption: foo.py
@@ -114,13 +115,21 @@ For example, a plugin named 'foo' and this is the ``foo.py``:
            print("world")
 
    class CommandFoo(Command):
-       schema_dict = {}
+       # This is where you declare the settings the plugin accepts.
+       schema_dict = {
+           "str_option": str,
+           "int_option": int,
+           ...
+       }
        @classmethod
        def name(cls):
            return "foo"
 
    def register_plugin():
        return CommandFoo
+
+All new plugin types must define an ``__init__.py`` in their root directory
+so that the plugin manager will find them.
 
 .. code-block:: python
    :caption: __init__.py
