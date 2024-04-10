@@ -101,8 +101,7 @@ For example, a plugin named 'foo' and this is the ``foo.py``:
 .. code-block:: python
    :caption: foo.py
 
-   '''The docstring for command help, this is required.
-   '''
+   """The docstring for command help, this is required."""
    from rez.command import Command
 
    command_behavior = {
