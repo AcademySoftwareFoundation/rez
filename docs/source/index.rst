@@ -31,6 +31,7 @@ Welcome to rez's documentation!
    managing_packages
    caching
    pip
+   plugins
 
 .. toctree::
    :maxdepth: 2
