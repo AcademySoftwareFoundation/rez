@@ -7,7 +7,6 @@ fi
 
 # remove copyright
 find ./src/rez/data -name '*.py' > .lic.tmp
-find ./src/rez/backport -name '*.py' >> .lic.tmp
 cat .lic.tmp | xargs -i ./src/build_utils/license/change_copyright -so {}
 
 # add copyright
