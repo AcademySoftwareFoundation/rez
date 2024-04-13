@@ -1,8 +1,7 @@
 include src/rez/data/*
-include src/rez/rezconfig
 include src/rez/completion/*
 include src/rez/vendor/distlib/*.exe
 include src/rezgui/rezguiconfig
 include src/rezgui/icons/*
 recursive-include src/rez README*
-recursive-include src/rezplugins *.cmake Doxyfile rezconfig
+recursive-include src/rezplugins *.cmake Doxyfile

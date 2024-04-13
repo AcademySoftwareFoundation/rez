@@ -76,7 +76,6 @@ setup(
             find_files('*', 'data') +
             find_files('*.exe', 'vendor/distlib'),
         'rezplugins':
-            find_files('rezconfig', root='rezplugins') +
             find_files('*.cmake', 'build_system', root='rezplugins') +
             find_files('*', 'build_system/template_files', root='rezplugins'),
         'rezgui':
