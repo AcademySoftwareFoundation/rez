@@ -467,7 +467,7 @@ class FileSystemPackageRepository(PackageRepository):
     """
     schema_dict = {"file_lock_timeout": int,
                    "file_lock_dir": Or(None, str),
-                   "file_lock_type": Or("default", "link", "mkdir"),
+                   "file_lock_type": Or("default", "link", "mkdir", "symlink"),
                    "package_filenames": [str]}
 
     building_prefix = ".building"
@@ -973,6 +973,8 @@ class FileSystemPackageRepository(PackageRepository):
             from rez.vendor.lockfile.mkdirlockfile import MkdirLockFile as LockFile
         elif _settings.file_lock_type == 'link':
             from rez.vendor.lockfile.linklockfile import LinkLockFile as LockFile
+        elif _settings.file_lock_type == 'symlink':
+            from rez.vendor.lockfile.symlinklockfile import SymlinkLockFile as LockFile
 
         path = self.location
 
