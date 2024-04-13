@@ -99,8 +99,17 @@ autodoc_default_options = {
 # -- Options for extlinks extension -----------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
 
+blob_ref = "main"
+if os.environ.get("READTHEDOCS"):
+    if os.environ["READTHEDOCS_VERSION_TYPE"] == "external":
+        blob_ref = os.environ["READTHEDOCS_GIT_COMMIT_HASH"]
+    else:
+        blob_ref = os.environ["READTHEDOCS_GIT_IDENTIFIER"]
+
+gh_rez_url = f"https://github.com/AcademySoftwareFoundation/rez/blob/{blob_ref}/%s"
+
 extlinks = {
-    'gh-rez': ('https://github.com/AcademySoftwareFoundation/rez/blob/master/%s', '%s'),
+    'gh-rez': (gh_rez_url, '%s'),
 }
 
 # -- Options for todo extension ---------------------------------------------
