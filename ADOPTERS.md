@@ -12,9 +12,7 @@ If your company, studio, or organization uses rez, please consider filing a
 GitHub issue, or pull-request, asking us to add you.
 
 You are also encouraged to fill in and confirm or annotate any of the info in
-the unofficial rez adopters spreadsheet:
-
-[https://docs.google.com/spreadsheets/d/15IUtYIePvQOtIt7W639oOPLsl5qcvB_jJhoyHelhep8/edit#gid=0]
+the unofficial [rez adopters spreadsheet](https://docs.google.com/spreadsheets/d/15IUtYIePvQOtIt7W639oOPLsl5qcvB_jJhoyHelhep8/edit#gid=0).
 
 Thank you help us to understand the rez ecosystem! It helps us understand how
 best to grow and support rez usage in workflows everywhere.
