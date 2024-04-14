@@ -2,6 +2,24 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## 3.1.1 (2024-04-14)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.1.0...3.1.1)
+
+### Fixes
+
+- Add symlink locking for filesystems that do not support hardlinks [\#1708](https://github.com/AcademySoftwareFoundation/rez/pull/1708) ([cfxegbert](https://github.com/cfxegbert))
+- Fix error caused by weakly referenced package not specifying version ▒ [\#1712](https://github.com/AcademySoftwareFoundation/rez/pull/1712) ([loonghao](https://github.com/loonghao))
+
+### Documentation
+
+- Add plugin documentation page [\#1703](https://github.com/AcademySoftwareFoundation/rez/pull/1703) ([BryceGattis](https://github.com/BryceGattis))
+- Make gh-rez external link dynamic [\#1707](https://github.com/AcademySoftwareFoundation/rez/pull/1707) ([BryceGattis](https://github.com/BryceGattis))
+
+### Miscellaneous
+
+- Convert all plugin rezconfig to rezconfig.py [\#1692](https://github.com/AcademySoftwareFoundation/rez/pull/1692) ([brycegbrazen](https://github.com/brycegbrazen))
+
+
 ## 3.1.0 (2024-03-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.3.0...3.1.0)
 
