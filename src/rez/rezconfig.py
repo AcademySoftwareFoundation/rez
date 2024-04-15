@@ -948,6 +948,9 @@ max_package_changelog_revisions = 0
 #       launched without extension from windows and other systems.
 create_executable_script_mode = "single"
 
+# Default build process to use during build/release
+build_process = "local"
+
 # Configurable pip extra arguments passed to the :ref:`rez-pip` install command.
 # Since the :ref:`rez-pip` install command already includes some pre-configured
 # arguments (``--target``, ``--use-pep517``) this setting can potentially override the

@@ -397,6 +397,7 @@ config_schema = Schema({
     "release_packages_path":                        Str,
     "dot_image_format":                             Str,
     "build_directory":                              Str,
+    "build_process":                                Str,
     "documentation_url":                            Str,
     "suite_visibility":                             SuiteVisibility_,
     "rez_tools_visibility":                         RezToolsVisibility_,
