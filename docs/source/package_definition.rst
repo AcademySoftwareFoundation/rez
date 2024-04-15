@@ -748,7 +748,7 @@ the data type, and includes a code snippet.
       name = "maya_utils"
 
 .. py:attribute:: plugin_for
-   :type: str
+   :type: list[str]
 
    Provided if this package is a plugin of another package. For example, this might be a maya plugin.
    This is useful when using the :ref:`rez-plugins` command. Also, see :attr:`has_plugins`.
