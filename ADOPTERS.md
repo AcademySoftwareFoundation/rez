@@ -22,6 +22,7 @@ best to grow and support rez usage in workflows everywhere.
 Accenture Song Content
 Animal Logic
 AntaresImage
+Apple
 Brunch Studio
 Company3 / Method Studios
 Crafty Apes
