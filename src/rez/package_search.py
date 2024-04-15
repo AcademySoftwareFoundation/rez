@@ -12,6 +12,7 @@ that do not provide an implementation.
 
 import fnmatch
 from collections import defaultdict
+from typing import List
 import sys
 
 from rez.packages import iter_package_families, iter_packages, get_latest_package
@@ -126,7 +127,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
     return pkgs_list, g
 
 
-def get_plugins(package_name, paths=None):
+def get_plugins(package_name, paths=None) -> List[str]:
     """Find packages that are plugins of the given package.
 
     Args:
@@ -152,7 +153,7 @@ def get_plugins(package_name, paths=None):
             continue  # not a plugin of itself
 
         plugin_pkg = get_latest_package(package_name_, paths=paths)
-        if not plugin_pkg.plugin_for:
+        if not plugin_pkg or not plugin_pkg.plugin_for:
             continue
         for plugin_for in plugin_pkg.plugin_for:
             if plugin_for == pkg.name:
