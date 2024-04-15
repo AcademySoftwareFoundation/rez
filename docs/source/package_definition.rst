@@ -755,7 +755,7 @@ the data type, and includes a code snippet.
 
    .. code-block:: python
 
-      plugin_for = "maya"
+      plugin_for = ["maya"]
 
 .. py:function:: post_commands() -> None
 
