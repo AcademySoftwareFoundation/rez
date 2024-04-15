@@ -127,7 +127,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
     return pkgs_list, g
 
 
-def get_plugins(package_name, paths=None) -> List[str]:
+def get_plugins(package_name: str, paths: List[str] = None) -> List[str]:
     """Find packages that are plugins of the given package.
 
     Args:
