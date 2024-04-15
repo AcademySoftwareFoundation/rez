@@ -28,6 +28,15 @@ class TestPackageSearch(TestBase, TempdirMixin):
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
 
+    def test_not_has_plugins(self):
+        """Ensure empty list is returned when has_plugins is False."""
+
+        with make_package('foo', self.root) as pkg:
+            pkg.has_plugins = False
+
+        plugins = get_plugins('foo')
+        self.assertEqual(plugins, [])
+
     def test_get_plugins(self):
         """Ensure package plugins are obtained as expected."""
 
