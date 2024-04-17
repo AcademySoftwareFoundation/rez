@@ -19,37 +19,37 @@ best to grow and support usage of rez workflows everywhere.
 
 ## The List (Alphabetical)
 
-Accenture Song Content
-Animal Logic
-AntaresImage
-Apple
-Brunch Studio
-Company3 / Method Studios
-Crafty Apes
-Digital District
-Dreamworks Animation
-Dupe VFX
-Electric Theatre Collective
-Flying Bark Productions
-FuseFX / Folks VFX
-HouseofVFX
-Iloura
-Laika
-Luma Pictures
-Mikros Image
-Milk VFX
-MSG Sphere
-NAD-UQAC
-Paramount Animation
-Pixomondo
-Platige Image
-Rodeo FX
-Saddington Baynes
-SHED Inc
-Sony Pictures Imageworks
-Squeeze Studio Animation
-Squint Opera
-Tangent Animation
-Tencent Games
-Toonbox Entertainment
-WWFX UK
+- Accenture Song Content
+- Animal Logic
+- AntaresImage
+- Apple
+- Brunch Studio
+- Company3 / Method Studios
+- Crafty Apes
+- Digital District
+- Dreamworks Animation
+- Dupe VFX
+- Electric Theatre Collective
+- Flying Bark Productions
+- FuseFX / Folks VFX
+- HouseofVFX
+- Iloura
+- Laika
+- Luma Pictures
+- Mikros Image
+- Milk VFX
+- MSG Sphere
+- NAD-UQAC
+- Paramount Animation
+- Pixomondo
+- Platige Image
+- Rodeo FX
+- Saddington Baynes
+- SHED Inc
+- Sony Pictures Imageworks
+- Squeeze Studio Animation
+- Squint Opera
+- Tangent Animation
+- Tencent Games
+- Toonbox Entertainment
+- WWFX UK
