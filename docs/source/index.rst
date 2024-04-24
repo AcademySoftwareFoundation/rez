@@ -16,6 +16,7 @@ Welcome to rez's documentation!
    basic_concepts
    building_packages
    releasing_packages
+   testing_packages
    context
    variants
    guides/index
