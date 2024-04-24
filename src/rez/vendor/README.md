@@ -137,12 +137,13 @@ pooling.
 <tr><td>
 packaging
 </td><td>
-19.0 (Jan 20, 2019)
+21.0 (Jul 23, 2021)
 </td><td>
 Duel license, Apache 2.0, BSD 2-Clause
 </td><td>
 https://github.com/pypa/packaging<br>
-Added (July 2019) to enable PEP440 compatible versions handling.
+* Added (July 2019) to enable PEP440 compatible versions handling.
+* No changes from source.
 </td></tr>
 
 <!-- ######################################################### -->
