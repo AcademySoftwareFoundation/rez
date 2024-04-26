@@ -7,7 +7,7 @@ from rez.version import Version
 from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.packaging.version import Version as PackagingVersion
 from rez.vendor.packaging.specifiers import Specifier
-from rez.resolved_context import ResolvedContext
+from rez.resolved_context import ResolvedContext, ResolverStatus
 from rez.utils.execution import Popen
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
     pip_to_rez_version
@@ -124,8 +124,6 @@ def find_python_in_context(context):
 
     Args:
         context (ResolvedContext): Resolved context with Python and pip.
-        name (str): Name of the package for Python instead of "python".
-        default (str): Force a particular fallback path for Python executable.
 
     Returns:
         str or None: Path to Python executable, if any.
@@ -134,11 +132,19 @@ def find_python_in_context(context):
     # Create a copy of the context with systems paths removed, so we don't
     # accidentally find a system python install.
     #
+    success = (context.status == ResolverStatus.solved)
+    if not success:
+        context.print_info(buf=sys.stderr)
+        return None
+
     context = context.copy()
     context.append_sys_path = False  # #826
 
     python_package = context.get_resolved_package("python")
-    assert python_package
+    if not python_package:
+        raise PackageNotFoundError(
+            f"python package family not found in context: {context}"
+        )
 
     # look for (eg) python3.7, then python3, then python
     name_template = "python{}"
