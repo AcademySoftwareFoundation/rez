@@ -34,6 +34,21 @@ Per Family Order
 
 This orderer allows you to define different orderers to different package families.
 
+.. code-block:: python
+
+    package_orderers = [
+        {
+           "type": "per_family",
+           "orderers": [
+                {
+                    "packages": ["python"],
+                    "type": "version_split",
+                    "first_version": "2.7.16"
+                }
+            ]
+        }
+    ]
+
 Version Split Package Order
 ---------------------------
 
@@ -43,6 +58,15 @@ sorted order.
 For example, given the versions [5, 4, 3, 2, 1], an orderer initialized with version=3 would give the
 order [3, 2, 1, 5, 4].
 
+.. code-block:: python
+
+    package_orderers = [
+        {
+           "type": "version_split",
+           "first_version": "2.7.16"
+        }
+    ]
+
 Timestamp Package Order
 -----------------------
 
@@ -50,3 +74,13 @@ This orderer takes in a given time ``T`` and returns packages released before ``
 those released after.
 
 If ``rank`` is non-zero, version changes at that rank and above are allowed over the timestamp.
+
+.. code-block:: python
+
+    package_orderers = [
+        {
+            "type": "soft_timestamp",
+            "timestamp": 1568001600,  # 2019-09-09
+            "rank": 3
+        }
+    ]
