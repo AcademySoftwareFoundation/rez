@@ -27,12 +27,12 @@ tested.
 <tr><td>
 argcomplete
 </td><td>
-?
+0.8.2 (Nov 3, 2014)
 </td><td>
 Apache 2.0
 </td><td>
 https://github.com/kislyuk/argcomplete<br>
-Our version seems patched.
+Our version is patched.
 </td></tr>
 
 <!-- ######################################################### -->
