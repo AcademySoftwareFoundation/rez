@@ -149,7 +149,7 @@ Added (July 2019) to enable PEP440 compatible versions handling.
 <tr><td>
 pika
 </td><td>
-1.2.0
+1.2.0 (Feb 5, 2021)
 </td><td>
 BSD 3-Clause
 </td><td>
