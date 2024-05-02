@@ -5,16 +5,19 @@
 """
 Manages loading of all types of Rez plugins.
 """
+import pkgutil
+import os.path
+import sys
+from typing import Dict
+from zipimport import zipimporter
+
 from rez.config import config, expand_system_vars, _load_config_from_filepaths
 from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
 from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
-from zipimport import zipimporter
-import pkgutil
-import os.path
-import sys
+
 
 
 # modified from pkgutil standard library:
@@ -294,7 +297,7 @@ class RezPluginManager(object):
             'rezplugins' is always found first.
     """
     def __init__(self):
-        self._plugin_types = {}
+        self._plugin_types: Dict[str, LazySingleton] = {}
 
     @cached_property
     def rezplugins_module_paths(self):
@@ -329,7 +332,7 @@ class RezPluginManager(object):
 
     # -- plugin types
 
-    def _get_plugin_type(self, plugin_type):
+    def _get_plugin_type(self, plugin_type: str) -> RezPluginType:
         try:
             return self._plugin_types[plugin_type]()
         except KeyError:
@@ -366,7 +369,7 @@ class RezPluginManager(object):
         plugin = self._get_plugin_type(plugin_type)
         return plugin.get_plugin_module(plugin_name)
 
-    def get_plugin_config_data(self, plugin_type):
+    def get_plugin_config_data(self, plugin_type: str):
         """Return the merged configuration data for the plugin type."""
         plugin = self._get_plugin_type(plugin_type)
         return plugin.config_data
