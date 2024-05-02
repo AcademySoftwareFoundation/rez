@@ -376,6 +376,20 @@ Following is a list of the objects and functions available.
       if building:
          env.FOO_INCLUDE_PATH = "{root}/include"
 
+.. py:attribute:: testing
+   :type: bool
+
+   This boolean variable is ``True`` if a test is occurring (typically done via the :ref:`rez-test` tool),
+   and ``False`` otherwise.
+   
+   Typically a package will use this variable to set environment variables that are only relevant during test
+   execution.
+
+   .. code-block:: python
+
+      if testing:
+         env.FOO_TEST_DATA_PATH = "{root}/tests/data"
+
 .. py:function:: command(arg: str)
 
    Run an arbitrary shell command.

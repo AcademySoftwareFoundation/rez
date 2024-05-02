@@ -601,6 +601,7 @@ class PackageTestRunner(object):
                     package_paths=self.package_paths,
                     buf=(f if quiet else None),
                     timestamp=self.timestamp,
+                    testing=True,
                     **self.context_kwargs
                 )
 

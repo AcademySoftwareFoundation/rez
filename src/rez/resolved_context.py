@@ -163,7 +163,7 @@ class ResolvedContext(object):
             return SolverCallbackReturn.keep_going, ''
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
-                 building=False, caching=None, package_paths=None,
+                 building=False, testing=False, caching=None, package_paths=None,
                  package_filter=None, package_orderers=None, max_fails=-1,
                  add_implicit_packages=True, time_limit=-1, callback=None,
                  package_load_callback=None, buf=None, suppress_passive=False,
@@ -176,6 +176,7 @@ class ResolvedContext(object):
             timestamp (float): Ignore packages released after this epoch time. Packages
                 released at exactly this time will not be ignored.
             building (bool): True if we're resolving for a build.
+            testing (bool): True if we're resolving for a test (rez-test).
             caching (bool): If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used. If None, :data:`resolve_caching`
                 is used.
@@ -214,6 +215,7 @@ class ResolvedContext(object):
         self.requested_timestamp = timestamp
         self.timestamp = self.requested_timestamp or int(time.time())
         self.building = building
+        self.testing = testing
         self.implicit_packages = []
         self.caching = config.resolve_caching if caching is None else caching
         self.verbosity = verbosity
@@ -1553,6 +1555,7 @@ class ResolvedContext(object):
             timestamp=self.timestamp,
             requested_timestamp=self.requested_timestamp,
             building=self.building,
+            testing=self.testing,
             caching=self.caching,
             implicit_packages=list(map(str, self.implicit_packages)),
             package_requests=list(map(str, self._package_requests)),
@@ -1626,6 +1629,7 @@ class ResolvedContext(object):
 
         r.timestamp = d["timestamp"]
         r.building = d["building"]
+        r.testing = d["testing"]
         r.caching = d["caching"]
         r.implicit_packages = [PackageRequest(x) for x in d["implicit_packages"]]
         r._package_requests = [PackageRequest(x) for x in d["package_requests"]]
@@ -1954,6 +1958,7 @@ class ResolvedContext(object):
             self.pre_resolve_bindings = {
                 "system": system,
                 "building": self.building,
+                "testing": self.testing,
                 "request": RequirementsBinding(self._package_requests),
                 "implicits": RequirementsBinding(self.implicit_packages),
                 "intersects": intersects
