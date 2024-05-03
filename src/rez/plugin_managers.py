@@ -21,7 +21,6 @@ from rez.vendor.schema.schema import Schema
 from rez.exceptions import RezPluginError
 
 
-
 # modified from pkgutil standard library:
 # this function is called from the __init__.py files of each plugin type inside
 # the 'rezplugins' package.
