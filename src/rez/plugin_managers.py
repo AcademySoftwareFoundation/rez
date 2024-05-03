@@ -8,7 +8,8 @@ Manages loading of all types of Rez plugins.
 import pkgutil
 import os.path
 import sys
-from typing import Dict
+from types import ModuleType
+from typing import Dict, Type
 from zipimport import zipimporter
 
 from rez.config import config, expand_system_vars, _load_config_from_filepaths
@@ -16,6 +17,7 @@ from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
 from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
+from rez.vendor.schema.schema import Schema
 from rez.exceptions import RezPluginError
 
 
@@ -95,16 +97,16 @@ class RezPluginType(object):
             raise TypeError("Subclasses of RezPluginType must provide a "
                             "'type_name' attribute")
         self.pretty_type_name = self.type_name.replace('_', ' ')
-        self.plugin_classes = {}
+        self.plugin_classes: Dict[str, Type[object]] = {}
         self.failed_plugins = {}
-        self.plugin_modules = {}
-        self.config_data = {}
+        self.plugin_modules: Dict[str, ModuleType] = {}
+        self.config_data: Dict[str, Dict] = {}
         self.load_plugins()
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self.plugin_classes.keys())
 
-    def register_plugin(self, plugin_name, plugin_class, plugin_module):
+    def register_plugin(self, plugin_name: str, plugin_class: Type[object], plugin_module: ModuleType):
         # TODO: check plugin_class to ensure it is a sub-class of expected base-class?
         # TODO: perhaps have a Plugin base class. This introduces multiple
         # inheritance in Shell class though :/
@@ -225,7 +227,7 @@ class RezPluginType(object):
                                  % (self.pretty_type_name, plugin_name))
 
     @cached_property
-    def config_schema(self):
+    def config_schema(self) -> Schema:
         """Returns the merged configuration data schema for this plugin
         type."""
         from rez.config import _plugin_config_dict
@@ -238,7 +240,7 @@ class RezPluginType(object):
                 deep_update(d, d_)
         return dict_to_schema(d, required=True, modifier=expand_system_vars)
 
-    def create_instance(self, plugin, **instance_kwargs):
+    def create_instance(self, plugin, **instance_kwargs) -> "RezPluginType":
         """Create and return an instance of the given plugin."""
         return self.get_plugin_class(plugin)(**instance_kwargs)
 
@@ -369,7 +371,7 @@ class RezPluginManager(object):
         plugin = self._get_plugin_type(plugin_type)
         return plugin.get_plugin_module(plugin_name)
 
-    def get_plugin_config_data(self, plugin_type: str):
+    def get_plugin_config_data(self, plugin_type: str) -> Dict[str, Dict]:
         """Return the merged configuration data for the plugin type."""
         plugin = self._get_plugin_type(plugin_type)
         return plugin.config_data
