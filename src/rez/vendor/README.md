@@ -27,7 +27,7 @@ tested.
 <tr><td>
 argcomplete
 </td><td>
-0.8.2 (Nov 3, 2014)
+6f943d76400d6755c2152deff4f2c5c5fa4d9e7c (Jul 20, 2014)
 </td><td>
 Apache 2.0
 </td><td>
