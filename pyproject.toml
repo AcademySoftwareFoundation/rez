@@ -1,3 +1,65 @@
+[project]
+name = "rez"
+description = '''A cross-platform packaging system that can build and
+install multiple version of packages, and dynamically
+configure resolved environments at runtime.
+'''
+readme = "README.md"
+authors = [
+    {name = "Allan Johns", email = "nerdvegas@gmail.com"},
+]
+maintainers = [
+    {name = "Contributors to the rez project", email = "rez-discussion@lists.aswf.io"}
+]
+license = { text = "Apache-2.0" }
+license-files = { paths = ["LICENSE", "NOTICE", "THIRD_PARTY.md"] }
+keywords = ["package", "resolve", "version", "build", "install", "software", "management"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development",
+    "Topic :: System :: Software Distribution"
+]
+requires-python = ">=3.7"
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://rez.readthedocs.io"
+"Source code" = "https://github.com/AcademySoftwareFoundation/rez"
+
 [build-system]
-requires = ["setuptools", "wheel", "ziglang", "packaging"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "distlib", "packaging", "ziglang"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "code"
+path = "src/rez/utils/_version.py"
+expression = "_rez_version"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/*.y*",
+    "/.github",
+    "/ASWF",
+    "/docs",
+    "/example*",
+    "/media",
+    "/metrics",
+    "/repository",
+    "/*.properties",
+    "/src/build_utils",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rez", "src/rezgui", "src/rezplugins"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
