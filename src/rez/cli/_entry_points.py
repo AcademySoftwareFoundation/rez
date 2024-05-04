@@ -9,11 +9,19 @@ import os
 import os.path
 import sys
 import json
+import dataclasses
+import typing
+
+
+@dataclasses.dataclass
+class EntryPoint:
+    type: str
+    func: str
 
 
 ### Utility functions
 
-def get_specifications():
+def get_specifications() -> typing.Dict[str, EntryPoint]:
     """Get entry point specifications
 
     See:
@@ -35,8 +43,7 @@ def get_specifications():
     for attr, obj in sys.modules[__name__].__dict__.items():
         scriptname = getattr(obj, "__scriptname__", None)
         if scriptname:
-            specs[scriptname] = {"func": attr, "type": getattr(obj, "__scripttype__")}
-
+            specs[scriptname] = EntryPoint(func=attr, type=getattr(obj, "__scripttype__"))
     return specs
 
 
