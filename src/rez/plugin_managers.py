@@ -9,7 +9,7 @@ import pkgutil
 import os.path
 import sys
 from types import ModuleType
-from typing import Dict, Type
+from typing import Dict, List, Optional, Type
 from zipimport import zipimporter
 
 from rez.config import config, expand_system_vars, _load_config_from_filepaths
@@ -24,7 +24,7 @@ from rez.exceptions import RezPluginError
 # modified from pkgutil standard library:
 # this function is called from the __init__.py files of each plugin type inside
 # the 'rezplugins' package.
-def extend_path(path, name):
+def extend_path(path: List[str], name: str):
     """Extend a package's path.
 
     Intended use is to place the following code in a package's __init__.py:
@@ -89,15 +89,15 @@ class RezPluginType(object):
     'type_name' must correspond with one of the source directories found under
     the 'plugins' directory.
     """
-    type_name = None
+    type_name: Optional[str] = None
 
     def __init__(self):
         if self.type_name is None:
             raise TypeError("Subclasses of RezPluginType must provide a "
                             "'type_name' attribute")
-        self.pretty_type_name = self.type_name.replace('_', ' ')
+        self.pretty_type_name: str = self.type_name.replace('_', ' ')
         self.plugin_classes: Dict[str, Type[object]] = {}
-        self.failed_plugins = {}
+        self.failed_plugins: Dict[str, str] = {}
         self.plugin_modules: Dict[str, ModuleType] = {}
         self.config_data: Dict[str, Dict] = {}
         self.load_plugins()
