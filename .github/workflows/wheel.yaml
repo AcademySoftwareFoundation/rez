@@ -76,7 +76,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        # Run on macos-13 to get conda... We should install miniconda manually.
+        os: [macos-13, ubuntu-latest, windows-latest]
 
     env:
       CURRENT_PLATFORM: ${{ matrix.os }}
