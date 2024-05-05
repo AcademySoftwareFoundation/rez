@@ -64,8 +64,8 @@ jobs:
       run: |
         cd dist
         unzip *.whl
-        dumpbin.exe /DEPENDENTS rez-2.113.0.data/scripts/rez/rez.exe
-        echo ((Get-Item -Path rez-2.113.0.data/scripts/rez/rez.exe).Length / 1kb)
+        dumpbin.exe /DEPENDENTS rez-*.data/scripts/rez/rez.exe
+        echo ((Get-Item -Path rez-*.data/scripts/rez/rez.exe).Length / 1kb)
 
   test:
     name: Test wheels
