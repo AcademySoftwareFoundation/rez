@@ -311,7 +311,7 @@ def install_dependent():
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
+            if os.getenv("__REZ_SELFTEST_RUNNING"):
                 return func(self, *args, **kwargs)
             else:
                 self.skipTest(

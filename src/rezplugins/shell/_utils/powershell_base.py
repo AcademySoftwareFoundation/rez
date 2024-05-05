@@ -147,8 +147,7 @@ class PowerShellBase(Shell):
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
-                if system.is_production_rez_install:
-                    ex.command("rezolve context")
+                ex.command("rezolve context")
 
         executor = RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},

@@ -366,18 +366,6 @@ class PackageCache(object):
         This method is called when a context is created or sourced. Variants
         are then added to the cache in a separate process.
         """
-
-        # A prod install is necessary because add_variants_async works by
-        # starting a rez-pkg-cache proc, and this can only be done reliably in
-        # a prod install. On non-windows we could fork instead, but there would
-        # remain no good solution on windows.
-        #
-        if not system.is_production_rez_install:
-            raise PackageCacheError(
-                "PackageCache.add_variants_async is only supported in a "
-                "production rez installation."
-            )
-
         variants_ = []
 
         # trim down to those variants that are cachable, and not already cached
