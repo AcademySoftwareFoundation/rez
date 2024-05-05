@@ -10,7 +10,6 @@ from rez.util import shlex_join, is_non_string_iterable
 from rez.utils.which import which
 from rez.utils.logging_ import print_warning
 from rez.utils.execution import Popen
-from rez.system import system
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config

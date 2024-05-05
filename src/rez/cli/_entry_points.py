@@ -60,7 +60,9 @@ def register(name, _type=EntryPointType.console):
         return fn
     return decorator
 
+
 ### Entry points
+
 
 @register("rez")
 def run_rez():

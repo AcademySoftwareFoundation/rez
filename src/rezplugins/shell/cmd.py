@@ -8,7 +8,6 @@ Windows Command Prompt (DOS) shell.
 from rez.config import config
 from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
 from rez.shells import Shell
-from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from ._utils.windows import to_windows_path, get_syspaths_from_registry
