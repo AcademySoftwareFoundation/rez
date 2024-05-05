@@ -4,6 +4,7 @@
 
 import os
 import sys
+import stat
 import shutil
 import struct
 import typing
@@ -122,6 +123,11 @@ class CustomBuildHook(BuildHookInterface):
                 shutil.copy(launcher_path, exe_path)
 
                 scripts[exe_path] = os.path.join("rez", exe_path.name)
+            else:
+                # See https://github.com/pypa/distutils/blob/e5b06e144d1e57e0efebbc943bf071cd22e46da8/distutils/command/build_scripts.py#L143-L147
+                oldmode = path.stat()[stat.ST_MODE] & 0o7777
+                newmode = (oldmode | 0o555) & 0o7777
+                path.chmod(newmode)
 
             scripts[path] = os.path.join("rez", filename)
 
