@@ -229,7 +229,7 @@ class System(object):
         else:
             bin_dirname = "bin"
 
-        binpath = os.path.join(parts[:i] + [bin_dirname, "rez"])
+        binpath = os.path.sep.join(parts[:i] + [bin_dirname, "rez"])
         if os.path.exists(binpath):
             return os.path.realpath(binpath)
 
