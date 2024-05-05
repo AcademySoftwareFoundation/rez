@@ -27,7 +27,7 @@ src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
-from rez.cli._entry_points import get_specifications
+from rez.cli._entry_points import get_specifications, EntryPointType
 
 
 def find_files(pattern, path=None, root="rez"):
@@ -140,16 +140,19 @@ class rez_build_scripts(build_scripts):
             filename = command
             if platform.system() == "Windows":
                 filename = "{0}-script.py".format(command)
+                if spec.type == "gui":
+                    # For GUI scripts, the launcher will search for a file name <script>.pyw.
+                    filename += "w"
 
             path = os.path.join(tmpdir, filename)
             with open(path, "w") as fd:
-                fd.write(SCRIPT_TEMPLATE.format(spec["func"]))
+                fd.write(SCRIPT_TEMPLATE.format(spec.func))
 
             scripts.append(path)
 
             if platform.system() == "Windows":
                 launcher_path = cli_launcher_path
-                if spec["type"] == "window":
+                if spec.type == "gui":
                     launcher_path = gui_launcher_path
 
                 self.copy_file(

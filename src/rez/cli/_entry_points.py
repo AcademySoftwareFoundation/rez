@@ -11,11 +11,17 @@ import sys
 import json
 import dataclasses
 import typing
+import enum
+
+
+class EntryPointType(enum.Enum):
+    console = 1
+    gui = 2
 
 
 @dataclasses.dataclass
 class EntryPoint:
-    type: str
+    type: EntryPointType
     func: str
 
 
@@ -47,7 +53,7 @@ def get_specifications() -> typing.Dict[str, EntryPoint]:
     return specs
 
 
-def register(name, _type="console"):
+def register(name, _type=EntryPointType.console):
     def decorator(fn):
         setattr(fn, "__scriptname__", name)
         setattr(fn, "__scripttype__", _type)
@@ -130,7 +136,7 @@ def run_rez_env():
     return run("env")
 
 
-@register("rez-gui", "window")
+@register("rez-gui", EntryPointType.gui)
 def run_rez_gui():
     from rez.cli._main import run
     return run("gui")
