@@ -500,19 +500,6 @@ class PackageCache(object):
     def add_variants(self, variants: Iterable[Variant], package_cache_async: bool = True) -> None:
         """Add the given variants to the package payload cache.
         """
-
-        # A prod install is necessary for async caching because add_variants
-        # works by starting a rez-pkg-cache proc, and this can only be done
-        # reliably in a prod install. On non-windows we could fork instead, but
-        # there would remain no good solution on windows.
-        #
-        if package_cache_async and not system.is_production_rez_install:
-            raise PackageCacheError(
-                "Asynchronous package caching is only supported in a "
-                "production rez installation. Use synchronous caching "
-                "(package_cache_async = False) in non-production installs."
-            )
-
         variants_ = []
         cachable_statuses = {
             self.VARIANT_NOT_FOUND,

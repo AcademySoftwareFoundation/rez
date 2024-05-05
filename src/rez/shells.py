@@ -429,8 +429,7 @@ class UnixShell(Shell):
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
-                if system.is_production_rez_install:
-                    ex.command('rezolve context')
+                ex.command('rezolve context')
 
         def _write_shell(ex: RexExecutor, filename: str):
             code = ex.get_output()
