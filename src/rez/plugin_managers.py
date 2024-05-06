@@ -340,7 +340,7 @@ class RezPluginManager(object):
             raise RezPluginError("Unrecognised plugin type: '%s'"
                                  % plugin_type)
 
-    def register_plugin_type(self, type_class: RezPluginType):
+    def register_plugin_type(self, type_class: Type[RezPluginType]):
         if not issubclass(type_class, RezPluginType):
             raise TypeError("'type_class' must be a RezPluginType sub class")
         if type_class.type_name is None:
