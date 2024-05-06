@@ -388,7 +388,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if testing:
-         env.FOO_TEST_DATA_PATH = "{root}/tests/data"
+          env.FOO_TEST_DATA_PATH = "{root}/tests/data"
 
 .. py:function:: command(arg: str)
 
