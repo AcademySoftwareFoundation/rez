@@ -1,6 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+import os
+import re
+import copy
+
+from contextlib import contextmanager
+from functools import lru_cache
+from inspect import ismodule
+import typing
 
 from rez import __version__
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
@@ -16,12 +24,6 @@ from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 import rez.deprecations
-from contextlib import contextmanager
-from functools import lru_cache
-from inspect import ismodule
-import os
-import re
-import copy
 
 
 class _Deprecation(object):
@@ -802,7 +804,7 @@ class Config(object, metaclass=LazyAttributeMeta):
 
 class _PluginConfigs(object):
     """Lazy config loading for plugins."""
-    def __init__(self, plugin_data):
+    def __init__(self, plugin_data: typing.Dict[str, typing.Any]):
         self.__dict__['_data'] = plugin_data
 
     def __setattr__(self, attr, value):
