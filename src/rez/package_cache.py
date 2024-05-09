@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
+from rez.vendor.progress.spinner import PixelSpinner
 from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
     forceful_rmtree
 from rez.utils.colorize import ColorizedStreamHandler
@@ -241,31 +242,28 @@ class PackageCache(object):
         status, rootpath = self._get_cached_root(variant)
         if status in no_op_statuses:
             if logger:
-                logger.warning(f"Not caching {variant.name}-{variant.version}. "
+                logger.warning(f"Not caching {variant.qualified_name}. "
                                f"Variant {self.STATUS_DESCRIPTIONS[status]}")
             return (rootpath, status)
 
         if wait_for_copying and status == self.VARIANT_COPYING:
-            ticks = 0
+            spinner = PixelSpinner(f"Waiting for {variant.qualified_name} to finish copying. ")
             while status == self.VARIANT_COPYING:
-                self._print_with_spinner(
-                    f"Waiting for {variant.name}-{variant.version} to finish copying.", ticks)
-                ticks += 1
-
+                spinner.next()
                 time.sleep(self._COPYING_TIME_INC)
                 status, rootpath = self._get_cached_root(variant)
             else:
                 # Status has changed, so report the change and return
                 if logger:
                     if status in no_op_statuses:
-                        logger.warning(f"{variant.name}-{variant.version} "
+                        logger.warning(f"{variant.qualified_name} "
                                        f"{self.STATUS_DESCRIPTIONS[status]}")
                     elif status == self.VARIANT_FOUND:
                         # We have resolved into a satisfactory state
-                        logger.info(f"{variant.name}-{variant.version} "
+                        logger.info(f"{variant.qualified_name} "
                                     f"{self.STATUS_DESCRIPTIONS[status]}")
                     else:
-                        logger.warning(f"{variant.name}-{variant.version} "
+                        logger.warning(f"{variant.qualified_name} "
                                        f"{self.STATUS_DESCRIPTIONS[status]}")
                 return (rootpath, status)
 
@@ -957,13 +955,3 @@ class PackageCache(object):
         dirs.append(hash_dirname)
 
         return os.path.join(*dirs)
-
-    @staticmethod
-    def _print_with_spinner(message, ticks):
-        """
-        Report a message with a spinner wheel to indicate progress.
-        """
-        wheel = "⣾⣽⣻⢿⡿⣟⣯⣷"
-        ticks = ticks % len(wheel)
-        spinner = wheel[ticks:1 + ticks]
-        print(f" {spinner} {message}", end="\r")
