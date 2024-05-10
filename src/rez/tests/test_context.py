@@ -283,6 +283,7 @@ class TestContext(TestBase, TempdirMixin):
 
         callback = ResolvedContext.Callback(max_fails=999, time_limit=0, callback=solver_callback, buf=sys.stdout)
         solve_state = SolverState(3, 1, None)
+        # TODO: Can't seem to get this mock to work for some reason.
         # Mock start time to be Jan 1, 1970.
         with unittest.mock.patch('rez.resolved_context.ResolvedContext.Callback.start_time',
                                         new_callable=unittest.mock.PropertyMock, return_value=0):
