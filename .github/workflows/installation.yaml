@@ -44,7 +44,7 @@ jobs:
           REZ_INSTALL_COMMAND: python ./install.py /opt/rez
         - os: ubuntu-24.04
           method: pip
-          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin PYTHONPATH=${PYTHONPATH}:/opt/rez'
+          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin/rez PYTHONPATH=${PYTHONPATH}:/opt/rez'
           REZ_INSTALL_COMMAND: |
             set -ex
             python -m pip install virtualenv
@@ -57,12 +57,12 @@ jobs:
           REZ_INSTALL_COMMAND: python ./install.py ~/rez
         - os: macos-latest
           method: pip
-          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
+          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin/rez" PYTHONPATH=$PYTHONPATH:$HOME/rez'
           REZ_INSTALL_COMMAND: |
             set -ex
             python -m pip install virtualenv
-            python -m virtualenv /opt/rez
-            /opt/rez/bin/python -m pip install .
+            python -m virtualenv ~/rez
+            ~/rez/bin/python -m pip install .
         # windows
         - os: windows-latest
           method: install
