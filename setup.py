@@ -56,7 +56,7 @@ import os
 import re
 import sys
 import platform
-# If -E is not passed, then inject it and re-execute outself.
+# If -E is not passed, then inject it and re-execute ourselves.
 # Note that this is not done on Windows because the Windows launcher
 # already does this.
 if not sys.flags.ignore_environment and platform.system() != 'Windows':
