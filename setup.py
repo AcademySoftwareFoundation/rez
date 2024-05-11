@@ -160,12 +160,6 @@ class rez_build_scripts(build_scripts):
                     os.path.join(self.build_dir, "{0}.exe".format(command))
                 )
 
-        prod_install_path = os.path.join(tmpdir, ".rez_production_install")
-        with open(prod_install_path, "w") as fd:
-            fd.write(_rez_version)
-
-        scripts.append(prod_install_path)
-
         self.scripts = scripts
         return build_scripts.run(self)
 
