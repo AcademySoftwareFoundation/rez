@@ -175,7 +175,7 @@ def install(dest_dir, print_welcome=False, editable=False):
     if print_welcome:
         print()
         print("SUCCESS!")
-        rez_exe = os.path.realpath(os.path.join(dest_bin_dir))
+        rez_exe = os.path.realpath(os.path.join(dest_bin_dir, "rez"))
         print("Rez executable installed to: %s" % rez_exe)
 
         try:
