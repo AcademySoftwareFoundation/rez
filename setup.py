@@ -182,8 +182,8 @@ class rez_wheel(bdist_wheel):
     def get_tag(self):
         if platform.system() == "Windows":
             # Use same tag as cmake package.
-            return ("py2.py3", "none", _get_platform())
-        return ("py2.py3", "none", "any")
+            return ("py3", "none", _get_platform())
+        return ("py3", "none", "any")
 
 
 setup(
