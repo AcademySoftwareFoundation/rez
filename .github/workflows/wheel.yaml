@@ -126,14 +126,7 @@ jobs:
     - name: Integration test
       shell: bash
       run: |
-        set -e
-
-        if [[ "${CURRENT_PLATFORM}" != "windows-latest" ]]; then
-            eval "$(conda shell.bash hook)"
-            conda activate base
-        fi
-
-        set -x
+        set -ex
 
         interpreter_path=""
         export REZ_PACKAGES_PATH="~/rez_packages"
@@ -144,10 +137,10 @@ jobs:
             interpreter_path=.'venv/bin/python'
             export PATH=$(pwd)/.venv/bin/rez:$PATH
         fi
-        "${interpreter_path}" .github/scripts/create_python_package.py 3.7.9 $REZ_PACKAGES_PATH
+        "${interpreter_path}" .github/scripts/create_python_package.py 3.12.3 $REZ_PACKAGES_PATH
 
         # First, test that the "python" package is found and is the right version.
-        test "$(rez-env python -- python --version)" = 'Python 3.7.9'
+        test "$(rez-env python -- python --version)" = 'Python 3.12.3'
 
         # Now test that the -E flag is used. This manifest with sys.flags.ignore_environment=1
         test $(rez-env python -- _rez-install-test | jq '.sysflags.ignore_environment' -r) -eq 1

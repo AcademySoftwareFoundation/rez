@@ -1,9 +1,7 @@
 import os
-import zipfile
+import tarfile
 import argparse
 import platform
-import tempfile
-import subprocess
 import urllib.request
 
 import rez.packages
@@ -17,35 +15,19 @@ parser.add_argument("repository", help="Repository path")
 args = parser.parse_args()
 
 
+INTERPRETERS = {
+    ("Windows", "AMD64"): "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-{version}+20240415-x86_64-pc-windows-msvc-install_only.tar.gz",
+    ("Linux", "x86_64"): "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-{version}+20240415-x86_64-unknown-linux-gnu-install_only.tar.gz",
+    ("Darwin", "x86_64"): "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-{version}+20240415-x86_64-apple-darwin-install_only.tar.gz",
+}
+
 def make_root(variant: rez.packages.Variant, path: str):
-    dest = os.path.join(path, "python")
+    url = INTERPRETERS[(platform.system(), platform.machine())]
 
-    if platform.system() == "Windows":
-        with tempfile.TemporaryDirectory() as tmpdir:
-            archive_path = os.path.join(tmpdir, "python.nupkg")
-
-            url = f"https://globalcdn.nuget.org/packages/python.{variant.version}.nupkg"
-
-            print(f"Downloading {url!r}")
-            with urllib.request.urlopen(url) as archive:
-                with open(archive_path, "wb") as targetFile:
-                    targetFile.write(archive.read())
-
-            with zipfile.ZipFile(archive_path) as archive:
-                print(f"Extracting {archive_path!r} to {dest!r}")
-                archive.extractall(path=dest)
-    else:
-        cmd = [
-            "conda",
-            "create",
-            "--prefix",
-            dest,
-            f"python={args.version}",
-            "pip",
-            "--yes",
-        ]
-        print(f"Running {' '.join(cmd)!r}")
-        subprocess.check_call(cmd)
+    print(f"Downloading {url!r} and extracting to {path!r}")
+    with urllib.request.urlopen(url.format(version=variant.version)) as response:
+        tar = tarfile.open(fileobj=response, mode="r:gz")
+        tar.extractall(path=path)
 
 
 with rez.package_maker.make_package(
@@ -57,8 +39,8 @@ with rez.package_maker.make_package(
     ]
     if platform.system() == "Windows":
         commands = [
-            "env.PATH.prepend('{root}/python/tools')",
-            "env.PATH.prepend('{root}/python/tools/DLLs')",
+            "env.PATH.prepend('{root}/python')",
+            "env.PATH.prepend('{root}/python/DLLs')",
         ]
 
     package.commands = "\n".join(commands)
