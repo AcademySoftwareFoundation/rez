@@ -95,6 +95,8 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
+      # Run on both success and failure.
+      if: success() || failure()
       with:
         slug: AcademySoftwareFoundation/rez
         files: 'coverage.xml'
