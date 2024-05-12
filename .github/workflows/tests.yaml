@@ -89,12 +89,15 @@ jobs:
       run: rez-python -m pip install pytest-cov parameterized
 
     - name: Run tests
+      id: tests
       run: rez-selftest -v -- --cov=rez --cov-report=xml:coverage.xml
       env:
         _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
+      # Run on both success and failure, but only if coverage.xml exists.
+      if: ${{ hashFiles('coverage.xml') != '' && (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') }}
       with:
         slug: AcademySoftwareFoundation/rez
         files: 'coverage.xml'
