@@ -87,6 +87,9 @@ def setup_parser(parser, completions=False):
         "-p", "--prefix", type=str, metavar='PATH',
         help="install to a custom package repository path.")
     parser.add_argument(
+        "-a", "--artifact-path", type=str,
+        help="install to a custom artifact repository path.")
+    parser.add_argument(
         "--fail-graph", action="store_true",
         help="if the build environment fails to resolve due to a conflict, "
         "display the resolve graph as an image.")
@@ -154,6 +157,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     try:
         builder.build(install_path=opts.prefix,
+                      artifact_path=opts.artifact_path,
                       clean=opts.clean,
                       install=opts.install,
                       variants=opts.variants)
