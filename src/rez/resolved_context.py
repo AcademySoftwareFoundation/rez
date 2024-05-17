@@ -19,7 +19,7 @@ from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
 from rez.utils.which import which
-from rez.rex import RexExecutor, Python, OutputStyle
+from rez.rex import RexExecutor, Python, OutputStyle, literal
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding, EphemeralsBinding, intersects
 from rez import package_order
@@ -1979,7 +1979,7 @@ class ResolvedContext(object):
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
         executor.setenv("REZ_USED_REQUESTED_TIMESTAMP", req_timestamp_str)
         executor.setenv("REZ_USED_REQUEST", request_str)
-        executor.setenv("REZ_USED_IMPLICIT_PACKAGES", implicit_str)
+        executor.setenv("REZ_USED_IMPLICIT_PACKAGES", literal(implicit_str))
         executor.setenv("REZ_USED_RESOLVE", resolve_str)
         executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
 
