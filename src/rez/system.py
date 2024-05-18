@@ -14,6 +14,7 @@ from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
 from rez.utils.data_utils import cached_property
 from rez.utils.filesystem import real_path
+import rez.deprecations
 
 
 class System(object):
@@ -244,6 +245,21 @@ class System(object):
             return real_path(binpath)
 
         return None
+
+    @property
+    def is_production_rez_install(self) -> bool:
+        """Return True if this is a production rez install.
+
+        .. deprecated:: 3.2.0
+           Starting from 3.2.0, all installs are production installs. This function will be removed
+           in a future version.
+        """
+        rez.deprecations.warn(
+            "system.is_production_rez_install is deprecated and slated for "
+            "removal in a future version.",
+            rez.deprecations.RezDeprecationWarning,
+        )
+        return True
 
     @property
     def selftest_is_running(self):
