@@ -13,8 +13,9 @@ from rez.utils.execution import Popen
 from rez.exceptions import RezSystemError
 from rez.rex import EscapedString
 from rez.config import config
+from rez.system import system
 import os
-import os.path
+import sys
 from shlex import quote
 
 
@@ -397,7 +398,10 @@ class UnixShell(Shell):
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
-                ex.command('rezolve context')
+                # Call python with -E directly to avoid the double cost of executing
+                # rezolve when the CLI is installed via pip.
+                rezolve = os.path.join(system.rez_bin_path, 'rezolve')
+                ex.command(f'{sys.executable} -E {rezolve} context')
 
         def _write_shell(ex, filename):
             code = ex.get_output()
