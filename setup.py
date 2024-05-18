@@ -63,6 +63,10 @@ if not sys.flags.ignore_environment and platform.system() != 'Windows':
     args = [sys.executable, '-E'] + sys.argv
     if os.getenv('REZ_LAUNCHER_DEBUG'):
         print('Launching:', ' '.join(args))
+
+    # Note that this has a slight impact on performance.
+    # The impact is even greater when running an interactive rez-env command.
+    # since the rezolve command will also run twice.
     os.execvp(sys.executable, args)
 from rez.cli._entry_points import {0}
 if __name__ == '__main__':
@@ -180,6 +184,19 @@ class rez_wheel(bdist_wheel):
         return ("py3", "none", "any")
 
 
+scripts = []
+cmdclass = {}
+entrypoints = {}
+# If USE_STANDARD_LAUNCHER is set to 1, it means that the user don't want to use the new
+# launcher. This could be for performance reasons.
+if os.environ.get("REZ_USE_STANDARD_LAUNCHER") != "1":
+    cmdclass = {"build_scripts": rez_build_scripts, "bdist_wheel": rez_wheel}
+    scripts = list(get_specifications().keys())
+else:
+    entrypoints ={
+        "console_scripts": [ep.spec for ep in get_specifications().values()]
+    }
+
 setup(
     name="rez",
     version=_rez_version,
@@ -196,7 +213,8 @@ setup(
     maintainer_email="rez-discussion@lists.aswf.io",
     license="Apache-2.0",
     license_files=["LICENSE"],
-    scripts=list(get_specifications().keys()),
+    entrypoints=entrypoints,
+    scripts=scripts,
     zip_safe=False,
     package_dir={'': 'src'},
     packages=find_packages('src', exclude=["build_utils",
@@ -233,8 +251,5 @@ setup(
         "Topic :: System :: Software Distribution"
     ],
     python_requires=">=3.7",
-    cmdclass={
-        "build_scripts": rez_build_scripts,
-        "bdist_wheel": rez_wheel,
-    },
+    cmdclass=cmdclass,
 )

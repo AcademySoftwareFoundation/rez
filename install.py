@@ -78,19 +78,23 @@ def get_virtualenv_py_executable(dest_dir):
     return bin_dir, which("python", env=env)
 
 
-def run_command(args, cwd=source_path):
+def run_command(args, cwd=source_path, env=None):
     if opts.verbose:
         print("running in %s: %s" % (cwd, " ".join(args)))
-    return subprocess.check_output(args, cwd=source_path)
+
+    if env is None:
+        env = os.environ.copy()
+
+    return subprocess.check_output(args, cwd=source_path, env=env)
 
 
 def patch_rez_binaries(dest_dir):
     virtualenv_bin_path, py_executable = get_virtualenv_py_executable(dest_dir)
 
-    specs = get_specifications()
+    entrypoints = get_specifications()
 
     # delete rez bin files written into virtualenv
-    for name in specs.keys():
+    for name in entrypoints.keys():
         basepath = os.path.join(virtualenv_bin_path, name)
         filepaths = [
             basepath,
@@ -119,7 +123,7 @@ def patch_rez_binaries(dest_dir):
     maker.executable = py_executable
 
     maker.make_multiple(
-        specifications=specs.values(),
+        specifications=[ep.spec for ep in entrypoints.values()],
         # the -E arg is crucial - it means rez cli tools still work within a
         # rez-resolved env, even if PYTHONPATH or related env-vars would have
         # otherwise changed rez's behaviour
@@ -162,7 +166,10 @@ def install(dest_dir, print_welcome=False, editable=False):
     install_rez_from_source(dest_dir, editable=editable)
 
     # patch the rez binaries
-    # patch_rez_binaries(dest_dir)
+    # Note that we don't use our custom launcher when using the installer.
+    # This is for performance reasons as the new launcher as a slight startup cost
+    # increase compared to our patched binaries on Unix.
+    patch_rez_binaries(dest_dir)
 
     # copy completion scripts into virtualenv
     completion_path = copy_completion_scripts(dest_dir)
@@ -227,7 +234,15 @@ def install_rez_from_source(dest_dir, editable):
     if editable:
         args.append("-e")
     args.append(".")
-    run_command(args)
+
+    env = os.environ.copy()
+
+    # patch the rez binaries
+    # Note that we don't use our custom launcher when using the installer.
+    # This is for performance reasons as the new launcher as a slight startup cost
+    # increase compared to our patched binaries on Unix.
+    env["REZ_USE_STANDARD_LAUNCHER"] = "1"
+    run_command(args, env=env)
 
 
 def install_as_rez_package(repo_path):
