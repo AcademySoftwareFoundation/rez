@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import platform
 import os
 import os.path
@@ -18,7 +20,7 @@ from tempfile import gettempdir
 class Platform(object):
     """Abstraction of a platform.
     """
-    name = None
+    name: str
 
     def __init__(self):
         pass
@@ -555,7 +557,8 @@ class WindowsPlatform(Platform):
 
 
 # singleton
-platform_ = None
+# FIXME: is is valid for platform_ to be None?
+platform_: Platform = None
 name = platform.system().lower()
 if name == "linux":
     platform_ = LinuxPlatform()

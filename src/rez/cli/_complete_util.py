@@ -93,9 +93,10 @@ class FilesCompleter(object):
             return []
 
         matching_names = []
-        names = (x for x in names if x.startswith(fileprefix))
 
         for name in names:
+            if not name.startswith(fileprefix):
+                continue
             filepath = os.path.join(path, name)
             if os.path.isfile(filepath):
                 if not self.files:

@@ -5,6 +5,8 @@
 """
 Utilities related to managing data types.
 """
+from __future__ import annotations
+
 import os.path
 import json
 import functools
@@ -12,6 +14,9 @@ from collections.abc import MutableMapping
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
+from typing import Generic, TypeVar, TYPE_CHECKING
+
+T = TypeVar("T")
 
 
 class ModifyList(object):
@@ -213,50 +218,53 @@ def get_dict_diff_str(d1, d2, title):
     return '\n'.join(lines)
 
 
-class cached_property(object):
-    """Simple property caching descriptor.
+if TYPE_CHECKING:
+    cached_property = property
+else:
+    class cached_property(object):
+        """Simple property caching descriptor.
 
-    Example:
+        Example:
 
-        >>> class Foo(object):
-        >>>     @cached_property
-        >>>     def bah(self):
-        >>>         print('bah')
-        >>>         return 1
-        >>>
-        >>> f = Foo()
-        >>> f.bah
-        bah
-        1
-        >>> f.bah
-        1
-    """
-    def __init__(self, func, name=None):
-        self.func = func
-        # Make sure that Sphinx autodoc can follow and get the docstring from our wrapped function.
-        functools.update_wrapper(self, func)
-        self.name = name or func.__name__
+            >>> class Foo(object):
+            >>>     @cached_property
+            >>>     def bah(self):
+            >>>         print('bah')
+            >>>         return 1
+            >>>
+            >>> f = Foo()
+            >>> f.bah
+            bah
+            1
+            >>> f.bah
+            1
+        """
+        def __init__(self, func, name=None):
+            self.func = func
+            # Make sure that Sphinx autodoc can follow and get the docstring from our wrapped function.
+            functools.update_wrapper(self, func)
+            self.name = name or func.__name__
 
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            return self
+        def __get__(self, instance, owner=None):
+            if instance is None:
+                return self
 
-        result = self.func(instance)
-        try:
-            setattr(instance, self.name, result)
-        except AttributeError:
-            raise AttributeError("can't set attribute %r on %r"
-                                 % (self.name, instance))
-        return result
+            result = self.func(instance)
+            try:
+                setattr(instance, self.name, result)
+            except AttributeError:
+                raise AttributeError("can't set attribute %r on %r"
+                                     % (self.name, instance))
+            return result
 
-    # This is to silence Sphinx that complains that cached_property is not a callable.
-    def __call__(self):
-        raise RuntimeError("@cached_property should not be called.")
+        # This is to silence Sphinx that complains that cached_property is not a callable.
+        def __call__(self):
+            raise RuntimeError("@cached_property should not be called.")
 
-    @classmethod
-    def uncache(cls, instance, name):
-        if hasattr(instance, name):
-            delattr(instance, name)
+        @classmethod
+        def uncache(cls, instance, name):
+            if hasattr(instance, name):
+                delattr(instance, name)
 
 
 class cached_class_property(object):
@@ -293,16 +301,16 @@ class cached_class_property(object):
         return result
 
 
-class LazySingleton(object):
+class LazySingleton(Generic[T]):
     """A threadsafe singleton that initialises when first referenced."""
-    def __init__(self, instance_class, *nargs, **kwargs):
+    def __init__(self, instance_class: type[T], *nargs, **kwargs):
         self.instance_class = instance_class
         self.nargs = nargs
         self.kwargs = kwargs
         self.lock = Lock()
-        self.instance = None
+        self.instance: T | None = None
 
-    def __call__(self):
+    def __call__(self) -> T:
         if self.instance is None:
             try:
                 self.lock.acquire()
