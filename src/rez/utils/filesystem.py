@@ -115,6 +115,7 @@ def make_path_writable(path):
         yield
     finally:
         if new_mode != orig_mode:
+            assert orig_mode is not None
             os.chmod(path, orig_mode)
 
 

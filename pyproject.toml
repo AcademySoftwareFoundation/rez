@@ -1,3 +1,20 @@
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.mypy]
+files = ["src/rez/", "src/rezplugins/"]
+exclude = [
+    '.*/rez/data/.*',
+    '.*/rez/vendor/.*',
+    '.*/rez/tests/.*',
+    '.*/rez/utils/lint_helper.py',
+]
+disable_error_code = ["var-annotated", "import-not-found"]
+check_untyped_defs = true
+# allow this for now:
+allow_redefinition = true
+
+[[tool.mypy.overrides]]
+module = 'rez.utils.lint_helper'
+follow_imports = "skip"

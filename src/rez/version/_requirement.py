@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
-
+from __future__ import annotations
 
 from rez.version._version import Version, VersionRange
 from rez.version._util import _Common
 import re
+from typing import Iterator
 
 
 class VersionedObject(_Common):
@@ -20,15 +21,18 @@ class VersionedObject(_Common):
     sep_regex_str = r'[-@#]'
     sep_regex = re.compile(sep_regex_str)
 
-    def __init__(self, s):
+    def __init__(self, s: str):
         """
         Args:
             s (str):
         """
-        self.name_ = None
-        self.version_ = None
+        self.name_: str
+        self.version_: Version
         self.sep_ = '-'
+
         if s is None:
+            # this is a special case in VersionedObject.construct, but name and version_
+            # are always set.
             return
 
         m = self.sep_regex.search(s)
@@ -43,20 +47,20 @@ class VersionedObject(_Common):
             self.version_ = Version()
 
     @classmethod
-    def construct(cls, name, version=None):
+    def construct(cls, name: str, version: Version | None = None) -> VersionedObject:
         """Create a VersionedObject directly from an object name and version.
 
         Args:
             name (str): Object name string.
             version (typing.Optional[Version]): Version object.
         """
-        other = VersionedObject(None)
+        other = VersionedObject(None)  # type: ignore[arg-type]  # special case
         other.name_ = name
         other.version_ = Version() if version is None else version
         return other
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Name of the object.
 
         Returns:
@@ -65,7 +69,7 @@ class VersionedObject(_Common):
         return self.name_
 
     @property
-    def version(self):
+    def version(self) -> Version:
         """Version of the object.
 
         Returns:
@@ -73,7 +77,7 @@ class VersionedObject(_Common):
         """
         return self.version_
 
-    def as_exact_requirement(self):
+    def as_exact_requirement(self) -> str:
         """Get the versioned object, as an exact requirement string.
 
         Returns:
@@ -86,15 +90,15 @@ class VersionedObject(_Common):
             ver_str = str(self.version_)
         return self.name_ + sep_str + ver_str
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (isinstance(other, VersionedObject)
                 and (self.name_ == other.name_)
                 and (self.version_ == other.version_))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.name_, self.version_))
 
-    def __str__(self):
+    def __str__(self) -> str:
         sep_str = ''
         ver_str = ''
         if self.version_:
@@ -137,18 +141,20 @@ class Requirement(_Common):
     """
     sep_regex = re.compile(r'[-@#=<>]')
 
-    def __init__(self, s, invalid_bound_error=True):
+    def __init__(self, s: str | None, invalid_bound_error: bool = True):
         """
         Args:
             s (str): Requirement string
             invalid_bound_error (bool): If True, raise :exc:`VersionError` if an
                 impossible range is given, such as ``3+<2``.
         """
-        self.name_ = None
-        self.range_ = None
+        # there are two constructors where Requirement(None) is called, but they
+        # both set self.name, so we do not set its value to None here.
+        self.name_: str
+        self.range_: VersionRange | None = None
         self.negate_ = False
         self.conflict_ = False
-        self._str = None
+        self._str: str | None = None
         self.sep_ = '-'
         if s is None:
             return
@@ -183,7 +189,7 @@ class Requirement(_Common):
             self.range_ = VersionRange()
 
     @classmethod
-    def construct(cls, name, range=None):
+    def construct(cls, name: str, range: VersionRange | None = None) -> Requirement:
         """Create a requirement directly from an object name and VersionRange.
 
         Args:
@@ -197,7 +203,7 @@ class Requirement(_Common):
         return other
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Name of the required object.
 
         Returns:
@@ -206,7 +212,7 @@ class Requirement(_Common):
         return self.name_
 
     @property
-    def range(self):
+    def range(self) -> VersionRange:
         """Version range of the requirement.
 
         Returns:
@@ -215,7 +221,7 @@ class Requirement(_Common):
         return self.range_
 
     @property
-    def conflict(self):
+    def conflict(self) -> bool:
         """True if the requirement is a conflict requirement, eg "!foo", "~foo-1".
 
         Returns:
@@ -224,7 +230,7 @@ class Requirement(_Common):
         return self.conflict_
 
     @property
-    def weak(self):
+    def weak(self) -> bool:
         """True if the requirement is weak, eg "~foo".
 
         .. note::
@@ -236,7 +242,7 @@ class Requirement(_Common):
         """
         return self.negate_
 
-    def safe_str(self):
+    def safe_str(self) -> str:
         """Return a string representation that is safe for the current filesystem,
         and guarantees that no two different Requirement objects will encode to
         the same value.
@@ -246,7 +252,7 @@ class Requirement(_Common):
         """
         return str(self)
 
-    def conflicts_with(self, other):
+    def conflicts_with(self, other: object) -> bool:
         """Returns True if this requirement conflicts with another :class:`Requirement`
         or :class:`VersionedObject`.
 
@@ -264,15 +270,17 @@ class Requirement(_Common):
                 return other.range_.issuperset(self.range_)
             else:
                 return not self.range_.intersects(other.range_)
-        else:  # VersionedObject
+        elif isinstance(other, VersionedObject):
             if (self.name_ != other.name_) or (self.range is None):
                 return False
             if self.conflict:
                 return (other.version_ in self.range_)
             else:
                 return (other.version_ not in self.range_)
+        else:
+            return NotImplemented
 
-    def merged(self, other):
+    def merged(self, other: Requirement) -> Requirement | None:
         """Merge two requirements.
 
         Two requirements can be in conflict and if so, this function returns
@@ -335,23 +343,24 @@ class Requirement(_Common):
                 r.range_ = range_
                 return r
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (isinstance(other, Requirement)
                 and (self.name_ == other.name_)
                 and (self.range_ == other.range_)
                 and (self.conflict_ == other.conflict_))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self._str is None:
             pre_str = '~' if self.negate_ else ('!' if self.conflict_ else '')
             range_str = ''
             sep_str = ''
 
             range_ = self.range_
-            if self.negate_:
+            # Note: the only time that range_ is None is if self.negate_ is True
+            if self.negate_ or range_ is None:
                 range_ = ~range_ if range_ else VersionRange()
 
             if not range_.is_any():
@@ -370,16 +379,16 @@ class RequirementList(_Common):
     optimal form, merging any requirements for common objects. Order of objects
     is retained.
     """
-    def __init__(self, requirements):
+    def __init__(self, requirements: list[Requirement]):
         """
         Args:
             requirements (list[Requirement]): List of requirements.
         """
-        self.requirements_ = []
-        self.conflict_ = None
-        self.requirements_dict = {}
-        self.names_ = set()
-        self.conflict_names_ = set()
+        self.requirements_: list[Requirement] = []
+        self.conflict_: tuple[Requirement, Requirement] | None = None
+        self.requirements_dict: dict[str, Requirement] = {}
+        self.names_: set[str] = set()
+        self.conflict_names_: set[str] = set()
 
         for req in requirements:
             existing_req = self.requirements_dict.get(req.name)
@@ -410,7 +419,7 @@ class RequirementList(_Common):
                     self.names_.add(req.name)
 
     @property
-    def requirements(self):
+    def requirements(self) -> list[Requirement]:
         """Returns optimised list of requirements, or None if there are
         conflicts.
 
@@ -420,7 +429,7 @@ class RequirementList(_Common):
         return self.requirements_
 
     @property
-    def conflict(self):
+    def conflict(self) -> tuple[Requirement, Requirement] | None:
         """Get the requirement conflict, if any.
 
         Returns:
@@ -430,7 +439,7 @@ class RequirementList(_Common):
         return self.conflict_
 
     @property
-    def names(self):
+    def names(self) -> set[str]:
         """Set of names of requirements, not including conflict requirements.
 
         Returns:
@@ -439,7 +448,7 @@ class RequirementList(_Common):
         return self.names_
 
     @property
-    def conflict_names(self):
+    def conflict_names(self) -> set[str]:
         """Set of conflict requirement names.
 
         Returns:
@@ -447,11 +456,11 @@ class RequirementList(_Common):
         """
         return self.conflict_names_
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Requirement]:
         for requirement in (self.requirements_ or []):
             yield requirement
 
-    def get(self, name):
+    def get(self, name: str) -> Requirement | None:
         """Returns the requirement for the given object, or None.
 
         Args:
@@ -462,12 +471,12 @@ class RequirementList(_Common):
         """
         return self.requirements_dict.get(name)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (isinstance(other, RequirementList)
                 and (self.requirements_ == other.requirements_)
                 and (self.conflict_ == other.conflict_))
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.conflict_:
             s1 = str(self.conflict_[0])
             s2 = str(self.conflict_[1])

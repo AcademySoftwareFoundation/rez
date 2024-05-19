@@ -5,17 +5,20 @@
 """
 CMake-based build system
 """
-from rez.build_system import BuildSystem
+from __future__ import annotations
+
+from rez.build_system import BuildSystem, BuildResult
 from rez.build_process import BuildType
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError
 from rez.utils.execution import create_forwarding_script
-from rez.packages import get_developer_package
+from rez.packages import get_developer_package, Variant
 from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.utils.which import which
 from rez.vendor.schema.schema import Or
 from rez.shells import create_shell
+import argparse
 import functools
 import os.path
 import sys
@@ -62,11 +65,11 @@ class CMakeBuildSystem(BuildSystem):
     }
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "cmake"
 
     @classmethod
-    def child_build_system(cls):
+    def child_build_system(cls) -> str:
         return "make"
 
     @classmethod
@@ -74,7 +77,7 @@ class CMakeBuildSystem(BuildSystem):
         return os.path.isfile(os.path.join(path, "CMakeLists.txt"))
 
     @classmethod
-    def bind_cli(cls, parser, group):
+    def bind_cli(cls, parser: argparse.ArgumentParser, group: argparse._ArgumentGroup):
         settings = config.plugins.build_system.cmake
         group.add_argument("--bt", "--build-target", dest="build_target",
                            type=str, choices=cls.build_targets,
@@ -86,7 +89,7 @@ class CMakeBuildSystem(BuildSystem):
                            default=settings.build_system,
                            help="set the cmake build system (default: %(default)s).")
 
-    def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
+    def __init__(self, working_dir: str, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
         super(CMakeBuildSystem, self).__init__(
             working_dir,
@@ -105,8 +108,13 @@ class CMakeBuildSystem(BuildSystem):
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
-    def build(self, context, variant, build_path, install_path, install=False,
-              build_type=BuildType.local):
+    def build(self,
+              context: ResolvedContext,
+              variant: Variant,
+              build_path: str,
+              install_path: str,
+              install: bool = False,
+              build_type=BuildType.local) -> BuildResult:
         def _pr(s):
             if self.verbose:
                 print(s)
@@ -175,7 +183,7 @@ class CMakeBuildSystem(BuildSystem):
             post_actions_callback=post_actions_callback
         )
 
-        ret = {}
+        ret = BuildResult()
         if retcode:
             ret["success"] = False
             return ret
