@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import json
 import os
 import os.path
@@ -27,9 +29,11 @@ from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
     forceful_rmtree
 from rez.utils.colorize import ColorizedStreamHandler
 from rez.utils.logging_ import print_warning
-from rez.packages import get_variant
+from rez.packages import get_variant, Variant
 from rez.system import system
 from rez.utils.filesystem import rename
+
+from typing import Iterable
 
 
 class PackageCache(object):
@@ -87,7 +91,7 @@ class PackageCache(object):
     _COPYING_TIME_INC = 0.2
     _COPYING_TIME_MAX = 5.0
 
-    def __init__(self, path):
+    def __init__(self, path: str):
         """Create a package cache.
 
         Args:
@@ -103,7 +107,7 @@ class PackageCache(object):
         safe_makedirs(self._pending_dir)
         safe_makedirs(self._remove_dir)
 
-    def get_cached_root(self, variant):
+    def get_cached_root(self, variant: Variant) -> str | None:
         """Get location of variant payload copy.
 
         Args:
@@ -335,7 +339,7 @@ class PackageCache(object):
 
         return (rootpath, self.VARIANT_CREATED)
 
-    def remove_variant(self, variant):
+    def remove_variant(self, variant: Variant):
         """Remove a variant from the cache.
 
         Since this removes the associated cached variant payload, there is no
@@ -412,7 +416,7 @@ class PackageCache(object):
         """
         return self.add_variants(variants, package_cache_async=True)
 
-    def add_variants(self, variants, package_cache_async=True):
+    def add_variants(self, variants: Iterable[Variant], package_cache_async=True):
         """Add the given variants to the package payload cache.
         """
 
@@ -611,7 +615,7 @@ class PackageCache(object):
 
         return results
 
-    def run_daemon(self):
+    def run_daemon(self) -> None:
         """Run as daemon and copy pending variants.
 
         Called via `rez-pkg-cache --daemon`.
@@ -891,7 +895,7 @@ class PackageCache(object):
     def _remove_dir(self):
         return os.path.join(self.path, ".sys", "to_delete")
 
-    def _get_cached_root(self, variant):
+    def _get_cached_root(self, variant: Variant) -> tuple[int, str]:
         path = self._get_hash_path(variant)
         if not os.path.exists(path):
             return (self.VARIANT_NOT_FOUND, '')
@@ -932,7 +936,7 @@ class PackageCache(object):
 
         return (self.VARIANT_NOT_FOUND, '')
 
-    def _get_hash_path(self, variant):
+    def _get_hash_path(self, variant: Variant) -> str:
         dirs = [self.path, variant.name]
 
         if variant.version:

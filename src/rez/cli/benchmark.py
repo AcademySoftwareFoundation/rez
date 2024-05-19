@@ -5,6 +5,8 @@
 '''
 Run a benchmarking suite for runtime resolves.
 '''
+from __future__ import annotations
+
 import json
 import os
 import os.path
@@ -17,8 +19,8 @@ import time
 
 # globals
 opts = None
-out_dir = None
-pkg_repo_dir = None
+out_dir: str | None = None
+pkg_repo_dir: str | None = None
 
 
 def setup_parser(parser, completions=False):
@@ -46,6 +48,8 @@ def load_packages():
     """Load all packages so loading time doesn't impact solve times
     """
     from rez.packages import iter_package_families
+
+    assert pkg_repo_dir is not None
 
     print("Warming package cache...")
     fams = list(iter_package_families(paths=[pkg_repo_dir]))
@@ -117,8 +121,8 @@ def do_resolves():
     from rez.solver import SolverCallbackReturn
 
     filepath = os.path.join(module_root_path, "data", "benchmarking", "requests.json")
-    with open(filepath) as f:
-        requests = json.loads(f.read())
+    with open(filepath) as fr:
+        requests = json.loads(fr.read())
 
     print("Performing %d resolves..." % len(requests))
 

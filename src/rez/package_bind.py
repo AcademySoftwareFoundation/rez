@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.exceptions import RezBindError, _NeverError
 from rez import module_root_path
 from rez.util import get_close_pkgs
@@ -13,7 +15,7 @@ import os.path
 import os
 
 
-def get_bind_modules(verbose=False):
+def get_bind_modules(verbose: bool = False) -> dict[str, str]:
     """Get available bind modules.
 
     Returns:
@@ -39,7 +41,7 @@ def get_bind_modules(verbose=False):
     return bindnames
 
 
-def find_bind_module(name, verbose=False):
+def find_bind_module(name: str, verbose: bool = False) -> str | None:
     """Find the bind module matching the given name.
 
     Args:
@@ -71,8 +73,8 @@ def find_bind_module(name, verbose=False):
     return None
 
 
-def bind_package(name, path=None, version_range=None, no_deps=False,
-                 bind_args=None, quiet=False):
+def bind_package(name: str, path: str | None = None, version_range=None,
+                 no_deps: bool = False, bind_args: list[str] | None = None, quiet: bool = False):
     """Bind software available on the current system, as a rez package.
 
     Note:
@@ -142,8 +144,8 @@ def bind_package(name, path=None, version_range=None, no_deps=False,
     return installed_variants
 
 
-def _bind_package(name, path=None, version_range=None, bind_args=None,
-                  quiet=False):
+def _bind_package(name: str, path: str | None = None, version_range=None, bind_args: list[str] | None = None,
+                  quiet: bool = False):
     bindfile = find_bind_module(name, verbose=(not quiet))
     if not bindfile:
         raise RezBindError("Bind module not found for '%s'" % name)
@@ -179,11 +181,11 @@ def _bind_package(name, path=None, version_range=None, bind_args=None,
     return variants
 
 
-def _print_package_list(variants):
+def _print_package_list(variants) -> None:
     packages = set([x.parent for x in variants])
     packages = sorted(packages, key=lambda x: x.name)
 
-    rows = [["PACKAGE", "URI"],
-            ["-------", "---"]]
+    rows = [("PACKAGE", "URI"),
+            ("-------", "---")]
     rows += [(x.name, x.uri) for x in packages]
     print('\n'.join(columnise(rows)))

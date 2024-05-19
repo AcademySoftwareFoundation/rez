@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.version import Requirement
 
 
@@ -42,8 +44,8 @@ def get_patched_request(requires, patchlist):
         '^': (True, True, True)
     }
 
-    requires = [Requirement(x) if not isinstance(x, Requirement) else x
-                for x in requires]
+    requires: list[Requirement | None] = [
+        Requirement(x) if not isinstance(x, Requirement) else x for x in requires]
     appended = []
 
     for patch in patchlist:

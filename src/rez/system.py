@@ -61,7 +61,7 @@ class System(object):
 
     # TODO: move shell detection into shell plugins
     @cached_property
-    def shell(self):
+    def shell(self) -> str:
         """Get the current shell.
 
         Returns:

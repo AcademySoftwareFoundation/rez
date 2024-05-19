@@ -171,7 +171,7 @@ class PackageTestRunner(object):
             )
 
         if ran_once:
-            def _select(key, value):
+            def _select_kv(key, value):
                 if isinstance(value, dict):
                     value = value.get("on_variants")
                 else:
@@ -184,7 +184,7 @@ class PackageTestRunner(object):
 
             tests_dict = dict(
                 (k, v) for k, v in tests_dict.items()
-                if _select(k, v)
+                if _select_kv(k, v)
             )
 
         return sorted(tests_dict.keys())
@@ -516,11 +516,11 @@ class PackageTestRunner(object):
         # If the combined requirements, minus conflict requests, is equal to the
         # variant's requirements, then this variant is selected.
         #
-        reqs1 = RequirementList(x for x in reqlist if not x.conflict)
-        reqs2 = RequirementList(x for x in variant.variant_requires if not x.conflict)
+        reqs1 = RequirementList([x for x in reqlist if not x.conflict])
+        reqs2 = RequirementList([x for x in variant.variant_requires if not x.conflict])
         return (reqs1 == reqs2)
 
-    def _get_test_info(self, test_name, variant):
+    def _get_test_info(self, test_name: str, variant) -> dict | None:
         tests_dict = variant.tests or {}
         test_entry = tests_dict.get(test_name)
 
@@ -573,7 +573,7 @@ class PackageTestRunner(object):
             if current_context is None:
                 return None
 
-            reqs = map(Requirement, requires)
+            reqs = [Requirement(x) for x in requires]
             current_reqs = current_context.get_resolve_as_exact_requests()
 
             meets_requirements = (
@@ -668,25 +668,25 @@ class PackageTestResults(object):
         self.test_results = []
 
     @property
-    def num_tests(self):
+    def num_tests(self) -> int:
         """Get the number of tests, regardless of stats.
         """
         return len(self.test_results)
 
     @property
-    def num_success(self):
+    def num_success(self) -> int:
         """Get the number of successful test runs.
         """
         return len([x for x in self.test_results if x["status"] == "success"])
 
     @property
-    def num_failed(self):
+    def num_failed(self) -> int:
         """Get the number of failed test runs.
         """
         return len([x for x in self.test_results if x["status"] == "failed"])
 
     @property
-    def num_skipped(self):
+    def num_skipped(self) -> int:
         """Get the number of skipped test runs.
         """
         return len([x for x in self.test_results if x["status"] == "skipped"])
@@ -702,7 +702,7 @@ class PackageTestResults(object):
             "description": description
         })
 
-    def print_summary(self):
+    def print_summary(self) -> None:
         from rez.utils.formatting import columnise
 
         pr = Printer(sys.stdout)

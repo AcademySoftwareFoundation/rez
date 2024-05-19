@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils.resources import Resource
 from rez.utils.schema import Required, schema_keys, extensible_schema_dict
 from rez.utils.logging_ import print_warning
@@ -12,12 +14,18 @@ from rez.utils.filesystem import find_matching_symlink
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
-from rez.version import Version
+from rez.version import Requirement, Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 
 from textwrap import dedent
 import os.path
+from abc import abstractmethod
 from hashlib import sha1
+from typing import Any, Iterable, Iterator, TYPE_CHECKING
+from types import FunctionType, MethodType
+
+if TYPE_CHECKING:
+    from rez.packages import Variant
 
 
 # package attributes created at release time
@@ -76,7 +84,7 @@ late_requires_schema = Schema([
 # requirements of all package-related resources
 #
 
-base_resource_schema_dict = {
+base_resource_schema_dict: dict[Schema, Any] = {
     Required("name"): str
 }
 
@@ -269,7 +277,7 @@ class PackageRepositoryResource(Resource):
     """
     schema_error = PackageMetadataError
     #: Type of package repository associated with this resource type.
-    repository_type = None
+    repository_type: str
 
     @classmethod
     def normalize_variables(cls, variables):
@@ -284,18 +292,18 @@ class PackageRepositoryResource(Resource):
         super(PackageRepositoryResource, self).__init__(variables)
 
     @cached_property
-    def uri(self):
+    def uri(self) -> str:
         return self._uri()
 
     @property
-    def location(self):
+    def location(self) -> str | None:
         return self.get("location")
 
     @property
-    def name(self):
+    def name(self) -> str | None:
         return self.get("name")
 
-    def _uri(self):
+    def _uri(self) -> str:
         """Return a URI.
 
         Implement this function to return a short, readable string that
@@ -310,7 +318,9 @@ class PackageFamilyResource(PackageRepositoryResource):
     A repository implementation's package family resource(s) must derive from
     this class. It must satisfy the schema `package_family_schema`.
     """
-    pass
+
+    def iter_packages(self) -> Iterator[PackageResourceHelper]:
+        raise NotImplementedError
 
 
 class PackageResource(PackageRepositoryResource):
@@ -330,7 +340,7 @@ class PackageResource(PackageRepositoryResource):
         return super(PackageResource, cls).normalize_variables(variables)
 
     @cached_property
-    def version(self):
+    def version(self) -> Version:
         ver_str = self.get("version", "")
         return Version(ver_str)
 
@@ -345,17 +355,23 @@ class VariantResource(PackageResource):
     this case it is the 'None' variant (the value of `index` is None). This
     provides some internal consistency and simplifies the implementation.
     """
+
     @property
-    def index(self):
+    @abstractmethod
+    def parent(self) -> PackageRepositoryResource:
+        raise NotImplementedError
+
+    @property
+    def index(self) -> int | None:
         return self.get("index", None)
 
     @cached_property
-    def root(self):
+    def root(self) -> str:
         """Return the 'root' path of the variant."""
         return self._root()
 
     @cached_property
-    def subpath(self):
+    def subpath(self) -> str:
         """Return the variant's 'subpath'
 
         The subpath is the relative path the variant's payload should be stored
@@ -364,9 +380,11 @@ class VariantResource(PackageResource):
         """
         return self._subpath()
 
+    @abstractmethod
     def _root(self, ignore_shortlinks=False):
         raise NotImplementedError
 
+    @abstractmethod
     def _subpath(self, ignore_shortlinks=False):
         raise NotImplementedError
 
@@ -381,25 +399,43 @@ class VariantResource(PackageResource):
 class PackageResourceHelper(PackageResource):
     """PackageResource with some common functionality included.
     """
-    variant_key = None
+    # the resource key for a VariantResourceHelper subclass
+    variant_key: str
+
+    if TYPE_CHECKING:
+        # I think these attributes are provided dynamically be LazyAttributeMeta
+        _commands: list[str] | str | FunctionType | MethodType | SourceCode
+        _pre_commands: list[str] | str | FunctionType | MethodType | SourceCode
+        _post_commands: list[str] | str | FunctionType | MethodType | SourceCode
+        variants: list[Variant]
+
+    @property
+    @abstractmethod
+    def base(self) -> str | None:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def parent(self) -> PackageRepositoryResource:
+        raise NotImplementedError
 
     @cached_property
-    def commands(self):
+    def commands(self) -> SourceCode:
         return self._convert_to_rex(self._commands)
 
     @cached_property
-    def pre_commands(self):
+    def pre_commands(self) -> SourceCode:
         return self._convert_to_rex(self._pre_commands)
 
     @cached_property
-    def post_commands(self):
+    def post_commands(self) -> SourceCode:
         return self._convert_to_rex(self._post_commands)
 
-    def iter_variants(self):
+    def iter_variants(self) -> Iterator[VariantResourceHelper]:
         num_variants = len(self.variants or [])
 
         if num_variants == 0:
-            indexes = [None]
+            indexes: Iterable[int | None] = [None]
         else:
             indexes = range(num_variants)
 
@@ -412,7 +448,7 @@ class PackageResourceHelper(PackageResource):
                 index=index)
             yield variant
 
-    def _convert_to_rex(self, commands):
+    def _convert_to_rex(self, commands: list[str] | str | FunctionType | MethodType | SourceCode) -> SourceCode:
         if isinstance(commands, list):
             from rez.utils.backcompat import convert_old_commands
 
@@ -453,12 +489,12 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
     # forward Package attributes onto ourself
     keys = schema_keys(package_schema) - set(["variants"])
 
-    def _uri(self):
+    def _uri(self) -> str:
         index = self.index
         idxstr = '' if index is None else str(index)
         return "%s[%s]" % (self.parent.uri, idxstr)
 
-    def _subpath(self, ignore_shortlinks=False):
+    def _subpath(self, ignore_shortlinks=False) -> str | None:
         if self.index is None:
             return None
 
@@ -488,7 +524,7 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
             subpath = os.path.join(*dirs)
             return subpath
 
-    def _root(self, ignore_shortlinks=False):
+    def _root(self, ignore_shortlinks: bool = False) -> str | None:
         if self.base is None:
             return None
         elif self.index is None:
@@ -499,7 +535,7 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
             return root
 
     @cached_property
-    def variant_requires(self):
+    def variant_requires(self) -> list[Requirement]:
         index = self.index
         if index is None:
             return []

@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.config import config
 from rez.vendor.memcache.memcache import Client as Client_, \
     SERVER_MAX_KEY_LENGTH, __version__ as memcache_client_version
@@ -12,6 +14,7 @@ from functools import update_wrapper
 from inspect import isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
+from typing import Iterator
 
 
 # this version should be changed if and when the caching interface changes
@@ -195,9 +198,9 @@ class Client(object):
 
 class _ScopedInstanceManager(local):
     def __init__(self):
-        self.clients = {}
+        self.clients: dict[tuple[tuple, bool], list] = {}
 
-    def acquire(self, servers, debug=False):
+    def acquire(self, servers, debug: bool = False) -> tuple[Client, tuple[tuple, bool]]:
         key = (tuple(servers or []), debug)
         entry = self.clients.get(key)
         if entry:
@@ -223,7 +226,7 @@ scoped_instance_manager = _ScopedInstanceManager()
 
 
 @contextmanager
-def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache):
+def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache) -> Iterator[Client]:
     """Get a shared memcached instance.
 
     This function shares the same memcached instance across nested invocations.

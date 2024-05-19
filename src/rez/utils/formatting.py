@@ -5,11 +5,14 @@
 """
 Utilities related to formatting output or translating input.
 """
+from __future__ import annotations
+
 from string import Formatter
 from rez.version import Requirement
 from rez.exceptions import PackageRequestError
 from pprint import pformat
 from enum import Enum
+from typing import Any, Sequence
 import math
 import os
 import os.path
@@ -96,7 +99,7 @@ class ObjectStringFormatter(Formatter):
     empty = StringFormatType.empty
     unchanged = StringFormatType.unchanged
 
-    def __init__(self, instance, pretty=False, expand=StringFormatType.error):
+    def __init__(self, instance, pretty: bool = False, expand: StringFormatType = StringFormatType.error):
         """Create a formatter.
 
         Args:
@@ -220,7 +223,7 @@ def expand_abbreviations(txt, fields):
     return re.sub(FORMAT_VAR_REGEX, _expand, txt)
 
 
-def expandvars(text, environ=None):
+def expandvars(text: str, environ=None):
     """Expand shell variables of form $var and ${var}.
 
     Unknown variables are left unchanged.
@@ -258,7 +261,7 @@ def expandvars(text, environ=None):
     return text
 
 
-def indent(txt):
+def indent(txt: str):
     """Indent the given text by 4 spaces."""
     lines = (("    " + x) for x in txt.split('\n'))
     return '\n'.join(lines)
@@ -299,7 +302,7 @@ def dict_to_attributes_code(dict_):
     return '\n'.join(lines)
 
 
-def columnise(rows, padding=2):
+def columnise(rows: Sequence[Sequence[Any]], padding=2) -> list[str]:
     """Print rows of entries in aligned columns."""
     strs = []
     maxwidths = {}
@@ -461,7 +464,7 @@ EXPANDUSER_RE = re.compile(
 )
 
 
-def expanduser(path):
+def expanduser(path: str):
     """Expand '~' to home directory in the given string.
 
     Note that this function deliberately differs from the builtin
@@ -517,7 +520,7 @@ _header_br = '#' * 80
 _header_br_minor = '-' * 80
 
 
-def header_comment(executor, txt):
+def header_comment(executor, txt: str):
     """Convenience for creating header-like comment in a rex executor.
 
     Args:
@@ -531,7 +534,7 @@ def header_comment(executor, txt):
     executor.comment(_header_br)
 
 
-def minor_header_comment(executor, txt):
+def minor_header_comment(executor, txt: str):
     executor.comment("")
     executor.comment(txt)
     executor.comment(_header_br_minor)

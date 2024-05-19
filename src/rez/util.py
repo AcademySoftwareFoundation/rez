@@ -6,6 +6,8 @@
 Misc useful stuff.
 TODO: Move this into rez.utils.?
 """
+from __future__ import annotations
+
 import collections.abc
 import atexit
 import os
@@ -15,6 +17,15 @@ import inspect
 
 from rez.exceptions import RezError
 from rez.vendor.progress.bar import Bar
+
+from typing import Iterable, TypeVar, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # this is not available in typing until 3.10, but due to __future__.annotations
+    # we can use it without really importing it
+    from typing import TypeGuard
+
+T = TypeVar("T")
 
 
 class ProgressBar(Bar):
@@ -49,7 +60,7 @@ def dedup(seq):
 _find_unsafe = re.compile(r'[^\w@%+=`:,./-]').search
 
 
-def shlex_join(value, unsafe_regex=None, replacements=None,
+def shlex_join(value: Iterable[str], unsafe_regex=None, replacements=None,
                enclose_with='"'):
     """Join args into a valid shell command.
     """
@@ -152,7 +163,7 @@ def _atexit():
         pass
 
 
-def is_non_string_iterable(arg):
+def is_non_string_iterable(arg: str | Iterable[str] | None) -> TypeGuard[Iterable[str]]:
     """Python 2 and 3 compatible non-string iterable identifier"""
     return (
         isinstance(arg, collections.abc.Iterable)
