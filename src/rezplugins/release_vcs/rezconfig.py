@@ -39,7 +39,7 @@ releasable_branches = []
 # at A, but that's ok because the package hasn't changed and we just want
 # to release it at B also. For this reason, you can set tag checking to
 # False both in the API and via an option on the rez-release tool.
-check_tag = True
+check_tag = False
 
 git = {
     # If false, cancel a package release if there is no upstream branch.
