@@ -9,7 +9,7 @@
 # It is not recommended to write only '{version}' to the tag. This will
 # cause problems if you ever store multiple packages within a single
 # repository - versions will clash and this will cause several problems.
-tag_name = "{qualified_namer}"
+tag_name = "{qualified_name}"
 
 # A list of branches that a user is allowed to rez-release from. This
 # can be used to block releases from development or feature branches,
