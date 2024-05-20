@@ -16,7 +16,7 @@ tag_name = "{qualified_namer}"
 # and support a workflow such as "gitflow".  Each branch name should be
 # a regular expression that can be used with re.match(), for example
 # "^main$".
-releasable_branches = ['derp']
+releasable_branches = []
 
 # If True, a release will be cancelled if the repository has already been
 # tagged at the current package's version. Generally this is not needed,
