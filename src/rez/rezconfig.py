@@ -949,7 +949,7 @@ max_package_changelog_revisions = 0
 create_executable_script_mode = "single"
 
 # Default build process to use during build/release
-build_process = "local"
+default_build_process = "local"
 
 # Configurable pip extra arguments passed to the :ref:`rez-pip` install command.
 # Since the :ref:`rez-pip` install command already includes some pre-configured

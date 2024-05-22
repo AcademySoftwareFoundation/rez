@@ -36,7 +36,7 @@ def setup_parser_common(parser):
     process_types = get_build_process_types()
     parser.add_argument(
         "--process", type=str, choices=process_types,
-        default=config.build_process,
+        default=config.default_build_process,
         help="the build process to use (default: %(default)s).")
 
     # add build system choices valid for this package
