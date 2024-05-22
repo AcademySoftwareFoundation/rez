@@ -861,7 +861,9 @@ variant_shortlinks_dirname = "_v"
 # leave this True.
 use_variant_shortlinks = True
 
-# Default build process to use during build/release
+# Default build process to use during build/release.
+# Only 'local' build process is currently available,
+# see :gh-rez:`src/rezplugins/build_process`.
 default_build_process = "local"
 
 
