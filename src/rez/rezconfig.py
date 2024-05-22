@@ -861,6 +861,9 @@ variant_shortlinks_dirname = "_v"
 # leave this True.
 use_variant_shortlinks = True
 
+# Default build process to use during build/release
+default_build_process = "local"
+
 
 ###############################################################################
 # Suites
@@ -947,9 +950,6 @@ max_package_changelog_revisions = 0
 #       Creates the requested file and a ``.py`` script so that scripts can be
 #       launched without extension from windows and other systems.
 create_executable_script_mode = "single"
-
-# Default build process to use during build/release
-default_build_process = "local"
 
 # Configurable pip extra arguments passed to the :ref:`rez-pip` install command.
 # Since the :ref:`rez-pip` install command already includes some pre-configured
