@@ -132,8 +132,7 @@ def find_python_in_context(context):
     # Create a copy of the context with systems paths removed, so we don't
     # accidentally find a system python install.
     #
-    success = (context.status == ResolverStatus.solved)
-    if not success:
+    if context.status != ResolverStatus.solved:
         context.print_info(buf=sys.stderr)
         return None
 
