@@ -495,7 +495,7 @@ class PackageCache(object):
             self._subprocess_package_caching_daemon(self.path)
         else:
             # syncronous caching
-            self.run_caching_operation(wait_for_copying=True)
+            self._run_caching_operation(wait_for_copying=True)
 
     @staticmethod
     def _subprocess_package_caching_daemon(path):
@@ -636,9 +636,9 @@ class PackageCache(object):
             if pid > 0:
                 sys.exit(0)
 
-        self.run_caching_operation(wait_for_copying=False)
+        self._run_caching_operation(wait_for_copying=False)
 
-    def run_caching_operation(self, wait_for_copying=False):
+    def _run_caching_operation(self, wait_for_copying=True):
         """Copy pending variants.
 
         Args:
