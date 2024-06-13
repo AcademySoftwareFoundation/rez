@@ -255,10 +255,7 @@ class PackageCache(object):
             else:
                 # Status has changed, so report the change and return
                 if logger:
-                    if status in no_op_statuses:
-                        logger.warning(f"{variant.qualified_name} "
-                                       f"{self.STATUS_DESCRIPTIONS[status]}")
-                    elif status == self.VARIANT_FOUND:
+                    if status == self.VARIANT_FOUND:
                         # We have resolved into a satisfactory state
                         logger.info(f"{variant.qualified_name} "
                                     f"{self.STATUS_DESCRIPTIONS[status]}")
