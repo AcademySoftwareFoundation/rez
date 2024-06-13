@@ -417,10 +417,7 @@ class PackageCache(object):
         return self.add_variants(variants, package_cache_async=True)
 
     def add_variants(self, variants, package_cache_async=True):
-        """Update the package cache by adding some or all of the given variants.
-
-        This method is called when a context is created or sourced. Variants
-        are then added to the cache in a separate process.
+        """Add the given variants to the package payload cache.
         """
 
         # A prod install is necessary because add_variants works by
