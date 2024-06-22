@@ -1978,7 +1978,7 @@ class ResolvedContext(object):
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
         executor.setenv("REZ_USED_REQUESTED_TIMESTAMP", req_timestamp_str)
-        executor.setenv("REZ_USED_REQUEST", request_str)
+        executor.setenv("REZ_USED_REQUEST", literal(request_str))
         executor.setenv("REZ_USED_IMPLICIT_PACKAGES", literal(implicit_str))
         executor.setenv("REZ_USED_RESOLVE", resolve_str)
         executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
