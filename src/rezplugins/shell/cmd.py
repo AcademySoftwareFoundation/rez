@@ -8,7 +8,6 @@ Windows Command Prompt (DOS) shell.
 from rez.config import config
 from rez.rex import RexExecutor, expandable, OutputStyle, EscapedString
 from rez.shells import Shell
-from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
 from ._utils.windows import to_windows_path, get_syspaths_from_registry
@@ -114,12 +113,11 @@ class CMD(Shell):
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
-                if system.is_production_rez_install:
-                    # previously this was called with the /K flag, however
-                    # that would leave spawn_shell hung on a blocked call
-                    # waiting for the user to type "exit" into the shell that
-                    # was spawned to run the rez context printout
-                    ex.command("cmd /Q /C rez context")
+                # previously this was called with the /K flag, however
+                # that would leave spawn_shell hung on a blocked call
+                # waiting for the user to type "exit" into the shell that
+                # was spawned to run the rez context printout
+                ex.command("cmd /Q /C rez context")
 
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),

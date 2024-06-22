@@ -1,0 +1,155 @@
+name: wheel
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wheel:
+    name: Build ${{ matrix.title }} wheel
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu-latest
+          title: pure
+        - os: windows-latest
+          arch: win_amd64
+          title: windows amd64
+          msvc-arch: amd64
+        - os: windows-latest
+          arch: win_arm64
+          title: windows arm64
+          msvc-arch: amd64_arm64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+
+    - name: Build wheel
+      shell: bash
+      run: |
+        set -ex
+        python -m pip install build
+        python -m build -w . --outdir ./dist
+      env:
+        PYTHON_PLAT_NAME: ${{ matrix.arch }}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        path: dist
+        name: wheels-${{ matrix.arch }}
+
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: ${{ matrix.os == 'windows-latest' }}
+      with:
+        arch: ${{ matrix.msvc-arch }}
+
+    - name: Analyze EXEs
+      if: ${{ matrix.os == 'windows-latest' }}
+      run: |
+        cd dist
+        unzip *.whl
+        dumpbin.exe /DEPENDENTS rez-*.data/scripts/rez/rez.exe
+        echo ((Get-Item -Path rez-*.data/scripts/rez/rez.exe).Length / 1kb)
+
+  test:
+    name: Test wheels
+    needs: ["wheel"]
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run on macos-13 to get conda... We should install miniconda manually.
+        os: [macos-13, ubuntu-latest, windows-latest]
+
+    env:
+      CURRENT_PLATFORM: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: 'wheels-*'
+        merge-multiple: true
+        path: wheels
+
+    - name: Install wheel
+      shell: bash
+      run: |
+        set -ex
+        python -m venv .venv
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            .venv/Scripts/python.exe -m pip install rez --find-links ./wheels --no-index
+            ls -la .venv/Scripts/
+            ls -la .venv/Scripts/rez
+        else
+            .venv/bin/python -m pip install rez --find-links ./wheels --no-index
+            ls -la .venv/bin/
+            ls -la .venv/bin/rez
+        fi
+
+    - name: Test commands
+      shell: bash
+      run: |
+        set -ex
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            export PATH=$(pwd)/.venv/Scripts/rez:$PATH
+        else
+            export PATH=$(pwd)/.venv/bin/rez:$PATH
+        fi
+
+        echo 'Running jctest with REZ_LAUNCHER_DEBUG=1'
+        export REZ_LAUNCHER_DEBUG=1
+
+        _rez-install-test
+
+        rez --help
+        rez --version
+        rez-env --help
+
+    - name: Integration test
+      shell: bash
+      run: |
+        set -ex
+
+        interpreter_path=""
+        export REZ_PACKAGES_PATH="~/rez_packages"
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            interpreter_path='.venv/Scripts/python.exe'
+            export PATH=$(pwd)/.venv/Scripts/rez:$PATH
+        else
+            interpreter_path=.'venv/bin/python'
+            export PATH=$(pwd)/.venv/bin/rez:$PATH
+        fi
+        "${interpreter_path}" .github/scripts/create_python_package.py 3.12.3 $REZ_PACKAGES_PATH
+
+        # First, test that the "python" package is found and is the right version.
+        test "$(rez-env python -- python --version)" = 'Python 3.12.3'
+
+        # Now test that the -E flag is used. This manifest with sys.flags.ignore_environment=1
+        test $(rez-env python -- _rez-install-test | jq '.sysflags.ignore_environment' -r) -eq 1
+
+        # Now test that the executable used for runnin the rez command is the one from the rez
+        # install, not the rez package.
+        expected_path="$(pwd)/${interpreter_path}"
+        if [[ "${CURRENT_PLATFORM}" == "windows-latest" ]]; then
+            # Convert unix path to windows path
+            expected_path=$(cygpath -w "${expected_path}")
+        fi
+        test $(rez-env python -- _rez-install-test | jq '.executable' -r) = "${expected_path}"

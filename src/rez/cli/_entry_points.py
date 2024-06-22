@@ -8,11 +8,31 @@ Entry points.
 import os
 import os.path
 import sys
+import json
+import dataclasses
+import typing
+import enum
+
+
+class EntryPointType(enum.Enum):
+    console = 1
+    gui = 2
+
+
+@dataclasses.dataclass
+class EntryPoint:
+    name: str
+    type: EntryPointType
+    func: str
+
+    @property
+    def spec(self) -> str:
+        return f"{self.name} = rez.cli._entry_points:{self.func}"
 
 
 ### Utility functions
 
-def get_specifications():
+def get_specifications() -> typing.Dict[str, EntryPoint]:
     """Get entry point specifications
 
     See:
@@ -34,242 +54,199 @@ def get_specifications():
     for attr, obj in sys.modules[__name__].__dict__.items():
         scriptname = getattr(obj, "__scriptname__", None)
         if scriptname:
-            spec = "%s = rez.cli._entry_points:%s" % (scriptname, attr)
-            specs[scriptname] = spec
-
+            specs[scriptname] = EntryPoint(name=scriptname, func=attr, type=getattr(obj, "__scripttype__"))
     return specs
 
 
-def scriptname(name):
+def register(name, _type=EntryPointType.console):
     def decorator(fn):
         setattr(fn, "__scriptname__", name)
+        setattr(fn, "__scripttype__", _type)
         return fn
     return decorator
 
 
-def check_production_install():
-    path = os.path.dirname(sys.argv[0])
-    filepath = os.path.join(path, ".rez_production_install")
-
-    if not os.path.exists(filepath):
-        sys.stderr.write(
-            "Pip-based rez installation detected. Please be aware that rez command "
-            "line tools are not guaranteed to function correctly in this case. See "
-            "https://rez.readthedocs.io/en/stable/installation.html#why-not-pip-for-production "
-            " for futher details.\n"
-        )
-
-
 ### Entry points
 
-@scriptname("rez")
+
+@register("rez")
 def run_rez():
-    check_production_install()
     from rez.cli._main import run
     return run()
 
 
-@scriptname("rezolve")
+@register("rezolve")
 def run_rezolve():
     # alias for osx, where rez is a different tool
     # https://www.unix.com/man-page/osx/1/REZ/
-    check_production_install()
     from rez.cli._main import run
     return run()
 
 
-@scriptname("_rez-complete")
+@register("_rez-complete")
 def run_rez_complete():
-    check_production_install()
     from rez.cli._main import run
     return run("complete")
 
 
-@scriptname("_rez_fwd")
+@register("_rez_fwd")
 def run_rez_fwd():
-    check_production_install()
     from rez.cli._main import run
     return run("forward")
 
 
-@scriptname("rez-bind")
+@register("rez-bind")
 def run_rez_bind():
-    check_production_install()
     from rez.cli._main import run
     return run("bind")
 
 
-@scriptname("rez-build")
+@register("rez-build")
 def run_rez_build():
-    check_production_install()
     from rez.cli._main import run
     return run("build")
 
 
-@scriptname("rez-config")
+@register("rez-config")
 def run_rez_config():
-    check_production_install()
     from rez.cli._main import run
     return run("config")
 
 
-@scriptname("rez-context")
+@register("rez-context")
 def run_rez_context():
-    check_production_install()
     from rez.cli._main import run
     return run("context")
 
 
-@scriptname("rez-cp")
+@register("rez-cp")
 def run_rez_cp():
-    check_production_install()
     from rez.cli._main import run
     return run("cp")
 
 
-@scriptname("rez-depends")
+@register("rez-depends")
 def run_rez_depends():
-    check_production_install()
     from rez.cli._main import run
     return run("depends")
 
 
-@scriptname("rez-diff")
+@register("rez-diff")
 def run_rez_diff():
-    check_production_install()
     from rez.cli._main import run
     return run("diff")
 
 
-@scriptname("rez-env")
+@register("rez-env")
 def run_rez_env():
-    check_production_install()
     from rez.cli._main import run
     return run("env")
 
 
-@scriptname("rez-gui")
+@register("rez-gui", EntryPointType.gui)
 def run_rez_gui():
-    check_production_install()
     from rez.cli._main import run
     return run("gui")
 
 
-@scriptname("rez-help")
+@register("rez-help")
 def run_rez_help():
-    check_production_install()
     from rez.cli._main import run
     return run("help")
 
 
-@scriptname("rez-interpret")
+@register("rez-interpret")
 def run_rez_interpret():
-    check_production_install()
     from rez.cli._main import run
     return run("interpret")
 
 
-@scriptname("rez-memcache")
+@register("rez-memcache")
 def run_rez_memcache():
-    check_production_install()
     from rez.cli._main import run
     return run("memcache")
 
 
-@scriptname("rez-pip")
+@register("rez-pip")
 def run_rez_pip():
-    check_production_install()
     from rez.cli._main import run
     return run("pip")
 
 
-@scriptname("rez-pkg-cache")
+@register("rez-pkg-cache")
 def run_rez_pkg_cache():
-    check_production_install()
     from rez.cli._main import run
     return run("pkg-cache")
 
 
-@scriptname("rez-plugins")
+@register("rez-plugins")
 def run_rez_plugins():
-    check_production_install()
     from rez.cli._main import run
     return run("plugins")
 
 
-@scriptname("rez-python")
+@register("rez-python")
 def run_rez_python():
-    check_production_install()
     from rez.cli._main import run
     return run("python")
 
 
-@scriptname("rez-release")
+@register("rez-release")
 def run_rez_release():
-    check_production_install()
     from rez.cli._main import run
     return run("release")
 
 
-@scriptname("rez-search")
+@register("rez-search")
 def run_rez_search():
-    check_production_install()
     from rez.cli._main import run
     return run("search")
 
 
-@scriptname("rez-selftest")
+@register("rez-selftest")
 def run_rez_selftest():
-    check_production_install()
     from rez.cli._main import run
     return run("selftest")
 
 
-@scriptname("rez-status")
+@register("rez-status")
 def run_rez_status():
-    check_production_install()
     from rez.cli._main import run
     return run("status")
 
 
-@scriptname("rez-suite")
+@register("rez-suite")
 def run_rez_suite():
-    check_production_install()
     from rez.cli._main import run
     return run("suite")
 
 
-@scriptname("rez-test")
+@register("rez-test")
 def run_rez_test():
-    check_production_install()
     from rez.cli._main import run
     return run("test")
 
 
-@scriptname("rez-view")
+@register("rez-view")
 def run_rez_view():
-    check_production_install()
     from rez.cli._main import run
     return run("view")
 
 
-@scriptname("rez-yaml2py")
+@register("rez-yaml2py")
 def run_rez_yaml2py():
-    check_production_install()
     from rez.cli._main import run
     return run("yaml2py")
 
 
-@scriptname("rez-bundle")
+@register("rez-bundle")
 def run_rez_bundle():
-    check_production_install()
     from rez.cli._main import run
     return run("bundle")
 
 
-@scriptname("rez-benchmark")
+@register("rez-benchmark")
 def run_rez_benchmark():
-    check_production_install()
 
     # Special case - we have to override config settings here, before rez is
     # loaded. TODO this would be cleaner if we had an Application object, see #1043
@@ -295,22 +272,35 @@ def run_rez_benchmark():
     return run("benchmark")
 
 
-@scriptname("rez-pkg-ignore")
+@register("rez-pkg-ignore")
 def run_rez_pkg_ignore():
-    check_production_install()
     from rez.cli._main import run
     return run("pkg-ignore")
 
 
-@scriptname("rez-mv")
+@register("rez-mv")
 def run_rez_mv():
-    check_production_install()
     from rez.cli._main import run
     return run("mv")
 
 
-@scriptname("rez-rm")
+@register("rez-rm")
 def run_rez_rm():
-    check_production_install()
     from rez.cli._main import run
     return run("rm")
+
+
+@register("_rez-install-test")
+def run_rez_install_test():
+    data = {
+        "argv": sys.argv,
+        "executable": sys.executable,
+        "sysflags": {
+            attr: getattr(sys.flags, attr)
+            for attr in dir(sys.flags)
+            if not attr.startswith("_") and not callable(getattr(sys.flags, attr))
+        }
+    }
+
+    print(json.dumps(data, indent=4))
+    return 0
