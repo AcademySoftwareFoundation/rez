@@ -597,10 +597,10 @@ class TestShells(TestBase, TempdirMixin):
         config.override("default_shell", shell)
 
         def _make_alias(ex):
-            ex.alias('python_alias', 'python')
+            ex.alias('my_alias', 'hello_world -r 1')
 
-        r = self._create_context([])
-        p = r.execute_shell(command='python_alias -c raise',
+        r = self._create_context(["hello_world"])
+        p = r.execute_shell(command='my_alias',
                             actions_callback=_make_alias,
                             stdout=subprocess.PIPE)
 
