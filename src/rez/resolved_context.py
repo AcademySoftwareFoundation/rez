@@ -1839,13 +1839,16 @@ class ResolvedContext(object):
                 not self.success:
             return
 
-        # see PackageCache.add_variants_async
+        # see PackageCache.add_variants
         if not system.is_production_rez_install:
             return
 
         pkgcache = self._get_package_cache()
         if pkgcache:
-            pkgcache.add_variants_async(self.resolved_packages)
+            pkgcache.add_variants(
+                self.resolved_packages,
+                config.package_cache_async
+                )
 
     @classmethod
     def _init_context_tracking_payload_base(cls):

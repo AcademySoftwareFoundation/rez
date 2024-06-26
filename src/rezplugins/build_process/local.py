@@ -45,7 +45,7 @@ class LocalBuildProcess(BuildProcessHelper):
         self.ran_test_names = set()
         self.all_test_results = PackageTestResults()
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self, install_path=None, artifact_path=None, clean=False, install=False, variants=None):
         self._print_header("Building %s..." % self.package.qualified_name)
 
         # build variants
@@ -53,6 +53,7 @@ class LocalBuildProcess(BuildProcessHelper):
             self._build_variant,
             variants=variants,
             install_path=install_path,
+            artifact_path=artifact_path,
             clean=clean,
             install=install)
 
@@ -167,7 +168,7 @@ class LocalBuildProcess(BuildProcessHelper):
                 pkg_repo = package_repository_manager.get_repository(install_path)
                 pkg_repo.pre_variant_install(variant.resource)
 
-                if not os.path.exists(variant_install_path):
+                if variant_install_path and not os.path.exists(variant_install_path):
                     safe_makedirs(variant_install_path)
 
                 # if hashed variants are enabled, create the variant shortlink
@@ -245,6 +246,8 @@ class LocalBuildProcess(BuildProcessHelper):
             build_system_name = self.build_system.name()
             self._print("\nInvoking %s build system...", build_system_name)
 
+            print('[build-system] %s' % str(self.build_system))
+
             build_result = self.build_system.build(
                 context=context,
                 variant=variant,
@@ -317,7 +320,7 @@ class LocalBuildProcess(BuildProcessHelper):
         except Exception as e:
             print_warning("Failed to delete %s - %s", path, e)
 
-    def _build_variant(self, variant, install_path=None, clean=False,
+    def _build_variant(self, variant, install_path=None, artifact_path=None, clean=False,
                        install=False, **kwargs):
         if variant.index is not None:
             self._print_header(
@@ -363,7 +366,7 @@ class LocalBuildProcess(BuildProcessHelper):
                 raise
 
             # install variant into package repository (ie update target package.py)
-            variant.install(install_path)
+            variant.install(install_path, artifact_path)
 
         return build_result.get("build_env_script")
 
