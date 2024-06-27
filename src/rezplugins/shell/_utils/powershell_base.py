@@ -13,7 +13,7 @@ from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
-from .windows import to_windows_path
+from .windows import get_syspaths_from_registry, to_windows_path
 
 
 class PowerShellBase(Shell):
@@ -78,27 +78,7 @@ class PowerShellBase(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # TODO: Research if there is an easier way to pull system PATH from
-        # registry in powershell
-        paths = []
-
-        cmds = [
-            [
-                "powershell",
-                '(Get-ItemProperty "HKLM:SYSTEM/CurrentControlSet/Control/Session Manager/Environment").Path',
-            ], [
-                "powershell", "(Get-ItemProperty -Path HKCU:Environment).Path"
-            ]
-        ]
-
-        for cmd in cmds:
-            p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                      text=True)
-            out_, _ = p.communicate()
-            out_ = out_.strip()
-
-            if p.returncode == 0:
-                paths.extend(out_.split(os.pathsep))
+        paths = get_syspaths_from_registry()
 
         cls.syspaths = [x for x in paths if x]
 
