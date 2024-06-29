@@ -257,8 +257,9 @@ class PackageCache(object):
             if logger:
                 if status == self.VARIANT_FOUND:
                     # We have resolved into a satisfactory state
-                    logger.info(f"{variant.qualified_name} "
-                                f"{self.STATUS_DESCRIPTIONS[status]}")
+                    logger.info(
+                        f"{variant.qualified_name} {self.STATUS_DESCRIPTIONS[status]}"
+                    )
                 else:
                     logger.warning(f"{variant.qualified_name} "
                                     f"{self.STATUS_DESCRIPTIONS[status]}")
