@@ -3,6 +3,9 @@ on:
   release:
     types: [released]
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     name: Publish to PyPI
@@ -11,6 +14,8 @@ jobs:
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
+      # Not sure if it's needed here since it's defined at the top level.
+      contents: read
 
     steps:
       - name: Checkout

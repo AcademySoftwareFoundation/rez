@@ -22,6 +22,9 @@ on:
       - '!**.md'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   main:
     name: ${{ matrix.os }} - ${{ matrix.python-version }} - ${{ matrix.method }}
