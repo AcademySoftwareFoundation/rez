@@ -86,17 +86,9 @@ class System(object):
                 # print an error message: "process ID out of range".
                 try:
                     args = ['ps', '-o', 'args=', '-p', str(parent_pid)]
-                    finished_proc = sp.run(
-                        args,
-                        capture_output=True,
-                        check=True,
-                        text=True,
-                    )
-                    output = finished_proc.stdout
-                    shell = os.path.basename(
-                        output.strip().split()[0]).replace(
-                        '-', ''
-                    )
+                    proc = sp.Popen(args, stdout=sp.PIPE, text=True)
+                    output = proc.communicate()[0]
+                    shell = os.path.basename(output.strip().split()[0]).replace('-', '')
                 except Exception:
                     pass
 
