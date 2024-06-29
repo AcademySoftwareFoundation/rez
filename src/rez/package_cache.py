@@ -261,8 +261,9 @@ class PackageCache(object):
                         f"{variant.qualified_name} {self.STATUS_DESCRIPTIONS[status]}"
                     )
                 else:
-                    logger.warning(f"{variant.qualified_name} "
-                                    f"{self.STATUS_DESCRIPTIONS[status]}")
+                    logger.warning(
+                        f"{variant.qualified_name} {self.STATUS_DESCRIPTIONS[status]}"
+                    )
             return (rootpath, status)
 
         # 1.
