@@ -252,17 +252,17 @@ class PackageCache(object):
                 spinner.next()
                 time.sleep(self._COPYING_TIME_INC)
                 status, rootpath = self._get_cached_root(variant)
-            else:
-                # Status has changed, so report the change and return
-                if logger:
-                    if status == self.VARIANT_FOUND:
-                        # We have resolved into a satisfactory state
-                        logger.info(f"{variant.qualified_name} "
+
+            # Status has changed, so report the change and return
+            if logger:
+                if status == self.VARIANT_FOUND:
+                    # We have resolved into a satisfactory state
+                    logger.info(f"{variant.qualified_name} "
+                                f"{self.STATUS_DESCRIPTIONS[status]}")
+                else:
+                    logger.warning(f"{variant.qualified_name} "
                                     f"{self.STATUS_DESCRIPTIONS[status]}")
-                    else:
-                        logger.warning(f"{variant.qualified_name} "
-                                       f"{self.STATUS_DESCRIPTIONS[status]}")
-                return (rootpath, status)
+            return (rootpath, status)
 
         # 1.
         path = self._get_hash_path(variant)
