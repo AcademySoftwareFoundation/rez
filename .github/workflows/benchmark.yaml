@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -46,7 +46,7 @@ jobs:
         run: |
           python ./.github/scripts/validate_benchmark.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: ./out
@@ -65,13 +65,13 @@ jobs:
       max-parallel: 1
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: .
 
       - name: Checkout (release)
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: ${{ github.event_name =='release' }}
         with:
           ref: main
@@ -85,13 +85,13 @@ jobs:
           # token: "${{ secrets.GH_ACTION_TOKEN }}"
 
       - name: Checkout (pr)
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: ${{ github.event_name !='release' }}
         with:
           path: src
 
       - name: Setup python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: ${{ matrix.python-version }}
 
