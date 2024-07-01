@@ -15,7 +15,7 @@ Package ordering settings are not configured in each package's ``package.py``. I
 Sorted Order
 ------------
 
-This is the default orderer the sorts based on the package's :attr:`version` attribute.
+This is the default orderer that sorts based on the package's :attr:`version` attribute.
 
 You can optionally explicitly request this orderer like this:
 
