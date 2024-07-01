@@ -297,7 +297,7 @@ class PowerShellBase(Shell):
         # TODO: Find a way to properly escape paths in alias() calls that also
         # contain args
         #
-        cmd = "function %s() { %s @args }" % (key, value)
+        cmd = "function %s { & %s @args }" % (key, value)
         self._addline(cmd)
 
     def comment(self, value):
