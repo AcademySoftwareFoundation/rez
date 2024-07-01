@@ -71,6 +71,32 @@ class TestContext(TestBase, TempdirMixin):
         stdout = stdout.strip()
         self.assertEqual(stdout, "Hello Rez World!")
 
+    def test_resolved_packages_testing_environ(self):
+        """Test resolving packages within a testing environment behaves correctly"""
+        packages_path = self.data_path("builds", "packages")
+        r = ResolvedContext(["testing_obj"], testing=True, package_paths=[packages_path])
+        resolvedPackages = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolvedPackages, ["floob", "testing_obj-1.0.0"])
+
+    def test_execute_command_testing_environ(self):
+        """Test that execute_command properly sets test specific environ dict"""
+        self.inject_python_repo()
+        packages_path = self.data_path("builds", "packages")
+        r = ResolvedContext(["testing_obj"], testing=True, package_paths=[packages_path])
+        self._test_execute_command_test_environ(r)
+
+    def _test_execute_command_test_environ(self, r):
+        pycode = ("import os; "
+                  "print(os.getenv(\"CAR_IDEA\"));")
+
+        args = ["python", "-c", pycode]
+
+        p = r.execute_command(args, stdout=subprocess.PIPE)
+        stdout, _ = p.communicate()
+        stdout = stdout.strip()
+        parts = [x.strip() for x in stdout.decode("utf-8").split('\n')]
+        self.assertEqual(parts, ["STURDY STEERING WHEEL"])
+
     def test_execute_command_environ(self):
         """Test that execute_command properly sets environ dict."""
         self.inject_python_repo()
