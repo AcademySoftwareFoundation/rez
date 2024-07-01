@@ -2,7 +2,7 @@
 Package Orderers
 ================
 
-Rez's default version resolution algorithm will always sort by the latest alphanumeric
+Rez's default :ref:`version <versions-concept>` resolution algorithm will always sort by the latest alphanumeric
 version. However, package orderers allow you to customize this functionality globally,
 or at a per package level.
 
