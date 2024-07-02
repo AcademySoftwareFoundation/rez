@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+
 from rez.package_order import PackageOrder
 from rez.version._version import _ReversedComparable
 
