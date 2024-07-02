@@ -591,6 +591,22 @@ class TestShells(TestBase, TempdirMixin):
         out, _ = p.communicate()
         self.assertEqual(0, p.returncode)
 
+    @per_available_shell()
+    def test_alias_return_code(self, shell):
+        """Ensure return codes are correct while using aliases."""
+        config.override("default_shell", shell)
+
+        def _make_alias(ex):
+            ex.alias('my_alias', 'hello_world -r 1')
+
+        r = self._create_context(["hello_world"])
+        p = r.execute_shell(command='my_alias',
+                            actions_callback=_make_alias,
+                            stdout=subprocess.PIPE)
+
+        out, _ = p.communicate()
+        self.assertEqual(1, p.returncode)
+
 
 if __name__ == '__main__':
     unittest.main()
