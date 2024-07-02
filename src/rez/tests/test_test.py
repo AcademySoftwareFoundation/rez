@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+
 """
 test rez package.py unit tests
 """
@@ -27,6 +28,7 @@ class TestTest(TestBase, TempdirMixin):
 
     def test_1(self):
         """package.py unit tests are correctly run in a testing environment"""
+        self.inject_python_repo()
         context = ResolvedContext(["testing_obj"])
         self._run_tests(context)
 
