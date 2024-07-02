@@ -122,4 +122,3 @@ class PerFamilyOrder(PackageOrder):
 
 def register_plugin():
     return PerFamilyOrder
-
