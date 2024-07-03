@@ -82,7 +82,7 @@ class TestContext(TestBase, TempdirMixin):
         """Test that execute_command properly sets test specific environ dict"""
         self.inject_python_repo()
         packages_path = self.data_path("builds", "packages")
-        r = ResolvedContext(["testing_obj"], testing=True, package_paths=[packages_path])
+        r = ResolvedContext(["testing_obj", "python"], testing=True, package_paths=[packages_path])
         self._test_execute_command_test_environ(r)
 
     def _test_execute_command_test_environ(self, r):

@@ -31,7 +31,7 @@ class TestTest(TestBase, TempdirMixin):
     def test_1(self):
         """package.py unit tests are correctly run in a testing environment"""
         self.inject_python_repo()
-        context = ResolvedContext(["testing_obj"])
+        context = ResolvedContext(["testing_obj", "python"])
         self._run_tests(context)
 
     def _run_tests(self, r):
