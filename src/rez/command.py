@@ -49,7 +49,7 @@ class Command(object):
 
     """
     def __init__(self):
-        self.type_settings = config.plugins.extension
+        self.type_settings = config.plugins.command
         self.settings = self.type_settings.get(self.name())
 
     @classmethod
