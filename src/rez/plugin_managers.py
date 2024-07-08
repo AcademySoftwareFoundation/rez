@@ -389,7 +389,7 @@ class RezPluginManager(object):
         """
         return self._get_plugin_type(plugin_type).failed_plugins.items()
 
-    def create_instance(self, plugin_type: str, plugin_name: str, **instance_kwargs) -> object:
+    def create_instance(self, plugin_type: str, plugin_name: str, **instance_kwargs) -> typing.Any:
         """Create and return an instance of the given plugin."""
         plugin_type = self._get_plugin_type(plugin_type)
         return plugin_type.create_instance(plugin_name, **instance_kwargs)
