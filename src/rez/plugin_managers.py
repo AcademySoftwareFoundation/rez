@@ -239,7 +239,7 @@ class RezPluginType(object):
                 deep_update(d, d_)
         return dict_to_schema(d, required=True, modifier=expand_system_vars)
 
-    def create_instance(self, plugin_name: str, **instance_kwargs) -> object:
+    def create_instance(self, plugin_name: str, **instance_kwargs) -> typing.Any:
         """Create and return an instance of the given plugin."""
         return self.get_plugin_class(plugin_name)(**instance_kwargs)
 
