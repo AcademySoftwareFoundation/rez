@@ -154,8 +154,11 @@ class ResolvedContext(object):
                 reason = ("fail limit reached: aborted after %d failures"
                           % state.num_fails)
                 return SolverCallbackReturn.fail, reason
+            print(self.time_limit)
             if self.time_limit != -1:
                 secs = time.time() - self.start_time
+                print(time.time())
+                print(secs)
                 if secs > self.time_limit:
                     return SolverCallbackReturn.abort, "time limit exceeded"
             if self.callback:
