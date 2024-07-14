@@ -44,7 +44,7 @@ class GitBash(Bash):
                 "Git-bash executable has been detected at %s, but this is "
                 "probably not correct (google Windows Subsystem for Linux). "
                 "Consider adjusting your searchpath, or use rez config setting "
-                "plugins.shell.gitbash.executable_fullpath."
+                "plugins.shell.gitbash.executable_fullpath." % exepath
             )
 
         return exepath

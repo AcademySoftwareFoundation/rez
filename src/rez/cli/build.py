@@ -30,11 +30,13 @@ def setup_parser_common(parser):
     """Parser setup common to both rez-build and rez-release."""
     from rez.build_process import get_build_process_types
     from rez.build_system import get_valid_build_systems
+    from rez.config import config
     from rez.exceptions import PackageMetadataError
 
     process_types = get_build_process_types()
     parser.add_argument(
-        "--process", type=str, choices=process_types, default="local",
+        "--process", type=str, choices=process_types,
+        default=config.default_build_process,
         help="the build process to use (default: %(default)s).")
 
     # add build system choices valid for this package
