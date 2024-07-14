@@ -157,6 +157,7 @@ class ResolvedContext(object):
             print(self.time_limit)
             if self.time_limit != -1:
                 secs = time.time() - self.start_time
+                print(self.start_time)
                 print(time.time())
                 print(secs)
                 if secs > self.time_limit:
