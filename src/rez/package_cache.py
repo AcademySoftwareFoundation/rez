@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
+from rez.vendor.progress.spinner import PixelSpinner
 from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
     forceful_rmtree
 from rez.utils.colorize import ColorizedStreamHandler
@@ -70,6 +71,18 @@ class PackageCache(object):
     VARIANT_PENDING = 5  #: Variant is pending caching
     VARIANT_REMOVED = 6  #: Variant was deleted
 
+    STATUS_DESCRIPTIONS = {
+        VARIANT_NOT_FOUND: "was not found",
+        VARIANT_FOUND: "was found",
+        VARIANT_CREATED: "was created",
+        VARIANT_COPYING: "payload is still being copied to this cache",
+        VARIANT_COPY_STALLED: "payload copy has stalled.\nSee "
+                              "https://rez.readthedocs.io/en/stable/caching.html#cleaning-the-cache "
+                              "for more information.",
+        VARIANT_PENDING: "is pending caching",
+        VARIANT_REMOVED: "was deleted",
+    }
+
     _FILELOCK_TIMEOUT = 10
     _COPYING_TIME_INC = 0.2
     _COPYING_TIME_MAX = 5.0
@@ -117,7 +130,7 @@ class PackageCache(object):
 
         return rootpath
 
-    def add_variant(self, variant, force=False):
+    def add_variant(self, variant, force=False, wait_for_copying=False, logger=None):
         """Copy a variant's payload into the cache.
 
         The following steps are taken to ensure muti-thread/proc safety, and to
@@ -148,6 +161,9 @@ class PackageCache(object):
             variant (Variant): The variant to copy into this cache
             force (bool): Copy the variant regardless. Use at your own risk (there
                 is no guarantee the resulting variant payload will be functional).
+            wait_for_copying (bool): Whether the caching step should block when one of the
+                pending variants is marked as already copying.
+            logger (None | Logger): If a logger is provided, log information to it.
 
         Returns:
             tuple: 2-tuple:
@@ -208,15 +224,40 @@ class PackageCache(object):
                     % package.repository
                 )
 
-        no_op_statuses = (
+        no_op_statuses = {
             self.VARIANT_FOUND,
-            self.VARIANT_COPYING,
-            self.VARIANT_COPY_STALLED
-        )
+            self.VARIANT_COPY_STALLED,
+        }
+        if not wait_for_copying:
+            # Copying variants are only no-ops if we want to ignore them.
+            no_op_statuses.add(self.VARIANT_COPYING)
 
         # variant already exists, or is being copied to cache by another thread/proc
         status, rootpath = self._get_cached_root(variant)
         if status in no_op_statuses:
+            if logger:
+                logger.warning(f"Not caching {variant.qualified_name}. "
+                               f"Variant {self.STATUS_DESCRIPTIONS[status]}")
+            return (rootpath, status)
+
+        if wait_for_copying and status == self.VARIANT_COPYING:
+            spinner = PixelSpinner(f"Waiting for {variant.qualified_name} to finish copying. ")
+            while status == self.VARIANT_COPYING:
+                spinner.next()
+                time.sleep(self._COPYING_TIME_INC)
+                status, rootpath = self._get_cached_root(variant)
+
+            # Status has changed, so report the change and return
+            if logger:
+                if status == self.VARIANT_FOUND:
+                    # We have resolved into a satisfactory state
+                    logger.info(
+                        f"{variant.qualified_name} {self.STATUS_DESCRIPTIONS[status]}"
+                    )
+                else:
+                    logger.warning(
+                        f"{variant.qualified_name} {self.STATUS_DESCRIPTIONS[status]}"
+                    )
             return (rootpath, status)
 
         # 1.
@@ -365,20 +406,39 @@ class PackageCache(object):
 
         This method is called when a context is created or sourced. Variants
         are then added to the cache in a separate process.
+
+        .. deprecated:: 3.2.0
+           Use :method:`add_variants` instead.
+        """
+        return self.add_variants(variants, package_cache_async=True)
+
+    def add_variants(self, variants, package_cache_async=True):
+        """Add the given variants to the package payload cache.
         """
 
-        # A prod install is necessary because add_variants_async works by
+        # A prod install is necessary because add_variants works by
         # starting a rez-pkg-cache proc, and this can only be done reliably in
         # a prod install. On non-windows we could fork instead, but there would
         # remain no good solution on windows.
         #
         if not system.is_production_rez_install:
             raise PackageCacheError(
-                "PackageCache.add_variants_async is only supported in a "
+                "PackageCache.add_variants is only supported in a "
                 "production rez installation."
             )
 
         variants_ = []
+        cachable_statuses = {
+            self.VARIANT_NOT_FOUND,
+        }
+        if not package_cache_async:
+            # We want to monitor copying variants if we're synchronous.
+            # We also want to report that a status has been stalled, so we'll
+            # hand that off to the caching function as well
+            cachable_statuses.update({
+                self.VARIANT_COPYING,
+                self.VARIANT_COPY_STALLED,
+            })
 
         # trim down to those variants that are cachable, and not already cached
         for variant in variants:
@@ -386,7 +446,7 @@ class PackageCache(object):
                 continue
 
             status, _ = self._get_cached_root(variant)
-            if status == self.VARIANT_NOT_FOUND:
+            if status in cachable_statuses:
                 variants_.append(variant)
 
         # if there are no variants to add, and no potential cleanup to do, then exit
@@ -427,6 +487,20 @@ class PackageCache(object):
             with open(filepath, 'w') as f:
                 f.write(json.dumps(handle_dict))
 
+        if package_cache_async:
+            self._subprocess_package_caching_daemon(self.path)
+        else:
+            # syncronous caching
+            self._run_caching_operation(wait_for_copying=True)
+
+    @staticmethod
+    def _subprocess_package_caching_daemon(path):
+        """
+        Run the package cache in a daemon process
+
+        Returns:
+            subprocess.Popen : The package caching daemon process
+        """
         # configure executable
         if platform.system() == "Windows":
             kwargs = {
@@ -443,7 +517,7 @@ class PackageCache(object):
             raise RuntimeError("Did not find rez-pkg-cache executable")
 
         # start caching subproc
-        args = [exe, "--daemon", self.path]
+        args = [exe, "--daemon", path]
 
         try:
             with open(os.devnull, 'w') as devnull:
@@ -454,8 +528,8 @@ class PackageCache(object):
                 else:
                     out_target = devnull
 
-                subprocess.Popen(
-                    [exe, "--daemon", self.path],
+                return subprocess.Popen(
+                    args,
                     stdout=out_target,
                     stderr=out_target,
                     **kwargs
@@ -558,6 +632,15 @@ class PackageCache(object):
             if pid > 0:
                 sys.exit(0)
 
+        self._run_caching_operation(wait_for_copying=False)
+
+    def _run_caching_operation(self, wait_for_copying=True):
+        """Copy pending variants.
+
+        Args:
+            wait_for_copying (bool): Whether the caching step should block when one of the
+                pending variants is marked as already copying.
+        """
         logger = self._init_logging()
 
         # somewhere for the daemon to store stateful info
@@ -568,7 +651,7 @@ class PackageCache(object):
         # copy variants into cache
         try:
             while True:
-                keep_running = self._run_daemon_step(state)
+                keep_running = self._run_caching_step(state, wait_for_copying=wait_for_copying)
                 if not keep_running:
                     break
         except Exception:
@@ -682,12 +765,13 @@ class PackageCache(object):
             except NotLocked:
                 pass
 
-    def _run_daemon_step(self, state):
+    def _run_caching_step(self, state, wait_for_copying=False):
         logger = state["logger"]
 
         # pick a random pending variant to copy
         pending_filenames = set(os.listdir(self._pending_dir))
-        pending_filenames -= set(state.get("copying", set()))
+        if not wait_for_copying:
+            pending_filenames -= set(state.get("copying", set()))
         if not pending_filenames:
             return False
 
@@ -710,7 +794,11 @@ class PackageCache(object):
         t = time.time()
 
         try:
-            rootpath, status = self.add_variant(variant)
+            rootpath, status = self.add_variant(
+                variant,
+                wait_for_copying=wait_for_copying,
+                logger=logger,
+            )
 
         except PackageCacheError as e:
             # variant cannot be cached, so remove as a pending variant

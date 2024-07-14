@@ -26,6 +26,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   core:
     name: Tests
@@ -57,10 +60,10 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
     - name: Setup python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -95,7 +98,7 @@ jobs:
         _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
 
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
       # Run on both success and failure, but only if coverage.xml exists.
       if: ${{ (success() || failure()) && ((steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') && hashFiles('coverage.xml') != '') }}
       with:
