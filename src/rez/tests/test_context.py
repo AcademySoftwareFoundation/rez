@@ -286,7 +286,7 @@ class TestContext(TestBase, TempdirMixin):
         # TODO: Can't seem to get this mock to work for some reason.
         # Mock start time to be Jan 1, 1970.
         with unittest.mock.patch('rez.resolved_context.ResolvedContext.Callback.start_time',
-                                        new_callable=unittest.mock.PropertyMock, return_value=0):
+                                 new_callable=unittest.mock.PropertyMock, return_value=0):
             callback_result = callback(solve_state)
             assert callback_result[0] == SolverCallbackReturn.abort
 
