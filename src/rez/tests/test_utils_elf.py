@@ -29,12 +29,8 @@ class TestElfUtils(TestBase):
     @program_dependent("readelf")
     def test_get_rpaths_raises_runtime_exception(self):
         """Tests that no TypeError from elf functions are raised."""
-        self.assertRaises(
-            RuntimeError,
+        with self.assertRaises(RuntimeError):
             get_rpaths("/path/to/elfpath")
-        )
 
-        self.assertRaises(
-            RuntimeError,
+        with self.assertRaises(RuntimeError):
             patch_rpaths("/path/to/elfpath", ["$ORIGIN", "$ORIGINTEST"])
-        )
