@@ -5,7 +5,10 @@
 """
 unit tests for 'rez.utils.elf' module
 """
-from rez.tests.util import TestBase
+import platform
+import unittest
+
+from rez.tests.util import TestBase, program_dependent
 from rez.utils.elf import get_rpaths, patch_rpaths
 
 
@@ -22,6 +25,8 @@ class TestElfUtils(TestBase):
     def tearDownClass(cls):
         super().tearDownClass()
 
+    @unittest.skipUnless(platform.system() == "Linux", "Linux only")
+    @program_dependent("readelf")
     def test_get_rpaths_raises_runtime_exception(self):
         """Tests that no TypeError from elf functions are raised."""
         self.assertRaises(
