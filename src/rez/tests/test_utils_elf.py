@@ -29,8 +29,10 @@ class TestElfUtils(TestBase):
     @program_dependent("readelf")
     def test_get_rpaths_raises_runtime_exception(self):
         """Tests that no TypeError from elf functions are raised."""
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(RuntimeError) as exc:
             get_rpaths("/path/to/elfpath")
+        self.assertIn("'/path/to/elfpath': No such file", str(exc.exception))
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(RuntimeError) as exc:
             patch_rpaths("/path/to/elfpath", ["$ORIGIN", "$ORIGINTEST"])
+        self.assertIn("'/path/to/elfpath': No such file", str(exc.exception))
