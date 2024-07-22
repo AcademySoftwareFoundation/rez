@@ -85,7 +85,7 @@ class TestNullPackageOrder(_BaseTestPackagesOrder):
         self.assertFalse(inst1 != inst2)  # __ne__ negative
 
     def test_pod(self):
-        """Validate we can save and load a VersionSplitPackageOrder to it's pod representation."""
+        """Validate we can save and load a VersionSplitPackageOrder to its pod representation."""
         self._test_pod(NullPackageOrder())
 
     def test_sha1(self):
@@ -124,7 +124,7 @@ class TestSortedOrder(_BaseTestPackagesOrder):
         self.assertEqual("SortedOrder(True)", repr(SortedOrder(descending=True)))
 
     def test_pod(self):
-        """Validate we can save and load a SortedOrder to it's pod representation."""
+        """Validate we can save and load a SortedOrder to its pod representation."""
         self._test_pod(SortedOrder(descending=True))
 
 
@@ -180,7 +180,7 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
         self.assertEqual("PerFamilyOrder(([('family1', '2.6.0')], 'None'))", repr(inst))
 
     def test_pod(self):
-        """Validate we can save and load a PerFamilyOrder to it's pod representation."""
+        """Validate we can save and load a PerFamilyOrder to its pod representation."""
         self._test_pod(
             PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=NullPackageOrder())
         )
@@ -218,7 +218,7 @@ class TestVersionSplitPackageOrder(_BaseTestPackagesOrder):
         self.assertEqual("VersionSplitPackageOrder(1,2,3)", repr(inst))
 
     def test_pod(self):
-        """Validate we can save and load a VersionSplitPackageOrder to it's pod representation."""
+        """Validate we can save and load a VersionSplitPackageOrder to its pod representation."""
         self._test_pod(VersionSplitPackageOrder(first_version=Version("1.2.3")))
 
 
