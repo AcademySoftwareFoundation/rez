@@ -37,8 +37,8 @@ class Resolver(object):
     """
     def __init__(self, context, package_requests, package_paths, package_filter=None,
                  package_orderers=None, timestamp=0, callback=None, building=False,
-                 verbosity=False, buf=None, package_load_callback=None, caching=True,
-                 suppress_passive=False, print_stats=False):
+                 testing=False, verbosity=False, buf=None, package_load_callback=None,
+                 caching=True, suppress_passive=False, print_stats=False):
         """Create a Resolver.
 
         Args:
@@ -52,6 +52,7 @@ class Resolver(object):
                 prior to each package being loaded. It is passed a single
                 `Package` object.
             building: True if we're resolving for a build.
+            testing: True if we're resolving for a rez (rez-test).
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used.
             print_stats (bool): If true, print advanced solver stats at the end.
@@ -64,6 +65,7 @@ class Resolver(object):
         self.package_orderers = package_orderers
         self.package_load_callback = package_load_callback
         self.building = building
+        self.testing = testing
         self.verbosity = verbosity
         self.caching = caching
         self.buf = buf
@@ -384,6 +386,7 @@ class Resolver(object):
              self.package_filter_hash,
              self.package_orderers_hash,
              self.building,
+             self.testing,
              config.prune_failed_graph]
 
         if timestamped and self.timestamp:
