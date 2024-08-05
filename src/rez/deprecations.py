@@ -20,7 +20,7 @@ def warn(message, category, pre_formatted=False, stacklevel=1, filename=None, **
     original_formatwarning = warnings.formatwarning
     if pre_formatted:
 
-        def formatwarning(_, category, *args, **kwargs):
+        def formatwarning(_, category, *args, **kwargs) -> str:
             return "{0}{1}: {2}\n".format(
                 "{0}: ".format(filename) if filename else "", category.__name__, message
             )

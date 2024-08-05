@@ -1,0 +1,48 @@
+name: mypy
+on:
+  pull_request:
+    paths:
+      - 'src/rez/**.py'
+      - 'src/rezplugins/**.py'
+      - 'pyproject.toml'
+      - '!src/rez/utils/_version.py'
+      - '!src/rez/data/**'
+      - '!src/rez/vendor/**'
+      - '!src/rez/backport/**'
+  push:
+    paths:
+      - 'src/rez/**.py'
+      - 'src/rezplugins/**.py'
+      - 'pyproject.toml'
+      - '!src/rez/utils/_version.py'
+      - '!src/rez/data/**'
+      - '!src/rez/vendor/**'
+      - '!src/rez/backport/**'
+
+permissions:
+  contents: read
+
+jobs:
+  mypy:
+    name: Run mypy static type analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up Python
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          pip install mypy==1.11.1 mypy_baseline==0.7.1 types-setuptools
+
+      - name: Run mypy
+        # To update the baseline run:
+        # mypy | mypy-baseline sync --ignore-categories=note
+        # then commit mypy-baseline.txt
+        run: >-
+          mypy | mypy-baseline filter --ignore-categories=note --allow-unsynced
