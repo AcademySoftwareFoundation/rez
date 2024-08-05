@@ -14,7 +14,9 @@ disable_error_code = ["var-annotated", "import-not-found"]
 check_untyped_defs = true
 # allow this for now:
 allow_redefinition = true
+follow_imports = "silent"
 
 [[tool.mypy.overrides]]
 module = 'rez.utils.lint_helper'
 follow_imports = "skip"
+
