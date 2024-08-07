@@ -134,7 +134,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 7)
+    serialize_version = (4, 8)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
     context_tracking_payload = None
     context_tracking_lock = threading.Lock()
@@ -1560,6 +1560,7 @@ class ResolvedContext(object):
 
             append_sys_path=self.append_sys_path,
             package_caching=self.package_caching,
+            package_cache_async=self.package_cache_async,
 
             default_patch_lock=self.default_patch_lock.name,
 
@@ -1715,6 +1716,10 @@ class ResolvedContext(object):
         for eph_str in d.get("resolved_ephemerals", []):
             req = Requirement(eph_str)
             r._resolved_ephemerals.append(req)
+
+        # -- SINCE SERIALIZE VERSION 4.8
+
+        r.package_cache_async = d.get("package_cache_async", True)
 
         # <END SERIALIZATION>
 
