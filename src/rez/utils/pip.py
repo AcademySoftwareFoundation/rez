@@ -425,7 +425,7 @@ def get_rez_requirements(installed_dist, python_version, name_casings=None):
     #
     # See: vendor/distlib/metadata.py#line-892
     #
-    requires = installed_dist.run_requires
+    requires = sorted(installed_dist.run_requires)
 
     # filter requirements
     for req_ in requires:
