@@ -33,11 +33,12 @@ data load is avoided.
 
 See the 'pets' unit test in tests/test_resources.py for a complete example.
 """
+from functools import lru_cache
+
 from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
     LazyAttributeMeta
 from rez.config import config
 from rez.exceptions import ResourceError
-from rez.backport.lru_cache import lru_cache
 from rez.utils.logging_ import print_debug
 
 
