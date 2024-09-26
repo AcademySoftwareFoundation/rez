@@ -42,6 +42,14 @@ def setup_parser(parser, completions=False):
         "--daemon", action="store_true", help=SUPPRESS
     )
     parser.add_argument(
+        "--pkg-cache-mode",
+        choices=["sync", "async"],
+        default=None,
+        help="If provided, override the rezconfig's package_cache_async key. "
+             "If 'sync', the process will block until packages are cached. "
+             "If 'async', the process will not block while packages are cached."
+    )
+    parser.add_argument(
         "-c", "--columns", nargs='+', choices=column_choices,
         default=["status", "package", "variant_uri", "cache_path"],
         help="Columns to print, choose from: %s" % ", ".join(column_choices)
@@ -70,7 +78,15 @@ def add_variant(pkgcache, uri, opts):
         print("No such variant: %s" % uri, file=sys.stderr)
         sys.exit(1)
 
-    destpath, status = pkgcache.add_variant(variant, force=opts.force)
+    if opts.pkg_cache_mode is not None:
+        cache_mode = True if opts.pkg_cache_mode == "sync" else False
+        destpath, status = pkgcache.add_variant(
+            variant, force=opts.force,
+            wait_for_copying=cache_mode
+        )
+    # If no mode is specified, use the default behavior.
+    else:
+        destpath, status = pkgcache.add_variant(variant, force=opts.force)
 
     if status == PackageCache.VARIANT_FOUND:
         print_info("Already exists: %s", destpath)
