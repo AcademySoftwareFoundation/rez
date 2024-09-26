@@ -29,8 +29,11 @@ def setup_parser(parser, completions=False):
         help="skip loading of startup scripts")
     command_action = parser.add_argument(
         "-c", "--command", type=str,
-        help="read commands from a string and exit, instead of starting an interactive shell. "
-        "Alternatively, list command arguments after a '--'")
+        help="execute command within rez environment and exit, instead of "
+        "starting an interactive shell. Alternatively, list command after a "
+        "'--'. The command and arguments passed to '-c' must be passed in as "
+        "a single shell argument, whereas the command and arguments after "
+        "'--' may be passed in as several shell arguments.")
     parser.add_argument(
         "-s", "--stdin", action="store_true",
         help="read commands from standard input")
