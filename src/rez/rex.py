@@ -1180,13 +1180,11 @@ class EnvironmentVariable(object):
         return '%s(%r, %r)' % (self.__class__.__name__, self._name,
                                self.value())
 
-    def __nonzero__(self):
+    def __bool__(self):
         try:
             return bool(self.value())
         except RexUndefinedVariableError:
             return False
-
-    __bool__ = __nonzero__  # py3 compat
 
     def __eq__(self, value):
         if isinstance(value, EnvironmentVariable):

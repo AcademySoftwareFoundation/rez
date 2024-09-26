@@ -3,14 +3,13 @@
 
 
 """
-unit tests for 'utils.py23' module
+unit tests for 'util' module
 """
 import os
-import sys
 import tempfile
-
+import sys
 from rez.tests.util import TestBase
-from rez.utils import py23
+from rez.util import load_module_from_file
 
 
 class TestLoadModuleFromFile(TestBase):
@@ -27,8 +26,5 @@ class TestLoadModuleFromFile(TestBase):
         with open(os.path.join(tmpdir, filename), 'w') as fd:
             fd.write('')
 
-        py23.load_module_from_file(
-            module,
-            os.path.join(tmpdir, filename)
-        )
+        load_module_from_file(module, os.path.join(tmpdir, filename))
         self.assertEqual(sys.modules.get(module), None, msg='Module was found in sys.modules')
