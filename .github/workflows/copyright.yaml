@@ -10,6 +10,9 @@ on:
       - '!**.md'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   main:
     name: Enforce copyright notices
