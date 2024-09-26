@@ -3,6 +3,7 @@
 
 
 import atexit
+import json
 import socket
 import time
 import threading
@@ -10,7 +11,6 @@ import logging
 import urllib.parse
 import queue
 
-from rez.utils import json
 from rez.utils.logging_ import print_error
 from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
 from rez.vendor.pika.connection import ConnectionParameters

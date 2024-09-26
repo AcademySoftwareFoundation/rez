@@ -2,6 +2,7 @@
 # Copyright Contributors to the Rez Project
 
 
+import json
 import os
 import os.path
 import errno
@@ -21,7 +22,6 @@ from contextlib import contextmanager
 from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
-from rez.utils import json
 from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
     forceful_rmtree
 from rez.utils.colorize import ColorizedStreamHandler
