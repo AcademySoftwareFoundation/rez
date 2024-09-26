@@ -94,14 +94,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     try:
         if use_pytest:
-            cwd = os.getcwd()
-            os.chdir(tests_dir)
-            try:
-                run_pytest(module_tests, opts.tests, opts.verbose,
-                           extra_arg_groups)
-            finally:
-                os.chdir(cwd)
-
+            run_pytest(module_tests, opts.tests, opts.verbose, extra_arg_groups)
         else:
             run_unittest(module_tests, opts.tests, opts.verbose)
     finally:
@@ -121,6 +114,8 @@ def run_unittest(module_tests, tests, verbosity):
 def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
     from pytest import main
 
+    tests_dir = os.path.abspath(os.path.join(__file__, "..", "..", "tests"))
+
     # parse test name, e.g.
     #   "rez.tests.test_solver.TestSolver.test_01"
     # into
@@ -133,11 +128,11 @@ def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
                 specifier += "::" + part
                 continue
             if os.path.isfile(part + ".py"):
-                specifier = part + ".py"
+                specifier = os.path.join(tests_dir, f"{part}.py")
         if specifier:
             test_specifications.append(specifier)
 
-    module_tests = [("test_%s.py" % x) for x in sorted(module_tests)]
+    module_tests = [os.path.join(tests_dir, f"test_{x}.py") for x in sorted(module_tests)]
     tests = module_tests + test_specifications
 
     argv = tests[:]
