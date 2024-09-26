@@ -9,8 +9,8 @@ from rez.exceptions import PackageMetadataError, InvalidPackageError
 from rez.utils.execution import add_sys_paths
 from rez.utils.sourcecode import SourceCode
 from rez.utils.logging_ import print_info, print_error
-from rez.vendor.enum import Enum
 from inspect import isfunction
+from enum import Enum
 import os.path
 import stat
 

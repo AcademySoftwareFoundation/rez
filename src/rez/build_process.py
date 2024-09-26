@@ -12,8 +12,8 @@ from rez.resolved_context import ResolvedContext
 from rez.release_hook import create_release_hooks
 from rez.resolver import ResolverStatus
 from rez.config import config
-from rez.vendor.enum import Enum
 from contextlib import contextmanager
+from enum import Enum
 from shlex import quote
 import getpass
 import os.path

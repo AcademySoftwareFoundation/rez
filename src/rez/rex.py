@@ -7,6 +7,7 @@ import sys
 import re
 import traceback
 from fnmatch import fnmatch
+from enum import Enum
 from contextlib import contextmanager
 from string import Formatter
 from collections.abc import MutableMapping
@@ -22,7 +23,6 @@ from rez.utils.sourcecode import SourceCode, SourceCodeError
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
 from rez.utils.platform_ import platform_
-from rez.vendor.enum import Enum
 
 
 #===============================================================================
