@@ -435,6 +435,7 @@ config_schema = Schema({
     "alias_back":                                   OptionalStr,
     "package_preprocess_function":                  OptionalStrOrFunction,
     "package_preprocess_mode":                      PreprocessMode_,
+    "use_canonical_path":                           OptionalBool,
     "error_on_missing_variant_requires":            Bool,
     "context_tracking_host":                        OptionalStr,
     "variant_shortlinks_dirname":                   OptionalStr,
