@@ -1,18 +1,25 @@
-emailer:
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
+emailer = {
     # SMTP host.
-    smtp_host: ''
+    "smtp_host": '',
 
     # SMTP port.
-    smtp_port: 25
+    "smtp_port": 25,
 
     # The address that post-release emails appear to come from.
-    sender: '{system.user}@rez-release.com'
+    "sender": '{system.user}@rez-release.com',
 
     # List of recipients of post-release emails; OR, path to recipients config
     # file (see emailer-recipients-example.yaml). If this is a string that
     # contains '@' and doesn't refer to a filepath, then it's treated as an
     # email address.
-    recipients: []
+    "recipients": [],
+
+    # Subject format - supports the same object formatting available in 'body'
+    "subject": '[rez] [release] {system.user} released {package.qualified_name}',
 
     # Message format. Available objects for formatting are:
     # - package: The package that is being released.
@@ -25,43 +32,42 @@ emailer:
     # - variants: Namespace for info about the variants that were released:
     #   - count: The number of variants that were released;
     #   - paths: Newline-separated paths to the root of each variant.
-    body: |
-        Package '{package.qualified_name}' was released by {system.user}@{system.fqdn}.
+    "body": """
+Package '{package.qualified_name}' was released by {system.user}@{system.fqdn}.
 
-        USER: {system.user}
-        PACKAGE: {package.qualified_name}
-        RELEASED TO: {release.path}
-        PREVIOUS VERSION: {release.previous_version}
-        REZ VERSION: {system.rez_version}
+USER: {system.user}
+PACKAGE: {package.qualified_name}
+RELEASED TO: {release.path}
+PREVIOUS VERSION: {release.previous_version}
+REZ VERSION: {system.rez_version}
 
-        {variants.count} VARIANTS:
-        {variants.paths}
+{variants.count} VARIANTS:
+{variants.paths}
 
-        MESSAGE:
-        {release.message}
+MESSAGE:
+{release.message}
 
-        CHANGELOG:
-        {release.changelog}
+CHANGELOG:
+{release.changelog}
+""".strip()
+}
 
-    # Subject format - supports the same object formatting available in 'body'
-    subject: '[rez] [release] {system.user} released {package.qualified_name}'
-
-command:
+command = {
     # If true, print the commands that are being run
-    print_commands: true
+    "print_commands": True,
 
     # If true, print output of commands.
-    print_output: true
+    "print_output": True,
 
     # If true, print failed commands to stderr
-    print_error: true
+    "print_error": True,
 
     # If true, cancel the package release if a pre-* command fails.
-    cancel_on_error: true
+    "cancel_on_error": True,
 
     # If true, skip all commands after a failed command. This does not cancel
     # the package release.
-    stop_on_error: true
+    "stop_on_error": True,
 
     # List of commands to execute prior to build, in given order.
     # Each item is a dict containing:
@@ -82,8 +88,7 @@ command:
     # - release: Namespace for info about the current release, contains:
     #   - path: Installation path of release.
     #
-    # Also, any environment variables references in command arguments are
-    # expanded also.
+    # Any environment variables references in command arguments are expanded.
     #
     # Example:
     # pre_build_commands
@@ -91,35 +96,37 @@ command:
     #   args: '-a -l'
     #   user: root
     #
-    pre_build_commands: []
+    "pre_build_commands": [],
 
     # Same expected values as pre_build_commands
-    pre_release_commands: []
+    "pre_release_commands": [],
 
     # Same expected values as pre_build_commands
-    post_release_commands: []
+    "post_release_commands": []
+}
 
-amqp:
+amqp = {
     # host server, or '{host}:{port}'
-    host: ''
+    "host": '',
 
     # userid
-    userid: ''
+    "userid": '',
 
     # password
-    password: ''
+    "password": '',
 
     # connection timeout
-    connect_timeout: 10
+    "connect_timeout": 10,
 
     # exchange name
-    exchange_name: ''
+    "exchange_name": '',
 
     # exchange routing key
-    exchange_routing_key: 'REZ.PACKAGE.RELEASED'
+    "exchange_routing_key": 'REZ.PACKAGE.RELEASED',
 
     # message delivery mode
-    message_delivery_mode: 1
+    "message_delivery_mode": 1,
 
     # extra message attributes to be published
-    message_attributes: {}
+    "message_attributes": {}
+}
