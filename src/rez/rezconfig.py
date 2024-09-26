@@ -423,7 +423,7 @@ package_filter = None
 # One or more "orderers" can be listed.
 # This will affect the order of version resolution.
 # This can be used to ensure that specific version have priority over others.
-# Higher versions can still be accessed if required.
+# Higher versions can still be accessed if explicitly requested.
 #
 # A common use case is to ease migration from python-2 to python-3:
 #
@@ -451,6 +451,19 @@ package_filter = None
 # rez-env python       python-2.7.16
 # rez-env python-3     python-3.7.4
 # ==================== =============
+#
+#
+# Package orderers will also apply to variants of packages.
+# Consider a package "pipeline-1.0" which has the following variants:
+# ``[["python-2.7.4", "python-2.7.16", "python-3.7.4"]]``
+#
+# ============================= ==========================
+# Example                       Result
+# ============================= ==========================
+# rez-env pipeline              pipeline-1.0 python-2.7.16
+# rez-env pipeline python-3     pipeline-1.0 python-3.7.4
+# ============================= ==========================
+#
 #
 # Here's another example, using another orderer: "soft_timestamp".
 # This orderer will prefer packages released before a provided timestamp.
