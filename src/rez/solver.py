@@ -11,8 +11,6 @@ with a faster resolve.
 
 See SOLVER.md for an in-depth description of how this module works.
 """
-from __future__ import print_function
-
 from rez.config import config
 from rez.packages import iter_packages
 from rez.package_repository import package_repo_stats

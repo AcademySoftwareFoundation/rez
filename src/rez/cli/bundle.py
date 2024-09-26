@@ -5,8 +5,6 @@
 '''
 Bundle a context and its packages into a relocatable dir.
 '''
-from __future__ import print_function
-
 import os
 import os.path
 import sys

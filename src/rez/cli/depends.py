@@ -5,7 +5,6 @@
 """
 Perform a reverse package dependency lookup.
 """
-from __future__ import print_function
 
 
 def setup_parser(parser, completions=False):
