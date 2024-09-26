@@ -174,7 +174,7 @@ class PowerShellBase(Shell):
         # only the bool $? var is set.
         #
         executor.command(
-            "if(! $?) {\n"
+            "if(! $? -or $LASTEXITCODE) {\n"
             "  if ($LASTEXITCODE) {\n"
             "    exit $LASTEXITCODE\n"
             "  }\n"
