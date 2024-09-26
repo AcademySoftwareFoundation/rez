@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         method: ['install' ,'pip']
 
         include:
@@ -49,6 +49,19 @@ jobs:
           REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:~/rez/bin/rez'
           REZ_INSTALL_COMMAND: python ./install.py ~/rez
         - os: macos-latest
+          method: pip
+          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
+          REZ_INSTALL_COMMAND: pip install --target ~/rez .
+        # macOS
+        # Python 3.7 is not supported on Apple Silicon.
+        # macos-13 is the last macos runner image to run on Intel CPUs.
+        - os: macos-13
+          python-version: '3.7'
+          method: install
+          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:~/rez/bin/rez'
+          REZ_INSTALL_COMMAND: python ./install.py ~/rez
+        - os: macos-13
+          python-version: '3.7'
           method: pip
           REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
           REZ_INSTALL_COMMAND: pip install --target ~/rez .
