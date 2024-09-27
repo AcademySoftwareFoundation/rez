@@ -52,7 +52,7 @@ def convert_old_command_expansions(command):
 within_unescaped_quotes_regex = re.compile('(?<!\\\\)"(.*?)(?<!\\\\)"')
 
 
-def convert_old_commands(commands, annotate=True):
+def convert_old_commands(commands, annotate=True) -> str:
     """Converts old-style package commands into equivalent Rex code."""
     from rez.config import config
     from rez.utils.logging_ import print_debug

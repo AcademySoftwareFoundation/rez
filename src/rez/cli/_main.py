@@ -5,6 +5,8 @@
 """
 The main command-line entry point.
 """
+from __future__ import annotations
+
 import sys
 import importlib
 from argparse import _StoreTrueAction, SUPPRESS
@@ -165,7 +167,7 @@ def run(command=None):
         extra_arg_groups = []
 
     if opts.debug or _env_var_true("REZ_DEBUG"):
-        exc_type = _NeverError
+        exc_type: type[RezError] = _NeverError
     else:
         exc_type = RezError
 

@@ -11,8 +11,10 @@ with a faster resolve.
 
 See SOLVER.md for an in-depth description of how this module works.
 """
+from __future__ import annotations
+
 from rez.config import config
-from rez.packages import iter_packages
+from rez.packages import iter_packages, Package, Variant
 from rez.package_repository import package_repo_stats
 from rez.utils.logging_ import print_debug
 from rez.utils.data_utils import cached_property
@@ -21,15 +23,30 @@ from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError, RezSystemError
-from rez.version import VersionRange
+from rez.version import Version, VersionRange
 from rez.version import VersionedObject, Requirement, RequirementList
+from rez.utils.typing import SupportsLessThan, Protocol
 from contextlib import contextmanager
 from enum import Enum
 from itertools import product, chain
+from typing import Any, Callable, Generator, Iterator, TypeVar, TYPE_CHECKING
 import copy
 import time
 import sys
 import os
+
+if TYPE_CHECKING:
+    from rez.resolved_context import ResolvedContext
+    from rez.package_filter import PackageFilterBase
+    from rez.package_order import PackageOrder
+
+
+T = TypeVar("T")
+
+
+class SupportsWrite(Protocol):
+    def write(self, __s: str) -> object:
+        pass
 
 
 # a hidden control for forcing to non-optimized solving mode. This is here as
@@ -74,9 +91,6 @@ class SolverStatus(Enum):
     cyclic = ("The solve contains a cycle.", )
     unsolved = ("The solve has started, but is not yet solved.", )
 
-    def __init__(self, description):
-        self.description = description
-
 
 class SolverCallbackReturn(Enum):
     """Enum returned by the `callback` callable passed to a `Solver` instance.
@@ -87,15 +101,15 @@ class SolverCallbackReturn(Enum):
 
 
 class _Printer(object):
-    def __init__(self, verbosity, buf=None, suppress_passive=False):
+    def __init__(self, verbosity, buf: SupportsWrite | None = None, suppress_passive: bool = False):
         self.verbosity = verbosity
         self.buf = buf or sys.stdout
         self.suppress_passive = suppress_passive
-        self.pending_sub = None
+        self.pending_sub: str | None = None
         self.pending_br = False
         self.last_pr = True
 
-    def header(self, txt, *args):
+    def header(self, txt: str, *args: Any) -> None:
         if self.verbosity:
             if self.verbosity > 2:
                 self.pr()
@@ -104,11 +118,11 @@ class _Printer(object):
             if self.verbosity > 2:
                 self.pr('-' * 80)
 
-    def subheader(self, txt):
+    def subheader(self, txt: str) -> None:
         if self.verbosity > 2:
             self.pending_sub = txt
 
-    def __call__(self, txt, *args):
+    def __call__(self, txt: str, *args: Any) -> None:
         if self.verbosity > 2:
             if self.pending_sub:
                 if self.last_pr:
@@ -122,19 +136,19 @@ class _Printer(object):
             self.last_pr = True
             self.pending_br = False
 
-    def passive(self, txt, *args):
+    def passive(self, txt: str, *args: Any) -> None:
         if self.suppress_passive:
             return
 
         self(txt, *args)
 
-    def br(self):
+    def br(self) -> None:
         self.pending_br = True
 
-    def pr(self, txt='', *args):
+    def pr(self, txt: str = '', *args: Any) -> None:
         print(txt % args, file=self.buf)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.verbosity > 0
 
 
@@ -142,51 +156,54 @@ class SolverState(object):
     """Represent the current state of the solver instance for use with a
     callback.
     """
-    def __init__(self, num_solves, num_fails, phase):
+    def __init__(self, num_solves: int, num_fails: int, phase: _ResolvePhase):
         self.num_solves = num_solves
         self.num_fails = num_fails
         self.phase = phase
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ("solve #%d (%d fails so far): %s"
                 % (self.num_solves, self.num_fails, str(self.phase)))
 
 
 class _Common(object):
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
 class Reduction(_Common):
     """A variant was removed because its dependencies conflicted with another
     scope in the current phase."""
-    def __init__(self, name, version, variant_index, dependency,
-                 conflicting_request):
+    def __init__(self, name: str, version, variant_index: int | None, dependency: Requirement,
+                 conflicting_request: Requirement):
         self.name = name
         self.version = version
         self.variant_index = variant_index
         self.dependency = dependency
         self.conflicting_request = conflicting_request
 
-    def reducee_str(self):
+    def reducee_str(self) -> str:
         stmt = VersionedObject.construct(self.name, self.version)
         idx_str = "[]" if self.variant_index is None \
             else "[%d]" % self.variant_index
         return str(stmt) + idx_str
 
-    def involved_requirements(self):
+    def involved_requirements(self) -> list[Requirement]:
         range_ = VersionRange.from_version(self.version)
         req = Requirement.construct(self.name, range_)
         return [req, self.dependency, self.conflicting_request]
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Reduction):
+            return NotImplemented
+
         return (self.name == other.name
                 and self.version == other.version
                 and self.variant_index == other.variant_index
                 and self.dependency == other.dependency
                 and self.conflicting_request == other.conflicting_request)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s (dep(%s) <--!--> %s)" \
             % (self.reducee_str(), self.dependency, self.conflicting_request)
 
@@ -194,7 +211,7 @@ class Reduction(_Common):
 class DependencyConflict(_Common):
     """A common dependency shared by all variants in a scope, conflicted with
     another scope in the current phase."""
-    def __init__(self, dependency, conflicting_request):
+    def __init__(self, dependency: Requirement, conflicting_request: Requirement):
         """
         Args:
             dependency (`Requirement`): Merged requirement from a set of variants.
@@ -203,73 +220,76 @@ class DependencyConflict(_Common):
         self.dependency = dependency
         self.conflicting_request = conflicting_request
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DependencyConflict):
+            return NotImplemented
+
         return (self.dependency == other.dependency) \
             and (self.conflicting_request == other.conflicting_request)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s <--!--> %s" % (str(self.dependency),
                                   str(self.conflicting_request))
 
 
 class FailureReason(_Common):
-    def involved_requirements(self):
+    def involved_requirements(self) -> list[Requirement]:
         return []
 
-    def description(self):
+    def description(self) -> str:
         return ""
 
 
 class TotalReduction(FailureReason):
     """All of a scope's variants were reduced away."""
-    def __init__(self, reductions):
+    def __init__(self, reductions: list[Reduction]):
         self.reductions = reductions
 
-    def involved_requirements(self):
+    def involved_requirements(self) -> list[Requirement]:
         pkgs = []
         for red in self.reductions:
             pkgs.extend(red.involved_requirements())
         return pkgs
 
-    def description(self):
+    def description(self) -> str:
         return "A package was completely reduced: %s" % str(self)
 
     def __eq__(self, other):
         return (self.reductions == other.reductions)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ' '.join(("(%s)" % str(x)) for x in self.reductions)
 
 
 class DependencyConflicts(FailureReason):
     """A common dependency in a scope conflicted with another scope in the
     current phase."""
-    def __init__(self, conflicts):
+    def __init__(self, conflicts: list[DependencyConflict]):
         self.conflicts = conflicts
 
-    def involved_requirements(self):
+    def involved_requirements(self) -> list[Requirement]:
         pkgs = []
         for conflict in self.conflicts:
             pkgs.append(conflict.dependency)
             pkgs.append(conflict.conflicting_request)
         return pkgs
 
-    def description(self):
+    def description(self) -> str:
         return "The following package conflicts occurred: %s" % str(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (self.conflicts == other.conflicts)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ' '.join(("(%s)" % str(x)) for x in self.conflicts)
 
 
 class Cycle(FailureReason):
     """The solve contains a cyclic dependency."""
-    def __init__(self, packages):
+    def __init__(self, packages: list[VersionedObject]):
         self.packages = packages
 
-    def involved_requirements(self):
+    def involved_requirements(self) -> list[Requirement]:
         pkgs = []
         for pkg in self.packages:
             range_ = VersionRange.from_version(pkg.version)
@@ -277,13 +297,13 @@ class Cycle(FailureReason):
             pkgs.append(stmt)
         return pkgs
 
-    def description(self):
+    def description(self) -> str:
         return "A cyclic dependency was detected: %s" % str(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (self.packages == other.packages)
 
-    def __str__(self):
+    def __str__(self) -> str:
         stmts = self.packages + self.packages[:1]
         return " --> ".join(map(str, stmts))
 
@@ -291,7 +311,7 @@ class Cycle(FailureReason):
 class PackageVariant(_Common):
     """A variant of a package.
     """
-    def __init__(self, variant, building):
+    def __init__(self, variant: Variant, building: bool):
         """Create a package variant.
 
         Args:
@@ -302,23 +322,23 @@ class PackageVariant(_Common):
         self.building = building
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.variant.name
 
     @property
-    def version(self):
+    def version(self) -> Version:
         return self.variant.version
 
     @property
-    def index(self):
+    def index(self) -> int | None:
         return self.variant.index
 
     @property
-    def handle(self):
+    def handle(self) -> dict[str, Any]:
         return self.variant.handle.to_dict()
 
     @cached_property
-    def requires_list(self):
+    def requires_list(self) -> RequirementList:
         """
         It is important that this property is calculated lazily. Getting the
         'requires' attribute may trigger a package load, which may be avoided if
@@ -335,31 +355,31 @@ class PackageVariant(_Common):
         return reqlist
 
     @property
-    def request_fams(self):
+    def request_fams(self) -> set[str]:
         return self.requires_list.names
 
     @property
-    def conflict_request_fams(self):
+    def conflict_request_fams(self) -> set[str]:
         return self.requires_list.conflict_names
 
-    def get(self, pkg_name):
+    def get(self, pkg_name: str) -> Requirement | None:
         return self.requires_list.get(pkg_name)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (
             self.name == other.name
             and self.version == other.version
             and self.index == other.index
         )
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return (
             self.name < other.name
             and self.version < other.version
             and self.index < other.index
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         stmt = VersionedObject.construct(self.name, self.version)
         idxstr = '' if self.index is None else str(self.index)
         return "%s[%s]" % (str(stmt), idxstr)
@@ -370,20 +390,20 @@ class _PackageEntry(object):
 
     Holds some extra state data, such as whether the variants are sorted.
     """
-    def __init__(self, package, variants, solver):
+    def __init__(self, package: Package, variants: list[PackageVariant], solver: Solver):
         self.package = package
         self.variants = variants
         self.solver = solver
         self.sorted = False
 
     @property
-    def version(self):
+    def version(self) -> Version:
         return self.package.version
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.variants)
 
-    def split(self, nvariants):
+    def split(self, nvariants: int) -> tuple[_PackageEntry, _PackageEntry] | None:
         if nvariants >= len(self.variants):
             return None
 
@@ -393,7 +413,7 @@ class _PackageEntry(object):
         entry.sorted = next_entry.sorted = True
         return entry, next_entry
 
-    def sort(self):
+    def sort(self) -> None:
         """Sort variants from most correct to consume, to least.
 
         Sort rules:
@@ -420,7 +440,7 @@ class _PackageEntry(object):
         if self.sorted:
             return
 
-        def key(variant):
+        def key(variant: PackageVariant) -> tuple[SupportsLessThan, ...]:
             requested_key = []
             names = set()
 
@@ -441,18 +461,18 @@ class _PackageEntry(object):
                     additional_key.append((range_key, request.name))
 
             if (VariantSelectMode[config.variant_select_mode] == VariantSelectMode.version_priority):
-                k = (requested_key,
-                     -len(additional_key),
-                     additional_key,
-                     variant.index)
+                return (requested_key,
+                        -len(additional_key),
+                        additional_key,
+                        # None does not support proper sorting, so fall back to int
+                        variant.index or -1)
             else:  # VariantSelectMode.intersection_priority
-                k = (len(requested_key),
-                     requested_key,
-                     -len(additional_key),
-                     additional_key,
-                     variant.index)
-
-            return k
+                return (len(requested_key),
+                        requested_key,
+                        -len(additional_key),
+                        additional_key,
+                        # None does not support proper sorting, so fall back to int
+                        variant.index or -1)
 
         self.variants.sort(key=key, reverse=True)
         self.sorted = True
@@ -461,7 +481,7 @@ class _PackageEntry(object):
 class _PackageVariantList(_Common):
     """A list of package variants, loaded lazily.
     """
-    def __init__(self, package_name, solver):
+    def __init__(self, package_name: str, solver: Solver):
         self.package_name = package_name
         self.solver = solver
 
@@ -469,7 +489,7 @@ class _PackageVariantList(_Common):
         # cause package loads (eg, timestamp rules). We only apply filters
         # during an intersection, which minimises the amount of filtering.
         #
-        self.entries = []
+        self.entries: list[list[Any]] = []
 
         for package in iter_packages(self.package_name,
                                      paths=self.solver.package_paths):
@@ -481,7 +501,7 @@ class _PackageVariantList(_Common):
                 "package family not found: %s (searched: %s)"
                 % (package_name, "; ".join(self.solver.package_paths)))
 
-    def get_intersection(self, range_):
+    def get_intersection(self, range_: VersionRange) -> list[_PackageEntry] | None:
         """Get a list of variants that intersect with the given range.
 
         Args:
@@ -532,7 +552,7 @@ class _PackageVariantList(_Common):
 
         return result or None
 
-    def dump(self):
+    def dump(self) -> None:
         print(self.package_name)
 
         for package, value in self.entries:
@@ -546,7 +566,7 @@ class _PackageVariantList(_Common):
             else:
                 print("    %s" % str(package))
 
-    def __str__(self):
+    def __str__(self) -> str:
         strs = []
 
         for package, value in self.entries:
@@ -565,7 +585,7 @@ class _PackageVariantList(_Common):
 
 class _PackageVariantSlice(_Common):
     """A subset of a variant list, but with more dependency-related info."""
-    def __init__(self, package_name, entries, solver):
+    def __init__(self, package_name: str, entries: list[_PackageEntry], solver: Solver):
         """
         Args:
             entries (list of `_PackageEntry`): result of
@@ -580,49 +600,51 @@ class _PackageVariantSlice(_Common):
         self.sorted = False
 
         # calculated on demand
-        self._len = None
-        self._range = None
-        self._fam_requires = None
-        self._common_fams = None
+        self._len: int | None = None
+        self._range: VersionRange | None = None
+        self._fam_requires: set[str] | None = None
+        self._common_fams: set[str] | None = None
 
     @property
-    def pr(self):
+    def pr(self) -> _Printer:
         return self.solver.pr
 
     @property
-    def range_(self):
+    def range_(self) -> VersionRange:
         if self._range is None:
             versions = (x.version for x in self.entries)
             self._range = VersionRange.from_versions(versions)
         return self._range
 
     @property
-    def fam_requires(self):
+    def fam_requires(self) -> set[str]:
         self._update_fam_info()
+        assert self._fam_requires is not None
         return self._fam_requires
 
     @property
-    def common_fams(self):
+    def common_fams(self) -> set[str]:
         self._update_fam_info()
+        assert self._common_fams is not None
         return self._common_fams
 
     @property
-    def extractable(self):
+    def extractable(self) -> bool:
         """True if there are possible remaining extractions."""
         return not self.extracted_fams.issuperset(self.common_fams)
 
     @property
-    def first_variant(self):
+    def first_variant(self) -> PackageVariant:
         entry = self.entries[0]
         entry.sort()
         return entry.variants[0]
 
-    def iter_variants(self):
+    def iter_variants(self) -> Iterator[PackageVariant]:
         for entry in self.entries:
             for variant in entry.variants:
                 yield variant
 
-    def intersect(self, range_):
+    def intersect(self, range_: VersionRange) -> _PackageVariantSlice | None:
         self.solver.intersection_broad_tests_count += 1
 
         """Remove variants whose version fall outside of the given range."""
@@ -652,7 +674,7 @@ class _PackageVariantSlice(_Common):
             self.been_intersected_with.add(range_)
             return self
 
-    def reduce_by(self, package_request):
+    def reduce_by(self, package_request: Requirement) -> tuple[_PackageVariantSlice | None, list[Reduction]]:
         """Remove variants whos dependencies conflict with the given package
         request.
 
@@ -675,14 +697,14 @@ class _PackageVariantSlice(_Common):
         with self.solver.timed(self.solver.reduction_time):
             return self._reduce_by(package_request)
 
-    def _reduce_by(self, package_request):
+    def _reduce_by(self, package_request: Requirement) -> tuple[_PackageVariantSlice | None, list[Reduction]]:
         self.solver.reduction_tests_count += 1
 
         entries = []
         reductions = []
         conflict_tests = {}
 
-        def _conflicts(req_):
+        def _conflicts(req_: Requirement):
             # cache conflict tests, since variants often share similar requirements
             req_s = str(req)
             result = conflict_tests.get(req_s)
@@ -727,7 +749,7 @@ class _PackageVariantSlice(_Common):
             self.been_reduced_by.add(package_request)
             return (self, [])
 
-    def extract(self):
+    def extract(self) -> tuple[_PackageVariantSlice, Requirement | None]:
         """Extract a common dependency.
 
         Note that conflict dependencies are never extracted, they are always
@@ -741,11 +763,12 @@ class _PackageVariantSlice(_Common):
         # the sort is necessary to ensure solves are deterministic
         fam = sorted(extractable)[0]
 
-        last_range = None
+        last_range: VersionRange | None = None
         ranges = set()
 
         for variant in self.iter_variants():
             req = variant.get(fam)
+            assert req is not None
             if req.range != last_range:  # will match often, avoids set search
                 ranges.add(req.range)
                 last_range = req.range
@@ -758,7 +781,7 @@ class _PackageVariantSlice(_Common):
         common_req = Requirement.construct(fam, range_)
         return slice_, common_req
 
-    def split(self):
+    def split(self) -> tuple[_PackageVariantSlice, _PackageVariantSlice]:
         """Split the slice.
 
         Returns:
@@ -772,7 +795,7 @@ class _PackageVariantSlice(_Common):
         #
         self.sort_versions()
 
-        def _split(i_entry, n_variants, common_fams=None):
+        def _split(i_entry: int, n_variants: int, common_fams=None):
             # perform a split at a specific point
             result = self.entries[i_entry].split(n_variants)
 
@@ -812,7 +835,7 @@ class _PackageVariantSlice(_Common):
             return _split(0, 1)
 
         # find split point - first variant with no dependency shared with previous
-        prev = None
+        prev: tuple[int, int, set[str]] | None = None
         for i, entry in enumerate(self.entries):
             # sort the variants. This is done here in order to do the sort as
             # late as possible, simply to avoid the cost.
@@ -821,6 +844,7 @@ class _PackageVariantSlice(_Common):
             for j, variant in enumerate(entry.variants):
                 fams = fams & variant.request_fams
                 if not fams:
+                    assert prev is not None
                     return _split(*prev)
 
                 prev = (i, j + 1, fams)
@@ -832,7 +856,7 @@ class _PackageVariantSlice(_Common):
             "Unexpected solver error: common family(s) still in slice being "
             "split: slice: %s, family(s): %s" % (self, str(fams)))
 
-    def sort_versions(self):
+    def sort_versions(self) -> None:
         """Sort entries by version.
 
         The order is typically descending, but package order functions can
@@ -845,7 +869,7 @@ class _PackageVariantSlice(_Common):
 
         orderer = get_orderer(self.package_name, orderers=self.solver.package_orderers or {})
 
-        def sort_key(entry):
+        def sort_key(entry: _PackageEntry) -> SupportsLessThan:
             return orderer.sort_key(entry.package.name, entry.version)
 
         self.entries = sorted(self.entries, key=sort_key, reverse=True)
@@ -854,11 +878,11 @@ class _PackageVariantSlice(_Common):
         if self.pr:
             self.pr("sorted: %s packages: %s", self.package_name, repr(orderer))
 
-    def dump(self):
+    def dump(self) -> None:
         print(self.package_name)
         print('\n'.join(map(str, self.iter_variants())))
 
-    def _copy(self, new_entries):
+    def _copy(self, new_entries: list[_PackageEntry]) -> _PackageVariantSlice:
         slice_ = _PackageVariantSlice(package_name=self.package_name,
                                       entries=new_entries,
                                       solver=self.solver)
@@ -868,7 +892,7 @@ class _PackageVariantSlice(_Common):
         slice_.been_intersected_with = self.been_intersected_with.copy()
         return slice_
 
-    def _update_fam_info(self):
+    def _update_fam_info(self) -> None:
         if self._common_fams is not None:
             return
 
@@ -880,7 +904,7 @@ class _PackageVariantSlice(_Common):
             self._fam_requires |= (variant.request_fams
                                    | variant.conflict_request_fams)
 
-    def __len__(self):
+    def __len__(self) -> int:
         if self._len is None:
             self._len = 0
             for entry in self.entries:
@@ -888,7 +912,7 @@ class _PackageVariantSlice(_Common):
 
         return self._len
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         foo[2..6(3:4)]* means, 3 versions, 4 variants in 2..6, and at least one
             family can still be extracted.
@@ -907,7 +931,8 @@ class _PackageVariantSlice(_Common):
             s = "[%s==%s%s]" % (self.package_name, str(variant.version), s_idx)
         elif nversions == 1:
             entry = self.entries[0]
-            indexes = sorted([x.index for x in entry.variants])
+            # we expect all variants to have a non-None index, but filter to satisfy mypy
+            indexes = sorted([x.index for x in entry.variants if x.index is not None])
             s_idx = ','.join(str(x) for x in indexes)
             verstr = str(entry.version)
             s = "[%s==%s[%s]]" % (self.package_name, verstr, s_idx)
@@ -923,11 +948,11 @@ class _PackageVariantSlice(_Common):
 
 
 class PackageVariantCache(object):
-    def __init__(self, solver):
+    def __init__(self, solver: Solver):
         self.solver = solver
-        self.variant_lists = {}  # {package-name: _PackageVariantList}
+        self.variant_lists: dict[str, _PackageVariantList] = {}  # {package-name: _PackageVariantList}
 
-    def get_variant_slice(self, package_name, range_):
+    def get_variant_slice(self, package_name: str, range_: VersionRange) -> _PackageVariantSlice | None:
         """Get a list of variants from the cache.
 
         Args:
@@ -958,10 +983,9 @@ class _PackageScope(_Common):
     or a conflict range. As the resolve progresses, package scopes are narrowed
     down.
     """
-    def __init__(self, package_request, solver):
+    def __init__(self, package_request: Requirement, solver: Solver):
         self.package_name = package_request.name
         self.solver = solver
-        self.package_request = None
         self.variant_slice = None
         self.pr = solver.pr
         self.is_ephemeral = (package_request.name.startswith('.'))
@@ -978,13 +1002,14 @@ class _PackageScope(_Common):
                                             package_request.range)
                 raise PackageNotFoundError("Package could not be found: %s"
                                            % str(req))
+            # This call to _update() will set self.package_request
             self._update()
 
     @property
-    def is_conflict(self):
-        return self.package_request and self.package_request.conflict
+    def is_conflict(self) -> bool:
+        return bool(self.package_request and self.package_request.conflict)
 
-    def intersect(self, range_):
+    def intersect(self, range_: VersionRange) -> _PackageScope | None:
         """Intersect this scope with a package range.
 
         Returns:
@@ -1036,6 +1061,8 @@ class _PackageScope(_Common):
                     new_slice = self.solver._get_variant_slice(
                         self.package_name, new_range)
         else:
+            assert self.variant_slice is not None, \
+                "variant_slice should always exist for non-conflicted non-ephemeral requests"
             new_slice = self.variant_slice.intersect(range_)
 
         # intersection reduced the scope to nothing
@@ -1056,7 +1083,7 @@ class _PackageScope(_Common):
         # intersection did not change the scope
         return self
 
-    def reduce_by(self, package_request):
+    def reduce_by(self, package_request: Requirement) -> tuple[_PackageScope | None, list[Reduction]]:
         """Reduce this scope wrt a package request.
 
         Returns:
@@ -1070,6 +1097,9 @@ class _PackageScope(_Common):
         # variant list to reduce)
         if self.is_conflict or self.is_ephemeral:
             return (self, [])
+
+        assert self.variant_slice is not None, \
+            "variant_slice should always exist for non-conflicted non-ephemeral requests"
 
         # perform the reduction
         new_slice, reductions = self.variant_slice.reduce_by(package_request)
@@ -1099,7 +1129,7 @@ class _PackageScope(_Common):
         # there was no reduction
         return (self, [])
 
-    def extract(self):
+    def extract(self) -> tuple[_PackageScope, Requirement | None]:
         """Extract a common dependency.
 
         Returns:
@@ -1112,6 +1142,9 @@ class _PackageScope(_Common):
         if self.is_conflict or self.is_ephemeral:
             return (self, None)
 
+        assert self.variant_slice is not None, \
+            "variant_slice should always exist for non-conflicted non-ephemeral requests"
+
         new_slice, package_request = self.variant_slice.extract()
         if not package_request:
             return (self, None)
@@ -1123,7 +1156,7 @@ class _PackageScope(_Common):
             self.pr("extracted %s from %s", package_request, self)
         return (scope, package_request)
 
-    def split(self):
+    def split(self) -> tuple[_PackageScope, _PackageScope] | None:
         """Split the scope.
 
         Returns:
@@ -1134,8 +1167,13 @@ class _PackageScope(_Common):
         if (
             self.is_conflict
             or self.is_ephemeral
-            or len(self.variant_slice) == 1
         ):
+            return None
+
+        assert self.variant_slice is not None, \
+            "variant_slice should always exist for non-conflicted non-ephemeral requests"
+
+        if len(self.variant_slice) == 1:
             return None
 
         r = self.variant_slice.split()
@@ -1147,23 +1185,24 @@ class _PackageScope(_Common):
         next_scope = self._copy(next_slice)
         return (scope, next_scope)
 
-    def _copy(self, new_slice):
+    def _copy(self, new_slice: _PackageVariantSlice) -> _PackageScope:
         scope = copy.copy(self)
         scope.variant_slice = new_slice
         scope._update()
         return scope
 
-    def _is_solved(self):
+    def _is_solved(self) -> bool:
         return (
             self.is_conflict
             or self.is_ephemeral
             or (
-                len(self.variant_slice) == 1
+                self.variant_slice is not None  # should never be None here
+                and len(self.variant_slice) == 1
                 and not self.variant_slice.extractable
             )
         )
 
-    def _get_solved_variant(self):
+    def _get_solved_variant(self) -> PackageVariant | None:
         if (
             self.variant_slice is not None
             and len(self.variant_slice) == 1
@@ -1173,25 +1212,25 @@ class _PackageScope(_Common):
         else:
             return None
 
-    def _get_solved_ephemeral(self):
+    def _get_solved_ephemeral(self) -> Requirement | None:
         if self.is_ephemeral and not self.is_conflict:
             return self.package_request
         else:
             return None
 
-    def _update(self):
+    def _update(self) -> None:
         if self.variant_slice is not None:
             self.package_request = Requirement.construct(
                 self.package_name, self.variant_slice.range_)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.variant_slice is None:
             return str(self.package_request)
         else:
             return str(self.variant_slice)
 
 
-def _get_dependency_order(g, node_list):
+def _get_dependency_order(g: digraph, node_list: list[T]) -> list[T]:
     """Return list of nodes as close as possible to the ordering in node_list,
     but with child nodes earlier in the list than parents."""
     access_ = accessibility(g)
@@ -1230,10 +1269,10 @@ class _ResolvePhase(_Common):
     If the resolve phase gets to a point where every package scope is solved,
     then the entire resolve is considered to be solved.
     """
-    def __init__(self, solver):
+    def __init__(self, solver: Solver):
         self.solver = solver
-        self.failure_reason = None
-        self.extractions = {}
+        self.failure_reason: FailureReason | None = None
+        self.extractions: dict[tuple[str, str], Requirement] = {}
         self.status = SolverStatus.pending
 
         self.scopes = []
@@ -1245,21 +1284,21 @@ class _ResolvePhase(_Common):
         self.changed_scopes_i = set(range(len(self.scopes)))
 
     @property
-    def pr(self):
+    def pr(self) -> _Printer:
         return self.solver.pr
 
-    def solve(self):
+    def solve(self) -> _ResolvePhase:
         """Attempt to solve the phase."""
         if self.status != SolverStatus.pending:
             return self
 
         scopes = self.scopes[:]
-        failure_reason = None
-        extractions = {}
+        failure_reason: FailureReason | None = None
+        extractions: dict[tuple[str, str], Requirement] = {}
 
         changed_scopes_i = self.changed_scopes_i.copy()
 
-        def _create_phase(status=None):
+        def _create_phase(status: SolverStatus | None = None) -> _ResolvePhase:
             phase = copy.copy(self)
             phase.scopes = scopes
             phase.failure_reason = failure_reason
@@ -1281,7 +1320,7 @@ class _ResolvePhase(_Common):
             # iteratively extract until no more extractions possible
             while True:
                 self.pr.subheader("EXTRACTING:")
-                extracted_requests = []
+                extracted_requests_ = []
 
                 # perform all possible extractions
                 with self.solver.timed(self.solver.extraction_time):
@@ -1290,7 +1329,7 @@ class _ResolvePhase(_Common):
                             scope_, extracted_request = scopes[i].extract()
 
                             if extracted_request:
-                                extracted_requests.append(extracted_request)
+                                extracted_requests_.append(extracted_request)
                                 k = (scopes[i].package_name, extracted_request.name)
                                 extractions[k] = extracted_request
                                 self.solver.extractions_count += 1
@@ -1298,12 +1337,12 @@ class _ResolvePhase(_Common):
                             else:
                                 break
 
-                if not extracted_requests:
+                if not extracted_requests_:
                     break
 
                 # simplify extractions (there may be overlaps)
                 self.pr.subheader("MERGE-EXTRACTIONS:")
-                extracted_requests = RequirementList(extracted_requests)
+                extracted_requests = RequirementList(extracted_requests_)
 
                 if extracted_requests.conflict:  # extractions are in conflict
                     req1, req2 = extracted_requests.conflict
@@ -1325,21 +1364,21 @@ class _ResolvePhase(_Common):
                             continue
 
                         # perform the intersection
-                        scope_ = scope.intersect(extracted_req.range)
+                        new_scope = scope.intersect(extracted_req.range)
 
                         req_fams.append(extracted_req.name)
 
-                        if scope_ is None:
+                        if new_scope is None:
                             # the scope conflicted with the extraction
                             conflict = DependencyConflict(
                                 extracted_req, scope.package_request)
                             failure_reason = DependencyConflicts([conflict])
                             return _create_phase(SolverStatus.failed)
 
-                        if scope_ is not scope:
+                        if new_scope is not scope:
                             # the scope was narrowed because it intersected
                             # with an extraction
-                            scopes[i] = scope_
+                            scopes[i] = new_scope
                             changed_scopes_i.add(i)
                             self.solver.intersections_count += 1
 
@@ -1446,10 +1485,10 @@ class _ResolvePhase(_Common):
                 # A different order here wouldn't cause an invalid solve, however
                 # rez solves must be deterministic, so this is why we sort.
                 #
-                pending_reducts = sorted(pending_reducts)
+                pending_reducts_ = sorted(pending_reducts)
 
-                while pending_reducts:
-                    x, y = pending_reducts.pop()
+                while pending_reducts_:
+                    x, y = pending_reducts_.pop()
                     if x == y:
                         continue
 
@@ -1466,13 +1505,13 @@ class _ResolvePhase(_Common):
                         # other scopes need to reduce against x again
                         for j in all_scopes_i:
                             if j != x:
-                                pending_reducts.append((j, x))
+                                pending_reducts_.append((j, x))
 
             changed_scopes_i = set()
 
         return _create_phase()
 
-    def finalise(self):
+    def finalise(self) -> _ResolvePhase:
         """Remove conflict requests, detect cyclic dependencies, and reorder
         packages wrt dependency and then request order.
 
@@ -1483,6 +1522,8 @@ class _ResolvePhase(_Common):
         """
         assert self._is_solved()
         g = self._get_minimal_graph()
+        assert g is not None, "graph should always be present when solved"
+
         scopes = dict((x.package_name, x) for x in self.scopes
                       if not x.is_conflict)
 
@@ -1493,11 +1534,12 @@ class _ResolvePhase(_Common):
             for fam in fam_cycle:
                 scope = scopes[fam]
                 variant = scope._get_solved_variant()
+                assert variant is not None, "variant should not be None when scope is solved"
                 stmt = VersionedObject.construct(fam, variant.version)
                 cycle.append(stmt)
 
             phase = copy.copy(self)
-            phase.scopes = scopes.values()
+            phase.scopes = list(scopes.values())
             phase.failure_reason = Cycle(cycle)
             phase.status = SolverStatus.cyclic
             return phase
@@ -1516,7 +1558,7 @@ class _ResolvePhase(_Common):
         phase.scopes = scopes_
         return phase
 
-    def split(self):
+    def split(self) -> tuple[_ResolvePhase, _ResolvePhase]:
         """Split the phase.
 
         When a phase is exhausted, it gets split into a pair of phases to be
@@ -1540,7 +1582,7 @@ class _ResolvePhase(_Common):
 
         scopes = []
         next_scopes = []
-        split_i = None
+        split_i: int | None = None
 
         for i, scope in enumerate(self.scopes):
             if split_i is None:
@@ -1572,7 +1614,7 @@ class _ResolvePhase(_Common):
         next_phase.scopes = next_scopes
         return (phase, next_phase)
 
-    def get_graph(self):
+    def get_graph(self) -> digraph:
         """Get the resolve graph.
 
         The resolve graph shows what packages were resolved, and the
@@ -1597,12 +1639,12 @@ class _ResolvePhase(_Common):
         node_fontsize = 10
         counter = [1]
 
-        def _uid():
+        def _uid() -> str:
             id_ = counter[0]
             counter[0] += 1
             return "_%d" % id_
 
-        def _add_edge(id1, id2, arrowsize=0.5):
+        def _add_edge(id1: str, id2: str, arrowsize=0.5) -> tuple[str, str]:
             e = (id1, id2)
             if g.has_edge(e):
                 g.del_edge(e)
@@ -1610,30 +1652,30 @@ class _ResolvePhase(_Common):
             g.add_edge_attribute(e, ("arrowsize", str(arrowsize)))
             return e
 
-        def _add_extraction_merge_edge(id1, id2):
+        def _add_extraction_merge_edge(id1: str, id2: str):
             e = _add_edge(id1, id2, 1)
             g.add_edge_attribute(e, ("arrowhead", "odot"))
 
-        def _add_conflict_edge(id1, id2):
+        def _add_conflict_edge(id1: str, id2: str):
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, "CONFLICT")
             g.add_edge_attribute(e, ("style", "bold"))
             g.add_edge_attribute(e, ("color", "red"))
             g.add_edge_attribute(e, ("fontcolor", "red"))
 
-        def _add_cycle_edge(id1, id2):
+        def _add_cycle_edge(id1: str, id2: str):
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, "CYCLE")
             g.add_edge_attribute(e, ("style", "bold"))
             g.add_edge_attribute(e, ("color", "red"))
             g.add_edge_attribute(e, ("fontcolor", "red"))
 
-        def _add_reduct_edge(id1, id2, label):
+        def _add_reduct_edge(id1: str, id2: str, label: str):
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, label)
             g.add_edge_attribute(e, ("fontsize", node_fontsize))
 
-        def _add_node(label, color, style):
+        def _add_node(label: str, color: str, style: str) -> str:
             attrs = [("label", label),
                      ("fontsize", node_fontsize),
                      ("fillcolor", color),
@@ -1642,7 +1684,7 @@ class _ResolvePhase(_Common):
             g.add_node(id_, attrs=attrs)
             return id_
 
-        def _add_request_node(request, initial_request=False):
+        def _add_request_node(request: Requirement, initial_request: bool = False) -> str:
             id_ = request_nodes.get(request)
             if id_ is not None:
                 return id_
@@ -1657,7 +1699,7 @@ class _ResolvePhase(_Common):
             request_nodes[request] = id_
             return id_
 
-        def _add_scope_node(scope):
+        def _add_scope_node(scope: _PackageScope) -> str:
             id_ = scope_nodes.get(scope.package_name)
             if id_ is not None:
                 return id_
@@ -1681,7 +1723,7 @@ class _ResolvePhase(_Common):
             scope_requests[id_] = scope.package_request
             return id_
 
-        def _add_reduct_node(request):
+        def _add_reduct_node(request: Requirement) -> str:
             return _add_node(str(request), node_color, "filled,dashed")
 
         # -- generate the graph
@@ -1736,6 +1778,7 @@ class _ResolvePhase(_Common):
                 reqlist = RequirementList(requests)
                 if not reqlist.conflict:
                     merged_request = reqlist.get(fam)
+                    assert merged_request is not None
                     for request in requests:
                         if merged_request != request:
                             id1 = _add_request_node(request)
@@ -1749,7 +1792,7 @@ class _ResolvePhase(_Common):
                 for conflict in fr.conflicts:
                     conflicting_request = conflict.conflicting_request
                     scope_n = scope_nodes.get(conflicting_request.name)
-                    scope_r = scope_requests.get(scope_n)
+                    scope_r = scope_requests.get(scope_n) if scope_n is not None else None
 
                     if scope_n is not None \
                             and scope_r is not None \
@@ -1807,7 +1850,7 @@ class _ResolvePhase(_Common):
             if not g.neighbors(id1):  # leaf node
                 id2 = scope_nodes.get(request.name)
                 if id2 is not None:
-                    scope = scopes.get(request.name)
+                    scope = scopes[request.name]
                     if not request.conflicts_with(scope.package_request):
                         _add_edge(id1, id2)
 
@@ -1825,7 +1868,7 @@ class _ResolvePhase(_Common):
 
         return g
 
-    def _get_minimal_graph(self):
+    def _get_minimal_graph(self) -> digraph | None:
         if not self._is_solved():
             return None
 
@@ -1852,13 +1895,13 @@ class _ResolvePhase(_Common):
 
         return g
 
-    def _is_solved(self):
+    def _is_solved(self) -> bool:
         for scope in self.scopes:
             if not scope._is_solved():
                 return False
         return True
 
-    def _get_solved_variants(self):
+    def _get_solved_variants(self) -> list[PackageVariant]:
         variants = []
         for scope in self.scopes:
             variant = scope._get_solved_variant()
@@ -1867,7 +1910,7 @@ class _ResolvePhase(_Common):
 
         return variants
 
-    def _get_solved_ephemerals(self):
+    def _get_solved_ephemerals(self) -> list[Requirement]:
         ephemerals = []
         for scope in self.scopes:
             ephemeral = scope._get_solved_ephemeral()
@@ -1876,7 +1919,7 @@ class _ResolvePhase(_Common):
 
         return ephemerals
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ' '.join(str(x) for x in self.scopes)
 
 
@@ -1889,11 +1932,21 @@ class Solver(_Common):
     """
     max_verbosity = 3
 
-    def __init__(self, package_requests, package_paths, context=None,
-                 package_filter=None, package_orderers=None, callback=None,
-                 building=False, optimised=True, verbosity=0, buf=None,
-                 package_load_callback=None, prune_unfailed=True,
-                 suppress_passive=False, print_stats=False):
+    def __init__(self,
+                 package_requests: list[Requirement],
+                 package_paths: list[str],
+                 context: ResolvedContext | None = None,
+                 package_filter: PackageFilterBase | None = None,
+                 package_orderers: list[PackageOrder] | None = None,
+                 callback: Callable[[SolverState], tuple[SolverCallbackReturn, str]] | None = None,
+                 building: bool = False,
+                 optimised: bool = True,
+                 verbosity: int = 0,
+                 buf: SupportsWrite | None = None,
+                 package_load_callback: Callable[[Package], Any] | None = None,
+                 prune_unfailed: bool = True,
+                 suppress_passive: bool = False,
+                 print_stats: bool = False):
         """Create a Solver.
 
         Args:
@@ -1934,7 +1987,6 @@ class Solver(_Common):
         self.prune_unfailed = prune_unfailed
         self.package_load_callback = package_load_callback
         self.building = building
-        self.request_list = None
         self.context = context
 
         self.pr = _Printer(verbosity, buf=buf, suppress_passive=suppress_passive)
@@ -1946,14 +1998,16 @@ class Solver(_Common):
         else:
             self.optimised = optimised
 
-        self.phase_stack = None
-        self.failed_phase_list = None
-        self.abort_reason = None
-        self.callback_return = None
-        self.depth_counts = None
-        self.solve_begun = None
-        self.solve_time = None
-        self.load_time = None
+        # these values are all set in _init()
+        self.phase_stack: list[_ResolvePhase]
+        self.failed_phase_list: list[_ResolvePhase]
+        self.depth_counts: dict
+        self.solve_begun: bool
+        self.solve_time: float
+        self.load_time: float
+
+        self.abort_reason: str | None = None
+        self.callback_return: SolverCallbackReturn | None = None
 
         # advanced solve metrics
         self.solve_count = 0
@@ -2000,14 +2054,14 @@ class Solver(_Common):
         self._push_phase(phase)
 
     @contextmanager
-    def timed(self, target):
+    def timed(self, target: list[float]) -> Generator:
         t = time.time()
         yield
         secs = time.time() - t
         target[0] += secs
 
     @property
-    def status(self):
+    def status(self) -> SolverStatus:
         """Return the current status of the solve.
 
         Returns:
@@ -2035,12 +2089,12 @@ class Solver(_Common):
             return st
 
     @property
-    def num_solves(self):
+    def num_solves(self) -> int:
         """Return the number of solve steps that have been executed."""
         return self.solve_count
 
     @property
-    def num_fails(self):
+    def num_fails(self) -> int:
         """Return the number of failed solve steps that have been executed.
         Note that num_solves is inclusive of failures."""
         n = len(self.failed_phase_list)
@@ -2049,12 +2103,12 @@ class Solver(_Common):
         return n
 
     @property
-    def cyclic_fail(self):
+    def cyclic_fail(self) -> bool:
         """Return True if the solve failed due to a cycle, False otherwise."""
         return (self.phase_stack[-1].status == SolverStatus.cyclic)
 
     @property
-    def resolved_packages(self):
+    def resolved_packages(self) -> list[PackageVariant] | None:
         """Return a list of resolved variants.
 
         Returns:
@@ -2068,7 +2122,7 @@ class Solver(_Common):
         return final_phase._get_solved_variants()
 
     @property
-    def resolved_ephemerals(self):
+    def resolved_ephemerals(self) -> list[Requirement] | None:
         """Return the list of final ephemeral package ranges.
 
         Note that conflict ephemerals are not included.
@@ -2083,15 +2137,15 @@ class Solver(_Common):
         final_phase = self.phase_stack[-1]
         return final_phase._get_solved_ephemerals()
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset the solver, removing any current solve."""
         if not self.request_list.conflict:
-            phase = _ResolvePhase(self.request_list.requirements, solver=self)
+            phase = _ResolvePhase(solver=self)
             self.pr("resetting...")
             self._init()
             self._push_phase(phase)
 
-    def solve(self):
+    def solve(self) -> None:
         """Attempt to solve the request.
         """
         if self.solve_begun:
@@ -2122,7 +2176,7 @@ class Solver(_Common):
             print(pformat(data), file=(self.buf or sys.stdout))
 
     @property
-    def solve_stats(self):
+    def solve_stats(self) -> dict[str, dict[str, Any]]:
         extraction_stats = {
             "extraction_time": self.extraction_time[0],
             "num_extractions": self.extractions_count
@@ -2158,7 +2212,7 @@ class Solver(_Common):
             "reductions": reduction_stats
         }
 
-    def solve_step(self):
+    def solve_step(self) -> None:
         """Perform a single solve step.
         """
         self.solve_begun = True
@@ -2209,7 +2263,7 @@ class Solver(_Common):
             assert new_phase.status == SolverStatus.exhausted
             self._push_phase(new_phase)
 
-    def failure_reason(self, failure_index=None):
+    def failure_reason(self, failure_index: int | None = None) -> FailureReason | None:
         """Get the reason for a failure.
 
         Args:
@@ -2228,7 +2282,7 @@ class Solver(_Common):
         phase, _ = self._get_failed_phase(failure_index)
         return phase.failure_reason
 
-    def failure_description(self, failure_index=None):
+    def failure_description(self, failure_index: int | None = None) -> str:
         """Get a description of the failure.
 
         This differs from `failure_reason` - in some cases, such as when a
@@ -2238,7 +2292,7 @@ class Solver(_Common):
         _, description = self._get_failed_phase(failure_index)
         return description
 
-    def failure_packages(self, failure_index=None):
+    def failure_packages(self, failure_index: int | None = None) -> list[Requirement] | None:
         """Get packages involved in a failure.
 
         Args:
@@ -2251,7 +2305,7 @@ class Solver(_Common):
         fr = phase.failure_reason
         return fr.involved_requirements() if fr else None
 
-    def get_graph(self):
+    def get_graph(self) -> digraph:
         """Returns the most recent solve graph.
 
         This gives a graph showing the latest state of the solve. The specific
@@ -2267,11 +2321,12 @@ class Solver(_Common):
         st = self.status
         if st in (SolverStatus.solved, SolverStatus.unsolved):
             phase = self._latest_nonfailed_phase()
+            assert phase is not None, "Should only be None if status is failed"
             return phase.get_graph()
         else:
             return self.get_fail_graph()
 
-    def get_fail_graph(self, failure_index=None):
+    def get_fail_graph(self, failure_index: int | None = None) -> digraph:
         """Returns a graph showing a solve failure.
 
         Args:
@@ -2283,7 +2338,7 @@ class Solver(_Common):
         phase, _ = self._get_failed_phase(failure_index)
         return phase.get_graph()
 
-    def dump(self):
+    def dump(self) -> None:
         """Print a formatted summary of the current solve state."""
         from rez.utils.formatting import columnise
 
@@ -2291,7 +2346,7 @@ class Solver(_Common):
         for i, phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))
 
-        print("status: %s (%s)" % (self.status.name, self.status.description))
+        print("status: %s (%s)" % (self.status.name, self.status.value[0]))
         print("initial request: %s" % str(self.request_list))
         print()
         print("solve stack:")
@@ -2305,7 +2360,7 @@ class Solver(_Common):
             print("previous failures:")
             print('\n'.join(columnise(rows)))
 
-    def _init(self):
+    def _init(self) -> None:
         self.phase_stack = []
         self.failed_phase_list = []
         self.depth_counts = {}
@@ -2329,7 +2384,7 @@ class Solver(_Common):
         self.reduction_time = [0.0]
         self.reduction_test_time = [0.0]
 
-    def _latest_nonfailed_phase(self):
+    def _latest_nonfailed_phase(self) -> _ResolvePhase | None:
         if self.status == SolverStatus.failed:
             return None
 
@@ -2338,7 +2393,7 @@ class Solver(_Common):
                 return phase
         assert False  # should never get here
 
-    def _do_callback(self):
+    def _do_callback(self) -> bool:
         keep_going = True
         if self.callback:
             phase = self._latest_nonfailed_phase()
@@ -2358,13 +2413,13 @@ class Solver(_Common):
 
         return keep_going
 
-    def _get_variant_slice(self, package_name, range_):
+    def _get_variant_slice(self, package_name: str, range_: VersionRange) -> _PackageVariantSlice | None:
         slice_ = self.package_cache.get_variant_slice(
             package_name=package_name, range_=range_)
 
         return slice_
 
-    def _push_phase(self, phase):
+    def _push_phase(self, phase: _ResolvePhase) -> None:
         depth = len(self.phase_stack)
         count = self.depth_counts.get(depth, -1) + 1
         self.depth_counts[depth] = count
@@ -2374,14 +2429,14 @@ class Solver(_Common):
             dlabel = self._depth_label()
             self.pr("pushed %s: %s", dlabel, phase)
 
-    def _pop_phase(self):
+    def _pop_phase(self) -> _ResolvePhase:
         dlabel = self._depth_label()
         phase = self.phase_stack.pop()
         if self.pr:
             self.pr("popped %s: %s", dlabel, phase)
         return phase
 
-    def _get_failed_phase(self, index=None):
+    def _get_failed_phase(self, index: int | None = None) -> tuple[_ResolvePhase, str]:
         # returns (phase, fail_description)
         prepend_abort_reason = False
         fails = self.failed_phase_list
@@ -2412,19 +2467,19 @@ class Solver(_Common):
 
         return phase, fail_description
 
-    def _depth_label(self, depth=None):
+    def _depth_label(self, depth: int | None = None) -> str:
         if depth is None:
             depth = len(self.phase_stack) - 1
         count = self.depth_counts[depth]
         return "{%d,%d}" % (depth, count)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s %s %s" % (self.status,
                              self._depth_label(),
                              str(self.phase_stack[-1]))
 
 
-def _short_req_str(package_request):
+def _short_req_str(package_request: Requirement) -> str:
     """print shortened version of '==X|==Y|==Z' ranged requests."""
     if not package_request.conflict:
         versions = package_request.range.to_versions()
