@@ -184,6 +184,7 @@ _set_objects = threading.local()
 # Default variables to avoid not-defined errors in early-bound attribs
 default_objects = {
     "building": False,
+    "testing": False,
     "build_variant_index": 0,
     "build_variant_requires": []
 }

@@ -707,6 +707,19 @@ Following is a list of the objects and functions available.
       if test.name == "unit":
          info("My unit test is about to run yay")
 
+.. py:attribute:: testing
+   :type: bool
+
+   This boolean variable is ``True`` if a test is occurring (typically done via the :ref:`rez-test` tool),
+   and ``False`` otherwise.
+   
+   A package can use this variable to set environment variables that are only relevant during test execution.
+
+   .. code-block:: python
+
+      if testing:
+          env.FOO_TEST_DATA_PATH = "{root}/tests/data"
+
 .. py:attribute:: this
 
    The ``this`` object represents the current package. The following attributes are most commonly used
