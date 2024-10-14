@@ -5,6 +5,8 @@
 """
 Builds packages on local host
 """
+from __future__ import annotations
+
 from rez.config import config
 from rez.package_repository import package_repository_manager
 from rez.build_process import BuildProcessHelper, BuildType
@@ -21,10 +23,15 @@ from rez.utils.filesystem import TempDirs
 from rez.package_test import PackageTestRunner, PackageTestResults
 
 from hashlib import sha1
+from typing import TYPE_CHECKING
 import json
 import shutil
 import os
 import os.path
+
+if TYPE_CHECKING:
+    from rez.packages import Variant
+    from rez.build_system import BuildResult
 
 
 class LocalBuildProcess(BuildProcessHelper):
@@ -45,7 +52,11 @@ class LocalBuildProcess(BuildProcessHelper):
         self.ran_test_names = set()
         self.all_test_results = PackageTestResults()
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self,
+              install_path: str | None = None,
+              clean: bool = False,
+              install: bool = False,
+              variants: list[int] | None = None) -> int:
         self._print_header("Building %s..." % self.package.qualified_name)
 
         # build variants
@@ -71,7 +82,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return num_visited
 
-    def release(self, release_message=None, variants=None):
+    def release(self, release_message=None, variants: list[int] | None = None):
         self._print_header("Releasing %s..." % self.package.qualified_name)
 
         # test that we're in a state to release
@@ -130,8 +141,13 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return num_released
 
-    def _build_variant_base(self, variant, build_type, install_path=None,
-                            clean=False, install=False, **kwargs):
+    def _build_variant_base(self,
+                            variant: Variant,
+                            build_type,
+                            install_path: str | None = None,
+                            clean=False,
+                            install=False,
+                            **kwargs) -> BuildResult:
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
         package_install_path = self.get_package_install_path(install_path)
@@ -284,7 +300,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
             return build_result
 
-    def _install_include_modules(self, install_path):
+    def _install_include_modules(self, install_path: str) -> None:
         # install 'include' sourcefiles, used by funcs decorated with @include
         if not self.package.includes:
             return
@@ -317,8 +333,12 @@ class LocalBuildProcess(BuildProcessHelper):
         except Exception as e:
             print_warning("Failed to delete %s - %s", path, e)
 
-    def _build_variant(self, variant, install_path=None, clean=False,
-                       install=False, **kwargs):
+    def _build_variant(self,
+                       variant: Variant,
+                       install_path: str | None = None,
+                       clean: bool = False,
+                       install: bool = False,
+                       **kwargs) -> str | None:
         if variant.index is not None:
             self._print_header(
                 "Building variant %s (%s)..."
@@ -367,7 +387,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return build_result.get("build_env_script")
 
-    def _release_variant(self, variant, release_message=None, **kwargs):
+    def _release_variant(self, variant: Variant, release_message=None, **kwargs):
         release_path = self.package.config.release_packages_path
 
         # test if variant has already been released

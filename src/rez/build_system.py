@@ -2,12 +2,33 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
+import argparse
 import os.path
+from typing import TYPE_CHECKING
+
 
 from rez.build_process import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages import get_developer_package
 from rez.rex_bindings import VariantBinding
+
+if TYPE_CHECKING:
+    from typing import TypedDict  # not available until python 3.8
+    from rez.developer_package import DeveloperPackage
+    from rez.resolved_context import ResolvedContext
+    from rez.packages import Package, Variant
+    from rez.rex import RexExecutor
+
+    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
+    class BuildResult(TypedDict, total=False):
+        success: bool
+        extra_files: list[str]
+        build_env_script: str
+
+else:
+    BuildResult = dict
 
 
 def get_buildsys_types():
@@ -16,7 +37,8 @@ def get_buildsys_types():
     return plugin_manager.get_plugins('build_system')
 
 
-def get_valid_build_systems(working_dir, package=None):
+def get_valid_build_systems(working_dir: str,
+                            package: Package | None = None) -> list[type[BuildSystem]]:
     """Returns the build system classes that could build the source in given dir.
 
     Args:
@@ -41,19 +63,19 @@ def get_valid_build_systems(working_dir, package=None):
 
     if package:
         if getattr(package, "build_command", None) is not None:
-            buildsys_name = "custom"
+            buildsys_name: str | None = "custom"
         else:
             buildsys_name = getattr(package, "build_system", None)
 
         # package explicitly specifies build system
         if buildsys_name:
-            cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
+            cls = plugin_manager.get_plugin_class('build_system', buildsys_name, BuildSystem)
             return [cls]
 
     # detect valid build systems
     clss = []
-    for buildsys_name in get_buildsys_types():
-        cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
+    for buildsys_name_ in get_buildsys_types():
+        cls = plugin_manager.get_plugin_class('build_system', buildsys_name_, BuildSystem)
         if cls.is_valid_root(working_dir, package=package):
             clss.append(cls)
 
@@ -67,9 +89,10 @@ def get_valid_build_systems(working_dir, package=None):
     return clss
 
 
-def create_build_system(working_dir, buildsys_type=None, package=None, opts=None,
+def create_build_system(working_dir: str, buildsys_type: str | None = None,
+                        package=None, opts=None,
                         write_build_scripts=False, verbose=False,
-                        build_args=[], child_build_args=[]):
+                        build_args=[], child_build_args=[]) -> BuildSystem:
     """Return a new build system that can build the source in working_dir."""
     from rez.plugin_managers import plugin_manager
 
@@ -89,7 +112,7 @@ def create_build_system(working_dir, buildsys_type=None, package=None, opts=None
         buildsys_type = next(iter(clss)).name()
 
     # create instance of build system
-    cls_ = plugin_manager.get_plugin_class('build_system', buildsys_type)
+    cls_ = plugin_manager.get_plugin_class('build_system', buildsys_type, BuildSystem)
 
     return cls_(working_dir,
                 opts=opts,
@@ -104,12 +127,13 @@ class BuildSystem(object):
     """A build system, such as cmake, make, Scons etc.
     """
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         """Return the name of the build system, eg 'make'."""
         raise NotImplementedError
 
-    def __init__(self, working_dir, opts=None, package=None,
-                 write_build_scripts=False, verbose=False, build_args=[],
+    def __init__(self, working_dir: str, opts=None,
+                 package: DeveloperPackage | None = None,
+                 write_build_scripts: bool = False, verbose: bool = False, build_args=[],
                  child_build_args=[]):
         """Create a build system instance.
 
@@ -143,12 +167,12 @@ class BuildSystem(object):
         self.opts = opts
 
     @classmethod
-    def is_valid_root(cls, path):
+    def is_valid_root(cls, path: str, package=None) -> bool:
         """Return True if this build system can build the source in path."""
         raise NotImplementedError
 
     @classmethod
-    def child_build_system(cls):
+    def child_build_system(cls) -> str | None:
         """Returns the child build system.
 
         Some build systems, such as cmake, don't build the source directly.
@@ -163,19 +187,24 @@ class BuildSystem(object):
         return None
 
     @classmethod
-    def bind_cli(cls, parser, group):
+    def bind_cli(cls, parser: argparse.ArgumentParser, group: argparse._ArgumentGroup):
         """Expose parameters to an argparse.ArgumentParser that are specific
         to this build system.
 
         Args:
             parser (`ArgumentParser`): Arg parser.
-            group (`ArgumentGroup`): Arg parser group - you should add args to
+            group (`_ArgumentGroup`): Arg parser group - you should add args to
                 this, NOT to `parser`.
         """
         pass
 
-    def build(self, context, variant, build_path, install_path, install=False,
-              build_type=BuildType.local):
+    def build(self,
+              context: ResolvedContext,
+              variant: Variant,
+              build_path: str,
+              install_path: str,
+              install: bool = False,
+              build_type=BuildType.local) -> BuildResult:
         """Implement this method to perform the actual build.
 
         Args:
@@ -206,8 +235,9 @@ class BuildSystem(object):
         raise NotImplementedError
 
     @classmethod
-    def set_standard_vars(cls, executor, context, variant, build_type, install,
-                          build_path, install_path=None):
+    def set_standard_vars(cls, executor: RexExecutor, context: ResolvedContext,
+                          variant: Variant, build_type: BuildType, install: bool, build_path: str,
+                          install_path: str | None = None) -> None:
         """Set some standard env vars that all build systems can rely on.
         """
         from rez.config import config
@@ -294,8 +324,9 @@ class BuildSystem(object):
                 executor.execute_code(pre_build_commands)
 
     @classmethod
-    def add_standard_build_actions(cls, executor, context, variant, build_type,
-                                   install, build_path, install_path=None):
+    def add_standard_build_actions(cls, executor: RexExecutor, context: ResolvedContext, variant: Variant,
+                                   build_type: BuildType, install: bool, build_path: str,
+                                   install_path: str | None = None) -> None:
         """Perform build actions common to every build system.
         """
 

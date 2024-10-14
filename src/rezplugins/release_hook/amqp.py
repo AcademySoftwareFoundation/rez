@@ -5,10 +5,13 @@
 """
 Publishes a message to the broker.
 """
+from __future__ import annotations
+
 from rez.release_hook import ReleaseHook
 from rez.utils.logging_ import print_error, print_debug
 from rez.utils.amqp import publish_message
 from rez.config import config
+from typing import Any
 
 
 class AmqpReleaseHook(ReleaseHook):
@@ -55,7 +58,7 @@ class AmqpReleaseHook(ReleaseHook):
             package = self.package
 
         # build the message dict
-        data = {}
+        data: dict[str, Any] = {}
         data["package"] = dict(
             name=package.name,
             version=str(package.version),
