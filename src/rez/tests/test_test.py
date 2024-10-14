@@ -34,14 +34,21 @@ class TestTest(TestBase, TempdirMixin):
         context = ResolvedContext(["testing_obj", "python"])
         self._run_tests(context)
 
-    def _run_tests(self, r):
+    def test_2(self):
+        """package.py unit tests are correctly run in a testing environment when no verbosity is set"""
+        self.inject_python_repo()
+        context = ResolvedContext(["testing_obj", "python"])
+        # This will get us more code coverage :)
+        self._run_tests(context, verbose=0)
+
+    def _run_tests(self, r, verbose=2):
         """Run unit tests in package.py"""
         self.inject_python_repo()
         runner = PackageTestRunner(
             package_request="testing_obj",
             package_paths=r.package_paths,
             stop_on_fail=False,
-            verbose=2
+            verbose=verbose
         )
 
         test_names = runner.get_test_names()
@@ -49,12 +56,27 @@ class TestTest(TestBase, TempdirMixin):
         for test_name in test_names:
             runner.run_test(test_name)
 
-        successful_test = self._get_test_result(runner, "check_car_ideas")
-        failed_test = self._get_test_result(runner, "move_meeting_to_noon")
-
-        self.assertEqual(runner.test_results.num_tests, 2)
-        self.assertEqual(successful_test["status"], "success")
-        self.assertEqual(failed_test["status"], "failed")
+        self.assertEqual(runner.test_results.num_tests, 4)
+        self.assertEqual(
+            self._get_test_result(runner, "check_car_ideas")["status"],
+            "success",
+            "check_car_ideas did not succeed",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "move_meeting_to_noon")["status"],
+            "failed",
+            "move_meeting_to_noon did not fail",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "command_as_string_success")["status"],
+            "success",
+            "command_as_string_success did not succeed",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "command_as_string_fail")["status"],
+            "failed",
+            "command_as_string_fail did not fail",
+        )
 
     def _get_test_result(self, runner, test_name):
         return next(
