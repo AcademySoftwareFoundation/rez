@@ -183,3 +183,61 @@ An orderer that does not change the order - a no op.
 This orderer is useful in cases where you want to apply some default orderer
 to a set of packages, but may want to explicitly NOT reorder a particular
 package. You would use a :class:`rez.package_order.NullPackageOrder` in a :class:`rez.package_order.PerFamilyOrder` to do this.
+
+
+Custom orderers
+===============
+
+It is possible to create custom orderers using the API. This can be achieved
+by subclassing :class:`rez.package_order.PackageOrder` and implementing some mandatory
+methods. Once that's done, you need to register the orderer using :func:`rez.package_order.register_orderer`.
+
+.. note::
+
+   Implementing a custom orderer should only be done if absolutely necessary.
+   It could make your environment behave in very special ways and more importantly
+   in non expected ways from a user perspective. It can also make it harder to share
+   the set of affected packages to others.
+
+
+.. code-block:: python
+   :caption: rezconfig.py
+
+   from rez.version import Version
+   from rez.package_order import PackageOrder, register_orderer
+
+
+   class MyOrderer(PackageOrder):
+       name = "my_orderer"
+
+       def __init__(self, custom_arg: str, **kwargs):
+           super().__init__(self, **kwargs)
+           self.custom_arg = custom_arg
+
+       def sort_key_implementation(self, package_name: str, version: Version):
+           pass
+
+       def __str__(self):
+           pass
+
+       def __eq__(self, other):
+           pass
+
+       def to_pod(self, other):
+           pass
+
+       @classmethod
+       def from_pod(cls, data):
+           pass
+
+
+   register_orderer(MyOrderer)
+
+   package_orderers = [
+       {
+           "type": "my_orderer",
+           "custom_arg": "value here"
+       }
+   ]
+
+For more details, please see :gh-rez:`src/rez/package_order.py`.
