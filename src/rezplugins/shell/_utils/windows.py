@@ -4,7 +4,6 @@
 
 import os
 import re
-import winreg
 
 
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
@@ -47,6 +46,9 @@ def to_windows_path(path):
 
 
 def get_syspaths_from_registry():
+    # Local import to avoid import errors on non-windows systems.
+    import winreg
+
     paths = []
 
     path_query_keys = (
