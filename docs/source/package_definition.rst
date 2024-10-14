@@ -290,6 +290,7 @@ is ``True``:
 * **context**: the :class:`~rez.resolved_context.ResolvedContext` instance this package belongs to;
 * **system**: see :attr:`system`;
 * **building**: see :attr:`building`;
+* **testing**: see :attr:`testing`;
 * **request**: see :attr:`request`;
 * **implicits**: see :attr:`implicits`.
 
