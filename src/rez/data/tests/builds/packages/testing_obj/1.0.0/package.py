@@ -22,10 +22,21 @@ def commands():
 build_command = 'python {root}/build.py {install}'
 
 tests = {
+    "command_as_string_success": {
+        "command": "exit 0"
+    },
+    "command_as_string_fail": {
+        "command": "exit 1"
+    },
     "check_car_ideas": {
-        "command": "[[ -z ${CAR_IDEA} ]] && exit 1 || exit 0"
+        "command": ["python", "-c", "import os; assert os.environ.get('CAR_IDEA') == 'STURDY STEERING WHEEL'"],
+        "requires": ["python"]
     },
     "move_meeting_to_noon": {
-        "command": "[[ -z ${SKIP_LUNCH} ]] && exit 1 || exit 0"
+        # We want this test to fail. SKIP_LUNCH should not be set.
+        # TODO: We should not test for failures here. Testing failures, str vs lsit commands, etc
+        # should we tested separately.
+        "command": ["python", "-c", "import os; assert os.environ.get('SKIP_LUNCH') is not None"],
+        "requires": ["python"]
     }
 }
