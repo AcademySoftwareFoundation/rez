@@ -756,4 +756,3 @@ def real_path(path):
     if is_windows and not config.windows_unc_path:
         return os.path.abspath(path)
     return os.path.realpath(path)
-
