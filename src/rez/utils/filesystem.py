@@ -28,6 +28,7 @@ from rez.utils.execution import Popen
 
 is_windows = platform.system() == "Windows"
 
+
 class TempDirs(object):
     """Tempdir manager.
 
@@ -518,7 +519,6 @@ def canonical_path(path, platform=None):
     if platform is None:
         platform = platform_
 
-
     path = os.path.normpath(real_path(path))
 
     if not platform.has_case_sensitive_filesystem:
@@ -756,5 +756,4 @@ def real_path(path):
     if is_windows and not config.windows_unc_path:
         return os.path.abspath(path)
     return os.path.realpath(path)
-
 
