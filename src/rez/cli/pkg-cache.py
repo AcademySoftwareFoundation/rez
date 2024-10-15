@@ -78,15 +78,17 @@ def add_variant(pkgcache, uri, opts):
         print("No such variant: %s" % uri, file=sys.stderr)
         sys.exit(1)
 
-    if opts.pkg_cache_mode is not None:
-        cache_mode = True if opts.pkg_cache_mode == "sync" else False
-        destpath, status = pkgcache.add_variant(
-            variant, force=opts.force,
-            wait_for_copying=cache_mode
-        )
-    # If no mode is specified, use the default behavior.
+    if opts.pkg_cache_mode == "async":
+        cache_mode = True
+    elif opts.pkg_cache_mode == "sync":
+        cache_mode = False
     else:
-        destpath, status = pkgcache.add_variant(variant, force=opts.force)
+        cache_mode = not config.package_cache_async
+
+    destpath, status = pkgcache.add_variant(
+        variant, force=opts.force,
+        wait_for_copying=cache_mode
+    )
 
     if status == PackageCache.VARIANT_FOUND:
         print_info("Already exists: %s", destpath)
