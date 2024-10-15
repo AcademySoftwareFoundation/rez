@@ -690,6 +690,11 @@ package_preprocess_function = None
 # - "override": Package's preprocess function completely overrides the global preprocess.
 package_preprocess_mode = "override"
 
+# Define if we want to windows drive letters to be resolved to UNC paths in the context
+# resolution.  Before Python 3.8 drive letters were not resolved to drive
+# letters.  To keep the pre Python 3.8 behavior this should be set to False.
+windows_unc_path = False
+
 ###############################################################################
 # Context Tracking
 ###############################################################################
