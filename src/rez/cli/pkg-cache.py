@@ -79,9 +79,9 @@ def add_variant(pkgcache, uri, opts):
         sys.exit(1)
 
     if opts.pkg_cache_mode == "async":
-        cache_mode = True
-    elif opts.pkg_cache_mode == "sync":
         cache_mode = False
+    elif opts.pkg_cache_mode == "sync":
+        cache_mode = True
     else:
         cache_mode = not config.package_cache_async
 
