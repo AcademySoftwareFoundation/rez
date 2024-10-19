@@ -79,15 +79,15 @@ def add_variant(pkgcache, uri, opts):
         sys.exit(1)
 
     if opts.pkg_cache_mode == "async":
-        cache_mode = False
+        sync = False
     elif opts.pkg_cache_mode == "sync":
-        cache_mode = True
+        sync = True
     else:
-        cache_mode = not config.package_cache_async
+        sync = not config.package_cache_async
 
     destpath, status = pkgcache.add_variant(
         variant, force=opts.force,
-        wait_for_copying=cache_mode
+        wait_for_copying=sync
     )
 
     if status == PackageCache.VARIANT_FOUND:
