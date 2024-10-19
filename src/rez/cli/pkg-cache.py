@@ -67,6 +67,7 @@ def setup_parser(parser, completions=False):
 
 
 def add_variant(pkgcache, uri, opts):
+    from rez.config import config
     from rez.packages import get_variant_from_uri
     from rez.utils.logging_ import print_info, print_warning
     from rez.package_cache import PackageCache
