@@ -28,7 +28,7 @@ Thanks to everybody who contributed and made all these features, bugfixes and im
 - Don't expand tilde in `REZ_USED_IMPLICIT_PACKAGES` and `REZ_USED_REQUEST` environment variables [\#1760](https://github.com/AcademySoftwareFoundation/rez/pull/1760) ([cfxegbert](https://github.com/cfxegbert))
 - Fix incorrect string operations on bytes output of 'ps' subprocess in shell detecton code [\#1765](https://github.com/AcademySoftwareFoundation/rez/pull/1765) ([parikshittiwari740](https://github.com/parikshittiwari740))
 - Fix missing path in GitBash warning message [\#1775](https://github.com/AcademySoftwareFoundation/rez/pull/1775) ([brycegbrazen](https://github.com/brycegbrazen))
-- Make Powershell aliases exit with correct exito code [\#1778](https://github.com/AcademySoftwareFoundation/rez/pull/1778) ([brycegbrazen](https://github.com/brycegbrazen))
+- Make Powershell aliases exit with correct exit code [\#1778](https://github.com/AcademySoftwareFoundation/rez/pull/1778) ([brycegbrazen](https://github.com/brycegbrazen))
 - Fix TypeError when running get_rpaths in `rez.utils.elf` module [\#1798](https://github.com/AcademySoftwareFoundation/rez/pull/1798) ([ruzette](https://github.com/ruzette))
 - Fix `package_cache_async` missing from `ResolvedContext` dict round-trip [\#1810](https://github.com/AcademySoftwareFoundation/rez/pull/1810) ([nrusch](https://github.com/nrusch))
 - Move winreg import to local import to avoid import errors on non-windows systems [\#1846](https://github.com/AcademySoftwareFoundation/rez/pull/1846) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
@@ -51,7 +51,7 @@ Thanks to everybody who contributed and made all these features, bugfixes and im
 
 ### Deprecated
 
-* The `rez.package_cache.PackageCache.add_variants_async` method. Use the `add_variants` method intead.
+* The `rez.package_cache.PackageCache.add_variants_async` method. Use the `add_variants` method instead.
 
 ## v3.1.1 (2024-04-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.1.0...3.1.1)
