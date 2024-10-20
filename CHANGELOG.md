@@ -2,6 +2,57 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## v3.2.0 (2024-10-20)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.1.1...3.2.0)
+
+This release introduces a long awaited and requested feature: the ability to synchronously cache
+package payloads. This behaviour can be controlled centrally using the new `package_cache_async`
+setting in your rezconfig files. The default value is True, which means that as before, caches
+will be synced asynchrously. `rez-env` also gained a new `--pkg-cache-mode` to control the
+caching behaviour on a per case basis.
+
+Other note worthy additions are the new `testing` object that can be used to test if `rez-test` is currently running from withing commands functions and early bound functions. Additionally, a new setting `default_build_process`
+was added to set the default build process to be used by rez-build.
+
+Thanks to everybody who contributed and made all these features, bugfixes and improvements possible!
+
+### Features
+
+- Add ability to cache package payloads synchronously [\#1679](https://github.com/AcademySoftwareFoundation/rez/pull/1679) [\#1853](https://github.com/AcademySoftwareFoundation/rez/pull/1853) ([isohedronpipeline](https://github.com/isohedronpipeline), [Pixel-Minions](https://github.com/Pixel-Minions))
+- Add new `default_build_process` setting to set the default build process [\#1724](https://github.com/AcademySoftwareFoundation/rez/pull/1724) ([predat](https://github.com/predat))
+- Add new `testing` object to check if rez-test is running [\#1740](https://github.com/AcademySoftwareFoundation/rez/pull/1740) ([fabal](https://github.com/fabal), [nca45](https://github.com/nca45))
+- Convert Windows registry queries to use `winreg` module. Expect some speed improvements on Windows [\#1780](https://github.com/AcademySoftwareFoundation/rez/pull/1780) ([nrusch](https://github.com/nrusch))
+
+### Fixes
+- Fix shell detection code to handle a case where the parent PID is zero [\#1735](https://github.com/AcademySoftwareFoundation/rez/pull/1735) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Don't expand tilde in `REZ_USED_IMPLICIT_PACKAGES` and `REZ_USED_REQUEST` environment variables [\#1760](https://github.com/AcademySoftwareFoundation/rez/pull/1760) ([cfxegbert](https://github.com/cfxegbert))
+- Fix incorrect string operations on bytes output of 'ps' subprocess in shell detecton code [\#1765](https://github.com/AcademySoftwareFoundation/rez/pull/1765) ([parikshittiwari740](https://github.com/parikshittiwari740))
+- Fix missing path in GitBash warning message [\#1775](https://github.com/AcademySoftwareFoundation/rez/pull/1775) ([brycegbrazen](https://github.com/brycegbrazen))
+- Make Powershell aliases exit with correct exit code [\#1778](https://github.com/AcademySoftwareFoundation/rez/pull/1778) ([brycegbrazen](https://github.com/brycegbrazen))
+- Fix TypeError when running get_rpaths in `rez.utils.elf` module [\#1798](https://github.com/AcademySoftwareFoundation/rez/pull/1798) ([ruzette](https://github.com/ruzette))
+- Fix `package_cache_async` missing from `ResolvedContext` dict round-trip [\#1810](https://github.com/AcademySoftwareFoundation/rez/pull/1810) ([nrusch](https://github.com/nrusch))
+- Move winreg import to local import to avoid import errors on non-windows systems [\#1846](https://github.com/AcademySoftwareFoundation/rez/pull/1846) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Fix rez-test commands defined as list that result in an empty command [\#1850](https://github.com/AcademySoftwareFoundation/rez/pull/1850) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Adjust python requirement of rez bound package to `python-3.7+<3.12"` [\#1848](https://github.com/AcademySoftwareFoundation/rez/pull/1848) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Documentation
+- Add adopters list [\#1720](https://github.com/AcademySoftwareFoundation/rez/pull/1720) ([maxnbk](https://github.com/maxnbk))
+- Various updates to contributing.md for support, legal, versioning [\#1721](https://github.com/AcademySoftwareFoundation/rez/pull/1721) ([maxnbk](https://github.com/maxnbk))
+- Various updates to release.md for release cadence and versioning used [\#1722](https://github.com/AcademySoftwareFoundation/rez/pull/1722) ([maxnbk](https://github.com/maxnbk))
+- Add package orderers documentation [\#1737](https://github.com/AcademySoftwareFoundation/rez/pull/1737) ([BryceGattis](https://github.com/BryceGattis))
+
+### Miscellaneous
+
+- Fix formatting sonarcloud compliance issue [\#1697](https://github.com/AcademySoftwareFoundation/rez/pull/1697) ([BryceGattis](https://github.com/BryceGattis))
+- Add argcomplete vendored version to vendor README.md [\#1742](https://github.com/AcademySoftwareFoundation/rez/pull/1742) ([BryceGattis](https://github.com/BryceGattis))
+- Add date to vendored pika [\#1743](https://github.com/AcademySoftwareFoundation/rez/pull/1743) ([BryceGattis](https://github.com/BryceGattis))
+- Migrate plugin type settings to plugin rez configs [\#1746](https://github.com/AcademySoftwareFoundation/rez/pull/1746) ([BryceGattis](https://github.com/BryceGattis))
+- Remove Python 2 vendored pyyaml library [\#1845](https://github.com/AcademySoftwareFoundation/rez/pull/1845) ([maxnbk](https://github.com/maxnbk))
+
+### Deprecated
+
+* The `rez.package_cache.PackageCache.add_variants_async` method. Use the `add_variants` method instead.
+
 ## v3.1.1 (2024-04-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.1.0...3.1.1)
 

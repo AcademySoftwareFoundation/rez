@@ -788,6 +788,8 @@ use_variant_shortlinks = True
 # Default build process to use during build/release.
 # Only 'local' build process is currently available,
 # see :gh-rez:`src/rezplugins/build_process`.
+#
+# .. versionadded:: 3.2.0
 default_build_process = "local"
 
 
