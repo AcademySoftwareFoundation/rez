@@ -171,7 +171,7 @@ class PackageTestRunner(object):
             )
 
         if ran_once:
-            def _select(key, value):
+            def _select_kv(key, value):
                 if isinstance(value, dict):
                     value = value.get("on_variants")
                 else:
@@ -184,7 +184,7 @@ class PackageTestRunner(object):
 
             tests_dict = dict(
                 (k, v) for k, v in tests_dict.items()
-                if _select(k, v)
+                if _select_kv(k, v)
             )
 
         return sorted(tests_dict.keys())
@@ -516,8 +516,8 @@ class PackageTestRunner(object):
         # If the combined requirements, minus conflict requests, is equal to the
         # variant's requirements, then this variant is selected.
         #
-        reqs1 = RequirementList(x for x in reqlist if not x.conflict)
-        reqs2 = RequirementList(x for x in variant.variant_requires if not x.conflict)
+        reqs1 = RequirementList([x for x in reqlist if not x.conflict])
+        reqs2 = RequirementList([x for x in variant.variant_requires if not x.conflict])
         return (reqs1 == reqs2)
 
     def _get_test_info(self, test_name, variant):

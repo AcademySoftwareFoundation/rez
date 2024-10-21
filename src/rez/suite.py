@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils.execution import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
@@ -12,10 +14,38 @@ from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.utils.yaml import dump_yaml
 from collections import defaultdict
+from typing import TYPE_CHECKING, Any
 import os
 import os.path
 import shutil
 import sys
+
+
+if TYPE_CHECKING:
+    from rez.packages import Variant
+    from typing import TypedDict
+
+    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
+    class Tool(TypedDict):
+        tool_name: str
+        tool_alias: str
+        context_name: str
+        variant: Variant | set[Variant]
+
+    class Context(TypedDict):
+        name: str
+        context: ResolvedContext
+        tool_aliases: dict[str, str]
+        hidden_tools: set[str]
+        priority: int
+        prefix_char: str | None
+        loaded: bool
+        prefix: str
+        suffix: str
+
+else:
+    Tool = dict
+    Context = dict
 
 
 class Suite(object):
@@ -43,15 +73,15 @@ class Suite(object):
     def __init__(self):
         """Create a suite."""
         self.load_path = None
-        self.contexts = {}
+        self.contexts: dict[str, Context] = {}
         self.next_priority = 1
 
-        self.tools = None
-        self.tool_conflicts = None
-        self.hidden_tools = None
+        self.tools: dict[str, Tool] | None = None
+        self.tool_conflicts: defaultdict[str, list[Tool]] | None = None
+        self.hidden_tools: list[Tool] | None = None
 
     @property
-    def context_names(self):
+    def context_names(self) -> list[str]:
         """Get the names of the contexts in the suite.
 
         Reurns:
@@ -105,7 +135,7 @@ class Suite(object):
         data["loaded"] = True
         return context
 
-    def add_context(self, name, context, prefix_char=None):
+    def add_context(self, name: str, context: ResolvedContext, prefix_char=None):
         """Add a context to the suite.
 
         Args:
@@ -117,12 +147,12 @@ class Suite(object):
         if not context.success:
             raise SuiteError("Context is not resolved: %r" % name)
 
-        self.contexts[name] = dict(name=name,
-                                   context=context.copy(),
-                                   tool_aliases={},
-                                   hidden_tools=set(),
-                                   priority=self._next_priority,
-                                   prefix_char=prefix_char)
+        self.contexts[name] = Context(name=name,
+                                      context=context.copy(),
+                                      tool_aliases={},
+                                      hidden_tools=set(),
+                                      priority=self._next_priority,
+                                      prefix_char=prefix_char)
         self._flush_tools()
 
     def find_contexts(self, in_request=None, in_resolve=None):
@@ -167,7 +197,7 @@ class Suite(object):
             names = [x for x in names if _in_resolve(x)]
         return names
 
-    def remove_context(self, name):
+    def remove_context(self, name: str):
         """Remove a context from the suite.
 
         Args:
@@ -305,6 +335,7 @@ class Suite(object):
               a tool of the same name), this will be a set of Variants.
         """
         self._update_tools()
+        assert self.tools is not None
         return self.tools
 
     def get_tool_filepath(self, tool_alias):
@@ -327,7 +358,7 @@ class Suite(object):
         else:
             return None
 
-    def get_tool_context(self, tool_alias):
+    def get_tool_context(self, tool_alias: str) -> str | None:
         """Given a visible tool alias, return the name of the context it
         belongs to.
 
@@ -344,7 +375,7 @@ class Suite(object):
             return data["context_name"]
         return None
 
-    def get_hidden_tools(self):
+    def get_hidden_tools(self) -> list[Tool]:
         """Get the tools hidden in this suite.
 
         Hidden tools are those that have been explicitly hidden via `hide_tool`.
@@ -358,18 +389,20 @@ class Suite(object):
             - variant (`Variant`): Variant providing the tool.
         """
         self._update_tools()
+        assert self.hidden_tools is not None
         return self.hidden_tools
 
-    def get_conflicting_aliases(self):
+    def get_conflicting_aliases(self) -> list[str]:
         """Get a list of tool aliases that have one or more conflicts.
 
         Returns:
             List of strings.
         """
         self._update_tools()
+        assert self.tool_conflicts is not None
         return list(self.tool_conflicts.keys())
 
-    def get_alias_conflicts(self, tool_alias):
+    def get_alias_conflicts(self, tool_alias: str) -> list[Tool] | None:
         """Get a list of conflicts on the given tool alias.
 
         Args:
@@ -383,9 +416,10 @@ class Suite(object):
             - variant (`Variant`): Variant providing the tool.
         """
         self._update_tools()
+        assert self.tool_conflicts is not None
         return self.tool_conflicts.get(tool_alias)
 
-    def validate(self):
+    def validate(self) -> None:
         """Validate the suite."""
         for context_name in self.context_names:
             context = self.context(context_name)
@@ -398,7 +432,7 @@ class Suite(object):
     def to_dict(self):
         contexts_ = {}
         for k, data in self.contexts.items():
-            data_ = data.copy()
+            data_: dict[str, Any] = data.copy()
             if "context" in data_:
                 del data_["context"]
             if "loaded" in data_:
@@ -614,8 +648,8 @@ class Suite(object):
         else:
             context_names = sorted(self.contexts.keys())
 
-        rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
-                ["----", "--------", "-------", "-------", ""]]
+        rows = [("TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""),
+                ("----", "--------", "-------", "-------", "")]
         colors = [None, None]
 
         entries_dict = defaultdict(list)
@@ -666,7 +700,7 @@ class Suite(object):
         else:
             _pr("No tools available.")
 
-    def _context(self, name):
+    def _context(self, name: str) -> Context:
         data = self.contexts.get(name)
         if not data:
             raise SuiteError("No such context: %r" % name)
@@ -679,11 +713,11 @@ class Suite(object):
         filepath = os.path.join(suite_path, "contexts", "%s.rxt" % name)
         return filepath
 
-    def _sorted_contexts(self):
+    def _sorted_contexts(self) -> list[Context]:
         return sorted(self.contexts.values(), key=lambda x: x["priority"])
 
     @property
-    def _next_priority(self):
+    def _next_priority(self) -> int:
         p = self.next_priority
         self.next_priority += 1
         return p
@@ -725,7 +759,7 @@ class Suite(object):
                     if alias is None:
                         alias = "%s%s%s" % (prefix, tool_name, suffix)
 
-                    entry = dict(tool_name=tool_name,
+                    entry = Tool(tool_name=tool_name,
                                  tool_alias=alias,
                                  context_name=context_name,
                                  variant=variant)
