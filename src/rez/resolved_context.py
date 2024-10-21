@@ -15,7 +15,7 @@ from rez.utils.colorize import critical, heading, local, implicit, Printer, \
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
     header_comment, minor_header_comment
 from rez.utils.data_utils import deep_del
-from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
+from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path, real_path
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
 from rez.utils.which import which
@@ -1816,8 +1816,8 @@ class ResolvedContext(object):
 
             if is_subdirectory(repo_path, bundle_path):
                 vars_["location"] = os.path.relpath(
-                    os.path.realpath(repo_path),
-                    os.path.realpath(bundle_path)
+                    real_path(repo_path),
+                    real_path(bundle_path)
                 )
 
         # serializing in, make repo absolute
