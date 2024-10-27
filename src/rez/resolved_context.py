@@ -134,7 +134,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 8)
+    serialize_version = (4, 9)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
     context_tracking_payload = None
     context_tracking_lock = threading.Lock()
@@ -1630,7 +1630,6 @@ class ResolvedContext(object):
 
         r.timestamp = d["timestamp"]
         r.building = d["building"]
-        r.testing = d["testing"]
         r.caching = d["caching"]
         r.implicit_packages = [PackageRequest(x) for x in d["implicit_packages"]]
         r._package_requests = [PackageRequest(x) for x in d["package_requests"]]
@@ -1724,6 +1723,9 @@ class ResolvedContext(object):
         # -- SINCE SERIALIZE VERSION 4.8
 
         r.package_cache_async = d.get("package_cache_async", True)
+
+        # -- SINCE SERIALIZE 4.9
+        r.testing = d.get("testing", False)
 
         # <END SERIALIZATION>
 

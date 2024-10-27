@@ -129,6 +129,14 @@ class TestContext(TestBase, TempdirMixin):
         env = r2.get_environ()
         self.assertEqual(env.get("OH_HAI_WORLD"), "hello")
 
+    def test_deserialize_older_versions(self):
+        """Test deserialization of older contexts."""
+        baked_contexts_path = self.data_path("contexts")
+
+        for context_file in os.listdir(baked_contexts_path):
+            # load
+            _ = ResolvedContext.load(os.path.join(baked_contexts_path, context_file))
+
     def test_retarget(self):
         """Test that a retargeted context behaves identically."""
         self.inject_python_repo()
