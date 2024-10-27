@@ -2,6 +2,15 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## v3.2.1 (2024-10-27)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.0...3.2.1)
+
+### Fixes
+
+- Fix key error on getting the "testing" key on older contexts [\#1863](https://github.com/AcademySoftwareFoundation/rez/pull/1863) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+  This will fix issues where contexts created from rez less than 3.2.0 would fail to be loaded in 3.2+.
+
 ## v3.2.0 (2024-10-20)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.1.1...3.2.0)
 
