@@ -115,7 +115,10 @@ class TestTest(TestBase, TempdirMixin):
         )
 
     def test_wildcard_02(self):
-        """package.py unit tests are correctly found with a wildcard + a package name then run in a testing environment"""
+        """
+        package.py unit tests are correctly found with a wildcard + a package name then run
+        in a testing environment
+        """
         self.inject_python_repo()
         context = ResolvedContext(["testing_obj", "python"])
         # This will get us more code coverage :)
@@ -152,7 +155,10 @@ class TestTest(TestBase, TempdirMixin):
         )
 
     def test_wildcard_03(self):
-        """package.py unit tests are correctly found with a wildcard equivalent to 'default' then run in a testing environment"""
+        """
+        package.py unit tests are correctly found with a wildcard equivalent to 'default' then run
+        in a testing environment
+        """
         self.inject_python_repo()
         context = ResolvedContext(["testing_obj", "python"])
         # This will get us more code coverage :)
@@ -191,12 +197,11 @@ class TestTest(TestBase, TempdirMixin):
             "failed",
             "command_as_string_fail did not fail",
         )
-    
 
     def test_wildcard_04(self):
         """
-        package.py unit tests are correctly found with a wildcard which get all test starting by 'c' and the second letter is 'h' or 'o'
-        then run in a testing environment
+        package.py unit tests are correctly found with a wildcard which get all test starting by 'c' and
+        the second letter is 'h' or 'o' then run in a testing environment
         """
         self.inject_python_repo()
         context = ResolvedContext(["testing_obj", "python"])
