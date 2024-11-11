@@ -210,9 +210,11 @@ class RezPluginType(object):
 
             plugin_class = plugin_module.register_plugin()
             if plugin_class is not None:
-                self.register_plugin(plugin_name,
-                                        plugin_class,
-                                        plugin_module)
+                self.register_plugin(
+                    plugin_name,
+                    plugin_class,
+                    plugin_module
+                )
             else:
                 if config.debug("plugins"):
                     print_warning(
