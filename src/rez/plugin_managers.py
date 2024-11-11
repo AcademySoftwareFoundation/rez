@@ -109,6 +109,10 @@ class RezPluginType(object):
         self.plugin_modules[plugin_name] = plugin_module
 
     def load_plugins(self):
+        self.load_plugins_from_namespace()
+        self.load_plugins_from_entry_points()
+
+    def load_plugins_from_namespace(self):
         import pkgutil
         from importlib import import_module
         type_module_name = 'rezplugins.' + self.type_name
@@ -153,44 +157,15 @@ class RezPluginType(object):
                 if config.debug("plugins"):
                     print_debug("loading %s plugin at %s: %s..."
                                 % (self.type_name, path, modname))
+
                 try:
-                    # https://github.com/AcademySoftwareFoundation/rez/pull/218
-                    # load_module will force reload the module if it's
-                    # already loaded, so check for that
                     plugin_module = sys.modules.get(modname)
                     if plugin_module is None:
                         loader = importer.find_module(modname)
                         plugin_module = loader.load_module(modname)
 
-                    elif os.path.dirname(plugin_module.__file__) != path:
-                        if config.debug("plugins"):
-                            # this should not happen but if it does, tell why.
-                            print_warning(
-                                "plugin module %s is not loaded from current "
-                                "load path but reused from previous imported "
-                                "path: %s" % (modname, plugin_module.__file__))
-
-                    if (hasattr(plugin_module, "register_plugin")
-                            and callable(plugin_module.register_plugin)):
-
-                        plugin_class = plugin_module.register_plugin()
-                        if plugin_class is not None:
-                            self.register_plugin(plugin_name,
-                                                 plugin_class,
-                                                 plugin_module)
-                        else:
-                            if config.debug("plugins"):
-                                print_warning(
-                                    "'register_plugin' function at %s: %s did "
-                                    "not return a class." % (path, modname))
-                    else:
-                        if config.debug("plugins"):
-                            print_warning(
-                                "no 'register_plugin' function at %s: %s"
-                                % (path, modname))
-
-                        # delete from sys.modules?
-
+                    self.register_plugin_module(plugin_name, plugin_module, path)
+                    self.load_config_from_plugin(plugin_module)
                 except Exception as e:
                     nameish = modname.split('.')[-1]
                     self.failed_plugins[nameish] = str(e)
@@ -201,9 +176,53 @@ class RezPluginType(object):
                         traceback.print_exc(file=out)
                         print_debug(out.getvalue())
 
-            # load config
-            data, _ = _load_config_from_filepaths([os.path.join(path, "rezconfig")])
-            deep_update(self.config_data, data)
+    def load_plugins_from_entry_points(self):
+        if sys.version_info < (3, 10):
+            from importlib_metadata import entry_points
+        else:
+            from importlib.metadata import entry_points
+
+        discovered_plugins = entry_points(group='rez.plugins')
+        for plugin in discovered_plugins:
+            plugin = plugin.load()
+            plugin_name = plugin.__name__.split('.')[-1]
+            plugin_path = os.path.dirname(plugin.__file__)
+            self.register_plugin_module(plugin_name, plugin, plugin_path)
+            self.load_config_from_plugin(plugin)
+
+    def load_config_from_plugin(self, plugin):
+        plugin_path = os.path.dirname(plugin.__file__)
+        data, _ = _load_config_from_filepaths([os.path.join(plugin_path, "rezconfig")])
+        deep_update(self.config_data, data)
+
+    def register_plugin_module(self, plugin_name, plugin_module, plugin_path):
+        module_name = plugin_module.__name__
+        if os.path.dirname(plugin_module.__file__) != plugin_path:
+            if config.debug("plugins"):
+                # this should not happen but if it does, tell why.
+                print_warning(
+                    "plugin module %s is not loaded from current "
+                    "load path but reused from previous imported "
+                    "path: %s" % (module_name, plugin_module.__file__))
+
+        if (hasattr(plugin_module, "register_plugin")
+                and callable(plugin_module.register_plugin)):
+
+            plugin_class = plugin_module.register_plugin()
+            if plugin_class is not None:
+                self.register_plugin(plugin_name,
+                                        plugin_class,
+                                        plugin_module)
+            else:
+                if config.debug("plugins"):
+                    print_warning(
+                        "'register_plugin' function at %s: %s did "
+                        "not return a class." % (plugin_path, module_name))
+        else:
+            if config.debug("plugins"):
+                print_warning(
+                    "no 'register_plugin' function at %s: %s"
+                    % (plugin_path, module_name))
 
     def get_plugin_class(self, plugin_name):
         """Returns the class registered under the given plugin name."""
