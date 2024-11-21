@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.packages import iter_packages
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
@@ -18,6 +20,13 @@ from shlex import quote
 import getpass
 import os.path
 import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.build_system import BuildSystem
+    from rez.packages import Package, Variant
+    from rez.release_vcs import ReleaseVCS
+    from rez.developer_package import DeveloperPackage
 
 
 debug_print = config.debug_printer("package_release")
@@ -29,9 +38,16 @@ def get_build_process_types():
     return plugin_manager.get_plugins('build_process')
 
 
-def create_build_process(process_type, working_dir, build_system, package=None,
-                         vcs=None, ensure_latest=True, skip_repo_errors=False,
-                         ignore_existing_tag=False, verbose=False, quiet=False):
+def create_build_process(process_type: str,
+                         working_dir: str,
+                         build_system: BuildSystem,
+                         package=None,
+                         vcs: ReleaseVCS | None = None,
+                         ensure_latest: bool = True,
+                         skip_repo_errors: bool = False,
+                         ignore_existing_tag: bool = False,
+                         verbose: bool = False,
+                         quiet: bool = False) -> BuildProcess:
     """Create a :class:`BuildProcess` instance.
 
     .. warning::
@@ -44,7 +60,7 @@ def create_build_process(process_type, working_dir, build_system, package=None,
     if process_type not in process_types:
         raise BuildProcessError("Unknown build process: %r" % process_type)
 
-    cls = plugin_manager.get_plugin_class('build_process', process_type)
+    cls = plugin_manager.get_plugin_class('build_process', process_type, BuildProcess)
 
     return cls(working_dir,  # ignored (deprecated)
                build_system,
@@ -77,7 +93,8 @@ class BuildProcess(object):
     def name(cls):
         raise NotImplementedError
 
-    def __init__(self, working_dir, build_system, package=None, vcs=None,
+    def __init__(self, working_dir: str, build_system: BuildSystem, package=None,
+                 vcs: ReleaseVCS | None = None,
                  ensure_latest=True, skip_repo_errors=False,
                  ignore_existing_tag=False, verbose=False, quiet=False):
         """Create a BuildProcess.
@@ -119,14 +136,15 @@ class BuildProcess(object):
                                            self.package.config.build_directory)
 
     @property
-    def package(self):
+    def package(self) -> DeveloperPackage:
         return self.build_system.package
 
     @property
-    def working_dir(self):
+    def working_dir(self) -> str:
         return self.build_system.working_dir
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self, install_path: str | None = None, clean: bool = False,
+              install: bool = False, variants: list[int] | None = None) -> int:
         """Perform the build process.
 
         Iterates over the package's variants, resolves the environment for
@@ -149,7 +167,8 @@ class BuildProcess(object):
         """
         raise NotImplementedError
 
-    def release(self, release_message=None, variants=None):
+    def release(self, release_message: str | None = None,
+                variants: list[int] | None = None) -> int:
         """Perform the release process.
 
         Iterates over the package's variants, building and installing each into
@@ -167,7 +186,7 @@ class BuildProcess(object):
         """
         raise NotImplementedError
 
-    def get_changelog(self):
+    def get_changelog(self) -> str | None:
         """Get the changelog since last package release.
 
         Returns:
@@ -187,7 +206,8 @@ class BuildProcessHelper(BuildProcess):
         except exc_type as e:
             print_warning("THE FOLLOWING ERROR WAS SKIPPED:\n%s" % str(e))
 
-    def visit_variants(self, func, variants=None, **kwargs):
+    def visit_variants(self, func, variants: list[int] | None = None,
+                       **kwargs) -> tuple[int, list[str | None]]:
         """Iterate over variants and call a function on each."""
         if variants:
             present_variants = range(self.package.num_variants)
@@ -215,7 +235,7 @@ class BuildProcessHelper(BuildProcess):
 
         return num_visited, results
 
-    def get_package_install_path(self, path):
+    def get_package_install_path(self, path: str) -> str:
         """Return the installation path for a package (where its payload goes).
 
         Args:
@@ -230,7 +250,8 @@ class BuildProcessHelper(BuildProcess):
             package_version=self.package.version
         )
 
-    def create_build_context(self, variant, build_type, build_path):
+    def create_build_context(self, variant: Variant, build_type: BuildType,
+                             build_path: str) -> tuple[ResolvedContext, str]:
         """Create a context to build the variant within."""
         request = variant.get_requires(build_requires=True,
                                        private_build_requires=True)
@@ -274,7 +295,7 @@ class BuildProcessHelper(BuildProcess):
             raise BuildContextResolveError(context)
         return context, rxt_filepath
 
-    def pre_release(self):
+    def pre_release(self) -> None:
         release_settings = self.package.config.plugins.release_vcs
 
         # test that the release path exists
@@ -322,7 +343,7 @@ class BuildProcessHelper(BuildProcess):
                 else:
                     break
 
-    def post_release(self, release_message=None):
+    def post_release(self, release_message=None) -> None:
         tag_name = self.get_current_tag_name()
 
         if self.vcs is None:
@@ -332,7 +353,7 @@ class BuildProcessHelper(BuildProcess):
         with self.repo_operation():
             self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
 
-    def get_current_tag_name(self):
+    def get_current_tag_name(self) -> str:
         release_settings = self.package.config.plugins.release_vcs
         try:
             tag_name = self.package.format(release_settings.tag_name)
@@ -342,7 +363,7 @@ class BuildProcessHelper(BuildProcess):
             tag_name = "unversioned"
         return tag_name
 
-    def run_hooks(self, hook_event, **kwargs):
+    def run_hooks(self, hook_event, **kwargs) -> None:
         hook_names = self.package.config.release_hooks or []
         hooks = create_release_hooks(hook_names, self.working_dir)
 
@@ -357,12 +378,12 @@ class BuildProcessHelper(BuildProcess):
                     "%s cancelled by %s hook '%s': %s:\n%s"
                     % (hook_event.noun, hook_event.label, hook.name(),
                        e.__class__.__name__, str(e)))
-            except RezError:
+            except RezError as e:
                 debug_print("Error in %s hook '%s': %s:\n%s"
                             % (hook_event.label, hook.name(),
                                e.__class__.__name__, str(e)))
 
-    def get_previous_release(self):
+    def get_previous_release(self) -> Package | None:
         release_path = self.package.config.release_packages_path
         it = iter_packages(self.package.name, paths=[release_path])
         packages = sorted(it, key=lambda x: x.version, reverse=True)
@@ -372,7 +393,7 @@ class BuildProcessHelper(BuildProcess):
                 return package
         return None
 
-    def get_changelog(self):
+    def get_changelog(self) -> str | None:
         previous_package = self.get_previous_release()
         if previous_package:
             previous_revision = previous_package.revision
@@ -380,10 +401,11 @@ class BuildProcessHelper(BuildProcess):
             previous_revision = None
 
         changelog = None
-        with self.repo_operation():
-            changelog = self.vcs.get_changelog(
-                previous_revision,
-                max_revisions=config.max_package_changelog_revisions)
+        if self.vcs:
+            with self.repo_operation():
+                changelog = self.vcs.get_changelog(
+                    previous_revision,
+                    max_revisions=config.max_package_changelog_revisions)
 
         return changelog
 
