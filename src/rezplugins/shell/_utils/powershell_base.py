@@ -153,7 +153,7 @@ class PowerShellBase(Shell):
         # only the bool $? var is set.
         #
         executor.command(
-            "if(! $? -or $LASTEXITCODE) {\n"
+            "if(! $? -or $LASTEXITCODE -or $error) {\n"
             "  if ($LASTEXITCODE) {\n"
             "    exit $LASTEXITCODE\n"
             "  }\n"
@@ -248,7 +248,7 @@ class PowerShellBase(Shell):
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
         self._addline(
-            'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value)'
+            'Set-Item -Path "Env:{0}" -Value ("{1}{2}" + (Get-ChildItem -ErrorAction Ignore "Env:{0}").Value)'
             .format(key, value, self.pathsep)
         )
 
@@ -257,15 +257,15 @@ class PowerShellBase(Shell):
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
         # so that the ${ENV:VAR} form has to be used to not collide.
-        # The nested Get-ChildItem call is set to SilentlyContinue to prevent
+        # The nested Get-ChildItem call is set to Ignore to prevent
         # an exception of the Environment Variable is not set already
         self._addline(
-            'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'
+            'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction Ignore "Env:{0}").Value + "{1}{2}")'
             .format(key, os.path.pathsep, value))
 
     def unsetenv(self, key):
         self._addline(
-            'Remove-Item -ErrorAction SilentlyContinue "Env:{0}"'.format(key)
+            'Remove-Item -ErrorAction Ignore "Env:{0}"'.format(key)
         )
 
     def resetenv(self, key, value, friends=None):
