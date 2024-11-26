@@ -95,6 +95,8 @@ def add_variant(pkgcache, uri, opts):
         print_info("Already exists: %s", destpath)
     elif status == PackageCache.VARIANT_COPYING:
         print_warning("Another process is currently copying to: %s", destpath)
+    elif status == PackageCache.VARIANT_SKIPPED:
+        print_warning("Cache no longer accepting new variant due to size limit")
     else:
         print_info("Successfully cached to: %s", destpath)
 
