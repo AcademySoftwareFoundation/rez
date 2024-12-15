@@ -303,6 +303,7 @@ def install_dependent():
 
 _restore_sys_path_lock = threading.Lock()
 _restore_os_environ_lock = threading.Lock()
+_restore_pip_lock = threading.Lock()
 
 
 @contextmanager
@@ -362,3 +363,15 @@ def restore_os_environ():
 
         os.environ.clear()
         os.environ.update(original)
+
+
+@contextmanager
+def restore_pip(package_name, package_path):
+    from pip._internal import main as pipmain
+
+    with _restore_pip_lock:
+        pipmain(['install', package_path])
+
+        yield True
+
+        pipmain(['uninstall', package_name, "-y"])
