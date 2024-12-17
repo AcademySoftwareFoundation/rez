@@ -8,6 +8,7 @@ import re
 import platform
 
 from rez import __version__
+from rez.utils.filesystem import real_path
 from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
 from rez.utils.data_utils import cached_property
@@ -237,7 +238,7 @@ class System(object):
 
         validation_file = os.path.join(binpath, ".rez_production_install")
         if os.path.exists(validation_file):
-            return os.path.realpath(binpath)
+            return real_path(binpath)
 
         return None
 
