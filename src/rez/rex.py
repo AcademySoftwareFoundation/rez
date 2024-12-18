@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import sys
 import re
@@ -11,6 +13,7 @@ from enum import Enum
 from contextlib import contextmanager
 from string import Formatter
 from collections.abc import MutableMapping
+from typing import Iterable
 
 from rez.system import system
 from rez.config import config
@@ -30,6 +33,7 @@ from rez.utils.platform_ import platform_
 #===============================================================================
 
 class Action(object):
+    name: str
     _registry = []
 
     def __init__(self, *args):
@@ -43,11 +47,11 @@ class Action(object):
         return (self.name == other.name) and (self.args == other.args)
 
     @classmethod
-    def register_command_type(cls, name, klass):
+    def register_command_type(cls, name, klass) -> None:
         cls._registry.append((name, klass))
 
     @classmethod
-    def register(cls):
+    def register(cls) -> None:
         cls.register_command_type(cls.name, cls)
 
     @classmethod
@@ -57,13 +61,14 @@ class Action(object):
 
 class EnvAction(Action):
     @property
-    def key(self):
+    def key(self) -> str:
         return self.args[0]
 
     @property
-    def value(self):
+    def value(self) -> str | None:
         if len(self.args) == 2:
             return self.args[1]
+        return None
 
 
 class Unsetenv(EnvAction):
@@ -173,8 +178,8 @@ class ActionManager(object):
     """Handles the execution book-keeping.  Tracks env variable values, and
     triggers the callbacks of the `ActionInterpreter`.
     """
-    def __init__(self, interpreter, parent_environ=None, parent_variables=None,
-                 formatter=None, verbose=False, env_sep_map=None):
+    def __init__(self, interpreter: ActionInterpreter, parent_environ: dict[str, str] | None = None,
+                 parent_variables: Iterable[str] | None = None, formatter=None, verbose=False, env_sep_map=None):
         '''
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
@@ -628,7 +633,7 @@ class Python(ActionInterpreter):
             are skipped.
         '''
         self.passive = passive
-        self.manager = None
+        self.manager: ActionManager | None = None
         if (target_environ is None) or (target_environ is os.environ):
             self.target_environ = os.environ
             self.update_session = True
@@ -636,7 +641,7 @@ class Python(ActionInterpreter):
             self.target_environ = target_environ
             self.update_session = False
 
-    def set_manager(self, manager):
+    def set_manager(self, manager: ActionManager):
         self.manager = manager
 
     def apply_environ(self):
@@ -1209,7 +1214,8 @@ class RexExecutor(object):
     ex.env.FOO_SET = 1
     ex.alias('foo','foo -l')
     """
-    def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
+    def __init__(self, interpreter: ActionInterpreter | None = None,
+                 globals_map=None, parent_environ: dict[str, str] | None = None,
                  parent_variables=None, shebang=True, add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None

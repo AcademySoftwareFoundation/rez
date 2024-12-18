@@ -183,7 +183,7 @@ def _print_package_list(variants):
     packages = set([x.parent for x in variants])
     packages = sorted(packages, key=lambda x: x.name)
 
-    rows = [["PACKAGE", "URI"],
-            ["-------", "---"]]
+    rows = [("PACKAGE", "URI"),
+            ("-------", "---")]
     rows += [(x.name, x.uri) for x in packages]
     print('\n'.join(columnise(rows)))

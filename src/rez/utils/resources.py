@@ -33,6 +33,8 @@ data load is avoided.
 
 See the 'pets' unit test in tests/test_resources.py for a complete example.
 """
+from __future__ import annotations
+
 from functools import lru_cache
 
 from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
@@ -40,6 +42,15 @@ from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
 from rez.config import config
 from rez.exceptions import ResourceError
 from rez.utils.logging_ import print_debug
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # this is not available in typing until 3.11, but due to __future__.annotations
+    # we can use it without really importing it
+    from typing import Self
+    from rez.vendor.schema.schema import Schema
+    from rez.package_repository import PackageRepository
 
 
 class Resource(object, metaclass=LazyAttributeMeta):
@@ -69,13 +80,18 @@ class Resource(object, metaclass=LazyAttributeMeta):
         `validated_data` function, and test full validation using `validate_data`.
     """
     #: Unique identifier of the resource type.
-    key = None
+    key: str = None
     #: Schema for the resource data.
     #: Must validate a dict. Can be None, in which case the resource does
     #: not load any data.
-    schema = None
+    schema: Schema | None = None
     #: The exception type to raise on key validation failure.
     schema_error = Exception
+
+    if TYPE_CHECKING:
+        # all Resources that are acquired using PackageRepository.get_resource
+        # have this attribute added to them
+        _repository: PackageRepository
 
     @classmethod
     def normalize_variables(cls, variables):
@@ -87,7 +103,7 @@ class Resource(object, metaclass=LazyAttributeMeta):
         self.variables = self.normalize_variables(variables or {})
 
     @cached_property
-    def handle(self):
+    def handle(self) -> ResourceHandle:
         """Get the resource handle."""
         return ResourceHandle(self.key, self.variables)
 
@@ -105,10 +121,10 @@ class Resource(object, metaclass=LazyAttributeMeta):
         """Get the value of a resource variable."""
         return self.variables.get(key, default)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s%r" % (self.key, self.variables)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.variables)
 
     def __hash__(self):
@@ -139,7 +155,7 @@ class ResourceHandle(object):
     A handle uniquely identifies a resource. A handle can be stored and used
     with a `ResourcePool` to retrieve the same resource at a later date.
     """
-    def __init__(self, key, variables=None):
+    def __init__(self, key: str, variables=None):
         self.key = key
         self.variables = variables or {}
 
@@ -154,7 +170,7 @@ class ResourceHandle(object):
         return dict(key=self.key, variables=self.variables)
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d) -> Self:
         """Return a `ResourceHandle` instance from a serialized dict
 
         This should ONLY be used with dicts created with ResourceHandle.to_dict;
@@ -169,10 +185,10 @@ class ResourceHandle(object):
             tuple(sorted(self.variables.items()))
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.to_dict())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r, %r)" % (self.__class__.__name__, self.key, self.variables)
 
     def __eq__(self, other):
@@ -194,11 +210,11 @@ class ResourcePool(object):
     existence of the resource before creating one from a pool.
     """
     def __init__(self, cache_size=None):
-        self.resource_classes = {}
+        self.resource_classes: dict[str, type[Resource]] = {}
         cache = lru_cache(maxsize=cache_size)
         self.cached_get_resource = cache(self._get_resource)
 
-    def register_resource(self, resource_class):
+    def register_resource(self, resource_class: type[Resource]) -> None:
         resource_key = resource_class.key
         assert issubclass(resource_class, Resource)
         assert resource_key is not None
@@ -216,20 +232,20 @@ class ResourcePool(object):
 
         self.resource_classes[resource_key] = resource_class
 
-    def get_resource_from_handle(self, resource_handle):
+    def get_resource_from_handle(self, resource_handle: ResourceHandle) -> Resource:
         return self.cached_get_resource(resource_handle)
 
-    def clear_caches(self):
+    def clear_caches(self) -> None:
         self.cached_get_resource.cache_clear()
 
-    def get_resource_class(self, resource_key):
+    def get_resource_class(self, resource_key) -> type[Resource]:
         resource_class = self.resource_classes.get(resource_key)
         if resource_class is None:
             raise ResourceError("Error getting resource from pool: Unknown "
                                 "resource type %r" % resource_key)
         return resource_class
 
-    def _get_resource(self, resource_handle):
+    def _get_resource(self, resource_handle: ResourceHandle) -> Resource:
         resource_class = self.get_resource_class(resource_handle.key)
         return resource_class(resource_handle.variables)
 
@@ -254,15 +270,15 @@ class ResourceWrapper(object, metaclass=AttributeForwardMeta):
     """
     keys = None
 
-    def __init__(self, resource):
+    def __init__(self, resource: Resource):
         self.wrapped = resource
 
     @property
-    def resource(self):
+    def resource(self) -> Resource:
         return self.wrapped
 
     @property
-    def handle(self):
+    def handle(self) -> ResourceHandle:
         return self.resource.handle
 
     @property

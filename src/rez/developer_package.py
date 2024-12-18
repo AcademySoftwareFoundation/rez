@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.config import config
 from rez.packages import Package, create_package
 from rez.serialise import load_from_file, FileFormat, set_objects
@@ -44,7 +46,7 @@ class DeveloperPackage(Package):
             return None
 
     @classmethod
-    def from_path(cls, path, format=None):
+    def from_path(cls, path, format: FileFormat | None = None):
         """Load a developer package.
 
         A developer package may for example be a package.yaml or package.py in a
@@ -62,9 +64,9 @@ class DeveloperPackage(Package):
         data = None
 
         if format is None:
-            formats = (FileFormat.py, FileFormat.yaml)
+            formats = [FileFormat.py, FileFormat.yaml]
         else:
-            formats = (format,)
+            formats = [format]
 
         try:
             mode = os.stat(path).st_mode

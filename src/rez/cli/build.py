@@ -5,17 +5,23 @@
 '''
 Build a package from source.
 '''
+from __future__ import annotations
+
 import os
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.developer_package import DeveloperPackage
 
 
 # Cache the developer package loaded from cwd. This is so the package is only
 # loaded once, even though it's required once at arg parsing time (to determine
 # valid build system types), and once at command run time.
 #
-_package = None
+_package: DeveloperPackage | None = None
 
 
-def get_current_developer_package():
+def get_current_developer_package() -> DeveloperPackage:
     from rez.packages import get_developer_package
 
     global _package
