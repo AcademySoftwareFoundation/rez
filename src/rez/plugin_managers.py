@@ -12,6 +12,7 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
+import importlib.util
 import pkgutil
 import os.path
 import sys
@@ -157,10 +158,10 @@ class RezPluginType(object):
                     # https://github.com/AcademySoftwareFoundation/rez/pull/218
                     # load_module will force reload the module if it's
                     # already loaded, so check for that
+                    # TODO: Confirm if the force reload still happens after this change.
                     plugin_module = sys.modules.get(modname)
                     if plugin_module is None:
-                        loader = importer.find_module(modname)
-                        plugin_module = loader.load_module(modname)
+                        plugin_module = importlib.import_module(modname)
 
                     elif os.path.dirname(plugin_module.__file__) != path:
                         if config.debug("plugins"):
