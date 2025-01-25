@@ -16,6 +16,11 @@ import pkgutil
 import os.path
 import sys
 
+if sys.version_info.minor >= 8:
+    from importlib.metadata import entry_points
+else:
+    from rez.vendor.importlib_metadata import entry_points
+
 
 # modified from pkgutil standard library:
 # this function is called from the __init__.py files of each plugin type inside
@@ -177,11 +182,6 @@ class RezPluginType(object):
                         print_debug(out.getvalue())
 
     def load_plugins_from_entry_points(self):
-        if sys.version_info.minor >= 8:
-            from importlib.metadata import entry_points
-        else:
-            from importlib_metadata import entry_points
-
         discovered_plugins = entry_points(group='rez.plugins')
         for plugin in discovered_plugins:
             plugin = plugin.load()
