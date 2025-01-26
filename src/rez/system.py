@@ -207,6 +207,9 @@ class System(object):
         #
         import rez
         module_path = rez.__path__[0]
+        # Best effort attempt at converting slashes to the current
+        # platform native slash. (for example, forward to backward).
+        module_path = os.path.normpath(module_path)
 
         parts = module_path.split(os.path.sep)
         parts_lower = module_path.lower().split(os.path.sep)
