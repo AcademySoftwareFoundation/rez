@@ -47,7 +47,6 @@ def command(opts, parser, extra_arg_groups=None):
     with open(opts.FILE) as f:
         code = f.read()
 
-    interp = None
     if opts.format is None:
         interp = create_shell()
     elif opts.format in ('dict', 'table'):

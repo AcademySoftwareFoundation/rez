@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils._version import _rez_version
 from rez.utils.schema import Required, extensible_schema_dict
 from rez.utils.filesystem import retain_cwd
@@ -12,12 +14,13 @@ from rez.exceptions import PackageMetadataError
 from rez.package_resources import help_schema, _commands_schema, \
     _function_schema, late_bound
 from rez.package_repository import create_memory_package_repository
-from rez.packages import Package
+from rez.packages import Package, Variant
 from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.version import Version
 from contextlib import contextmanager
 import os
+from typing import Iterable
 
 
 # this schema will automatically harden request strings like 'python-*'; see
@@ -92,7 +95,7 @@ package_schema = Schema({
 
 class PackageMaker(AttrDictWrapper):
     """Utility class for creating packages."""
-    def __init__(self, name, data=None, package_cls=None):
+    def __init__(self, name: str, data=None, package_cls: type[Package] | None = None):
         """Create a package maker.
 
         Args:
@@ -106,7 +109,7 @@ class PackageMaker(AttrDictWrapper):
         self.installed_variants = []
         self.skipped_variants = []
 
-    def get_package(self):
+    def get_package(self) -> Package:
         """Create the analogous package.
 
         Returns:
@@ -133,6 +136,7 @@ class PackageMaker(AttrDictWrapper):
 
         # retrieve the package from the new repository
         family_resource = repo.get_package_family(self.name)
+        assert family_resource is not None
         it = repo.iter_packages(family_resource)
         package_resource = next(it)
 
@@ -197,19 +201,20 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
     #
 
     package = maker.get_package()
-    src_variants = []
 
     # skip those variants that already exist
     if skip_existing:
+        variants: list[Variant] = []
         for variant in package.iter_variants():
             variant_ = variant.install(path, dry_run=True)
             if variant_ is None:
-                src_variants.append(variant)
+                variants.append(variant)
             else:
                 maker.skipped_variants.append(variant_)
                 if warn_on_skip:
                     print_warning("Skipping installation: Package variant already "
                                   "exists: %s" % variant_.uri)
+        src_variants: Iterable[Variant] = variants
     else:
         src_variants = package.iter_variants()
 

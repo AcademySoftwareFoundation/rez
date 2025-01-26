@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from functools import partial
 import os.path
 import shutil
@@ -9,8 +11,8 @@ import time
 
 from rez.config import config
 from rez.exceptions import PackageCopyError
-from rez.package_repository import package_repository_manager
-from rez.packages import Variant
+from rez.package_repository import package_repository_manager, PackageRepository
+from rez.packages import Package, Variant
 from rez.serialise import FileFormat
 from rez.utils import with_noop
 from rez.utils.base26 import create_unique_base26_symlink
@@ -20,10 +22,11 @@ from rez.utils.filesystem import replacing_symlink, replacing_copy, \
     safe_makedirs, additive_copytree, make_path_writable, get_existing_path
 
 
-def copy_package(package, dest_repository, variants=None, shallow=False,
-                 dest_name=None, dest_version=None, overwrite=False, force=False,
-                 follow_symlinks=False, dry_run=False, keep_timestamp=False,
-                 skip_payload=False, overrides=None, verbose=False):
+def copy_package(package: Package, dest_repository: PackageRepository,
+                 variants: list[int] | None = None, shallow: bool = False,
+                 dest_name=None, dest_version=None, overwrite: bool = False, force: bool = False,
+                 follow_symlinks: bool = False, dry_run: bool = False, keep_timestamp: bool = False,
+                 skip_payload: bool = False, overrides=None, verbose: bool = False):
     """Copy a package from one package repository to another.
 
     This copies the package definition and payload. The package can also be
@@ -227,8 +230,8 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
     return finalize()
 
 
-def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
-                          follow_symlinks=False, overrides=None, verbose=False):
+def _copy_variant_payload(src_variant: Variant, dest_pkg_repo: PackageRepository, shallow: bool = False,
+                          follow_symlinks: bool = False, overrides=None, verbose: bool = False):
     # Get payload path of source variant. For some types (eg from a "memory"
     # type repo) there may not be a root.
     #
@@ -243,7 +246,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
     if not os.path.isdir(variant_root):
         raise PackageCopyError(
             "Cannot copy source variant %s - its root does not appear to "
-            "be present on disk (%s)." % src_variant.uri, variant_root
+            "be present on disk (%s)." % (src_variant.uri, variant_root)
         )
 
     dest_variant_name = overrides.get("name") or src_variant.name
