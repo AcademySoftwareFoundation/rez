@@ -121,7 +121,7 @@ of each attribute):
       env.PYTHONPATH.append("{root}/python")
       env.PATH.append("{root}/bin")
 
-The :attr:`requires` section defines the requirements of the package. The :func:`commands` section describes
+The :attr:`requires` section defines the requirements of the package, excluding *any* subsequent patch versions. The :func:`commands` section describes
 what happens when this package is added to an environment. Here, the ``bin`` directory in the package
 installation is appended to ``PATH``, and similarly the ``python`` subdirectory is appended to
 ``PYTHONPATH``.
