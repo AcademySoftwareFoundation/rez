@@ -104,5 +104,4 @@ jobs:
       with:
         slug: AcademySoftwareFoundation/rez
         files: 'coverage.xml'
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ secrets.CODECOV_TOKEN }}
