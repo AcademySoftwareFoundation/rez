@@ -10,7 +10,6 @@ from functools import lru_cache
 import os.path
 import os
 import stat
-import errno
 import time
 import shutil
 
@@ -677,10 +676,7 @@ class FileSystemPackageRepository(PackageRepository):
             return 0
 
         # create .ignore{ver} file
-        try:
-            os.makedirs(fam_path)
-        except OSError:  # already exists
-            pass
+        os.makedirs(fam_path, exist_ok=True)
 
         with open(filepath, 'w'):
             pass
@@ -930,13 +926,12 @@ class FileSystemPackageRepository(PackageRepository):
         path = self.location
 
         try:
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
         except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise PackageRepositoryError(
-                    "Package repository path %r could not be created: %s: %s"
-                    % (path, e.__class__.__name__, e)
-                )
+            raise PackageRepositoryError(
+                "Package repository path %r could not be created: %s: %s"
+                % (path, e.__class__.__name__, e)
+            )
 
         # install the variant
         def _create_variant():
@@ -1193,8 +1188,7 @@ class FileSystemPackageRepository(PackageRepository):
 
     def _create_family(self, name):
         path = os.path.join(self.location, name)
-        if not os.path.exists(path):
-            os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
         self._on_changed(name)
         return self.get_package_family(name)
@@ -1396,8 +1390,7 @@ class FileSystemPackageRepository(PackageRepository):
             pkg_base_path = os.path.join(family_path, str(variant_version))
         else:
             pkg_base_path = family_path
-        if not os.path.exists(pkg_base_path):
-            os.makedirs(pkg_base_path)
+        os.makedirs(pkg_base_path, exist_ok=True)
 
         # Apply overrides.
         #

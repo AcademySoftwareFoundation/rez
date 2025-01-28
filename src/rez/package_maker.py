@@ -220,15 +220,13 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
 
             base = variant_.base
             if make_base and base:
-                if not os.path.exists(base):
-                    os.makedirs(base)
+                os.makedirs(base, exist_ok=True)
                 os.chdir(base)
                 make_base(variant_, base)
 
             root = variant_.root
             if make_root and root:
-                if not os.path.exists(root):
-                    os.makedirs(root)
+                os.makedirs(root, exist_ok=True)
                 os.chdir(root)
                 make_root(variant_, root)
 
