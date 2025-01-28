@@ -861,8 +861,7 @@ class FileSystemPackageRepository(PackageRepository):
         path = self.location
 
         family_path = os.path.join(path, variant_resource.name)
-        if not os.path.isdir(family_path):
-            os.makedirs(family_path)
+        os.makedirs(family_path, exist_ok=True)
 
         filename = self.building_prefix + str(variant_resource.version)
         filepath = os.path.join(family_path, filename)
