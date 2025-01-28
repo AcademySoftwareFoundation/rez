@@ -173,19 +173,6 @@ def safe_listdir(path):
         raise
 
 
-def safe_makedirs(path):
-    """Safe makedirs.
-
-    Works in a multithreaded scenario.
-    """
-    if not os.path.exists(path):
-        try:
-            os.makedirs(path)
-        except OSError:
-            if not os.path.exists(path):
-                raise
-
-
 def safe_remove(path):
     """Safely remove the given file or directory.
 

@@ -14,8 +14,8 @@ from rez.utils import with_noop
 from rez.utils.logging_ import print_warning
 from rez.utils.base26 import create_unique_base26_symlink
 from rez.utils.colorize import Printer, warning
-from rez.utils.filesystem import safe_makedirs, copy_or_replace, \
-    make_path_writable, get_existing_path, forceful_rmtree
+from rez.utils.filesystem import copy_or_replace, get_existing_path, \
+    forceful_rmtree, make_path_writable
 from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.filesystem import TempDirs
 from rez.package_test import PackageTestRunner, PackageTestResults
@@ -148,7 +148,7 @@ class LocalBuildProcess(BuildProcessHelper):
         if clean and os.path.exists(variant_build_path):
             self._rmtree(variant_build_path)
 
-        safe_makedirs(variant_build_path)
+        os.makedirs(variant_build_path, exist_ok=True)
 
         # find last dir of installation path that exists, and possibly make it
         # writable during variant installation
@@ -167,8 +167,7 @@ class LocalBuildProcess(BuildProcessHelper):
                 pkg_repo = package_repository_manager.get_repository(install_path)
                 pkg_repo.pre_variant_install(variant.resource)
 
-                if not os.path.exists(variant_install_path):
-                    safe_makedirs(variant_install_path)
+                os.makedirs(variant_install_path, exist_ok=True)
 
                 # if hashed variants are enabled, create the variant shortlink
                 if variant.parent.hashed_variants:
@@ -179,7 +178,7 @@ class LocalBuildProcess(BuildProcessHelper):
                             variant.parent.config.variant_shortlinks_dirname
                         )
 
-                        safe_makedirs(base_shortlinks_path)
+                        os.makedirs(base_shortlinks_path, exist_ok=True)
 
                         # create the shortlink
                         rel_variant_path = os.path.relpath(
@@ -293,7 +292,7 @@ class LocalBuildProcess(BuildProcessHelper):
         base_path = self.get_package_install_path(install_path)
 
         path = os.path.join(base_path, IncludeModuleManager.include_modules_subpath)
-        safe_makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
         definition_python_path = self.package.config.package_definition_python_path
 
