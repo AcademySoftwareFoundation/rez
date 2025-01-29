@@ -386,8 +386,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 src = os.path.join(targetpath, rel_src)
                 dest = os.path.join(path, rel_dest)
 
-                if not os.path.exists(os.path.dirname(dest)):
-                    os.makedirs(os.path.dirname(dest))
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
 
                 shutil.copyfile(src, dest)
 

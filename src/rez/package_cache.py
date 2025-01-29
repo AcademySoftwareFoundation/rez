@@ -23,8 +23,7 @@ from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
 from rez.vendor.progress.spinner import PixelSpinner
-from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
-    forceful_rmtree
+from rez.utils.filesystem import forceful_rmtree, safe_listdir, safe_remove
 from rez.utils.colorize import ColorizedStreamHandler
 from rez.utils.logging_ import print_warning
 from rez.packages import get_variant
@@ -99,9 +98,9 @@ class PackageCache(object):
         self.path = path
 
         # make dirs for internal use
-        safe_makedirs(self._log_dir)
-        safe_makedirs(self._pending_dir)
-        safe_makedirs(self._remove_dir)
+        os.makedirs(self._log_dir, exist_ok=True)
+        os.makedirs(self._pending_dir, exist_ok=True)
+        os.makedirs(self._remove_dir, exist_ok=True)
 
     def get_cached_root(self, variant):
         """Get location of variant payload copy.
@@ -171,7 +170,6 @@ class PackageCache(object):
             - int: One of VARIANT_FOUND, VARIANT_CREATED, VARIANT_COPYING, VARIANT_COPY_STALLED
         """
         from rez.utils.base26 import get_next_base26
-        from rez.utils.filesystem import safe_makedirs
 
         # do some sanity checking on variant to cache
         package = variant.parent
@@ -262,7 +260,7 @@ class PackageCache(object):
 
         # 1.
         path = self._get_hash_path(variant)
-        safe_makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
         # construct data to store to json file
         data = {
