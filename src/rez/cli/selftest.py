@@ -8,6 +8,8 @@ Run unit tests. Use pytest if available.
 
 import os
 import sys
+import importlib
+import importlib.util
 import inspect
 import argparse
 import shutil
@@ -56,7 +58,9 @@ def setup_parser(parser, completions=False):
     prefix = "test_"
     for importer, name, ispkg in iter_modules([tests_dir]):
         if not ispkg and name.startswith(prefix):
-            module = importer.find_module(name).load_module(name)
+            spec = importer.find_spec(name)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
             name_ = name[len(prefix):]
             all_module_tests.append(name_)
             tests.append((name_, module))
