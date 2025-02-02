@@ -304,6 +304,7 @@ def install_dependent():
 _restore_sys_path_lock = threading.Lock()
 _restore_os_environ_lock = threading.Lock()
 
+
 @contextmanager
 def restore_sys_path():
     """Encapsulate changes to sys.path and return to the original state.
