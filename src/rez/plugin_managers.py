@@ -175,7 +175,7 @@ class RezPluginType(object):
                     self.print_log_plugins_error(modname, e)
 
     def load_plugins_from_entry_points(self):
-        if sys.version_info[:2] < (3, 10):
+        if sys.version_info[:2] >= (3, 8) and sys.version_info[:2] <= (3, 9):
             discovered_plugins = entry_points().get("rez.plugins", [])
         else:
             discovered_plugins = entry_points(group='rez.plugins')
