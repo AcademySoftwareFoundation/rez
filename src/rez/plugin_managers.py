@@ -175,7 +175,11 @@ class RezPluginType(object):
                     self.print_log_plugins_error(modname, e)
 
     def load_plugins_from_entry_points(self):
-        discovered_plugins = entry_points(group='rez.plugins')
+        if sys.version_info <= (3, 9):
+            discovered_plugins = entry_points().get("rez.plugins", [])
+        else:
+            discovered_plugins = entry_points(group='rez.plugins')
+
         for plugin in discovered_plugins:
             try:
                 plugin = plugin.load()
