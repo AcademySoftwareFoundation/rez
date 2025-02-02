@@ -76,10 +76,6 @@ Rez plugins require a specific folder structure as follows:
         /plugin_file2.py (your plugin file)
         etc.
 
-To make your plugin available to rez, you can install them directly under
-``src/rezplugins`` (that's called a namespace package) or you can add
-the path to :envvar:`REZ_PLUGIN_PATH`.
-
 Registering subcommands
 -----------------------
 
@@ -137,4 +133,38 @@ so that the plugin manager will find them.
     from rez.plugin_managers import extend_path
     __path__ = extend_path(__path__, __name__)
 
+Install plugins
+---------------
 
+1. Copy directly to rez install folder
+
+To make your plugin available to rez, you can install it directly under
+``src/rezplugins`` (that's called a namespace package).
+
+2. Add the source path to :envvar:`REZ_PLUGIN_PATH`
+
+Add the source path to the REZ_PLUGIN_PATH environment variable in order to make your plugin available to rez.
+
+3. Create a setup.py
+
+To make your plugin available to rez, you can also create a ``setup.py`` file
+that will allow you to install your plugin with `pip install` command.
+
+.. code-block:: python
+   :caption: setup.py
+
+    from setuptools import setup, find_packages
+
+    setup(
+        name="foo",
+        version="0.1.0",
+        package_dir={
+            "foo": "foo"
+        },
+        packages=find_packages(where="."),
+        entry_points={
+            'rez.plugins': [
+                'foo_cmd = foo',
+            ]
+        }
+    )
