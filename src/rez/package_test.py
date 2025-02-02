@@ -215,7 +215,7 @@ class PackageTestRunner(object):
         requested_test_names = set()
         for requested_test in requested_tests:
             requested_test_names.update(set(fnmatch.filter(pkg_test_names, requested_test)))
-        return sorted(requested_test_names)
+        return requested_test_names
 
     @property
     def num_tests(self):
