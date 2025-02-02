@@ -16,7 +16,7 @@ import pkgutil
 import os.path
 import sys
 
-if sys.version_info.minor >= 8:
+if sys.version_info >= (3, 8):
     from importlib.metadata import entry_points
 else:
     from rez.vendor.importlib_metadata import entry_points
