@@ -1,9 +1,0 @@
-setup.py
-baz/__init__.py
-baz/core.py
-baz/rezconfig.py
-baz.egg-info/PKG-INFO
-baz.egg-info/SOURCES.txt
-baz.egg-info/dependency_links.txt
-baz.egg-info/entry_points.txt
-baz.egg-info/top_level.txt

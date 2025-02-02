@@ -71,8 +71,10 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
     def test_load_plugin_from_entry_points(self):
         """Test loading rez plugin from setuptools entry points"""
-        baz_cls = plugin_manager.get_plugin_class("command", "baz")
-        self.assertEqual(baz_cls.name(), "baz")
+        with restore_sys_path():
+            sys.path.append(self.data_path("extensions", "baz"))
+            baz_cls = plugin_manager.get_plugin_class("command", "baz")
+            self.assertEqual(baz_cls.name(), "baz")
 
     def test_plugin_override_1(self):
         """Test plugin from plugin_path can override the default"""
