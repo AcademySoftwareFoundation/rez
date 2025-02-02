@@ -193,7 +193,7 @@ class RezPluginType(object):
     def print_log_plugins_error(self, module_name, error):
         nameish = module_name.split('.')[-1]
         self.failed_plugins[nameish] = str(error)
-        
+
         if not config.debug("plugins"):
             return
 
