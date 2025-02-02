@@ -172,23 +172,32 @@ class RezPluginType(object):
                     self.register_plugin_module(plugin_name, plugin_module, path)
                     self.load_config_from_plugin(plugin_module)
                 except Exception as e:
-                    nameish = modname.split('.')[-1]
-                    self.failed_plugins[nameish] = str(e)
-                    if config.debug("plugins"):
-                        import traceback
-                        from io import StringIO
-                        out = StringIO()
-                        traceback.print_exc(file=out)
-                        print_debug(out.getvalue())
+                    self.print_log_plugins_error(modname, e)
 
     def load_plugins_from_entry_points(self):
         discovered_plugins = entry_points(group='rez.plugins')
         for plugin in discovered_plugins:
-            plugin = plugin.load()
-            plugin_name = plugin.__name__.split('.')[-1]
-            plugin_path = os.path.dirname(plugin.__file__)
-            self.register_plugin_module(plugin_name, plugin, plugin_path)
-            self.load_config_from_plugin(plugin)
+            try:
+                plugin = plugin.load()
+                plugin_name = plugin.__name__
+                plugin_path = os.path.dirname(plugin.__file__)
+                self.register_plugin_module(plugin_name, plugin, plugin_path)
+                self.load_config_from_plugin(plugin)
+            except Exception as e:
+                self.print_log_plugins_error(plugin.__name__, e)
+
+    def print_log_plugins_error(self, module_name, error):
+        nameish = module_name.split('.')[-1]
+        self.failed_plugins[nameish] = str(error)
+        
+        if not config.debug("plugins"):
+            return
+
+        import traceback
+        from io import StringIO
+        out = StringIO()
+        traceback.print_exc(file=out)
+        print_debug(out.getvalue())
 
     def load_config_from_plugin(self, plugin):
         plugin_path = os.path.dirname(plugin.__file__)
