@@ -1,3 +1,2 @@
 [rez.plugins]
 baz_cmd = baz
-
