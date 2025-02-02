@@ -142,7 +142,6 @@ class TestTest(TestBase, TempdirMixin):
             "success",
             "check_car_ideas did not succeed",
         )
-
         self.assertEqual(
             self._get_test_result(runner, "command_as_string_success")["status"],
             "success",
