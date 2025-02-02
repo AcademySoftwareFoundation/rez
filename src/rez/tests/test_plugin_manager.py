@@ -5,7 +5,7 @@
 """
 test rezplugins manager behaviors
 """
-from rez.tests.util import TestBase, TempdirMixin, restore_pip, restore_sys_path
+from rez.tests.util import TestBase, TempdirMixin, restore_sys_path
 from rez.plugin_managers import plugin_manager, uncache_rezplugins_module_paths
 from rez.package_repository import package_repository_manager
 import os
@@ -71,10 +71,8 @@ class TestPluginManagers(TestBase, TempdirMixin):
 
     def test_load_plugin_from_entry_points(self):
         """Test loading rez plugin from setuptools entry points"""
-        with restore_pip("baz", os.path.join(self.data_path("extensions"), "baz")):
-            baz_cls = plugin_manager.get_plugin_class(
-                "command", "baz")
-            self.assertEqual(baz_cls.name(), "baz")
+        baz_cls = plugin_manager.get_plugin_class("command", "baz")
+        self.assertEqual(baz_cls.name(), "baz")
 
     def test_plugin_override_1(self):
         """Test plugin from plugin_path can override the default"""
