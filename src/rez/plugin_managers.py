@@ -16,7 +16,7 @@ import pkgutil
 import os.path
 import sys
 
-if sys.version_info >= (3, 8):
+if sys.version_info[:2] >= (3, 8):
     from importlib.metadata import entry_points
 else:
     from rez.vendor.importlib_metadata import entry_points
@@ -175,7 +175,7 @@ class RezPluginType(object):
                     self.print_log_plugins_error(modname, e)
 
     def load_plugins_from_entry_points(self):
-        if sys.version_info <= (3, 9):
+        if sys.version_info[:2] < (3, 10):
             discovered_plugins = entry_points().get("rez.plugins", [])
         else:
             discovered_plugins = entry_points(group='rez.plugins')
