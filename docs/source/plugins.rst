@@ -145,9 +145,29 @@ To make your plugin available to rez, you can install it directly under
 
 Add the source path to the REZ_PLUGIN_PATH environment variable in order to make your plugin available to rez.
 
-3. Create a setup.py
+3. Add entry points to pyproject.toml
 
-To make your plugin available to rez, you can also create a ``setup.py`` file
+To make your plugin available to rez, you can also create an entry points section in your
+``pyproject.toml`` file, that will allow you to install your plugin with `pip install` command.
+
+.. code-block:: toml
+   :caption: pyproject.toml
+
+    [build-system]
+    requires = ["hatchling"]
+    build-backend = "hatchling.build"
+
+    [project]
+    name = "foo"
+    version = "0.1.0"
+
+    [project.entry-points."rez.plugins"]
+    foo_cmd = "foo"
+
+
+4. Create a setup.py
+
+To make your plugin available to rez, you can also create a ``setup.py`` file, 
 that will allow you to install your plugin with `pip install` command.
 
 .. code-block:: python
