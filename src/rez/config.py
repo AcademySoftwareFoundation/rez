@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez import __version__
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
     convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \
@@ -15,6 +17,7 @@ from rez.system import system
 from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.utils.typing import Protocol
 import rez.deprecations
 from contextlib import contextmanager
 from functools import lru_cache
@@ -22,6 +25,12 @@ from inspect import ismodule
 import os
 import re
 import copy
+from typing import TYPE_CHECKING
+
+
+class Validatable(Protocol):
+    def validate(self, data):
+        pass
 
 
 class _Deprecation(object):
@@ -54,7 +63,7 @@ class Setting(object):
     Note that lazy setting validation only happens on main configuration
     settings - plugin settings are validated on load only.
     """
-    schema = Schema(object)
+    schema: Validatable = Schema(object)
 
     def __init__(self, config, key):
         self.config = config
@@ -135,7 +144,7 @@ class Setting(object):
 
 
 class Str(Setting):
-    schema = Schema(str)
+    schema: Validatable = Schema(str)
 
     def _parse_env_var(self, value):
         return value
@@ -153,7 +162,7 @@ class OptionalStr(Str):
 
 
 class StrList(Setting):
-    schema = Schema([str])
+    schema: Validatable = Schema([str])
     sep = ','
 
     def _parse_env_var(self, value):
@@ -184,8 +193,7 @@ class PipInstallRemaps(Setting):
 
 
 class OptionalStrList(StrList):
-    schema = Or(And(None, Use(lambda x: [])),
-                [str])
+    schema = Or(And(None, Use(lambda x: [])), [str])
 
 
 class PathList(StrList):
@@ -219,7 +227,7 @@ class Float(Setting):
 
 
 class Bool(Setting):
-    schema = Schema(bool)
+    schema: Validatable = Schema(bool)
     true_words = frozenset(["1", "true", "t", "yes", "y", "on"])
     false_words = frozenset(["0", "false", "f", "no", "n", "off"])
     all_words = true_words | false_words
@@ -255,7 +263,7 @@ class ForceOrBool(Bool):
 
 
 class Dict(Setting):
-    schema = Schema(dict)
+    schema: Validatable = Schema(dict)
 
     def _parse_env_var(self, value):
         items = value.split(",")
@@ -549,6 +557,13 @@ class Config(object, metaclass=LazyAttributeMeta):
     schema = config_schema
     schema_error = ConfigurationError
 
+    if TYPE_CHECKING:
+        # mypy: The use of LazyAttributeMeta means that this class generates hundreds
+        # of spurious attribute errors.  Adding this for the type analysis will silence
+        # them until the use of LazyAttributeMeta can be addressed.
+        def __getattr__(self, item):
+            pass
+
     def __init__(self, filepaths, overrides=None, locked=False):
         """Create a config.
 
@@ -749,7 +764,7 @@ class Config(object, metaclass=LazyAttributeMeta):
         return data
 
     @classmethod
-    def _create_main_config(cls, overrides=None):
+    def _create_main_config(cls, overrides=None) -> Config:
         """See comment block at top of 'rezconfig' describing how the main
         config is assembled."""
         filepaths = []
