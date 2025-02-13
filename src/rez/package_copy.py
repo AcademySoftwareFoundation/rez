@@ -17,7 +17,7 @@ from rez.utils.base26 import create_unique_base26_symlink
 from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.logging_ import print_info, print_warning
 from rez.utils.filesystem import replacing_symlink, replacing_copy, \
-    safe_makedirs, additive_copytree, make_path_writable, get_existing_path
+    additive_copytree, make_path_writable, get_existing_path
 
 
 def copy_package(package, dest_repository, variants=None, shallow=False,
@@ -287,7 +287,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
 
     # copy the variant payload
     with ctxt:
-        safe_makedirs(variant_install_path)
+        os.makedirs(variant_install_path, exist_ok=True)
 
         # determine files not to copy
         skip_files = []
@@ -362,7 +362,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
                 src_package.config.variant_shortlinks_dirname
             )
 
-            safe_makedirs(base_shortlinks_path)
+            os.makedirs(base_shortlinks_path, exist_ok=True)
 
             # shortlink
             rel_variant_path = os.path.relpath(
@@ -425,5 +425,5 @@ def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
         ctxt = with_noop()
 
     with ctxt:
-        safe_makedirs(dest_include_modules_path)
+        os.makedirs(dest_include_modules_path, exist_ok=True)
         additive_copytree(src_include_modules_path, dest_include_modules_path)

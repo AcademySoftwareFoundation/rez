@@ -347,8 +347,7 @@ class TestPackages(TestBase, TempdirMixin):
     def test_variant_install(self):
         """test variant installation."""
         repo_path = os.path.join(self.root, "packages")
-        if not os.path.exists(repo_path):
-            os.makedirs(repo_path)
+        os.makedirs(repo_path, exist_ok=True)
 
         def _data(obj):
             d = obj.validated_data()
