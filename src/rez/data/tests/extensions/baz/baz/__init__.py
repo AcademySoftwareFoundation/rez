@@ -31,7 +31,7 @@ def command(opts, parser=None, extra_arg_groups=None):
 class BazCommand(Command):
     @classmethod
     def name(cls):
-        return "baz"
+        return "baz_cmd"
 
 
 def register_plugin():
