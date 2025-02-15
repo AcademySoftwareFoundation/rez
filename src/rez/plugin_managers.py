@@ -176,12 +176,18 @@ class RezPluginType(object):
 
     def load_plugins_from_entry_points(self):
         entry_point_name = f"rez.plugins.{self.type_name}"
+        if config.debug("plugins"):
+            print_debug("searching plugin for entry point %r...", entry_point_name)
+
         if sys.version_info[:2] >= (3, 8) and sys.version_info[:2] <= (3, 9):
             discovered_plugins = entry_points().get(entry_point_name, [])
         else:
             discovered_plugins = entry_points(group=entry_point_name)
 
         for plugin in discovered_plugins:
+            if config.debug("plugins"):
+                print_debug("loading %s plugin for %r..."
+                            % (self.type_name, f"{plugin.name} = {plugin.value!r}"))
             try:
                 plugin_name = plugin.name
                 plugin = plugin.load()
