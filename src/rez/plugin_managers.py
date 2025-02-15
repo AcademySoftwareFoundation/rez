@@ -183,8 +183,8 @@ class RezPluginType(object):
 
         for plugin in discovered_plugins:
             try:
+                plugin_name = plugin.name
                 plugin = plugin.load()
-                plugin_name = plugin.__name__
                 plugin_path = os.path.dirname(plugin.__file__)
                 self.register_plugin_module(plugin_name, plugin, plugin_path)
                 self.load_config_from_plugin(plugin)
