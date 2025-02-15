@@ -5,7 +5,6 @@
 from rez.utils.resources import ResourcePool, ResourceHandle
 from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
-from rez.config import config
 from rez.exceptions import ResourceError
 from contextlib import contextmanager
 import threading
@@ -525,6 +524,7 @@ class PackageRepositoryManager(object):
                 None, a default pool is created based on config settings.
         """
         if resource_pool is None:
+            from rez.config import config
             cache_size = config.resource_caching_maxsize
             if cache_size < 0:  # -1 == disable caching
                 cache_size = None
