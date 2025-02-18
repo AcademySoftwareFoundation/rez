@@ -5,6 +5,9 @@
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
+
+from __future__ import annotations
+
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils.which import which
@@ -17,9 +20,13 @@ from rez.config import config
 import os
 import os.path
 from shlex import quote
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import subprocess
 
 
-def get_shell_types():
+def get_shell_types() -> list[str]:
     """Returns the available shell types: bash, tcsh etc.
 
     Returns:
@@ -29,7 +36,7 @@ def get_shell_types():
     return list(plugin_manager.get_plugins('shell'))
 
 
-def get_shell_class(shell=None):
+def get_shell_class(shell: str | None = None) -> type[Shell]:
     """Get the plugin class associated with the given or current shell.
 
     Returns:
@@ -40,12 +47,12 @@ def get_shell_class(shell=None):
         if not shell:
             from rez.system import system
             shell = system.shell
-
+    assert shell is not None
     from rez.plugin_managers import plugin_manager
-    return plugin_manager.get_plugin_class("shell", shell)
+    return plugin_manager.get_plugin_class("shell", shell, Shell)
 
 
-def create_shell(shell=None, **kwargs):
+def create_shell(shell: str | None = None, **kwargs) -> Shell:
     """Returns a Shell of the given or current type.
 
     Returns:
@@ -67,29 +74,29 @@ class Shell(ActionInterpreter):
     schema_dict = {"prompt": str}
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         """Plugin name.
         """
         raise NotImplementedError
 
     @classmethod
-    def executable_name(cls):
+    def executable_name(cls) -> str:
         """Name of executable to create shell instance.
         """
         return cls.name()
 
     @classmethod
-    def executable_filepath(cls):
+    def executable_filepath(cls) -> str:
         """Get full filepath to executable, or raise if not found.
         """
         return cls.find_executable(cls.executable_name())
 
     @property
-    def executable(self):
+    def executable(self) -> str:
         return self.__class__.executable_filepath()
 
     @classmethod
-    def is_available(cls):
+    def is_available(cls) -> bool:
         """Determine if the shell is available to instantiate.
 
         Returns:
@@ -101,7 +108,7 @@ class Shell(ActionInterpreter):
             return False
 
     @classmethod
-    def file_extension(cls):
+    def file_extension(cls) -> str:
         """Get the file extension associated with the shell.
 
         Returns:
@@ -132,7 +139,7 @@ class Shell(ActionInterpreter):
     def _addline(self, line):
         self._lines.append(line)
 
-    def get_output(self, style=OutputStyle.file):
+    def get_output(self, style=OutputStyle.file) -> str:
         if style == OutputStyle.file:
             script = '\n'.join(self._lines) + '\n'
         else:  # eval style
@@ -198,7 +205,7 @@ class Shell(ActionInterpreter):
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
                     pre_command=None, add_rez=True,
-                    package_commands_sourced_first=None, **Popen_args):
+                    package_commands_sourced_first=None, **Popen_args) -> subprocess.Popen:
         """Spawn a possibly interactive subshell.
 
         Args:
@@ -233,7 +240,7 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def convert_tokens(cls, value):
+    def convert_tokens(cls, value) -> str:
         """
         Converts any token like ${VAR} and $VAR to shell specific form.
         Uses the ENV_VAR_REGEX to correctly parse tokens.
@@ -250,7 +257,7 @@ class Shell(ActionInterpreter):
         )
 
     @classmethod
-    def get_key_token(cls, key):
+    def get_key_token(cls, key) -> str:
         """
         Encodes the environment variable into the shell specific form.
         Shells might implement multiple forms, but the most common/safest
@@ -265,7 +272,7 @@ class Shell(ActionInterpreter):
         return cls.get_all_key_tokens(key)[0]
 
     @classmethod
-    def get_all_key_tokens(cls, key):
+    def get_all_key_tokens(cls, key) -> list[str]:
         """
         Encodes the environment variable into the shell specific forms.
         Shells might implement multiple forms, but the most common/safest
@@ -280,7 +287,7 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def line_terminator(cls):
+    def line_terminator(cls) -> str:
         """
         Returns:
             str: default line terminator
@@ -288,7 +295,7 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def join(cls, command):
+    def join(cls, command) -> str:
         """
         Note: Default to unix sh/bash- friendly behaviour.
 
@@ -321,14 +328,14 @@ class UnixShell(Shell):
     r"""
     A base class for common \*nix shells, such as bash and tcsh.
     """
-    rcfile_arg = None
-    norc_arg = None
-    histfile = None
-    histvar = None
+    rcfile_arg: str = None
+    norc_arg: str = None
+    histfile: str = None
+    histvar: str = None
     command_arg = '-c'
     stdin_arg = '-s'
     last_command_status = '$?'
-    syspaths = None
+    syspaths: list[str] = None
 
     #
     # startup rules
@@ -511,21 +518,21 @@ class UnixShell(Shell):
                                  % (cmd_str, str(e)))
         return p
 
-    def resetenv(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None) -> None:
         self._addline(self.setenv(key, value))
 
-    def info(self, value):
+    def info(self, value) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             self._addline('echo %s' % line)
 
-    def error(self, value):
+    def error(self, value) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             self._addline('echo %s 1>&2' % line)
 
     # escaping is allowed in args, but not in program string
-    def command(self, value):
+    def command(self, value) -> None:
         if is_non_string_iterable(value):
             it = iter(value)
             cmd = EscapedString.disallow(next(it))
@@ -535,12 +542,12 @@ class UnixShell(Shell):
             value = EscapedString.disallow(value)
         self._addline(value)
 
-    def comment(self, value):
+    def comment(self, value) -> None:
         value = EscapedString.demote(value)
         for line in value.split('\n'):
             self._addline('# %s' % line)
 
-    def shebang(self):
+    def shebang(self) -> None:
         self._addline("#!%s" % self.executable)
 
     @classmethod
@@ -548,5 +555,5 @@ class UnixShell(Shell):
         return ["${%s}" % key, "$%s" % key]
 
     @classmethod
-    def line_terminator(cls):
+    def line_terminator(cls) -> str:
         return "\n"

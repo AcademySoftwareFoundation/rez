@@ -6,6 +6,7 @@
 Utilities for working with dict-based schemas.
 """
 from rez.vendor.schema.schema import Schema, Optional, Use, And
+from rez.config import Validatable
 
 
 # an alias which just so happens to be the same number of characters as
@@ -68,7 +69,7 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
                 d[k] = _to(v)
             if allow_custom_keys:
                 d[Optional(str)] = modifier or object
-            schema = Schema(d)
+            schema: Validatable = Schema(d)
         elif modifier:
             schema = And(value, modifier)
         else:

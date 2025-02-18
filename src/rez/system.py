@@ -61,7 +61,7 @@ class System(object):
 
     # TODO: move shell detection into shell plugins
     @cached_property
-    def shell(self):
+    def shell(self) -> str:
         """Get the current shell.
 
         Returns:
@@ -88,7 +88,7 @@ class System(object):
                     args = ['ps', '-o', 'args=', '-p', str(parent_pid)]
                     proc = sp.Popen(args, stdout=sp.PIPE, text=True)
                     output = proc.communicate()[0]
-                    shell = os.path.basename(output.strip().split()[0]).replace('-', '')
+                    shell = os.path.basename(output.decode().strip().split()[0]).replace('-', '')
                 except Exception:
                     pass
 

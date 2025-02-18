@@ -43,7 +43,7 @@ class InstallMode(Enum):
     min_deps = 1
 
 
-def run_pip_command(command_args, pip_version=None, python_version=None):
+def run_pip_command(command_args, pip_version=None, python_version=None) -> Popen:
     """Run a pip command.
     Args:
         command_args (list of str): Args to pip.
