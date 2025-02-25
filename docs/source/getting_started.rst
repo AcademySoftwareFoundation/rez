@@ -7,7 +7,7 @@ Essential packages
 
 .. warning::
    :ref:`rez-bind` is going to be deprecated. The current implementation is not actively maintained.
-   Especially on windows, using :option:`--quickstart` is likely to fail.
+   Especially on windows, using :option:`--quickstart <rez-bind --quickstart>` is likely to fail.
 
 After installation, you need to create some essential Rez packages. The :ref:`rez-bind`
 tool creates Rez packages that reference software already installed on your system.
