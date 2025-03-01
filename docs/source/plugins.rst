@@ -6,6 +6,9 @@ Rez is designed around the concept of plugins. Plugins can be used to extend rez
 
 Rez comes with built-in plugins that are located at :gh-rez:`src/rezplugins`. New plugins are encouraged to be developed out-of-tree (outside rez).
 
+This page documents what plugins are available, the plugin types and how plugins are discovered.
+If you want to learn how to develop a plugin, please refer to :doc:`guides/developing_your_own_plugin`.
+
 List installed plugins
 ======================
 
@@ -51,140 +54,132 @@ like this:
        "filesystem": {}
    }
 
+.. _plugin-types:
+
 Existing plugin types
 =====================
 
-- :gh-rez:`build_process <src/rezplugins/build_process>`
-- :gh-rez:`build_system <src/rezplugins/build_system>`
-- :gh-rez:`command <src/rezplugins/command>`
-- :gh-rez:`package_repository <src/rezplugins/package_repository>`
-- :gh-rez:`release_hook <src/rezplugins/release_hook>`
-- :gh-rez:`release_vcs <src/rezplugins/release_vcs>`
-- :gh-rez:`shell <src/rezplugins/shell>`
+.. table::
+   :align: left
 
-Developing your own plugin
-==========================
+   ====================== =========================================================== ==================
+   Type                   Base class(es)                                              Top level settings [1]_
+   ====================== =========================================================== ==================
+   ``build_process``      | :class:`rez.build_process.BuildProcess`
+                          | :class:`rez.build_process.BuildProcessHelper` [2]_        No
+   ``build_system``       :class:`rez.build_system.BuildSystem`                       No
+   ``command``            :class:`rez.command.Command`                                Yes
+   ``package_repository`` | :class:`rez.package_repository.PackageRepository`         No
+                          | :class:`rez.package_resources.PackageFamilyResource`
+                          | :class:`rez.package_resources.PackageResourceHelper`
+                          | :class:`rez.package_resources.VariantResourceHelper` [3]_ No
+   ``release_hook``       :class:`rez.release_hook.ReleaseHook`                       Yes
+   ``release_vcs``        :class:`rez.release_vcs.ReleaseVCS`                         Yes
+   ``shell``              :class:`rez.shells.Shell`                                   No
+   ====================== =========================================================== ==================
 
-Rez plugins require a specific folder structure as follows:
+.. [1] Top level settings: The concept of top level settings is documented in :ref:`default-settings`.
+.. [2] build_process: You have to choose between on of the two classes.
+.. [3] package_repository: All 4 classes have to be implemented.
+
+Discovery mechanisms
+====================
+
+There are three different discovery mechanisms for external/out-of-tree plugins:
+
+#. :ref:`rezplugins-structure`
+#. :ref:`plugin-entry-points`
+
+Each of these mechanisms can be used independently or in combination. It is up to you to
+decide which discovery mechanism is best for your use case. Each option has pros and cons.
+
+.. _rezplugins-structure:
+
+``rezplugins`` structure
+------------------------
+
+This method relies on the ``rezplugins`` namespace package. Use the :data:`plugin_path` setting or
+the :envvar:`REZ_PLUGIN_PATH` environment variable to tell rez where to find your plugin(s).
+
+You need to follow the following file structure:
 
 .. code-block:: text
 
-    /plugin_type
-        /__init__.py (adds plugin path to rez)
-        /rezconfig.py (defines configuration settings for your plugin)
-        /plugin_file1.py (your plugin file)
-        /plugin_file2.py (your plugin file)
-        etc.
+   rezplugins/
+   ├── __init__.py
+   └── <plugin_type>/
+       ├── __init__.py
+       └── <plugin name>.py
 
-Registering subcommands
------------------------
+``<plugin_type>`` refers to types defined in the :ref:`plugin types <plugin-types>` section. ``<plugin_name>`` is the name of your plugin.
+The ``rezplugins`` directory is not optional.
 
-Optionally, plugins can provide new ``rez`` subcommands.
+.. note::
+    The path(s) MUST point to the directory **above** your ``rezplugins`` directory.
 
-To register a plugin and expose a new subcommand, the plugin module:
+.. note::
+   Even though ``rezplugins`` is a python package, your sparse copy of
+   it should  not be on the :envvar:`PYTHONPATH`, just the :envvar:`REZ_PLUGIN_PATH`.
+   This is important  because it ensures that rez's copy of
+   ``rezplugins`` is always found first.
 
-- MUST have a module-level docstring (used as the command help)
-- MUST provide a `setup_parser()` function
-- MUST provide a `command()` function
-- MUST provide a `register_plugin()` function
-- SHOULD have a module-level attribute `command_behavior`
+.. _plugin-entry-points:
 
-For example, a plugin named 'foo' and this is the ``foo.py`` in the plugin type
-root directory:
+Entry-points
+------------
+
+.. versionadded:: 3.3.0
+
+Plugins can be discovered by using `Python's entry-points <https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#using-package-metadata>`_.
+
+There is one entry-point per :ref:`plugin type <plugin-types>`:
+
+* ``rez.plugins.build_process``
+* ``rez.plugins.build_system``
+* ``rez.plugins.command``
+* ``rez.plugins.package_repository``
+* ``rez.plugins.release_hook``
+* ``rez.plugins.release_vcs``
+* ``rez.plugins.shell``
+
+This allows a package to define multiple plugins. In fact, a package can contain multiple plugins of the same type and plugins for multiple types.
+
+.. note::
+   Unlike the other discovery mechanisms, this method doesn't require any special file structure. It is thus more flexible, less restricting
+   and easier to use.
+
+.. _default-settings:
+
+Default settings
+================
+
+You can define default settings for the plugins you write by adding a ``rezconfig.py`` or ``rezconfig.yml``
+beside your plugin module. Rez will automatically load these settings.
+
+This is valid both all the discovery mechanisms.
+
+Note that the format of that ``rezconfig.py`` or ``rezconfig.yml`` file is as follows:
 
 .. code-block:: python
-   :caption: foo.py
 
-   """The docstring for command help, this is required."""
-   from rez.command import Command
+   top_level_setting = "value"
 
-   command_behavior = {
-       "hidden": False,   # optional: bool
-       "arg_mode": None,  # optional: None, "passthrough", "grouped"
+   plugin_name = {
+       "setting_1": "value1"
    }
 
-   def setup_parser(parser, completions=False):
-       parser.add_argument("--hello", ...)
+In this case, the settings for ``plugin_name`` would be available in your plugin as ``self.settings``
+and ``top_level_setting`` would be available as ``self.type_settings.top_level_setting``.
 
-   def command(opts, parser=None, extra_arg_groups=None):
-       if opts.hello:
-           print("world")
+.. note::
 
-   class CommandFoo(Command):
-       # This is where you declare the settings the plugin accepts.
-       schema_dict = {
-           "str_option": str,
-           "int_option": int,
-           ...
-       }
-       @classmethod
-       def name(cls):
-           return "foo"
+   Not all plugin types support top level settings. Please refer to the table in :ref:`plugin-types` to
+   see which types support them.
 
-   def register_plugin():
-       return CommandFoo
+Overriding built-in plugins
+===========================
 
-All new plugin types must define an ``__init__.py`` in their root directory
-so that the plugin manager will find them.
+Built-in plugins can be overridden by installing a plugin with the same name and type.
+When rez sees this, it will prioritie your plugin over its built-in plugin.
 
-.. code-block:: python
-   :caption: __init__.py
-
-    from rez.plugin_managers import extend_path
-    __path__ = extend_path(__path__, __name__)
-
-Install plugins
----------------
-
-1. Copy directly to rez install folder
-
-To make your plugin available to rez, you can install it directly under
-``src/rezplugins`` (that's called a namespace package).
-
-2. Add the source path to :envvar:`REZ_PLUGIN_PATH`
-
-Add the source path to the REZ_PLUGIN_PATH environment variable in order to make your plugin available to rez.
-
-3. Add entry points to pyproject.toml
-
-To make your plugin available to rez, you can also create an entry points section in your
-``pyproject.toml`` file, that will allow you to install your plugin with `pip install` command.
-
-.. code-block:: toml
-   :caption: pyproject.toml
-
-    [build-system]
-    requires = ["hatchling"]
-    build-backend = "hatchling.build"
-
-    [project]
-    name = "foo"
-    version = "0.1.0"
-
-    [project.entry-points."rez.plugins"]
-    foo_cmd = "foo"
-
-
-4. Create a setup.py
-
-To make your plugin available to rez, you can also create a ``setup.py`` file, 
-that will allow you to install your plugin with `pip install` command.
-
-.. code-block:: python
-   :caption: setup.py
-
-    from setuptools import setup, find_packages
-
-    setup(
-        name="foo",
-        version="0.1.0",
-        package_dir={
-            "foo": "foo"
-        },
-        packages=find_packages(where="."),
-        entry_points={
-            'rez.plugins': [
-                'foo_cmd = foo',
-            ]
-        }
-    )
+This is useful if you want to modify a built-in plugin without having to modify rez's source code.
