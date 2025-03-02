@@ -2,12 +2,15 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.packages import iter_packages
 from rez.exceptions import ConfigurationError
 from rez.config import config
 from rez.utils.data_utils import cached_property, cached_class_property
 from rez.version import VersionedObject, Requirement
 from hashlib import sha1
+from typing import Pattern
 import fnmatch
 import re
 
@@ -327,7 +330,8 @@ class Rule(object):
     """Base package filter rule"""
 
     #: Rule name
-    name = None
+    name: str
+    _family: str | None
 
     def match(self, package):
         """Apply the rule to the package.
@@ -340,7 +344,7 @@ class Rule(object):
         """
         raise NotImplementedError
 
-    def family(self):
+    def family(self) -> str | None:
         """Returns a package family string if this rule only applies to a given
         package family, otherwise None.
 
@@ -365,11 +369,12 @@ class Rule(object):
         Returns:
             Rule:
         """
-        types = {"glob": GlobRule,
-                 "regex": RegexRule,
-                 "range": RangeRule,
-                 "before": TimestampRule,
-                 "after": TimestampRule}
+        types: dict[str, type[Rule]] = {
+            "glob": GlobRule,
+            "regex": RegexRule,
+            "range": RangeRule,
+            "before": TimestampRule,
+            "after": TimestampRule}
 
         # parse form 'x(y)' into x, y
         label, txt = Rule._parse_label(txt)
@@ -412,7 +417,7 @@ class Rule(object):
             return None, txt
 
     @classmethod
-    def _extract_family(cls, txt):
+    def _extract_family(cls, txt) -> str | None:
         m = cls.family_re.match(txt)
         if m:
             return m.group()[:-1]
@@ -426,14 +431,17 @@ class Rule(object):
 
 
 class RegexRuleBase(Rule):
-    def match(self, package):
+    regex: Pattern[str]
+    txt: str
+
+    def match(self, package) -> bool:
         return bool(self.regex.match(package.qualified_name))
 
     def cost(self):
         return 10
 
     @classmethod
-    def _parse(cls, txt):
+    def _parse(cls, txt: str):
         _, txt = Rule._parse_label(txt)
         return cls(txt)
 
@@ -448,7 +456,7 @@ class RegexRule(RegexRuleBase):
     """
     name = "regex"
 
-    def __init__(self, s):
+    def __init__(self, s: str):
         """Create a regex rule.
 
         Args:
@@ -466,7 +474,7 @@ class GlobRule(RegexRuleBase):
     """
     name = "glob"
 
-    def __init__(self, s):
+    def __init__(self, s: str):
         """Create a glob rule.
 
         Args:

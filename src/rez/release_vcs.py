@@ -25,12 +25,12 @@ def create_release_vcs(path, vcs_name=None):
     if vcs_name:
         if vcs_name not in vcs_types:
             raise ReleaseVCSError("Unknown version control system: %r" % vcs_name)
-        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
+        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name, expected_type=ReleaseVCS)
         return cls(path)
 
     classes_by_level = {}
     for vcs_name in vcs_types:
-        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
+        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name, expected_type=ReleaseVCS)
         result = cls.find_vcs_root(path)
         if not result:
             continue
@@ -70,7 +70,7 @@ def create_release_vcs(path, vcs_name=None):
 class ReleaseVCS(object):
     """A version control system (VCS) used to release Rez packages.
     """
-    def __init__(self, pkg_root, vcs_root=None):
+    def __init__(self, pkg_root: str, vcs_root=None):
         if vcs_root is None:
             result = self.find_vcs_root(pkg_root)
             if not result:
@@ -92,7 +92,7 @@ class ReleaseVCS(object):
         raise NotImplementedError
 
     @classmethod
-    def find_executable(cls, name):
+    def find_executable(cls, name: str):
         exe = which(name)
         if not exe:
             raise ReleaseVCSError("Couldn't find executable '%s' for VCS '%s'"
@@ -100,7 +100,7 @@ class ReleaseVCS(object):
         return exe
 
     @classmethod
-    def is_valid_root(cls, path):
+    def is_valid_root(cls, path: str):
         """Return True if the given path is a valid root directory for this
         version control system.
 
@@ -118,7 +118,7 @@ class ReleaseVCS(object):
         raise NotImplementedError
 
     @classmethod
-    def find_vcs_root(cls, path):
+    def find_vcs_root(cls, path: str):
         """Try to find a version control root directory of this type for the
         given path.
 
@@ -141,7 +141,7 @@ class ReleaseVCS(object):
         """Ensure that the VCS working copy is up-to-date."""
         raise NotImplementedError
 
-    def get_current_revision(self):
+    def get_current_revision(self) -> object:
         """Get the current revision, this can be any type (str, dict etc)
         appropriate to your VCS implementation.
 
@@ -152,7 +152,7 @@ class ReleaseVCS(object):
         """
         raise NotImplementedError
 
-    def get_changelog(self, previous_revision=None, max_revisions=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None) -> str:
         """Get the changelog text since the given revision.
 
         If previous_revision is not an ancestor (for example, the last release
@@ -169,7 +169,7 @@ class ReleaseVCS(object):
         """
         raise NotImplementedError
 
-    def tag_exists(self, tag_name):
+    def tag_exists(self, tag_name: str) -> bool:
         """Test if a tag exists in the repo.
 
         Args:
@@ -180,7 +180,7 @@ class ReleaseVCS(object):
         """
         raise NotImplementedError
 
-    def create_release_tag(self, tag_name, message=None):
+    def create_release_tag(self, tag_name: str, message=None):
         """Create a tag in the repo.
 
         Create a tag in the repository representing the release of the
@@ -193,7 +193,7 @@ class ReleaseVCS(object):
         raise NotImplementedError
 
     @classmethod
-    def export(cls, revision, path):
+    def export(cls, revision, path: str):
         """Export the repository to the given path at the given revision.
 
         Note:

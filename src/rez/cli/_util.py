@@ -2,11 +2,14 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import sys
 import signal
 from argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
     ArgumentError
+from typing import Any
 
 
 # Subcommands and their behaviors.
@@ -18,7 +21,7 @@ from argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
 #   The '--' arg is not treated as a special case.
 # * missing: Native python argparse behavior.
 #
-subcommands = {
+subcommands: dict[str, dict[str, Any]] = {
     "bind": {},
     "build": {
         "arg_mode": "grouped"

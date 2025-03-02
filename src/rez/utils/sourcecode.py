@@ -2,12 +2,15 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug
 from rez.util import load_module_from_file
 from inspect import getsourcelines
 from textwrap import dedent
+from types import FunctionType, MethodType
 from glob import glob
 import traceback
 import os.path
@@ -93,8 +96,8 @@ class SourceCode(object):
     This object is aware of the decorators defined in this sourcefile (such as
     'include') and deals with them appropriately.
     """
-    def __init__(self, source=None, func=None, filepath=None,
-                 eval_as_function=True):
+    def __init__(self, source: str | None = None, func: FunctionType | MethodType | None = None,
+                 filepath=None, eval_as_function=True):
         self.source = (source or '').rstrip()
         self.func = func
         self.filepath = filepath

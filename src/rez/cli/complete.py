@@ -22,9 +22,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     # get comp info from environment variables
     comp_line = os.getenv("COMP_LINE", "")
-    comp_point = os.getenv("COMP_POINT", "")
+    comp_point_str = os.getenv("COMP_POINT", "")
     try:
-        comp_point = int(comp_point)
+        comp_point = int(comp_point_str)
     except:
         comp_point = len(comp_line)
 
@@ -60,7 +60,7 @@ def command(opts, parser, extra_arg_groups=None):
         cmds = [k for k, v in subcommands.items() if not v.get("hidden")]
 
         if prefix:
-            cmds = (x for x in cmds if x.startswith(prefix))
+            cmds = [x for x in cmds if x.startswith(prefix)]
         print(" ".join(cmds))
 
     if subcommand not in subcommands:
