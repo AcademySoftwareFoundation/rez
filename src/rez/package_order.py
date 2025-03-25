@@ -177,7 +177,7 @@ class PackageOrder(object):
         raise NotImplementedError
 
     def __eq__(self, other):
-        return type(self) == type(other) and str(self) == str(other)
+        return type(self) == type(other) and str(self) == str(other)  # noqa: E721
 
     def __ne__(self, other):
         return not self == other
@@ -204,7 +204,7 @@ class NullPackageOrder(PackageOrder):
         return "{}"
 
     def __eq__(self, other):
-        return type(self) == type(other)
+        return type(self) == type(other)  # noqa: E721
 
     def to_pod(self):
         """
@@ -250,7 +250,7 @@ class SortedOrder(PackageOrder):
         return str(self.descending)
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(self) == type(other)
             and self.descending == other.descending
         )
@@ -327,7 +327,7 @@ class PerFamilyOrder(PackageOrder):
         return str((items, str(self.default_order)))
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(other) == type(self)
             and self.order_dict == other.order_dict
             and self.default_order == other.default_order
@@ -419,7 +419,7 @@ class VersionSplitPackageOrder(PackageOrder):
         return str(self.first_version)
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(other) == type(self)
             and self.first_version == other.first_version
         )
@@ -582,7 +582,7 @@ class TimestampPackageOrder(PackageOrder):
         return str((self.timestamp, self.rank))
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(other) == type(self)
             and self.timestamp == other.timestamp
             and self.rank == other.rank

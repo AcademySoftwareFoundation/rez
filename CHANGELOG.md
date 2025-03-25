@@ -2,7 +2,67 @@
 
 <!-- start-here-sphinx-start-after -->
 
-## 3.1.1 (2024-04-14)
+## v3.2.1 (2024-10-27)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.0...3.2.1)
+
+### Fixes
+
+- Fix key error on getting the "testing" key on older contexts [\#1863](https://github.com/AcademySoftwareFoundation/rez/pull/1863) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+  This will fix issues where contexts created from rez less than 3.2.0 would fail to be loaded in 3.2+.
+
+## v3.2.0 (2024-10-20)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.1.1...3.2.0)
+
+This release introduces a long awaited and requested feature: the ability to synchronously cache
+package payloads. This behaviour can be controlled centrally using the new `package_cache_async`
+setting in your rezconfig files. The default value is True, which means that as before, caches
+will be synced asynchrously. `rez-env` also gained a new `--pkg-cache-mode` to control the
+caching behaviour on a per case basis.
+
+Other note worthy additions are the new `testing` object that can be used to test if `rez-test` is currently running from withing commands functions and early bound functions. Additionally, a new setting `default_build_process`
+was added to set the default build process to be used by rez-build.
+
+Thanks to everybody who contributed and made all these features, bugfixes and improvements possible!
+
+### Features
+
+- Add ability to cache package payloads synchronously [\#1679](https://github.com/AcademySoftwareFoundation/rez/pull/1679) [\#1853](https://github.com/AcademySoftwareFoundation/rez/pull/1853) ([isohedronpipeline](https://github.com/isohedronpipeline), [Pixel-Minions](https://github.com/Pixel-Minions))
+- Add new `default_build_process` setting to set the default build process [\#1724](https://github.com/AcademySoftwareFoundation/rez/pull/1724) ([predat](https://github.com/predat))
+- Add new `testing` object to check if rez-test is running [\#1740](https://github.com/AcademySoftwareFoundation/rez/pull/1740) ([fabal](https://github.com/fabal), [nca45](https://github.com/nca45))
+- Convert Windows registry queries to use `winreg` module. Expect some speed improvements on Windows [\#1780](https://github.com/AcademySoftwareFoundation/rez/pull/1780) ([nrusch](https://github.com/nrusch))
+
+### Fixes
+- Fix shell detection code to handle a case where the parent PID is zero [\#1735](https://github.com/AcademySoftwareFoundation/rez/pull/1735) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Don't expand tilde in `REZ_USED_IMPLICIT_PACKAGES` and `REZ_USED_REQUEST` environment variables [\#1760](https://github.com/AcademySoftwareFoundation/rez/pull/1760) ([cfxegbert](https://github.com/cfxegbert))
+- Fix incorrect string operations on bytes output of 'ps' subprocess in shell detecton code [\#1765](https://github.com/AcademySoftwareFoundation/rez/pull/1765) ([parikshittiwari740](https://github.com/parikshittiwari740))
+- Fix missing path in GitBash warning message [\#1775](https://github.com/AcademySoftwareFoundation/rez/pull/1775) ([brycegbrazen](https://github.com/brycegbrazen))
+- Make Powershell aliases exit with correct exit code [\#1778](https://github.com/AcademySoftwareFoundation/rez/pull/1778) ([brycegbrazen](https://github.com/brycegbrazen))
+- Fix TypeError when running get_rpaths in `rez.utils.elf` module [\#1798](https://github.com/AcademySoftwareFoundation/rez/pull/1798) ([ruzette](https://github.com/ruzette))
+- Fix `package_cache_async` missing from `ResolvedContext` dict round-trip [\#1810](https://github.com/AcademySoftwareFoundation/rez/pull/1810) ([nrusch](https://github.com/nrusch))
+- Move winreg import to local import to avoid import errors on non-windows systems [\#1846](https://github.com/AcademySoftwareFoundation/rez/pull/1846) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Fix rez-test commands defined as list that result in an empty command [\#1850](https://github.com/AcademySoftwareFoundation/rez/pull/1850) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Adjust python requirement of rez bound package to `python-3.7+<3.12"` [\#1848](https://github.com/AcademySoftwareFoundation/rez/pull/1848) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Documentation
+- Add adopters list [\#1720](https://github.com/AcademySoftwareFoundation/rez/pull/1720) ([maxnbk](https://github.com/maxnbk))
+- Various updates to contributing.md for support, legal, versioning [\#1721](https://github.com/AcademySoftwareFoundation/rez/pull/1721) ([maxnbk](https://github.com/maxnbk))
+- Various updates to release.md for release cadence and versioning used [\#1722](https://github.com/AcademySoftwareFoundation/rez/pull/1722) ([maxnbk](https://github.com/maxnbk))
+- Add package orderers documentation [\#1737](https://github.com/AcademySoftwareFoundation/rez/pull/1737) ([BryceGattis](https://github.com/BryceGattis))
+
+### Miscellaneous
+
+- Fix formatting sonarcloud compliance issue [\#1697](https://github.com/AcademySoftwareFoundation/rez/pull/1697) ([BryceGattis](https://github.com/BryceGattis))
+- Add argcomplete vendored version to vendor README.md [\#1742](https://github.com/AcademySoftwareFoundation/rez/pull/1742) ([BryceGattis](https://github.com/BryceGattis))
+- Add date to vendored pika [\#1743](https://github.com/AcademySoftwareFoundation/rez/pull/1743) ([BryceGattis](https://github.com/BryceGattis))
+- Migrate plugin type settings to plugin rez configs [\#1746](https://github.com/AcademySoftwareFoundation/rez/pull/1746) ([BryceGattis](https://github.com/BryceGattis))
+- Remove Python 2 vendored pyyaml library [\#1845](https://github.com/AcademySoftwareFoundation/rez/pull/1845) ([maxnbk](https://github.com/maxnbk))
+
+### Deprecated
+
+* The `rez.package_cache.PackageCache.add_variants_async` method. Use the `add_variants` method instead.
+
+## v3.1.1 (2024-04-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.1.0...3.1.1)
 
 ### Fixes
@@ -20,7 +80,7 @@
 - Convert all plugin rezconfig to rezconfig.py [\#1692](https://github.com/AcademySoftwareFoundation/rez/pull/1692) ([brycegbrazen](https://github.com/brycegbrazen))
 
 
-## 3.1.0 (2024-03-30)
+## v3.1.0 (2024-03-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.1.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.3.0...3.1.0)
 
 ### Features
@@ -51,7 +111,7 @@
 - Remove `rez.utils.json` [\#1673](https://github.com/AcademySoftwareFoundation/rez/pull/1673) ([@BryceGattis](https://github.com/BryceGattis))
 - Remove `rez.utils.py23` and cleanup more python 2.7 leftovers [\#1678](https://github.com/AcademySoftwareFoundation/rez/pull/1678) ([@wandth](https://github.com/wandth))
 
-## 3.0.0 (2024-02-08)
+## v3.0.0 (2024-02-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.0.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.114.1...3.0.0)
 
 This release marks a big turning point for rez by completely dropping support for Python 2.
@@ -150,7 +210,7 @@ The effort to improve and add content to our docs continues.
   has been clarified. While we encourage SemVer like versioning, rez doesn't know
   what SemVer is. This has been a source of confusion in the past. [\#1614](https://github.com/AcademySoftwareFoundation/rez/pull/1614) ([@brycegbrazen](https://github.com/brycegbrazen))
 
-## 2.114.1 (2023-12-09)
+## v2.114.1 (2023-12-09)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.114.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.114.0...2.114.1)
 
 **Merged pull requests:**
@@ -158,7 +218,7 @@ The effort to improve and add content to our docs continues.
 - Fix exception when deprecated settings appear in a user config [\#1595](https://github.com/AcademySoftwareFoundation/rez/pull/1595) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
 - Add cross reference for package_cache_during_build in docs [\#1598](https://github.com/AcademySoftwareFoundation/rez/pull/1598) ([brycegbrazen](https://github.com/brycegbrazen))
 
-## 2.114.0 (2023-11-23)
+## v2.114.0 (2023-11-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.114.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.113.0...2.114.0)
 
 Probably the last release before 3.0.0
@@ -242,7 +302,7 @@ Some default values will change in 3.0.0:
 - [disable_rez_1_compatibility](https://rez.readthedocs.io/en/stable/configuring_rez.html#disable_rez_1_compatibility) will become enabled by default.
 - [rez_1_environment_variables](https://rez.readthedocs.io/en/stable/configuring_rez.html#rez_1_environment_variables) will become disabled by default.
 
-## 2.113.0 (2023-09-11)
+## v2.113.0 (2023-09-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.113.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.112.0...2.113.0)
 
 **Notes**
@@ -260,7 +320,7 @@ Expect [\#1469](https://github.com/AcademySoftwareFoundation/rez/pull/1469) to m
 - Allow user to pass extra arguments to underlying rez test command (REP-001 part 3). [\#1523](https://github.com/AcademySoftwareFoundation/rez/pull/1523) ([bhawkyard1](https://github.com/bhawkyard1))
 - Filter out empty extensions when parsing PATHEXT on Windows [\#1528](https://github.com/AcademySoftwareFoundation/rez/pull/1528) ([herronelou](https://github.com/herronelou))
 
-## 2.112.0 (2022-11-15)
+## v2.112.0 (2022-11-15)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.112.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.3...2.112.0)
 
 **Notes**
@@ -279,7 +339,7 @@ First Official AcademySoftwareFoundation rez release!
 - Document .ignore pkg repo functionality [\#1385](https://github.com/AcademySoftwareFoundation/rez/pull/1385) ([jasoncscott](https://github.com/jasoncscott))
 - Clarify when the commands block is executed during rez-build [\#1391](https://github.com/AcademySoftwareFoundation/rez/pull/1391) ([jasoncscott](https://github.com/jasoncscott))
 
-## 2.111.3 (2022-08-02)
+## v2.111.3 (2022-08-02)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.2...2.111.3)
 
 **Merged pull requests:**
@@ -290,7 +350,7 @@ First Official AcademySoftwareFoundation rez release!
 
 - benchmarking CI fails to push changes, does not error [\#1328](https://github.com/AcademySoftwareFoundation/rez/issues/1328)
 
-## 2.111.2 (2022-06-22)
+## v2.111.2 (2022-06-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.1...2.111.2)
 
 **Merged pull requests:**
@@ -298,7 +358,7 @@ First Official AcademySoftwareFoundation rez release!
 - ResolvedContext.get_resolved_package() should return None for failure [\#1325](https://github.com/AcademySoftwareFoundation/rez/pull/1325) ([alexey-pelykh](https://github.com/alexey-pelykh))
 - fix accidental skip of fail in benchmarking ci [\#1336](https://github.com/AcademySoftwareFoundation/rez/pull/1336) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.111.1 (2022-06-14)
+## v2.111.1 (2022-06-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.111.0...2.111.1)
 
 **Merged pull requests:**
@@ -309,7 +369,7 @@ First Official AcademySoftwareFoundation rez release!
 
 - Fix regression in benchmark CI [\#1323](https://github.com/AcademySoftwareFoundation/rez/issues/1323)
 
-## 2.111.0 (2022-06-14)
+## v2.111.0 (2022-06-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.111.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.110.0...2.111.0)
 
 **Merged pull requests:**
@@ -322,14 +382,14 @@ First Official AcademySoftwareFoundation rez release!
 - rez executables aren't removed in windows install [\#1258](https://github.com/AcademySoftwareFoundation/rez/issues/1258)
 - use github actions bot for commits [\#1318](https://github.com/AcademySoftwareFoundation/rez/issues/1318)
 
-## 2.110.0 (2022-05-28)
+## v2.110.0 (2022-05-28)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.110.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.109.0...2.110.0)
 
 **Merged pull requests:**
 
 -  remove references to nerdvegas in comments [\#1312](https://github.com/AcademySoftwareFoundation/rez/pull/1312) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.109.0 (2022-04-19)
+## v2.109.0 (2022-04-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.109.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.108.0...2.109.0)
 
 **Merged pull requests:**
@@ -340,7 +400,7 @@ First Official AcademySoftwareFoundation rez release!
 
 - add git-bash shell plugin [\#1256](https://github.com/AcademySoftwareFoundation/rez/issues/1256)
 
-## 2.108.0 (2022-04-19)
+## v2.108.0 (2022-04-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.108.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.107.0...2.108.0)
 
 **Notes**
@@ -362,7 +422,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - formalize paths in package commands [\#1269](https://github.com/AcademySoftwareFoundation/rez/issues/1269)
 
-## 2.107.0 (2022-04-07)
+## v2.107.0 (2022-04-07)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.107.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.106.0...2.107.0)
 
 **Merged pull requests:**
@@ -373,7 +433,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - improve shell parameterization in tests [\#1271](https://github.com/AcademySoftwareFoundation/rez/issues/1271)
 
-## 2.106.0 (2022-03-23)
+## v2.106.0 (2022-03-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.106.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.105.0...2.106.0)
 
 **Merged pull requests:**
@@ -384,7 +444,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - add ability to delete package family [\#1248](https://github.com/AcademySoftwareFoundation/rez/issues/1248)
 
-## 2.105.0 (2022-03-19)
+## v2.105.0 (2022-03-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.105.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.10...2.105.0)
 
 **Merged pull requests:**
@@ -395,7 +455,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - rez-test breaks with packages that do not have a timestamp attribute [\#1237](https://github.com/AcademySoftwareFoundation/rez/issues/1237)
 
-## 2.104.10 (2022-03-19)
+## v2.104.10 (2022-03-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.10) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.9...2.104.10)
 
 **Merged pull requests:**
@@ -406,7 +466,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - rez_install_files with LOCAL_SYMLINK fails when an input file has whitespaces in its name [\#553](https://github.com/AcademySoftwareFoundation/rez/issues/553)
 
-## 2.104.9 (2022-03-01)
+## v2.104.9 (2022-03-01)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.9) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.8...2.104.9)
 
 **Merged pull requests:**
@@ -417,7 +477,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - Switch `get_syspaths` from `REG` to `Get-ItemProperty` in Powershell shell plugins [\#1196](https://github.com/AcademySoftwareFoundation/rez/issues/1196)
 
-## 2.104.8 (2022-03-01)
+## v2.104.8 (2022-03-01)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.8) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.7...2.104.8)
 
 **Merged pull requests:**
@@ -430,7 +490,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - Typo on install message [\#1186](https://github.com/AcademySoftwareFoundation/rez/issues/1186)
 
-## 2.104.7 (2022-02-16)
+## v2.104.7 (2022-02-16)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.7) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.6...2.104.7)
 
 **Merged pull requests:**
@@ -441,7 +501,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - fix wiki regression in v2.104.6 [\#1219](https://github.com/AcademySoftwareFoundation/rez/issues/1219)
 
-## 2.104.6 (2022-02-16)
+## v2.104.6 (2022-02-16)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.6) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.5...2.104.6)
 
 **Merged pull requests:**
@@ -452,7 +512,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - add workflow to enforce copyright [\#1214](https://github.com/AcademySoftwareFoundation/rez/issues/1214)
 
-## 2.104.5 (2022-02-15)
+## v2.104.5 (2022-02-15)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.5) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.4...2.104.5)
 
 **Merged pull requests:**
@@ -463,14 +523,14 @@ Please be aware of this change in behavior in case it affects you.
 
 - replace copyrights with SPDX form [\#1201](https://github.com/AcademySoftwareFoundation/rez/issues/1201)
 
-## 2.104.4 (2022-02-12)
+## v2.104.4 (2022-02-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.3...2.104.4)
 
 **Merged pull requests:**
 
 - remove nerdvegas refs in wiki [\#1212](https://github.com/AcademySoftwareFoundation/rez/pull/1212) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.104.3 (2022-02-12)
+## v2.104.3 (2022-02-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.2...2.104.3)
 
 **Merged pull requests:**
@@ -481,7 +541,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - fix nuked wiki [\#1210](https://github.com/AcademySoftwareFoundation/rez/issues/1210)
 
-## 2.104.2 (2022-02-12)
+## v2.104.2 (2022-02-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.1...2.104.2)
 
 **Merged pull requests:**
@@ -492,7 +552,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - remove GPL3 code from update-wiki.py [\#1206](https://github.com/AcademySoftwareFoundation/rez/issues/1206)
 
-## 2.104.1 (2022-02-08)
+## v2.104.1 (2022-02-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.104.0...2.104.1)
 
 **Merged pull requests:**
@@ -503,7 +563,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - Aliases broken on windows when using powershell [\#1191](https://github.com/AcademySoftwareFoundation/rez/issues/1191)
 
-## 2.104.0 (2022-02-08)
+## v2.104.0 (2022-02-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.104.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.103.4...2.104.0)
 
 **Merged pull requests:**
@@ -514,7 +574,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - windows gh actions issue [\#1181](https://github.com/AcademySoftwareFoundation/rez/issues/1181)
 
-## 2.103.4 (2021-12-17)
+## v2.103.4 (2021-12-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.103.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.103.3...2.103.4)
 
 **Merged pull requests:**
@@ -525,14 +585,14 @@ Please be aware of this change in behavior in case it affects you.
 
 - Whichcraft not caring about executable symlinks on windows that do not have the extension of an executable [\#1178](https://github.com/AcademySoftwareFoundation/rez/issues/1178)
 
-## 2.103.3 (2021-12-17)
+## v2.103.3 (2021-12-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.103.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.103.2...2.103.3)
 
 **Merged pull requests:**
 
 - removed sortedcontainers vendored lib [\#1180](https://github.com/AcademySoftwareFoundation/rez/pull/1180) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.103.2 (2021-12-15)
+## v2.103.2 (2021-12-15)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.103.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.103.1...2.103.2)
 
 **Merged pull requests:**
@@ -543,7 +603,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - Environment variables containing brackets break powershell shell [\#1175](https://github.com/AcademySoftwareFoundation/rez/issues/1175)
 
-## 2.103.1 (2021-12-10)
+## v2.103.1 (2021-12-10)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.103.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.103.0...2.103.1)
 
 **Merged pull requests:**
@@ -554,7 +614,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - Build passes when build_command fails while using powershell as default_shell on windows [\#1099](https://github.com/AcademySoftwareFoundation/rez/issues/1099)
 
-## 2.103.0 (2021-12-10)
+## v2.103.0 (2021-12-10)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.103.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.102.1...2.103.0)
 
 **Merged pull requests:**
@@ -565,7 +625,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - AttributeError: 'NoneType' object has no attribute 'conflicts_with' when rez-env a package [\#1150](https://github.com/AcademySoftwareFoundation/rez/issues/1150)
 
-## 2.102.1 (2021-12-10)
+## v2.102.1 (2021-12-10)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.102.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.102.0...2.102.1)
 
 **Merged pull requests:**
@@ -576,7 +636,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - rez-pip error with inconsistency between underscores and dashes [\#1159](https://github.com/AcademySoftwareFoundation/rez/issues/1159)
 
-## 2.102.0 (2021-12-10)
+## v2.102.0 (2021-12-10)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.102.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.101.0...2.102.0)
 
 **Merged pull requests:**
@@ -587,14 +647,14 @@ Please be aware of this change in behavior in case it affects you.
 
 - Incompatibility with Python 3.10 [\#1168](https://github.com/AcademySoftwareFoundation/rez/issues/1168)
 
-## 2.101.0 (2021-12-09)
+## v2.101.0 (2021-12-09)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.101.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.100.2...2.101.0)
 
 **Merged pull requests:**
 
 - benchmarking updates [\#1171](https://github.com/AcademySoftwareFoundation/rez/pull/1171) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.100.2 (2021-12-08)
+## v2.100.2 (2021-12-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.100.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.100.1...2.100.2)
 
 **Merged pull requests:**
@@ -605,7 +665,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - fix 4 sonarcloud-flagged bugs [\#1166](https://github.com/AcademySoftwareFoundation/rez/issues/1166)
 
-## 2.100.1 (2021-12-08)
+## v2.100.1 (2021-12-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.100.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.100.0...2.100.1)
 
 **Merged pull requests:**
@@ -616,7 +676,7 @@ Please be aware of this change in behavior in case it affects you.
 
 - (sonarcloud) vulnerability [\#1164](https://github.com/AcademySoftwareFoundation/rez/issues/1164)
 
-## 2.100.0 (2021-11-20)
+## v2.100.0 (2021-11-20)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.100.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.98.3...2.100.0)
 
 **Notes**
@@ -632,7 +692,7 @@ More: https://www.apache.org/licenses/LICENSE-2.0
 
 - Rez License Change: LGPLv3 to Apache2.0 [\#1119](https://github.com/AcademySoftwareFoundation/rez/issues/1119)
 
-## 2.98.3 (2021-11-19)
+## v2.98.3 (2021-11-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.98.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.98.2...2.98.3)
 
 **Merged pull requests:**
@@ -644,7 +704,7 @@ More: https://www.apache.org/licenses/LICENSE-2.0
 - rez-pip not working ? [\#904](https://github.com/AcademySoftwareFoundation/rez/issues/904)
 - NoneType Error When Using `rez pip` on Windows [\#1024](https://github.com/AcademySoftwareFoundation/rez/issues/1024)
 
-## 2.98.2 (2021-11-19)
+## v2.98.2 (2021-11-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.98.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.98.1...2.98.2)
 
 Added unmodified whichcraft vendored lib.
@@ -652,14 +712,14 @@ See:
 * https://github.com/cookiecutter/whichcraft/blob/master/whichcraft.py
 * https://github.com/AcademySoftwareFoundation/rez/pull/1155
 
-## 2.98.1 (2021-11-19)
+## v2.98.1 (2021-11-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.98.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.98.0...2.98.1)
 
 **Merged pull requests:**
 
 - Issue 1119 code removal [\#1151](https://github.com/AcademySoftwareFoundation/rez/pull/1151) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.98.0 (2021-11-02)
+## v2.98.0 (2021-11-02)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.98.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.97.0...2.98.0)
 
 **Merged pull requests:**
@@ -672,21 +732,21 @@ See:
 - Pika could not take port from `context_tracking_host` [\#1144](https://github.com/AcademySoftwareFoundation/rez/issues/1144)
 - name amqp connection [\#1148](https://github.com/AcademySoftwareFoundation/rez/issues/1148)
 
-## 2.97.0 (2021-10-19)
+## v2.97.0 (2021-10-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.97.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.96.0...2.97.0)
 
 **Merged pull requests:**
 
 - Improve rex env binding [\#1138](https://github.com/AcademySoftwareFoundation/rez/pull/1138) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.96.0 (2021-10-19)
+## v2.96.0 (2021-10-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.96.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.95.3...2.96.0)
 
 **Merged pull requests:**
 
 - pika [\#1140](https://github.com/AcademySoftwareFoundation/rez/pull/1140) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.95.3 (2021-10-12)
+## v2.95.3 (2021-10-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.95.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.95.2...2.95.3)
 
 **Merged pull requests:**
@@ -697,7 +757,7 @@ See:
 
 -  (double-dash) removes double quotes on Windows [\#1133](https://github.com/AcademySoftwareFoundation/rez/issues/1133)
 
-## 2.95.2 (2021-10-12)
+## v2.95.2 (2021-10-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.95.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.95.1...2.95.2)
 
 **Merged pull requests:**
@@ -709,7 +769,7 @@ See:
 
 - Rez pip fails to execute in Windows after 2.94.0 [\#1120](https://github.com/AcademySoftwareFoundation/rez/issues/1120)
 
-## 2.95.1 (2021-10-12)
+## v2.95.1 (2021-10-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.95.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.95.0...2.95.1)
 
 **Merged pull requests:**
@@ -720,7 +780,7 @@ See:
 
 - rez-env output test is not testing on specified shell [\#1135](https://github.com/AcademySoftwareFoundation/rez/issues/1135)
 
-## 2.95.0 (2021-09-21)
+## v2.95.0 (2021-09-21)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.95.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.94.0...2.95.0)
 
 **Merged pull requests:**
@@ -732,7 +792,7 @@ See:
 
 - rez-pip installs dist-info dir to root, causes probs with some pkgs [\#892](https://github.com/AcademySoftwareFoundation/rez/issues/892)
 
-## 2.94.0 (2021-08-17)
+## v2.94.0 (2021-08-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.94.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.93.3...2.94.0)
 
 **Merged pull requests:**
@@ -743,7 +803,7 @@ See:
 
 - bug in command quoting [\#1114](https://github.com/AcademySoftwareFoundation/rez/issues/1114)
 
-## 2.93.3 (2021-08-05)
+## v2.93.3 (2021-08-05)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.93.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.93.2...2.93.3)
 
 **Merged pull requests:**
@@ -754,14 +814,14 @@ See:
 
 - failed tests in pytest-enabled rez-selftest are not getting picked up [\#1117](https://github.com/AcademySoftwareFoundation/rez/issues/1117)
 
-## 2.93.2 (2021-08-03)
+## v2.93.2 (2021-08-03)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.93.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.93.1...2.93.2)
 
 **Merged pull requests:**
 
 - Prevent alias (windows function) to store all arguments in one string instead of an array of strings [\#1101](https://github.com/AcademySoftwareFoundation/rez/pull/1101) ([aguiot](https://github.com/aguiot))
 
-## 2.93.1 (2021-08-03)
+## v2.93.1 (2021-08-03)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.93.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.93.0...2.93.1)
 
 **Merged pull requests:**
@@ -772,14 +832,14 @@ See:
 
 - PluginManager.rezplugins_module_paths breaks with zipped Python [\#1108](https://github.com/AcademySoftwareFoundation/rez/issues/1108)
 
-## 2.93.0 (2021-07-13)
+## v2.93.0 (2021-07-13)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.93.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.92.0...2.93.0)
 
 **Merged pull requests:**
 
 - added minimal cli test [\#1106](https://github.com/AcademySoftwareFoundation/rez/pull/1106) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.92.0 (2021-07-13)
+## v2.92.0 (2021-07-13)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.92.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.91.0...2.92.0)
 
 **Merged pull requests:**
@@ -791,7 +851,7 @@ See:
 
 - Deprecate rez-pip -s flag because pip-search is disabled and will likely not return [\#1104](https://github.com/AcademySoftwareFoundation/rez/issues/1104)
 
-## 2.91.0 (2021-06-16)
+## v2.91.0 (2021-06-16)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.91.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.90.3...2.91.0)
 
 **Merged pull requests:**
@@ -802,7 +862,7 @@ See:
 
 - config selftest can fail [\#1097](https://github.com/AcademySoftwareFoundation/rez/issues/1097)
 
-## 2.90.3 (2021-06-16)
+## v2.90.3 (2021-06-16)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.90.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.90.2...2.90.3)
 
 **Merged pull requests:**
@@ -813,28 +873,28 @@ See:
 
 - regression: rez-test Could not resolve to variant [\#1095](https://github.com/AcademySoftwareFoundation/rez/issues/1095)
 
-## 2.90.2 (2021-06-16)
+## v2.90.2 (2021-06-16)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.90.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.90.1...2.90.2)
 
 **Merged pull requests:**
 
 - Allow trailing comma in Legacy Metadata [\#1092](https://github.com/AcademySoftwareFoundation/rez/pull/1092) ([bfloch](https://github.com/bfloch))
 
-## 2.90.1 (2021-06-08)
+## v2.90.1 (2021-06-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.90.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.90.0...2.90.1)
 
 **Merged pull requests:**
 
 - Avoid hidden folder/files as it introduces problems on certain fileystems [\#1088](https://github.com/AcademySoftwareFoundation/rez/pull/1088) ([bfloch](https://github.com/bfloch))
 
-## 2.90.0 (2021-06-08)
+## v2.90.0 (2021-06-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.90.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.89.1...2.90.0)
 
 **Merged pull requests:**
 
 - Extension plugins [\#1040](https://github.com/AcademySoftwareFoundation/rez/pull/1040) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.89.1 (2021-06-02)
+## v2.89.1 (2021-06-02)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.89.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.89.0...2.89.1)
 
 **Merged pull requests:**
@@ -845,14 +905,14 @@ See:
 
 - rez-rm --ignored-since faulty in combo with memcached enabled [\#1089](https://github.com/AcademySoftwareFoundation/rez/issues/1089)
 
-## 2.89.0 (2021-06-01)
+## v2.89.0 (2021-06-01)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.89.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.88.4...2.89.0)
 
 **Merged pull requests:**
 
 - Improve context resolve failure info [\#1083](https://github.com/AcademySoftwareFoundation/rez/pull/1083) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.88.4 (2021-06-01)
+## v2.88.4 (2021-06-01)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.88.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.88.3...2.88.4)
 
 **Merged pull requests:**
@@ -863,7 +923,7 @@ See:
 
 - fail-graph not showing true root of the conflict [\#865](https://github.com/AcademySoftwareFoundation/rez/issues/865)
 
-## 2.88.3 (2021-06-01)
+## v2.88.3 (2021-06-01)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.88.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.88.2...2.88.3)
 
 **Merged pull requests:**
@@ -874,14 +934,14 @@ See:
 
 - include could not find load file: RezBuild error on Windows [\#974](https://github.com/AcademySoftwareFoundation/rez/issues/974)
 
-## 2.88.2 (2021-05-20)
+## v2.88.2 (2021-05-20)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.88.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.88.1...2.88.2)
 
 **Merged pull requests:**
 
 - added rez_version to context tracking amqp message [\#1079](https://github.com/AcademySoftwareFoundation/rez/pull/1079) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.88.1 (2021-05-18)
+## v2.88.1 (2021-05-18)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.88.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.88.0...2.88.1)
 
 **Merged pull requests:**
@@ -892,7 +952,7 @@ See:
 
 - windows package cache root switch does only work with "{root}" not this.root  [\#1065](https://github.com/AcademySoftwareFoundation/rez/issues/1065)
 
-## 2.88.0 (2021-05-13)
+## v2.88.0 (2021-05-13)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.88.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.87.0...2.88.0)
 
 **Notes**
@@ -903,7 +963,7 @@ This is currently implemented for linux only.
 
 - fix linking within bundles [\#1072](https://github.com/AcademySoftwareFoundation/rez/issues/1072)
 
-## 2.87.0 (2021-05-11)
+## v2.87.0 (2021-05-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.87.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.86.1...2.87.0)
 
 **Merged pull requests:**
@@ -914,28 +974,28 @@ This is currently implemented for linux only.
 
 - add post-context rex file in bundles [\#1071](https://github.com/AcademySoftwareFoundation/rez/issues/1071)
 
-## 2.86.1 (2021-05-04)
+## v2.86.1 (2021-05-04)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.86.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.86.0...2.86.1)
 
 **Merged pull requests:**
 
 - Fix pkg cache test [\#1046](https://github.com/AcademySoftwareFoundation/rez/pull/1046) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.86.0 (2021-05-04)
+## v2.86.0 (2021-05-04)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.86.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.85.0...2.86.0)
 
 **Merged pull requests:**
 
 - rez config --json FIELD [\#1064](https://github.com/AcademySoftwareFoundation/rez/pull/1064) ([j0yu](https://github.com/j0yu))
 
-## 2.85.0 (2021-05-04)
+## v2.85.0 (2021-05-04)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.85.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.84.0...2.85.0)
 
 **Merged pull requests:**
 
 - Let rez-selftest try using pytest [\#1051](https://github.com/AcademySoftwareFoundation/rez/pull/1051) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.84.0 (2021-04-16)
+## v2.84.0 (2021-04-16)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.84.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.83.0...2.84.0)
 
 **Notes**
@@ -950,7 +1010,7 @@ New tool: `rez-rm`.
 
 - add package removal [\#1062](https://github.com/AcademySoftwareFoundation/rez/issues/1062)
 
-## 2.83.0 (2021-04-14)
+## v2.83.0 (2021-04-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.83.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.82.0...2.83.0)
 
 **Notes**
@@ -965,7 +1025,7 @@ New tool: `rez-mv`.
 
 - add pkg move feature [\#1059](https://github.com/AcademySoftwareFoundation/rez/issues/1059)
 
-## 2.82.0 (2021-04-08)
+## v2.82.0 (2021-04-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.82.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.81.2...2.82.0)
 
 **Notes**
@@ -980,14 +1040,14 @@ New tool: `rez-pkg-ignore`.
 
 - make package ignore a formal api/tool [\#1052](https://github.com/AcademySoftwareFoundation/rez/issues/1052)
 
-## 2.81.2 (2021-04-08)
+## v2.81.2 (2021-04-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.81.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.81.1...2.81.2)
 
 **Closed issues:**
 
 - install related regression in v2.80.0 [\#1057](https://github.com/AcademySoftwareFoundation/rez/issues/1057)
 
-## 2.81.1 (2021-04-08)
+## v2.81.1 (2021-04-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.81.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.81.0...2.81.1)
 
 **Notes**
@@ -1005,21 +1065,21 @@ compatible.
 - problem with alias in powershell [\#1017](https://github.com/AcademySoftwareFoundation/rez/issues/1017)
 - tests failing suddenly [\#1055](https://github.com/AcademySoftwareFoundation/rez/issues/1055)
 
-## 2.81.0 (2021-04-01)
+## v2.81.0 (2021-04-01)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.81.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.80.0...2.81.0)
 
 **Merged pull requests:**
 
 - Flake8 [\#1050](https://github.com/AcademySoftwareFoundation/rez/pull/1050) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.80.0 (2021-03-30)
+## v2.80.0 (2021-03-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.80.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.79.1...2.80.0)
 
 **Merged pull requests:**
 
 - Fix rez-python arg disordered [\#1041](https://github.com/AcademySoftwareFoundation/rez/pull/1041) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.79.1 (2021-03-30)
+## v2.79.1 (2021-03-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.79.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.79.0...2.79.1)
 
 **Merged pull requests:**
@@ -1030,21 +1090,21 @@ compatible.
 
 - An exception is raised when combining filters with `-` and without `-`. [\#1037](https://github.com/AcademySoftwareFoundation/rez/issues/1037)
 
-## 2.79.0 (2021-03-30)
+## v2.79.0 (2021-03-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.79.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.78.1...2.79.0)
 
 **Merged pull requests:**
 
 - add optionvars [\#1036](https://github.com/AcademySoftwareFoundation/rez/pull/1036) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.78.1 (2021-03-30)
+## v2.78.1 (2021-03-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.78.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.78.0...2.78.1)
 
 **Merged pull requests:**
 
 - auto benchmarking fix [\#1049](https://github.com/AcademySoftwareFoundation/rez/pull/1049) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.78.0 (2021-03-27)
+## v2.78.0 (2021-03-27)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.78.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.77.1...2.78.0)
 
 **Merged pull requests:**
@@ -1055,28 +1115,28 @@ compatible.
 
 - automatically run benchmarking [\#1044](https://github.com/AcademySoftwareFoundation/rez/issues/1044)
 
-## 2.77.1 (2021-03-16)
+## v2.77.1 (2021-03-16)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.77.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.77.0...2.77.1)
 
 **Merged pull requests:**
 
 - Fix missing files in sdist [\#1042](https://github.com/AcademySoftwareFoundation/rez/pull/1042) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.77.0 (2021-03-09)
+## v2.77.0 (2021-03-09)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.77.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.76.0...2.77.0)
 
 **Merged pull requests:**
 
 - Adds more variables to the custom build system. [\#1013](https://github.com/AcademySoftwareFoundation/rez/pull/1013) ([bfloch](https://github.com/bfloch))
 
-## 2.76.0 (2021-03-09)
+## v2.76.0 (2021-03-09)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.76.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.75.1...2.76.0)
 
 **Merged pull requests:**
 
 - add EphemeralsBinding.get_range [\#1030](https://github.com/AcademySoftwareFoundation/rez/pull/1030) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.75.1 (2021-03-09)
+## v2.75.1 (2021-03-09)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.75.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.75.0...2.75.1)
 
 **Merged pull requests:**
@@ -1088,7 +1148,7 @@ compatible.
 
 - Issues with system.System.is_production_rez_install method on Windows. [\#1005](https://github.com/AcademySoftwareFoundation/rez/issues/1005)
 
-## 2.75.0 (2021-03-03)
+## v2.75.0 (2021-03-03)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.74.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.73.0...2.75.0)
 
 **Notes**
@@ -1105,7 +1165,7 @@ compatible.
 
 - Pypi entries are out of date [\#1032](https://github.com/AcademySoftwareFoundation/rez/issues/1032)
 
-## 2.73.0 (2021-03-02)
+## v2.73.0 (2021-03-02)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.73.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.72.5...2.73.0)
 
 **Merged pull requests:**
@@ -1116,21 +1176,21 @@ compatible.
 
 - bundled contexts ("bundles") [\#1009](https://github.com/AcademySoftwareFoundation/rez/issues/1009)
 
-## 2.72.5 (2021-03-02)
+## v2.72.5 (2021-03-02)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.72.5) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.72.4...2.72.5)
 
 **Merged pull requests:**
 
 - Improve get_variant_from_uri on Windows [\#1011](https://github.com/AcademySoftwareFoundation/rez/pull/1011) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.72.4 (2021-03-02)
+## v2.72.4 (2021-03-02)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.72.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.72.3...2.72.4)
 
 **Merged pull requests:**
 
 - Wait subprocess cleanup [\#1010](https://github.com/AcademySoftwareFoundation/rez/pull/1010) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.72.3 (2021-02-23)
+## v2.72.3 (2021-02-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.72.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.72.2...2.72.3)
 
 **Merged pull requests:**
@@ -1141,14 +1201,14 @@ compatible.
 
 - Tab completion broken for rez deployments installed with Python-3.6 [\#1020](https://github.com/AcademySoftwareFoundation/rez/issues/1020)
 
-## 2.72.2 (2021-02-23)
+## v2.72.2 (2021-02-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.72.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.72.1...2.72.2)
 
 **Merged pull requests:**
 
 - Fix install-as-rez-package script for Windows [\#1014](https://github.com/AcademySoftwareFoundation/rez/pull/1014) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.72.1 (2021-02-23)
+## v2.72.1 (2021-02-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.72.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.72.0...2.72.1)
 
 **Merged pull requests:**
@@ -1156,7 +1216,7 @@ compatible.
 - Fix dir/file remove error handling [\#1012](https://github.com/AcademySoftwareFoundation/rez/pull/1012) ([davidlatwe](https://github.com/davidlatwe))
 - Fixes bug where readlink is applied on regular files. [\#1019](https://github.com/AcademySoftwareFoundation/rez/pull/1019) ([bfloch](https://github.com/bfloch))
 
-## 2.72.0 (2021-01-12)
+## v2.72.0 (2021-01-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.72.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.71.0...2.72.0)
 
 **Notes**
@@ -1174,7 +1234,7 @@ python-3.9.
 - Installation With Python >=3.9 Fails ('HTMLParser' object has no attribute 'unescape') [\#980](https://github.com/AcademySoftwareFoundation/rez/issues/980)
 - have install.py use venv in python3 [\#982](https://github.com/AcademySoftwareFoundation/rez/issues/982)
 
-## 2.71.0 (2020-12-29)
+## v2.71.0 (2020-12-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.71.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.70.5...2.71.0)
 
 **Notes**
@@ -1189,14 +1249,14 @@ version number.
 
 - Ephemeral packages [\#993](https://github.com/AcademySoftwareFoundation/rez/pull/993) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.70.5 (2020-12-29)
+## v2.70.5 (2020-12-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.70.5) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.70.4...2.70.5)
 
 **Merged pull requests:**
 
 - Fix module 'Qt.QtWidgets' has no attribute'QPainter' [\#992](https://github.com/AcademySoftwareFoundation/rez/pull/992) ([loonghao](https://github.com/loonghao))
 
-## 2.70.4 (2020-12-29)
+## v2.70.4 (2020-12-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.70.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.70.3...2.70.4)
 
 **Merged pull requests:**
@@ -1207,28 +1267,28 @@ version number.
 
 - 'rez build --install --prefix' error  [\#858](https://github.com/AcademySoftwareFoundation/rez/issues/858)
 
-## 2.70.3 (2020-12-29)
+## v2.70.3 (2020-12-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.70.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.70.2...2.70.3)
 
 **Merged pull requests:**
 
 - Fix no CLI args passed into forward script on Windows [\#990](https://github.com/AcademySoftwareFoundation/rez/pull/990) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.70.2 (2020-12-29)
+## v2.70.2 (2020-12-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.70.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.70.1...2.70.2)
 
 **Merged pull requests:**
 
 - fix: exit file write retry loop after successfull write [\#989](https://github.com/AcademySoftwareFoundation/rez/pull/989) ([bpabel](https://github.com/bpabel))
 
-## 2.70.1 (2020-12-29)
+## v2.70.1 (2020-12-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.70.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.70.0...2.70.1)
 
 **Merged pull requests:**
 
 - Fixes release hook for Python 3 [\#981](https://github.com/AcademySoftwareFoundation/rez/pull/981) ([bfloch](https://github.com/bfloch))
 
-## 2.70.0 (2020-12-29)
+## v2.70.0 (2020-12-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.70.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.7...2.70.0)
 
 **Backwards Compatibility Issues**
@@ -1246,7 +1306,7 @@ need to do to port your existing build script.
 
 - Remove bez [\#979](https://github.com/AcademySoftwareFoundation/rez/pull/979) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.69.7 (2020-12-22)
+## v2.69.7 (2020-12-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.7) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.6...2.69.7)
 
 **Merged pull requests:**
@@ -1257,7 +1317,7 @@ need to do to port your existing build script.
 
 - wiki workflow broken [\#994](https://github.com/AcademySoftwareFoundation/rez/issues/994)
 
-## 2.69.6 (2020-11-24)
+## v2.69.6 (2020-11-24)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.6) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.5...2.69.6)
 
 **Merged pull requests:**
@@ -1268,21 +1328,21 @@ need to do to port your existing build script.
 
 - rez overwrites root logger [\#977](https://github.com/AcademySoftwareFoundation/rez/issues/977)
 
-## 2.69.5 (2020-11-19)
+## v2.69.5 (2020-11-19)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.5) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.4...2.69.5)
 
 **Merged pull requests:**
 
 - Try telling who is/are requesting missing package [\#976](https://github.com/AcademySoftwareFoundation/rez/pull/976) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.69.4 (2020-11-17)
+## v2.69.4 (2020-11-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.3...2.69.4)
 
 **Merged pull requests:**
 
 - Fix pip.py get purelib error. [\#973](https://github.com/AcademySoftwareFoundation/rez/pull/973) ([zclongpop123](https://github.com/zclongpop123))
 
-## 2.69.3 (2020-11-17)
+## v2.69.3 (2020-11-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.2...2.69.3)
 
 **Merged pull requests:**
@@ -1293,7 +1353,7 @@ need to do to port your existing build script.
 
 - QFileDialog.getSaveFileName and getOpenFileName return tuple not str [\#962](https://github.com/AcademySoftwareFoundation/rez/issues/962)
 
-## 2.69.2 (2020-11-17)
+## v2.69.2 (2020-11-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.1...2.69.2)
 
 **Merged pull requests:**
@@ -1304,28 +1364,28 @@ need to do to port your existing build script.
 
 - io.UnsupportedOperation when using rez api with pytest [\#965](https://github.com/AcademySoftwareFoundation/rez/issues/965)
 
-## 2.69.1 (2020-11-17)
+## v2.69.1 (2020-11-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.69.0...2.69.1)
 
 **Merged pull requests:**
 
 - Update vendored pydot (1.4.2.dev0) [\#970](https://github.com/AcademySoftwareFoundation/rez/pull/970) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.69.0 (2020-11-17)
+## v2.69.0 (2020-11-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.69.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.68.5...2.69.0)
 
 **Merged pull requests:**
 
 - Fix forwarding script on Windows (suite supporting) [\#968](https://github.com/AcademySoftwareFoundation/rez/pull/968) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.68.5 (2020-10-06)
+## v2.68.5 (2020-10-06)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.68.5) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.68.4...2.68.5)
 
 **Merged pull requests:**
 
 - Handling build/install directory remove error in build process [\#959](https://github.com/AcademySoftwareFoundation/rez/pull/959) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.68.4 (2020-10-06)
+## v2.68.4 (2020-10-06)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.68.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.68.3...2.68.4)
 
 **Merged pull requests:**
@@ -1336,7 +1396,7 @@ need to do to port your existing build script.
 
 - Alias can't be used on the same line as rez-env [\#708](https://github.com/AcademySoftwareFoundation/rez/issues/708)
 
-## 2.68.3 (2020-09-22)
+## v2.68.3 (2020-09-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.68.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.68.0...2.68.3)
 
 **Merged pull requests:**
@@ -1347,7 +1407,7 @@ need to do to port your existing build script.
 
 - Fix repo location false mismatch [\#957](https://github.com/AcademySoftwareFoundation/rez/pull/957) ([davidlatwe](https://github.com/davidlatwe))
 
-## 2.68.0 (2020-09-22)
+## v2.68.0 (2020-09-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.68.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.67.1...2.68.0)
 
 **Backwards Compatibility Issues**
@@ -1365,7 +1425,7 @@ packages that depend on the analogous implicit package), then you can use the
 
 - rez platform_ broken with python3.8 [\#883](https://github.com/AcademySoftwareFoundation/rez/issues/883)
 
-## 2.67.1 (2020-09-11)
+## v2.67.1 (2020-09-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.67.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.67.0...2.67.1)
 
 **Merged pull requests:**
@@ -1376,7 +1436,7 @@ packages that depend on the analogous implicit package), then you can use the
 
 - this.root is None in package preprocessor [\#952](https://github.com/AcademySoftwareFoundation/rez/issues/952)
 
-## 2.67.0 (2020-08-25)
+## v2.67.0 (2020-08-25)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.67.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.66.1...2.67.0)
 
 **Merged pull requests:**
@@ -1388,7 +1448,7 @@ packages that depend on the analogous implicit package), then you can use the
 
 - don't raise on missing package cache dir [\#941](https://github.com/AcademySoftwareFoundation/rez/issues/941)
 
-## 2.66.1 (2020-08-25)
+## v2.66.1 (2020-08-25)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.66.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.66.0...2.66.1)
 
 **Merged pull requests:**
@@ -1400,14 +1460,14 @@ packages that depend on the analogous implicit package), then you can use the
 
 - Installed package not including latest module [\#934](https://github.com/AcademySoftwareFoundation/rez/issues/934)
 
-## 2.66.0 (2020-08-11)
+## v2.66.0 (2020-08-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.66.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.65.0...2.66.0)
 
 **Merged pull requests:**
 
 - [docs] Sphinx API hosted on GitHub Pages [\#832](https://github.com/AcademySoftwareFoundation/rez/pull/832) ([j0yu](https://github.com/j0yu))
 
-## 2.65.0 (2020-08-11)
+## v2.65.0 (2020-08-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.65.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.64.0...2.65.0)
 
 **Notes**
@@ -1419,7 +1479,7 @@ to automatically update the wiki.
 
 - [wiki] Move update utils into main repo [\#831](https://github.com/AcademySoftwareFoundation/rez/pull/831) ([j0yu](https://github.com/j0yu))
 
-## 2.64.0 (2020-08-11)
+## v2.64.0 (2020-08-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.64.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.63.0...2.64.0)
 
 **Merged pull requests:**
@@ -1435,7 +1495,7 @@ to automatically update the wiki.
 - New spawned shell's `PATH` is random ordered on Windows [\#925](https://github.com/AcademySoftwareFoundation/rez/issues/925)
 - Packages that contains Unicode character failed on install/release [\#927](https://github.com/AcademySoftwareFoundation/rez/issues/927)
 
-## 2.63.0 (2020-08-04)
+## v2.63.0 (2020-08-04)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.63.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.62.0...2.63.0)
 
 **Merged pull requests:**
@@ -1452,7 +1512,7 @@ to automatically update the wiki.
 - Miss-leaded error message while building with invalid package metadata [\#915](https://github.com/AcademySoftwareFoundation/rez/issues/915)
 - add ability to disable pkg caching during build [\#919](https://github.com/AcademySoftwareFoundation/rez/issues/919)
 
-## 2.62.0 (2020-07-22)
+## v2.62.0 (2020-07-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.62.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.61.1...2.62.0)
 
 **Merged pull requests:**
@@ -1464,7 +1524,7 @@ to automatically update the wiki.
 
 - SSL crash related to context tracking [\#910](https://github.com/AcademySoftwareFoundation/rez/issues/910)
 
-## 2.61.1 (2020-07-10)
+## v2.61.1 (2020-07-10)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.61.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.61.0...2.61.1)
 
 **Merged pull requests:**
@@ -1475,7 +1535,7 @@ to automatically update the wiki.
 
 - occasional missing rez cli in rez-env [\#901](https://github.com/AcademySoftwareFoundation/rez/issues/901)
 
-## 2.61.0 (2020-07-10)
+## v2.61.0 (2020-07-10)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.61.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.60.1...2.61.0)
 
 **Notes**
@@ -1486,7 +1546,7 @@ Package caching feature added, see [here](https://github.com/AcademySoftwareFoun
 
 - Package cache [\#893](https://github.com/AcademySoftwareFoundation/rez/pull/893) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.60.1 (2020-05-23)
+## v2.60.1 (2020-05-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.60.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.60.0...2.60.1)
 
 **Merged pull requests:**
@@ -1498,7 +1558,7 @@ Package caching feature added, see [here](https://github.com/AcademySoftwareFoun
 
 - context sourcing broken (ResolvedContext.append_sys_path not serialised) [\#889](https://github.com/AcademySoftwareFoundation/rez/issues/889)
 
-## 2.60.0 (2020-05-12)
+## v2.60.0 (2020-05-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.60.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.59.1...2.60.0)
 
 **Backwards Compatibility Issues**
@@ -1513,7 +1573,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 - added get_variant_from_uri functionality [\#886](https://github.com/AcademySoftwareFoundation/rez/pull/886) ([nerdvegas](https://github.com/nerdvegas))
 - Cli variant uri [\#887](https://github.com/AcademySoftwareFoundation/rez/pull/887) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.59.1 (2020-05-09)
+## v2.59.1 (2020-05-09)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.59.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.59.0...2.59.1)
 
 **Merged pull requests:**
@@ -1524,7 +1584,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - rez-context -g with prune-package fails [\#884](https://github.com/AcademySoftwareFoundation/rez/issues/884)
 
-## 2.59.0 (2020-04-30)
+## v2.59.0 (2020-04-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.59.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.58.1...2.59.0)
 
 **Merged pull requests:**
@@ -1535,7 +1595,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - rez-pip issues finding pip executable [\#826](https://github.com/AcademySoftwareFoundation/rez/issues/826)
 
-## 2.58.1 (2020-04-22)
+## v2.58.1 (2020-04-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.58.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.58.0...2.58.1)
 
 **Merged pull requests:**
@@ -1546,7 +1606,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - AttributeError: 'Namespace' object has no attribute 'func' [\#879](https://github.com/AcademySoftwareFoundation/rez/issues/879)
 
-## 2.58.0 (2020-04-15)
+## v2.58.0 (2020-04-15)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.58.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.57.0...2.58.0)
 
 **Merged pull requests:**
@@ -1557,7 +1617,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - add configurability of package orderers [\#329](https://github.com/AcademySoftwareFoundation/rez/issues/329)
 
-## 2.57.0 (2020-04-14)
+## v2.57.0 (2020-04-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.57.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.56.2...2.57.0)
 
 **Merged pull requests:**
@@ -1568,7 +1628,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - rez-pip - Add help / authors attributes [\#838](https://github.com/AcademySoftwareFoundation/rez/issues/838)
 
-## 2.56.2 (2020-04-14)
+## v2.56.2 (2020-04-14)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.56.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.56.1...2.56.2)
 
 **Merged pull requests:**
@@ -1579,14 +1639,14 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - override git plugin config in package.py [\#871](https://github.com/AcademySoftwareFoundation/rez/issues/871)
 
-## 2.56.1 (2020-03-31)
+## v2.56.1 (2020-03-31)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.56.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.56.0...2.56.1)
 
 **Merged pull requests:**
 
 - Log during pip install [\#867](https://github.com/AcademySoftwareFoundation/rez/pull/867) ([j0yu](https://github.com/j0yu))
 
-## 2.56.0 (2020-03-31)
+## v2.56.0 (2020-03-31)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.56.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.55.0...2.56.0)
 
 **Merged pull requests:**
@@ -1597,7 +1657,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - rez-pip - no case for ../../include/... file [\#861](https://github.com/AcademySoftwareFoundation/rez/issues/861)
 
-## 2.55.0 (2020-03-21)
+## v2.55.0 (2020-03-21)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.55.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.54.0...2.55.0)
 
 **Merged pull requests:**
@@ -1610,7 +1670,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 - tests "on_variants" not working as expected in some cases [\#841](https://github.com/AcademySoftwareFoundation/rez/issues/841)
 - pre_test_commands [\#843](https://github.com/AcademySoftwareFoundation/rez/issues/843)
 
-## 2.54.0 (2020-02-20)
+## v2.54.0 (2020-02-20)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.54.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.53.1...2.54.0)
 
 **Merged pull requests:**
@@ -1623,7 +1683,7 @@ more easily chain `rez-context` with other utilities such as grep, xargs etc.
 
 - "rez-pip -i ptvsd" produces bad package [\#821](https://github.com/AcademySoftwareFoundation/rez/issues/821)
 
-## 2.53.1 (2020-02-12)
+## v2.53.1 (2020-02-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.53.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.53.0...2.53.1)
 
 **Notes**
@@ -1640,7 +1700,7 @@ Misc Python-3 related issues.
 - "ImportError" exception raised while using "rez-gui" in Python 3. [\#848](https://github.com/AcademySoftwareFoundation/rez/issues/848)
 - "AttributeError" exception raised when using "rez-gui" Package Browser with Pyside2 . [\#849](https://github.com/AcademySoftwareFoundation/rez/issues/849)
 
-## 2.53.0 (2020-02-04)
+## v2.53.0 (2020-02-04)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.53.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.52.2...2.53.0)
 
 **Merged pull requests:**
@@ -1651,7 +1711,7 @@ Misc Python-3 related issues.
 
 - rez-pip creates .pyc files by default [\#816](https://github.com/AcademySoftwareFoundation/rez/issues/816)
 
-## 2.52.2 (2020-01-31)
+## v2.52.2 (2020-01-31)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.52.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.52.1...2.52.2)
 
 **Merged pull requests:**
@@ -1659,7 +1719,7 @@ Misc Python-3 related issues.
 - deprecate trailing underscored sourcefiles [\#839](https://github.com/AcademySoftwareFoundation/rez/pull/839) ([nerdvegas](https://github.com/nerdvegas))
 - Minor pr3 fixes [\#840](https://github.com/AcademySoftwareFoundation/rez/pull/840) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.52.1 (2020-01-21)
+## v2.52.1 (2020-01-21)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.52.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.52.0...2.52.1)
 
 **Merged pull requests:**
@@ -1670,7 +1730,7 @@ Misc Python-3 related issues.
 
 - add env-var to record shell init time [\#833](https://github.com/AcademySoftwareFoundation/rez/issues/833)
 
-## 2.52.0 (2020-01-18)
+## v2.52.0 (2020-01-18)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.52.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.51.0...2.52.0)
 
 **Notes**
@@ -1682,7 +1742,7 @@ package.py attribute, for adding runtime build configuration.
 
 - Rep002 pre build commands [\#825](https://github.com/AcademySoftwareFoundation/rez/pull/825) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.51.0 (2020-01-18)
+## v2.51.0 (2020-01-18)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.51.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.50.0...2.51.0)
 
 **Notes**
@@ -1703,7 +1763,7 @@ Still to do:
 - Rep001 1 (rez-test improvements) [\#807](https://github.com/AcademySoftwareFoundation/rez/pull/807) ([nerdvegas](https://github.com/nerdvegas))
 - Rep001 2 hooks [\#811](https://github.com/AcademySoftwareFoundation/rez/pull/811) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.50.0 (2019-12-12)
+## v2.50.0 (2019-12-12)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.50.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.49.0...2.50.0)
 
 **Merged pull requests:**
@@ -1717,14 +1777,14 @@ Still to do:
 - potential memcached client incompatibility [\#817](https://github.com/AcademySoftwareFoundation/rez/issues/817)
 - Remove hard prevention of colorization on windows [\#819](https://github.com/AcademySoftwareFoundation/rez/issues/819)
 
-## 2.49.0 (2019-12-05)
+## v2.49.0 (2019-12-05)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.49.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.48.1...2.49.0)
 
 **Merged pull requests:**
 
 - Migrate rezgui.qt imports to Qt.py [\#804](https://github.com/AcademySoftwareFoundation/rez/pull/804) ([douglaslassance](https://github.com/douglaslassance))
 
-## 2.48.1 (2019-12-05)
+## v2.48.1 (2019-12-05)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.48.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.48.0...2.48.1)
 
 **Merged pull requests:**
@@ -1735,7 +1795,7 @@ Still to do:
 
 - cmd handles empty echo incorrectly [\#792](https://github.com/AcademySoftwareFoundation/rez/issues/792)
 
-## 2.48.0 (2019-11-26)
+## v2.48.0 (2019-11-26)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.48.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.14...2.48.0)
 
 **Merged pull requests:**
@@ -1747,7 +1807,7 @@ Still to do:
 
 - find_pip_from_context failing on Windows platform [\#796](https://github.com/AcademySoftwareFoundation/rez/issues/796)
 
-## 2.47.14 (2019-11-13)
+## v2.47.14 (2019-11-13)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.14) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.13...2.47.14)
 
 **Notes**
@@ -1776,7 +1836,7 @@ If a separate push is made in this time, it can fail, as the Windows test expect
 
 - windows ci: Use Actions checkout [\#800](https://github.com/AcademySoftwareFoundation/rez/issues/800)
 
-## 2.47.13 (2019-11-08)
+## v2.47.13 (2019-11-08)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.13) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.12...2.47.13)
 
 **Notes**
@@ -1796,7 +1856,7 @@ below, the following changes were also made:
 
 - Fix README actions badges not showing current master status [\#785](https://github.com/AcademySoftwareFoundation/rez/issues/785)
 
-## 2.47.12 (2019-11-06)
+## v2.47.12 (2019-11-06)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.12) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.11...2.47.12)
 
 **Notes**
@@ -1809,14 +1869,14 @@ a limit, causing the `cmd` shell to fail in several tests.
 
 - Windows Tests via Docker [\#781](https://github.com/AcademySoftwareFoundation/rez/pull/781) ([bfloch](https://github.com/bfloch))
 
-## 2.47.11 (2019-11-06)
+## v2.47.11 (2019-11-06)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.11) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.10...2.47.11)
 
 **Merged pull requests:**
 
 - Fixes some failing tests on windows [\#775](https://github.com/AcademySoftwareFoundation/rez/pull/775) ([willjp](https://github.com/willjp))
 
-## 2.47.10 (2019-11-06)
+## v2.47.10 (2019-11-06)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.10) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.9...2.47.10)
 
 **Merged pull requests:**
@@ -1830,7 +1890,7 @@ a limit, causing the `cmd` shell to fail in several tests.
 - rez-release UnicodeDecodeError (windows) [\#776](https://github.com/AcademySoftwareFoundation/rez/issues/776)
 - Errors in pip installation part go unnoticed by rez install.py [\#777](https://github.com/AcademySoftwareFoundation/rez/issues/777)
 
-## 2.47.9 (2019-10-25)
+## v2.47.9 (2019-10-25)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.9) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.8...2.47.9)
 
 **Merged pull requests:**
@@ -1841,7 +1901,7 @@ a limit, causing the `cmd` shell to fail in several tests.
 
 - rez-depends -- AttributeError: type object 'Bar' has no attribute '__del__' (win, py-3, rez-2.47.7) [\#769](https://github.com/AcademySoftwareFoundation/rez/issues/769)
 
-## 2.47.8 (2019-10-24)
+## v2.47.8 (2019-10-24)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.8) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.7...2.47.8)
 
 **Merged pull requests:**
@@ -1854,7 +1914,7 @@ a limit, causing the `cmd` shell to fail in several tests.
 
 - cross-shell prompt leakage can cause error [\#763](https://github.com/AcademySoftwareFoundation/rez/issues/763)
 
-## 2.47.7 (2019-10-22)
+## v2.47.7 (2019-10-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.7) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.6...2.47.7)
 
 **Notes**
@@ -1872,7 +1932,7 @@ a limit, causing the `cmd` shell to fail in several tests.
 - rez-pip should assume python provided pip [\#706](https://github.com/AcademySoftwareFoundation/rez/issues/706)
 - rez-pip python 3 error [\#764](https://github.com/AcademySoftwareFoundation/rez/issues/764)
 
-## 2.47.6 (2019-10-22)
+## v2.47.6 (2019-10-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.6) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.5...2.47.6)
 
 **Merged pull requests:**
@@ -1883,7 +1943,7 @@ a limit, causing the `cmd` shell to fail in several tests.
 
 - ResourceWarning with ResolvedContext.execute_shell (py3) [\#761](https://github.com/AcademySoftwareFoundation/rez/issues/761)
 
-## 2.47.5 (2019-10-22)
+## v2.47.5 (2019-10-22)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.5) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.4...2.47.5)
 
 **Merged pull requests:**
@@ -1894,7 +1954,7 @@ a limit, causing the `cmd` shell to fail in several tests.
 
 - rez-depends -- 'ProgressBar' object is not an iterator (py-3, rez-2.47.4) [\#765](https://github.com/AcademySoftwareFoundation/rez/issues/765)
 
-## 2.47.4 (2019-10-11)
+## v2.47.4 (2019-10-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.4) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.3...2.47.4)
 
 **Notes**
@@ -1906,7 +1966,7 @@ More Python3 compatibility changes.
 - use subprocess in 'text' mode in most cases [\#753](https://github.com/AcademySoftwareFoundation/rez/pull/753) ([nerdvegas](https://github.com/nerdvegas))
 - add __bool__ operator [\#755](https://github.com/AcademySoftwareFoundation/rez/pull/755) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.47.3 (2019-09-28)
+## v2.47.3 (2019-09-28)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.2...2.47.3)
 
 **Notes**
@@ -1921,7 +1981,7 @@ More Python3 compatibility changes.
 
 - Gh actions - first pass [\#750](https://github.com/AcademySoftwareFoundation/rez/pull/750) ([nerdvegas](https://github.com/nerdvegas))
 
-## 2.47.2 (2019-09-17)
+## v2.47.2 (2019-09-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.1...2.47.2)
 
 **Notes**
@@ -1933,7 +1993,7 @@ Py3 fixes found after testing.
 - Fix py3 errors and warnings [\#748](https://github.com/AcademySoftwareFoundation/rez/pull/748) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
 
 
-## 2.47.1 (2019-09-17)
+## v2.47.1 (2019-09-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.47.0...2.47.1)
 
 **Merged pull requests:**
@@ -1945,7 +2005,7 @@ Py3 fixes found after testing.
 - Shell plugin Support API [\#696](https://github.com/AcademySoftwareFoundation/rez/issues/696)
 
 
-## 2.47.0 (2019-09-13)
+## v2.47.0 (2019-09-13)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.47.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.46.0...2.47.0)
 
 **Notes**
@@ -1964,7 +2024,7 @@ Note also that this release fixes a regression in Windows, introduced in 2.35.0.
 - Quotation marks issues on Windows. [\#691](https://github.com/AcademySoftwareFoundation/rez/issues/691)
 - Rex and expandable in other shells [\#694](https://github.com/AcademySoftwareFoundation/rez/issues/694)
 
-## 2.46.0 (2019-09-13)
+## v2.46.0 (2019-09-13)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.46.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.45.1...2.46.0)
 
 **Notes**
@@ -1980,7 +2040,7 @@ Tests have shown performance to be identical, but you may find a case where it i
 - py3 iterators conversion [\#736](https://github.com/AcademySoftwareFoundation/rez/pull/736) ([maxnbk](https://github.com/maxnbk))
 - py3 finalizations [\#742](https://github.com/AcademySoftwareFoundation/rez/pull/742) ([maxnbk](https://github.com/maxnbk))
 
-## 2.45.1 (2019-09-11)
+## v2.45.1 (2019-09-11)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.45.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.45.0...2.45.1)
 
 **Notes**
@@ -1997,7 +2057,7 @@ Misc Py3 compatibility updates, part 4.
 - #712 merged in 2.43.0 caused external environ not to pass through to resolve [\#744](https://github.com/AcademySoftwareFoundation/rez/issues/744)
 
 
-## 2.45.0 (2019-09-10)
+## v2.45.0 (2019-09-10)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.45.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.44.2...2.45.0)
 
 **Notes**
@@ -2012,7 +2072,7 @@ Misc Py3 compatibility updates, part 3.
 - Vendor readme [\#738](https://github.com/AcademySoftwareFoundation/rez/pull/738) ([nerdvegas](https://github.com/nerdvegas))
 
 
-## 2.44.2 (2019-09-07)
+## v2.44.2 (2019-09-07)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.44.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.44.1...2.44.2)
 
 **Merged pull requests:**
@@ -2024,7 +2084,7 @@ Misc Py3 compatibility updates, part 3.
 - permissions failure on release (variant.json) [\#730](https://github.com/AcademySoftwareFoundation/rez/issues/730)
 
 
-## 2.44.1 (2019-09-07)
+## v2.44.1 (2019-09-07)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.44.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.44.0...2.44.1)
 
 **Notes**
@@ -2037,7 +2097,7 @@ Misc Py3 compatibility updates, part 2.
 - update vendored schema for py3 [\#729](https://github.com/AcademySoftwareFoundation/rez/pull/729) ([maxnbk](https://github.com/maxnbk))
 
 
-## 2.44.0 (2019-09-06)
+## v2.44.0 (2019-09-06)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.44.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.43.0...2.44.0)
 
 **Notes**
@@ -2054,7 +2114,7 @@ Misc Py3 compatibility updates, part 2.
 - modernize function manipulations and attrs [\#727](https://github.com/AcademySoftwareFoundation/rez/pull/727) ([maxnbk](https://github.com/maxnbk))
 
 
-## 2.43.0 (2019-09-05)
+## v2.43.0 (2019-09-05)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.43.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.42.2...2.43.0)
 
 **Notes**
@@ -2072,7 +2132,7 @@ Misc Py3 compatibility updates.
 - swap 2.6 support for 3.x in version module [\#718](https://github.com/AcademySoftwareFoundation/rez/pull/718) ([maxnbk](https://github.com/maxnbk))
 
 
-## 2.42.2 (2019-08-31)
+## v2.42.2 (2019-08-31)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.42.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.42.1...2.42.2)
 
 **Merged pull requests:**
@@ -2081,7 +2141,7 @@ Misc Py3 compatibility updates.
 - zsh tests passing by way of enabling analogue for bash shell completion [\#711](https://github.com/AcademySoftwareFoundation/rez/pull/711) ([maxnbk](https://github.com/maxnbk))
 
 
-## 2.42.1 (2019-08-31)
+## v2.42.1 (2019-08-31)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.42.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.42.0...2.42.1)
 
 **Notes**
@@ -2093,7 +2153,7 @@ This PR introduces py3 compatibilities that do not functionally alter py2 code.
 - miscellanous atomic nonaffective py2/py3 compatibilities [\#710](https://github.com/AcademySoftwareFoundation/rez/pull/710) ([maxnbk](https://github.com/maxnbk))
 
 
-## 2.42.0 (2019-08-30)
+## v2.42.0 (2019-08-30)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.42.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.41.0...2.42.0)
 
 **Merged pull requests:**
@@ -2102,7 +2162,7 @@ This PR introduces py3 compatibilities that do not functionally alter py2 code.
 - remove unneeded backports / vendored libraries [\#702](https://github.com/AcademySoftwareFoundation/rez/pull/702) ([maxnbk](https://github.com/maxnbk))
 
 
-## 2.41.0 (2019-08-29)
+## v2.41.0 (2019-08-29)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.41.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.40.3...2.41.0)
 
 **Merged pull requests:**
@@ -2112,7 +2172,7 @@ This PR introduces py3 compatibilities that do not functionally alter py2 code.
 - Adding GCC bind [\#699](https://github.com/AcademySoftwareFoundation/rez/pull/699) ([bareya](https://github.com/bareya))
 
 
-## 2.40.3 (2019-08-15)
+## v2.40.3 (2019-08-15)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.40.3) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.40.2...2.40.3)
 
 **Notes**
@@ -2129,7 +2189,7 @@ in which plugins are loaded, so that builtins are loaded last.
 - rezplugins loading order [\#677](https://github.com/AcademySoftwareFoundation/rez/issues/677)
 
 
-## 2.40.2 (2019-08-15)
+## v2.40.2 (2019-08-15)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.40.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.40.1...2.40.2)
 
 **Notes**
@@ -2148,7 +2208,7 @@ The behaviour on Windows is now:
 - [FIX] Make package resolve request respect case sensitivity -- Windows [\#689](https://github.com/AcademySoftwareFoundation/rez/pull/689) ([lambdaclan](https://github.com/lambdaclan))
 
 
-## 2.40.1 (2019-08-07)
+## v2.40.1 (2019-08-07)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.40.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.40.0...2.40.1)
 
 **Notes**
@@ -2164,7 +2224,7 @@ Fixes regression introduced in v2.39.0.
 - [Regression - Version >= 2.39.0] ConfigurationError: Error in Rez configuration under plugins.shell [\#688](https://github.com/AcademySoftwareFoundation/rez/issues/688)
 
 
-## 2.40.0 (2019-08-07)
+## v2.40.0 (2019-08-07)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.40.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.39.0...2.40.0)
 
 **Notes**
@@ -2180,7 +2240,7 @@ Fixes regression introduced in v2.39.0.
 - zsh plugin for rez [\#451](https://github.com/AcademySoftwareFoundation/rez/issues/451)
 
 
-## 2.39.0 (2019-08-07)
+## v2.39.0 (2019-08-07)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.39.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.38.2...2.39.0)
 
 **Notes**
@@ -2198,7 +2258,7 @@ Fixes regression introduced in v2.39.0.
 - Add shell plugin for poweshell 6+ [\#678](https://github.com/AcademySoftwareFoundation/rez/issues/678)
 
 
-## 2.38.2 (2019-07-23)
+## v2.38.2 (2019-07-23)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.38.2) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.38.1...2.38.2)
 
 **Notes**
@@ -2214,7 +2274,7 @@ Fixes regression in 2.38.0 that unintentionally renamed _rez_fwd tool to _rez-fw
 - build scripts generated with incorrect shebang arg [\#671](https://github.com/AcademySoftwareFoundation/rez/issues/671)
 
 
-## 2.38.1 (2019-07-20)
+## v2.38.1 (2019-07-20)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.38.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.38.0...2.38.1)
 
 **Notes**
@@ -2226,7 +2286,7 @@ Fixes issue on Windows where rez-bind'ing pip creates a broken package.
 - [Fix] Windows rez-bind pip [\#659](https://github.com/AcademySoftwareFoundation/rez/pull/659) ([lambdaclan](https://github.com/lambdaclan))
 
 
-## 2.38.0 (2019-07-20)
+## v2.38.0 (2019-07-20)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/2.38.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/2.37.1...2.38.0)
 
 **Notes**
@@ -2247,7 +2307,7 @@ Updates the installer (install.py).
 - Installer updates [\#662](https://github.com/AcademySoftwareFoundation/rez/pull/662) ([nerdvegas](https://github.com/nerdvegas))
 
 
-## [2.37.1](https://github.com/AcademySoftwareFoundation/rez/tree/2.37.1) (2019-07-20)
+## 2.37.1 (2019-07-20)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.37.0...2.37.1)
 
 **Notes**
@@ -2262,7 +2322,7 @@ object, it now returns a list of graph objects.
 - Fix pydot regression [\#668](https://github.com/AcademySoftwareFoundation/rez/pull/668) ([nerdvegas](https://github.com/nerdvegas))
 
 
-## [2.37.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.37.0) (2019-07-19)
+## v2.37.0 (2019-07-19)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.36.2...2.37.0)
 
 **Notes**
@@ -2275,7 +2335,7 @@ https://docs.microsoft.com/en-us/powershell/
 - Implement PowerShell [\#644](https://github.com/AcademySoftwareFoundation/rez/pull/644) ([mottosso](https://github.com/mottosso))
 
 
-## [2.36.2](https://github.com/AcademySoftwareFoundation/rez/tree/2.36.2) (2019-07-16)
+## v2.36.2 (2019-07-16)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.36.1...2.36.2)
 
 **Merged pull requests:**
@@ -2283,7 +2343,7 @@ https://docs.microsoft.com/en-us/powershell/
 - [Feature] Pure python package detection [\#628](https://github.com/AcademySoftwareFoundation/rez/pull/628) ([lambdaclan](https://github.com/lambdaclan))
 
 
-## [2.36.1](https://github.com/AcademySoftwareFoundation/rez/tree/2.36.1) (2019-07-16)
+## v2.36.1 (2019-07-16)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.36.0...2.36.1)
 
 **Merged pull requests:**
@@ -2291,7 +2351,7 @@ https://docs.microsoft.com/en-us/powershell/
 - [Fix] Sh failing in `test_shells.TeshShells.text_rex_code_alias` [\#663](https://github.com/AcademySoftwareFoundation/rez/pull/663) ([bfloch](https://github.com/bfloch))
 
 
-## [2.36.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.36.0) (2019-07-16)
+## v2.36.0 (2019-07-16)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.35.0...2.36.0)
 
 **Merged pull requests:**
@@ -2303,7 +2363,7 @@ https://docs.microsoft.com/en-us/powershell/
 - Support "additive" preprocess functions [\#609](https://github.com/AcademySoftwareFoundation/rez/issues/609)
 
 
-## [2.35.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.35.0) (2019-07-10)
+## v2.35.0 (2019-07-10)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.34.0...2.35.0)
 
 **Backwards Compatibility Issues**
@@ -2321,7 +2381,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Shell history not working in cmd.exe or PowerShell [\#616](https://github.com/AcademySoftwareFoundation/rez/issues/616)
 
 
-## [2.34.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.34.0) (2019-07-10)
+## v2.34.0 (2019-07-10)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.33.0...2.34.0)
 
 **Merged pull requests:**
@@ -2329,7 +2389,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - [Fix] Wheel pip regressions [\#656](https://github.com/AcademySoftwareFoundation/rez/pull/656) ([lambdaclan](https://github.com/lambdaclan))
 
 
-## [2.33.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.33.0) (2019-06-26)
+## v2.33.0 (2019-06-26)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.32.1...2.33.0)
 
 **Merged pull requests:**
@@ -2338,7 +2398,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - [WIP] Feature/pip install modern [\#602](https://github.com/AcademySoftwareFoundation/rez/pull/602) ([lambdaclan](https://github.com/lambdaclan))
 
 
-## [2.32.1](https://github.com/AcademySoftwareFoundation/rez/tree/2.32.1) (2019-06-24)
+## v2.32.1 (2019-06-24)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.32.0...2.32.1)
 
 **Merged pull requests:**
@@ -2347,7 +2407,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Fix escaping backslashes in tcsh on Mac OS [\#497](https://github.com/AcademySoftwareFoundation/rez/pull/497) ([skral](https://github.com/skral))
 
 
-## [2.32.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.32.0) (2019-06-23)
+## v2.32.0 (2019-06-23)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.31.4...2.32.0)
 
 **Merged pull requests:**
@@ -2355,7 +2415,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Implement preprocess function support for rezconfig.py (takeover) [\#650](https://github.com/AcademySoftwareFoundation/rez/pull/650) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
 
 
-## [2.31.4](https://github.com/AcademySoftwareFoundation/rez/tree/2.31.4) (2019-06-22)
+## v2.31.4 (2019-06-22)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.31.3...2.31.4)
 
 **Merged pull requests:**
@@ -2363,7 +2423,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Expose Python standard module __file__ and __name__ to rezconfig [\#636](https://github.com/AcademySoftwareFoundation/rez/pull/636) ([mottosso](https://github.com/mottosso))
 
 
-## [2.31.3](https://github.com/AcademySoftwareFoundation/rez/tree/2.31.3) (2019-06-22)
+## v2.31.3 (2019-06-22)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.31.2...2.31.3)
 
 **Merged pull requests:**
@@ -2371,7 +2431,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Bugfix for alias() on Windows [\#607](https://github.com/AcademySoftwareFoundation/rez/pull/607) ([mottosso](https://github.com/mottosso))
 
 
-## [2.31.2](https://github.com/AcademySoftwareFoundation/rez/tree/2.31.2) (2019-06-22)
+## v2.31.2 (2019-06-22)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.31.1...2.31.2)
 
 **Merged pull requests:**
@@ -2383,7 +2443,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - rez-build breaks if "|" in a required package's version on Windows [\#558](https://github.com/AcademySoftwareFoundation/rez/issues/558)
 
 
-## [2.31.1](https://github.com/AcademySoftwareFoundation/rez/tree/2.31.1) (2019-06-18)
+## v2.31.1 (2019-06-18)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.31.0...2.31.1)
 
 **Merged pull requests:**
@@ -2391,7 +2451,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Automatically create missing package repository dir [\#623](https://github.com/AcademySoftwareFoundation/rez/pull/623) ([mottosso](https://github.com/mottosso))
 
 
-## [2.31.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.31.0) (2019-06-04)
+## v2.31.0 (2019-06-04)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.30.2...2.31.0)
 
 **Merged pull requests:**
@@ -2399,7 +2459,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Fix/add support for reversed version range [\#618](https://github.com/AcademySoftwareFoundation/rez/pull/618) ([instinct-vfx](https://github.com/instinct-vfx))
 
 
-## [2.30.2](https://github.com/AcademySoftwareFoundation/rez/tree/2.30.2) (2019-06-03)
+## v2.30.2 (2019-06-03)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.30.1...2.30.2)
 
 **Merged pull requests:**
@@ -2407,7 +2467,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Update print statements to be Python 3 compatible [\#641](https://github.com/AcademySoftwareFoundation/rez/pull/641) ([bpabel](https://github.com/bpabel))
 
 
-## [2.30.1](https://github.com/AcademySoftwareFoundation/rez/tree/2.30.1) (2019-06-03)
+## v2.30.1 (2019-06-03)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.30.0...2.30.1)
 
 **Merged pull requests:**
@@ -2415,7 +2475,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - WIP Fix file permissions of package.py on Windows [\#598](https://github.com/AcademySoftwareFoundation/rez/pull/598) ([mottosso](https://github.com/mottosso))
 
 
-## [2.30.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.30.0) (2019-05-07)
+## v2.30.0 (2019-05-07)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.29.1...2.30.0)
 
 **Merged pull requests:**
@@ -2431,7 +2491,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - "parse_build_args.py" file parser arguments are not accessible anymore in "os.environ". [\#590](https://github.com/AcademySoftwareFoundation/rez/issues/590)
 
 
-## [2.29.1](https://github.com/AcademySoftwareFoundation/rez/tree/2.29.1) (2019-04-22)
+## v2.29.1 (2019-04-22)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.29.0...2.29.1)
 
 **Merged pull requests:**
@@ -2443,7 +2503,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - bug in rez-build --bs option [\#604](https://github.com/AcademySoftwareFoundation/rez/issues/604)
 
 
-## [2.29.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.29.0) (2019-04-09)
+## v2.29.0 (2019-04-09)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.28.0...2.29.0)
 
 **Implemented enhancements:**
@@ -2455,7 +2515,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - rez variant environment var during build [\#304](https://github.com/AcademySoftwareFoundation/rez/issues/304)
 
 
-## [2.28.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.28.0) (2019-03-15)
+## v2.28.0 (2019-03-15)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.27.1...2.28.0)
 
 **Fixed bugs:**
@@ -2470,7 +2530,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Call the flush method every time a Printer instance is called [\#540](https://github.com/AcademySoftwareFoundation/rez/pull/540) ([rodeofx](https://github.com/rodeofx))
 
 
-## [2.27.1](https://github.com/AcademySoftwareFoundation/rez/tree/2.27.1) (2019-03-15)
+## v2.27.1 (2019-03-15)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.27.0...2.27.1)
 
 **Merged pull requests:**
@@ -2478,7 +2538,7 @@ be on the lookout for unintended side effects and report them if they arise.
 - Delete old repository directory [\#576](https://github.com/AcademySoftwareFoundation/rez/pull/576) ([bpabel](https://github.com/bpabel))
 
 
-## [2.27.0](https://github.com/AcademySoftwareFoundation/rez/tree/2.27.0) (2019-01-24)
+## v2.27.0 (2019-01-24)
 [Full Changelog](https://github.com/AcademySoftwareFoundation/rez/compare/2.26.4...2.27.0)
 
 **Implemented enhancements:**
@@ -2497,25 +2557,29 @@ be on the lookout for unintended side effects and report them if they arise.
 - Issue 563 [\#566](https://github.com/AcademySoftwareFoundation/rez/pull/566) ([nerdvegas](https://github.com/nerdvegas))
 
 
-## 2.26.4 [[#562](https://github.com/AcademySoftwareFoundation/rez/pull/562)] Fixed Regression in 2.24.0
+## v2.26.4
+
+Fixed Regression in 2.24.0
 
 ### Addressed Issues
 
-* [#561](https://github.com/AcademySoftwareFoundation/rez/issues/561) timestamp not written to installed package
+* [#561](https://github.com/AcademySoftwareFoundation/rez/issues/561) timestamp not written to installed package [\#562](https://github.com/AcademySoftwareFoundation/rez/pull/562)
 
 
-## 2.26.3 [[#560](https://github.com/AcademySoftwareFoundation/rez/pull/560)] Package.py permissions issue
+## v2.26.3
 
 ### Addressed Issues
 
-* [#559](https://github.com/AcademySoftwareFoundation/rez/issues/559) package.py permissions issue
+* [#559](https://github.com/AcademySoftwareFoundation/rez/issues/559) package.py permissions issue [\#560](https://github.com/AcademySoftwareFoundation/rez/pull/560)
 
 ### Notes
 
 Fixes issue where installed `package.py` can be set to r/w for only the current user.
 
 
-## 2.26.2 [[#557](https://github.com/AcademySoftwareFoundation/rez/pull/557)] Package Copy Fixes For Non-Varianted Packages
+## v2.26.2
+
+Package Copy Fixes For Non-Varianted Packages. See [\#557](https://github.com/AcademySoftwareFoundation/rez/pull/557).
 
 ### Addressed Issues
 
@@ -2528,11 +2592,13 @@ Fixes issue where installed `package.py` can be set to r/w for only the current 
 There were various minor issues related to copying non-varianted packages.
 
 
-## 2.26.1 [[#552](https://github.com/AcademySoftwareFoundation/rez/pull/552)] Bugfix in Package Copy
+## v2.26.1
+
+Bugfix in Package Copy
 
 ### Addressed Issues
 
-* [#551](https://github.com/AcademySoftwareFoundation/rez/issues/551) package copy fails if symlinks in root dir
+* [#551](https://github.com/AcademySoftwareFoundation/rez/issues/551) package copy fails if symlinks in root dir [\#552](https://github.com/AcademySoftwareFoundation/rez/pull/552)
 
 ### Notes
 
@@ -2540,12 +2606,14 @@ This was failing when symlinks were present within a non-varianted package being
 symlinks are retained in the target package, unless `--follow-symlinks` is specified.
 
 
-## 2.26.0 [[#550](https://github.com/AcademySoftwareFoundation/rez/pull/550)] Build System Detection Fixes
+## v2.26.0
+
+Build System Detection Fixes
 
 ### Addressed Issues
 
 * [#549](https://github.com/AcademySoftwareFoundation/rez/issues/549) '--build-system' rez-build option not always
-  available
+  available [\#550](https://github.com/AcademySoftwareFoundation/rez/pull/550)
 
 ### Notes
 
@@ -2562,7 +2630,9 @@ one valid build system was present for a given package working directory. **This
 changed to '--cmake-build-system'**.
 
 
-## 2.25.0 [[#548](https://github.com/AcademySoftwareFoundation/rez/pull/548)] Various Build-related issues
+## v2.25.0
+
+Various Build-related issues [\#548](https://github.com/AcademySoftwareFoundation/rez/pull/548)
 
 ### Addressed Issues
 
@@ -2598,7 +2668,7 @@ payload were expanded out to their source files at copy time. The default now is
 intact - but hte previous behavior can still be accessed with the rez-cp --follow-symlinks option.
 
 
-## 2.24.0: Package Copying
+## v2.24.0
 
 This release adds a new tool, rez-cp, for copying packages/variants from one package repository to
 another, with optional renaming/reversioning. The associated API can be found in src/package_copy.py.
@@ -2617,7 +2687,9 @@ another, with optional renaming/reversioning. The associated API can be found in
 * File lock is no longer created when variant installation happens in dry mode.
 
 
-## 2.23.1: Fixed Regression in 2.20.0
+## v2.23.1
+
+Fixed Regression in 2.20.0
 
 ### Addressed Issues
 
@@ -2628,7 +2700,9 @@ another, with optional renaming/reversioning. The associated API can be found in
 Bug was introduced in: https://github.com/AcademySoftwareFoundation/rez/releases/tag/2.20.0
 
 
-## 2.23.0: Package Usage Tracking, Better Config Overrides
+## v2.23.0
+
+Package Usage Tracking, Better Config Overrides
 
 ### Addressed Issues
 
@@ -2651,7 +2725,9 @@ For more details: https://github.com/AcademySoftwareFoundation/rez/blob/master/s
 The embedded simplejson lib was removed. The native json lib is used instead, and for cases where loads-without-unicoding-everything is needed, utils/json.py now addresses that instead.
 
 
-## 2.22.1: Stdin-related fixes
+## v2.22.1
+
+Stdin-related fixes
 
 ### Addressed Issues
 
@@ -2659,7 +2735,9 @@ The embedded simplejson lib was removed. The native json lib is used instead, an
 * #526
 
 
-## 2.22.0: Search API
+## v2.22.0:
+
+Search API
 
 PR: #213
 
@@ -2669,12 +2747,16 @@ Package/variant/family search API is now available in package_search.py. This gi
 functionality as provided by the rez-search CLI tool.
 
 
-## 2.21.0: Added mingw as a rez build_system for cmake
+## v2.21.0
+
+Added mingw as a rez build_system for cmake
 
 PR: #501
 
 
-## 2.20.1: Windows Fixes
+## v2.20.1
+
+Windows Fixes
 
 ### Merged PRs
 
@@ -2690,7 +2772,9 @@ PR: #501
 * #481
 
 
-## 2.20.0: Better CLI Arg Parsing
+## v2.20.0
+
+Better CLI Arg Parsing
 
 PR: #523
 
@@ -2708,7 +2792,9 @@ accepted rez-env-style commands (eg rez-env pkgA -- somecommand -- i am ignored)
 extraneous args after -- tokens.
 
 
-## 2.19.1: Fixed bug with rez-build and package preprocess
+## v2.19.1
+
+Fixed bug with rez-build and package preprocess
 
 ### Merged PRs
 

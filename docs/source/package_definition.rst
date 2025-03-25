@@ -290,6 +290,7 @@ is ``True``:
 * **context**: the :class:`~rez.resolved_context.ResolvedContext` instance this package belongs to;
 * **system**: see :attr:`system`;
 * **building**: see :attr:`building`;
+* **testing**: see :attr:`testing`;
 * **request**: see :attr:`request`;
 * **implicits**: see :attr:`implicits`.
 
@@ -854,13 +855,14 @@ the data type, and includes a code snippet.
 
       tests = {
          "unit": "python -m unittest discover -s {root}/python/tests",
+         "unit-as-list": ["python", "-m", "unittest", "discover", "-s", "{root}/python/tests"],
          "lint": {
                "command": "pylint mymodule",
                "requires": ["pylint"],
                "run_on": ["default", "pre_release"]
          },
          "maya_CI": {
-               "command": "python {root}/ci_tests/maya.py",
+               "command": ["python", "{root}/ci_tests/maya.py"],
                "on_variants": {
                   "type": "requires",
                   "value": ["maya"]

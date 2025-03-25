@@ -394,7 +394,9 @@ class PackageTestRunner(object):
             if isinstance(command, str):
                 command = variant.format(command)
             else:
-                command = map(variant.format, command)
+                # Note that we convert the iterator to a list to
+                # make sure that we can consume the variable more than once.
+                command = [x for x in map(variant.format, command)]
 
             if extra_test_args:
                 if isinstance(command, str):
@@ -601,6 +603,7 @@ class PackageTestRunner(object):
                     package_paths=self.package_paths,
                     buf=(f if quiet else None),
                     timestamp=self.timestamp,
+                    testing=True,
                     **self.context_kwargs
                 )
 
