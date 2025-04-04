@@ -652,7 +652,7 @@ class TestShells(TestBase, TempdirMixin):
             with open(exe_path, 'w'):
                 config.override(override_attr, exe_path)
                 assert cls.find_executable(cls.executable_name()) == exe_path
-        
+
 
 if __name__ == '__main__':
     unittest.main()
