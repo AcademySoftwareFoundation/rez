@@ -240,12 +240,13 @@ No longer needed in rez itself, but still used by other vendored modules.
 <tr><td>
 yaml (PyYAML)
 </td><td>
-5.1 (May 30, 2011)
+6.0.1 (July 17, 2023)
 </td><td>
 MIT
 </td><td>
 https://github.com/yaml/pyyaml<br>
-No changes.
+No changes. Bounded to 6.0.1 by current py3.7.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 </table>
