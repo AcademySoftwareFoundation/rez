@@ -161,12 +161,13 @@ https://github.com/pika/pika
 <tr><td>
 progress
 </td><td>
-1.5 (Mar 6, 2019)
+1.6 (July 28, 2021)
 </td><td>
 ISC
 </td><td>
 https://github.com/verigak/progress<br>
-Upgraded from 1.2 to 1.5 as of Oct 16 2019
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
