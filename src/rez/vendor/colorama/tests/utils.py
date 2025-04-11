@@ -4,7 +4,6 @@ from io import StringIO
 import sys
 import os
 
-from rez.vendor.mock import Mock
 
 class StreamTTY(StringIO):
     def isatty(self):
@@ -20,14 +19,6 @@ def osname(name):
     os.name = name
     yield
     os.name = orig
-
-@contextmanager
-def redirected_output():
-    orig = sys.stdout
-    sys.stdout = Mock()
-    sys.stdout.isatty = lambda: False
-    yield
-    sys.stdout = orig
 
 @contextmanager
 def replace_by(stream):
