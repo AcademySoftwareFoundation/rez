@@ -62,7 +62,7 @@ Added (July 2019) to enable the use of packaging lib that depends on it.
 <tr><td>
 colorama
 </td><td>
-0.4.1 (Nov 25, 2018)
+0.4.6 (Oct 24, 2022)
 </td><td>
 BSD 3-Clause
 </td><td>
