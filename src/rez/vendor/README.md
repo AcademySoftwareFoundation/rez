@@ -238,26 +238,14 @@ Also now required to support py2/3 interoperability.
 
 <!-- ######################################################### -->
 <tr><td>
-yaml lib (PyYAML)
+yaml (PyYAML)
 </td><td>
 5.1 (May 30, 2011)
 </td><td>
 MIT
 </td><td>
 https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
-yaml lib3 (PyYAML)
-</td><td>
-5.1 (May 30, 2011)
-</td><td>
-MIT
-</td><td>
-https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
+No changes.
 </td></tr>
 
 </table>
