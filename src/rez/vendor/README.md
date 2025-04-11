@@ -39,11 +39,13 @@ Our version is patched.
 <tr><td>
 atomicwrites
 </td><td>
-1.2.1 (Aug 30, 2018)
+1.4.1 (Jul 8, 2022)
 </td><td>
 MIT
 </td><td>
-https://github.com/untitaker/python-atomicwrites
+https://github.com/untitaker/python-atomicwrites<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
