@@ -67,6 +67,8 @@ colorama
 BSD 3-Clause
 </td><td>
 https://github.com/tartley/colorama<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
@@ -85,11 +87,13 @@ Updated (June 2019) to enable wheel distribution based installations.
 <tr><td>
 distro
 </td><td>
-1.5.0 (Mar 31, 2020)
+1.9.0 (Dec 24, 2023)
 </td><td>
 Apache 2.0
 </td><td>
-https://github.com/python-distro/distro
+https://github.com/python-distro/distro<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
