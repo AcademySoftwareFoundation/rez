@@ -65,12 +65,12 @@ Updated (April 2025) to help address py3.12 update.
 <tr><td>
 distlib
 </td><td>
-0.2.9.post0 (May 14, 2019)
+0.3.9 (Oct 29, 2024)
 </td><td>
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 </td><td>
 https://bitbucket.org/pypa/distlib/src/master/<br>
-Updated (June 2019) to enable wheel distribution based installations.
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
