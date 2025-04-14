@@ -177,7 +177,7 @@ class RezPluginType(object):
                         if plugin_class is not None:
                             self.register_plugin(plugin_name,
                                                  plugin_class,
-                                                 plugin_module)     
+                                                 plugin_module)
                         else:
                             if config.debug("plugins"):
                                 print_warning(
