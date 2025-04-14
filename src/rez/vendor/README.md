@@ -50,18 +50,6 @@ Updated (April 2025) to help address py3.12 update.
 
 <!-- ######################################################### -->
 <tr><td>
-attrs
-</td><td>
-19.1.0 (Mar 3, 2019)
-</td><td>
-MIT
-</td><td>
-https://github.com/python-attrs/attrs<br>
-Added (July 2019) to enable the use of packaging lib that depends on it.
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
 colorama
 </td><td>
 0.4.6 (Oct 24, 2022)
