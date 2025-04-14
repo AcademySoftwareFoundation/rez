@@ -39,57 +39,51 @@ Our version is patched.
 <tr><td>
 atomicwrites
 </td><td>
-1.2.1 (Aug 30, 2018)
+1.4.1 (Jul 8, 2022)
 </td><td>
 MIT
 </td><td>
-https://github.com/untitaker/python-atomicwrites
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
-attrs
-</td><td>
-19.1.0 (Mar 3, 2019)
-</td><td>
-MIT
-</td><td>
-https://github.com/python-attrs/attrs<br>
-Added (July 2019) to enable the use of packaging lib that depends on it.
+https://github.com/untitaker/python-atomicwrites<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 colorama
 </td><td>
-0.4.1 (Nov 25, 2018)
+0.4.6 (Oct 24, 2022)
 </td><td>
 BSD 3-Clause
 </td><td>
 https://github.com/tartley/colorama<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 distlib
 </td><td>
-0.2.9.post0 (May 14, 2019)
+0.3.9 (Oct 29, 2024)
 </td><td>
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 </td><td>
 https://bitbucket.org/pypa/distlib/src/master/<br>
-Updated (June 2019) to enable wheel distribution based installations.
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 distro
 </td><td>
-1.5.0 (Mar 31, 2020)
+1.9.0 (Dec 24, 2023)
 </td><td>
 Apache 2.0
 </td><td>
-https://github.com/python-distro/distro
+https://github.com/python-distro/distro<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
@@ -161,12 +155,13 @@ https://github.com/pika/pika
 <tr><td>
 progress
 </td><td>
-1.5 (Mar 6, 2019)
+1.6 (July 28, 2021)
 </td><td>
 ISC
 </td><td>
 https://github.com/verigak/progress<br>
-Upgraded from 1.2 to 1.5 as of Oct 16 2019
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
@@ -227,37 +222,26 @@ Our version is patched.
 <tr><td>
 six
 </td><td>
-1.12.0 (Dec 9, 2018)
+1.17.0 (Dec 4, 2024)
 </td><td>
 MIT
 </td><td>
 https://github.com/benjaminp/six<br>
-Updated (July 2019) to coincide with packaging lib addition that depends on.
-Also now required to support py2/3 interoperability.
+Updated (April 2025) to help address py3.12 update.<br>
+No longer needed in rez itself, but still used by other vendored modules.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
-yaml lib (PyYAML)
+yaml (PyYAML)
 </td><td>
-5.1 (May 30, 2011)
-</td><td>
-MIT
-</td><td>
-https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
-yaml lib3 (PyYAML)
-</td><td>
-5.1 (May 30, 2011)
+6.0.1 (July 17, 2023)
 </td><td>
 MIT
 </td><td>
 https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
+No changes. Bounded to 6.0.1 by current py3.7.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 </table>

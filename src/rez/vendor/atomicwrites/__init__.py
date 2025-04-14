@@ -9,7 +9,13 @@ try:
 except ImportError:
     fcntl = None
 
-__version__ = '1.2.1'
+# `fspath` was added in Python 3.6
+try:
+    from os import fspath
+except ImportError:
+    fspath = None
+
+__version__ = '1.4.1'
 
 
 PY2 = sys.version_info[0] == 2
@@ -86,6 +92,7 @@ def replace_atomic(src, dst):
     '''
     Move ``src`` to ``dst``. If ``dst`` exists, it will be silently
     overwritten.
+
     Both paths must reside on the same filesystem for the operation to be
     atomic.
     '''
@@ -97,6 +104,7 @@ def move_atomic(src, dst):
     Move ``src`` to ``dst``. There might a timewindow where both filesystem
     entries exist. If ``dst`` already exists, :py:exc:`FileExistsError` will be
     raised.
+
     Both paths must reside on the same filesystem for the operation to be
     atomic.
     '''
@@ -106,14 +114,20 @@ def move_atomic(src, dst):
 class AtomicWriter(object):
     '''
     A helper class for performing atomic writes. Usage::
+
         with AtomicWriter(path).open() as f:
             f.write(...)
+
     :param path: The destination filepath. May or may not exist.
     :param mode: The filemode for the temporary file. This defaults to `wb` in
         Python 2 and `w` in Python 3.
     :param overwrite: If set to false, an error is raised if ``path`` exists.
         Errors are only raised after the file has been written to.  Either way,
         the operation is atomic.
+    :param open_kwargs: Keyword-arguments to pass to the underlying
+        :py:func:`open` call. This can be used to set the encoding when opening
+        files in text-mode.
+
     If you need further control over the exact behavior, you are encouraged to
     subclass.
     '''
@@ -131,6 +145,10 @@ class AtomicWriter(object):
             raise ValueError('Use the `overwrite`-parameter instead.')
         if 'w' not in mode:
             raise ValueError('AtomicWriters can only be written to.')
+
+        # Attempt to convert `path` to `str` or `bytes`
+        if fspath is not None:
+            path = fspath(path)
 
         self._path = path
         self._mode = mode
@@ -160,11 +178,13 @@ class AtomicWriter(object):
                 except Exception:
                     pass
 
-    def get_fileobject(self, dir=None, **kwargs):
+    def get_fileobject(self, suffix="", prefix=tempfile.gettempprefix(),
+                       dir=None, **kwargs):
         '''Return the temporary file to use.'''
         if dir is None:
             dir = os.path.normpath(os.path.dirname(self._path))
-        descriptor, name = tempfile.mkstemp(dir=dir)
+        descriptor, name = tempfile.mkstemp(suffix=suffix, prefix=prefix,
+                                            dir=dir)
         # io.open() will take either the descriptor or the name, but we need
         # the name later for commit()/replace_atomic() and couldn't find a way
         # to get the filename from the descriptor.
@@ -194,12 +214,15 @@ class AtomicWriter(object):
 def atomic_write(path, writer_cls=AtomicWriter, **cls_kwargs):
     '''
     Simple atomic writes. This wraps :py:class:`AtomicWriter`::
+
         with atomic_write(path) as f:
             f.write(...)
+
     :param path: The target path to write to.
     :param writer_cls: The writer class to use. This parameter is useful if you
         subclassed :py:class:`AtomicWriter` to change some behavior and want to
         use that new subclass.
+
     Additional keyword arguments are passed to the writer class. See
     :py:class:`AtomicWriter`.
     '''
