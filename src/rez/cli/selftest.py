@@ -2,9 +2,9 @@
 # Copyright Contributors to the Rez Project
 
 
-'''
+"""
 Run unit tests. Use pytest if available.
-'''
+"""
 
 import os
 import sys
@@ -15,6 +15,7 @@ from pkgutil import iter_modules
 
 try:
     import pytest  # noqa
+
     use_pytest = True
 except ImportError:
     use_pytest = False
@@ -22,22 +23,28 @@ except ImportError:
 
 cli_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 src_rez_dir = os.path.dirname(cli_dir)
-tests_dir = os.path.join(src_rez_dir, 'tests')
+tests_dir = os.path.join(src_rez_dir, "tests")
 
 all_module_tests = []
 
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
-        "tests", metavar="NAMED_TEST", default=[], nargs="*",
+        "tests",
+        metavar="NAMED_TEST",
+        default=[],
+        nargs="*",
         help="a specific test module/class/method to run; may be repeated "
         "multiple times; if no tests are given, through this or other flags, "
-        "all tests are run")
+        "all tests are run",
+    )
     parser.add_argument(
-        "-s", "--only-shell", metavar="SHELL",
+        "-s",
+        "--only-shell",
+        metavar="SHELL",
         help="limit shell-dependent tests to the specified shell. Note: This "
-             "flag shadowed pytest '–capture=no' shorthand '-s', so the long "
-             "name must be used for disabling stdout/err capturing in pytest."
+        "flag shadowed pytest '–capture=no' shorthand '-s', so the long "
+        "name must be used for disabling stdout/err capturing in pytest.",
     )
     parser.add_argument(
         "--keep-tmpdirs", action="store_true", help="Keep temporary directories."
@@ -46,7 +53,7 @@ def setup_parser(parser, completions=False):
     # make an Action that will append the appropriate test to the "--test" arg
     class AddTestModuleAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
-            name = option_string.lstrip('-')
+            name = option_string.lstrip("-")
             if getattr(namespace, "module_tests", None) is None:
                 namespace.module_tests = []
             namespace.module_tests.append(name)
@@ -56,20 +63,28 @@ def setup_parser(parser, completions=False):
     prefix = "test_"
     for importer, name, ispkg in iter_modules([tests_dir]):
         if not ispkg and name.startswith(prefix):
-            module = importer.find_module(name).load_module(name)
-            name_ = name[len(prefix):]
+            module = importer.find_spec(name).loader.load_module(name)
+            name_ = name[len(prefix) :]
             all_module_tests.append(name_)
             tests.append((name_, module))
 
     # create argparse entry for each module's unit test
     for name, module in sorted(tests):
         if not module.__doc__:
-            raise RuntimeError("Module {0!r} doesn't have a docstring. Please add one.".format(module.__file__))
+            raise RuntimeError(
+                "Module {0!r} doesn't have a docstring. Please add one.".format(
+                    module.__file__
+                )
+            )
 
         parser.add_argument(
-            "--%s" % name, action=AddTestModuleAction, nargs=0,
-            dest="module_tests", default=[],
-            help=module.__doc__.strip().rstrip('.'))
+            "--%s" % name,
+            action=AddTestModuleAction,
+            nargs=0,
+            dest="module_tests",
+            default=[],
+            help=module.__doc__.strip().rstrip("."),
+        )
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -132,7 +147,9 @@ def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
         if specifier:
             test_specifications.append(specifier)
 
-    module_tests = [os.path.join(tests_dir, f"test_{x}.py") for x in sorted(module_tests)]
+    module_tests = [
+        os.path.join(tests_dir, f"test_{x}.py") for x in sorted(module_tests)
+    ]
     tests = module_tests + test_specifications
 
     argv = tests[:]
