@@ -64,7 +64,7 @@ def setup_parser(parser, completions=False):
     for importer, name, ispkg in iter_modules([tests_dir]):
         if not ispkg and name.startswith(prefix):
             module = importer.find_spec(name).loader.load_module(name)
-            name_ = name[len(prefix) :]
+            name_ = name[len(prefix):]
             all_module_tests.append(name_)
             tests.append((name_, module))
 
