@@ -2,7 +2,20 @@
 Rez GUI
 =======
 
-Rez GUI can be used to provide a graphical interface to non-technical artists in your studio.
+Rez GUI is for opening context files, re-resolving them, graphically reviewing the diffs,
+making alterations to the context file, graphing your solve, seeing conflicts, etc.
+It’s not intended as an entrypoint into resolves, more like a diagnostic/debug tool that is
+sometimes more user-friendly than interpreting an error on the CLI.
+
+Rez GUI is NOT intended to be a software launcher that can be used by non-technical artists in your studio.
+
+.. image:: _static/rez-gui1.png
+   :align: center
+   :class: rez-diagram
+
+.. image:: _static/rez-gui2.png
+   :align: center
+   :class: rez-diagram
 
 To start, you will need to install either PySide or PyQt. The easiest way to do this is to use
 another Rez command :ref:`rez-pip`.
