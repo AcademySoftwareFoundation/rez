@@ -11,6 +11,9 @@ sometimes more user-friendly than interpreting an error on the CLI.
 Rez GUI is NOT intended to be a software launcher that can be used by non-technical artists
 in your studio.
 
+Reference Images
+================
+
 .. image:: _static/rez-gui1.png
    :align: center
    :class: rez-diagram
@@ -18,6 +21,9 @@ in your studio.
 .. image:: _static/rez-gui2.png
    :align: center
    :class: rez-diagram
+
+Installation
+============
 
 To start, we need to install either PySide or PyQt to Rez's virtual Python environment.
 
