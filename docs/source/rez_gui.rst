@@ -4,10 +4,12 @@ Rez GUI
 
 Rez GUI is for opening context files, re-resolving them, graphically reviewing the diffs,
 making alterations to the context file, graphing your solve, seeing conflicts, etc.
+
 It’s not intended as an entrypoint into resolves, more like a diagnostic/debug tool that is
 sometimes more user-friendly than interpreting an error on the CLI.
 
-Rez GUI is NOT intended to be a software launcher that can be used by non-technical artists in your studio.
+Rez GUI is NOT intended to be a software launcher that can be used by non-technical artists
+in your studio.
 
 .. image:: _static/rez-gui1.png
    :align: center
@@ -17,44 +19,39 @@ Rez GUI is NOT intended to be a software launcher that can be used by non-techni
    :align: center
    :class: rez-diagram
 
-To start, you will need to install either PySide or PyQt. The easiest way to do this is to use
-another Rez command :ref:`rez-pip`.
+To start, we need to install either PySide or PyQt to Rez's virtual Python environment.
 
 .. note::
-   PySide2 is not pip installable for Python 3.7+. Therefore we will install the newer PySide6.
+   The following install instructions have only been tested with Python versions 3.5 to 3.10.
 
-PySide6 does not install correctly with the `rez-pip` that is included with rez. Therefore,
-you will need to install the new `rez-pip` from `here <https://github.com/JeanChristopheMorinPerso/rez-pip.git>`_
+   If you want to use a newer Python version, you will be unable to install PySide2 from PyPi
+   and will need to build from source.
 
-To install PySide6 with the new `rez-pip` on the commandline:
+We have not tested rez-gui with Qt 6 yet, so any following commands will use Qt 5 packages.
 
-.. code-block:: console
-
-   $ rez-pip2 PySide6
-
-This will create a PySide6 rez package that has a dependency on a python package of the same
-version that rez-pip detected.
-
-NOTE: rez-pip cannot create a functioning PySide6 rez package. You must use the new rez-pip.
-
-Next, we will use `rez-bind` to create the `python` package that PySide6 depends on:
+To install PySide2 on the Windows commandline:
 
 .. code-block:: console
 
-   $ rez-bind python
+   $ <path to rez install>/Scripts/pip install PySide2
 
-.. warning::
-    Attempting to rez-bind python on Windows is broken and is a known
-    `issue <https://github.com/AcademySoftwareFoundation/rez/issues/594/>`_.
-
-    As a workaround, we recommend using
-    `this <https://github.com/techartorg/rez_utils/tree/main/rezify_python>`_
-    rewritten python package whose build command can use `winget` to download
-    Python at build time.
-
-Before we can do that, we need to convert
-`rez-gui` into a rez package itself. We can do this with this commandline:
+To install PySide2 on Mac/Linux commandline:
 
 .. code-block:: console
 
-   $ rez-bind rezgui --gui-lib PySide6
+   $ <path to rez install>/bin/pip install PySide2
+
+rez-gui also requires another Python package called ``Qt.py``. This is so that we can use any
+flavor of Qt bindings for Python without changing code.
+
+To install `Qt.py` on the commandline:
+
+.. code-block:: console
+
+   $ <path to rez install>/Scripts/pip install Qt.py
+
+.. code-block:: console
+
+   $ <path to rez install>/bin/pip install Qt.py
+
+Now, rez-gui has all of its dependencies installed, and you can run rez-gui.
