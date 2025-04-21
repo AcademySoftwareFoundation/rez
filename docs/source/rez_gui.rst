@@ -17,10 +17,12 @@ Reference Images
 .. image:: _static/rez-gui1.png
    :align: center
    :class: rez-diagram
+   :target: _static/rez-gui1.png
 
 .. image:: _static/rez-gui2.png
    :align: center
    :class: rez-diagram
+   :target: _static/rez-gui2.png
 
 Installation
 ============
