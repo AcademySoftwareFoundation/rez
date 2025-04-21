@@ -44,11 +44,13 @@ To install PySide2 on Mac/Linux commandline:
 rez-gui also requires another Python package called ``Qt.py``. This is so that we can use any
 flavor of Qt bindings for Python without changing code.
 
-To install `Qt.py` on the commandline:
+To install `Qt.py` on the Windows commandline:
 
 .. code-block:: console
 
    $ <path to rez install>/Scripts/pip install Qt.py
+
+To install `Qt.py` on the Mac/Linux commandline:
 
 .. code-block:: console
 
