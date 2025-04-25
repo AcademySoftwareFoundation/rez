@@ -678,6 +678,10 @@ class PackageOrderList(List[PackageOrder]):
                 self.by_package[package] = orderer
 
     if not TYPE_CHECKING:
+        # Since this class inherits from list it's easier to rely on the type hints coming from
+        # that base class than to redefine them here, so we hide them by placing them behind
+        # not TYPE_CHECKING.
+
         def append(self, *args, **kwargs):
             self.dirty = True
             return super().append(*args, **kwargs)

@@ -29,7 +29,7 @@ from rez.utils.typing import SupportsLessThan, Protocol
 from contextlib import contextmanager
 from enum import Enum
 from itertools import product, chain
-from typing import Any, Callable, Generator, Iterator, TypeVar, TYPE_CHECKING
+from typing import cast, Any, Callable, Generator, Iterator, TypeVar, TYPE_CHECKING
 import copy
 import time
 import sys
@@ -931,8 +931,7 @@ class _PackageVariantSlice(_Common):
             s = "[%s==%s%s]" % (self.package_name, str(variant.version), s_idx)
         elif nversions == 1:
             entry = self.entries[0]
-            # we expect all variants to have a non-None index, but filter to satisfy mypy
-            indexes = sorted([x.index for x in entry.variants if x.index is not None])
+            indexes = cast("list[int]", sorted([x.index for x in entry.variants]))
             s_idx = ','.join(str(x) for x in indexes)
             verstr = str(entry.version)
             s = "[%s==%s[%s]]" % (self.package_name, verstr, s_idx)

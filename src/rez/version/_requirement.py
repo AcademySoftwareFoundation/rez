@@ -252,7 +252,7 @@ class Requirement(_Common):
         """
         return str(self)
 
-    def conflicts_with(self, other: object) -> bool:
+    def conflicts_with(self, other: Requirement | VersionedObject) -> bool:
         """Returns True if this requirement conflicts with another :class:`Requirement`
         or :class:`VersionedObject`.
 
@@ -278,7 +278,7 @@ class Requirement(_Common):
             else:
                 return (other.version_ not in self.range_)
         else:
-            return NotImplemented
+            raise TypeError
 
     def merged(self, other: Requirement) -> Requirement | None:
         """Merge two requirements.
