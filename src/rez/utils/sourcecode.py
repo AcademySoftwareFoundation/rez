@@ -97,20 +97,20 @@ class SourceCode(object):
     'include') and deals with them appropriately.
     """
     def __init__(self, source: str | None = None, func: FunctionType | MethodType | None = None,
-                 filepath=None, eval_as_function: bool = True) -> None:
+                 filepath: str | None = None, eval_as_function: bool = True) -> None:
         self.source = (source or '').rstrip()
         self.func = func
         self.filepath = filepath
         self.eval_as_function = eval_as_function
         self.package = None
 
-        self.funcname = None
-        self.decorators = []
+        self.funcname: str | None = None
+        self.decorators: list[dict] = []
 
         if self.func is not None:
             self._init_from_func()
 
-    def copy(self):
+    def copy(self) -> SourceCode:
         other = SourceCode.__new__(SourceCode)
         other.source = self.source
         other.func = self.func
@@ -154,7 +154,7 @@ class SourceCode(object):
         self.source = code
 
     @cached_property
-    def includes(self):
+    def includes(self) -> set | None:
         info = self._get_decorator_info("include")
         if not info:
             return None
@@ -162,12 +162,12 @@ class SourceCode(object):
         return set(info.get("nargs", []))
 
     @cached_property
-    def late_binding(self):
+    def late_binding(self) -> bool:
         info = self._get_decorator_info("late")
         return bool(info)
 
     @cached_property
-    def evaluated_code(self):
+    def evaluated_code(self) -> str:
         if self.eval_as_function:
             funcname = self.funcname or "_unnamed"
 
@@ -230,7 +230,7 @@ class SourceCode(object):
 
         return globals_.get("_result")
 
-    def to_text(self, funcname):
+    def to_text(self, funcname: str) -> str:
         # don't indent code if already indented
         if self.source[0] in (' ', '\t'):
             source = self.source
@@ -248,7 +248,7 @@ class SourceCode(object):
 
         return txt
 
-    def _get_decorator_info(self, name):
+    def _get_decorator_info(self, name: str) -> dict | None:
         matches = [x for x in self.decorators if x.get("name") == name]
         if not matches:
             return None

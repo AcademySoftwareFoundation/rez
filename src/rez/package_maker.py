@@ -20,7 +20,7 @@ from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.version import Version
 from contextlib import contextmanager
 import os
-from typing import Iterable
+from typing import Iterable, Iterator
 
 
 # this schema will automatically harden request strings like 'python-*'; see
@@ -159,7 +159,7 @@ class PackageMaker(AttrDictWrapper):
 
 @contextmanager
 def make_package(name: str, path: str, make_base=None, make_root=None, skip_existing: bool = True,
-                 warn_on_skip: bool = True):
+                 warn_on_skip: bool = True) -> Iterator[PackageMaker]:
     """Make and install a package.
 
     Example:

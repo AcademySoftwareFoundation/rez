@@ -33,10 +33,10 @@ class DeveloperPackage(Package):
     """
     def __init__(self, resource) -> None:
         super(DeveloperPackage, self).__init__(resource)
-        self.filepath = None
+        self.filepath: str | None = None
 
         # include modules, derived from any present @include decorators
-        self.includes = None
+        self.includes: set[str] | None = None
 
     @property
     def root(self):
@@ -154,7 +154,7 @@ class DeveloperPackage(Package):
         with set_objects(objects):
             return self.from_path(self.root)
 
-    def _validate_includes(self):
+    def _validate_includes(self) -> None:
         if not self.includes:
             return
 

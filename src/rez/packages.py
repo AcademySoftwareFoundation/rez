@@ -700,7 +700,7 @@ def get_developer_package(path: str, format: FileFormat | None = None) -> Develo
     return DeveloperPackage.from_path(path, format=format)
 
 
-def create_package(name: str, data, package_cls=None):
+def create_package(name: str, data, package_cls: type[Package] | None = None) -> Package:
     """Create a package given package data.
 
     Args:
@@ -715,7 +715,8 @@ def create_package(name: str, data, package_cls=None):
     return maker.get_package()
 
 
-def get_variant(variant_handle: ResourceHandle | dict, context=None) -> Variant:
+def get_variant(variant_handle: ResourceHandle | dict,
+                context: ResolvedContext | None = None) -> Variant:
     """Create a variant given its handle (or serialized dict equivalent)
 
     Args:
