@@ -7,7 +7,7 @@ Run tests listed in a package's definition file.
 '''
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "-l", "--list", action="store_true",
         help="list package's tests and exit")
@@ -43,7 +43,7 @@ def setup_parser(parser, completions=False):
         PKG_action.completer = PackageCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.package_test import PackageTestRunner
     from rez.config import config
     import os.path

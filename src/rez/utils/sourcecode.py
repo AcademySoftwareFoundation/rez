@@ -68,7 +68,7 @@ def include(module_name, *module_names):
     return decorated
 
 
-def _add_decorator(fn, name, **kwargs):
+def _add_decorator(fn, name, **kwargs) -> None:
     if not hasattr(fn, "_decorators"):
         setattr(fn, "_decorators", [])
 
@@ -77,7 +77,7 @@ def _add_decorator(fn, name, **kwargs):
 
 
 class SourceCodeError(Exception):
-    def __init__(self, msg, short_msg):
+    def __init__(self, msg, short_msg) -> None:
         super(SourceCodeError, self).__init__(msg)
         self.short_msg = short_msg
 
@@ -97,7 +97,7 @@ class SourceCode(object):
     'include') and deals with them appropriately.
     """
     def __init__(self, source: str | None = None, func: FunctionType | MethodType | None = None,
-                 filepath=None, eval_as_function=True):
+                 filepath=None, eval_as_function: bool = True) -> None:
         self.source = (source or '').rstrip()
         self.func = func
         self.filepath = filepath
@@ -122,7 +122,7 @@ class SourceCode(object):
 
         return other
 
-    def _init_from_func(self):
+    def _init_from_func(self) -> None:
         self.funcname = self.func.__name__
         self.decorators = getattr(self.func, "_decorators", [])
 
@@ -183,7 +183,7 @@ class SourceCode(object):
         return code
 
     @property
-    def sourcename(self):
+    def sourcename(self) -> str:
         if self.filepath:
             filename = self.filepath
         else:
@@ -206,7 +206,7 @@ class SourceCode(object):
 
         return pyc
 
-    def set_package(self, package):
+    def set_package(self, package) -> None:
         # this is needed to load @included modules
         self.package = package
 
@@ -264,7 +264,7 @@ class SourceCode(object):
             "decorators": self.decorators
         }
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         self.source = state["source"]
         self.filepath = state["filepath"]
         self.funcname = state["funcname"]
@@ -280,13 +280,13 @@ class SourceCode(object):
             and other.source == self.source
         )
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not (other == self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.source
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.source)
 
 
@@ -299,7 +299,7 @@ class IncludeModuleManager(object):
     #
     include_modules_subpath = ".rez/include"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.modules = {}
 
     def load_module(self, name, package):

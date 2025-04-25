@@ -2,8 +2,12 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import sys
 import logging
+
+from rez.solver import SupportsWrite
 from rez.vendor import colorama
 
 # Important - we don't want to init Colorama at startup,
@@ -264,7 +268,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         0: notset,
     }
 
-    def __init__(self, stream=None):
+    def __init__(self, stream=None) -> None:
         super(ColorizedStreamHandler, self).__init__(stream)
         self.stream = colorama_wrap(self.stream)
 
@@ -312,7 +316,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
 
 class Printer(object):
-    def __init__(self, buf=sys.stdout):
+    def __init__(self, buf: SupportsWrite = sys.stdout) -> None:
         from rez.config import config  # Avoid circular import
         self.colorize = (
             config.get("color_enabled", False) == "force"
@@ -322,7 +326,7 @@ class Printer(object):
             buf = colorama_wrap(buf)
         self.buf = buf
 
-    def __call__(self, msg='', style=None):
+    def __call__(self, msg='', style=None) -> None:
         print(self.get(msg, style), file=self.buf)
         if hasattr(self.buf, 'flush'):
             self.buf.flush()

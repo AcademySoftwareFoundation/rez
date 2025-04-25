@@ -7,7 +7,7 @@ Manage and query memcache server(s).
 """
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--flush", action="store_true",
         help="flush all cache entries")
@@ -28,7 +28,7 @@ def setup_parser(parser, completions=False):
         help="warm the cache server with visible packages")
 
 
-def poll(client, interval):
+def poll(client, interval) -> None:
     from rez.utils.memcached import Client
     import time
 
@@ -74,7 +74,7 @@ def poll(client, interval):
         time.sleep(interval)
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.config import config
     from rez.packages import iter_package_families, iter_packages
     from rez.utils.yaml import dump_yaml
@@ -124,7 +124,7 @@ def command(opts, parser, extra_arg_groups=None):
         print("memcached servers are stat reset.")
         return
 
-    def _fail():
+    def _fail() -> None:
         print("memcached servers are not responding.", file=sys.stderr)
         sys.exit(1)
 

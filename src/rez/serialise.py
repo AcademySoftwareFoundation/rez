@@ -41,7 +41,7 @@ class FileFormat(Enum):
 
     __order__ = "py,yaml,txt"
 
-    def __init__(self, extension):
+    def __init__(self, extension) -> None:
         self.extension = extension
 
 
@@ -105,7 +105,7 @@ def open_file_for_write(filepath, mode=None):
 
 
 def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
-                   disable_memcache=False):
+                   disable_memcache: bool = False):
     """Load data from a file.
 
     Note:
@@ -276,7 +276,7 @@ class EarlyThis(object):
 
     Just exposes raw package data as object attributes.
     """
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._data = data
 
     def __getattr__(self, attr):
@@ -439,7 +439,7 @@ def load_txt(stream, **kwargs):
     return content
 
 
-def clear_file_caches():
+def clear_file_caches() -> None:
     """Clear any cached files."""
     _load_from_file.forget()
 

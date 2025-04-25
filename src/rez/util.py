@@ -29,7 +29,7 @@ T = TypeVar("T")
 
 
 class ProgressBar(Bar):
-    def __init__(self, label, max):
+    def __init__(self, label, max) -> None:
         from rez.config import config
 
         if config.quiet or not config.show_progress:
@@ -41,7 +41,7 @@ class ProgressBar(Bar):
 
         super(Bar, self).__init__(label, max=max, bar_prefix=' [', bar_suffix='] ')
 
-    def __del__(self):
+    def __del__(self) -> None:
         if self.close_file:
             self.file.close()
         if hasattr(Bar, '__del__'):
@@ -100,7 +100,7 @@ def which(*programs, **shutilwhich_kwargs):
 
 
 # case-insensitive fuzzy string match
-def get_close_matches(term, fields, fuzziness=0.4, key=None):
+def get_close_matches(term, fields, fuzziness: float=0.4, key=None):
     import math
     import difflib
 
@@ -128,7 +128,7 @@ def get_close_matches(term, fields, fuzziness=0.4, key=None):
 
 
 # fuzzy string matching on package names, such as 'boost', 'numpy-3.4'
-def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
+def get_close_pkgs(pkg, pkgs, fuzziness: float=0.4):
     matches = get_close_matches(pkg, pkgs, fuzziness=fuzziness)
     fam_matches = get_close_matches(pkg.split('-')[0], pkgs,
                                     fuzziness=fuzziness,
@@ -155,7 +155,7 @@ def find_last_sublist(list_, sublist):
 
 
 @atexit.register
-def _atexit():
+def _atexit() -> None:
     try:
         from rez.resolved_context import ResolvedContext
         ResolvedContext.tmpdir_manager.clear()
@@ -180,7 +180,7 @@ def get_function_arg_names(func):
     return spec.args + spec.kwonlyargs
 
 
-def load_module_from_file(name, filepath):
+def load_module_from_file(name: str, filepath: str):
     """Load a python module from a sourcefile.
 
     Args:

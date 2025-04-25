@@ -10,7 +10,7 @@ import sys
 from subprocess import call
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     from rez.cli.build import setup_parser_common
     from rez.release_vcs import get_release_vcs_types
 
@@ -40,7 +40,7 @@ def setup_parser(parser, completions=False):
     setup_parser_common(parser)
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.build_process import create_build_process
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs

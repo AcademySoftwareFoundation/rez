@@ -14,12 +14,12 @@ class _TreeNode(QtWidgets.QLabel):
 
     clicked = QtCore.Signal()
 
-    def __init__(self, item, txt, parent=None):
+    def __init__(self, item, txt, parent=None) -> None:
         super(_TreeNode, self).__init__(txt, parent)
         self.item = item
         self.setCursor(QtCore.Qt.PointingHandCursor)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         super(_TreeNode, self).mouseReleaseEvent(event)
         self.clicked.emit()
         if event.button() == QtCore.Qt.LeftButton:
@@ -30,7 +30,7 @@ class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
 
     toolsChanged = QtCore.Signal()
 
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(ContextToolsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -53,7 +53,7 @@ class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
     def num_tools(self):
         return len(self.tool_widgets)
 
-    def refresh(self):
+    def refresh(self) -> None:
         self.clear()
         self.tool_widgets = {}
         context = self.context()
@@ -81,16 +81,16 @@ class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
         self.resizeColumnToContents(0)
         self.toolsChanged.emit()
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         if not flags & (ContextModel.CONTEXT_CHANGED):
             return
         self.refresh()
 
-    def _clear_selection(self):
+    def _clear_selection(self) -> None:
         self.setCurrentIndex(QtCore.QModelIndex())
         self.clearSelection()
 
-    def _instanceCountChanged(self, context_id, tool_name, num_procs):
+    def _instanceCountChanged(self, context_id, tool_name, num_procs) -> None:
         if self.context() is None or context_id != id(self.context()):
             return
 

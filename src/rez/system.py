@@ -263,7 +263,7 @@ class System(object):
         txt += "\n\n%s" % plugin_manager.get_summary_string()
         return txt
 
-    def clear_caches(self, hard=False):
+    def clear_caches(self, hard: bool = False) -> None:
         """Clear all caches in Rez.
 
         Rez caches package contents and iteration during a python session. Thus

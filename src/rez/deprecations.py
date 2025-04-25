@@ -5,7 +5,7 @@
 import warnings
 
 
-def warn(message, category, pre_formatted=False, stacklevel=1, filename=None, **kwargs):
+def warn(message, category, pre_formatted: bool = False, stacklevel: int=1, filename=None, **kwargs) -> None:
     """
     Wrapper around warnings.warn that allows to pass a pre-formatter
     warning message. This allows to warn about things that aren't coming

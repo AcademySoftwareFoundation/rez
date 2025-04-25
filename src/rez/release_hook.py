@@ -46,7 +46,7 @@ class ReleaseHook(object):
         """ Return name of source retriever, eg 'git'"""
         raise NotImplementedError
 
-    def __init__(self, source_path):
+    def __init__(self, source_path) -> None:
         """Create a release hook.
 
         Args:
@@ -59,7 +59,7 @@ class ReleaseHook(object):
 
     def pre_build(self, user, install_path, variants=None, release_message=None,
                   changelog=None, previous_version=None,
-                  previous_revision=None, **kwargs):
+                  previous_revision=None, **kwargs) -> None:
         """Pre-build hook.
 
         Args:
@@ -83,7 +83,7 @@ class ReleaseHook(object):
 
     def pre_release(self, user, install_path, variants=None,
                     release_message=None, changelog=None, previous_version=None,
-                    previous_revision=None, **kwargs):
+                    previous_revision=None, **kwargs) -> None:
         """Pre-release hook.
 
         This is called before any package variants are released.
@@ -109,7 +109,7 @@ class ReleaseHook(object):
 
     def post_release(self, user, install_path, variants, release_message=None,
                      changelog=None, previous_version=None,
-                     previous_revision=None, **kwargs):
+                     previous_revision=None, **kwargs) -> None:
         """Post-release hook.
 
         This is called after all package variants have been released.
@@ -135,7 +135,7 @@ class ReleaseHookEvent(Enum):
     pre_release = ("pre-release", "release", "pre_release")
     post_release = ("post-release", "release", "post_release")
 
-    def __init__(self, label, noun, func_name):
+    def __init__(self, label, noun, func_name) -> None:
         self.label = label
         self.noun = noun
         self.__name__ = func_name

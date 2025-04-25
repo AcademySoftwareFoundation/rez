@@ -33,7 +33,7 @@ class _Comparable(_Common):
 
 
 class _ReversedComparable(_Common):
-    def __init__(self, value):
+    def __init__(self, value) -> None:
         self.value = value
 
     def __eq__(self, other: object) -> bool:
@@ -72,7 +72,7 @@ class VersionToken(_Comparable):
     Version tokens are only allowed to contain alphanumerics (any case) and
     underscores.
     """
-    def __init__(self, token: str):
+    def __init__(self, token: str) -> None:
         """
         Args:
             token (str): Token string, eg "rc02"
@@ -108,7 +108,7 @@ class VersionToken(_Comparable):
     def __lt__(self, other):
         return self.less_than(other)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (not self < other) and (not other < self)
 
 
@@ -117,7 +117,7 @@ class NumericToken(VersionToken):
 
     Version token supporting numbers only. Padding is ignored.
     """
-    def __init__(self, token: str):
+    def __init__(self, token: str) -> None:
         if not token.isdigit():
             raise VersionError("Invalid version token: '%s'" % token)
         else:
@@ -150,7 +150,7 @@ class NumericToken(VersionToken):
 
 class _SubToken(_Comparable):
     """Used internally by AlphanumericVersionToken."""
-    def __init__(self, s):
+    def __init__(self, s) -> None:
         self.s = s
         self.n = int(s) if s.isdigit() else None
 
@@ -164,7 +164,7 @@ class _SubToken(_Comparable):
     def __eq__(self, other):
         return (self.s == other.s) and (self.n == other.n)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.s
 
 
@@ -196,7 +196,7 @@ class AlphanumericVersionToken(VersionToken):
     numeric_regex = re.compile("[0-9]+")
     regex = re.compile(r"[a-zA-Z0-9_]+\Z")
 
-    def __init__(self, token: str):
+    def __init__(self, token: str) -> None:
         if token is None:
             # this is a special case used in __next__, and subtokens is always set there
             pass
@@ -287,7 +287,7 @@ class Version(_Comparable):
     """
     inf: Version
 
-    def __init__(self, ver_str: str | None = '', make_token=AlphanumericVersionToken):
+    def __init__(self, ver_str: str | None = '', make_token=AlphanumericVersionToken) -> None:
         """
         Args:
             ver_str (str): Version string.
@@ -452,7 +452,7 @@ Version.inf.tokens = None
 class _LowerBound(_Comparable):
     min: _LowerBound
 
-    def __init__(self, version: Version, inclusive: bool):
+    def __init__(self, version: Version, inclusive: bool) -> None:
         self.version = version
         self.inclusive = inclusive
 
@@ -486,7 +486,7 @@ _LowerBound.min = _LowerBound(Version(), True)
 class _UpperBound(_Comparable):
     inf: _UpperBound
 
-    def __init__(self, version: Version, inclusive: bool):
+    def __init__(self, version: Version, inclusive: bool) -> None:
         self.version = version
         self.inclusive = inclusive
         if not version and not inclusive:
@@ -521,7 +521,7 @@ class _Bound(_Comparable):
 
     def __init__(self, lower: _LowerBound | None = None,
                  upper: _UpperBound | None = None,
-                 invalid_bound_error: bool = True):
+                 invalid_bound_error: bool = True) -> None:
         self.lower = lower or _LowerBound.min
         self.upper = upper or _UpperBound.inf
 
@@ -698,7 +698,7 @@ class _VersionRangeParser(object):
 
     regex = re.compile(version_range_regex, re_flags)
 
-    def __init__(self, input_string: str, make_token, invalid_bound_error=True):
+    def __init__(self, input_string: str, make_token, invalid_bound_error: bool = True) -> None:
         self.make_token = make_token
         self._groups = {}
         self._input_string = input_string
@@ -896,7 +896,7 @@ class VersionRange(_Comparable):
     """
     def __init__(self, range_str: str | None = '',
                  make_token: type[VersionToken] = AlphanumericVersionToken,
-                 invalid_bound_error: bool = True):
+                 invalid_bound_error: bool = True) -> None:
         """
         Args:
             range_str (str): Range string, such as "3", "3+<4.5", "2|6+". The range
@@ -1062,8 +1062,8 @@ class VersionRange(_Comparable):
     def as_span(cls,
                 lower_version: Version | None = None,
                 upper_version: Version | None = None,
-                lower_inclusive=True,
-                upper_inclusive=True):
+                lower_inclusive: bool = True,
+                upper_inclusive: bool = True):
         """Create a range from lower_version..upper_version.
 
         Args:
@@ -1241,7 +1241,7 @@ class VersionRange(_Comparable):
 
     # TODO have this return a new VersionRange instead - this currently breaks
     # VersionRange immutability, and could invalidate __str__.
-    def visit_versions(self, func):
+    def visit_versions(self, func) -> None:
         """Visit each version in the range, and apply a function to each.
 
         This is for advanced usage only.
@@ -1432,7 +1432,7 @@ class _ContainsVersionIterator(Generic[T]):
 
     def __init__(self, range_: VersionRange, iterable: Iterable[T],
                  key: Callable[[T], Version] | None = None,
-                 descending: bool = False, mode=MODE_ALL):
+                 descending: bool = False, mode=MODE_ALL) -> None:
         self.mode = mode
         self.range_ = range_
         self.index: int | None = None

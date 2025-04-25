@@ -77,7 +77,7 @@ class CMakeBuildSystem(BuildSystem):
         return os.path.isfile(os.path.join(path, "CMakeLists.txt"))
 
     @classmethod
-    def bind_cli(cls, parser: argparse.ArgumentParser, group: argparse._ArgumentGroup):
+    def bind_cli(cls, parser: argparse.ArgumentParser, group: argparse._ArgumentGroup) -> None:
         settings = config.plugins.build_system.cmake
         group.add_argument("--bt", "--build-target", dest="build_target",
                            type=str, choices=cls.build_targets,
@@ -89,8 +89,8 @@ class CMakeBuildSystem(BuildSystem):
                            default=settings.build_system,
                            help="set the cmake build system (default: %(default)s).")
 
-    def __init__(self, working_dir: str, opts=None, package=None, write_build_scripts=False,
-                 verbose=False, build_args=[], child_build_args=[]):
+    def __init__(self, working_dir: str, opts=None, package=None, write_build_scripts: bool = False,
+                 verbose: bool = False, build_args=[], child_build_args=[]) -> None:
         super(CMakeBuildSystem, self).__init__(
             working_dir,
             opts=opts,
@@ -115,7 +115,7 @@ class CMakeBuildSystem(BuildSystem):
               install_path: str,
               install: bool = False,
               build_type=BuildType.local) -> BuildResult:
-        def _pr(s):
+        def _pr(s) -> None:
             if self.verbose:
                 print(s)
 
@@ -253,7 +253,7 @@ class CMakeBuildSystem(BuildSystem):
 
     @classmethod
     def _add_build_actions(cls, executor, context, package, variant,
-                           build_type, install, build_path, install_path=None):
+                           build_type, install, build_path, install_path=None) -> None:
         settings = package.config.plugins.build_system.cmake
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
@@ -274,7 +274,7 @@ class CMakeBuildSystem(BuildSystem):
 
 
 def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
-                            install_path=None):
+                            install_path=None) -> None:
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
     package = get_developer_package(working_dir)

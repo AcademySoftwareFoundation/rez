@@ -403,7 +403,7 @@ def _get_overlapped_variant_dirs(src_variant) -> list[str]:
     return list(dirs)
 
 
-def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None):
+def _copy_package_include_modules(src_package, dest_pkg_repo, overrides=None) -> None:
     src_include_modules_path = \
         os.path.join(src_package.base, IncludeModuleManager.include_modules_subpath)
 

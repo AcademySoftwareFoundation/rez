@@ -10,7 +10,7 @@ import os.path
 import sys
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "-s", "--skip-non-relocatable", action="store_true",
@@ -29,7 +29,7 @@ def setup_parser(parser, completions=False):
         help="directory to create bundle in; must not exist")
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.utils.logging_ import print_error
     from rez.bundle_context import bundle_context
     from rez.resolved_context import ResolvedContext

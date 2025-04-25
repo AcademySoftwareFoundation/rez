@@ -55,11 +55,11 @@ class CustomBuildSystem(BuildSystem):
     """
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "custom"
 
     @classmethod
-    def is_valid_root(cls, path, package=None):
+    def is_valid_root(cls, path, package=None) -> bool:
         if package is None:
             try:
                 package = get_developer_package(path)
@@ -68,8 +68,8 @@ class CustomBuildSystem(BuildSystem):
 
         return (getattr(package, "build_command", None) is not None)
 
-    def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
-                 verbose=False, build_args=[], child_build_args=[]):
+    def __init__(self, working_dir, opts=None, package=None, write_build_scripts: bool = False,
+                 verbose: bool = False, build_args=[], child_build_args=[]) -> None:
         super(CustomBuildSystem, self).__init__(
             working_dir,
             opts=opts,
@@ -80,7 +80,7 @@ class CustomBuildSystem(BuildSystem):
             child_build_args=child_build_args)
 
     @classmethod
-    def bind_cli(cls, parser: argparse.ArgumentParser, group: argparse._ArgumentGroup):
+    def bind_cli(cls, parser: argparse.ArgumentParser, group: argparse._ArgumentGroup) -> None:
         """
         Uses a 'parse_build_args.py' file to add options, if found.
         """
@@ -185,7 +185,7 @@ class CustomBuildSystem(BuildSystem):
             install_path=install_path
         )
 
-        def _actions_callback(executor):
+        def _actions_callback(executor) -> None:
             self._add_build_actions(
                 executor,
                 context=context,
@@ -228,7 +228,7 @@ class CustomBuildSystem(BuildSystem):
 
     @classmethod
     def _add_build_actions(cls, executor: RexExecutor, context: ResolvedContext, package, variant,
-                           build_type, install, build_path, install_path=None):
+                           build_type, install, build_path, install_path=None) -> None:
         cls.add_standard_build_actions(
             executor=executor,
             context=context,
@@ -241,7 +241,7 @@ class CustomBuildSystem(BuildSystem):
 
 
 def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
-                            install_path=None):
+                            install_path=None) -> None:
     # This spawns a shell that the user can run the build command in directly
     context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
     package = get_developer_package(working_dir)

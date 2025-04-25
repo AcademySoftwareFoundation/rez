@@ -70,9 +70,9 @@ class Suite(object):
     - Explicitly alias a tool using the `alias_tool` method. This takes
       precedence over context prefix/suffixing.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a suite."""
-        self.load_path = None
+        self.load_path: str | None = None
         self.contexts: dict[str, Context] = {}
         self.next_priority = 1
 
@@ -111,7 +111,7 @@ class Suite(object):
         executor.env.PATH.append(self.tools_path)
         return executor.get_output().strip()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, " ".join(self.context_names))
 
     def context(self, name):
@@ -171,7 +171,7 @@ class Suite(object):
         """
         names = self.context_names
         if in_request:
-            def _in_request(name):
+            def _in_request(name) -> bool:
                 context = self.context(name)
                 packages = set(x.name for x in context.requested_packages(True))
                 return (in_request in packages)
@@ -197,7 +197,7 @@ class Suite(object):
             names = [x for x in names if _in_resolve(x)]
         return names
 
-    def remove_context(self, name: str):
+    def remove_context(self, name: str) -> None:
         """Remove a context from the suite.
 
         Args:
@@ -207,7 +207,7 @@ class Suite(object):
         del self.contexts[name]
         self._flush_tools()
 
-    def set_context_prefix(self, name, prefix):
+    def set_context_prefix(self, name, prefix) -> None:
         """Set a context's prefix.
 
         This will be applied to all wrappers for the tools in this context. For
@@ -222,7 +222,7 @@ class Suite(object):
         data["prefix"] = prefix
         self._flush_tools()
 
-    def remove_context_prefix(self, name):
+    def remove_context_prefix(self, name) -> None:
         """Remove a context's prefix.
 
         Args:
@@ -230,7 +230,7 @@ class Suite(object):
         """
         self.set_context_prefix(name, "")
 
-    def set_context_suffix(self, name, suffix):
+    def set_context_suffix(self, name, suffix) -> None:
         """Set a context's suffix.
 
         This will be applied to all wrappers for the tools in this context. For
@@ -245,7 +245,7 @@ class Suite(object):
         data["suffix"] = suffix
         self._flush_tools()
 
-    def remove_context_suffix(self, name):
+    def remove_context_suffix(self, name) -> None:
         """Remove a context's suffix.
 
         Args:
@@ -253,13 +253,13 @@ class Suite(object):
         """
         self.set_context_suffix(name, "")
 
-    def bump_context(self, name):
+    def bump_context(self, name) -> None:
         """Causes the context's tools to take priority over all others."""
         data = self._context(name)
         data["priority"] = self._next_priority
         self._flush_tools()
 
-    def hide_tool(self, context_name, tool_name):
+    def hide_tool(self, context_name, tool_name) -> None:
         """Hide a tool so that it is not exposed in the suite.
 
         Args:
@@ -273,7 +273,7 @@ class Suite(object):
             hidden_tools.add(tool_name)
             self._flush_tools()
 
-    def unhide_tool(self, context_name, tool_name):
+    def unhide_tool(self, context_name, tool_name) -> None:
         """Unhide a tool so that it may be exposed in a suite.
 
         Note that unhiding a tool doesn't guarantee it can be seen - a tool of
@@ -308,7 +308,7 @@ class Suite(object):
         aliases[tool_name] = tool_alias
         self._flush_tools()
 
-    def unalias_tool(self, context_name, tool_name):
+    def unalias_tool(self, context_name, tool_name) -> None:
         """Deregister an alias for a specific tool.
 
         Args:
@@ -455,7 +455,7 @@ class Suite(object):
             s.next_priority = 1
         return s
 
-    def save(self, path, verbose=False):
+    def save(self, path, verbose: bool = False):
         """Save the suite to disk.
 
         Args:
@@ -565,7 +565,7 @@ class Suite(object):
         suites = [cls.load(x) for x in suite_paths]
         return suites
 
-    def print_info(self, buf=sys.stdout, verbose=False):
+    def print_info(self, buf=sys.stdout, verbose: bool = False) -> None:
         """Prints a message summarising the contents of the suite."""
         _pr = Printer(buf)
 
@@ -604,7 +604,7 @@ class Suite(object):
 
         _pr("\n".join(columnise(rows)))
 
-    def print_tools(self, buf=sys.stdout, verbose=False, context_name=None):
+    def print_tools(self, buf=sys.stdout, verbose: bool = False, context_name=None) -> None:
         """Print table of tools available in the suite.
 
         Args:
@@ -722,7 +722,7 @@ class Suite(object):
         self.next_priority += 1
         return p
 
-    def _flush_tools(self):
+    def _flush_tools(self) -> None:
         self.tools = None
         self.tool_conflicts = None
         self.hidden_tools = None
@@ -736,7 +736,7 @@ class Suite(object):
         raise SuiteError("No such tool %r in context %r"
                          % (tool_name, context_name))
 
-    def _update_tools(self):
+    def _update_tools(self) -> None:
         if self.tools is not None:
             return
         self.tools = {}
@@ -786,7 +786,7 @@ class Suite(object):
 
 
 def _FWD__invoke_suite_tool_alias(context_name, tool_name, prefix_char=None,
-                                  _script=None, _cli_args=None):
+                                  _script=None, _cli_args=None) -> None:
     suite_path = os.path.dirname(os.path.dirname(_script))
     path = os.path.join(suite_path, "contexts", "%s.rxt" % context_name)
     context = ResolvedContext.load(path)

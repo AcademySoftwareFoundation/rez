@@ -31,7 +31,7 @@ class DeveloperPackage(Package):
     This is a package in a source directory that is subsequently built or
     released.
     """
-    def __init__(self, resource):
+    def __init__(self, resource) -> None:
         super(DeveloperPackage, self).__init__(resource)
         self.filepath = None
 
@@ -124,7 +124,7 @@ class DeveloperPackage(Package):
         # py sourcefiles into the package installation
         package.includes = set()
 
-        def visit(d):
+        def visit(d) -> None:
             for k, v in d.items():
                 if isinstance(v, SourceCode):
                     package.includes |= (v.includes or set())

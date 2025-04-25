@@ -7,7 +7,7 @@ Copy a package from one repository to another.
 '''
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--dest-path", metavar="PATH",
         help="package repository destination path. Defaults to the same "
@@ -64,7 +64,7 @@ def setup_parser(parser, completions=False):
         pkg_action.completer = PackageCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     import os
     import sys
 

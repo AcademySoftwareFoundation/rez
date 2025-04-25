@@ -30,14 +30,14 @@ class Client(object):
     - ability to cache None.
     """
     class _Miss(object):
-        def __bool__(self):
+        def __bool__(self) -> bool:
             return False
 
     miss = _Miss()
 
     logger = config.debug_printer("memcache")
 
-    def __init__(self, servers, debug=False):
+    def __init__(self, servers, debug: bool = False) -> None:
         """Create a memcached client.
 
         Args:
@@ -48,11 +48,11 @@ class Client(object):
         """
         self.servers = [servers] if isinstance(servers, str) else servers
         self.key_hasher = self._debug_key_hash if debug else self._key_hash
-        self._client = None
+        self._client: Client_ | None = None
         self.debug = debug
         self.current = ''
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.servers)
 
     @property
@@ -81,7 +81,7 @@ class Client(object):
                 responders.add(server)
         return responders
 
-    def set(self, key, val, time=0, min_compress_len=0):
+    def set(self, key, val, time: int=0, min_compress_len: int=0) -> None:
         """See memcache.Client."""
         if not self.servers:
             return
@@ -120,14 +120,14 @@ class Client(object):
         self.logger("MISS: %s", key)
         return self.miss
 
-    def delete(self, key):
+    def delete(self, key) -> None:
         """See memcache.Client."""
         if self.servers:
             key = self._qualified_key(key)
             hashed_key = self.key_hasher(key)
             self.client.delete(hashed_key)
 
-    def flush(self, hard=False):
+    def flush(self, hard: bool = False) -> None:
         """Drop existing entries from the cache.
 
         Args:
@@ -155,17 +155,17 @@ class Client(object):
         """
         return self._get_stats()
 
-    def reset_stats(self):
+    def reset_stats(self) -> None:
         """Reset the server stats."""
         self._get_stats("reset")
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Disconnect from server(s). Behaviour is undefined after this call."""
         if self.servers and self._client:
             self._client.disconnect_all()
         # print("Disconnected memcached client %s" % str(self))
 
-    def _qualified_key(self, key):
+    def _qualified_key(self, key) -> str:
         """
         Qualify cache key so that:
         * changes to schemas don't break compatibility (cache_interface_version)
@@ -197,7 +197,7 @@ class Client(object):
 
 
 class _ScopedInstanceManager(local):
-    def __init__(self):
+    def __init__(self) -> None:
         self.clients: dict[tuple[tuple, bool], list] = {}
 
     def acquire(self, servers, debug: bool = False) -> tuple[Client, tuple[tuple, bool]]:
@@ -211,7 +211,7 @@ class _ScopedInstanceManager(local):
             self.clients[key] = [client, 1]
             return client, key
 
-    def release(self, key):
+    def release(self, key) -> None:
         entry = self.clients.get(key)
         assert entry
 
@@ -267,8 +267,8 @@ def pool_memcached_connections(func):
     return update_wrapper(wrapper, func)
 
 
-def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
-              min_compress_len=0, debug=False):
+def memcached(servers, key=None, from_cache=None, to_cache=None, time: int=0,
+              min_compress_len: int=0, debug: bool = False):
     """memcached memoization function decorator.
 
     The wrapped function is expected to return a value that is stored to a
@@ -385,7 +385,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
                     return result.result
                 return result
 
-        def forget():
+        def forget() -> None:
             """Forget entries in the cache.
 
             Note that this does not delete entries from a memcached server - that
@@ -403,5 +403,5 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
 
 
 class DoNotCache(object):
-    def __init__(self, result):
+    def __init__(self, result) -> None:
         self.result = result

@@ -66,7 +66,7 @@ class PackageFamily(PackageRepositoryResourceWrapper):
     """
     keys = schema_keys(package_family_schema)
 
-    def __init__(self, resource: PackageFamilyResource):
+    def __init__(self, resource: PackageFamilyResource) -> None:
         _check_class(resource, PackageFamilyResource)
         super(PackageFamily, self).__init__(resource)
 
@@ -87,7 +87,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         "requires": late_requires_schema
     }
 
-    def __init__(self, resource: PackageResource | VariantResource, context: ResolvedContext | None = None):
+    def __init__(self, resource: PackageResource | VariantResource, context: ResolvedContext | None = None) -> None:
         super(PackageBaseResourceWrapper, self).__init__(resource)
         self.context = context
 
@@ -121,7 +121,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         return (self.resource._repository.uid == local_repo.uid)
 
     def print_info(self, buf=None, format_=FileFormat.yaml,
-                   skip_attributes=None, include_release=False):
+                   skip_attributes=None, include_release: bool = False) -> None:
         """Print the contents of the package.
 
         Args:
@@ -212,7 +212,7 @@ class Package(PackageBaseResourceWrapper):
     #: funcs, where ``this`` may be a package or variant.
     is_variant = False
 
-    def __init__(self, resource: PackageResource, context=None):
+    def __init__(self, resource: PackageResource, context=None) -> None:
         _check_class(resource, PackageResource)
         super(Package, self).__init__(resource, context)
 
@@ -350,7 +350,7 @@ class Variant(PackageBaseResourceWrapper):
     #: See :attr:`Package.is_variant`.
     is_variant = True
 
-    def __init__(self, resource: VariantResource, context=None, parent=None):
+    def __init__(self, resource: VariantResource, context=None, parent=None) -> None:
         _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource, context)
         self._parent = parent
@@ -424,7 +424,7 @@ class Variant(PackageBaseResourceWrapper):
             (self.parent.requires or []) + self.variant_requires
         )
 
-    def get_requires(self, build_requires=False, private_build_requires=False
+    def get_requires(self, build_requires: bool = False, private_build_requires: bool = False
                      ) -> list[Requirement]:
         """Get the requirements of the variant.
 
@@ -445,7 +445,7 @@ class Variant(PackageBaseResourceWrapper):
 
         return requires
 
-    def install(self, path, dry_run=False, overrides=None) -> Variant:
+    def install(self, path, dry_run: bool = False, overrides=None) -> Variant:
         """Install this variant into another package repository.
 
         If the package already exists, this variant will be correctly merged
@@ -486,7 +486,7 @@ class PackageSearchPath(object):
 
     For example, $REZ_PACKAGES_PATH refers to a list of repositories.
     """
-    def __init__(self, packages_path):
+    def __init__(self, packages_path) -> None:
         """Create a package repository list.
 
         Args:
@@ -503,7 +503,7 @@ class PackageSearchPath(object):
         for package in iter_packages(name=name, range_=range_, paths=self.paths):
             yield package
 
-    def __contains__(self, package):
+    def __contains__(self, package) -> bool:
         """See if a package is in this list of repositories.
 
         Note:
@@ -863,7 +863,7 @@ def get_last_release_time(name: str, paths: list[str] | None = None) -> int:
     return max_time
 
 
-def get_completions(prefix: str, paths: list[str] | None = None, family_only=False):
+def get_completions(prefix: str, paths: list[str] | None = None, family_only: bool = False):
     """Get autocompletion options given a prefix string.
 
     Example:
@@ -920,20 +920,20 @@ def get_completions(prefix: str, paths: list[str] | None = None, family_only=Fal
 
 
 @overload
-def get_latest_package(name: str, *, range_=None,
+def get_latest_package(name: str, *, range_: VersionRange | None = None,
                        paths: list[str] | None = None,
                        error: Literal[True] = True) -> Package:
     pass
 
 
 @overload
-def get_latest_package(name: str, *, range_=None,
+def get_latest_package(name: str, *, range_: VersionRange | None = None,
                        paths: list[str] | None = None,
-                       error: Literal[False] = False) -> Package | None:
+                       error: Literal[False] | bool = False) -> Package | None:
     pass
 
 
-def get_latest_package(name: str, *, range_=None,
+def get_latest_package(name: str, *, range_: VersionRange | None = None,
                        paths: list[str] | None = None,
                        error: bool = False) -> Package | None:
     """Get the latest package for a given package name.
@@ -959,7 +959,8 @@ def get_latest_package(name: str, *, range_=None,
         return None
 
 
-def get_latest_package_from_string(txt: str, paths: list[str] | None = None, error=False):
+def get_latest_package_from_string(txt: str, paths: list[str] | None = None,
+                                   error: bool = False) -> Package | None:
     """Get the latest package found within the given request string.
 
     Args:

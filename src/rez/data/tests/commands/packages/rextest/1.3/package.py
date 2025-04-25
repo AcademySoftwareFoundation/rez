@@ -1,7 +1,7 @@
 name = 'rextest'
 version = '1.3'
 
-def commands():
+def commands() -> None:
     env.REXTEST_ROOT = '{root}'
     env.REXTEST_VERSION = this.version
     env.REXTEST_MAJOR_VERSION = this.version.major

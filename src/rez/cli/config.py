@@ -8,7 +8,7 @@ Print current rez settings.
 import json
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--json", dest="json", action="store_true",
         help="Output dict/list field values as JSON. Useful for setting "

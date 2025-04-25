@@ -95,8 +95,8 @@ class BuildProcess(object):
 
     def __init__(self, working_dir: str, build_system: BuildSystem, package=None,
                  vcs: ReleaseVCS | None = None,
-                 ensure_latest=True, skip_repo_errors=False,
-                 ignore_existing_tag=False, verbose=False, quiet=False):
+                 ensure_latest: bool = True, skip_repo_errors: bool = False,
+                 ignore_existing_tag: bool = False, verbose: bool = False, quiet: bool = False) -> None:
         """Create a BuildProcess.
 
         Args:
@@ -445,13 +445,13 @@ class BuildProcessHelper(BuildProcess):
                     previous_version=previous_version,
                     previous_revision=previous_revision)
 
-    def _print(self, txt, *nargs):
+    def _print(self, txt, *nargs) -> None:
         if self.verbose:
             if nargs:
                 txt = txt % nargs
             print(txt)
 
-    def _print_header(self, txt, n=1):
+    def _print_header(self, txt, n: int=1) -> None:
         if self.quiet:
             return
 
@@ -465,7 +465,7 @@ class BuildProcessHelper(BuildProcess):
         pr = Printer(sys.stdout)
         pr(title, heading)
 
-    def _n_of_m(self, variant):
+    def _n_of_m(self, variant) -> str:
         num_variants = max(self.package.num_variants, 1)
         index = (variant.index or 0) + 1
         return "%d/%d" % (index, num_variants)

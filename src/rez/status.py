@@ -23,7 +23,7 @@ class Status(object):
     The current status tells you things such as if you are within a context, or
     if suite(s) are visible on $PATH.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     @cached_property
@@ -121,7 +121,7 @@ class Status(object):
             print("Rez does not know what '%s' is" % obj, file=buf)
         return b
 
-    def print_tools(self, pattern=None, buf=sys.stdout):
+    def print_tools(self, pattern=None, buf=sys.stdout) -> bool:
         """Print a list of visible tools.
 
         Args:
@@ -196,7 +196,7 @@ class Status(object):
         print_colored_columns(_pr, rows)
         return True
 
-    def _print_tool_info(self, value, buf=sys.stdout, b=False):
+    def _print_tool_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
@@ -261,7 +261,7 @@ class Status(object):
 
         return False
 
-    def _print_package_info(self, value, buf=sys.stdout, b=False):
+    def _print_package_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
@@ -269,7 +269,7 @@ class Status(object):
         if request_str != value:
             return False
 
-        def _print_package(package):
+        def _print_package(package) -> None:
             if isinstance(package, Package):
                 name = package.qualified_name
             else:
@@ -314,7 +314,7 @@ class Status(object):
 
         return False
 
-    def _print_suite_info(self, value, buf=sys.stdout, b=False):
+    def _print_suite_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
@@ -330,7 +330,7 @@ class Status(object):
         _pr("'%s' %s a suite. Use 'rez-suite' for more information." % (path, word))
         return True
 
-    def _print_context_info(self, value, buf=sys.stdout, b=False):
+    def _print_context_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
@@ -346,7 +346,7 @@ class Status(object):
         _pr("'%s' %s a context. Use 'rez-context' for more information." % (path, word))
         return True
 
-    def _print_info(self, buf=sys.stdout):
+    def _print_info(self, buf=sys.stdout) -> None:
         lines = ["Using Rez v%s" % __version__]
         if self.context:
             if self.context.load_path:

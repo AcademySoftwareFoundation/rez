@@ -22,7 +22,7 @@ class Platform(object):
     """
     name: str
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     @cached_property
@@ -111,7 +111,7 @@ class Platform(object):
         return 1
 
     @property
-    def has_case_sensitive_filesystem(self):
+    def has_case_sensitive_filesystem(self) -> bool:
         return True
 
     # -- implementation
@@ -140,7 +140,7 @@ class Platform(object):
     def _tmpdir(self):
         return gettempdir()
 
-    def symlink(self, source, link_name):
+    def symlink(self, source, link_name) -> None:
         """Create a symbolic link pointing to source named link_name."""
         os.symlink(source, link_name)
 
@@ -413,7 +413,7 @@ class LinuxPlatform(_UnixPlatform):
 class OSXPlatform(_UnixPlatform):
     name = "osx"
 
-    def _os(self):
+    def _os(self) -> str:
         release = platform.mac_ver()[0]
         return "osx-%s" % release
 
@@ -428,10 +428,10 @@ class OSXPlatform(_UnixPlatform):
         else:
             return "%s -hold -e" % term
 
-    def _image_viewer(self):
+    def _image_viewer(self) -> str:
         return "open"
 
-    def _editor(self):
+    def _editor(self) -> str:
         return "open"
 
     def _physical_cores_from_osx_sysctl(self):
@@ -466,7 +466,7 @@ class OSXPlatform(_UnixPlatform):
 class WindowsPlatform(Platform):
     name = "windows"
 
-    def _os(self):
+    def _os(self) -> str:
         release, version, csd, ptype = platform.win32_ver()
         toks = []
         for item in (version, csd):
@@ -476,14 +476,14 @@ class WindowsPlatform(Platform):
         return "windows-%s" % final_version
 
     @property
-    def has_case_sensitive_filesystem(self):
+    def has_case_sensitive_filesystem(self) -> bool:
         return False
 
-    def _image_viewer(self):
+    def _image_viewer(self) -> str:
         # os.system("file.jpg") will open default viewer on windows
         return ''
 
-    def _editor(self):
+    def _editor(self) -> str:
         # os.system("file.txt") will open default editor on windows
         return ''
 
@@ -513,7 +513,7 @@ class WindowsPlatform(Platform):
             if csl(link_name, source, flags) == 0:
                 raise ctypes.WinError()
 
-    def _terminal_emulator_command(self):
+    def _terminal_emulator_command(self) -> str:
         return "START"
 
     def _physical_cores_from_wmic(self):

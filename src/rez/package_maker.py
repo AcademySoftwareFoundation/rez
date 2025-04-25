@@ -95,7 +95,7 @@ package_schema = Schema({
 
 class PackageMaker(AttrDictWrapper):
     """Utility class for creating packages."""
-    def __init__(self, name: str, data=None, package_cls: type[Package] | None = None):
+    def __init__(self, name: str, data=None, package_cls: type[Package] | None = None) -> None:
         """Create a package maker.
 
         Args:
@@ -158,8 +158,8 @@ class PackageMaker(AttrDictWrapper):
 
 
 @contextmanager
-def make_package(name: str, path: str, make_base=None, make_root=None, skip_existing=True,
-                 warn_on_skip=True):
+def make_package(name: str, path: str, make_base=None, make_root=None, skip_existing: bool = True,
+                 warn_on_skip: bool = True):
     """Make and install a package.
 
     Example:

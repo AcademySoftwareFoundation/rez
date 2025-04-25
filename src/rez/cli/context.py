@@ -25,7 +25,7 @@ os.environ.update({
 from rez.rex import OutputStyle  # noqa
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     from rez.system import system
     from rez.shells import get_shell_types
 
@@ -107,7 +107,7 @@ def setup_parser(parser, completions=False):
         diff_action.completer = rxt_completer
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.cli._util import print_items
     from rez.status import status
     from rez.utils.formatting import columnise, PackageRequest

@@ -7,14 +7,14 @@ Print a package.yaml file in package.py format.
 """
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "PATH", type=str, nargs='?',
         help="path to yaml to convert, or directory to search for package.yaml;"
         " cwd if not provided")
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.packages import get_developer_package
     from rez.serialise import FileFormat
     from rez.exceptions import PackageMetadataError

@@ -27,8 +27,8 @@ from rez.version import Requirement
 
 
 def get_reverse_dependency_tree(package_name, depth=None, paths=None,
-                                build_requires=False,
-                                private_build_requires=False):
+                                build_requires: bool = False,
+                                private_build_requires: bool = False):
     """Find packages that depend on the given package.
 
     This is a reverse dependency lookup. A tree is constructed, showing what
@@ -167,7 +167,7 @@ class ResourceSearchResult(object):
 
     Will contain either a package, variant, or name of a package family (str).
     """
-    def __init__(self, resource, resource_type, validation_error=None):
+    def __init__(self, resource, resource_type, validation_error=None) -> None:
         self.resource = resource
         self.resource_type = resource_type
         self.validation_error = validation_error
@@ -176,8 +176,8 @@ class ResourceSearchResult(object):
 class ResourceSearcher(object):
     """Search for resources (packages, variants or package families).
     """
-    def __init__(self, package_paths=None, resource_type=None, no_local=False,
-                 latest=False, after_time=None, before_time=None, validate=False):
+    def __init__(self, package_paths=None, resource_type=None, no_local: bool = False,
+                 latest: bool = False, after_time=None, before_time=None, validate: bool = False) -> None:
         """Create resource search.
 
         Args:
@@ -212,7 +212,7 @@ class ResourceSearcher(object):
         else:
             self.package_paths = None
 
-    def iter_resources(self, resources_request=None):
+    def iter_resources(self, resources_request=None) -> None:
         """Iterate over matching resources.
 
         Args:
@@ -353,7 +353,7 @@ class ResourceSearchResultFormatter(object):
         'qualified_name'
     )
 
-    def __init__(self, output_format=None, suppress_newlines=False):
+    def __init__(self, output_format=None, suppress_newlines: bool = False) -> None:
         """
         Args:
             output_format (str): String that can contain keywords such as
@@ -366,7 +366,7 @@ class ResourceSearchResultFormatter(object):
         self.output_format = output_format
         self.suppress_newlines = suppress_newlines
 
-    def print_search_results(self, search_results, buf=sys.stdout):
+    def print_search_results(self, search_results, buf=sys.stdout) -> None:
         """Print formatted search results.
 
         Args:

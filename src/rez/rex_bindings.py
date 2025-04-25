@@ -17,7 +17,7 @@ from rez.version import Requirement
 class Binding(object):
     """Abstract base class.
     """
-    def __init__(self, data=None):
+    def __init__(self, data=None) -> None:
         self._data = data or {}
 
     def _attr_error(self, attr):
@@ -54,7 +54,7 @@ class VersionBinding(Binding):
         >>> v.as_tuple():
         (1, 2, '3alpha')
     """
-    def __init__(self, version):
+    def __init__(self, version) -> None:
         super(VersionBinding, self).__init__()
         self.__version = version
 
@@ -97,10 +97,10 @@ class VersionBinding(Binding):
         else:
             return _convert(tokens)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.__version)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.__version)
 
     def __iter__(self):
@@ -112,7 +112,7 @@ class VersionBinding(Binding):
 class VariantBinding(Binding):
     """Binds a packages.Variant object.
     """
-    def __init__(self, variant, cached_root=None, interpreter=None):
+    def __init__(self, variant, cached_root=None, interpreter=None) -> None:
         doc = dict(version=VersionBinding(variant.version))
         super(VariantBinding, self).__init__(doc)
 
@@ -144,21 +144,21 @@ class VariantBinding(Binding):
 
             return value
 
-    def _is_in_package_cache(self):
+    def _is_in_package_cache(self) -> bool:
         return (self.__cached_root is not None)
 
     def _attr_error(self, attr):
         raise AttributeError("package %s has no attribute '%s'"
                              % (str(self), attr))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__variant.qualified_package_name
 
 
 class RO_MappingBinding(Binding):
     """A read-only, dict-like object.
     """
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         super(RO_MappingBinding, self).__init__(data)
 
     def get(self, name, default=None):
@@ -170,17 +170,17 @@ class RO_MappingBinding(Binding):
         else:
             self._attr_error(name)
 
-    def __contains__(self, name):
+    def __contains__(self, name) -> bool:
         return (name in self._data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._data.values())
 
 
 class VariantsBinding(RO_MappingBinding):
     """Binds a list of packages.VariantBinding objects, under the package name
     of each variant."""
-    def __init__(self, variant_bindings):
+    def __init__(self, variant_bindings) -> None:
         super(VariantsBinding, self).__init__(variant_bindings)
 
     def _attr_error(self, attr):
@@ -189,7 +189,7 @@ class VariantsBinding(RO_MappingBinding):
 
 class RequirementsBinding(RO_MappingBinding):
     """Binds a list of version.Requirement objects."""
-    def __init__(self, requirements):
+    def __init__(self, requirements) -> None:
         doc = dict((x.name, str(x)) for x in requirements)
         super(RequirementsBinding, self).__init__(doc)
 
@@ -219,7 +219,7 @@ class EphemeralsBinding(RO_MappingBinding):
            def commands():
                if "foo.cli" in ephemerals:  # will match '.foo.cli-*' request
     """
-    def __init__(self, ephemerals):
+    def __init__(self, ephemerals) -> None:
         doc = dict(
             (x.name[1:], str(x))  # note: stripped leading '.'
             for x in ephemerals

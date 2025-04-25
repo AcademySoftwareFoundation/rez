@@ -17,12 +17,12 @@ class Zsh(SH):
     norc_arg = '--no-rcs'
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'zsh'
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(cls, rcfile: bool = False, norc: bool = False, stdin: bool = False,
+                             command: bool = False):
         if norc:
             cls._overruled_option('rcfile', 'norc', rcfile)
             rcfile = False
@@ -73,7 +73,7 @@ class Zsh(SH):
             source_bind_files=True
         )
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         super(Zsh, self)._bind_interactive_rez()
         completion = os.path.join(module_root_path, "completion", "complete.zsh")
         self.source(completion)

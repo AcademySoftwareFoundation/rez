@@ -44,7 +44,7 @@ def schema_keys(schema):
     return keys
 
 
-def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None):
+def dict_to_schema(schema_dict, required, allow_custom_keys: bool = True, modifier=None):
     """Convert a dict of Schemas into a Schema.
 
     Args:

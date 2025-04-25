@@ -25,20 +25,23 @@ from inspect import ismodule
 import os
 import re
 import copy
-from typing import TYPE_CHECKING
+from typing import Any, TypeVar, TYPE_CHECKING
+
+
+T = TypeVar("T")
 
 
 class Validatable(Protocol):
-    def validate(self, data):
+    def validate(self, data: T) -> T:
         pass
 
 
 class _Deprecation(object):
-    def __init__(self, removed_in, extra=None):
+    def __init__(self, removed_in, extra=None) -> None:
         self.__removed_in = removed_in
         self.__extra = extra or ""
 
-    def get_message(self, name, env_var=False):
+    def get_message(self, name: str, env_var: bool | str = False):
         if self.__removed_in:
             return (
                 "config setting named {0!r} {1}is "
@@ -65,18 +68,18 @@ class Setting(object):
     """
     schema: Validatable = Schema(object)
 
-    def __init__(self, config, key):
+    def __init__(self, config, key) -> None:
         self.config = config
         self.key = key
 
     @property
-    def _env_var_name(self):
+    def _env_var_name(self) -> str:
         return "REZ_%s" % self.key.upper()
 
     def _parse_env_var(self, value):
         raise NotImplementedError
 
-    def validate(self, data):
+    def validate(self, data: Any) -> Any:
         try:
             data = self._validate(data)
             data = self.schema.validate(data)
@@ -179,7 +182,7 @@ class PipInstallRemaps(Setting):
 
     schema = Schema([{key: And(str, len) for key in KEYS}])
 
-    def validate(self, data):
+    def validate(self, data: list) -> list:
         """Extended to substitute regex-escaped path tokens."""
         return [
             {
@@ -232,7 +235,7 @@ class Bool(Setting):
     false_words = frozenset(["0", "false", "f", "no", "n", "off"])
     all_words = true_words | false_words
 
-    def _parse_env_var(self, value):
+    def _parse_env_var(self, value) -> bool:
         value = value.lower()
         if value in self.true_words:
             return True
@@ -561,10 +564,10 @@ class Config(object, metaclass=LazyAttributeMeta):
         # mypy: The use of LazyAttributeMeta means that this class generates hundreds
         # of spurious attribute errors.  Adding this for the type analysis will silence
         # them until the use of LazyAttributeMeta can be addressed.
-        def __getattr__(self, item):
+        def __getattr__(self, item: str) -> Any:
             pass
 
-    def __init__(self, filepaths, overrides=None, locked=False):
+    def __init__(self, filepaths: list[str], overrides=None, locked: bool = False) -> None:
         """Create a config.
 
         Args:
@@ -575,7 +578,7 @@ class Config(object, metaclass=LazyAttributeMeta):
                 ignored.
         """
         self.filepaths = filepaths
-        self._sourced_filepaths = None
+        self._sourced_filepaths: list[str] | None = None
         self.overrides = overrides or {}
         self.locked = locked
 
@@ -583,7 +586,7 @@ class Config(object, metaclass=LazyAttributeMeta):
         """Get the value of a setting."""
         return getattr(self, key, default)
 
-    def copy(self, overrides=None, locked=False):
+    def copy(self, overrides=None, locked: bool = False) -> Config:
         """Create a separate copy of this config."""
         other = copy.copy(self)
 
@@ -595,7 +598,7 @@ class Config(object, metaclass=LazyAttributeMeta):
         other._uncache()
         return other
 
-    def override(self, key, value):
+    def override(self, key: str, value):
         """Set a setting to the given value.
 
         Note that `key` can be in dotted form, eg
@@ -610,10 +613,10 @@ class Config(object, metaclass=LazyAttributeMeta):
             self.overrides[key] = value
             self._uncache(key)
 
-    def is_overridden(self, key):
+    def is_overridden(self, key: str) -> bool:
         return (key in self.overrides)
 
-    def remove_override(self, key):
+    def remove_override(self, key: str):
         """Remove a setting override, if one exists."""
         keys = key.split('.')
         if len(keys) > 1:
@@ -622,21 +625,21 @@ class Config(object, metaclass=LazyAttributeMeta):
             del self.overrides[key]
             self._uncache(key)
 
-    def warn(self, key):
+    def warn(self, key: str):
         """Returns True if the warning setting is enabled."""
         return (
             not self.quiet and not self.warn_none
             and (self.warn_all or getattr(self, "warn_%s" % key))
         )
 
-    def debug(self, key):
+    def debug(self, key: str):
         """Returns True if the debug setting is enabled."""
         return (
             not self.quiet and not self.debug_none
             and (self.debug_all or getattr(self, "debug_%s" % key))
         )
 
-    def debug_printer(self, key):
+    def debug_printer(self, key: str):
         """Returns a printer object suitably enabled based on the given key."""
         enabled = self.debug(key)
         return get_debug_printer(enabled)
@@ -714,7 +717,7 @@ class Config(object, metaclass=LazyAttributeMeta):
                 keys += _get_plugin_completions('')
             return keys
 
-    def _uncache(self, key=None):
+    def _uncache(self, key=None) -> None:
         # deleting the attribute falls up back to the class attribute, which is
         # the cached_property descriptor
         if key and hasattr(self, key):
@@ -728,7 +731,7 @@ class Config(object, metaclass=LazyAttributeMeta):
         if hasattr(self, "plugins"):
             delattr(self, "plugins")
 
-    def _swap(self, other):
+    def _swap(self, other) -> None:
         """Swap this config with another.
 
         This is used by the unit tests to swap the config to one that is
@@ -779,11 +782,11 @@ class Config(object, metaclass=LazyAttributeMeta):
 
         return Config(filepaths, overrides)
 
-    def __str__(self):
+    def __str__(self) -> str:
         keys = (x for x in self.schema._schema if isinstance(x, str))
         return "%r" % sorted(list(keys) + ["plugins"])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
     # -- dynamic defaults
@@ -819,14 +822,14 @@ class Config(object, metaclass=LazyAttributeMeta):
 
 class _PluginConfigs(object):
     """Lazy config loading for plugins."""
-    def __init__(self, plugin_data):
+    def __init__(self, plugin_data) -> None:
         self.__dict__['_data'] = plugin_data
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr, value) -> None:
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         if attr in self.__dict__:
             return self.__dict__[attr]
 
@@ -860,7 +863,7 @@ class _PluginConfigs(object):
         from rez.plugin_managers import plugin_manager
         return iter(plugin_manager.get_plugin_types())
 
-    def override(self, key, value):
+    def override(self, key, value) -> None:
         def _nosuch():
             raise AttributeError("no such setting: %r" % '.'.join(key))
         if len(key) < 2:
@@ -895,21 +898,21 @@ class _PluginConfigs(object):
         d = convert_dicts(d, dict, (dict, AttrDictWrapper))
         return d
 
-    def __str__(self):
+    def __str__(self) -> str:
         from rez.plugin_managers import plugin_manager
         return "%r" % sorted(plugin_manager.get_plugin_types())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
-def expand_system_vars(data):
+def expand_system_vars(data: T) -> T:
     """Expands any strings within `data` such as '{system.user}'."""
     def _expanded(value):
         if isinstance(value, str):
-            value = expandvars(value)
-            value = expanduser(value)
-            return scoped_format(value, system=system)
+            str_value = expandvars(value)
+            str_value = expanduser(str_value)
+            return scoped_format(str_value, system=system)
         elif isinstance(value, (list, tuple, set)):
             return [_expanded(x) for x in value]
         elif isinstance(value, dict):
@@ -919,7 +922,7 @@ def expand_system_vars(data):
     return _expanded(data)
 
 
-def create_config(overrides=None):
+def create_config(overrides=None) -> Config:
     """Create a configuration based on the global config.
     """
     if not overrides:
@@ -955,7 +958,7 @@ def _replace_config(other):
 
 
 @lru_cache()
-def _load_config_py(filepath):
+def _load_config_py(filepath: str) -> dict[str, Any]:
     reserved = dict(
         # Standard Python module variables
         # Made available from within the module,
@@ -989,7 +992,7 @@ def _load_config_py(filepath):
 
 
 @lru_cache()
-def _load_config_yaml(filepath):
+def _load_config_yaml(filepath: str) -> dict[str, Any]:
     with open(filepath) as f:
         content = f.read()
     try:
@@ -1004,7 +1007,7 @@ def _load_config_yaml(filepath):
     return doc
 
 
-def _load_config_from_filepaths(filepaths):
+def _load_config_from_filepaths(filepaths: list[str]) -> tuple[dict[str, Any], list[str]]:
     data = {}
     sourced_filepaths = []
     loaders = ((".py", _load_config_py),
@@ -1044,7 +1047,7 @@ def _load_config_from_filepaths(filepaths):
     return data, sourced_filepaths
 
 
-def get_module_root_config():
+def get_module_root_config() -> str:
     return os.path.join(module_root_path, "rezconfig.py")
 
 

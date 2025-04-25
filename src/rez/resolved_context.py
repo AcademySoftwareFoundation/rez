@@ -97,7 +97,7 @@ class PatchLock(Enum):
 
     __order__ = "no_lock,lock_2,lock_3,lock_4,lock"
 
-    def __init__(self, description, rank):
+    def __init__(self, description, rank) -> None:
         self.description = description
         self.rank = rank
 
@@ -163,7 +163,7 @@ class ResolvedContext(object):
     local = threading.local()
 
     class Callback(object):
-        def __init__(self, max_fails: int, time_limit, callback, buf=None):
+        def __init__(self, max_fails: int, time_limit, callback, buf: SupportsWrite | None = None) -> None:
             self.max_fails = max_fails
             self.time_limit = time_limit
             self.callback = callback
@@ -185,7 +185,7 @@ class ResolvedContext(object):
 
     def __init__(self,
                  package_requests: Iterable[str | Requirement],
-                 verbosity=0,
+                 verbosity: int = 0,
                  timestamp: float | None = None,
                  building: bool = False,
                  testing: bool = False,
@@ -202,7 +202,7 @@ class ResolvedContext(object):
                  suppress_passive: bool = False,
                  print_stats: bool = False,
                  package_caching=None,
-                 package_cache_async=None):
+                 package_cache_async=None) -> None:
         """Perform a package resolve, and store the result.
 
         Args:
@@ -335,7 +335,7 @@ class ResolvedContext(object):
                                   time_limit=time_limit,
                                   callback=callback)
 
-        def _package_load_callback(package):
+        def _package_load_callback(package) -> None:
             if package_load_callback:
                 package_load_callback(package)
             self.num_loaded_packages += 1
@@ -557,7 +557,7 @@ class ResolvedContext(object):
 
     # TODO: deprecate in favor of patch() method
     def get_patched_request(self, package_requests=None,
-                            package_subtractions=None, strict=False, rank=0):
+                            package_subtractions=None, strict: bool = False, rank: int=0):
         """Get a 'patched' request.
 
         A patched request is a copy of this context's request, but with some
@@ -656,7 +656,7 @@ class ResolvedContext(object):
 
         return request
 
-    def graph(self, as_dot=False):
+    def graph(self, as_dot: bool = False):
         """Get the resolve graph.
 
         Args:
@@ -687,13 +687,13 @@ class ResolvedContext(object):
 
         return write_dot(self.graph_)
 
-    def save(self, path: str):
+    def save(self, path: str) -> None:
         """Save the resolved context to file."""
         with self._detect_bundle(path):
             with open(path, 'w') as f:
                 self.write_to_buffer(f)
 
-    def write_to_buffer(self, buf):
+    def write_to_buffer(self, buf: SupportsWrite) -> None:
         """Save the context to a buffer."""
         doc = self.to_dict()
 
@@ -745,7 +745,6 @@ class ResolvedContext(object):
             return cls._read_from_buffer(buf, identifier_str)
         except Exception as e:
             cls._load_error(e, identifier_str)
-            return None
 
     def get_resolve_diff(self, other: ResolvedContext) -> dict:
         """Get the difference between the resolve in this context and another.
@@ -836,8 +835,8 @@ class ResolvedContext(object):
         return d
 
     @pool_memcached_connections
-    def print_info(self, buf=sys.stdout, verbosity=0, source_order=False,
-                   show_resolved_uris=False):
+    def print_info(self, buf: SupportsWrite = sys.stdout, verbosity: int=0,
+                   source_order: bool = False, show_resolved_uris: bool = False) -> None:
         """Prints a message summarising the contents of the resolved context.
 
         Args:
@@ -1001,7 +1000,7 @@ class ResolvedContext(object):
             _pr("tools:", heading)
             self.print_tools(buf=buf)
 
-    def print_tools(self, buf=sys.stdout):
+    def print_tools(self, buf: SupportsWrite = sys.stdout) -> None:
         data = self.get_tools()
         if not data:
             return
@@ -1026,7 +1025,7 @@ class ResolvedContext(object):
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
 
-    def print_resolve_diff(self, other, heading=None):
+    def print_resolve_diff(self, other, heading=None) -> None:
         """Print the difference between the resolve of two contexts.
 
         Args:
@@ -1086,7 +1085,7 @@ class ResolvedContext(object):
         print('\n'.join(columnise(rows)))
 
     @_on_success
-    def get_dependency_graph(self, as_dot=False):
+    def get_dependency_graph(self, as_dot: bool = False):
         """Generate the dependency graph.
 
         The dependency graph is a simpler subset of the resolve graph. It
@@ -1158,7 +1157,7 @@ class ResolvedContext(object):
         return executor.get_output()
 
     @_on_success
-    def get_key(self, key: str, request_only=False) -> dict[str, tuple[Variant, Any]]:
+    def get_key(self, key: str, request_only: bool = False) -> dict[str, tuple[Variant, Any]]:
         """Get a data key value for each resolved package.
 
         Args:
@@ -1182,7 +1181,7 @@ class ResolvedContext(object):
         return values
 
     @_on_success
-    def get_tools(self, request_only=False) -> dict[str, tuple[Variant, list[str]]]:
+    def get_tools(self, request_only: bool = False) -> dict[str, tuple[Variant, list[str]]]:
         """Returns the commandline tools available in the context.
 
         Args:
@@ -1216,7 +1215,7 @@ class ResolvedContext(object):
         return variants
 
     @_on_success
-    def get_conflicting_tools(self, request_only=False) -> dict[str, set[Variant]]:
+    def get_conflicting_tools(self, request_only: bool = False) -> dict[str, set[Variant]]:
         """Returns tools of the same name provided by more than one package.
 
         Args:
@@ -1275,7 +1274,7 @@ class ResolvedContext(object):
         return executor.actions
 
     @_on_success
-    def apply(self, parent_environ=None):
+    def apply(self, parent_environ=None) -> None:
         """Apply the context to the current python session.
 
         Note that this updates os.environ and possibly sys.path, if
@@ -1291,7 +1290,7 @@ class ResolvedContext(object):
         interpreter.apply_environ()
 
     @_on_success
-    def which(self, cmd, parent_environ=None, fallback=False):
+    def which(self, cmd, parent_environ=None, fallback: bool = False):
         """Find a program in the resolved environment.
 
         Args:
@@ -1367,7 +1366,7 @@ class ResolvedContext(object):
         Returns:
             subprocess.Popen: Subprocess object for the shell process.
         """
-        def _actions_callback(executor):
+        def _actions_callback(executor) -> None:
             executor.execute_code(code, filename=filename)
 
         return self.execute_shell(shell=shell,
@@ -1389,7 +1388,7 @@ class ResolvedContext(object):
                       block: bool | None = None,
                       actions_callback: Callable[[RexExecutor], Any] | None = None,
                       post_actions_callback: Callable[[RexExecutor], Any] | None = None,
-                      context_filepath=None, start_new_session=False, detached=False,
+                      context_filepath=None, start_new_session: bool = False, detached: bool = False,
                       pre_command=None, **Popen_args):
         """Spawn a possibly-interactive shell.
 
@@ -1545,7 +1544,7 @@ class ResolvedContext(object):
         """
         data: dict[str, Any] = {}
 
-        def _add(field):
+        def _add(field) -> bool:
             return (fields is None or field in fields)
 
         if _add("resolved_packages"):
@@ -1833,7 +1832,7 @@ class ResolvedContext(object):
         return getattr(cls.local, "bundle_path", None)
 
     @classmethod
-    def _adjust_variant_for_bundling(cls, handle, out):
+    def _adjust_variant_for_bundling(cls, handle, out) -> None:
         """
         Deals with making variant pkg repo ref relative/nonrelative to take
         bundling into account.
@@ -1907,7 +1906,7 @@ class ResolvedContext(object):
             )
 
     @classmethod
-    def _init_context_tracking_payload_base(cls):
+    def _init_context_tracking_payload_base(cls) -> None:
         if cls.context_tracking_payload is not None:
             return
 
@@ -1969,7 +1968,7 @@ class ResolvedContext(object):
             )
 
     @classmethod
-    def _read_from_buffer(cls, buf, identifier_str=None) -> ResolvedContext:
+    def _read_from_buffer(cls, buf, identifier_str: str | None = None) -> ResolvedContext:
         content = buf.read()
 
         if content.startswith('{'):  # assume json content
@@ -1981,7 +1980,7 @@ class ResolvedContext(object):
         return context
 
     @classmethod
-    def _load_error(cls, e, path=None) -> NoReturn:
+    def _load_error(cls, e, path: str | None = None) -> NoReturn:
         exc_name = e.__class__.__name__
         msg = "Failed to load context"
         if path:

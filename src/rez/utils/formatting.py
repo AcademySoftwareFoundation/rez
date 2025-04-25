@@ -37,7 +37,7 @@ invalid_package_names = (
 )
 
 
-def is_valid_package_name(name, raise_error=False):
+def is_valid_package_name(name, raise_error: bool = False):
     """Test the validity of a package name string.
 
     Args:
@@ -71,7 +71,7 @@ class PackageRequest(Requirement):
         >>> print(pr.name, pr.range)
         foo 1.3+
     """
-    def __init__(self, s):
+    def __init__(self, s) -> None:
         super(PackageRequest, self).__init__(s)
 
         # detect ephemeral package
@@ -99,7 +99,7 @@ class ObjectStringFormatter(Formatter):
     empty = StringFormatType.empty
     unchanged = StringFormatType.unchanged
 
-    def __init__(self, instance, pretty: bool = False, expand: StringFormatType = StringFormatType.error):
+    def __init__(self, instance, pretty: bool = False, expand: StringFormatType = StringFormatType.error) -> None:
         """Create a formatter.
 
         Args:
@@ -213,7 +213,7 @@ def expand_abbreviations(txt, fields):
     Returns:
         Expanded string.
     """
-    def _expand(matchobj):
+    def _expand(matchobj) -> str:
         s = matchobj.group("var")
         if s not in fields:
             matches = [x for x in fields if x.startswith(s)]
@@ -223,7 +223,7 @@ def expand_abbreviations(txt, fields):
     return re.sub(FORMAT_VAR_REGEX, _expand, txt)
 
 
-def expandvars(text: str, environ=None):
+def expandvars(text: str, environ=None) -> str:
     """Expand shell variables of form $var and ${var}.
 
     Unknown variables are left unchanged.
@@ -302,7 +302,7 @@ def dict_to_attributes_code(dict_):
     return '\n'.join(lines)
 
 
-def columnise(rows: Sequence[Sequence[Any]], padding=2) -> list[str]:
+def columnise(rows: Sequence[Sequence[Any]], padding: int=2) -> list[str]:
     """Print rows of entries in aligned columns."""
     strs = []
     maxwidths = {}
@@ -327,7 +327,7 @@ def columnise(rows: Sequence[Sequence[Any]], padding=2) -> list[str]:
     return strs
 
 
-def print_colored_columns(printer, rows, padding=2):
+def print_colored_columns(printer, rows, padding: int=2) -> None:
     """Like `columnise`, but with colored rows.
 
     Args:
@@ -374,7 +374,7 @@ def readable_memory_size(bytes_):
     return _readable_units(bytes_, memory_divs)
 
 
-def _readable_units(value, divs, plural_aware=False):
+def _readable_units(value, divs, plural_aware: bool = False):
     if value == 0:
         unit = divs[-1][1]
         return "0 %s" % unit
@@ -432,7 +432,7 @@ def get_epoch_time_from_str(s):
 positional_suffix = ("th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th")
 
 
-def positional_number_string(n):
+def positional_number_string(n) -> str:
     """Print the position string equivalent of a positive integer. Examples:
 
         0: zeroeth
@@ -464,7 +464,7 @@ EXPANDUSER_RE = re.compile(
 )
 
 
-def expanduser(path: str):
+def expanduser(path: str) -> str:
     """Expand '~' to home directory in the given string.
 
     Note that this function deliberately differs from the builtin
@@ -501,7 +501,7 @@ def expanduser(path: str):
     return os.path.normpath(_expanduser(path))
 
 
-def as_block_string(txt):
+def as_block_string(txt) -> str:
     """Return a string formatted as a python block comment string, like the one
     you're currently reading. Special characters are escaped if necessary.
     """
@@ -520,7 +520,7 @@ _header_br = '#' * 80
 _header_br_minor = '-' * 80
 
 
-def header_comment(executor, txt: str):
+def header_comment(executor, txt: str) -> None:
     """Convenience for creating header-like comment in a rex executor.
 
     Args:
@@ -534,7 +534,7 @@ def header_comment(executor, txt: str):
     executor.comment(_header_br)
 
 
-def minor_header_comment(executor, txt: str):
+def minor_header_comment(executor, txt: str) -> None:
     executor.comment("")
     executor.comment(txt)
     executor.comment(_header_br_minor)

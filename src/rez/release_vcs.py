@@ -72,7 +72,7 @@ def create_release_vcs(path, vcs_name=None):
 class ReleaseVCS(object):
     """A version control system (VCS) used to release Rez packages.
     """
-    def __init__(self, pkg_root: str, vcs_root=None):
+    def __init__(self, pkg_root: str, vcs_root=None) -> None:
         if vcs_root is None:
             result = self.find_vcs_root(pkg_root)
             if not result:

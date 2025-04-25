@@ -91,7 +91,7 @@ class PackageCache(object):
     _COPYING_TIME_INC = 0.2
     _COPYING_TIME_MAX = 5.0
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         """Create a package cache.
 
         Args:
@@ -134,7 +134,7 @@ class PackageCache(object):
 
         return rootpath
 
-    def add_variant(self, variant, force=False, wait_for_copying=False, logger=None):
+    def add_variant(self, variant, force: bool = False, wait_for_copying: bool = False, logger=None):
         """Copy a variant's payload into the cache.
 
         The following steps are taken to ensure muti-thread/proc safety, and to
@@ -315,7 +315,7 @@ class PackageCache(object):
         #
         still_copying = True
 
-        def _while_copying():
+        def _while_copying() -> None:
             while still_copying:
                 time.sleep(self._COPYING_TIME_INC)
                 try:
@@ -416,7 +416,7 @@ class PackageCache(object):
         """
         return self.add_variants(variants, package_cache_async=True)
 
-    def add_variants(self, variants: Iterable[Variant], package_cache_async=True):
+    def add_variants(self, variants: Iterable[Variant], package_cache_async: bool = True):
         """Add the given variants to the package payload cache.
         """
 
@@ -638,7 +638,7 @@ class PackageCache(object):
 
         self._run_caching_operation(wait_for_copying=False)
 
-    def _run_caching_operation(self, wait_for_copying=True):
+    def _run_caching_operation(self, wait_for_copying: bool = True):
         """Copy pending variants.
 
         Args:
@@ -669,7 +669,7 @@ class PackageCache(object):
             except Exception:
                 logger.exception("An error occurred while cleaning the cache")
 
-    def clean(self, time_limit=None):
+    def clean(self, time_limit=None) -> None:
         """Delete unused package cache files.
 
         This should be run periodically via 'rez-pkg-cache --clean'.
@@ -769,7 +769,7 @@ class PackageCache(object):
             except NotLocked:
                 pass
 
-    def _run_caching_step(self, state, wait_for_copying=False):
+    def _run_caching_step(self, state, wait_for_copying: bool = False) -> bool:
         logger = state["logger"]
 
         # pick a random pending variant to copy

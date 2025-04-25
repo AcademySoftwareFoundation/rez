@@ -58,7 +58,7 @@ debug_print = config.debug_printer("resources")
 format_version = 2
 
 
-def check_format_version(filename, data):
+def check_format_version(filename, data) -> None:
     format_version_ = data.pop("format_version", None)
 
     if format_version_ is not None:
@@ -489,11 +489,11 @@ class FileSystemPackageRepository(PackageRepository):
     )
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "filesystem"
 
     def __init__(self, location, resource_pool, disable_memcache=None,
-                 disable_pkg_ignore=False):
+                 disable_pkg_ignore: bool = False) -> None:
         """Create a filesystem package repository.
 
         Args:
@@ -664,7 +664,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         return None
 
-    def ignore_package(self, pkg_name: str, pkg_version: Version, allow_missing=False) -> int:
+    def ignore_package(self, pkg_name: str, pkg_version: Version, allow_missing: bool = False) -> int:
         # find package, even if already ignored
         if not allow_missing:
             repo_copy = self._copy(
@@ -742,7 +742,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         return True
 
-    def remove_package_family(self, pkg_name: str, force=False) -> bool:
+    def remove_package_family(self, pkg_name: str, force: bool = False) -> bool:
         # get a non-cached copy and see if fam exists
         repo_copy = self._copy(
             disable_pkg_ignore=True,
@@ -772,11 +772,11 @@ class FileSystemPackageRepository(PackageRepository):
         self._on_changed(pkg_name)
         return True
 
-    def remove_ignored_since(self, days, dry_run=False, verbose=False) -> int:
+    def remove_ignored_since(self, days, dry_run: bool = False, verbose: bool = False) -> int:
         now = int(time.time())
         num_removed = 0
 
-        def _info(msg, *nargs):
+        def _info(msg, *nargs) -> None:
             if verbose:
                 print_info(msg, *nargs)
 
@@ -812,7 +812,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         return num_removed
 
-    def get_resource_from_handle(self, resource_handle, verify_repo=True):
+    def get_resource_from_handle(self, resource_handle, verify_repo: bool = True):
         if verify_repo:
             repository_type = resource_handle.variables.get("repository_type")
             location = resource_handle.variables.get("location")
@@ -859,7 +859,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         return dirname
 
-    def pre_variant_install(self, variant_resource: VariantResourceHelper):
+    def pre_variant_install(self, variant_resource: VariantResourceHelper) -> None:
         if not variant_resource.version:
             return
 
@@ -877,7 +877,7 @@ class FileSystemPackageRepository(PackageRepository):
         with open(filepath, 'w'):  # create empty file
             pass
 
-    def on_variant_install_cancelled(self, variant_resource):
+    def on_variant_install_cancelled(self, variant_resource) -> None:
         """
         TODO:
             Currently this will not delete a newly created package version
@@ -900,7 +900,7 @@ class FileSystemPackageRepository(PackageRepository):
         family_path = os.path.join(self.location, variant_resource.name)
         self._delete_stale_build_tagfiles(family_path)
 
-    def install_variant(self, variant_resource: VariantResource, dry_run=False, overrides=None) -> VariantResource:
+    def install_variant(self, variant_resource: VariantResource, dry_run: bool = False, overrides=None) -> VariantResource:
         overrides = overrides or {}
 
         # Name and version overrides are a special case - they change the
@@ -1207,7 +1207,7 @@ class FileSystemPackageRepository(PackageRepository):
         self._on_changed(name)
         return self.get_package_family(name)
 
-    def _create_variant(self, variant: VariantResource, dry_run=False, overrides=None) -> VariantResource | None:
+    def _create_variant(self, variant: VariantResource, dry_run: bool = False, overrides=None) -> VariantResource | None:
         # special case overrides
         variant_name = overrides.get("name") or variant.name
         variant_version = overrides.get("version") or variant.version
@@ -1281,7 +1281,7 @@ class FileSystemPackageRepository(PackageRepository):
 
             return data
 
-        def _remove_build_keys(obj):
+        def _remove_build_keys(obj) -> None:
             for key in package_build_only_keys:
                 obj.pop(key, None)
 
@@ -1496,7 +1496,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         return new_variant
 
-    def _on_changed(self, pkg_name: str):
+    def _on_changed(self, pkg_name: str) -> None:
         """Called when a package is added/removed/changed.
         """
 
@@ -1511,7 +1511,7 @@ class FileSystemPackageRepository(PackageRepository):
         # clear internal caches, otherwise change may not be visible
         self.clear_caches()
 
-    def _delete_stale_build_tagfiles(self, family_path: str):
+    def _delete_stale_build_tagfiles(self, family_path: str) -> None:
         now = time.time()
 
         for name in os.listdir(family_path):

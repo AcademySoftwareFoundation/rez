@@ -14,7 +14,7 @@ import time
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(MainWindow, self).__init__(parent)
         self.setWindowTitle("Rez GUI")
 
@@ -52,7 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.aboutToShow.connect(self._update_file_menu)
         edit_menu.aboutToShow.connect(self._update_edit_menu)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         # attempt to close modified contexts first
         subwindows = [x for x in self.mdi.subWindowList() if x.isWindowModified()]
         subwindows += [x for x in self.mdi.subWindowList() if not x.isWindowModified()]
@@ -65,19 +65,19 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.mdi.subWindowList():
             event.ignore()
 
-    def cascade(self):
+    def cascade(self) -> None:
         self.mdi.cascadeSubWindows()
 
-    def about(self):
+    def about(self) -> None:
         dlg = AboutDialog(self)
         dlg.exec_()
 
-    def _open_package_browser(self):
+    def _open_package_browser(self) -> None:
         subwindow = BrowsePackageSubWindow()
         self.mdi.addSubWindow(subwindow)
         subwindow.show()
 
-    def new_context(self):
+    def new_context(self) -> None:
         self._add_context_subwindow()
 
     def open_context(self, filepath):
@@ -110,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if milisecs < min_display_time:
                 bar.showMessage(txt, min_display_time - milisecs)
 
-    def _open_context(self):
+    def _open_context(self) -> None:
         filepath, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Context", filter="Context files (*.rxt)")
         if filepath:
@@ -126,7 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
         subwindow.show()
         return subwindow
 
-    def _update_file_menu(self):
+    def _update_file_menu(self) -> None:
         context_save = False
         context_save_as = False
 
@@ -149,7 +149,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 fn = partial(self.open_context, filepath)
                 add_menu_action(menu, filepath, fn)
 
-    def _update_edit_menu(self):
+    def _update_edit_menu(self) -> None:
         copy_request = False
         copy_resolve = False
 

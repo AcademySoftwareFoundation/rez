@@ -34,7 +34,7 @@ class MemoryPackageFamilyResource(PackageFamilyResource):
     key = "memory.family"
     repository_type = "memory"
 
-    def _uri(self):
+    def _uri(self) -> str:
         return "%s:%s" % (self.location, self.name)
 
     def iter_packages(self) -> Iterator[MemoryPackageResource]:
@@ -139,7 +139,7 @@ class MemoryPackageRepository(PackageRepository):
         unversioned package 'bah'.
     """
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "memory"
 
     @classmethod
@@ -163,7 +163,7 @@ class MemoryPackageRepository(PackageRepository):
         repo.data = repository_data
         return repo
 
-    def __init__(self, location: str, resource_pool: ResourcePool):
+    def __init__(self, location: str, resource_pool: ResourcePool) -> None:
         """Create an in-memory package repository.
 
         Args:

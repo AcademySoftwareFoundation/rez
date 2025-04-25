@@ -23,7 +23,7 @@ out_dir: str | None = None
 pkg_repo_dir: str | None = None
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--out", metavar="RESULTS_DIR", default="out",
         help="Output dir (default: %(default)s)"
@@ -44,7 +44,7 @@ def setup_parser(parser, completions=False):
     )
 
 
-def load_packages():
+def load_packages() -> None:
     """Load all packages so loading time doesn't impact solve times
     """
     from rez.packages import iter_package_families
@@ -115,7 +115,7 @@ def get_system_info():
     return info
 
 
-def do_resolves():
+def do_resolves() -> None:
     from rez import module_root_path
     from rez.resolved_context import ResolvedContext
     from rez.solver import SolverCallbackReturn
@@ -236,7 +236,7 @@ def do_resolves():
         f.write(stats_str)
 
 
-def run_benchmark():
+def run_benchmark() -> None:
     from rez import module_root_path
     from rez.utils.execution import Popen
 
@@ -262,7 +262,7 @@ def run_benchmark():
     do_resolves()
 
 
-def print_histogram():
+def print_histogram() -> None:
     n_rows = 40
     n_columns = 40
     resolve_times = []
@@ -311,7 +311,7 @@ def print_histogram():
         start_t = end_t
 
 
-def compare():
+def compare() -> None:
     out_dir2 = _opts.compare
 
     with open(os.path.join(out_dir, "resolves.json")) as f:
@@ -360,7 +360,7 @@ def compare():
     print(json.dumps(delta_summary, indent=2))
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     global _opts
     global out_dir
     global pkg_repo_dir

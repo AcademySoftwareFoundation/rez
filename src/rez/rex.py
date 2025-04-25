@@ -36,10 +36,10 @@ class Action(object):
     name: str
     _registry = []
 
-    def __init__(self, *args):
+    def __init__(self, *args) -> None:
         self.args = args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__,
                            ', '.join(repr(x) for x in self.args))
 
@@ -78,7 +78,7 @@ class Unsetenv(EnvAction):
 class Setenv(EnvAction):
     name = 'setenv'
 
-    def pre_exec(self, interpreter):
+    def pre_exec(self, interpreter) -> None:
         key, value = self.args
         if isinstance(value, (list, tuple)):
             value = interpreter._env_sep(key).join(value)
@@ -97,7 +97,7 @@ class Resetenv(EnvAction):
         if len(self.args) == 3:
             return self.args[2]
 
-    def pre_exec(self, interpreter):
+    def pre_exec(self, interpreter) -> None:
         key, value, friends = self.args
         if isinstance(value, (list, tuple)):
             value = interpreter._env_sep(key).join(value)
@@ -179,7 +179,7 @@ class ActionManager(object):
     triggers the callbacks of the `ActionInterpreter`.
     """
     def __init__(self, interpreter: ActionInterpreter, parent_environ: dict[str, str] | None = None,
-                 parent_variables: Iterable[str] | None = None, formatter=None, verbose=False, env_sep_map=None):
+                 parent_variables: Iterable[str] | None = None, formatter=None, verbose: bool = False, env_sep_map=None) -> None:
         '''
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
@@ -275,17 +275,17 @@ class ActionManager(object):
 
     # -- Commands
 
-    def undefined(self, key):
+    def undefined(self, key) -> bool:
         _, expanded_key = self._key(key)
         return (
             expanded_key not in self.environ
             and expanded_key not in self.parent_environ
         )
 
-    def defined(self, key):
+    def defined(self, key) -> bool:
         return not self.undefined(key)
 
-    def expandvars(self, value, format=True):
+    def expandvars(self, value, format: bool = True):
         if format:
             value = str(self._format(value))
         return str(self._expand(value))
@@ -299,7 +299,7 @@ class ActionManager(object):
             raise RexUndefinedVariableError(
                 "Referenced undefined environment variable: %s" % expanded_key)
 
-    def setenv(self, key, value):
+    def setenv(self, key, value) -> None:
         unexpanded_key, expanded_key = self._key(key)
         unexpanded_value, expanded_value = self._value(value)
 
@@ -313,7 +313,7 @@ class ActionManager(object):
             key, value = unexpanded_key, unexpanded_value
         self.interpreter.setenv(key, value)
 
-    def unsetenv(self, key):
+    def unsetenv(self, key) -> None:
         unexpanded_key, expanded_key = self._key(key)
         self.actions.append(Unsetenv(unexpanded_key))
 
@@ -325,7 +325,7 @@ class ActionManager(object):
             key = unexpanded_key
         self.interpreter.unsetenv(key)
 
-    def resetenv(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None) -> None:
         unexpanded_key, expanded_key = self._key(key)
         unexpanded_value, expanded_value = self._value(value)
 
@@ -339,7 +339,7 @@ class ActionManager(object):
             key, value = unexpanded_key, unexpanded_value
         self.interpreter.resetenv(key, value)
 
-    def _pendenv(self, key, value, action, interpfunc, addfunc):
+    def _pendenv(self, key, value, action, interpfunc, addfunc) -> None:
         unexpanded_key, expanded_key = self._key(key)
         unexpanded_value, expanded_value = self._value(value)
 
@@ -393,26 +393,26 @@ class ActionManager(object):
                 key, value = unexpanded_key, unexpanded_values
             self.interpreter.setenv(key, value)
 
-    def prependenv(self, key, value):
+    def prependenv(self, key, value) -> None:
         self._pendenv(key, value, Prependenv, self.interpreter.prependenv,
                       lambda x, y: [x] + y)
 
-    def appendenv(self, key, value):
+    def appendenv(self, key, value) -> None:
         self._pendenv(key, value, Appendenv, self.interpreter.appendenv,
                       lambda x, y: y + [x])
 
-    def alias(self, key, value):
+    def alias(self, key, value) -> None:
         key = str(self._format(key))
         value = str(self._format(value))
         self.actions.append(Alias(key, value))
         self.interpreter.alias(key, value)
 
-    def info(self, value=''):
+    def info(self, value='') -> None:
         value = self._format(value)
         self.actions.append(Info(value))
         self.interpreter.info(value)
 
-    def error(self, value):
+    def error(self, value) -> None:
         value = self._format(value)
         self.actions.append(Error(value))
         self.interpreter.error(value)
@@ -421,22 +421,22 @@ class ActionManager(object):
         from rez.exceptions import RexStopError
         raise RexStopError(msg % nargs)
 
-    def command(self, value):
+    def command(self, value) -> None:
         # Note: Value is deliberately not formatted in commands
         self.actions.append(Command(value))
         self.interpreter.command(value)
 
-    def comment(self, value):
+    def comment(self, value) -> None:
         value = str(self._format(value))
         self.actions.append(Comment(value))
         self.interpreter.comment(value)
 
-    def source(self, value):
+    def source(self, value) -> None:
         value = str(self._format(value))
         self.actions.append(Source(value))
         self.interpreter.source(value)
 
-    def shebang(self):
+    def shebang(self) -> None:
         self.actions.append(Shebang())
         self.interpreter.shebang()
 
@@ -537,7 +537,7 @@ class ActionInterpreter(object):
 
     # --- other
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path: bool = False):
         """Escape a string.
 
         Escape the given string so that special characters (such as quotes and
@@ -620,7 +620,7 @@ class Python(ActionInterpreter):
     '''Execute commands in the current python session'''
     expand_env_vars = True
 
-    def __init__(self, target_environ=None, passive=False):
+    def __init__(self, target_environ=None, passive: bool = False) -> None:
         '''
         target_environ: dict
             If target_environ is None or os.environ, interpreted actions are
@@ -641,7 +641,7 @@ class Python(ActionInterpreter):
             self.target_environ = target_environ
             self.update_session = False
 
-    def set_manager(self, manager: ActionManager):
+    def set_manager(self, manager: ActionManager) -> None:
         self.manager = manager
 
     def apply_environ(self):
@@ -658,36 +658,36 @@ class Python(ActionInterpreter):
         self.apply_environ()
         return self.manager.environ
 
-    def setenv(self, key, value):
+    def setenv(self, key, value) -> None:
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
                 sys.path = value.split(self.pathsep)
 
-    def unsetenv(self, key):
+    def unsetenv(self, key) -> None:
         pass
 
-    def resetenv(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None) -> None:
         pass
 
-    def prependenv(self, key, value):
+    def prependenv(self, key, value) -> None:
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
                 sys.path.insert(0, value)
 
-    def appendenv(self, key, value):
+    def appendenv(self, key, value) -> None:
         if self.update_session:
             if key == 'PYTHONPATH':
                 value = self.escape_string(value)
                 sys.path.append(value)
 
-    def info(self, value):
+    def info(self, value) -> None:
         if not self.passive:
             value = self.escape_string(value)
             print(value)
 
-    def error(self, value):
+    def error(self, value) -> None:
         if not self.passive:
             value = self.escape_string(value)
             print(value, file=sys.stderr)
@@ -722,38 +722,38 @@ class Python(ActionInterpreter):
             cmd = shlex_join(value)
             raise RexError('Error executing command: %s\n%s' % (cmd, str(e)))
 
-    def comment(self, value):
+    def comment(self, value) -> None:
         pass
 
-    def source(self, value):
+    def source(self, value) -> None:
         pass
 
-    def alias(self, key, value):
+    def alias(self, key, value) -> None:
         pass
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         pass
 
-    def _saferefenv(self, key):
+    def _saferefenv(self, key) -> None:
         pass
 
-    def shebang(self):
+    def shebang(self) -> None:
         pass
 
-    def get_key_token(self, key):
+    def get_key_token(self, key) -> str:
         # Not sure if this actually needs to be returned here.  Prior to the
         # Windows refactor this is the value this interpretter was receiving,
         # but the concept doesn't really feel applicable to Python.  It's just
         # here because the API requires it.
         return "${%s}" % key
 
-    def adjust_env_for_platform(self, env):
+    def adjust_env_for_platform(self, env) -> None:
         """ Make required platform-specific adjustments to env.
         """
         if platform_.name == "windows":
             self._add_systemroot_to_env_win32(env)
 
-    def _add_systemroot_to_env_win32(self, env):
+    def _add_systemroot_to_env_win32(self, env) -> None:
         r""" Sets ``%SYSTEMROOT%`` environment variable, if not present
         in :py:attr:`target_environ` .
 
@@ -827,7 +827,7 @@ class EscapedString(object):
         you can use the `literal` and `expandable` free functions, rather than
         constructing a class instance directly.
     """
-    def __init__(self, value, is_literal=False):
+    def __init__(self, value, is_literal: bool = False) -> None:
         self.strings = [(is_literal, value)]
 
     def copy(self):
@@ -849,18 +849,18 @@ class EscapedString(object):
     def e(self, value):
         return self.expandable(value)
 
-    def _add(self, value, is_literal):
+    def _add(self, value, is_literal) -> None:
         last = self.strings[-1]
         if last[0] == is_literal:
             self.strings[-1] = (last[0], last[1] + value)
         else:
             self.strings.append((is_literal, value))
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return the string unescaped."""
         return ''.join(x[1] for x in self.strings)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.strings)
 
     def __eq__(self, other):
@@ -872,7 +872,7 @@ class EscapedString(object):
                 and other.strings == self.strings
             )
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not (self == other)
 
     def __add__(self, other):
@@ -1033,13 +1033,13 @@ class NamespaceFormatter(Formatter):
     some situations.
     """
 
-    def __init__(self, namespace):
+    def __init__(self, namespace) -> None:
         Formatter.__init__(self)
         self.initial_namespace = namespace
         self.namespace = self.initial_namespace
 
     def format(self, format_string, *args, **kwargs):
-        def escape_envvar(matchobj):
+        def escape_envvar(matchobj) -> str:
             value = next((x for x in matchobj.groups() if x is not None))
             return "${{%s}}" % value
 
@@ -1095,7 +1095,7 @@ class EnvironmentDict(MutableMapping):
     `__getitem__` is always guaranteed to return an `EnvironmentVariable`
     instance: it will not raise a KeyError.
     """
-    def __init__(self, manager):
+    def __init__(self, manager) -> None:
         """Creates an `EnvironmentDict`.
 
         Args:
@@ -1111,7 +1111,7 @@ class EnvironmentDict(MutableMapping):
     def keys(self):
         return self._var_cache.keys()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%s)' % (self.__class__.__name__, str(self._var_cache))
 
     def __getitem__(self, key):
@@ -1119,20 +1119,20 @@ class EnvironmentDict(MutableMapping):
             self._var_cache[key] = EnvironmentVariable(key, self)
         return self._var_cache[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         self[key].set(value)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         return (key in self._var_cache)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         del self._var_cache[key]
 
     def __iter__(self):
         for key in self._var_cache.keys():
             yield key
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._var_cache)
 
 
@@ -1142,7 +1142,7 @@ class EnvironmentVariable(object):
 
     combined with EnvironmentDict class, records changes to the environment
     '''
-    def __init__(self, name, environ_map):
+    def __init__(self, name, environ_map) -> None:
         self._name = name
         self._environ_map = environ_map
 
@@ -1150,19 +1150,19 @@ class EnvironmentVariable(object):
     def name(self):
         return self._name
 
-    def prepend(self, value):
+    def prepend(self, value) -> None:
         self._environ_map.manager.prependenv(self.name, value)
 
-    def append(self, value):
+    def append(self, value) -> None:
         self._environ_map.manager.appendenv(self.name, value)
 
-    def reset(self, value, friends=None):
+    def reset(self, value, friends=None) -> None:
         self._environ_map.manager.resetenv(self.name, value, friends=friends)
 
-    def set(self, value):
+    def set(self, value) -> None:
         self._environ_map.manager.setenv(self.name, value)
 
-    def unset(self):
+    def unset(self) -> None:
         self._environ_map.manager.unsetenv(self.name)
 
     # --- the following methods all require knowledge of the current environment
@@ -1173,19 +1173,19 @@ class EnvironmentVariable(object):
     def value(self):
         return self.get()
 
-    def setdefault(self, value):
+    def setdefault(self, value) -> None:
         '''set value if the variable does not yet exist'''
         if not self:
             self.set(value)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%r, %r)' % (self.__class__.__name__, self._name,
                                self.value())
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         try:
             return bool(self.value())
         except RexUndefinedVariableError:
@@ -1196,7 +1196,7 @@ class EnvironmentVariable(object):
             value = value.value()
         return self.value() == value
 
-    def __ne__(self, value):
+    def __ne__(self, value) -> bool:
         return not self == value
 
 
@@ -1216,7 +1216,7 @@ class RexExecutor(object):
     """
     def __init__(self, interpreter: ActionInterpreter | None = None,
                  globals_map=None, parent_environ: dict[str, str] | None = None,
-                 parent_variables=None, shebang=True, add_default_namespaces=True):
+                 parent_variables=None, shebang: bool = True, add_default_namespaces: bool = True) -> None:
         """
         interpreter: `ActionInterpreter` or None
             the interpreter to use when executing rex actions. If None, creates
@@ -1280,7 +1280,7 @@ class RexExecutor(object):
         return self.globals[attr] if attr in self.globals \
             else getattr(super(RexExecutor, self), attr)
 
-    def bind(self, name, obj):
+    def bind(self, name, obj) -> None:
         """Binds an object to the execution context.
 
         Args:
@@ -1289,7 +1289,7 @@ class RexExecutor(object):
         """
         self.globals[name] = obj
 
-    def unbind(self, name):
+    def unbind(self, name) -> None:
         """Unbind an object from the execution context.
 
         Has no effect if the binding does not exist.
@@ -1322,7 +1322,7 @@ class RexExecutor(object):
             self.globals.clear()
             self.globals.update(saved_globals)
 
-    def append_system_paths(self):
+    def append_system_paths(self) -> None:
         """Append system paths to $PATH."""
         from rez.shells import Shell, create_shell
 
@@ -1334,12 +1334,12 @@ class RexExecutor(object):
         for path in sh.get_syspaths():
             self.env.PATH.append(path)
 
-    def prepend_rez_path(self):
+    def prepend_rez_path(self) -> None:
         """Prepend rez path to $PATH."""
         if system.rez_bin_path:
             self.env.PATH.prepend(system.rez_bin_path)
 
-    def append_rez_path(self):
+    def append_rez_path(self) -> None:
         """Append rez path to $PATH."""
         if system.rez_bin_path:
             self.env.PATH.append(system.rez_bin_path)
@@ -1405,7 +1405,7 @@ class RexExecutor(object):
 
         return pyc
 
-    def execute_code(self, code, filename=None):
+    def execute_code(self, code, filename=None) -> None:
         """Execute code within the execution context.
 
         Args:

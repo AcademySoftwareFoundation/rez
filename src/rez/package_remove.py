@@ -8,7 +8,7 @@ from rez.utils.logging_ import print_info
 from rez.config import config
 
 
-def remove_package_family(name, path, force=False):
+def remove_package_family(name, path, force: bool = False):
     """Remove a package family from its repository.
 
     A family can only be deleted if it contains no packages, hidden or
@@ -48,7 +48,7 @@ def remove_package(name, version, path):
     return repo.remove_package(name, version)
 
 
-def remove_packages_ignored_since(days, paths=None, dry_run=False, verbose=False):
+def remove_packages_ignored_since(days, paths=None, dry_run: bool = False, verbose: bool = False):
     """Remove packages ignored for >= specified number of days.
 
     Args:

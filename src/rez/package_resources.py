@@ -288,7 +288,7 @@ class PackageRepositoryResource(Resource):
         return super(PackageRepositoryResource, cls).normalize_variables(
             variables)
 
-    def __init__(self, variables=None):
+    def __init__(self, variables=None) -> None:
         super(PackageRepositoryResource, self).__init__(variables)
 
     @cached_property
@@ -381,11 +381,11 @@ class VariantResource(PackageResource):
         return self._subpath()
 
     @abstractmethod
-    def _root(self, ignore_shortlinks=False):
+    def _root(self, ignore_shortlinks: bool = False):
         raise NotImplementedError
 
     @abstractmethod
-    def _subpath(self, ignore_shortlinks=False):
+    def _subpath(self, ignore_shortlinks: bool = False):
         raise NotImplementedError
 
 
@@ -494,7 +494,7 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
         idxstr = '' if index is None else str(index)
         return "%s[%s]" % (self.parent.uri, idxstr)
 
-    def _subpath(self, ignore_shortlinks=False) -> str | None:
+    def _subpath(self, ignore_shortlinks: bool = False) -> str | None:
         if self.index is None:
             return None
 

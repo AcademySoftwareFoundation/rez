@@ -141,7 +141,7 @@ class BuildSystem(object):
                  write_build_scripts: bool = False,
                  verbose: bool = False,
                  build_args: Sequence[str] = [],
-                 child_build_args: list[str] = []):
+                 child_build_args: list[str] = []) -> None:
         """Create a build system instance.
 
         Args:
@@ -295,7 +295,7 @@ class BuildSystem(object):
 
     @classmethod
     def add_pre_build_commands(cls, executor, variant, build_type, install,
-                               build_path, install_path=None):
+                               build_path, install_path=None) -> None:
         """Execute pre_build_commands function if present."""
 
         from rez.utils.data_utils import RO_AttrDictWrapper as ROA

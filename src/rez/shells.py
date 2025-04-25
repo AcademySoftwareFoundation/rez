@@ -135,7 +135,7 @@ class Shell(ActionInterpreter):
     def get_syspaths(cls):
         raise NotImplementedError
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._lines = []
         self.settings = config.plugins.shell[self.name()]
 
@@ -160,13 +160,13 @@ class Shell(ActionInterpreter):
         return self.__class__()
 
     @classmethod
-    def _unsupported_option(cls, option, val):
+    def _unsupported_option(cls, option, val) -> None:
         if val and config.warn("shell_startup"):
             print_warning("%s ignored, not supported by %s shell"
                           % (option, cls.name()))
 
     @classmethod
-    def _overruled_option(cls, option, overruling_option, val):
+    def _overruled_option(cls, option, overruling_option, val) -> None:
         if val and config.warn("shell_startup"):
             print_warning("%s ignored by %s shell - overruled by %s option"
                           % (option, cls.name(), overruling_option))
@@ -205,9 +205,9 @@ class Shell(ActionInterpreter):
             raise RuntimeError("Couldn't find executable '%s'." % name)
         return exe
 
-    def spawn_shell(self, context_file: str, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, add_rez=True,
+    def spawn_shell(self, context_file: str, tmpdir, rcfile=None, norc: bool = False,
+                    stdin: bool = False, command=None, env=None, quiet: bool = False,
+                    pre_command=None, add_rez: bool = True,
                     package_commands_sourced_first=None, **Popen_args) -> subprocess.Popen:
         """Spawn a possibly interactive subshell.
 
@@ -374,9 +374,9 @@ class UnixShell(Shell):
         """
         raise NotImplementedError
 
-    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, add_rez=True,
+    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc: bool = False,
+                    stdin: bool = False, command=None, env=None, quiet: bool = False,
+                    pre_command=None, add_rez: bool = True,
                     package_commands_sourced_first=None, **Popen_args):
 
         d = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
@@ -389,7 +389,7 @@ class UnixShell(Shell):
         if package_commands_sourced_first is None:
             package_commands_sourced_first = config.package_commands_sourced_first
 
-        def _record_shell(ex, files, bind_rez=True, print_msg=False):
+        def _record_shell(ex, files, bind_rez: bool = True, print_msg: bool = False) -> None:
             if bind_rez and package_commands_sourced_first:
                 ex.source(context_file)
 

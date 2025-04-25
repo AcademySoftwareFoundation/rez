@@ -30,7 +30,7 @@ class FallbackComparable(_Comparable):
 
     def __init__(self,
                  main_comparable: SupportsLessThan,
-                 fallback_comparable: SupportsLessThan):
+                 fallback_comparable: SupportsLessThan) -> None:
         self.main_comparable = main_comparable
         self.fallback_comparable = fallback_comparable
 
@@ -50,7 +50,7 @@ class FallbackComparable(_Comparable):
         except Exception:
             return self.fallback_comparable < other.fallback_comparable
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%r, %r)' % (type(self).__name__, self.main_comparable, self.fallback_comparable)
 
 
@@ -61,7 +61,7 @@ class PackageOrder(object):
     name: str
     _packages: list[str]
 
-    def __init__(self, packages: Iterable[str] | None = None):
+    def __init__(self, packages: Iterable[str] | None = None) -> None:
         """
         Args:
             packages: If not provided, PackageOrder applies to all packages.
@@ -79,7 +79,7 @@ class PackageOrder(object):
         return self._packages
 
     @packages.setter
-    def packages(self, packages: str | Iterable[str] | None):
+    def packages(self, packages: str | Iterable[str] | None) -> None:
         if packages is None:
             # Apply to all packages
             self._packages = [ALL_PACKAGES]
@@ -197,7 +197,7 @@ class PackageOrder(object):
     def __eq__(self, other):
         return type(self) == type(other) and str(self) == str(other)  # noqa: E721
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self == other
 
     def __repr__(self) -> str:
@@ -247,7 +247,7 @@ class SortedOrder(PackageOrder):
     """
     name = "sorted"
 
-    def __init__(self, descending: bool, packages=None):
+    def __init__(self, descending: bool, packages=None) -> None:
         super().__init__(packages)
         self.descending = descending
 
@@ -302,7 +302,7 @@ class PerFamilyOrder(PackageOrder):
     name = "per_family"
 
     def __init__(self, order_dict: dict[str, PackageOrder],
-                 default_order: PackageOrder | None = None):
+                 default_order: PackageOrder | None = None) -> None:
         """Create a reorderer.
 
         Args:
@@ -422,7 +422,7 @@ class VersionSplitPackageOrder(PackageOrder):
     """
     name = "version_split"
 
-    def __init__(self, first_version: Version, packages=None):
+    def __init__(self, first_version: Version, packages=None) -> None:
         """Create a reorderer.
 
         Args:
@@ -510,7 +510,7 @@ class TimestampPackageOrder(PackageOrder):
     """
     name = "soft_timestamp"
 
-    def __init__(self, timestamp: int, rank: int = 0, packages=None):
+    def __init__(self, timestamp: int, rank: int = 0, packages=None) -> None:
         """Create a reorderer.
 
         Args:
@@ -638,7 +638,7 @@ class PackageOrderList(List[PackageOrder]):
     """A list of package orderer.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.by_package: dict[str, PackageOrder] = {}
         self.dirty = True
@@ -746,7 +746,7 @@ def get_orderer(package_name, orderers=None):
     return orderer
 
 
-def register_orderer(cls: type[PackageOrder]):
+def register_orderer(cls: type[PackageOrder]) -> bool:
     """Register an orderer
 
     Args:

@@ -7,7 +7,7 @@ Open a rez-configured shell, possibly interactive.
 '''
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     from argparse import SUPPRESS
     from rez.config import config
     from rez.system import system
@@ -143,7 +143,7 @@ def setup_parser(parser, completions=False):
             "extra_0", ExecutablesCompleter, FilesCompleter())
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.resolved_context import ResolvedContext
     from rez.resolver import ResolverStatus
     from rez.package_filter import PackageFilterList, Rule

@@ -44,10 +44,10 @@ class LocalBuildProcess(BuildProcessHelper):
     tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_testing_repo_")
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "local"
 
-    def __init__(self, *nargs, **kwargs):
+    def __init__(self, *nargs, **kwargs) -> None:
         super(LocalBuildProcess, self).__init__(*nargs, **kwargs)
         self.ran_test_names = set()
         self.all_test_results = PackageTestResults()
@@ -145,8 +145,8 @@ class LocalBuildProcess(BuildProcessHelper):
                             variant: Variant,
                             build_type,
                             install_path: str | None = None,
-                            clean=False,
-                            install=False,
+                            clean: bool = False,
+                            install: bool = False,
                             **kwargs) -> BuildResult:
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
@@ -327,7 +327,7 @@ class LocalBuildProcess(BuildProcessHelper):
             with open(sha1_filepath, "w") as f:  # overwrite if exists
                 f.write(uuid)
 
-    def _rmtree(self, path):
+    def _rmtree(self, path) -> None:
         try:
             forceful_rmtree(path)
         except Exception as e:
@@ -347,7 +347,7 @@ class LocalBuildProcess(BuildProcessHelper):
         # build and possibly install variant (ie the payload, not package.py)
         install_path = install_path or self.package.config.local_packages_path
 
-        def cancel_variant_install():
+        def cancel_variant_install() -> None:
             if install:
                 pkg_repo = package_repository_manager.get_repository(install_path)
                 pkg_repo.on_variant_install_cancelled(variant.resource)
@@ -399,7 +399,7 @@ class LocalBuildProcess(BuildProcessHelper):
             )
             return None
 
-        def cancel_variant_install():
+        def cancel_variant_install() -> None:
             pkg_repo = package_repository_manager.get_repository(release_path)
             pkg_repo.on_variant_install_cancelled(variant.resource)
 

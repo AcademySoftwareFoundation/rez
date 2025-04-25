@@ -60,7 +60,7 @@ def extend_path(path, name):
     init_py = "__init__" + os.extsep + "py"
     path = path[:]
 
-    def append_if_valid(dir_):
+    def append_if_valid(dir_) -> None:
         if os.path.isdir(dir_):
             subdir = os.path.normcase(os.path.join(dir_, pname))
             initfile = os.path.join(subdir, init_py)
@@ -80,7 +80,7 @@ def extend_path(path, name):
     return path
 
 
-def uncache_rezplugins_module_paths(instance=None):
+def uncache_rezplugins_module_paths(instance=None) -> None:
     instance = instance or plugin_manager
     cached_property.uncache(instance, "rezplugins_module_paths")
 
@@ -93,7 +93,7 @@ class RezPluginType(object):
     """
     type_name: str
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self.type_name is None:
             raise TypeError("Subclasses of RezPluginType must provide a "
                             "'type_name' attribute")
@@ -104,7 +104,7 @@ class RezPluginType(object):
         self.config_data = {}
         self.load_plugins()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%s)' % (self.__class__.__name__, self.plugin_classes.keys())
 
     def register_plugin(self, plugin_name: str, plugin_class: type, plugin_module: types.ModuleType) -> None:
@@ -299,7 +299,7 @@ class RezPluginManager(object):
             This is important  because it ensures that rez's copy of
             'rezplugins' is always found first.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self._plugin_types: dict[str, LazySingleton[RezPluginType]] = {}
 
     @cached_property

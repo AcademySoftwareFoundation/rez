@@ -99,7 +99,7 @@ class Resource(object, metaclass=LazyAttributeMeta):
         """
         return variables
 
-    def __init__(self, variables=None):
+    def __init__(self, variables=None) -> None:
         self.variables = self.normalize_variables(variables or {})
 
     @cached_property
@@ -155,7 +155,7 @@ class ResourceHandle(object):
     A handle uniquely identifies a resource. A handle can be stored and used
     with a `ResourcePool` to retrieve the same resource at a later date.
     """
-    def __init__(self, key: str, variables=None):
+    def __init__(self, key: str, variables=None) -> None:
         self.key = key
         self.variables = variables or {}
 
@@ -194,7 +194,7 @@ class ResourceHandle(object):
     def __eq__(self, other):
         return (self.key == other.key) and (self.variables == other.variables)
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
     def __hash__(self):
@@ -209,7 +209,7 @@ class ResourcePool(object):
     resources are created via some factory class, which first checks for the
     existence of the resource before creating one from a pool.
     """
-    def __init__(self, cache_size=None):
+    def __init__(self, cache_size=None) -> None:
         self.resource_classes: dict[str, type[Resource]] = {}
         cache = lru_cache(maxsize=cache_size)
         self.cached_get_resource = cache(self._get_resource)
@@ -270,7 +270,7 @@ class ResourceWrapper(object, metaclass=AttributeForwardMeta):
     """
     keys = None
 
-    def __init__(self, resource: Resource):
+    def __init__(self, resource: Resource) -> None:
         self.wrapped = resource
 
     @property
@@ -288,7 +288,7 @@ class ResourceWrapper(object, metaclass=AttributeForwardMeta):
     def validated_data(self):
         return self.resource.validated_data()
 
-    def validate_data(self):
+    def validate_data(self) -> None:
         self.resource.validate_data()
 
     def __eq__(self, other):
@@ -297,10 +297,10 @@ class ResourceWrapper(object, metaclass=AttributeForwardMeta):
             and self.resource == other.resource
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, str(self.resource))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.resource)
 
     def __hash__(self):

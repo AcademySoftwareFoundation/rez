@@ -32,7 +32,7 @@ def get_current_developer_package() -> DeveloperPackage:
     return _package
 
 
-def setup_parser_common(parser):
+def setup_parser_common(parser) -> None:
     """Parser setup common to both rez-build and rez-release."""
     from rez.build_process import get_build_process_types
     from rez.build_system import get_valid_build_systems
@@ -83,7 +83,7 @@ def setup_parser_common(parser):
         "Alternatively, list these after a second '--'.")
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "-c", "--clean", action="store_true",
         help="clear the current build before rebuilding.")
@@ -127,7 +127,7 @@ def get_build_args(opts, parser, extra_arg_groups):
     return result_groups[0], result_groups[1]
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.exceptions import BuildContextResolveError
     from rez.build_process import create_build_process
     from rez.build_system import create_build_system

@@ -21,7 +21,7 @@ class VersionedObject(_Common):
     sep_regex_str = r'[-@#]'
     sep_regex = re.compile(sep_regex_str)
 
-    def __init__(self, s: str):
+    def __init__(self, s: str) -> None:
         """
         Args:
             s (str):
@@ -141,7 +141,7 @@ class Requirement(_Common):
     """
     sep_regex = re.compile(r'[-@#=<>]')
 
-    def __init__(self, s: str | None, invalid_bound_error: bool = True):
+    def __init__(self, s: str | None, invalid_bound_error: bool = True) -> None:
         """
         Args:
             s (str): Requirement string
@@ -379,7 +379,7 @@ class RequirementList(_Common):
     optimal form, merging any requirements for common objects. Order of objects
     is retained.
     """
-    def __init__(self, requirements: list[Requirement]):
+    def __init__(self, requirements: list[Requirement]) -> None:
         """
         Args:
             requirements (list[Requirement]): List of requirements.

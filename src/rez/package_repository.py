@@ -47,7 +47,7 @@ def create_memory_package_repository(repository_data: dict) -> MemoryPackageRepo
 class PackageRepositoryGlobalStats(threading.local):
     """Gathers stats across package repositories.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         # the amount of time that has been spent loading package from ,
         # repositories, since process start
         self.package_load_time = 0.0
@@ -307,7 +307,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def pre_variant_install(self, variant_resource: VariantResource):
+    def pre_variant_install(self, variant_resource: VariantResource) -> None:
         """Called before a variant is installed.
 
         If any directories are created on disk for the variant to install into,
@@ -318,7 +318,7 @@ class PackageRepository(object):
         """
         pass
 
-    def on_variant_install_cancelled(self, variant_resource: VariantResource):
+    def on_variant_install_cancelled(self, variant_resource: VariantResource) -> None:
         """Called when a variant installation is cancelled.
 
         This is called after `pre_variant_install`, but before `install_variant`,
@@ -535,7 +535,7 @@ class PackageRepositoryManager(object):
     Manages retrieval of resources (packages and variants) from `PackageRepository`
     instances, and caches these resources in a resource pool.
     """
-    def __init__(self, resource_pool: ResourcePool | None = None):
+    def __init__(self, resource_pool: ResourcePool | None = None) -> None:
         """Create a package repo manager.
 
         Args:

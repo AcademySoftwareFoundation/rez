@@ -15,7 +15,7 @@ class NoneModule(ModuleType):
     def __getattr__(self, name):
         return None
 
-    def used(self, object_):
+    def used(self, object_) -> None:
         """Use this to stop 'variable/module not used' linting errors."""
         pass
 

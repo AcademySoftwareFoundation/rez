@@ -11,11 +11,11 @@ import argparse
 __doc__ = argparse.SUPPRESS
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     pass
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.cli._util import subcommands
     import os
     import re

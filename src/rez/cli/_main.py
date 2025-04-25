@@ -27,7 +27,7 @@ def is_hyphened_command():
 class SetupRezSubParser(object):
     """Callback class for lazily setting up rez sub-parsers.
     """
-    def __init__(self, module_name):
+    def __init__(self, module_name) -> None:
         self.module_name = module_name
 
     def __call__(self, parser_name, parser):
@@ -63,7 +63,7 @@ class SetupRezSubParser(object):
         return sys.modules[self.module_name]
 
 
-def _add_common_args(parser):
+def _add_common_args(parser) -> None:
     parser.add_argument("-v", "--verbose", action="count", default=0,
                         help="verbose mode, repeat for more verbosity")
     parser.add_argument("--debug", dest="debug", action="store_true",
@@ -73,7 +73,7 @@ def _add_common_args(parser):
 
 
 class InfoAction(_StoreTrueAction):
-    def __call__(self, parser, args, values, option_string=None):
+    def __call__(self, parser, args, values, option_string=None) -> None:
         from rez.system import system
         txt = system.get_summary_string()
         print()

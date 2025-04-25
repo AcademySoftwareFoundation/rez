@@ -101,7 +101,7 @@ class SolverCallbackReturn(Enum):
 
 
 class _Printer(object):
-    def __init__(self, verbosity, buf: SupportsWrite | None = None, suppress_passive: bool = False):
+    def __init__(self, verbosity, buf: SupportsWrite | None = None, suppress_passive: bool = False) -> None:
         self.verbosity = verbosity
         self.buf = buf or sys.stdout
         self.suppress_passive = suppress_passive
@@ -156,7 +156,7 @@ class SolverState(object):
     """Represent the current state of the solver instance for use with a
     callback.
     """
-    def __init__(self, num_solves: int, num_fails: int, phase: _ResolvePhase):
+    def __init__(self, num_solves: int, num_fails: int, phase: _ResolvePhase) -> None:
         self.num_solves = num_solves
         self.num_fails = num_fails
         self.phase = phase
@@ -175,7 +175,7 @@ class Reduction(_Common):
     """A variant was removed because its dependencies conflicted with another
     scope in the current phase."""
     def __init__(self, name: str, version, variant_index: int | None, dependency: Requirement,
-                 conflicting_request: Requirement):
+                 conflicting_request: Requirement) -> None:
         self.name = name
         self.version = version
         self.variant_index = variant_index
@@ -211,7 +211,7 @@ class Reduction(_Common):
 class DependencyConflict(_Common):
     """A common dependency shared by all variants in a scope, conflicted with
     another scope in the current phase."""
-    def __init__(self, dependency: Requirement, conflicting_request: Requirement):
+    def __init__(self, dependency: Requirement, conflicting_request: Requirement) -> None:
         """
         Args:
             dependency (`Requirement`): Merged requirement from a set of variants.
@@ -242,7 +242,7 @@ class FailureReason(_Common):
 
 class TotalReduction(FailureReason):
     """All of a scope's variants were reduced away."""
-    def __init__(self, reductions: list[Reduction]):
+    def __init__(self, reductions: list[Reduction]) -> None:
         self.reductions = reductions
 
     def involved_requirements(self) -> list[Requirement]:
@@ -264,7 +264,7 @@ class TotalReduction(FailureReason):
 class DependencyConflicts(FailureReason):
     """A common dependency in a scope conflicted with another scope in the
     current phase."""
-    def __init__(self, conflicts: list[DependencyConflict]):
+    def __init__(self, conflicts: list[DependencyConflict]) -> None:
         self.conflicts = conflicts
 
     def involved_requirements(self) -> list[Requirement]:
@@ -286,7 +286,7 @@ class DependencyConflicts(FailureReason):
 
 class Cycle(FailureReason):
     """The solve contains a cyclic dependency."""
-    def __init__(self, packages: list[VersionedObject]):
+    def __init__(self, packages: list[VersionedObject]) -> None:
         self.packages = packages
 
     def involved_requirements(self) -> list[Requirement]:
@@ -311,7 +311,7 @@ class Cycle(FailureReason):
 class PackageVariant(_Common):
     """A variant of a package.
     """
-    def __init__(self, variant: Variant, building: bool):
+    def __init__(self, variant: Variant, building: bool) -> None:
         """Create a package variant.
 
         Args:
@@ -390,7 +390,7 @@ class _PackageEntry(object):
 
     Holds some extra state data, such as whether the variants are sorted.
     """
-    def __init__(self, package: Package, variants: list[PackageVariant], solver: Solver):
+    def __init__(self, package: Package, variants: list[PackageVariant], solver: Solver) -> None:
         self.package = package
         self.variants = variants
         self.solver = solver
@@ -481,7 +481,7 @@ class _PackageEntry(object):
 class _PackageVariantList(_Common):
     """A list of package variants, loaded lazily.
     """
-    def __init__(self, package_name: str, solver: Solver):
+    def __init__(self, package_name: str, solver: Solver) -> None:
         self.package_name = package_name
         self.solver = solver
 
@@ -585,7 +585,7 @@ class _PackageVariantList(_Common):
 
 class _PackageVariantSlice(_Common):
     """A subset of a variant list, but with more dependency-related info."""
-    def __init__(self, package_name: str, entries: list[_PackageEntry], solver: Solver):
+    def __init__(self, package_name: str, entries: list[_PackageEntry], solver: Solver) -> None:
         """
         Args:
             entries (list of `_PackageEntry`): result of
@@ -948,7 +948,7 @@ class _PackageVariantSlice(_Common):
 
 
 class PackageVariantCache(object):
-    def __init__(self, solver: Solver):
+    def __init__(self, solver: Solver) -> None:
         self.solver = solver
         self.variant_lists: dict[str, _PackageVariantList] = {}  # {package-name: _PackageVariantList}
 
@@ -983,7 +983,7 @@ class _PackageScope(_Common):
     or a conflict range. As the resolve progresses, package scopes are narrowed
     down.
     """
-    def __init__(self, package_request: Requirement, solver: Solver):
+    def __init__(self, package_request: Requirement, solver: Solver) -> None:
         self.package_name = package_request.name
         self.solver = solver
         self.variant_slice = None
@@ -1269,7 +1269,7 @@ class _ResolvePhase(_Common):
     If the resolve phase gets to a point where every package scope is solved,
     then the entire resolve is considered to be solved.
     """
-    def __init__(self, solver: Solver):
+    def __init__(self, solver: Solver) -> None:
         self.solver = solver
         self.failure_reason: FailureReason | None = None
         self.extractions: dict[tuple[str, str], Requirement] = {}
@@ -1644,7 +1644,7 @@ class _ResolvePhase(_Common):
             counter[0] += 1
             return "_%d" % id_
 
-        def _add_edge(id1: str, id2: str, arrowsize=0.5) -> tuple[str, str]:
+        def _add_edge(id1: str, id2: str, arrowsize: float=0.5) -> tuple[str, str]:
             e = (id1, id2)
             if g.has_edge(e):
                 g.del_edge(e)
@@ -1652,25 +1652,25 @@ class _ResolvePhase(_Common):
             g.add_edge_attribute(e, ("arrowsize", str(arrowsize)))
             return e
 
-        def _add_extraction_merge_edge(id1: str, id2: str):
+        def _add_extraction_merge_edge(id1: str, id2: str) -> None:
             e = _add_edge(id1, id2, 1)
             g.add_edge_attribute(e, ("arrowhead", "odot"))
 
-        def _add_conflict_edge(id1: str, id2: str):
+        def _add_conflict_edge(id1: str, id2: str) -> None:
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, "CONFLICT")
             g.add_edge_attribute(e, ("style", "bold"))
             g.add_edge_attribute(e, ("color", "red"))
             g.add_edge_attribute(e, ("fontcolor", "red"))
 
-        def _add_cycle_edge(id1: str, id2: str):
+        def _add_cycle_edge(id1: str, id2: str) -> None:
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, "CYCLE")
             g.add_edge_attribute(e, ("style", "bold"))
             g.add_edge_attribute(e, ("color", "red"))
             g.add_edge_attribute(e, ("fontcolor", "red"))
 
-        def _add_reduct_edge(id1: str, id2: str, label: str):
+        def _add_reduct_edge(id1: str, id2: str, label: str) -> None:
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, label)
             g.add_edge_attribute(e, ("fontsize", node_fontsize))
@@ -1946,7 +1946,7 @@ class Solver(_Common):
                  package_load_callback: Callable[[Package], Any] | None = None,
                  prune_unfailed: bool = True,
                  suppress_passive: bool = False,
-                 print_stats: bool = False):
+                 print_stats: bool = False) -> None:
         """Create a Solver.
 
         Args:

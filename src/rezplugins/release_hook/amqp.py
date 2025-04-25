@@ -45,13 +45,13 @@ class AmqpReleaseHook(ReleaseHook):
         "message_attributes":       dict}
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "amqp"
 
-    def __init__(self, source_path):
+    def __init__(self, source_path) -> None:
         super(AmqpReleaseHook, self).__init__(source_path)
 
-    def post_release(self, user, install_path, variants, **kwargs):
+    def post_release(self, user, install_path, variants, **kwargs) -> None:
         if variants:
             package = variants[0].parent
         else:
@@ -80,7 +80,7 @@ class AmqpReleaseHook(ReleaseHook):
 
         self.publish_message(data)
 
-    def publish_message(self, data):
+    def publish_message(self, data) -> None:
         if not self.settings.host:
             print_error("Did not publish message, host is not specified")
             return

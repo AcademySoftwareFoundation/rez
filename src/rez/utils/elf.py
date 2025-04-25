@@ -35,7 +35,7 @@ def get_rpaths(elfpath):
     return []
 
 
-def patch_rpaths(elfpath, rpaths):
+def patch_rpaths(elfpath, rpaths) -> None:
     """Replace an elf's rpath header with those provided.
     """
 

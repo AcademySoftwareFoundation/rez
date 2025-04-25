@@ -9,7 +9,7 @@ description = "floobtasticator"
 
 private_build_requires = ["build_util", "python"]
 
-def commands():
+def commands() -> None:
     env.PYTHONPATH.append('{root}/python')
 
 build_command = 'python {root}/build.py {install}'

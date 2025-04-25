@@ -25,7 +25,7 @@ class ModifyList(object):
     This can be used in configs to add to list-based settings, rather than
     overwriting them.
     """
-    def __init__(self, append=None, prepend=None):
+    def __init__(self, append=None, prepend=None) -> None:
         for v in (prepend, append):
             if v is not None and not isinstance(v, list):
                 raise ValueError("Expected list in ModifyList, not %r" % v)
@@ -50,10 +50,10 @@ class DelayLoad(object):
     - yaml (``*.yaml``, ``*.yml``)
     - json (``*.json``)
     """
-    def __init__(self, filepath):
+    def __init__(self, filepath) -> None:
         self.filepath = os.path.expanduser(filepath)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, self.filepath)
 
     def get_value(self):
@@ -100,7 +100,7 @@ def remove_nones(**kwargs):
     return dict((k, v) for k, v in kwargs.items() if v is not None)
 
 
-def deep_update(dict1, dict2):
+def deep_update(dict1, dict2) -> None:
     """Perform a deep merge of `dict2` into `dict1`.
 
     Note that `dict2` and any nested dicts are unchanged.
@@ -239,7 +239,7 @@ else:
             >>> f.bah
             1
         """
-        def __init__(self, func, name=None):
+        def __init__(self, func, name=None) -> None:
             self.func = func
             # Make sure that Sphinx autodoc can follow and get the docstring from our wrapped function.
             functools.update_wrapper(self, func)
@@ -262,7 +262,7 @@ else:
             raise RuntimeError("@cached_property should not be called.")
 
         @classmethod
-        def uncache(cls, instance, name):
+        def uncache(cls, instance, name) -> None:
             if hasattr(instance, name):
                 delattr(instance, name)
 
@@ -284,7 +284,7 @@ class cached_class_property(object):
         >>> Foo.bah
         1
     """
-    def __init__(self, func, name=None):
+    def __init__(self, func, name=None) -> None:
         self.func = func
         # Make sure that Sphinx autodoc can follow and get the docstring from our wrapped function.
         # TODO: Doesn't work...
@@ -303,7 +303,7 @@ class cached_class_property(object):
 
 class LazySingleton(Generic[T]):
     """A threadsafe singleton that initialises when first referenced."""
-    def __init__(self, instance_class: type[T], *nargs, **kwargs):
+    def __init__(self, instance_class: type[T], *nargs, **kwargs) -> None:
         self.instance_class = instance_class
         self.nargs = nargs
         self.kwargs = kwargs
@@ -335,7 +335,7 @@ class AttrDictWrapper(MutableMapping):
         >>> assert dd.one == 1
         >>> assert d['one'] == 1
     """
-    def __init__(self, data=None):
+    def __init__(self, data=None) -> None:
         self.__dict__['_data'] = {} if data is None else data
 
     @property
@@ -353,7 +353,7 @@ class AttrDictWrapper(MutableMapping):
             raise AttributeError("'%s' object has no attribute '%s'"
                                  % (self.__class__.__name__, attr))
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr, value) -> None:
         # For things like '__class__', for instance
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
@@ -362,25 +362,25 @@ class AttrDictWrapper(MutableMapping):
     def __getitem__(self, key):
         return self._data[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         self._data[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         del self._data[key]
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         return key in self._data
 
     def __iter__(self):
         return iter(self._data)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._data)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self._data)
 
     def copy(self):
@@ -389,7 +389,7 @@ class AttrDictWrapper(MutableMapping):
 
 class RO_AttrDictWrapper(AttrDictWrapper):
     """Read-only version of AttrDictWrapper."""
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr, value) -> None:
         self[attr]  # may raise 'no attribute' error
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
@@ -631,7 +631,7 @@ class LazyAttributeMeta(type):
 
     @classmethod
     def _make_validate_data(cls):
-        def func(self):
+        def func(self) -> None:
             self.validated_data()
         return func
 

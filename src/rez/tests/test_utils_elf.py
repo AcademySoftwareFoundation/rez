@@ -14,20 +14,20 @@ from rez.utils.elf import get_rpaths, patch_rpaths
 
 class TestElfUtils(TestBase):
 
-    def __init__(self, *nargs, **kwargs):
+    def __init__(self, *nargs, **kwargs) -> None:
         super().__init__(*nargs, **kwargs)
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         super().setUpClass()
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         super().tearDownClass()
 
     @unittest.skipUnless(platform.system() == "Linux", "Linux only")
     @program_dependent("readelf")
-    def test_get_rpaths_raises_runtime_exception(self):
+    def test_get_rpaths_raises_runtime_exception(self) -> None:
         """Tests that no TypeError from elf functions are raised."""
         with self.assertRaises(RuntimeError) as exc:
             get_rpaths("/path/to/elfpath")

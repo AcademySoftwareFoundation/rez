@@ -8,7 +8,7 @@ Create a Rez package for existing software.
 import argparse
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--quickstart", action="store_true",
         help="bind a set of standard packages to get started")
@@ -37,7 +37,7 @@ def setup_parser(parser, completions=False):
         "for the module")
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.config import config
     from rez.package_bind import bind_package, find_bind_module, \
         get_bind_modules, _print_package_list
