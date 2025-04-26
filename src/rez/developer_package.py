@@ -124,14 +124,14 @@ class DeveloperPackage(Package):
         # py sourcefiles into the package installation
         package.includes = set()
 
-        def visit(d) -> None:
+        def visit(includes: set, d: dict) -> None:
             for k, v in d.items():
                 if isinstance(v, SourceCode):
-                    package.includes |= (v.includes or set())
+                    includes |= (v.includes or set())
                 elif isinstance(v, dict):
-                    visit(v)
+                    visit(includes, v)
 
-        visit(data)
+        visit(package.includes, data)
 
         package._validate_includes()
 

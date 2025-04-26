@@ -10,6 +10,8 @@ dependency between rex code in package.py files, and versions of Rez.
 The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
+from __future__ import annotations
+
 from rez.version import VersionRange
 from rez.version import Requirement
 

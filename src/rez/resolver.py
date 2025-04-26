@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from rez.solver import Solver, SolverCallbackReturn, SolverState, SolverStatus
+from rez.solver import Solver, SolverCallbackReturn, SolverState, SolverStatus, SupportsWrite
 from rez.package_repository import package_repository_manager
 from rez.packages import get_variant, get_last_release_time, Variant
 from rez.package_filter import PackageFilterList, TimestampRule
@@ -53,7 +53,7 @@ class Resolver(object):
                  building: bool = False,
                  testing: bool = False,
                  verbosity: bool = False,
-                 buf=None,
+                 buf: SupportsWrite | None = None,
                  package_load_callback=None,
                  caching: bool = True,
                  suppress_passive: bool = False,
@@ -119,7 +119,7 @@ class Resolver(object):
         self.status_ = ResolverStatus.pending
         self.resolved_packages_: list[Variant] | None = None
         self.resolved_ephemerals_: list[Requirement] | None = None
-        self.failure_description = None
+        self.failure_description: str | None = None
         self.graph_ = None
         self.from_cache = False
         self.memcached_servers = config.memcached_uri if config.resolve_caching else None
@@ -456,7 +456,7 @@ class Resolver(object):
                 self.resolved_ephemerals_.append(req)
 
     @classmethod
-    def _solver_to_dict(cls, solver):
+    def _solver_to_dict(cls, solver: Solver) -> dict:
         graph_ = solver.get_graph()
         solve_time = solver.solve_time
         load_time = solver.load_time

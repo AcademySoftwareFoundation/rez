@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.serialise import FileFormat
 from rez.package_resources import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use

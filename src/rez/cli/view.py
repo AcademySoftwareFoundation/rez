@@ -5,6 +5,7 @@
 """
 View the contents of a package.
 """
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

@@ -5,6 +5,7 @@
 """
 Compare the source code of two packages.
 """
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

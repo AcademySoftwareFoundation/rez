@@ -5,6 +5,7 @@
 '''
 Report current status of the environment, or a tool or package etc.
 '''
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.packages import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding

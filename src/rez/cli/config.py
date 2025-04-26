@@ -5,6 +5,8 @@
 '''
 Print current rez settings.
 '''
+from __future__ import annotations
+
 import json
 
 

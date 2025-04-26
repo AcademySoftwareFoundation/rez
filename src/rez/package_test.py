@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.packages import get_latest_package_from_string, Package

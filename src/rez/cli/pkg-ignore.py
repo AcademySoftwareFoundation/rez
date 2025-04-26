@@ -5,6 +5,7 @@
 '''
 Disable a package so it is hidden from resolves.
 '''
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

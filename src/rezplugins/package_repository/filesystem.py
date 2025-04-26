@@ -41,6 +41,7 @@ from rez.version import Version, VersionRange
 from typing import Iterator, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Self
     from rez.packages import Package, Variant, PackageRepositoryResourceWrapper
     from rez.package_resources import PackageRepositoryResource, VariantResource
 
@@ -594,7 +595,7 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource: PackageFamilyResource):
         return package_family_resource.get_last_release_time()
 
-    def get_package_from_uri(self, uri: str):
+    def get_package_from_uri(self, uri: str) -> PackageResourceHelper | None:
         """
         Example URIs:
         - /svr/packages/mypkg/1.0.0/package.py
@@ -628,7 +629,7 @@ class FileSystemPackageRepository(PackageRepository):
         pkg_ver = Version(pkg_ver_str)
         return self.get_package(pkg_name, pkg_ver)
 
-    def get_variant_from_uri(self, uri: str) -> Variant | None:
+    def get_variant_from_uri(self, uri: str) -> VariantResourceHelper | None:
         """
         Example URIs:
         - /svr/packages/mypkg/1.0.0/package.py[1]
@@ -664,7 +665,8 @@ class FileSystemPackageRepository(PackageRepository):
 
         return None
 
-    def ignore_package(self, pkg_name: str, pkg_version: Version, allow_missing: bool = False) -> int:
+    def ignore_package(self, pkg_name: str, pkg_version: Version,
+                       allow_missing: bool = False) -> int:
         # find package, even if already ignored
         if not allow_missing:
             repo_copy = self._copy(
@@ -695,7 +697,7 @@ class FileSystemPackageRepository(PackageRepository):
         self._on_changed(pkg_name)
         return 1
 
-    def unignore_package(self, pkg_name: str, pkg_version) -> int:
+    def unignore_package(self, pkg_name: str, pkg_version: Version) -> int:
         # find and remove .ignore{ver} file if it exists
         ignore_file_was_removed = False
         filename = self.ignore_prefix + str(pkg_version)
@@ -841,7 +843,7 @@ class FileSystemPackageRepository(PackageRepository):
         return resource
 
     @cached_property
-    def file_lock_dir(self):
+    def file_lock_dir(self) -> str | None:
         dirname = _settings.file_lock_dir
         if not dirname:
             return None
@@ -900,7 +902,8 @@ class FileSystemPackageRepository(PackageRepository):
         family_path = os.path.join(self.location, variant_resource.name)
         self._delete_stale_build_tagfiles(family_path)
 
-    def install_variant(self, variant_resource: VariantResource, dry_run: bool = False, overrides=None) -> VariantResource:
+    def install_variant(self, variant_resource: VariantResource, dry_run: bool = False,
+                        overrides=None) -> VariantResource:
         overrides = overrides or {}
 
         # Name and version overrides are a special case - they change the
@@ -962,7 +965,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         return variant
 
-    def _copy(self, **kwargs):
+    def _copy(self, **kwargs) -> Self:
         """
         Make a copy of the repo that does not share resources with this one.
         """
@@ -971,7 +974,7 @@ class FileSystemPackageRepository(PackageRepository):
         return repo_copy
 
     @contextmanager
-    def _lock_package(self, package_name, package_version=None):
+    def _lock_package(self, package_name, package_version: str | Version | None = None):
         from rez.vendor.lockfile import NotLocked
 
         if _settings.file_lock_type == 'default':
@@ -1025,7 +1028,8 @@ class FileSystemPackageRepository(PackageRepository):
         # unfortunately we need to clear file cache across the board
         clear_file_caches()
 
-    def get_package_payload_path(self, package_name: str, package_version=None) -> str:
+    def get_package_payload_path(self, package_name: str,
+                                 package_version: str | Version | None = None) -> str:
         path = os.path.join(self.location, package_name)
 
         if package_version:

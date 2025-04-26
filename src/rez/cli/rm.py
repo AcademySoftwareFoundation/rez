@@ -5,6 +5,8 @@
 '''
 Remove package(s) from a repository.
 '''
+from __future__ import annotations
+
 import sys
 
 

@@ -13,7 +13,7 @@ from enum import Enum
 from contextlib import contextmanager
 from string import Formatter
 from collections.abc import MutableMapping
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from rez.system import system
 from rez.config import config
@@ -178,8 +178,11 @@ class ActionManager(object):
     """Handles the execution book-keeping.  Tracks env variable values, and
     triggers the callbacks of the `ActionInterpreter`.
     """
-    def __init__(self, interpreter: ActionInterpreter, parent_environ: dict[str, str] | None = None,
-                 parent_variables: Iterable[str] | None = None, formatter=None, verbose: bool = False, env_sep_map=None) -> None:
+    def __init__(self, interpreter: ActionInterpreter,
+                 parent_environ: Mapping[str, str] | None = None,
+                 parent_variables: Iterable[str] | None = None,
+                 formatter=None,
+                 verbose: bool = False, env_sep_map=None) -> None:
         '''
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
@@ -250,7 +253,7 @@ class ActionManager(object):
         except (KeyError, ValueError):
             return value
 
-    def _expand(self, value):
+    def _expand(self, value: str) :
         def _fn(str_):
             str_ = expandvars(str_, self.environ)
             str_ = expandvars(str_, self.parent_environ)
@@ -285,7 +288,7 @@ class ActionManager(object):
     def defined(self, key) -> bool:
         return not self.undefined(key)
 
-    def expandvars(self, value, format: bool = True):
+    def expandvars(self, value, format: bool = True) -> str:
         if format:
             value = str(self._format(value))
         return str(self._expand(value))
@@ -827,19 +830,19 @@ class EscapedString(object):
         you can use the `literal` and `expandable` free functions, rather than
         constructing a class instance directly.
     """
-    def __init__(self, value, is_literal: bool = False) -> None:
+    def __init__(self, value: str, is_literal: bool = False) -> None:
         self.strings = [(is_literal, value)]
 
-    def copy(self):
+    def copy(self) -> EscapedString:
         other = EscapedString.__new__(EscapedString)
         other.strings = self.strings[:]
         return other
 
-    def literal(self, value):
+    def literal(self, value) -> EscapedString:
         self._add(value, True)
         return self
 
-    def expandable(self, value):
+    def expandable(self, value) -> EscapedString:
         self._add(value, False)
         return self
 
@@ -875,7 +878,7 @@ class EscapedString(object):
     def __ne__(self, other) -> bool:
         return not (self == other)
 
-    def __add__(self, other):
+    def __add__(self, other) -> EscapedString:
         """Join two escaped strings together.
 
         Returns:
@@ -888,7 +891,7 @@ class EscapedString(object):
             result._add(value, is_literal)
         return result
 
-    def expanduser(self):
+    def expanduser(self) -> EscapedString:
         """Analogous to os.path.expanduser.
 
         Returns:
@@ -896,7 +899,7 @@ class EscapedString(object):
         """
         return self.formatted(os.path.expanduser)
 
-    def formatted(self, func):
+    def formatted(self, func) -> EscapedString:
         """Return the string with non-literal parts formatted.
 
         Args:
@@ -951,7 +954,7 @@ class EscapedString(object):
         return result
 
     @classmethod
-    def join(cls, sep, values):
+    def join(cls, sep: str, values) -> EscapedString:
         if not values:
             return EscapedString('')
 
@@ -965,15 +968,15 @@ class EscapedString(object):
         return result
 
     @classmethod
-    def promote(cls, value):
-        if isinstance(value, cls):
+    def promote(cls, value: str | EscapedString) -> EscapedString:
+        if isinstance(value, EscapedString):
             return value
         else:
             return cls(value)
 
     @classmethod
-    def demote(cls, value):
-        if isinstance(value, cls):
+    def demote(cls, value: str | EscapedString) -> str:
+        if isinstance(value, EscapedString):
             return str(value)
         else:
             return value
@@ -985,12 +988,12 @@ class EscapedString(object):
         return value
 
 
-def literal(value):
+def literal(value) -> EscapedString:
     """Creates a literal string."""
     return EscapedString(value, True)
 
 
-def expandable(value):
+def expandable(value) -> EscapedString:
     """Creates an expandable string."""
     return EscapedString(value, False)
 
@@ -1215,7 +1218,7 @@ class RexExecutor(object):
     ex.alias('foo','foo -l')
     """
     def __init__(self, interpreter: ActionInterpreter | None = None,
-                 globals_map=None, parent_environ: dict[str, str] | None = None,
+                 globals_map=None, parent_environ: Mapping[str, str] | None = None,
                  parent_variables=None, shebang: bool = True, add_default_namespaces: bool = True) -> None:
         """
         interpreter: `ActionInterpreter` or None

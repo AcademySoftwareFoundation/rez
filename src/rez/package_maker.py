@@ -20,7 +20,7 @@ from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.version import Version
 from contextlib import contextmanager
 import os
-from typing import Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator
 
 
 # this schema will automatically harden request strings like 'python-*'; see
@@ -95,7 +95,7 @@ package_schema = Schema({
 
 class PackageMaker(AttrDictWrapper):
     """Utility class for creating packages."""
-    def __init__(self, name: str, data=None, package_cls: type[Package] | None = None) -> None:
+    def __init__(self, name: str, data: dict | None = None, package_cls: type[Package] | None = None) -> None:
         """Create a package maker.
 
         Args:
@@ -146,7 +146,7 @@ class PackageMaker(AttrDictWrapper):
         package.validate_data()
         return package
 
-    def _get_data(self):
+    def _get_data(self) -> dict:
         data = self._data.copy()
 
         data.pop("installed_variants", None)
@@ -158,7 +158,10 @@ class PackageMaker(AttrDictWrapper):
 
 
 @contextmanager
-def make_package(name: str, path: str, make_base=None, make_root=None, skip_existing: bool = True,
+def make_package(name: str, path: str,
+                 make_base: Callable[[Variant, str], Any] | None = None,
+                 make_root: Callable[[Variant, str], Any] | None= None,
+                 skip_existing: bool = True,
                  warn_on_skip: bool = True) -> Iterator[PackageMaker]:
     """Make and install a package.
 

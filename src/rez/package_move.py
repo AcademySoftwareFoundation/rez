@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.exceptions import PackageMoveError
 from rez.package_copy import copy_package
 from rez.package_repository import package_repository_manager

@@ -5,6 +5,7 @@
 '''
 Run tests listed in a package's definition file.
 '''
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

@@ -416,7 +416,7 @@ class PackageCache(object):
         """
         return self.add_variants(variants, package_cache_async=True)
 
-    def add_variants(self, variants: Iterable[Variant], package_cache_async: bool = True):
+    def add_variants(self, variants: Iterable[Variant], package_cache_async: bool = True) -> None:
         """Add the given variants to the package payload cache.
         """
 
@@ -545,7 +545,7 @@ class PackageCache(object):
                 ' '.join(args), e
             )
 
-    def get_variants(self):
+    def get_variants(self) -> list[tuple[Variant, str, int]]:
         """Get variants and their current statuses from the cache.
 
         Returns:
@@ -842,7 +842,7 @@ class PackageCache(object):
 
         return True
 
-    def _init_logging(self):
+    def _init_logging(self) -> logging.Logger:
         """
         Creates logger that logs to file and stdout. Used for:
         - adding variants in daemonized proc;
@@ -880,19 +880,19 @@ class PackageCache(object):
         return logger
 
     @property
-    def _sys_dir(self):
+    def _sys_dir(self) -> str:
         return os.path.join(self.path, ".sys")
 
     @property
-    def _log_dir(self):
+    def _log_dir(self) -> str:
         return os.path.join(self.path, ".sys", "log")
 
     @property
-    def _pending_dir(self):
+    def _pending_dir(self) -> str:
         return os.path.join(self.path, ".sys", "pending")
 
     @property
-    def _remove_dir(self):
+    def _remove_dir(self) -> str:
         return os.path.join(self.path, ".sys", "to_delete")
 
     def _get_cached_root(self, variant: Variant) -> tuple[int, str]:

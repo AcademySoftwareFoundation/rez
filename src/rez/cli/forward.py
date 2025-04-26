@@ -3,6 +3,8 @@
 
 
 """See util.create_forwarding_script()."""
+from __future__ import annotations
+
 import argparse
 
 __doc__ = argparse.SUPPRESS

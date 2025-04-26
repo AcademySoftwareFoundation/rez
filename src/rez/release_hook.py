@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils.logging_ import print_warning, print_debug
 from rez.packages import get_developer_package
 from enum import Enum

@@ -21,12 +21,26 @@ from rez.utils.logging_ import print_info, print_warning
 from rez.utils.filesystem import replacing_symlink, replacing_copy, \
     safe_makedirs, additive_copytree, make_path_writable, get_existing_path
 
+from typing import TYPE_CHECKING
 
-def copy_package(package: Package, dest_repository: PackageRepository,
-                 variants: list[int] | None = None, shallow: bool = False,
-                 dest_name=None, dest_version=None, overwrite: bool = False, force: bool = False,
-                 follow_symlinks: bool = False, dry_run: bool = False, keep_timestamp: bool = False,
-                 skip_payload: bool = False, overrides=None, verbose: bool = False) -> dict[str, list[tuple[Variant, Variant]]]:
+if TYPE_CHECKING:
+    from rez.version import Version
+
+
+def copy_package(package: Package,
+                 dest_repository: PackageRepository,
+                 variants: list[int] | None = None,
+                 shallow: bool = False,
+                 dest_name: str | None = None,
+                 dest_version: str | Version | None = None,
+                 overwrite: bool = False,
+                 force: bool = False,
+                 follow_symlinks: bool = False,
+                 dry_run: bool = False,
+                 keep_timestamp: bool = False,
+                 skip_payload: bool = False,
+                 overrides=None,
+                 verbose: bool = False) -> dict[str, list[tuple[Variant, Variant]]]:
     """Copy a package from one package repository to another.
 
     This copies the package definition and payload. The package can also be
@@ -230,7 +244,9 @@ def copy_package(package: Package, dest_repository: PackageRepository,
     return finalize()
 
 
-def _copy_variant_payload(src_variant: Variant, dest_pkg_repo: PackageRepository, shallow: bool = False,
+def _copy_variant_payload(src_variant: Variant,
+                          dest_pkg_repo: PackageRepository,
+                          shallow: bool = False,
                           follow_symlinks: bool = False,
                           overrides=None,
                           verbose: bool = False) -> None:

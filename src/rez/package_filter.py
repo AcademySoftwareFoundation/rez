@@ -185,7 +185,7 @@ class PackageFilter(PackageFilterBase):
         return total
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict) -> PackageFilter:
         """Convert from POD types to equivalent package filter.
 
         Returns:
@@ -202,7 +202,7 @@ class PackageFilter(PackageFilterBase):
                 func(rule)
         return f
 
-    def to_pod(self):
+    def to_pod(self) -> dict:
         data = {}
         for namespace, dict_ in (("excludes", self._excludes),
                                  ("includes", self._includes)):
@@ -237,7 +237,7 @@ class PackageFilterList(PackageFilterBase):
     excludes it.
     """
     def __init__(self) -> None:
-        self.filters = []
+        self.filters: list[PackageFilter] = []
 
     def add_filter(self, package_filter: PackageFilter) -> None:
         """Add a filter to the list.
@@ -269,7 +269,7 @@ class PackageFilterList(PackageFilterBase):
             f.add_inclusion(rule)
 
     def excludes(self, package: Package) -> Rule | None:
-        """Returns the first rule that exlcudes ``package``, if any.
+        """Returns the first rule that excludes ``package``, if any.
 
         Returns:
             Rule:
@@ -290,7 +290,7 @@ class PackageFilterList(PackageFilterBase):
         return other
 
     @classmethod
-    def from_pod(cls, data) -> PackageFilterList:
+    def from_pod(cls, data: list[dict]) -> PackageFilterList:
         """Convert from POD types to equivalent package filter.
 
         Returns:
@@ -302,7 +302,7 @@ class PackageFilterList(PackageFilterBase):
             flist.add_filter(f)
         return flist
 
-    def to_pod(self):
+    def to_pod(self) -> list[dict]:
         data = []
         for f in self.filters:
             data.append(f.to_pod())
@@ -316,7 +316,7 @@ class PackageFilterList(PackageFilterBase):
         return str(tuple(filters))
 
     @cached_class_property
-    def singleton(cls):
+    def singleton(cls) -> PackageFilterList:
         """Filter list as configured by :data:`package_filter`.
 
         Returns:

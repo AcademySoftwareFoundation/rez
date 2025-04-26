@@ -44,7 +44,7 @@ from rez.utils.platform_ import platform_
 from contextlib import contextmanager
 from functools import wraps
 from enum import Enum
-from typing import Any, Callable, Iterable, NoReturn, Sequence, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, Iterable, Mapping, NoReturn, Sequence, TypeVar, TYPE_CHECKING
 import getpass
 import json
 import socket
@@ -56,6 +56,7 @@ import os.path
 
 if TYPE_CHECKING:
     from rez.solver import SolverState, SupportsWrite
+    from rez.package_resources import VariantResource
 
 CallableT = TypeVar("CallableT", bound=Callable)
 
@@ -309,12 +310,12 @@ class ResolvedContext(object):
 
         # resolve results
         self.status_ = ResolverStatus.pending
-        self._resolved_packages = None
+        self._resolved_packages: list[Variant] | None = None
         self._resolved_ephemerals = None
-        self.failure_description = None
-        self.graph_string = None
+        self.failure_description: str | None = None
+        self.graph_string: str | None = None
         self.graph_ = None
-        self.from_cache = None
+        self.from_cache: bool | None = None
 
         # stats
         self.solve_time = 0.0  # total solve time, inclusive of load time
@@ -510,7 +511,7 @@ class ResolvedContext(object):
         Returns:
             ResolvedContext: The retargeted context.
         """
-        retargeted_variants = []
+        retargeted_variants: list[Variant | VariantResource] = []
 
         pkg_repos = [
             package_repository_manager.get_repository(x)
@@ -1140,7 +1141,7 @@ class ResolvedContext(object):
             raise ResolvedContextError("%s: %s" % (e.__class__.__name__, str(e)))
 
     @_on_success
-    def get_environ(self, parent_environ=None) -> dict[str, str]:
+    def get_environ(self, parent_environ: Mapping[str, str] | None = None) -> dict[str, str]:
         """Get the environ dict resulting from interpreting this context.
 
         Args:
@@ -1348,7 +1349,7 @@ class ResolvedContext(object):
 
     @_on_success
     def execute_rex_code(self, code, filename=None, shell=None,
-                         parent_environ: dict[str, str] | None = None, **Popen_args):
+                         parent_environ: Mapping[str, str] | None = None, **Popen_args):
         """Run some rex code in the context.
 
         Note:
@@ -1379,7 +1380,7 @@ class ResolvedContext(object):
     @_on_success
     def execute_shell(self,
                       shell: str | None = None,
-                      parent_environ: dict[str, str] | None = None,
+                      parent_environ: Mapping[str, str] | None = None,
                       rcfile: str | None = None,
                       norc: bool = False,
                       stdin: bool = False,
@@ -1992,7 +1993,7 @@ class ResolvedContext(object):
         self.suite_context_name = context_name
 
     def _create_executor(self, interpreter: ActionInterpreter,
-                         parent_environ: dict[str, str] | None) -> RexExecutor:
+                         parent_environ: Mapping[str, str] | None) -> RexExecutor:
         parent_vars = True if config.all_parent_variables \
             else config.parent_variables
 

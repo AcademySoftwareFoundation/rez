@@ -5,6 +5,7 @@
 '''
 Copy a package from one repository to another.
 '''
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

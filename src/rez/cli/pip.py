@@ -5,6 +5,8 @@
 """
 Install a pip-compatible python package, and its dependencies, as rez packages.
 """
+from __future__ import annotations
+
 from argparse import REMAINDER
 import logging
 

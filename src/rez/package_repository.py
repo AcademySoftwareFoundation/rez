@@ -502,11 +502,11 @@ class PackageRepository(object):
         resource._repository = self
         return resource
 
-    def get_package_payload_path(self, package_name: str, package_version=None) -> str:
+    def get_package_payload_path(self, package_name: str, package_version: str | Version | None = None) -> str:
         """Defines where a package's payload should be installed to.
 
         Args:
-            package_name (str): Nmae of package.
+            package_name (str): Name of package.
             package_version (str or `Version`): Package version.
 
         Returns:

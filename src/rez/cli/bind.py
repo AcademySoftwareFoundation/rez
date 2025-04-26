@@ -5,6 +5,8 @@
 '''
 Create a Rez package for existing software.
 '''
+from __future__ import annotations
+
 import argparse
 
 

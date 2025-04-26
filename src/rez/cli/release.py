@@ -5,6 +5,8 @@
 '''
 Build a package from source and deploy it.
 '''
+from __future__ import annotations
+
 import os
 import sys
 from subprocess import call

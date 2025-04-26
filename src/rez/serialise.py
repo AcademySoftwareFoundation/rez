@@ -5,6 +5,8 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from __future__ import annotations
+
 from contextlib import contextmanager
 from enum import Enum
 from inspect import isfunction, ismodule

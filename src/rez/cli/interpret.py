@@ -5,6 +5,7 @@
 '''
 Execute some Rex code and print the interpreted result.
 '''
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

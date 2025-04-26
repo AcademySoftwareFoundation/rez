@@ -5,6 +5,8 @@
 """
 Prints package completion strings.
 """
+from __future__ import annotations
+
 import argparse
 
 

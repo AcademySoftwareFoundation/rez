@@ -23,7 +23,7 @@ from rez.config import config
 
 import os
 import sys
-from typing import overload, Any, Iterator, TYPE_CHECKING
+from typing import overload, Any, Iterator, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Literal  # not available in typing module until 3.8
@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     from rez.package_repository import PackageRepository
     from rez.resolved_context import ResolvedContext
 
+
+PackageT = TypeVar("PackageT", bound="Package")
 
 # ------------------------------------------------------------------------------
 # package-related classes
@@ -445,7 +447,8 @@ class Variant(PackageBaseResourceWrapper):
 
         return requires
 
-    def install(self, path, dry_run: bool = False, overrides=None) -> Variant:
+    def install(self, path: str, dry_run: bool = False,
+                overrides: dict[str, Any] | None = None) -> Variant | None:
         """Install this variant into another package repository.
 
         If the package already exists, this variant will be correctly merged
@@ -699,6 +702,14 @@ def get_developer_package(path: str, format: FileFormat | None = None) -> Develo
     from rez.developer_package import DeveloperPackage
     return DeveloperPackage.from_path(path, format=format)
 
+
+@overload
+def create_package(name: str, data, package_cls: type[PackageT]) -> PackageT:
+    pass
+
+@overload
+def create_package(name: str, data) -> Package:
+    pass
 
 def create_package(name: str, data, package_cls: type[Package] | None = None) -> Package:
     """Create a package given package data.

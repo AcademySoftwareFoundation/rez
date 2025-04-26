@@ -7,6 +7,7 @@ Start a python interpreter or execute a python script within Rez's own execution
 
 Unrecognised args are passed directly to the underlying python interpreter.
 """
+from __future__ import annotations
 
 
 def setup_parser(parser, completions: bool = False) -> None:

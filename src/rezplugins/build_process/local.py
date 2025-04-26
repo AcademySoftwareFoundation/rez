@@ -23,7 +23,7 @@ from rez.utils.filesystem import TempDirs
 from rez.package_test import PackageTestRunner, PackageTestResults
 
 from hashlib import sha1
-from typing import TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 import json
 import shutil
 import os
@@ -32,6 +32,14 @@ import os.path
 if TYPE_CHECKING:
     from rez.packages import Variant
     from rez.build_system import BuildResult
+
+    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
+    class LocalBuildResult(BuildResult, total=False):
+        package_install_path: str
+        variant_install_path: str
+
+else:
+    LocalBuildResult = dict
 
 
 class LocalBuildProcess(BuildProcessHelper):
@@ -147,7 +155,7 @@ class LocalBuildProcess(BuildProcessHelper):
                             install_path: str | None = None,
                             clean: bool = False,
                             install: bool = False,
-                            **kwargs) -> BuildResult:
+                            **kwargs) -> LocalBuildResult:
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
         package_install_path = self.get_package_install_path(install_path)
@@ -261,13 +269,13 @@ class LocalBuildProcess(BuildProcessHelper):
             build_system_name = self.build_system.name()
             self._print("\nInvoking %s build system...", build_system_name)
 
-            build_result = self.build_system.build(
+            build_result = cast(LocalBuildResult, self.build_system.build(
                 context=context,
                 variant=variant,
                 build_path=variant_build_path,
                 install_path=variant_install_path,
                 install=install,
-                build_type=build_type)
+                build_type=build_type))
 
             if not build_result.get("success"):
                 # delete the possibly partially installed variant payload

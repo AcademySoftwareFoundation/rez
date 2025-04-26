@@ -13,6 +13,8 @@ Print information about the current rez context, or a given context file.
 # Since features such as context tracking are related to context use only, we
 # disable them in this tool.
 #
+from __future__ import annotations
+
 import os
 import json
 import sys

@@ -12,7 +12,7 @@ from rez.version import Requirement
 from rez.exceptions import PackageRequestError
 from pprint import pformat
 from enum import Enum
-from typing import Any, Sequence
+from typing import Any, Sequence, Mapping
 import math
 import os
 import os.path
@@ -223,7 +223,7 @@ def expand_abbreviations(txt, fields):
     return re.sub(FORMAT_VAR_REGEX, _expand, txt)
 
 
-def expandvars(text: str, environ=None) -> str:
+def expandvars(text: str, environ: Mapping[str, str] | None = None) -> str:
     """Expand shell variables of form $var and ${var}.
 
     Unknown variables are left unchanged.
