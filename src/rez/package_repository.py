@@ -4,7 +4,10 @@
 
 from __future__ import annotations
 
-from rez.utils.resources import ResourcePool, ResourceHandle
+from rez.package_resources import (PackageFamilyResource, PackageResource, PackageResourceHelper,
+                                   VariantResource, VariantResourceHelper,
+                                   PackageRepositoryResource)
+from rez.utils.resources import ResourcePool, ResourceHandle, Resource, ResourceT
 from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
 from rez.config import config
@@ -13,15 +16,15 @@ from contextlib import contextmanager
 import threading
 import os.path
 import time
-from typing import Any, Hashable, Iterator, TYPE_CHECKING
+from typing import cast, Any, Hashable, Generic, Iterator, TypeVar, TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
-    from rez.package_resources import (PackageFamilyResource, PackageResource, PackageResourceHelper,
-                                       VariantResource, PackageRepositoryResource)
-    from rez.utils.resources import Resource
     from rez.version import Version
     from rezplugins.package_repository.memory import MemoryPackageRepository
 
+VariantResourceHelperT = TypeVar("VariantResourceHelperT", bound=VariantResourceHelper)
+PackageResourceHelperT = TypeVar("PackageResourceHelperT", bound=PackageResourceHelper)
+PackageFamilyResourceT = TypeVar("PackageFamilyResourceT", bound=PackageFamilyResource)
 
 def get_package_repository_types() -> list[str]:
     """Returns the available package repository implementations."""
@@ -66,7 +69,7 @@ class PackageRepositoryGlobalStats(threading.local):
 package_repo_stats = PackageRepositoryGlobalStats()
 
 
-class PackageRepository(object):
+class PackageRepository(Generic[VariantResourceHelperT, PackageResourceHelperT, PackageFamilyResourceT]):
     """Base class for package repositories implemented in the package_repository
     plugin type.
 
@@ -122,7 +125,7 @@ class PackageRepository(object):
         """
         return self._uid()
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         return (
             isinstance(other, PackageRepository)
             and other.name() == self.name()
@@ -141,7 +144,7 @@ class PackageRepository(object):
 
         return True
 
-    def get_package_family(self, name: str) -> PackageFamilyResource | None:
+    def get_package_family(self, name: str) -> PackageFamilyResourceT | None:
         """Get a package family.
 
         Args:
@@ -152,7 +155,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def iter_package_families(self) -> Iterator[PackageFamilyResource]:
+    def iter_package_families(self) -> Iterator[PackageFamilyResourceT]:
         """Iterate over the package families in the repository, in no
         particular order.
 
@@ -161,7 +164,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def iter_packages(self, package_family_resource: PackageFamilyResource) -> Iterator[PackageResource]:
+    def iter_packages(self, package_family_resource: PackageFamilyResourceT) -> Iterator[PackageResourceHelperT]:
         """Iterate over the packages within the given family, in no particular
         order.
 
@@ -173,7 +176,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def iter_variants(self, package_resource: PackageResource) -> Iterator[VariantResource]:
+    def iter_variants(self, package_resource: PackageResourceHelperT) -> Iterator[VariantResourceHelperT]:
         """Iterate over the variants within the given package.
 
         Args:
@@ -184,7 +187,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def get_package(self, name: str, version: Version) -> PackageResourceHelper | None:
+    def get_package(self, name: str, version: Version) -> PackageResourceHelperT | None:
         """Get a package.
 
         Args:
@@ -204,7 +207,7 @@ class PackageRepository(object):
 
         return None
 
-    def get_package_from_uri(self, uri: str) -> PackageResource | None:
+    def get_package_from_uri(self, uri: str) -> PackageResourceHelperT | None:
         """Get a package given its URI.
 
         Args:
@@ -216,7 +219,7 @@ class PackageRepository(object):
         """
         return None
 
-    def get_variant_from_uri(self, uri: str) -> VariantResource | None:
+    def get_variant_from_uri(self, uri: str) -> VariantResourceHelperT | None:
         """Get a variant given its URI.
 
         Args:
@@ -306,7 +309,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def pre_variant_install(self, variant_resource: VariantResource) -> None:
+    def pre_variant_install(self, variant_resource: VariantResourceHelper) -> None:
         """Called before a variant is installed.
 
         If any directories are created on disk for the variant to install into,
@@ -317,7 +320,7 @@ class PackageRepository(object):
         """
         pass
 
-    def on_variant_install_cancelled(self, variant_resource: VariantResource) -> None:
+    def on_variant_install_cancelled(self, variant_resource: VariantResourceHelper) -> None:
         """Called when a variant installation is cancelled.
 
         This is called after `pre_variant_install`, but before `install_variant`,
@@ -333,9 +336,9 @@ class PackageRepository(object):
         pass
 
     def install_variant(self,
-                        variant_resource: VariantResource,
+                        variant_resource: VariantResourceHelper,
                         dry_run: bool = False,
-                        overrides: dict[str, Any] | None = None) -> VariantResource:
+                        overrides: dict[str, Any] | None = None) -> VariantResourceHelperT | None:
         """Install a variant into this repository.
 
         Use this function to install a variant from some other package repository
@@ -357,7 +360,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def get_equivalent_variant(self, variant_resource: VariantResource) -> VariantResource:
+    def get_equivalent_variant(self, variant_resource: VariantResourceHelper) -> VariantResourceHelperT | None:
         """Find a variant in this repository that is equivalent to that given.
 
         A variant is equivalent to another if it belongs to a package of the
@@ -376,7 +379,7 @@ class PackageRepository(object):
         """
         return self.install_variant(variant_resource, dry_run=True)
 
-    def get_parent_package_family(self, package_resource: PackageResourceHelper) -> PackageFamilyResource:
+    def get_parent_package_family(self, package_resource: PackageResourceHelperT) -> PackageFamilyResourceT:
         """Get the parent package family of the given package.
 
         Args:
@@ -387,7 +390,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def get_parent_package(self, variant_resource: VariantResource) -> PackageRepositoryResource:
+    def get_parent_package(self, variant_resource: VariantResourceHelperT) -> PackageResourceHelperT:
         """Get the parent package of the given variant.
 
         Args:
@@ -398,7 +401,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def get_variant_state_handle(self, variant_resource: PackageResource
+    def get_variant_state_handle(self, variant_resource: VariantResourceHelperT
                                  ) -> Hashable | None:
         """Get a value that indicates the state of the variant.
 
@@ -415,7 +418,7 @@ class PackageRepository(object):
         """
         return None
 
-    def get_last_release_time(self, package_family_resource: PackageFamilyResource
+    def get_last_release_time(self, package_family_resource: PackageFamilyResourceT
                               ) -> int:
         """Get the last time a package was added to the given family.
 
@@ -454,6 +457,14 @@ class PackageRepository(object):
         variables = resource_cls.normalize_variables(variables)
         return ResourceHandle(resource_key, variables)
 
+    @overload
+    def get_resource(self, resource_key: type[ResourceT], **variables: Any) -> ResourceT:
+        pass
+
+    @overload
+    def get_resource(self, resource_key: str, **variables: Any) -> Resource:
+        pass
+
     def get_resource(self, resource_key: str | type[Resource], **variables: Any) -> Resource:
         """Get a resource.
 
@@ -467,6 +478,8 @@ class PackageRepository(object):
         Returns:
             `PackageRepositoryResource` instance.
         """
+        if isinstance(resource_key, type) and issubclass(resource_key, Resource):
+            resource_key = cast(str, getattr(resource_key, "key"))
         handle = self.make_resource_handle(resource_key, **variables)
         return self.get_resource_from_handle(handle, verify_repo=False)
 
@@ -478,7 +491,7 @@ class PackageRepository(object):
             resource_handle (`ResourceHandle`): Handle of the resource.
 
         Returns:
-            `PackageRepositoryResource` instance.
+            `Resource` instance.
         """
         if verify_repo:
             # we could fix the handle at this point, but handles should
@@ -498,7 +511,7 @@ class PackageRepository(object):
                                        self.location))
 
         resource = self.pool.get_resource_from_handle(resource_handle)
-        resource._repository = self
+        setattr(resource, "_repository", self)
         return resource
 
     def get_package_payload_path(self, package_name: str, package_version: str | Version | None = None) -> str:
@@ -638,7 +651,7 @@ class PackageRepositoryManager(object):
             resource_handle (`ResourceHandle`): Handle of the resource.
 
         Returns:
-            `PackageRepositoryResource` instance.
+            `Resource` instance.
         """
         repo_type = resource_handle.get("repository_type")
         location = resource_handle.get("location")

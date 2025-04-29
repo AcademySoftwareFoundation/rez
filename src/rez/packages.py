@@ -5,8 +5,8 @@
 from __future__ import annotations
 
 from rez.package_repository import package_repository_manager
-from rez.package_resources import PackageFamilyResource, PackageResource, \
-    VariantResource, package_family_schema, package_schema, variant_schema, \
+from rez.package_resources import PackageFamilyResource, PackageResource, PackageRepositoryResource, PackageResourceHelper, \
+    VariantResource, VariantResourceHelper, package_family_schema, package_schema, variant_schema, \
     package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
 from rez.utils import reraise
@@ -17,6 +17,7 @@ from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.utils.typing import SupportsWrite
+from rez.utils.resources import Resource
 from rez.version import Version, VersionRange
 from rez.version import VersionedObject
 from rez.serialise import FileFormat
@@ -24,7 +25,8 @@ from rez.config import config
 
 import os
 import sys
-from typing import overload, Any, Iterator, TypeVar, TYPE_CHECKING
+import typing
+from typing import overload, Any, ClassVar, Iterator, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from rez.config import Config
@@ -32,17 +34,19 @@ if TYPE_CHECKING:
     from rez.version import Requirement
     from rez.package_repository import PackageRepository
     from rez.resolved_context import ResolvedContext
-    from rez.utils.resources import Resource
+    from rez.utils.formatting import PackageRequest
 
 T = TypeVar("T")
 PackageT = TypeVar("PackageT", bound="Package")
+PackageRepositoryResourceT = TypeVar("PackageRepositoryResourceT", bound=PackageRepositoryResource)
+PackageOrVariantResourceT = TypeVar("PackageOrVariantResourceT", "PackageResourceHelper", VariantResourceHelper)
 
 # ------------------------------------------------------------------------------
 # package-related classes
 # ------------------------------------------------------------------------------
 
 
-class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
+class PackageRepositoryResourceWrapper(ResourceWrapper[PackageRepositoryResourceT], StringFormatMixin):
     format_expand = StringFormatType.unchanged
 
     def validated_data(self) -> dict:
@@ -60,7 +64,7 @@ class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
         return self.resource._repository
 
 
-class PackageFamily(PackageRepositoryResourceWrapper):
+class PackageFamily(PackageRepositoryResourceWrapper[PackageFamilyResource]):
     """A package family.
 
     Note:
@@ -83,7 +87,7 @@ class PackageFamily(PackageRepositoryResourceWrapper):
             yield Package(package)
 
 
-class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
+class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper[PackageOrVariantResourceT]):
     """Abstract base class for `Package` and `Variant`.
     """
     late_bind_schemas = {
@@ -92,7 +96,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         "private_build_requires": late_requires_schema,
     }
 
-    def __init__(self, resource: PackageResource | VariantResource, context: ResolvedContext | None = None) -> None:
+    def __init__(self, resource: PackageOrVariantResourceT, context: ResolvedContext | None = None) -> None:
         super(PackageBaseResourceWrapper, self).__init__(resource)
         self.context = context
 
@@ -200,7 +204,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         return sourcecode.exec_(globals_=g)
 
 
-class Package(PackageBaseResourceWrapper):
+class Package(PackageBaseResourceWrapper[PackageResourceHelper]):
     """A package.
 
     Warning:
@@ -217,7 +221,7 @@ class Package(PackageBaseResourceWrapper):
     #: funcs, where ``this`` may be a package or variant.
     is_variant = False
 
-    def __init__(self, resource: PackageResource, context: ResolvedContext | None = None) -> None:
+    def __init__(self, resource: PackageResourceHelper, context: ResolvedContext | None = None) -> None:
         _check_class(resource, PackageResource)
         super(Package, self).__init__(resource, context)
 
@@ -339,7 +343,7 @@ class Package(PackageBaseResourceWrapper):
         return None
 
 
-class Variant(PackageBaseResourceWrapper):
+class Variant(PackageBaseResourceWrapper[VariantResourceHelper]):
     """A package variant.
 
     Warning:
@@ -355,7 +359,7 @@ class Variant(PackageBaseResourceWrapper):
     #: See :attr:`Package.is_variant`.
     is_variant = True
 
-    def __init__(self, resource: VariantResource, context: ResolvedContext | None = None,
+    def __init__(self, resource: VariantResourceHelper, context: ResolvedContext | None = None,
                  parent: Package | None = None) -> None:
         _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource, context)
@@ -674,6 +678,7 @@ def get_package_from_handle(package_handle: ResourceHandle | dict) -> Package:
     if isinstance(package_handle, dict):
         package_handle = ResourceHandle.from_dict(package_handle)
     package_resource = package_repository_manager.get_resource_from_handle(package_handle)
+    assert isinstance(package_resource, PackageResourceHelper)
     package = Package(package_resource)
     return package
 
@@ -750,6 +755,7 @@ def get_variant(variant_handle: ResourceHandle | dict,
         variant_handle = ResourceHandle.from_dict(variant_handle)
 
     variant_resource = package_repository_manager.get_resource_from_handle(variant_handle)
+    assert isinstance(variant_resource, VariantResourceHelper)
     variant = Variant(variant_resource, context=context)
     return variant
 

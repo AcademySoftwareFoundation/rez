@@ -43,14 +43,15 @@ from rez.config import config
 from rez.exceptions import ResourceError
 from rez.utils.logging_ import print_debug
 
-from typing import TYPE_CHECKING, Any
+from typing import Generic, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
     # this is not available in typing until 3.11, but due to __future__.annotations
     # we can use it without really importing it
     from typing import Self
     from rez.vendor.schema.schema import Schema
-    from rez.package_repository import PackageRepository
+
+ResourceT = TypeVar("ResourceT", bound="Resource")
 
 
 class Resource(object, metaclass=LazyAttributeMeta):
@@ -87,11 +88,6 @@ class Resource(object, metaclass=LazyAttributeMeta):
     schema: Schema | None = None
     #: The exception type to raise on key validation failure.
     schema_error = Exception
-
-    if TYPE_CHECKING:
-        # all Resources that are acquired using PackageRepository.get_resource
-        # have this attribute added to them
-        _repository: PackageRepository
 
     @classmethod
     def normalize_variables(cls, variables: dict[str, Any]) -> dict[str, Any]:
@@ -133,7 +129,7 @@ class Resource(object, metaclass=LazyAttributeMeta):
     def __eq__(self, other):
         return (self.handle == other.handle)
 
-    def _load(self) -> dict[str, Any]:
+    def _load(self) -> dict[str, Any] | None:
         """Load the data associated with the resource.
 
         You are not expected to cache this data - the resource system does this
@@ -238,7 +234,7 @@ class ResourcePool(object):
     def clear_caches(self) -> None:
         self.cached_get_resource.cache_clear()
 
-    def get_resource_class(self, resource_key) -> type[Resource]:
+    def get_resource_class(self, resource_key: str) -> type[Resource]:
         resource_class = self.resource_classes.get(resource_key)
         if resource_class is None:
             raise ResourceError("Error getting resource from pool: Unknown "
@@ -250,7 +246,7 @@ class ResourcePool(object):
         return resource_class(resource_handle.variables)
 
 
-class ResourceWrapper(object, metaclass=AttributeForwardMeta):
+class ResourceWrapper(Generic[ResourceT], metaclass=AttributeForwardMeta):
     """An object that wraps a resource instance.
 
     A resource wrapper is useful for two main reasons. First, we can wrap
@@ -270,11 +266,11 @@ class ResourceWrapper(object, metaclass=AttributeForwardMeta):
     """
     keys = None
 
-    def __init__(self, resource: Resource) -> None:
+    def __init__(self, resource: ResourceT) -> None:
         self.wrapped = resource
 
     @property
-    def resource(self) -> Resource:
+    def resource(self) -> ResourceT:
         return self.wrapped
 
     @property

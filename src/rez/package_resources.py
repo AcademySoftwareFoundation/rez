@@ -21,12 +21,17 @@ from textwrap import dedent
 import os.path
 from abc import abstractmethod
 from hashlib import sha1
-from typing import Any, Iterable, Iterator, TYPE_CHECKING
+from typing import cast, Any, Iterable, Iterator, Generic, TypeVar, TYPE_CHECKING
 from types import FunctionType, MethodType
 
 if TYPE_CHECKING:
     from rez.packages import Variant
+    from rez.package_repository import PackageRepository
 
+
+VariantResourceHelperT = TypeVar("VariantResourceHelperT", bound="VariantResourceHelper")
+PackageResourceHelperT = TypeVar("PackageResourceHelperT", bound="PackageResourceHelper")
+PackageRepositoryT = TypeVar("PackageRepositoryT", bound="PackageRepository")
 
 # package attributes created at release time
 package_release_keys = (
@@ -67,7 +72,7 @@ help_schema = Or(str,  # single help entry
 _is_late = And(SourceCode, lambda x: hasattr(x, "_late"))
 
 
-def late_bound(schema):
+def late_bound(schema: Any) -> Any:
     return Or(SourceCode, schema)
 
 
@@ -272,12 +277,17 @@ package_pod_schema = Schema(package_pod_schema_dict)
 # resource classes
 # ------------------------------------------------------------------------------
 
-class PackageRepositoryResource(Resource):
+class PackageRepositoryResource(Resource, Generic[PackageRepositoryT]):
     """Base class for all package-related resources.
     """
     schema_error = PackageMetadataError
     #: Type of package repository associated with this resource type.
     repository_type: str
+
+    if TYPE_CHECKING:
+        # all Resources that are acquired using PackageRepository.get_resource
+        # have this attribute added to them
+        _repository: PackageRepositoryT
 
     @classmethod
     def normalize_variables(cls, variables):
@@ -312,14 +322,16 @@ class PackageRepositoryResource(Resource):
         raise NotImplementedError
 
 
-class PackageFamilyResource(PackageRepositoryResource):
+class PackageFamilyResource(
+        PackageRepositoryResource[PackageRepositoryT],
+        Generic[PackageRepositoryT, PackageResourceHelperT]):
     """A package family.
 
     A repository implementation's package family resource(s) must derive from
     this class. It must satisfy the schema `package_family_schema`.
     """
 
-    def iter_packages(self) -> Iterator[PackageResourceHelper]:
+    def iter_packages(self) -> Iterator[PackageResourceHelperT]:
         raise NotImplementedError
 
 
@@ -331,7 +343,7 @@ class PackageResource(PackageRepositoryResource):
     """
 
     @classmethod
-    def normalize_variables(cls, variables):
+    def normalize_variables(cls, variables: dict[str, Any]) -> dict[str, Any]:
         """Make sure version is treated consistently
         """
         # if the version is False, empty string, etc, throw it out
@@ -358,7 +370,7 @@ class VariantResource(PackageResource):
 
     @property
     @abstractmethod
-    def parent(self) -> PackageRepositoryResource:
+    def parent(self) -> PackageResourceHelper:
         raise NotImplementedError
 
     @property
@@ -366,12 +378,12 @@ class VariantResource(PackageResource):
         return self.get("index", None)
 
     @cached_property
-    def root(self) -> str:
+    def root(self) -> str | None:
         """Return the 'root' path of the variant."""
         return self._root()
 
     @cached_property
-    def subpath(self) -> str:
+    def subpath(self) -> str | None:
         """Return the variant's 'subpath'
 
         The subpath is the relative path the variant's payload should be stored
@@ -381,11 +393,11 @@ class VariantResource(PackageResource):
         return self._subpath()
 
     @abstractmethod
-    def _root(self, ignore_shortlinks: bool = False):
+    def _root(self, ignore_shortlinks: bool = False) -> str | None:
         raise NotImplementedError
 
     @abstractmethod
-    def _subpath(self, ignore_shortlinks: bool = False):
+    def _subpath(self, ignore_shortlinks: bool = False) -> str | None:
         raise NotImplementedError
 
 
@@ -396,7 +408,7 @@ class VariantResource(PackageResource):
 # they may help minimise the amount of code you need to write.
 # ------------------------------------------------------------------------------
 
-class PackageResourceHelper(PackageResource):
+class PackageResourceHelper(PackageResource, Generic[VariantResourceHelperT]):
     """PackageResource with some common functionality included.
     """
     # the resource key for a VariantResourceHelper subclass
@@ -420,18 +432,18 @@ class PackageResourceHelper(PackageResource):
         raise NotImplementedError
 
     @cached_property
-    def commands(self) -> SourceCode:
+    def commands(self) -> SourceCode | None:
         return self._convert_to_rex(self._commands)
 
     @cached_property
-    def pre_commands(self) -> SourceCode:
+    def pre_commands(self) -> SourceCode | None:
         return self._convert_to_rex(self._pre_commands)
 
     @cached_property
-    def post_commands(self) -> SourceCode:
+    def post_commands(self) -> SourceCode | None:
         return self._convert_to_rex(self._post_commands)
 
-    def iter_variants(self) -> Iterator[VariantResourceHelper]:
+    def iter_variants(self) -> Iterator[VariantResourceHelperT]:
         num_variants = len(self.variants or [])
 
         if num_variants == 0:
@@ -446,9 +458,9 @@ class PackageResourceHelper(PackageResource):
                 name=self.name,
                 version=self.get("version"),
                 index=index)
-            yield variant
+            yield cast(VariantResourceHelperT, variant)
 
-    def _convert_to_rex(self, commands: list[str] | str | FunctionType | MethodType | SourceCode) -> SourceCode:
+    def _convert_to_rex(self, commands: list[str] | str | None | Callable | SourceCode) -> SourceCode | None:
         if isinstance(commands, list):
             from rez.utils.backcompat import convert_old_commands
 
@@ -548,9 +560,9 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
                     "parent package %s" % (self.uri, self.parent.uri))
 
     @property
-    def wrapped(self):  # forward Package attributes onto ourself
+    def wrapped(self) -> PackageResourceHelper:  # forward Package attributes onto ourself
         return self.parent
 
-    def _load(self):
+    def _load(self) -> None:
         # doesn't have its own data, forwards on from parent instead
         return None
