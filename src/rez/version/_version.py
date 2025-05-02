@@ -110,6 +110,8 @@ class VersionToken(_Comparable):
         return self.less_than(other)
 
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, VersionToken):
+            return NotImplemented
         return (not self < other) and (not other < self)
 
 

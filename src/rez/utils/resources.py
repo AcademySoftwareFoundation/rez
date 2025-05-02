@@ -126,7 +126,9 @@ class Resource(object, metaclass=LazyAttributeMeta):
     def __hash__(self) -> int:
         return hash((self.__class__, self.handle))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Resource):
+            return NotImplemented
         return (self.handle == other.handle)
 
     def _load(self) -> dict[str, Any] | None:
@@ -187,7 +189,9 @@ class ResourceHandle(object):
     def __repr__(self) -> str:
         return "%s(%r, %r)" % (self.__class__.__name__, self.key, self.variables)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ResourceHandle):
+            return NotImplemented
         return (self.key == other.key) and (self.variables == other.variables)
 
     def __ne__(self, other: object) -> bool:
@@ -289,7 +293,9 @@ class ResourceWrapper(Generic[ResourceT], metaclass=AttributeForwardMeta):
         # provided by LazyAttributeMeta metaclass
         self.resource.validate_data()  # type: ignore[attr-defined]
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ResourceWrapper):
+            return NotImplemented
         return (
             self.__class__ == other.__class__
             and self.resource == other.resource

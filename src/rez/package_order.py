@@ -270,7 +270,9 @@ class SortedOrder(PackageOrder):
     def __str__(self) -> str:
         return str(self.descending)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SortedOrder):
+            return NotImplemented
         return (  # noqa: E721
             type(self) == type(other)
             and self.descending == other.descending
@@ -349,7 +351,9 @@ class PerFamilyOrder(PackageOrder):
         items = sorted((x[0], str(x[1])) for x in self.order_dict.items())
         return str((items, str(self.default_order)))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PerFamilyOrder):
+            return NotImplemented
         return (  # noqa: E721
             type(other) == type(self)
             and self.order_dict == other.order_dict
@@ -441,7 +445,9 @@ class VersionSplitPackageOrder(PackageOrder):
     def __str__(self) -> str:
         return str(self.first_version)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, VersionSplitPackageOrder):
+            return NotImplemented
         return (  # noqa: E721
             type(other) == type(self)
             and self.first_version == other.first_version
@@ -604,7 +610,9 @@ class TimestampPackageOrder(PackageOrder):
     def __str__(self) -> str:
         return str((self.timestamp, self.rank))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TimestampPackageOrder):
+            return NotImplemented
         return (  # noqa: E721
             type(other) == type(self)
             and self.timestamp == other.timestamp

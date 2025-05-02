@@ -249,7 +249,9 @@ class TotalReduction(FailureReason):
     def description(self) -> str:
         return "A package was completely reduced: %s" % str(self)
 
-    def __eq__(self, other: TotalReduction) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TotalReduction):
+            return NotImplemented
         return (self.reductions == other.reductions)
 
     def __str__(self) -> str:
@@ -272,7 +274,9 @@ class DependencyConflicts(FailureReason):
     def description(self) -> str:
         return "The following package conflicts occurred: %s" % str(self)
 
-    def __eq__(self, other: DependencyConflicts) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DependencyConflicts):
+            return NotImplemented
         return (self.conflicts == other.conflicts)
 
     def __str__(self) -> str:
@@ -295,7 +299,9 @@ class Cycle(FailureReason):
     def description(self) -> str:
         return "A cyclic dependency was detected: %s" % str(self)
 
-    def __eq__(self, other: Cycle) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Cycle):
+            return NotImplemented
         return (self.packages == other.packages)
 
     def __str__(self) -> str:
@@ -360,7 +366,9 @@ class PackageVariant(_Common):
     def get(self, pkg_name: str) -> Requirement | None:
         return self.requires_list.get(pkg_name)
 
-    def __eq__(self, other: PackageVariant) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PackageVariant):
+            return NotImplemented
         return (
             self.name == other.name
             and self.version == other.version
