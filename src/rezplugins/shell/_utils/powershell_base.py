@@ -153,10 +153,10 @@ class PowerShellBase(Shell):
         # only the bool $? var is set.
         #
         executor.command(
-            "if(! $? -or $LASTEXITCODE) {\n"
-            "  if ($LASTEXITCODE) {\n"
-            "    exit $LASTEXITCODE\n"
-            "  }\n"
+            "if ((Test-Path variable:LASTEXITCODE) -and $LASTEXITCODE) {\n"
+            "  exit $LASTEXITCODE\n"
+            "}\n"
+            "if (! $?) {\n"
             "  exit 1\n"
             "}"
         )
