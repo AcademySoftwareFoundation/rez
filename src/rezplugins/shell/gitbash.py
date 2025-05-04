@@ -37,7 +37,7 @@ class GitBash(Bash):
 
     @classmethod
     def find_executable(cls, name, check_syspaths=False):
-        exepath = Bash.find_executable(name, check_syspaths=check_syspaths)
+        exepath = super(GitBash, cls).find_executable(name, check_syspaths=check_syspaths)
 
         if exepath and "system32" in exepath.lower():
             print_warning(
