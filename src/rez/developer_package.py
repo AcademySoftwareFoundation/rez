@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.config import config
 from rez.packages import Package, create_package
 from rez.serialise import load_from_file, FileFormat, set_objects
@@ -29,12 +31,12 @@ class DeveloperPackage(Package):
     This is a package in a source directory that is subsequently built or
     released.
     """
-    def __init__(self, resource):
+    def __init__(self, resource) -> None:
         super(DeveloperPackage, self).__init__(resource)
-        self.filepath = None
+        self.filepath: str | None = None
 
         # include modules, derived from any present @include decorators
-        self.includes = None
+        self.includes: set[str] | None = None
 
     @property
     def root(self):
@@ -44,7 +46,7 @@ class DeveloperPackage(Package):
             return None
 
     @classmethod
-    def from_path(cls, path, format=None):
+    def from_path(cls, path, format: FileFormat | None = None):
         """Load a developer package.
 
         A developer package may for example be a package.yaml or package.py in a
@@ -62,9 +64,9 @@ class DeveloperPackage(Package):
         data = None
 
         if format is None:
-            formats = (FileFormat.py, FileFormat.yaml)
+            formats = [FileFormat.py, FileFormat.yaml]
         else:
-            formats = (format,)
+            formats = [format]
 
         try:
             mode = os.stat(path).st_mode
@@ -122,14 +124,14 @@ class DeveloperPackage(Package):
         # py sourcefiles into the package installation
         package.includes = set()
 
-        def visit(d):
+        def visit(includes: set, d: dict) -> None:
             for k, v in d.items():
                 if isinstance(v, SourceCode):
-                    package.includes |= (v.includes or set())
+                    includes |= (v.includes or set())
                 elif isinstance(v, dict):
-                    visit(v)
+                    visit(includes, v)
 
-        visit(data)
+        visit(package.includes, data)
 
         package._validate_includes()
 
@@ -152,7 +154,7 @@ class DeveloperPackage(Package):
         with set_objects(objects):
             return self.from_path(self.root)
 
-    def _validate_includes(self):
+    def _validate_includes(self) -> None:
         if not self.includes:
             return
 

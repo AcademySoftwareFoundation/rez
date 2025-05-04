@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.serialise import FileFormat
 from rez.package_resources import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
@@ -162,7 +164,7 @@ def _commented_old_command_annotations(sourcecode):
     return other
 
 
-def _dump_package_data_yaml(items, buf):
+def _dump_package_data_yaml(items, buf) -> None:
     for i, (key, value) in enumerate(items):
         if isinstance(value, SourceCode) \
                 and key in ("commands", "pre_commands", "post_commands"):
@@ -175,7 +177,7 @@ def _dump_package_data_yaml(items, buf):
             print('', file=buf)
 
 
-def _dump_package_data_py(items, buf):
+def _dump_package_data_py(items, buf) -> None:
     print("# -*- coding: utf-8 -*-\n", file=buf)
 
     for i, (key, value) in enumerate(items):

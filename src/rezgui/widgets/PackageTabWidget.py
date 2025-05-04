@@ -17,7 +17,7 @@ from rez.packages import Package, Variant
 
 
 class PackageTabWidget(QtWidgets.QTabWidget, ContextViewMixin):
-    def __init__(self, context_model=None, versions_tab=False, parent=None):
+    def __init__(self, context_model=None, versions_tab: bool = False, parent=None) -> None:
         super(PackageTabWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
         self.variant = None
@@ -74,13 +74,13 @@ class PackageTabWidget(QtWidgets.QTabWidget, ContextViewMixin):
         self.currentChanged.connect(self._tabChanged)
         self.setEnabled(False)
 
-    def set_package(self, package):
+    def set_package(self, package) -> None:
         self._set_packagebase(package)
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         self._set_packagebase(variant)
 
-    def _set_packagebase(self, variant):
+    def _set_packagebase(self, variant) -> None:
         self.setEnabled(variant is not None)
         self.variant = variant
         is_package = isinstance(variant, Package)
@@ -127,7 +127,7 @@ class PackageTabWidget(QtWidgets.QTabWidget, ContextViewMixin):
             self.setCurrentIndex(0)
 
     # some widgets lazily load the variant when tab is selected
-    def _tabChanged(self, index):
+    def _tabChanged(self, index) -> None:
         widget = self.widget(index)
         if widget.variant != self.variant:
             widget.set_variant(self.variant)

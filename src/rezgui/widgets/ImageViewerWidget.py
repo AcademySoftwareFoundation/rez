@@ -7,13 +7,13 @@ from rezgui.util import create_pane
 
 
 class GraphicsView(QtWidgets.QGraphicsView):
-    def __init__(self, parent=None, max_scale=None):
+    def __init__(self, parent=None, max_scale=None) -> None:
         super(GraphicsView, self).__init__(parent)
         self.interactive = True
         self.press_pos = None
         self.max_scale = max_scale
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         if self.interactive:
             self.setCursor(QtCore.Qt.ClosedHandCursor)
             self.press_pos = QtGui.QCursor.pos()
@@ -21,13 +21,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
         else:
             event.ignore()
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         if self.interactive:
             self.unsetCursor()
         else:
             event.ignore()
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
         if self.interactive:
             pos = QtGui.QCursor.pos()
             pos_delta = pos - self.press_pos
@@ -36,7 +36,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         else:
             event.ignore()
 
-    def wheelEvent(self, event):
+    def wheelEvent(self, event) -> None:
         if self.interactive:
             scale = 1.0 + (event.delta() * 0.001)
             if scale < 1.0:
@@ -60,7 +60,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         vs = self.verticalScrollBar()
         return QtCore.QPoint(hs.value(), vs.value())
 
-    def _set_scroll_pos(self, pos):
+    def _set_scroll_pos(self, pos) -> None:
         hs = self.horizontalScrollBar()
         vs = self.verticalScrollBar()
         hs.setValue(pos.x())
@@ -68,7 +68,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
 
 class ImageViewerWidget(QtWidgets.QWidget):
-    def __init__(self, image_file, parent=None):
+    def __init__(self, image_file, parent=None) -> None:
         super(ImageViewerWidget, self).__init__(parent)
         self.fit = False
         self.prev_scale = 1.0
@@ -87,12 +87,12 @@ class ImageViewerWidget(QtWidgets.QWidget):
         self.view.show()
         self._fit_in_view()
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
         if self.fit:
             self._fit_in_view()
         event.accept()
 
-    def fit_to_window(self, enabled):
+    def fit_to_window(self, enabled) -> None:
         if enabled != self.fit:
             self.fit = enabled
             self.view.interactive = not enabled
@@ -105,5 +105,5 @@ class ImageViewerWidget(QtWidgets.QWidget):
                 factor = self.prev_scale / current_scale
                 self.view.scale(factor, factor)
 
-    def _fit_in_view(self):
+    def _fit_in_view(self) -> None:
         self.view.fitInView(self.image_item, QtCore.Qt.KeepAspectRatio)

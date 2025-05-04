@@ -31,7 +31,7 @@ class RecursiveAttribute(UserDict, StringFormatMixin):
     """
     format_expand = StringFormatType.unchanged
 
-    def __init__(self, data=None, read_only=False):
+    def __init__(self, data=None, read_only: bool = False) -> None:
         self.__dict__.update(dict(data={}, read_only=read_only))
         self._update(data or {})
 
@@ -58,7 +58,7 @@ class RecursiveAttribute(UserDict, StringFormatMixin):
         attr_.__dict__["pending"] = (attr, self)
         return attr_
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr, value) -> None:
         d = self.__dict__
         if d["read_only"]:
             if attr in d["data"]:
@@ -76,10 +76,10 @@ class RecursiveAttribute(UserDict, StringFormatMixin):
     def __getitem__(self, attr):
         return getattr(self, attr)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.to_dict())
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.to_dict())
 
     def _create_child_attribute(self, attr):
@@ -109,13 +109,13 @@ class RecursiveAttribute(UserDict, StringFormatMixin):
             raise AttributeError("read-only, cannot be updated")
         self._update(data)
 
-    def _update(self, data):
+    def _update(self, data) -> None:
         for k, v in data.items():
             if isinstance(v, dict):
                 v = RecursiveAttribute(v)
             self.__dict__["data"][k] = v
 
-    def _reparent(self):
+    def _reparent(self) -> None:
         d = self.__dict__
         if "pending" in d:
             attr_, parent = d["pending"]
@@ -125,7 +125,7 @@ class RecursiveAttribute(UserDict, StringFormatMixin):
 
 
 class _Scope(RecursiveAttribute):
-    def __init__(self, name=None, context=None):
+    def __init__(self, name=None, context=None) -> None:
         RecursiveAttribute.__init__(self)
         self.__dict__.update(dict(name=name,
                                   context=context,
@@ -136,7 +136,7 @@ class _Scope(RecursiveAttribute):
         self.__dict__["locals"] = locals_.copy()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:
         # find what's changed
         updates = {}
         d = self.__dict__
@@ -200,7 +200,7 @@ class ScopeContext(object):
     and the assigned properties will be merged. If the same property is set
     multiple times, it will be overwritten.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.scopes = {}
         self.scope_stack = [_Scope()]
 
@@ -215,7 +215,7 @@ class ScopeContext(object):
         self.scope_stack.append(scope)
         return scope
 
-    def _scope_exit(self, name):
+    def _scope_exit(self, name) -> None:
         scope = self.scope_stack.pop()
         assert self.scope_stack
         assert name == scope.name
@@ -226,12 +226,12 @@ class ScopeContext(object):
         """Get an equivalent dict representation."""
         return self.scope_stack[-1].to_dict()
 
-    def __str__(self):
+    def __str__(self) -> str:
         names = ('.'.join(y for y in x) for x in self.scopes.keys())
         return "%r" % (tuple(names),)
 
 
-def scoped_formatter(**objects):
+def scoped_formatter(**objects) -> RecursiveAttribute:
     """Format a string with respect to a set of objects' attributes.
 
     Use this rather than `scoped_format` when you need to reuse the formatter.
@@ -239,7 +239,7 @@ def scoped_formatter(**objects):
     return RecursiveAttribute(objects, read_only=True)
 
 
-def scoped_format(txt, **objects):
+def scoped_format(txt: str, **objects) -> str:
     """Format a string with respect to a set of objects' attributes.
 
     Example:

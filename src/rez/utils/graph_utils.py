@@ -261,7 +261,7 @@ def save_graph_object(g, dest_file, fmt=None, image_ratio=None):
     return fmt
 
 
-def view_graph(graph_str, dest_file=None):
+def view_graph(graph_str, dest_file=None) -> None:
     """View a dot graph in an image viewer."""
     from rez.system import system
     from rez.config import config

@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.packages import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding
@@ -19,7 +21,7 @@ class PackageHelp(object):
     Given a package and version range, help will be extracted from the latest
     package in the version range that provides it.
     """
-    def __init__(self, package_name, version_range=None, paths=None, verbose=False):
+    def __init__(self, package_name, version_range=None, paths=None, verbose: bool = False) -> None:
         """Create a PackageHelp object.
 
         Args:
@@ -87,7 +89,7 @@ class PackageHelp(object):
         """Returns a list of (name, uri) 2-tuples."""
         return self._sections
 
-    def open(self, section_index=0):
+    def open(self, section_index: int=0) -> None:
         """Launch a help section."""
         uri = self._sections[section_index][1]
         if len(uri.split()) == 1:
@@ -99,7 +101,7 @@ class PackageHelp(object):
             with Popen(uri, shell=True) as p:
                 p.wait()
 
-    def print_info(self, buf=None):
+    def print_info(self, buf=None) -> None:
         """Print help sections."""
         buf = buf or sys.stdout
         print("Sections:", file=buf)
@@ -107,12 +109,12 @@ class PackageHelp(object):
             print("  %s:\t%s (%s)" % (i + 1, section[0], section[1]), file=buf)
 
     @classmethod
-    def open_rez_manual(cls):
+    def open_rez_manual(cls) -> None:
         """Open the Rez user manual."""
         cls._open_url(config.documentation_url)
 
     @classmethod
-    def _open_url(cls, url):
+    def _open_url(cls, url) -> None:
         if config.browser:
             cmd = [config.browser, url]
             if not config.quiet:

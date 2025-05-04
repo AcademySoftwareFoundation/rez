@@ -5,6 +5,8 @@
 """
 Filesystem-related utilities.
 """
+from __future__ import annotations
+
 from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
@@ -37,7 +39,7 @@ class TempDirs(object):
     instances_lock = Lock()
     instances = []
 
-    def __init__(self, tmpdir, prefix="rez_"):
+    def __init__(self, tmpdir, prefix="rez_") -> None:
         self.tmpdir = tmpdir
         self.prefix = prefix
         self.dirs = set()
@@ -46,7 +48,7 @@ class TempDirs(object):
         with TempDirs.instances_lock:
             TempDirs.instances.append(weakref.ref(self))
 
-    def mkdtemp(self, cleanup=True):
+    def mkdtemp(self, cleanup: bool = True):
         path = mkdtemp(dir=self.tmpdir, prefix=self.prefix)
         if not cleanup:
             return path
@@ -56,10 +58,10 @@ class TempDirs(object):
 
         return path
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         with self.lock:
             if not self.dirs:
                 return
@@ -72,7 +74,7 @@ class TempDirs(object):
                 shutil.rmtree(path)
 
     @classmethod
-    def clear_all(cls):
+    def clear_all(cls) -> None:
         with TempDirs.instances_lock:
             instances = cls.instances[:]
 
@@ -115,6 +117,7 @@ def make_path_writable(path):
         yield
     finally:
         if new_mode != orig_mode:
+            assert orig_mode is not None
             os.chmod(path, orig_mode)
 
 
@@ -204,7 +207,7 @@ def safe_remove(path):
             raise
 
 
-def forceful_rmtree(path):
+def forceful_rmtree(path) -> None:
     """Like shutil.rmtree, but may change permissions.
 
     Specifically, non-writable dirs within `path` can cause rmtree to fail. This
@@ -215,7 +218,7 @@ def forceful_rmtree(path):
         * unicode path
     """
 
-    def _on_error(func, path, exc_info):
+    def _on_error(func, path, exc_info) -> None:
         try:
             if is_windows:
                 path = windows_long_path(path)
@@ -238,7 +241,7 @@ def forceful_rmtree(path):
     shutil.rmtree(path, onerror=_on_error)
 
 
-def replacing_symlink(source, link_name):
+def replacing_symlink(source, link_name) -> None:
     """Create symlink that overwrites any existing target.
     """
     with make_tmp_name(link_name) as tmp_link_name:
@@ -246,7 +249,7 @@ def replacing_symlink(source, link_name):
         replace_file_or_dir(link_name, tmp_link_name)
 
 
-def replacing_copy(src, dest, follow_symlinks=False):
+def replacing_copy(src, dest, follow_symlinks: bool = False) -> None:
     """Perform copy that overwrites any existing target.
 
     Will copy/copytree `src` to `dest`, and will remove `dest` if it exists,
@@ -300,7 +303,7 @@ def replace_file_or_dir(dest, source):
         rename(source, dest)
 
 
-def additive_copytree(src, dst, symlinks=False, ignore=None):
+def additive_copytree(src, dst, symlinks: bool = False, ignore=None) -> None:
     """Version of `copytree` that merges into an existing directory.
     """
     if not os.path.exists(dst):
@@ -338,7 +341,7 @@ def make_tmp_name(name):
         safe_remove(tmp_name)
 
 
-def is_subdirectory(path_a, path_b):
+def is_subdirectory(path_a, path_b) -> bool:
     """Returns True if `path_a` is a subdirectory of `path_b`."""
     path_a = os.path.realpath(path_a)
     path_b = os.path.realpath(path_b)
@@ -353,7 +356,7 @@ def is_subdirectory(path_a, path_b):
     return not relative.startswith(os.pardir + os.sep)
 
 
-def find_matching_symlink(path, source):
+def find_matching_symlink(path: str, source: str) -> str | None:
     """Find a symlink under `path` that points at `source`.
 
     If source is relative, it is considered relative to `path`.
@@ -379,7 +382,7 @@ def find_matching_symlink(path, source):
     return None
 
 
-def copy_or_replace(src, dst):
+def copy_or_replace(src: str, dst: str):
     '''try to copy with mode, and if it fails, try replacing
     '''
     try:
@@ -418,7 +421,7 @@ def copy_or_replace(src, dst):
     shutil.move(dst_temp, dst)
 
 
-def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
+def copytree(src: str, dst: str, symlinks: bool = False, ignore=None, hardlinks: bool = False):
     '''copytree that supports hard-linking
     '''
     names = os.listdir(src)
@@ -428,14 +431,14 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
         ignored_names = set()
 
     if hardlinks:
-        def copy(srcname, dstname):
+        def copy(srcname, dstname) -> None:
             try:
                 # try hard-linking first
                 os.link(srcname, dstname)
             except OSError:
                 shutil.copy2(srcname, dstname)
     else:
-        copy = shutil.copy2
+        copy = shutil.copy2  # type: ignore[assignment]
 
     if not os.path.isdir(dst):
         os.makedirs(dst)
@@ -467,12 +470,12 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
         # can't copy file access times on Windows
         pass
     except OSError as why:
-        errors.extend((src, dst, str(why)))
+        errors.append((src, dst, str(why)))
     if errors:
         raise shutil.Error(errors)
 
 
-def movetree(src, dst):
+def movetree(src, dst) -> None:
     """Attempts a move, and falls back to a copy+delete if this fails
     """
     try:
@@ -482,7 +485,7 @@ def movetree(src, dst):
         shutil.rmtree(src)
 
 
-def safe_chmod(path, mode):
+def safe_chmod(path, mode) -> None:
     """Set the permissions mode on path, but only if it differs from the current mode.
     """
     if stat.S_IMODE(os.stat(path).st_mode) != mode:
@@ -651,8 +654,8 @@ def decode_filesystem_name(filename):
     return u''.join(result)
 
 
-def test_encode_decode():
-    def do_test(orig, expected_encoded):
+def test_encode_decode() -> None:
+    def do_test(orig, expected_encoded) -> None:
         print('=' * 80)
         print(orig)
         encoded = encode_filesystem_name(orig)
