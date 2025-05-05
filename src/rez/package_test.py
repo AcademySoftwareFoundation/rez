@@ -11,6 +11,7 @@ from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_info, print_warning, print_error
 from rez.version import Requirement, RequirementList
 from shlex import quote
+import fnmatch
 import time
 import sys
 import os
@@ -205,6 +206,16 @@ class PackageTestRunner(object):
             return []
 
         return self.get_package_test_names(package, run_on=run_on)
+
+    def find_requested_test_names(self, requested_tests):
+        # if no tests are explicitly specified, then run only those with a
+        # 'default' run_on tag
+        run_on = ["default"] if not requested_tests else None
+        pkg_test_names = self.get_test_names(run_on=run_on)
+        requested_test_names = set()
+        for requested_test in requested_tests:
+            requested_test_names.update(set(fnmatch.filter(pkg_test_names, requested_test)))
+        return requested_test_names
 
     @property
     def num_tests(self):
