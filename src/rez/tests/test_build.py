@@ -141,6 +141,7 @@ class TestBuild(TestBase, TempdirMixin):
         """Test that a broken build fails correctly.
         """
         config.override("default_shell", shell)
+        self.inject_python_repo()
 
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
