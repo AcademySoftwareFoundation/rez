@@ -68,6 +68,7 @@ setup(
     packages=find_packages('src', exclude=["build_utils",
                                            "build_utils.*",
                                            "tests"]),
+    install_requires=['setuptools'],
     package_data={
         'rez':
             ['utils/logging.conf'] +
@@ -93,8 +94,10 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Software Development",
         "Topic :: System :: Software Distribution"
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.7,<3.14",
 )
