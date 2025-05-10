@@ -1,0 +1,10 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "baz"
+version = "0.1.0"
+
+[project.entry-points."rez.plugins"]
+baz_cmd = "baz"
