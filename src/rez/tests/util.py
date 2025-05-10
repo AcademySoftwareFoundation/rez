@@ -203,6 +203,21 @@ def program_dependent(program_name, *program_names):
     return decorator
 
 
+def get_available_shells():
+    """Helper to get all available shells in a testing context."""
+    shells = get_shell_types()
+
+    only_shell = os.getenv("__REZ_SELFTEST_SHELL")
+    if only_shell:
+        shells = [only_shell]
+
+    # filter to only those shells available
+    return [
+        x for x in shells
+        if get_shell_class(x).is_available()
+    ]
+
+
 def per_available_shell(exclude=None):
     """Function decorator that runs the function over all available shell types.
     """
