@@ -96,4 +96,6 @@ there would be lots of caveats and hidden dragons.
 
 `Conan <https://docs.conan.io/2/>`_
 
+`SPK <https://getspk.io/>`_
+
 
