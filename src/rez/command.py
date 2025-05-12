@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.config import config
 
 
@@ -48,7 +50,7 @@ class Command(object):
             return CommandFoo
 
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.type_settings = config.plugins.extension
         self.settings = self.type_settings.get(self.name())
 

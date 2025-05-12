@@ -12,7 +12,7 @@ def requires():
 
 private_build_requires = ["build_util", "python"]
 
-def commands():
+def commands() -> None:
     env.PYTHONPATH.append('{root}/python')
     if testing:
         env.CAR_IDEA = "STURDY STEERING WHEEL"

@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import json
 import os
 import os.path
@@ -27,9 +29,11 @@ from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
     forceful_rmtree
 from rez.utils.colorize import ColorizedStreamHandler
 from rez.utils.logging_ import print_warning
-from rez.packages import get_variant
+from rez.packages import get_variant, Variant
 from rez.system import system
 from rez.utils.filesystem import rename
+
+from typing import Iterable
 
 
 class PackageCache(object):
@@ -87,7 +91,7 @@ class PackageCache(object):
     _COPYING_TIME_INC = 0.2
     _COPYING_TIME_MAX = 5.0
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Create a package cache.
 
         Args:
@@ -103,7 +107,7 @@ class PackageCache(object):
         safe_makedirs(self._pending_dir)
         safe_makedirs(self._remove_dir)
 
-    def get_cached_root(self, variant):
+    def get_cached_root(self, variant: Variant) -> str | None:
         """Get location of variant payload copy.
 
         Args:
@@ -130,7 +134,7 @@ class PackageCache(object):
 
         return rootpath
 
-    def add_variant(self, variant, force=False, wait_for_copying=False, logger=None):
+    def add_variant(self, variant, force: bool = False, wait_for_copying: bool = False, logger=None):
         """Copy a variant's payload into the cache.
 
         The following steps are taken to ensure muti-thread/proc safety, and to
@@ -311,7 +315,7 @@ class PackageCache(object):
         #
         still_copying = True
 
-        def _while_copying():
+        def _while_copying() -> None:
             while still_copying:
                 time.sleep(self._COPYING_TIME_INC)
                 try:
@@ -335,7 +339,7 @@ class PackageCache(object):
 
         return (rootpath, self.VARIANT_CREATED)
 
-    def remove_variant(self, variant):
+    def remove_variant(self, variant: Variant):
         """Remove a variant from the cache.
 
         Since this removes the associated cached variant payload, there is no
@@ -412,7 +416,7 @@ class PackageCache(object):
         """
         return self.add_variants(variants, package_cache_async=True)
 
-    def add_variants(self, variants, package_cache_async=True):
+    def add_variants(self, variants: Iterable[Variant], package_cache_async: bool = True) -> None:
         """Add the given variants to the package payload cache.
         """
 
@@ -541,7 +545,7 @@ class PackageCache(object):
                 ' '.join(args), e
             )
 
-    def get_variants(self):
+    def get_variants(self) -> list[tuple[Variant, str, int]]:
         """Get variants and their current statuses from the cache.
 
         Returns:
@@ -611,7 +615,7 @@ class PackageCache(object):
 
         return results
 
-    def run_daemon(self):
+    def run_daemon(self) -> None:
         """Run as daemon and copy pending variants.
 
         Called via `rez-pkg-cache --daemon`.
@@ -634,7 +638,7 @@ class PackageCache(object):
 
         self._run_caching_operation(wait_for_copying=False)
 
-    def _run_caching_operation(self, wait_for_copying=True):
+    def _run_caching_operation(self, wait_for_copying: bool = True):
         """Copy pending variants.
 
         Args:
@@ -665,7 +669,7 @@ class PackageCache(object):
             except Exception:
                 logger.exception("An error occurred while cleaning the cache")
 
-    def clean(self, time_limit=None):
+    def clean(self, time_limit=None) -> None:
         """Delete unused package cache files.
 
         This should be run periodically via 'rez-pkg-cache --clean'.
@@ -765,7 +769,7 @@ class PackageCache(object):
             except NotLocked:
                 pass
 
-    def _run_caching_step(self, state, wait_for_copying=False):
+    def _run_caching_step(self, state, wait_for_copying: bool = False) -> bool:
         logger = state["logger"]
 
         # pick a random pending variant to copy
@@ -838,7 +842,7 @@ class PackageCache(object):
 
         return True
 
-    def _init_logging(self):
+    def _init_logging(self) -> logging.Logger:
         """
         Creates logger that logs to file and stdout. Used for:
         - adding variants in daemonized proc;
@@ -876,22 +880,22 @@ class PackageCache(object):
         return logger
 
     @property
-    def _sys_dir(self):
+    def _sys_dir(self) -> str:
         return os.path.join(self.path, ".sys")
 
     @property
-    def _log_dir(self):
+    def _log_dir(self) -> str:
         return os.path.join(self.path, ".sys", "log")
 
     @property
-    def _pending_dir(self):
+    def _pending_dir(self) -> str:
         return os.path.join(self.path, ".sys", "pending")
 
     @property
-    def _remove_dir(self):
+    def _remove_dir(self) -> str:
         return os.path.join(self.path, ".sys", "to_delete")
 
-    def _get_cached_root(self, variant):
+    def _get_cached_root(self, variant: Variant) -> tuple[int, str]:
         path = self._get_hash_path(variant)
         if not os.path.exists(path):
             return (self.VARIANT_NOT_FOUND, '')
@@ -932,7 +936,7 @@ class PackageCache(object):
 
         return (self.VARIANT_NOT_FOUND, '')
 
-    def _get_hash_path(self, variant):
+    def _get_hash_path(self, variant: Variant) -> str:
         dirs = [self.path, variant.name]
 
         if variant.version:

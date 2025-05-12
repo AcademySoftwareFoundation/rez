@@ -12,7 +12,7 @@ import os.path
 
 
 class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
-    def __init__(self, context=None, parent=None):
+    def __init__(self, context=None, parent=None) -> None:
         super(ContextSubWindow, self).__init__(parent)
         context_model = ContextModel(context)
         ContextViewMixin.__init__(self, context_model)
@@ -28,14 +28,14 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
     def filepath(self):
         return self.context_model.filepath()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         if self.can_close():
             super(ContextSubWindow, self).closeEvent(event)
             StoreSizeMixin.closeEvent(self, event)
         else:
             event.ignore()
 
-    def diff_with_file(self, filepath):
+    def diff_with_file(self, filepath) -> None:
         """Turn on diff mode and diff against given context.
         """
         self.widget()._diff_with_file(filepath)
@@ -89,30 +89,30 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
 
         raise RuntimeError("Should never get here")  # NOSONAR
 
-    def is_save_as_able(self):
+    def is_save_as_able(self) -> bool:
         return not self.context_model.is_stale()
 
     def is_saveable(self):
         return bool(self.is_save_as_able() and self.filepath())
 
-    def save_context(self):
+    def save_context(self) -> None:
         if self.mdiArea().activeSubWindow() != self:
             return
         self._save_context()
 
-    def save_context_as(self):
+    def save_context_as(self) -> None:
         if self.mdiArea().activeSubWindow() != self:
             return
         self._save_context_as()
 
-    def copy_request_to_clipboard(self):
+    def copy_request_to_clipboard(self) -> None:
         txt = " ".join(self.context_model.request)
         clipboard = app.clipboard()
         clipboard.setText(txt)
         with app.status("Copied request to clipboard"):
             pass
 
-    def copy_resolve_to_clipboard(self):
+    def copy_resolve_to_clipboard(self) -> None:
         context = self.context()
         assert context
         strs = (x.qualified_package_name for x in context.resolved_packages)
@@ -122,7 +122,7 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
         with app.status("Copied resolve to clipboard"):
             pass
 
-    def _save_context(self):
+    def _save_context(self) -> bool:
         assert self.filepath()
         with app.status("Saving %s..." % self.filepath()):
             self.context_model.save(self.filepath())
@@ -140,12 +140,12 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
 
         return bool(filepath)
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         self._update_window_title()
 
-    def _diffModeChanged(self):
+    def _diffModeChanged(self) -> None:
         self._update_window_title()
 
-    def _update_window_title(self):
+    def _update_window_title(self) -> None:
         title = self.widget().get_title()
         self.setWindowTitle(title)

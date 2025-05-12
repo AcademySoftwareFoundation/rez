@@ -25,11 +25,11 @@ class CSH(UnixShell):
     histvar = "histfile"
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'csh'
 
     @classmethod
-    def file_extension(cls):
+    def file_extension(cls) -> str:
         return 'csh'
 
     @classmethod
@@ -62,8 +62,8 @@ class CSH(UnixShell):
         return cls.syspaths
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(cls, rcfile: bool = False, norc: bool = False, stdin: bool = False,
+                             command: bool = False):
         cls._unsupported_option('rcfile', rcfile)
         rcfile = False
         if command is not None:
@@ -98,7 +98,7 @@ class CSH(UnixShell):
             source_bind_files=(not norc)
         )
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path: bool = False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -137,7 +137,7 @@ class CSH(UnixShell):
 
         return shlex_join(command, replacements=replacements)
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         if config.set_prompt and self.settings.prompt:
             # TODO: Do more like in sh.py, much less error prone
             stored_prompt = os.getenv("REZ_STORED_PROMPT_CSH")
@@ -153,21 +153,21 @@ class CSH(UnixShell):
             new_prompt = self.escape_string(new_prompt)
             self._addline('set prompt=%s' % new_prompt)
 
-    def _saferefenv(self, key):
+    def _saferefenv(self, key) -> None:
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
-    def setenv(self, key, value):
+    def setenv(self, key, value) -> None:
         value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('setenv %s %s' % (key, value))
 
-    def unsetenv(self, key):
+    def unsetenv(self, key) -> None:
         self._addline("unsetenv %s" % key)
 
-    def alias(self, key, value):
+    def alias(self, key, value) -> None:
         value = EscapedString.disallow(value)
         self._addline("alias %s '%s';" % (key, value))
 
-    def source(self, value):
+    def source(self, value) -> None:
         value = self.escape_string(value)
         self._addline('source %s' % value)
 

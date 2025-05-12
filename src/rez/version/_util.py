@@ -14,13 +14,13 @@ class ParseException(Exception):
 
 
 class _Common(object):
-    def __str__(self):
+    def __str__(self) -> str:
         raise NotImplementedError
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not (self == other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, str(self))
 
 

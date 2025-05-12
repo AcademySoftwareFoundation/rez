@@ -36,7 +36,7 @@ class Popen(subprocess.Popen):
     and also forces the encoding to be utf-8 if text=True or universal_newlines=True
     is set without specifying the encoding.
     """
-    def __init__(self, args, **kwargs):
+    def __init__(self, args, **kwargs) -> None:
         # Avoids python bug described here: https://bugs.python.org/issue3905.
         # This can arise when apps (maya) install a non-standard stdin handler.
         #
@@ -217,7 +217,7 @@ def _get_python_script_files(filepath, py_script_mode, platform):
     return script_filepaths
 
 
-def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
+def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs) -> None:
     """Create a 'forwarding' script.
 
     A forwarding script is one that executes some arbitrary Rez function. This

@@ -10,7 +10,7 @@ import time
 
 
 class ContextResolveTimeLabel(QtWidgets.QLabel, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(ContextResolveTimeLabel, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -19,7 +19,7 @@ class ContextResolveTimeLabel(QtWidgets.QLabel, ContextViewMixin):
         self.timer.timeout.connect(self.refresh)
         self.refresh()
 
-    def refresh(self):
+    def refresh(self) -> None:
         context = self.context()
         if not context:
             self.timer.stop()
@@ -35,6 +35,6 @@ class ContextResolveTimeLabel(QtWidgets.QLabel, ContextViewMixin):
         self.setText("resolved %s ago" % time_txt)
         self.timer.start()
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         if flags & ContextModel.CONTEXT_CHANGED:
             self.refresh()
