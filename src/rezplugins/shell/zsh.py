@@ -7,14 +7,18 @@ Zsh shell
 """
 import os
 import os.path
+from rez.config import config
+from rez.rex import EscapedString
 from rez.utils.platform_ import platform_
 from rezplugins.shell.sh import SH
 from rez import module_root_path
+from shlex import quote
 
 
 class Zsh(SH):
-    rcfile_arg = '--rcs'
+    rcfile_arg = None
     norc_arg = '--no-rcs'
+    histfile = "~/.zsh_history"
 
     @classmethod
     def name(cls):
@@ -42,11 +46,8 @@ class Zsh(SH):
             cls.startup_capabilities(rcfile, norc, stdin, command)
 
         files = []
-        envvar = None
-        do_rcfile = False
 
         if rcfile or norc:
-            do_rcfile = True
             if rcfile and os.path.exists(os.path.expanduser(rcfile)):
                 files.append(rcfile)
         else:
@@ -59,24 +60,50 @@ class Zsh(SH):
                     files.append(file_)
 
         bind_files = [
-            "~/.zprofile",
             "~/.zshrc"
         ]
 
         return dict(
             stdin=stdin,
             command=command,
-            do_rcfile=do_rcfile,
-            envvar=envvar,
+            do_rcfile=False,
+            envvar=None,
             files=files,
             bind_files=bind_files,
-            source_bind_files=True
+            source_bind_files=not norc
         )
 
     def _bind_interactive_rez(self):
-        super(Zsh, self)._bind_interactive_rez()
+        if config.set_prompt and self.settings.prompt:
+            self._addline(r'if [ -z "$REZ_STORED_PROMPT_SH" ]; then export REZ_STORED_PROMPT_SH="$PS1"; fi')
+            if config.prefix_prompt:
+                cmd = 'export PS1="%s $REZ_STORED_PROMPT_SH"'
+            else:
+                cmd = 'export PS1="$REZ_STORED_PROMPT_SH %s"'
+            self._addline(cmd % r"%{%B%}$REZ_ENV_PROMPT%{%b%}")
         completion = os.path.join(module_root_path, "completion", "complete.zsh")
         self.source(completion)
+
+    def escape_string(self, value, is_path=False):
+        value = EscapedString.promote(value)
+        value = value.expanduser()
+        result = ''
+
+        for is_literal, txt in value.strings:
+            if is_literal:
+                txt = quote(txt)
+                if not txt.startswith("'"):
+                    txt = "'%s'" % txt
+            else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
+                txt = txt.replace('\\', '\\\\')
+                txt = txt.replace('"', '\\"')
+                txt = txt.replace("%", "%%")
+                txt = '"%s"' % txt
+            result += txt
+        return result
 
 
 def register_plugin():

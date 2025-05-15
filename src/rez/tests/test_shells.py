@@ -641,6 +641,18 @@ class TestShells(TestBase, TempdirMixin):
         out, _ = p.communicate()
         self.assertEqual(1, p.returncode)
 
+    @per_available_shell()
+    def test_find_executable_config_override(self, shell):
+        """Test the shell plugin returns correct exec override from settings."""
+        config.override("default_shell", shell)
+        override_attr = "plugins.shell.{}.executable_fullpath".format(shell)
+        cls = type(create_shell(shell))
+        with tempfile.TemporaryDirectory() as td:
+            exe_path = os.path.join(td, cls.executable_name())
+            with open(exe_path, 'w'):
+                config.override(override_attr, exe_path)
+                assert cls.find_executable(cls.executable_name()) == exe_path
+
 
 if __name__ == '__main__':
     unittest.main()
