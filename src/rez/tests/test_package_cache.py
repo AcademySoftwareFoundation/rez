@@ -131,11 +131,9 @@ class TestPackageCache(TestBase, TempdirMixin):
         with restore_os_environ():
             os.environ["REZ_LOGGING_CONF"] = config_file_path
             pkgcache = self._pkgcache()
-            package = get_package("versioned", "3.0")
-            variant = next(package.iter_variants())
-
-            with self.assertLogs("rez-pkg-cache", level=logging.INFO):
-                pkgcache.add_variants([variant], package_cache_async=False)
+            pkgcache._init_logging()
+            logger = logging.getLogger('rez-pkg-cache')
+            self.assertEqual(len(logger.handlers), 1)
 
     @install_dependent()
     def test_caching_on_resolve(self):
