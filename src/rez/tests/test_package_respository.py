@@ -24,7 +24,8 @@ class TestPackageRepository(TestBase, TempdirMixin):
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
 
-    @unittest.skipIf(platform_.name != "windows", "Skipping because this issue only affects case-insensitive platforms.")
+    @unittest.skipIf(platform_.name != "windows",
+                     "Skipping because this issue only affects case-insensitive platforms.")
     def test_mismatching_case(self):
         """Test that we get a caught PackageRepositoryError on case-insensitive platforms."""
         pool = filesystem.ResourcePool(cache_size=None)
