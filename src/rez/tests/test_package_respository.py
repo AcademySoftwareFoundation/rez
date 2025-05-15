@@ -13,7 +13,7 @@ from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.platform_ import platform_
 
 
-class TestPackageRepository(TestBase, TempdirMixin):
+class TestFilesystemPackageRepository(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
