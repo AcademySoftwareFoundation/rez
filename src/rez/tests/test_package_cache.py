@@ -134,7 +134,7 @@ class TestPackageCache(TestBase, TempdirMixin):
             pkgcache._init_logging()
             logger = logging.getLogger('rez-pkg-cache')
             self.assertEqual(len(logger.handlers), 1)
-            self.assertEqual(logger.handlers[0].name, 'myTestingConsoleHandler')
+            self.assertEqual(logger.handlers[0].__class__, logging.StreamHandler)
             self.assertEqual(logger.handlers[0].level, logging.DEBUG)
 
     @install_dependent()
