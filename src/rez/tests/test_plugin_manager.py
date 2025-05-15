@@ -49,7 +49,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
         TestBase.setUp(self)
         self._reset_plugin_manager()
 
-    def test_old_loading_style(self):
+    def test_load_plugin_from_plugin_path(self):
         """Test loading rez plugin from plugin_path"""
         self.update_settings(dict(
             plugin_path=[self.data_path("extensions", "foo")]
@@ -59,7 +59,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
             "package_repository", "cloud")
         self.assertEqual(cloud_cls.name(), "cloud")
 
-    def test_new_loading_style(self):
+    def test_load_plugin_from_python_module(self):
         """Test loading rez plugin from python modules"""
         with restore_sys_path():
             sys.path.append(self.data_path("extensions"))
@@ -67,6 +67,13 @@ class TestPluginManagers(TestBase, TempdirMixin):
             cloud_cls = plugin_manager.get_plugin_class(
                 "package_repository", "cloud")
             self.assertEqual(cloud_cls.name(), "cloud")
+
+    def test_load_plugin_from_entry_points(self):
+        """Test loading rez plugin from setuptools entry points"""
+        with restore_sys_path():
+            sys.path.append(self.data_path("extensions", "baz"))
+            baz_cls = plugin_manager.get_plugin_class("command", "baz_cmd")
+            self.assertEqual(baz_cls.name(), "baz_cmd")
 
     def test_plugin_override_1(self):
         """Test plugin from plugin_path can override the default"""
