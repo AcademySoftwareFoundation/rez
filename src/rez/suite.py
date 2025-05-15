@@ -441,7 +441,7 @@ class Suite(object):
                 raise SuiteError("Cannot save, path exists: %r" % path)
 
         contexts_path = os.path.join(path, "contexts")
-        os.makedirs(contexts_path)
+        os.makedirs(contexts_path, exist_ok=True)
 
         # write suite data
         data = self.to_dict()
@@ -460,7 +460,7 @@ class Suite(object):
 
         # create alias wrappers
         tools_path = os.path.join(path, "bin")
-        os.makedirs(tools_path)
+        os.makedirs(tools_path, exist_ok=True)
         if verbose:
             print("creating alias wrappers in %r..." % tools_path)
 

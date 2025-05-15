@@ -16,8 +16,7 @@ import textwrap
 
 def _mkdirs(*dirs):
     path = os.path.join(*dirs)
-    if not os.path.exists(path):
-        os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
     return path
 
 
