@@ -16,10 +16,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         args: >
-        -Dsonar.organization="academysoftwarefoundation"
-        -Dsonar.projectKey="AcademySoftwareFoundation_rez"
-        -Dsonar.projectName="rez"
-        -Dsonar.sources="src/"
-        -Dsonar.tests="tests/"
-        -Dsonar.exclusions="sonar.exclusions=src/build_utils/**,src/rez/data/**,src/rez/tests/**,src/rez/vendor/**"
-        -Dsonar.python.version="3.7, 3.8, 3.9, 3.10, 3.11, 3.12"
+          -Dsonar.organization="academysoftwarefoundation"
+          -Dsonar.projectKey="AcademySoftwareFoundation_rez"
+          -Dsonar.projectName="rez"
+          -Dsonar.sources="src/"
+          -Dsonar.tests="tests/"
+          -Dsonar.exclusions="sonar.exclusions=src/build_utils/**,src/rez/data/**,src/rez/tests/**,src/rez/vendor/**"
+          -Dsonar.python.version="3.7, 3.8, 3.9, 3.10, 3.11, 3.12"
