@@ -14,7 +14,6 @@ from rez.utils.platform_ import platform_
 
 
 class TestFilesystemPackageRepository(TestBase, TempdirMixin):
-```?
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
