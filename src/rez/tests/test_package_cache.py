@@ -5,6 +5,12 @@
 """
 Test package caching.
 """
+import logging
+import os
+import os.path
+import time
+import subprocess
+
 from rez.tests.util import TestBase, TempdirMixin, restore_os_environ, \
     install_dependent
 from rez.packages import get_package
@@ -12,10 +18,6 @@ from rez.package_cache import PackageCache
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import PackageCacheError
 from rez.utils.filesystem import canonical_path
-import os
-import os.path
-import time
-import subprocess
 
 
 class TestPackageCache(TestBase, TempdirMixin):
@@ -122,6 +124,18 @@ class TestPackageCache(TestBase, TempdirMixin):
 
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
+
+    def test_external_logging_config(self):
+        """Test that external logging is respected if configured."""
+        config_file_path = canonical_path(self.data_path("config", "logging_config_test.conf"))
+        with restore_os_environ():
+            os.environ["REZ_LOGGING_CONF"] = config_file_path
+            pkgcache = self._pkgcache()
+            pkgcache._init_logging()
+            logger = logging.getLogger('rez-pkg-cache')
+            self.assertEqual(len(logger.handlers), 1)
+            self.assertEqual(logger.handlers[0].__class__, logging.StreamHandler)
+            self.assertEqual(logger.handlers[0].level, logging.DEBUG)
 
     @install_dependent()
     def test_caching_on_resolve(self):
