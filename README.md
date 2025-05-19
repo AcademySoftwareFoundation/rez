@@ -16,7 +16,8 @@
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)<br>
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8389/badge)](https://www.bestpractices.dev/projects/8389)
 
 
 - [What Is Rez?](#what-is-rez)
