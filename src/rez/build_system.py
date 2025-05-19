@@ -4,6 +4,7 @@
 
 import os.path
 
+from rez.rex import literal
 from rez.build_process import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages import get_developer_package
@@ -225,22 +226,26 @@ class BuildSystem(object):
             'REZ_BUILD_PATH': executor.normalize_path(build_path),
             'REZ_BUILD_THREAD_COUNT': package.config.build_thread_count,
             'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
-            'REZ_BUILD_VARIANT_REQUIRES': ' '.join(variant_requires),
+            'REZ_BUILD_VARIANT_REQUIRES': literal(' '.join(variant_requires)),
             'REZ_BUILD_VARIANT_SUBPATH': executor.normalize_path(variant_subpath),
-            'REZ_BUILD_PROJECT_VERSION': str(package.version),
-            'REZ_BUILD_PROJECT_NAME': package.name,
-            'REZ_BUILD_PROJECT_DESCRIPTION': (package.description or '').strip(),
-            'REZ_BUILD_PROJECT_FILE': package.filepath,
+            'REZ_BUILD_PROJECT_VERSION': literal(str(package.version)),
+            'REZ_BUILD_PROJECT_NAME': literal(package.name),
+            'REZ_BUILD_PROJECT_DESCRIPTION': literal((package.description or '').strip()),
+            'REZ_BUILD_PROJECT_FILE': literal(package.filepath),
             'REZ_BUILD_SOURCE_PATH': executor.normalize_path(
                 os.path.dirname(package.filepath)
             ),
-            'REZ_BUILD_REQUIRES': ' '.join(
-                str(x) for x in context.requested_packages(True)
+            'REZ_BUILD_REQUIRES': literal(
+                ' '.join(
+                    str(x) for x in context.requested_packages(True)
+                )
             ),
-            'REZ_BUILD_REQUIRES_UNVERSIONED': ' '.join(
-                x.name for x in context.requested_packages(True)
+            'REZ_BUILD_REQUIRES_UNVERSIONED': literal(
+                ' '.join(
+                    x.name for x in context.requested_packages(True)
+                )
             ),
-            'REZ_BUILD_TYPE': build_type.name,
+            'REZ_BUILD_TYPE': literal(build_type.name),
             'REZ_BUILD_INSTALL': 1 if install else 0,
         }
 
