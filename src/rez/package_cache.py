@@ -15,6 +15,7 @@ import sys
 import platform
 import time
 import logging
+import logging.config
 import random
 import threading
 from contextlib import contextmanager
@@ -846,6 +847,11 @@ class PackageCache(object):
           manually (hence the logging to stdout also)
         """
         logger = logging.getLogger("rez-pkg-cache")
+        logging_conf = os.getenv("REZ_LOGGING_CONF")
+        if logging_conf:
+            logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
+            return logger
+
         logger.setLevel(logging.INFO)
         logger.propagate = False
 
