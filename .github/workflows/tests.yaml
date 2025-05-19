@@ -93,7 +93,7 @@ jobs:
 
     - name: Run tests
       id: tests
-      run: rez-selftest -v -- --cov=rez --cov-report=xml:coverage.xml
+      run: rez-selftest -v -- --cov=rez --cov=rezplugins --cov-report=xml:coverage.xml
       env:
         _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
 
