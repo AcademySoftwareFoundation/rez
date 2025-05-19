@@ -200,6 +200,8 @@ class CustomBuildSystem(BuildSystem):
                             value = list(map(str, value))
                             value = list(map(quote, value))
                             value = ' '.join(value)
+                        else:
+                            value = quote(str(value))
 
                         executor.env[varname] = value
 
