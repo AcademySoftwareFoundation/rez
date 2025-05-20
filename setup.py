@@ -68,7 +68,7 @@ setup(
     packages=find_packages('src', exclude=["build_utils",
                                            "build_utils.*",
                                            "tests"]),
-    install_requires=['setuptools'],
+    install_requires=[],
     package_data={
         'rez':
             ['utils/logging.conf'] +

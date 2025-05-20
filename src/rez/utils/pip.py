@@ -6,9 +6,9 @@
 Python packaging related utilities.
 """
 import os.path
+from importlib.metadata import Distribution, DistributionFinder
 from email.parser import Parser
-
-import pkg_resources
+from pathlib import Path
 
 from rez.vendor.packaging.version import (
     parse as packaging_parse,
@@ -326,8 +326,14 @@ def is_pure_python_package(installed_dist):
     setuptools_dist = convert_distlib_to_setuptools(installed_dist)
 
     # see https://www.python.org/dev/peps/pep-0566/#json-compatible-metadata
-    wheel_data = setuptools_dist.get_metadata('WHEEL')
-    wheel_data = Parser().parsestr(wheel_data)
+
+    wheel_data = None
+    for f in setuptools_dist.files:
+        if f.name == "WHEEL":
+            wheel_data = f.read_text()
+            break
+
+    wheel_data = Parser().parsestr(wheel_data) if wheel_data else {}
 
     # see https://www.python.org/dev/peps/pep-0427/#what-s-the-deal-with-purelib-vs-platlib
     is_purelib = wheel_data.get("Root-Is-Purelib", "").lower()
@@ -346,8 +352,10 @@ def is_entry_points_scripts_package(installed_dist):
     """
     setuptools_dist = convert_distlib_to_setuptools(installed_dist)
 
-    entry_map = setuptools_dist.get_entry_map()
-    return bool(entry_map.get("console_scripts") or entry_map.get("gui_scripts"))
+    console_scripts = setuptools_dist.entry_points.select(group="console_scripts")
+    gui_scripts = setuptools_dist.entry_points.select(group="gui_scripts")
+
+    return bool(console_scripts or gui_scripts)
 
 
 def get_rez_requirements(installed_dist, python_version, name_casings=None):
@@ -511,13 +519,36 @@ def convert_distlib_to_setuptools(installed_dist):
             to convert.
 
     Returns:
-        `pkg_resources.DistInfoDistribution`: Equivalent setuptools dist object.
+        `Distribution`: Equivalent importlib/setuptools dist object.
     """
+
+    # Localized from pkg_resources.safe_name
+    def safe_name(name: str) -> str:
+        import re
+        """Convert an arbitrary string to a standard distribution name
+
+        Any runs of non-alphanumeric/. characters are replaced with a single '-'.
+        """
+        return re.sub('[^A-Za-z0-9.]+', '-', name)
+
+    class DirectPathScanner(DistributionFinder):
+        @classmethod
+        def find_distributions(cls, context=DistributionFinder.Context()):
+            for search_path in context.path:
+                for entry in os.scandir(search_path):
+                    if entry.is_dir() and (entry.name.endswith(".dist-info") or entry.name.endswith(".egg-info")):
+                        yield Distribution.at(Path(entry.path))
+
     path = os.path.dirname(installed_dist.path)
-    setuptools_dists = pkg_resources.find_distributions(path)
+
+    setuptools_dists = list(
+        DirectPathScanner.find_distributions(
+            context=DistributionFinder.Context(path=[path])
+        )
+    )
 
     for setuptools_dist in setuptools_dists:
-        if setuptools_dist.key == pkg_resources.safe_name(installed_dist.key):
+        if setuptools_dist.name == safe_name(installed_dist.key):
             return setuptools_dist
 
     return None
