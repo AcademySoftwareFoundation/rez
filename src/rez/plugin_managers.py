@@ -159,8 +159,8 @@ class RezPluginType(object):
                     # already loaded, so check for that
                     plugin_module = sys.modules.get(modname)
                     if plugin_module is None:
-                        loader = importer.find_module(modname)
-                        plugin_module = loader.load_module(modname)
+                        loader = importer.find_spec(modname)
+                        plugin_module = loader.loader.load_module(modname)
 
                     elif os.path.dirname(plugin_module.__file__) != path:
                         if config.debug("plugins"):

@@ -6,7 +6,7 @@
 Functions for converting python distributions to rez packages.
 """
 from rez.exceptions import RezSystemError
-import pkg_resources
+import importlib.metadata as importlib_metadata
 import shutil
 import sys
 import os
@@ -92,7 +92,7 @@ def get_dist_dependencies(name, recurse=True):
     @returns A set of package names.
     @note The first entry in the list is always the top-level package itself.
     """
-    dist = pkg_resources.get_distribution(name)
+    dist = importlib_metadata.Distribution.from_name(name)
     pkg_name = convert_name(dist.project_name)
 
     reqs = set()
@@ -102,7 +102,7 @@ def get_dist_dependencies(name, recurse=True):
     while working:
         deps = set()
         for distname in working:
-            dist = pkg_resources.get_distribution(distname)
+            dist = importlib_metadata.Distribution.from_name(distname)
             pkg_name = convert_name(dist.project_name)
             reqs.add(pkg_name)
 
@@ -141,7 +141,7 @@ def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
     Returns:
         Install path of the new Rez package.
     """
-    dist = pkg_resources.get_distribution(name)
+    dist = importlib_metadata.distribution(name)
     pkg_name = convert_name(dist.project_name)
     pkg_version = convert_version(dist.version)
 
