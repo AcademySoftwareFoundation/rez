@@ -9,8 +9,10 @@ If you think you've found a potential vulnerability in rez, please
 report it by filing a GitHub [security
 advisory](https://github.com/AcademySoftwareFoundation/rez/security/advisories/new). Alternatively,
 email security@rez-project.io and provide your contact info for further
-private/secure discussion.  If your email does not receive a prompt
-acknowledgement, your address may be blocked.
+private/secure discussion. If your email does not receive a prompt
+acknowledgement, your address may be blocked. If you request anonymity,
+your name and contact information will not be published. Otherwise,
+credit will be given in notices related to the vulnerability.
 
 Our policy is to acknowledge the receipt of vulnerability reports
 within 48 hours. Our policy is to address critical security vulnerabilities
@@ -18,7 +20,7 @@ rapidly and post patches within 14 days if possible.
 
 ## Known Vulnerabilities
 
-The only currently known security vulnerability is issue [#937](https://github.com/AcademySoftwareFoundation/rez/issues/937).
+The only currently known security vulnerability is issue [#937](https://github.com/AcademySoftwareFoundation/rez/issues/937), reported by @ColinKennedy.
 No others are known at this time.
 
 See the [release notes](CHANGES.md) for more information.
