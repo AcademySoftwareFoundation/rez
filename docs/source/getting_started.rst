@@ -7,8 +7,7 @@ Essential packages
 
 .. warning::
    :ref:`rez-bind` is going to be deprecated. The current implementation is not actively maintained.
-   Even if rez-bind will be deprecated and we generally discourage its use, 
-   you can safely use it for creating the ``arch``, ``os`` and ``platform`` packages.
+   Even if rez-bind will be deprecated and we generally discourage its use, you can safely use it for creating the ``arch``, ``os`` and ``platform`` packages.
 
 After installation, you need to create some essential Rez packages. The :ref:`rez-bind`
 tool creates Rez packages that reference software already installed on your system.
