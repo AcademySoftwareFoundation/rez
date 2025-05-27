@@ -7,7 +7,8 @@ Essential packages
 
 .. warning::
    :ref:`rez-bind` is going to be deprecated. The current implementation is not actively maintained.
-   However, you can safely use it for creating the essential ``arch``, ``os`` and ``platform`` packages.
+   Even if rez-bind will be deprecated and we generally discourage its use, 
+   you can safely use it for creating the ``arch``, ``os`` and ``platform`` packages.
 
 After installation, you need to create some essential Rez packages. The :ref:`rez-bind`
 tool creates Rez packages that reference software already installed on your system.
@@ -62,7 +63,7 @@ You may also want to bind additional packages for your development environment. 
    ]$ rez-bind pip         # Python package installer
    Binding pip into /home/ajohns/packages...
 
-   Successfully converted the following essential software found on the current system into Rez packages:
+   Successfully converted the following software found on the current system into Rez packages:
 
    PACKAGE     URI
    -------     ---
