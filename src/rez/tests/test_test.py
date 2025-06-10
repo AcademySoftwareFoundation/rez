@@ -308,4 +308,3 @@ class TestTest(TestBase, TempdirMixin):
             "failed",
             "command_as_string_fail did not fail",
         )
-
