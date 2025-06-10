@@ -264,3 +264,48 @@ class TestTest(TestBase, TempdirMixin):
             "failed",
             "move_meeting_to_noon did not fail",
         )
+
+    def test_wildcard_06(self):
+        """
+        package.py unit tests are correctly found with a wildcard which get all test which is not starting by 'c'
+        then run in a testing environment
+        """
+        self.inject_python_repo()
+        context = ResolvedContext(["testing_obj", "python"])
+        # This will get us more code coverage :)
+        self.inject_python_repo()
+        runner = PackageTestRunner(
+            package_request="testing_obj",
+            package_paths=context.package_paths,
+
+        )
+
+        test_names = runner.find_requested_test_names([])
+        self.assertEqual(4, len(test_names))
+
+        for test_name in test_names:
+            runner.run_test(test_name)
+
+        self.assertEqual(runner.test_results.num_tests, 4)
+
+        self.assertEqual(
+            self._get_test_result(runner, "check_car_ideas")["status"],
+            "success",
+            "check_car_ideas did not succeed",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "move_meeting_to_noon")["status"],
+            "failed",
+            "move_meeting_to_noon did not fail",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "command_as_string_success")["status"],
+            "success",
+            "command_as_string_success did not succeed",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "command_as_string_fail")["status"],
+            "failed",
+            "command_as_string_fail did not fail",
+        )
+
