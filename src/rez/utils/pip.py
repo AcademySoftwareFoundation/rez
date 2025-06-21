@@ -5,6 +5,7 @@
 """
 Python packaging related utilities.
 """
+import sys
 import os.path
 from importlib.metadata import Distribution, DistributionFinder
 from email.parser import Parser
@@ -548,7 +549,12 @@ def convert_distlib_to_setuptools(installed_dist):
     )
 
     for setuptools_dist in setuptools_dists:
-        if setuptools_dist.name == safe_name(installed_dist.key):
+        if sys.version_info < (3, 10):
+            name = setuptools_dist.metadata["name"]
+        else:
+            name = setuptools_dist.name
+
+        if name == safe_name(installed_dist.key):
             return setuptools_dist
 
     return None
