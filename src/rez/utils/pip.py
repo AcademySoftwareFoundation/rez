@@ -357,6 +357,7 @@ def is_entry_points_scripts_package(installed_dist):
         for entry_point in setuptools_dist.entry_points:
             if entry_point.group in ["console_scripts", "gui_scripts"]:
                 return True
+        return False
 
     console_scripts = setuptools_dist.entry_points.select(group="console_scripts")
     gui_scripts = setuptools_dist.entry_points.select(group="gui_scripts")
