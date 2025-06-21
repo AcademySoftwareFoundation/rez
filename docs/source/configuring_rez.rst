@@ -11,7 +11,7 @@ Settings are determined in the following way:
 - The setting is then overridden if it is present in another settings file pointed at by the
   :envvar:`REZ_CONFIG_FILE` environment variable. This can also be a path-like variable, to read from
   multiple configuration files;
-- The setting is further overriden if it is present in ``$HOME/.rezconfig``;
+- The setting is further overriden if it is present in ``$HOME/.rezconfig`` or ``$HOME/.rezconfig.py``;
 - The setting is overridden again if the environment variable :envvar:`REZ_XXX` is present, where ``XXX`` is
   the uppercase version of the setting key. For example, :data:`.image_viewer` will be overriden by
   :envvar:`REZ_IMAGE_VIEWER`.
@@ -29,7 +29,7 @@ variable :envvar:`REZ_CONFIG_FILE` is then set to for all your users.
 Supported Configuration File Formats
 ====================================
 
-Rez supports both YAML configuration files and Python configuration files.
+Rez supports both YAML configuration files (``.rezconfig``) and Python configuration files (``.rezconfig.py``).
 
 You may prefer a Python based configuration file if you need to vary your configuration settings based on your
 current platform.
