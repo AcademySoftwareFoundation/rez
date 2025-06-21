@@ -1206,6 +1206,11 @@ class FileSystemPackageRepository(PackageRepository):
         family = self.get_package_family(variant_name)
         if not family:
             family = self._create_family(variant_name)
+            if not family:
+                raise PackageRepositoryError(
+                    f'Package family: {variant_name} does not exist and could not be created '
+                    f'in repository: {self.location}. Perhaps family already exists with different character case?'
+                )
 
         if isinstance(family, FileSystemCombinedPackageFamilyResource):
             raise NotImplementedError(

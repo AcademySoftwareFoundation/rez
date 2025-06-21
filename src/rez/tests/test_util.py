@@ -6,13 +6,22 @@
 unit tests for 'util' module
 """
 import os
-import tempfile
 import sys
-from rez.tests.util import TestBase
+from rez.tests.util import TestBase, TempdirMixin
 from rez.util import load_module_from_file
 
 
-class TestLoadModuleFromFile(TestBase):
+class TestLoadModuleFromFile(TestBase, TempdirMixin):
+    @classmethod
+    def setUpClass(cls):
+        TempdirMixin.setUpClass()
+
+        cls.settings = dict()
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
+
     def test_load_module(self):
         """Ensure that the imported module does not show up in sys.modules"""
         # Random chars are used in the module name to ensure that the module name is unique
@@ -21,10 +30,9 @@ class TestLoadModuleFromFile(TestBase):
         module = 'utils_test_7cd3a335'
 
         filename = '{0}.py'.format(module)
-        tmpdir = tempfile.mkdtemp(prefix="rez_selftest_")
 
-        with open(os.path.join(tmpdir, filename), 'w') as fd:
+        with open(os.path.join(self.root, filename), 'w') as fd:
             fd.write('')
 
-        load_module_from_file(module, os.path.join(tmpdir, filename))
+        load_module_from_file(module, os.path.join(self.root, filename))
         self.assertEqual(sys.modules.get(module), None, msg='Module was found in sys.modules')
