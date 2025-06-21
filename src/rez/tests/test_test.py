@@ -265,10 +265,9 @@ class TestTest(TestBase, TempdirMixin):
             "move_meeting_to_noon did not fail",
         )
 
-    def test_wildcard_06(self):
+    def test_empty_test_list(self):
         """
-        package.py unit tests are correctly found with a wildcard which get all test which is not starting by 'c'
-        then run in a testing environment
+        package.py unit tests are correctly found when no test name is provided (empty list)
         """
         self.inject_python_repo()
         context = ResolvedContext(["testing_obj", "python"])
