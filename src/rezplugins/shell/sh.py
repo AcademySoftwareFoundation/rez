@@ -5,6 +5,8 @@
 """
 SH shell
 """
+from __future__ import annotations
+
 import os
 import os.path
 import subprocess
@@ -15,6 +17,8 @@ from rez.shells import UnixShell
 from rez.rex import EscapedString
 from shlex import quote
 
+from typing import Literal
+
 
 class SH(UnixShell):
     norc_arg = '--noprofile'
@@ -22,11 +26,11 @@ class SH(UnixShell):
     histvar = "HISTFILE"
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'sh'
 
     @classmethod
-    def file_extension(cls):
+    def file_extension(cls) -> str:
         return 'sh'
 
     @classmethod
@@ -58,8 +62,13 @@ class SH(UnixShell):
         return cls.syspaths
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(
+        cls,
+        rcfile: str | None | Literal[False] = False,
+        norc: bool = False,
+        stdin: bool = False,
+        command: bool = False
+    ) -> tuple[str | None | Literal[False], bool, bool, bool]:
         cls._unsupported_option('rcfile', rcfile)
         rcfile = False
         if command is not None:
@@ -68,7 +77,7 @@ class SH(UnixShell):
         return (rcfile, norc, stdin, command)
 
     @classmethod
-    def get_startup_sequence(cls, rcfile, norc, stdin, command):
+    def get_startup_sequence(cls, rcfile: str | None, norc: bool, stdin: bool, command):
         _, norc, stdin, command = \
             cls.startup_capabilities(rcfile, norc, stdin, command)
 
@@ -94,7 +103,7 @@ class SH(UnixShell):
             bind_files=[],
             source_bind_files=False)
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         if config.set_prompt and self.settings.prompt:
             self._addline(r'if [ -z "$REZ_STORED_PROMPT_SH" ]; then export REZ_STORED_PROMPT_SH="$PS1"; fi')
             if config.prefix_prompt:
@@ -103,23 +112,23 @@ class SH(UnixShell):
                 cmd = 'export PS1="$REZ_STORED_PROMPT_SH %s"'
             self._addline(cmd % r"\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
-    def setenv(self, key, value):
+    def setenv(self, key: str, value: str | EscapedString) -> None:
         value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('export %s=%s' % (key, value))
 
-    def unsetenv(self, key):
+    def unsetenv(self, key: str) -> None:
         self._addline("unset %s" % key)
 
-    def alias(self, key, value):
+    def alias(self, key, value) -> None:
         value = EscapedString.disallow(value)
         cmd = '{key}() {{ {value} "$@"; }};'
         self._addline(cmd.format(key=key, value=value))
 
-    def source(self, value):
+    def source(self, value) -> None:
         value = self.escape_string(value)
         self._addline('. %s' % value)
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value: str | EscapedString, is_path: bool = False) -> str:
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -139,7 +148,7 @@ class SH(UnixShell):
             result += txt
         return result
 
-    def _saferefenv(self, key):
+    def _saferefenv(self, key) -> None:
         pass
 
 

@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import sys
 
@@ -9,7 +11,7 @@ import sys
 _default_pathext = '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC'
 
 
-def which(cmd, mode=os.F_OK | os.X_OK, path=None, env=None):
+def which(cmd: str, mode=os.F_OK | os.X_OK, path: str | None = None, env=None) -> str | None:
     """A replacement for shutil.which.
 
     Things we do that shutil.which does not:

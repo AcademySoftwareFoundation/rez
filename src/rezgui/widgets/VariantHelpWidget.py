@@ -15,7 +15,7 @@ class HelpEntryWidget(QtWidgets.QWidget):
 
     clicked = QtCore.Signal()
 
-    def __init__(self, help_, index, parent=None):
+    def __init__(self, help_, index, parent=None) -> None:
         super(HelpEntryWidget, self).__init__(parent)
         self.help_ = help_
         self.index = index
@@ -28,7 +28,7 @@ class HelpEntryWidget(QtWidgets.QWidget):
         create_pane([icon, label_widget, None], True, compact=True,
                     parent_widget=self)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         super(HelpEntryWidget, self).mouseReleaseEvent(event)
         self.clicked.emit()
         if event.button() == QtCore.Qt.LeftButton:
@@ -36,7 +36,7 @@ class HelpEntryWidget(QtWidgets.QWidget):
 
 
 class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(VariantHelpWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
         self.variant = None
@@ -58,7 +58,7 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
         self.set_loader_swap_delay(300)
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         self.no_help_label.hide()
         self.tab.hide()
         self.table_1.setRowCount(0)
@@ -68,7 +68,7 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
         self.tab.setTabEnabled(0, False)
         self.tab.setTabEnabled(1, False)
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         self.clear()
         self.variant = variant
         if self.variant is None:
@@ -82,7 +82,7 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
                            callback=self._load_packages_callback,
                            package_attributes=("help",))
 
-    def set_packages(self, packages):
+    def set_packages(self, packages) -> None:
         package_paths = self.context_model.packages_path
 
         self.help_1 = PackageHelp(self.variant.name, paths=package_paths)
@@ -121,7 +121,7 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
         vh.setVisible(False)
         return table
 
-    def _apply_help(self, help_, tab_index):
+    def _apply_help(self, help_, tab_index) -> None:
         table = self.table_2 if tab_index else self.table_1
         table.clear()
         sections = help_.sections
@@ -132,10 +132,10 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
             widget.clicked.connect(partial(self._helpClicked, tab_index))
             table.setCellWidget(row, 0, widget)
 
-    def _helpClicked(self, tab_index):
+    def _helpClicked(self, tab_index) -> None:
         table = self.table_2 if tab_index else self.table_1
         table.clearSelection()
 
     @classmethod
-    def _load_packages_callback(cls, package):
+    def _load_packages_callback(cls, package) -> bool:
         return (not package.help)

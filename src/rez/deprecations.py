@@ -2,10 +2,12 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import warnings
 
 
-def warn(message, category, pre_formatted=False, stacklevel=1, filename=None, **kwargs):
+def warn(message, category, pre_formatted: bool = False, stacklevel: int = 1, filename=None, **kwargs) -> None:
     """
     Wrapper around warnings.warn that allows to pass a pre-formatter
     warning message. This allows to warn about things that aren't coming
@@ -20,7 +22,7 @@ def warn(message, category, pre_formatted=False, stacklevel=1, filename=None, **
     original_formatwarning = warnings.formatwarning
     if pre_formatted:
 
-        def formatwarning(_, category, *args, **kwargs):
+        def formatwarning(_, category, *args, **kwargs) -> str:
             return "{0}{1}: {2}\n".format(
                 "{0}: ".format(filename) if filename else "", category.__name__, message
             )

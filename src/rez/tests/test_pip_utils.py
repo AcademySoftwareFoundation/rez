@@ -23,17 +23,17 @@ class TestPipUtils(TestBase):
     """
     """
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.settings = {}
         cls.dist_path = cls.data_path("pip", "installed_distributions")
 
-    def test_pip_to_rez_package_name(self):
+    def test_pip_to_rez_package_name(self) -> None:
         """
         """
         self.assertEqual(rez.utils.pip.pip_to_rez_package_name("asd"), "asd")
         self.assertEqual(rez.utils.pip.pip_to_rez_package_name("package-name"), "package_name")
 
-    def test_pip_to_rez_version(self):
+    def test_pip_to_rez_version(self) -> None:
         """
         """
         self.assertEqual(rez.utils.pip.pip_to_rez_version("1.0.0"), "1.0.0")
@@ -45,17 +45,17 @@ class TestPipUtils(TestBase):
         self.assertEqual(rez.utils.pip.pip_to_rez_version("1!2.3.4"), "2.3.4")
         self.assertEqual(rez.utils.pip.pip_to_rez_version("2.0b1pl0"), "2.0b1pl0")
 
-    def test_pip_to_rez_version_raises(self):
+    def test_pip_to_rez_version_raises(self) -> None:
         with self.assertRaises(rez.vendor.packaging.version.InvalidVersion):
             self.assertEqual(
                 rez.utils.pip.pip_to_rez_version("2.0b1pl0", allow_legacy=False),
                 "2.0b1pl0"
             )
 
-    def test_pip_specifier_to_rez_requirement(self):
+    def test_pip_specifier_to_rez_requirement(self) -> None:
         """
         """
-        def assertPipRezEquivalent(pip_spec_str, rez_req_str):
+        def assertPipRezEquivalent(pip_spec_str, rez_req_str) -> None:
             pip_spec = SpecifierSet(pip_spec_str)
             self.assertEqual(
                 rez.utils.pip.pip_specifier_to_rez_requirement(pip_spec),
@@ -119,13 +119,13 @@ class TestPipUtils(TestBase):
             "2.6+<3.0|3.3+<4"
         )
 
-    def test_pip_specifier_to_rez_requirement_raises(self):
+    def test_pip_specifier_to_rez_requirement_raises(self) -> None:
         """
         """
         with self.assertRaises(PackageRequestError):
             rez.utils.pip.pip_specifier_to_rez_requirement(SpecifierSet("<2,>3"))
 
-    def test_packaging_req_to_rez_req(self):
+    def test_packaging_req_to_rez_req(self) -> None:
         """
         """
         self.assertEqual(
@@ -141,7 +141,7 @@ class TestPipUtils(TestBase):
             Requirement("package")
         )
 
-    def test_is_pure_python_package(self):
+    def test_is_pure_python_package(self) -> None:
         """
         """
         dpath = rez.vendor.distlib.database.DistributionPath([self.dist_path])
@@ -149,14 +149,14 @@ class TestPipUtils(TestBase):
 
         self.assertTrue(rez.utils.pip.is_pure_python_package(dist))
 
-    def test_is_entry_points_scripts_package(self):
+    def test_is_entry_points_scripts_package(self) -> None:
         """
         """
         dpath = rez.vendor.distlib.database.DistributionPath([self.dist_path])
         dist = list(dpath.get_distributions())[0]
         self.assertFalse(rez.utils.pip.is_entry_points_scripts_package(dist))
 
-    def test_convert_distlib_to_setuptools_wrong(self):
+    def test_convert_distlib_to_setuptools_wrong(self) -> None:
         """
         """
         dpath = rez.vendor.distlib.database.DistributionPath([self.dist_path])
@@ -165,10 +165,10 @@ class TestPipUtils(TestBase):
 
         self.assertEqual(rez.utils.pip.convert_distlib_to_setuptools(dist), None)
 
-    def test_get_marker_sys_requirements(self):
+    def test_get_marker_sys_requirements(self) -> None:
         """
         """
-        def assertSysRequirements(req_str, sys_reqs):
+        def assertSysRequirements(req_str, sys_reqs) -> None:
             self.assertEqual(
                 rez.utils.pip.get_marker_sys_requirements(req_str),
                 sys_reqs
@@ -243,10 +243,10 @@ class TestPipUtils(TestBase):
             ["python"]
         )
 
-    def test_normalize_requirement(self):
+    def test_normalize_requirement(self) -> None:
         """
         """
-        def assertRequirements(requirement, expected, conditional_extras):
+        def assertRequirements(requirement, expected, conditional_extras) -> None:
             """
             """
             result = rez.utils.pip.normalize_requirement(requirement)

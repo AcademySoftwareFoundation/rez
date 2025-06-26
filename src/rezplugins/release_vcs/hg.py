@@ -17,10 +17,10 @@ class HgReleaseVCSError(ReleaseVCSError):
 
 class HgReleaseVCS(ReleaseVCS):
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'hg'
 
-    def __init__(self, pkg_root, vcs_root=None):
+    def __init__(self, pkg_root, vcs_root=None) -> None:
         super(HgReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
         self.executable = self.find_executable('hg')
 
@@ -45,7 +45,7 @@ class HgReleaseVCS(ReleaseVCS):
         return os.path.isdir(os.path.join(path, '.hg'))
 
     @classmethod
-    def search_parents_for_root(cls):
+    def search_parents_for_root(cls) -> bool:
         return True
 
     def hg(self, *nargs, **kwargs):
@@ -87,8 +87,8 @@ class HgReleaseVCS(ReleaseVCS):
                 results.append({'type': 'tag', 'patch': False})
         return results
 
-    def _create_tag_lowlevel(self, tag_name, message=None, force=True,
-                             patch=False):
+    def _create_tag_lowlevel(self, tag_name, message=None, force: bool = True,
+                             patch: bool = False) -> bool:
         """Create a tag on the toplevel or patch repo
 
         If the tag exists, and force is False, no tag is made. If force is True,
@@ -142,7 +142,7 @@ class HgReleaseVCS(ReleaseVCS):
         self.hg(patch=patch, *tag_args)
         return True
 
-    def get_tags(self, patch=False):
+    def get_tags(self, patch: bool = False):
         lines = self.hg('tags', patch=patch)
 
         # results will look like:
@@ -158,11 +158,11 @@ class HgReleaseVCS(ReleaseVCS):
             tags[tag_name] = {'rev': rev, 'shortnode': shortnode}
         return tags
 
-    def tag_exists(self, tag_name):
+    def tag_exists(self, tag_name) -> bool:
         tags = self.get_tags()
         return (tag_name in tags.keys())
 
-    def is_ancestor(self, commit1, commit2, patch=False):
+    def is_ancestor(self, commit1, commit2, patch: bool = False) -> bool:
         """Returns True if commit1 is a direct ancestor of commit2, or False
         otherwise.
 
@@ -171,14 +171,14 @@ class HgReleaseVCS(ReleaseVCS):
                          "--template", "exists", patch=patch)
         return "exists" in result
 
-    def get_paths(self, patch=False):
+    def get_paths(self, patch: bool = False):
         paths = self.hg("paths", patch=patch)
         return dict(line.split(' = ', 1) for line in paths if line)
 
-    def get_default_url(self, patch=False):
+    def get_default_url(self, patch: bool = False):
         return self.get_paths(patch=patch).get('default')
 
-    def validate_repostate(self):
+    def validate_repostate(self) -> None:
         def _check(modified, path):
             if modified:
                 modified = [line.split()[-1] for line in modified]
@@ -196,7 +196,7 @@ class HgReleaseVCS(ReleaseVCS):
             'branch': self.hg("branch")[0],
         }
 
-        def _get(key, fn):
+        def _get(key, fn) -> bool:
             try:
                 value = fn()
                 doc[key] = value

@@ -12,7 +12,7 @@ from rez.tests.util import TestBase
 
 
 class TestPackageBind(TestBase):
-    def test_get_bind_modules(self):
+    def test_get_bind_modules(self) -> None:
         """Test get_bind_modules returns the expected modules"""
         self.assertEqual(
             sorted(package_bind.get_bind_modules().keys()),
@@ -34,7 +34,7 @@ class TestPackageBind(TestBase):
             ]
         )
 
-    def test_os_module_override(self):
+    def test_os_module_override(self) -> None:
         """Test that bind_module_path can override built-in bind modules"""
         self.update_settings({
             "bind_module_path": [self.data_path("bind")]

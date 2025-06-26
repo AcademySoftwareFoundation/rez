@@ -16,7 +16,7 @@ class TestPackageFilter(TestBase):
     """Tests package filtering.
     """
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.py_packages_path = cls.data_path("packages", "py_packages")
         cls.solver_packages_path = cls.data_path("solver", "packages")
 
@@ -27,7 +27,7 @@ class TestPackageFilter(TestBase):
             ],
             package_filter=None)
 
-    def _test(self, fltr, pkg_family, expected_result):
+    def _test(self, fltr, pkg_family, expected_result) -> None:
 
         # convert from json if required
         if isinstance(fltr, dict):
@@ -35,7 +35,7 @@ class TestPackageFilter(TestBase):
         elif isinstance(fltr, list):
             fltr = PackageFilterList.from_pod(fltr)
 
-        def filter_versions(fltr_):
+        def filter_versions(fltr_) -> None:
             matching_versions = set()
 
             for pkg in iter_packages(pkg_family):
@@ -52,7 +52,7 @@ class TestPackageFilter(TestBase):
         fltr2 = fltr.from_pod(data)
         filter_versions(fltr2)
 
-    def test_empty_filter(self):
+    def test_empty_filter(self) -> None:
         """Test that empty filter has no effect
         """
         fltr = PackageFilter()
@@ -62,7 +62,7 @@ class TestPackageFilter(TestBase):
             ["1", "2", "3"]
         )
 
-    def test_empty_filter_list(self):
+    def test_empty_filter_list(self) -> None:
         """Test that empty filter list has no effect
         """
         fltr = PackageFilterList()
@@ -72,7 +72,7 @@ class TestPackageFilter(TestBase):
             ["1", "2", "3"]
         )
 
-    def test_glob_filter(self):
+    def test_glob_filter(self) -> None:
         """Test the glob filter.
         """
         fltr = PackageFilter()
@@ -91,7 +91,7 @@ class TestPackageFilter(TestBase):
             ]
         )
 
-    def test_regex_filter(self):
+    def test_regex_filter(self) -> None:
         """Test the regex filter.
         """
         fltr = PackageFilter()
@@ -109,7 +109,7 @@ class TestPackageFilter(TestBase):
             ]
         )
 
-    def test_range_filter(self):
+    def test_range_filter(self) -> None:
         """Test the range filter.
         """
         fltr = PackageFilter()
@@ -124,7 +124,7 @@ class TestPackageFilter(TestBase):
             ]
         )
 
-    def test_timestamp_filter(self):
+    def test_timestamp_filter(self) -> None:
         """Test the timestamp filter.
         """
         fltr = PackageFilter()
@@ -139,7 +139,7 @@ class TestPackageFilter(TestBase):
             ]
         )
 
-    def test_otherfam_filter(self):
+    def test_otherfam_filter(self) -> None:
         """Test that a filter on a different fam has no effect
         """
         fltr = PackageFilter()
@@ -151,7 +151,7 @@ class TestPackageFilter(TestBase):
             ["1", "2", "3"]
         )
 
-    def test_excl_and_incl(self):
+    def test_excl_and_incl(self) -> None:
         """Test that combo of exclusion and inclusion works as expected
         """
         self._test(
@@ -172,7 +172,7 @@ class TestPackageFilter(TestBase):
             ]
         )
 
-    def test_filter_list(self):
+    def test_filter_list(self) -> None:
         """Test that logic wrt list of filters works as expected
         """
 

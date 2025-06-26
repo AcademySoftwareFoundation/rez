@@ -9,7 +9,7 @@ from rez.util import find_last_sublist
 
 
 class VariantSummaryWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(VariantSummaryWidget, self).__init__(parent)
         self.variant = None
 
@@ -33,7 +33,7 @@ class VariantSummaryWidget(QtWidgets.QWidget):
 
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         self.label.setText("no package selected")
         self.table.clear()
         self.table.setRowCount(0)
@@ -41,7 +41,7 @@ class VariantSummaryWidget(QtWidgets.QWidget):
         vh.setVisible(False)
         self.setEnabled(False)
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         if variant == self.variant:
             return
 

@@ -5,11 +5,13 @@
 """
 Search for packages
 """
+from __future__ import annotations
+
 import os
 import sys
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     from rez.package_search import ResourceSearchResultFormatter
 
     type_choices = ("package", "family", "variant", "auto")
@@ -64,7 +66,7 @@ def setup_parser(parser, completions=False):
         PKG_action.completer = PackageCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.package_search import ResourceSearcher, ResourceSearchResultFormatter
     from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config

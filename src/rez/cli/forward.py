@@ -3,12 +3,14 @@
 
 
 """See util.create_forwarding_script()."""
+from __future__ import annotations
+
 import argparse
 
 __doc__ = argparse.SUPPRESS
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument("YAML", type=str)
     parser.add_argument("ARG", type=str, nargs=argparse.REMAINDER)
 

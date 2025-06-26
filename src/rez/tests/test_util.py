@@ -22,7 +22,7 @@ class TestLoadModuleFromFile(TestBase, TempdirMixin):
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
 
-    def test_load_module(self):
+    def test_load_module(self) -> None:
         """Ensure that the imported module does not show up in sys.modules"""
         # Random chars are used in the module name to ensure that the module name is unique
         # and the test won't fail because some other module with the same name

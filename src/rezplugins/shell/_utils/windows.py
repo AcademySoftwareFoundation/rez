@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import re
 
@@ -10,7 +12,7 @@ _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _env_var_regex = re.compile(r"%([^%]*)%")
 
 
-def to_posix_path(path):
+def to_posix_path(path: str) -> str:
     """Convert (eg) "C:\foo" to "/c/foo"
 
     TODO: doesn't take into account escaped bask slashes, which would be
@@ -33,7 +35,7 @@ def to_posix_path(path):
     return path
 
 
-def to_windows_path(path):
+def to_windows_path(path: str) -> str:
     """Convert (eg) "C:\foo/bin" to "C:\foo\bin"
 
     The mixed syntax results from strings in package commands such as
@@ -45,26 +47,28 @@ def to_windows_path(path):
     return path.replace('/', '\\')
 
 
-def get_syspaths_from_registry():
+def get_syspaths_from_registry() -> list[str]:
     # Local import to avoid import errors on non-windows systems.
+    import sys
     import winreg
 
     paths = []
 
-    path_query_keys = (
-        (winreg.HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment'),
-        (winreg.HKEY_CURRENT_USER, 'Environment')
-    )
+    if sys.platform == "win32":
+        path_query_keys = (
+            (winreg.HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment'),
+            (winreg.HKEY_CURRENT_USER, 'Environment'),
+        )
 
-    for root_key, sub_key in path_query_keys:
-        try:
-            with winreg.OpenKey(root_key, sub_key) as key:
-                reg_value, _ = winreg.QueryValueEx(key, 'Path')
-        except OSError:
-            # Key does not exist
-            pass
-        else:
-            expanded_value = winreg.ExpandEnvironmentStrings(reg_value)
-            paths.extend(expanded_value.split(os.pathsep))
+        for root_key, sub_key in path_query_keys:
+            try:
+                with winreg.OpenKey(root_key, sub_key) as key:
+                    reg_value, _ = winreg.QueryValueEx(key, 'Path')
+            except OSError:
+                # Key does not exist
+                pass
+            else:
+                expanded_value = winreg.ExpandEnvironmentStrings(reg_value)
+                paths.extend(expanded_value.split(os.pathsep))
 
     return [x for x in paths if x]

@@ -17,7 +17,7 @@ from functools import partial
 # TODO deal with variant missing from disk
 class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
     def __init__(self, context_model, variant, reference_variant=None,
-                 hide_locks=False, read_only=False, parent=None):
+                 hide_locks: bool = False, read_only: bool = False, parent=None) -> None:
         super(VariantCellWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -45,7 +45,7 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
     def text(self):
         return self.variant.qualified_package_name
 
-    def contextMenuEvent(self, event):
+    def contextMenuEvent(self, event) -> None:
         if self.read_only or self.hide_locks:
             return
 
@@ -80,10 +80,10 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
         menu.exec_(self.mapToGlobal(event.pos()))
         menu.setParent(None)
 
-    def refresh(self):
+    def refresh(self) -> None:
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
-    def set_reference_sibling(self, variant=None):
+    def set_reference_sibling(self, variant=None) -> None:
         if variant is None or self.variant.name == variant.name:
             access = 0
         else:
@@ -100,7 +100,7 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
             self.depends_icon.setToolTip(desc % (self.variant.name, variant.name))
             self.depends_icon.setEnabled(enable)
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         self._set_stale(self.context_model.is_stale())
 
         if flags & (ContextModel.PACKAGES_PATH_CHANGED |
@@ -276,18 +276,18 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
             else self.variant.version
         return get_lock_request(self.variant.name, version, lock_type, weak=False)
 
-    def _set_lock_type(self, lock_type):
+    def _set_lock_type(self, lock_type) -> None:
         self.context_model.set_patch_lock(self.variant.name, lock_type)
 
-    def _remove_lock(self):
+    def _remove_lock(self) -> None:
         self.context_model.remove_patch_lock(self.variant.name)
 
-    def _set_stale(self, b=True):
+    def _set_stale(self, b: bool = True) -> None:
         if b != self.stale:
             update_font(self.label, italic=b)
             self.stale = b
 
-    def _set_icons(self, icons):
+    def _set_icons(self, icons) -> None:
         current_icons = [tuple(x[1:]) for x in self.icons]
         if icons == current_icons:
             return
@@ -304,7 +304,7 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
             layout.addWidget(widget)
             self.icons.append((widget, name, tooltip))
 
-    def _set_lock_icon(self, name, tooltip):
+    def _set_lock_icon(self, name, tooltip) -> None:
         layout = self.layout()
         if self.lock_icon:
             widget_, name_, tooltip_ = self.lock_icon

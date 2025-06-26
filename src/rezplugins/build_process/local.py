@@ -5,6 +5,8 @@
 """
 Builds packages on local host
 """
+from __future__ import annotations
+
 from rez.config import config
 from rez.package_repository import package_repository_manager
 from rez.build_process import BuildProcessHelper, BuildType
@@ -21,10 +23,23 @@ from rez.utils.filesystem import TempDirs
 from rez.package_test import PackageTestRunner, PackageTestResults
 
 from hashlib import sha1
+from typing import cast, TYPE_CHECKING
 import json
 import shutil
 import os
 import os.path
+
+if TYPE_CHECKING:
+    from rez.packages import Variant
+    from rez.build_system import BuildResult
+
+    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
+    class LocalBuildResult(BuildResult, total=False):
+        package_install_path: str
+        variant_install_path: str
+
+else:
+    LocalBuildResult = dict
 
 
 class LocalBuildProcess(BuildProcessHelper):
@@ -37,15 +52,19 @@ class LocalBuildProcess(BuildProcessHelper):
     tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_testing_repo_")
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "local"
 
-    def __init__(self, *nargs, **kwargs):
+    def __init__(self, *nargs, **kwargs) -> None:
         super(LocalBuildProcess, self).__init__(*nargs, **kwargs)
         self.ran_test_names = set()
         self.all_test_results = PackageTestResults()
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self,
+              install_path: str | None = None,
+              clean: bool = False,
+              install: bool = False,
+              variants: list[int] | None = None) -> int:
         self._print_header("Building %s..." % self.package.qualified_name)
 
         # build variants
@@ -71,7 +90,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return num_visited
 
-    def release(self, release_message=None, variants=None):
+    def release(self, release_message=None, variants: list[int] | None = None):
         self._print_header("Releasing %s..." % self.package.qualified_name)
 
         # test that we're in a state to release
@@ -130,8 +149,13 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return num_released
 
-    def _build_variant_base(self, variant, build_type, install_path=None,
-                            clean=False, install=False, **kwargs):
+    def _build_variant_base(self,
+                            variant: Variant,
+                            build_type,
+                            install_path: str | None = None,
+                            clean: bool = False,
+                            install: bool = False,
+                            **kwargs) -> LocalBuildResult:
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
         package_install_path = self.get_package_install_path(install_path)
@@ -244,13 +268,13 @@ class LocalBuildProcess(BuildProcessHelper):
             build_system_name = self.build_system.name()
             self._print("\nInvoking %s build system...", build_system_name)
 
-            build_result = self.build_system.build(
+            build_result = cast(LocalBuildResult, self.build_system.build(
                 context=context,
                 variant=variant,
                 build_path=variant_build_path,
                 install_path=variant_install_path,
                 install=install,
-                build_type=build_type)
+                build_type=build_type))
 
             if not build_result.get("success"):
                 # delete the possibly partially installed variant payload
@@ -283,7 +307,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
             return build_result
 
-    def _install_include_modules(self, install_path):
+    def _install_include_modules(self, install_path: str) -> None:
         # install 'include' sourcefiles, used by funcs decorated with @include
         if not self.package.includes:
             return
@@ -310,14 +334,18 @@ class LocalBuildProcess(BuildProcessHelper):
             with open(sha1_filepath, "w") as f:  # overwrite if exists
                 f.write(uuid)
 
-    def _rmtree(self, path):
+    def _rmtree(self, path) -> None:
         try:
             forceful_rmtree(path)
         except Exception as e:
             print_warning("Failed to delete %s - %s", path, e)
 
-    def _build_variant(self, variant, install_path=None, clean=False,
-                       install=False, **kwargs):
+    def _build_variant(self,
+                       variant: Variant,
+                       install_path: str | None = None,
+                       clean: bool = False,
+                       install: bool = False,
+                       **kwargs) -> str | None:
         if variant.index is not None:
             self._print_header(
                 "Building variant %s (%s)..."
@@ -326,7 +354,7 @@ class LocalBuildProcess(BuildProcessHelper):
         # build and possibly install variant (ie the payload, not package.py)
         install_path = install_path or self.package.config.local_packages_path
 
-        def cancel_variant_install():
+        def cancel_variant_install() -> None:
             if install:
                 pkg_repo = package_repository_manager.get_repository(install_path)
                 pkg_repo.on_variant_install_cancelled(variant.resource)
@@ -366,7 +394,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return build_result.get("build_env_script")
 
-    def _release_variant(self, variant, release_message=None, **kwargs):
+    def _release_variant(self, variant: Variant, release_message=None, **kwargs):
         release_path = self.package.config.release_packages_path
 
         # test if variant has already been released
@@ -378,7 +406,7 @@ class LocalBuildProcess(BuildProcessHelper):
             )
             return None
 
-        def cancel_variant_install():
+        def cancel_variant_install() -> None:
             pkg_repo = package_repository_manager.get_repository(release_path)
             pkg_repo.on_variant_install_cancelled(variant.resource)
 

@@ -73,10 +73,12 @@ setup(
         'rez':
             ['utils/logging.conf'] +
             ['README*'] +
+            ["py.typed"] +
             find_files('*', 'completion') +
             find_files('*', 'data') +
             find_files('*.exe', 'vendor/distlib'),
         'rezplugins':
+            ["py.typed"] +
             find_files('*.cmake', 'build_system', root='rezplugins') +
             find_files('*', 'build_system/template_files', root='rezplugins'),
         'rezgui':

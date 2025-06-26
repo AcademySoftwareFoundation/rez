@@ -9,7 +9,7 @@ from rezgui.objects.App import app
 
 
 class VariantVersionsDialog(QtWidgets.QDialog, StoreSizeMixin):
-    def __init__(self, context_model, variant, reference_variant=None, parent=None):
+    def __init__(self, context_model, variant, reference_variant=None, parent=None) -> None:
         config_key = "layout/window/package_versions"
         super(VariantVersionsDialog, self).__init__(parent)
         StoreSizeMixin.__init__(self, app.config, config_key)

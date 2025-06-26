@@ -8,7 +8,7 @@ from Qt import QtCore, QtWidgets
 class StoreSizeMixin(object):
     """A mixing for persisting a top-level widget's dimensions.
     """
-    def __init__(self, config, config_key):
+    def __init__(self, config, config_key) -> None:
         assert isinstance(self, QtWidgets.QWidget)
         self.config = config
         self.config_key = config_key
@@ -18,7 +18,7 @@ class StoreSizeMixin(object):
         height = self.config.get(self.config_key + "/height")
         return QtCore.QSize(width, height)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         size = self.size()
         self.config.setValue(self.config_key + "/width", size.width())
         self.config.setValue(self.config_key + "/height", size.height())
