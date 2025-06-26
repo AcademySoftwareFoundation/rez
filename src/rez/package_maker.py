@@ -136,6 +136,7 @@ class PackageMaker(AttrDictWrapper):
 
         # retrieve the package from the new repository
         family_resource = repo.get_package_family(self.name)
+        assert family_resource is not None
         it = repo.iter_packages(family_resource)
         package_resource = next(it)
 

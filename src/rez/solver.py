@@ -86,9 +86,6 @@ class SolverStatus(Enum):
     cyclic = ("The solve contains a cycle.", )
     unsolved = ("The solve has started, but is not yet solved.", )
 
-    def __init__(self, description):
-        self.description = description
-
 
 class SolverCallbackReturn(Enum):
     """Enum returned by the `callback` callable passed to a `Solver` instance.
@@ -192,6 +189,9 @@ class Reduction(_Common):
         return [req, self.dependency, self.conflicting_request]
 
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Reduction):
+            return NotImplemented
+
         return (self.name == other.name
                 and self.version == other.version
                 and self.variant_index == other.variant_index
@@ -216,6 +216,9 @@ class DependencyConflict(_Common):
         self.conflicting_request = conflicting_request
 
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DependencyConflict):
+            return NotImplemented
+
         return (self.dependency == other.dependency) \
             and (self.conflicting_request == other.conflicting_request)
 
@@ -611,11 +614,13 @@ class _PackageVariantSlice(_Common):
     @property
     def fam_requires(self) -> set[str]:
         self._update_fam_info()
+        assert self._fam_requires is not None
         return self._fam_requires
 
     @property
-    def common_fams(self):
+    def common_fams(self) -> set[str]:
         self._update_fam_info()
+        assert self._common_fams is not None
         return self._common_fams
 
     @property
@@ -758,6 +763,7 @@ class _PackageVariantSlice(_Common):
 
         for variant in self.iter_variants():
             req = variant.get(fam)
+            assert req is not None
             if req.range != last_range:  # will match often, avoids set search
                 ranges.add(req.range)
                 last_range = req.range
@@ -836,6 +842,7 @@ class _PackageVariantSlice(_Common):
             for j, variant in enumerate(entry.variants):
                 fams = fams & variant.request_fams
                 if not fams:
+                    assert prev is not None
                     return _split(*prev)
 
                 prev = (i, j + 1, fams)
@@ -1051,6 +1058,8 @@ class _PackageScope(_Common):
                     new_slice = self.solver._get_variant_slice(
                         self.package_name, new_range)
         else:
+            assert self.variant_slice is not None, \
+                "variant_slice should always exist for non-conflicted non-ephemeral requests"
             new_slice = self.variant_slice.intersect(range_)
 
         # intersection reduced the scope to nothing
@@ -1127,6 +1136,9 @@ class _PackageScope(_Common):
         if self.is_conflict or self.is_ephemeral:
             return (self, None)
 
+        assert self.variant_slice is not None, \
+            "variant_slice should always exist for non-conflicted non-ephemeral requests"
+
         new_slice, package_request = self.variant_slice.extract()
         if not package_request:
             return (self, None)
@@ -1149,8 +1161,13 @@ class _PackageScope(_Common):
         if (
             self.is_conflict
             or self.is_ephemeral
-            or len(self.variant_slice) == 1
         ):
+            return None
+
+        assert self.variant_slice is not None, \
+            "variant_slice should always exist for non-conflicted non-ephemeral requests"
+
+        if len(self.variant_slice) == 1:
             return None
 
         r = self.variant_slice.split()
@@ -1173,7 +1190,8 @@ class _PackageScope(_Common):
             self.is_conflict
             or self.is_ephemeral
             or (
-                len(self.variant_slice) == 1
+                self.variant_slice is not None  # should never be None here
+                and len(self.variant_slice) == 1
                 and not self.variant_slice.extractable
             )
         )
@@ -1498,6 +1516,8 @@ class _ResolvePhase(_Common):
         """
         assert self._is_solved()
         g = self._get_minimal_graph()
+        assert g is not None, "graph should always be present when solved"
+
         scopes = dict((x.package_name, x) for x in self.scopes
                       if not x.is_conflict)
 
@@ -1508,6 +1528,7 @@ class _ResolvePhase(_Common):
             for fam in fam_cycle:
                 scope = scopes[fam]
                 variant = scope._get_solved_variant()
+                assert variant is not None, "variant should not be None when scope is solved"
                 stmt = VersionedObject.construct(fam, variant.version)
                 cycle.append(stmt)
 
@@ -1751,6 +1772,7 @@ class _ResolvePhase(_Common):
                 reqlist = RequirementList(requests)
                 if not reqlist.conflict:
                     merged_request = reqlist.get(fam)
+                    assert merged_request is not None
                     for request in requests:
                         if merged_request != request:
                             id1 = _add_request_node(request)
@@ -2293,6 +2315,7 @@ class Solver(_Common):
         st = self.status
         if st in (SolverStatus.solved, SolverStatus.unsolved):
             phase = self._latest_nonfailed_phase()
+            assert phase is not None, "Should only be None if status is failed"
             return phase.get_graph()
         else:
             return self.get_fail_graph()

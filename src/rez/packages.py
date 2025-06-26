@@ -937,7 +937,23 @@ def get_completions(prefix: str, paths: list[str] | None = None, family_only: bo
     return words
 
 
-def get_latest_package(name, range_=None, paths=None, error=False):
+@overload
+def get_latest_package(name: str, *, range_: VersionRange | None = None,
+                       paths: list[str] | None = None,
+                       error: Literal[True] = True) -> Package:
+    pass
+
+
+@overload
+def get_latest_package(name: str, *, range_: VersionRange | None = None,
+                       paths: list[str] | None = None,
+                       error: Literal[False] | bool = False) -> Package | None:
+    pass
+
+
+def get_latest_package(name: str, *, range_: VersionRange | None = None,
+                       paths: list[str] | None = None,
+                       error: bool = False) -> Package | None:
     """Get the latest package for a given package name.
 
     Args:

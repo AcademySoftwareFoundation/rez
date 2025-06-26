@@ -35,12 +35,16 @@ class FallbackComparable(_Comparable):
         self.fallback_comparable = fallback_comparable
 
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FallbackComparable):
+            return NotImplemented
         try:
             return self.main_comparable == other.main_comparable
         except Exception:
             return self.fallback_comparable == other.fallback_comparable
 
     def __lt__(self, other: object) -> bool:
+        if not isinstance(other, FallbackComparable):
+            return NotImplemented
         try:
             return self.main_comparable < other.main_comparable
         except Exception:

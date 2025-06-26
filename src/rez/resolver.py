@@ -263,7 +263,7 @@ class Resolver(object):
                 client.delete(key)
             self._print("Discarded entry: %r", key)
 
-        def _retrieve(timestamped: bool) -> tuple[str, tuple[SolverDict, dict, dict]]:
+        def _retrieve(timestamped: bool) -> tuple[str, Any | Client._Miss]:
             key = self._memcache_key(timestamped=timestamped)
             self._print("Retrieving memcache key: %r", key)
             with self._memcached_client() as client:
@@ -326,6 +326,7 @@ class Resolver(object):
 
         if self.timestamp:
             if data:
+                assert not isinstance(data, Client._Miss)
                 if _packages_changed(key, data) or _releases_since_solve(key, data):
                     _delete_cache_entry(key)
                 elif not _timestamp_is_earlier(key, data):
@@ -334,6 +335,7 @@ class Resolver(object):
             key, data = _retrieve(True)
             if not data:
                 return _miss()  # type: ignore[func-returns-value]
+            assert not isinstance(data, Client._Miss)
             if _packages_changed(key, data):
                 _delete_cache_entry(key)
                 return _miss()  # type: ignore[func-returns-value]
@@ -342,6 +344,7 @@ class Resolver(object):
         else:
             if not data:
                 return _miss()  # type: ignore[func-returns-value]
+            assert not isinstance(data, Client._Miss)
             if _packages_changed(key, data) or _releases_since_solve(key, data):
                 _delete_cache_entry(key)
                 return _miss()  # type: ignore[func-returns-value]
@@ -377,6 +380,8 @@ class Resolver(object):
         release_times_dict = {}
         variant_states_dict = {}
 
+        assert self.resolved_packages_ is not None, \
+            "self.resolved_packages_ is set in _set_result when status is 'solved'"
         for variant in self.resolved_packages_:
             time_ = get_last_release_time(variant.name, self.package_paths)
 

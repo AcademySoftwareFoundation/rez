@@ -332,6 +332,7 @@ class Suite(object):
               a tool of the same name), this will be a set of Variants.
         """
         self._update_tools()
+        assert self.tools is not None
         return self.tools
 
     def get_tool_filepath(self, tool_alias):
@@ -412,6 +413,7 @@ class Suite(object):
             - variant (`Variant`): Variant providing the tool.
         """
         self._update_tools()
+        assert self.tool_conflicts is not None
         return self.tool_conflicts.get(tool_alias)
 
     def validate(self) -> None:

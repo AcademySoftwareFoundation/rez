@@ -270,13 +270,15 @@ class Requirement(_Common):
                 return other.range_.issuperset(self.range_)
             else:
                 return not self.range_.intersects(other.range_)
-        else:  # VersionedObject
+        elif isinstance(other, VersionedObject):
             if (self.name_ != other.name_) or (self.range is None):
                 return False
             if self.conflict:
                 return (other.version_ in self.range_)
             else:
                 return (other.version_ not in self.range_)
+        else:
+            raise TypeError
 
     def merged(self, other: Requirement) -> Requirement | None:
         """Merge two requirements.

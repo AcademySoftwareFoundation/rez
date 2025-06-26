@@ -2205,7 +2205,7 @@ class ResolvedContext(object):
                     header = "Error in %s in package %r:\n" % (attr, pkg.uri)
                     if self.verbosity >= 2:
                         msg = header + str(exc)
-                    else:
+                    elif isinstance(exc, SourceCodeError):
                         msg = header + exc.short_msg
 
                     raise PackageCommandError(msg)

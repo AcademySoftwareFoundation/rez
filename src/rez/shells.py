@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     import subprocess
     # this is not available in typing until 3.11, but due to __future__.annotations
     # we can use it without really importing it
-    from typing import Self
+    from typing_extensions import Self
 
 
 def get_shell_types() -> list[str]:
@@ -50,7 +50,7 @@ def get_shell_class(shell: str | None = None) -> type[Shell]:
         if not shell:
             from rez.system import system
             shell = system.shell
-
+    assert shell is not None
     from rez.plugin_managers import plugin_manager
     return plugin_manager.get_plugin_class("shell", shell)
 

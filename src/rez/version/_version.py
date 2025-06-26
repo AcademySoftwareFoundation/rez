@@ -207,7 +207,8 @@ class AlphanumericVersionToken(VersionToken):
 
     def __init__(self, token: str | None) -> None:
         if token is None:
-            self.subtokens = None
+            # this is a special case used in __next__, and subtokens is always set there
+            pass
         elif not self.regex.match(token):
             raise VersionError("Invalid version token: '%s'" % token)
         else:
@@ -412,6 +413,9 @@ class Version(_Comparable):
         Returns:
             tuple[str]:
         """
+        if self.tokens is None:
+            # Version.inf
+            return ()
         return tuple(map(str, self.tokens))
 
     def __len__(self) -> int:
@@ -439,6 +443,9 @@ class Version(_Comparable):
         return isinstance(other, Version) and self.tokens == other.tokens
 
     def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Version):
+            return NotImplemented
+
         if self.tokens is None:
             return False
         elif other.tokens is None:

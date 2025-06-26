@@ -130,6 +130,7 @@ class SourceCode(Generic[T]):
         return other
 
     def _init_from_func(self) -> None:
+        assert self.func is not None
         self.funcname = self.func.__name__
         self.decorators = getattr(self.func, "_decorators", [])
 
