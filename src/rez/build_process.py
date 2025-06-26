@@ -404,10 +404,11 @@ class BuildProcessHelper(BuildProcess):
             previous_revision = None
 
         changelog = None
-        with self.repo_operation():
-            changelog = self.vcs.get_changelog(
-                previous_revision,
-                max_revisions=config.max_package_changelog_revisions)
+        if self.vcs:
+            with self.repo_operation():
+                changelog = self.vcs.get_changelog(
+                    previous_revision,
+                    max_revisions=config.max_package_changelog_revisions)
 
         return changelog
 

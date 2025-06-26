@@ -62,8 +62,8 @@ def get_reverse_dependency_tree(package_name: str,
     g.add_node(package_name)
 
     # build reverse lookup
-    it = iter_package_families(paths)
-    package_names = set(x.name for x in it)
+    famit = iter_package_families(paths)
+    package_names = set(x.name for x in famit)
     if package_name not in package_names:
         raise PackageFamilyNotFoundError("No such package family %r" % package_name)
 

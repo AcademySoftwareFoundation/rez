@@ -32,14 +32,14 @@ class And(object):
     def __init__(self, *args, **kw):
         self._args = args
         assert list(kw) in (['error'], [])
-        self._error = kw.get('error')
+        self._error: str | None = kw.get('error')
 
     def __repr__(self):
         # REZ: Switched to use a map operation instead of list comprehension.
         return '%s(%s)' % (self.__class__.__name__,
                            ', '.join(map(repr, self._args)))
 
-    def validate(self, data):
+    def validate(self, data: Any) -> Any:
         for s in [Schema(s, error=self._error) for s in self._args]:
             data = s.validate(data)
         return data
@@ -47,7 +47,7 @@ class And(object):
 
 class Or(And):
 
-    def validate(self, data):
+    def validate(self, data: Any) -> Any:
         x = SchemaError([], [])
         for s in [Schema(s, error=self._error) for s in self._args]:
             try:
@@ -81,7 +81,7 @@ class Use(object):
 COMPARABLE, CALLABLE, VALIDATOR, TYPE, DICT, ITERABLE = range(6)
 
 
-def priority(s):
+def priority(s) -> list[int]:
     """Return priority for a given object."""
     # REZ: Previously this value was calculated in place many times which is
     #      expensive.  Do it once early.
@@ -114,7 +114,7 @@ class Schema(object):
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self._schema)
 
-    def validate(self, data):
+    def validate(self, data: Any):
         s = self._schema
         # REZ: Previously this value was calculated in place many times which is
         #      expensive.  Do it once early.

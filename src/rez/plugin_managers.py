@@ -279,7 +279,7 @@ class RezPluginType(object):
                                  % (self.pretty_type_name, plugin_name))
 
     @cached_property
-    def config_schema(self):
+    def config_schema(self) -> Validatable:
         """Returns the merged configuration data schema for this plugin
         type."""
         from rez.config import _plugin_config_dict
@@ -440,6 +440,10 @@ class RezPluginManager(object):
     def get_plugin_class(self, plugin_type: Literal["command"], plugin_name: str) -> type[Command]:
         pass
 
+    @overload
+    def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:
+        pass
+
     def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:
         """Return the class registered under the given plugin name."""
         plugin = self._get_plugin_type(plugin_type)
@@ -451,7 +455,7 @@ class RezPluginManager(object):
         plugin = self._get_plugin_type(plugin_type)
         return plugin.get_plugin_module(plugin_name)
 
-    def get_plugin_config_data(self, plugin_type: str):
+    def get_plugin_config_data(self, plugin_type: str) -> dict:
         """Return the merged configuration data for the plugin type."""
         plugin = self._get_plugin_type(plugin_type)
         return plugin.config_data

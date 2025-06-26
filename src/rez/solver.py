@@ -453,18 +453,18 @@ class _PackageEntry(object):
                     additional_key.append((range_key, request.name))
 
             if (VariantSelectMode[config.variant_select_mode] == VariantSelectMode.version_priority):
-                k = (requested_key,
-                     -len(additional_key),
-                     additional_key,
-                     variant.index)
+                return (requested_key,
+                        -len(additional_key),
+                        additional_key,
+                        # None does not support proper sorting, so fall back to int
+                        variant.index or -1)
             else:  # VariantSelectMode.intersection_priority
-                k = (len(requested_key),
-                     requested_key,
-                     -len(additional_key),
-                     additional_key,
-                     variant.index)
-
-            return k
+                return (len(requested_key),
+                        requested_key,
+                        -len(additional_key),
+                        additional_key,
+                        # None does not support proper sorting, so fall back to int
+                        variant.index or -1)
 
         self.variants.sort(key=key, reverse=True)
         self.sorted = True
@@ -1340,21 +1340,21 @@ class _ResolvePhase(_Common):
                             continue
 
                         # perform the intersection
-                        scope_ = scope.intersect(extracted_req.range)
+                        new_scope = scope.intersect(extracted_req.range)
 
                         req_fams.append(extracted_req.name)
 
-                        if scope_ is None:
+                        if new_scope is None:
                             # the scope conflicted with the extraction
                             conflict = DependencyConflict(
                                 extracted_req, scope.package_request)
                             failure_reason = DependencyConflicts([conflict])
                             return _create_phase(SolverStatus.failed)
 
-                        if scope_ is not scope:
+                        if new_scope is not scope:
                             # the scope was narrowed because it intersected
                             # with an extraction
-                            scopes[i] = scope_
+                            scopes[i] = new_scope
                             changed_scopes_i.add(i)
                             self.solver.intersections_count += 1
 
@@ -1512,7 +1512,7 @@ class _ResolvePhase(_Common):
                 cycle.append(stmt)
 
             phase = copy.copy(self)
-            phase.scopes = scopes.values()
+            phase.scopes = list(scopes.values())
             phase.failure_reason = Cycle(cycle)
             phase.status = SolverStatus.cyclic
             return phase

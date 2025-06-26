@@ -203,19 +203,20 @@ def make_package(name: str, path: str,
     #
 
     package = maker.get_package()
-    src_variants = []
 
     # skip those variants that already exist
     if skip_existing:
+        variants: list[Variant] = []
         for variant in package.iter_variants():
             variant_ = variant.install(path, dry_run=True)
             if variant_ is None:
-                src_variants.append(variant)
+                variants.append(variant)
             else:
                 maker.skipped_variants.append(variant_)
                 if warn_on_skip:
                     print_warning("Skipping installation: Package variant already "
                                   "exists: %s" % variant_.uri)
+        src_variants: Iterable[Variant] = variants
     else:
         src_variants = package.iter_variants()
 

@@ -567,9 +567,10 @@ class PackageRepositoryManager(object):
         # normalise repo path
         parts = path.split('@', 1)
         if len(parts) == 1:
-            parts = ("filesystem", parts[0])
+            repo_type, location = ("filesystem", parts[0])
+        else:
+            repo_type, location = parts
 
-        repo_type, location = parts
         if repo_type == "filesystem":
             # choice of abspath here vs realpath is deliberate. Realpath gives
             # canonical path, which can be a problem if two studios are sharing

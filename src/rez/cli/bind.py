@@ -54,9 +54,9 @@ def command(opts, parser, extra_arg_groups=None) -> None:
 
     if opts.list:
         d = get_bind_modules()
-        rows = [["PACKAGE", "BIND MODULE"],
-                ["-------", "-----------"]]
-        rows += sorted(d.items())
+        rows = [("PACKAGE", "BIND MODULE"),
+                ("-------", "-----------")]
+        rows += sorted((k, v) for k, v in d.items())
         print('\n'.join(columnise(rows)))
         return
 

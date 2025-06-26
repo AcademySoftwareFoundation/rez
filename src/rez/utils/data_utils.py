@@ -13,7 +13,7 @@ import functools
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
-from typing import Any, Callable, Generic, MutableMapping, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, Generic, Mapping, MutableMapping, TypeVar, TYPE_CHECKING, NoReturn
 
 T = TypeVar("T")
 
@@ -49,7 +49,7 @@ class DelayLoad(object):
     - yaml (``*.yaml``, ``*.yml``)
     - json (``*.json``)
     """
-    def __init__(self, filepath) -> None:
+    def __init__(self, filepath: str) -> None:
         self.filepath = os.path.expanduser(filepath)
 
     def __str__(self) -> str:
@@ -93,13 +93,13 @@ class DelayLoad(object):
             )
 
 
-def remove_nones(**kwargs):
+def remove_nones(**kwargs: Any | None) -> dict[str, Any]:
     """Return diict copy with nones removed.
     """
     return dict((k, v) for k, v in kwargs.items() if v is not None)
 
 
-def deep_update(dict1, dict2) -> None:
+def deep_update(dict1: dict, dict2: dict) -> None:
     """Perform a deep merge of `dict2` into `dict1`.
 
     Note that `dict2` and any nested dicts are unchanged.
@@ -137,7 +137,7 @@ def deep_update(dict1, dict2) -> None:
             dict1[k2] = merge(v1, v2)
 
 
-def deep_del(data, fn):
+def deep_del(data: dict, fn) -> dict:
     """Create dict copy with removed items.
 
     Recursively remove items where fn(value) is True.
@@ -157,7 +157,7 @@ def deep_del(data, fn):
     return result
 
 
-def get_dict_diff(d1, d2):
+def get_dict_diff(d1: dict, d2: dict) -> tuple[list, list, list]:
     """Get added/removed/changed keys between two dicts.
 
     Each key in the return value is a list, which is the namespaced key that
@@ -198,7 +198,7 @@ def get_dict_diff(d1, d2):
     return _diff(d1, d2, [])
 
 
-def get_dict_diff_str(d1, d2, title):
+def get_dict_diff_str(d1: dict, d2: dict, title: str) -> str:
     """Returns same as `get_dict_diff`, but as a readable string.
     """
     added, removed, changed = get_dict_diff(d1, d2)
@@ -352,22 +352,22 @@ class AttrDictWrapper(MutableMapping[str, Any]):
             raise AttributeError("'%s' object has no attribute '%s'"
                                  % (self.__class__.__name__, attr))
 
-    def __setattr__(self, attr, value) -> None:
+    def __setattr__(self, attr: str, value) -> None:
         # For things like '__class__', for instance
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
         self._data[attr] = value
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         return self._data[key]
 
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key: str, value) -> None:
         self._data[key] = value
 
-    def __delitem__(self, key) -> None:
+    def __delitem__(self, key: str) -> None:
         del self._data[key]
 
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: str) -> bool:
         return key in self._data
 
     def __iter__(self):
@@ -388,7 +388,7 @@ class AttrDictWrapper(MutableMapping[str, Any]):
 
 class RO_AttrDictWrapper(AttrDictWrapper):
     """Read-only version of AttrDictWrapper."""
-    def __setattr__(self, attr, value) -> None:
+    def __setattr__(self, attr: str, value: object) -> NoReturn:
         self[attr]  # may raise 'no attribute' error
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
@@ -418,7 +418,9 @@ def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
     return d_
 
 
-def get_object_completions(instance, prefix, types=None, instance_types=None):
+def get_object_completions(instance: object, prefix: str,
+                           types: tuple[type, ...] | None = None,
+                           instance_types: tuple[type, ...] | None = None) -> list[str]:
     """Get completion strings based on an object's attributes/keys.
 
     Completion also works on dynamic attributes (eg implemented via __getattr__)
@@ -480,7 +482,7 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
     return qual_words
 
 
-def convert_json_safe(value):
+def convert_json_safe(value: Any) -> Any:
     """Convert data to JSON safe values.
 
     Anything not representable (eg python objects) will be stringified.

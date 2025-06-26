@@ -643,9 +643,9 @@ class Suite(object):
         else:
             context_names = sorted(self.contexts.keys())
 
-        rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
-                ["----", "--------", "-------", "-------", ""]]
-        colors = [None, None]
+        rows = [("TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""),
+                ("----", "--------", "-------", "-------", "")]
+        colors: list[Callable[[str], str] | None] = [None, None]
 
         entries_dict = defaultdict(list)
         for d in self.get_tools().values():

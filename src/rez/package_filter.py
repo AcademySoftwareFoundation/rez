@@ -158,10 +158,12 @@ class PackageFilter(PackageFilterBase):
     def __and__(self, other: PackageFilter) -> PackageFilter:
         """Combine two filters."""
         result = self.copy()
-        for rule in other._excludes.values():
-            result.add_exclusion(rule)
-        for rule in other._includes.values():
-            result.add_inclusion(rule)
+        for rules in other._excludes.values():
+            for rule in rules:
+                result.add_exclusion(rule)
+        for rules in other._includes.values():
+            for rule in rules:
+                result.add_inclusion(rule)
         return result
 
     def __bool__(self) -> bool:
@@ -225,7 +227,7 @@ class PackageFilter(PackageFilterBase):
             family, rules = rule_items
             if family is None:
                 return ("", rules)
-            return rule_items
+            return family, rules
 
         return str((sorted(self._excludes.items(), key=sortkey),
                     sorted(self._includes.items(), key=sortkey)))
@@ -334,7 +336,8 @@ class Rule(object):
     """Base package filter rule"""
 
     #: Rule name
-    name = None
+    name: str
+    _family: str | None
 
     def match(self, package: Package) -> bool:
         """Apply the rule to the package.
@@ -436,6 +439,9 @@ class Rule(object):
 class RegexRuleBase(Rule):
     regex: Pattern[str]
     txt: str
+
+    def __init__(self, s: str) -> None:
+        pass
 
     def match(self, package: Package) -> bool:
         return bool(self.regex.match(package.qualified_name))

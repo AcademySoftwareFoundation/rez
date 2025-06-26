@@ -318,7 +318,9 @@ class PackageFamilyResource(PackageRepositoryResource):
     A repository implementation's package family resource(s) must derive from
     this class. It must satisfy the schema `package_family_schema`.
     """
-    pass
+
+    def iter_packages(self) -> Iterator[PackageResourceHelper]:
+        raise NotImplementedError
 
 
 class PackageResource(PackageRepositoryResource):
@@ -397,7 +399,9 @@ class VariantResource(PackageResource):
 class PackageResourceHelper(PackageResource):
     """PackageResource with some common functionality included.
     """
-    variant_key = None
+    # the resource key for a VariantResourceHelper subclass
+    variant_key: str
+
     if TYPE_CHECKING:
         # I think these attributes are provided dynamically be LazyAttributeMeta
         _commands: list[str] | str | FunctionType | MethodType | SourceCode

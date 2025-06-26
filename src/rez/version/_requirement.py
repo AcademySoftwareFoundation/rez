@@ -26,10 +26,13 @@ class VersionedObject(_Common):
         Args:
             s (str):
         """
-        self.name_ = None
-        self.version_ = None
+        self.name_: str
+        self.version_: Version
         self.sep_ = '-'
+
         if s is None:
+            # this is a special case in VersionedObject.construct, but name and version_
+            # are always set.
             return
 
         m = self.sep_regex.search(s)
@@ -136,7 +139,7 @@ class Requirement(_Common):
     - ``foo<3``
     - ``foo==1.0.1``
     """
-    sep_regex = re.compile(r'[-@#=<>]')
+    sep_regex: ClassVar[re.Pattern[str]] = re.compile(r'[-@#=<>]')
 
     def __init__(self, s: str | None, invalid_bound_error: bool = True) -> None:
         """
@@ -145,11 +148,13 @@ class Requirement(_Common):
             invalid_bound_error (bool): If True, raise :exc:`.VersionError` if an
                 impossible range is given, such as ``3+<2``.
         """
-        self.name_ = None
-        self.range_ = None
+        # there are two constructors where Requirement(None) is called, but they
+        # both set self.name, so we do not set its value to None here.
+        self.name_: str
+        self.range_: VersionRange | None = None
         self.negate_ = False
         self.conflict_ = False
-        self._str = None
+        self._str: str | None = None
         self.sep_ = '-'
         if s is None:
             return

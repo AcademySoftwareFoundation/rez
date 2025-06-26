@@ -202,8 +202,8 @@ class AlphanumericVersionToken(VersionToken):
     - ``alpha`` < ``alpha3``
     - ``gamma33`` < ``33gamma``
     """
-    numeric_regex = re.compile("[0-9]+")
-    regex = re.compile(r"[a-zA-Z0-9_]+\Z")
+    numeric_regex: ClassVar[re.Pattern[str]] = re.compile("[0-9]+")
+    regex: ClassVar[re.Pattern[str]] = re.compile(r"[a-zA-Z0-9_]+\Z")
 
     def __init__(self, token: str | None) -> None:
         if token is None:
@@ -295,7 +295,7 @@ class Version(_Comparable):
     The empty version ``''`` is the smallest possible version, and can be used to
     represent an unversioned resource.
     """
-    inf = None
+    inf: ClassVar[Version]
 
     def __init__(self, ver_str: str | None = '',
                  make_token: Callable[[str], VersionToken] = AlphanumericVersionToken) -> None:
@@ -465,7 +465,7 @@ Version.inf.tokens = None
 
 
 class _LowerBound(_Comparable):
-    min = None
+    min: ClassVar[_LowerBound]
 
     def __init__(self, version: Version, inclusive: bool) -> None:
         self.version = version
@@ -503,7 +503,7 @@ _LowerBound.min = _LowerBound(Version(), True)
 
 
 class _UpperBound(_Comparable):
-    inf = None
+    inf: ClassVar[_UpperBound]
 
     def __init__(self, version: Version, inclusive: bool) -> None:
         self.version = version
@@ -540,7 +540,7 @@ _UpperBound.inf = _UpperBound(Version.inf, True)
 
 
 class _Bound(_Comparable):
-    any = None
+    any: ClassVar[_Bound]
 
     def __init__(self, lower: _LowerBound | None = None,
                  upper: _UpperBound | None = None,
@@ -1455,9 +1455,9 @@ class VersionRange(_Comparable):
 
 
 class _ContainsVersionIterator(Generic[T]):
-    MODE_INTERSECTING = 0
-    MODE_NON_INTERSECTING = 2
-    MODE_ALL = 3
+    MODE_INTERSECTING: Final[int] = 0
+    MODE_NON_INTERSECTING: Final[int] = 2
+    MODE_ALL: Final[int] = 3
 
     def __init__(self, range_: VersionRange, iterable: Iterable[T],
                  key: Callable[[T], Version] | None = None,

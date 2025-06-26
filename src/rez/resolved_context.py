@@ -651,19 +651,19 @@ class ResolvedContext(object):
             request += request_
 
         # add rank limiters
-        if not strict and rank > 1:
+        if package_requests and not strict and rank > 1:
             overrides = set(x.name for x in package_requests if not x.conflict)
             rank_limiters = []
-            for variant in self.resolved_packages:
+            for variant in self._solved_value(self.resolved_packages):
                 if variant.name not in overrides:
                     if len(variant.version) >= rank:
                         version = variant.version.trim(rank - 1)
                         version = next(version)
-                        req = "~%s<%s" % (variant.name, str(version))
-                        rank_limiters.append(req)
-            request += rank_limiters
-
-        return request
+                        req_str = "~%s<%s" % (variant.name, str(version))
+                        rank_limiters.append(req_str)
+            return request + rank_limiters
+        else:
+            return cast("list[Requirement | PackageRequest | str]", request)
 
     @overload
     def graph(self, as_dot: Literal[True]) -> str | None:
@@ -688,7 +688,7 @@ class ResolvedContext(object):
             return None
 
         if not as_dot:
-            if self.graph_ is None:
+            if self.graph_ is None and self.graph_string is not None:
                 # reads either dot format or our compact format
                 self.graph_ = read_graph_from_string(self.graph_string)
             return self.graph_
@@ -701,6 +701,9 @@ class ResolvedContext(object):
                 # old rez contexts where the graph is not stored in the newer
                 # compact format.
                 return self.graph_string
+
+        if not self.graph_:
+            return None
 
         return write_dot(self.graph_)
 
@@ -1697,7 +1700,7 @@ class ResolvedContext(object):
             if identifier_str:
                 msg.append("in %s" % identifier_str)
             msg.append("was written by a newer version of Rez. The load may "
-                       "fail (serialize version %d > %d)"
+                       "fail (serialize version %s > %s)"
                        % (_print_version(load_ver), _print_version(curr_ver)))
             print(' '.join(msg), file=sys.stderr)
 

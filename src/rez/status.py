@@ -160,19 +160,19 @@ class Status(object):
                 if pattern and not fnmatch(tool, pattern):
                     continue
 
-                labels = []
+                label_parts = []
                 color = None
                 path = which(tool)
                 if path:
                     path_ = os.path.join(suite.tools_path, tool)
                     if path != path_:
-                        labels.append("(hidden by unknown tool '%s')" % path)
+                        label_parts.append("(hidden by unknown tool '%s')" % path)
                         color = warning
 
                 variant = d["variant"]
                 if isinstance(variant, set):
                     pkg_str = ", ".join(variant)
-                    labels.append("(in conflict)")
+                    label_parts.append("(in conflict)")
                     color = critical
                 else:
                     pkg_str = variant.qualified_package_name
@@ -181,11 +181,11 @@ class Status(object):
                 if orig_tool == tool:
                     orig_tool = '-'
 
-                label = ' '.join(labels)
+                label = ' '.join(label_parts)
                 source = ("context '%s' in suite '%s'"
                           % (d["context_name"], suite.load_path))
 
-                rows.append([tool, orig_tool, pkg_str, source, label, color])
+                rows.append((tool, orig_tool, pkg_str, source, label, color))
                 seen.add(tool)
 
         _pr = Printer(buf)
@@ -193,13 +193,13 @@ class Status(object):
             _pr("No matching tools.")
             return False
 
-        headers = [["TOOL", "ALIASING", "PACKAGE", "SOURCE", "", None],
-                   ["----", "--------", "-------", "------", "", None]]
+        headers = [("TOOL", "ALIASING", "PACKAGE", "SOURCE", "", None),
+                   ("----", "--------", "-------", "------", "", None)]
         rows = headers + sorted(rows, key=lambda x: x[0].lower())
         print_colored_columns(_pr, rows)
         return True
 
-    def _print_tool_info(self, value, buf=sys.stdout, b=False):
+    def _print_tool_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
