@@ -13,12 +13,12 @@ from rez.utils.lint_helper import env
 import os.path
 
 
-def setup_parser(parser):
+def setup_parser(parser) -> None:
     parser.add_argument("--exe", type=str, metavar="PATH",
                         help="manually specify the cmake executable to bind.")
 
 
-def commands():
+def commands() -> None:
     env.PATH.append('{this.root}/bin')
 
 
@@ -28,7 +28,7 @@ def bind(path, version_range=None, opts=None, parser=None):
                               word_index=2 if os.name == 'nt' else -1)
     check_version(version, version_range)
 
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         binpath = make_dirs(root, "bin")
         link = os.path.join(binpath, "cmake")
         platform_.symlink(exepath, link)

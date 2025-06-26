@@ -15,7 +15,7 @@ from rez.cli._entry_points import get_specifications
 
 
 class TestImports(TestBase):
-    def test_1(self):
+    def test_1(self) -> None:
         """run -h option on every cli tool"""
 
         # skip if cli not available

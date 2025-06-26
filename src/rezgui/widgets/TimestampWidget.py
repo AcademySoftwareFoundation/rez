@@ -14,7 +14,7 @@ class TimestampWidget(QtWidgets.QFrame):
 
     timeChanged = QtCore.Signal(int)  # epoch time
 
-    def __init__(self, context_model, parent=None):
+    def __init__(self, context_model, parent=None) -> None:
         super(TimestampWidget, self).__init__(parent)
         self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
         self.context_model = context_model
@@ -46,23 +46,23 @@ class TimestampWidget(QtWidgets.QFrame):
         else:
             return None
 
-    def set_time(self, epoch):
+    def set_time(self, epoch) -> None:
         dt = QtCore.QDateTime()
         dt.setTime_t(epoch)
         self.edit.setDateTime(dt)
         self.checkbox.setChecked(True)
         self.timeChanged.emit(epoch)
 
-    def refresh(self):
+    def refresh(self) -> None:
         b = self.checkbox.isChecked()
         self.package_btn.setEnabled(b)
         self.clock_btn.setEnabled(b)
         self.edit.setEnabled(b)
 
-    def _stateChanged(self, state):
+    def _stateChanged(self, state) -> None:
         self.refresh()
 
-    def _selectPackage(self):
+    def _selectPackage(self) -> None:
         fn = lambda x: bool(x.timestamp)
         dlg = BrowsePackageDialog(context_model=self.context_model,
                                   parent=self.parentWidget(),
@@ -71,11 +71,11 @@ class TimestampWidget(QtWidgets.QFrame):
         if dlg.package:
             self.set_time(dlg.package.timestamp)
 
-    def _selectTime(self):
+    def _selectTime(self) -> None:
         self.popup = TimeSelecterPopup(self.clock_btn, parent=self)
         self.popup.secondsClicked.connect(self._secondsClicked)
         self.popup.show()
 
-    def _secondsClicked(self, seconds):
+    def _secondsClicked(self, seconds) -> None:
         now = int(time.time())
         self.set_time(now - seconds)

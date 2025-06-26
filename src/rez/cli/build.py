@@ -5,17 +5,23 @@
 '''
 Build a package from source.
 '''
+from __future__ import annotations
+
 import os
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.developer_package import DeveloperPackage
 
 
 # Cache the developer package loaded from cwd. This is so the package is only
 # loaded once, even though it's required once at arg parsing time (to determine
 # valid build system types), and once at command run time.
 #
-_package = None
+_package: DeveloperPackage | None = None
 
 
-def get_current_developer_package():
+def get_current_developer_package() -> DeveloperPackage:
     from rez.packages import get_developer_package
 
     global _package
@@ -26,7 +32,7 @@ def get_current_developer_package():
     return _package
 
 
-def setup_parser_common(parser):
+def setup_parser_common(parser) -> None:
     """Parser setup common to both rez-build and rez-release."""
     from rez.build_process import get_build_process_types
     from rez.build_system import get_valid_build_systems
@@ -77,7 +83,7 @@ def setup_parser_common(parser):
         "Alternatively, list these after a second '--'.")
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "-c", "--clean", action="store_true",
         help="clear the current build before rebuilding.")
@@ -121,7 +127,7 @@ def get_build_args(opts, parser, extra_arg_groups):
     return result_groups[0], result_groups[1]
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.exceptions import BuildContextResolveError
     from rez.build_process import create_build_process
     from rez.build_system import create_build_system

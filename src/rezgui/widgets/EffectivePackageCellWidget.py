@@ -8,7 +8,7 @@ from rez.resolved_context import PatchLock
 
 
 class EffectivePackageCellWidget(QtWidgets.QWidget):
-    def __init__(self, request, type_, parent=None):
+    def __init__(self, request, type_, parent=None) -> None:
         super(EffectivePackageCellWidget, self).__init__(parent)
 
         if type_ == "implicit":

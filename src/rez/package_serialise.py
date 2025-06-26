@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.serialise import FileFormat
 from rez.package_resources import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
@@ -13,6 +15,10 @@ from rez.utils.formatting import PackageRequest, indent, \
 from rez.utils.schema import Required
 from rez.utils.yaml import dump_yaml
 from pprint import pformat
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.utils.typing import SupportsWrite
 
 
 # preferred order of keys in a package definition file
@@ -110,7 +116,8 @@ package_serialise_schema = Schema({
 })
 
 
-def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
+def dump_package_data(data: dict, buf: SupportsWrite, format_: FileFormat = FileFormat.py,
+                      skip_attributes: list[str] | None = None) -> None:
     """Write package data to `buf`.
 
     Args:
@@ -150,7 +157,7 @@ def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
 # the package file to see what the original commands were, but they don't get
 # processed by rex.
 #
-def _commented_old_command_annotations(sourcecode):
+def _commented_old_command_annotations(sourcecode: SourceCode) -> SourceCode:
     lines = sourcecode.source.split('\n')
     for i, line in enumerate(lines):
         if line.startswith("comment('OLD COMMAND:"):
@@ -162,7 +169,7 @@ def _commented_old_command_annotations(sourcecode):
     return other
 
 
-def _dump_package_data_yaml(items, buf):
+def _dump_package_data_yaml(items: list[tuple[str, Any]], buf: SupportsWrite) -> None:
     for i, (key, value) in enumerate(items):
         if isinstance(value, SourceCode) \
                 and key in ("commands", "pre_commands", "post_commands"):
@@ -175,7 +182,7 @@ def _dump_package_data_yaml(items, buf):
             print('', file=buf)
 
 
-def _dump_package_data_py(items, buf):
+def _dump_package_data_py(items: list[tuple[str, Any]], buf: SupportsWrite) -> None:
     print("# -*- coding: utf-8 -*-\n", file=buf)
 
     for i, (key, value) in enumerate(items):

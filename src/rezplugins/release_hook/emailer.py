@@ -28,14 +28,14 @@ class EmailReleaseHook(ReleaseHook):
     }
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "emailer"
 
-    def __init__(self, source_path):
+    def __init__(self, source_path) -> None:
         super(EmailReleaseHook, self).__init__(source_path)
 
     def post_release(self, user, install_path, variants, release_message=None,
-                     changelog=None, previous_version=None, **kwargs):
+                     changelog=None, previous_version=None, **kwargs) -> None:
         if not variants:
             return  # nothing was released
 
@@ -62,7 +62,7 @@ class EmailReleaseHook(ReleaseHook):
         subject = formatter.format(self.settings.subject)
         self.send_email(subject, body)
 
-    def send_email(self, subject, body):
+    def send_email(self, subject, body) -> None:
         if not self.settings.recipients:
             return  # nothing to do, sending email to nobody
 

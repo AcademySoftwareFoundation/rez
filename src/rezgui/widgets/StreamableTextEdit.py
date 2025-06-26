@@ -14,7 +14,7 @@ class StreamableTextEdit(SearchableTextEdit):
     """
     written = QtCore.Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(StreamableTextEdit, self).__init__(parent)
         self.setReadOnly(True)
         self.buffer = []
@@ -24,10 +24,10 @@ class StreamableTextEdit(SearchableTextEdit):
 
     # -- file-like methods
 
-    def isatty(self):
+    def isatty(self) -> bool:
         return False
 
-    def write(self, txt):
+    def write(self, txt) -> None:
         emit = False
         try:
             self.lock.acquire()
@@ -38,7 +38,7 @@ class StreamableTextEdit(SearchableTextEdit):
         if emit:
             self.written.emit()
 
-    def _consume(self):
+    def _consume(self) -> None:
         try:
             self.lock.acquire()
             buffer_ = self.buffer
@@ -50,7 +50,7 @@ class StreamableTextEdit(SearchableTextEdit):
             txt = ''.join(buffer_)
             self._write(txt)
 
-    def _write(self, txt):
+    def _write(self, txt) -> None:
         self.moveCursor(QtGui.QTextCursor.End)
         self.insertPlainText(txt)
         self.moveCursor(QtGui.QTextCursor.End)
