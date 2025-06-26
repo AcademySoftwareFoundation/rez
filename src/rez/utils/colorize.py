@@ -2,9 +2,15 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import sys
 import logging
+
+from rez.utils.typing import SupportsWrite
 from rez.vendor import colorama
+
+from typing import Callable
 
 # Important - we don't want to init Colorama at startup,
 # because colorama prints a RESET_ALL character at exit. This in turn adds
@@ -29,7 +35,7 @@ def stream_is_tty(stream):
     return isatty and isatty()
 
 
-def critical(str_):
+def critical(str_: str) -> str:
     """ Return the string wrapped with the appropriate styling of a critical
     message.  The styling will be determined based on the rez configuration.
 
@@ -184,7 +190,7 @@ def notset(str_):
     return _color(str_)
 
 
-def _color_level(str_, level):
+def _color_level(str_, level) -> str:
     """ Return the string wrapped with the appropriate styling for the message
     level.  The styling will be determined based on the rez configuration.
 
@@ -200,7 +206,7 @@ def _color_level(str_, level):
     return _color(str_, fore_color, back_color, styles)
 
 
-def _color(str_, fore_color=None, back_color=None, styles=None):
+def _color(str_, fore_color=None, back_color=None, styles=None) -> str:
     """ Return the string wrapped with the appropriate styling escape sequences.
 
     Args:
@@ -264,7 +270,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         0: notset,
     }
 
-    def __init__(self, stream=None):
+    def __init__(self, stream=None) -> None:
         super(ColorizedStreamHandler, self).__init__(stream)
         self.stream = colorama_wrap(self.stream)
 
@@ -312,7 +318,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
 
 class Printer(object):
-    def __init__(self, buf=sys.stdout):
+    def __init__(self, buf: SupportsWrite = sys.stdout) -> None:
         from rez.config import config  # Avoid circular import
         self.colorize = (
             config.get("color_enabled", False) == "force"
@@ -322,12 +328,12 @@ class Printer(object):
             buf = colorama_wrap(buf)
         self.buf = buf
 
-    def __call__(self, msg='', style=None):
+    def __call__(self, msg='', style=None) -> None:
         print(self.get(msg, style), file=self.buf)
         if hasattr(self.buf, 'flush'):
             self.buf.flush()
 
-    def get(self, msg, style=None):
+    def get(self, msg: str, style: Callable[[str], str] | None = None) -> str:
         if style and self.colorize:
             msg = style(msg)
         return msg

@@ -23,7 +23,7 @@ def get_context_files(filepaths):
     return context_files
 
 
-def run(opts=None, parser=None):
+def run(opts=None, parser=None) -> None:
     main_window = MainWindow()
     app.set_main_window(main_window)
     main_window.show()

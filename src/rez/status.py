@@ -2,11 +2,14 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import sys
 import os
 import os.path
 from fnmatch import fnmatch
 from rez import __version__
+from rez.utils.typing import SupportsWrite
 from rez.utils.data_utils import cached_property
 from rez.resolved_context import ResolvedContext
 from rez.packages import iter_packages, Package
@@ -23,11 +26,11 @@ class Status(object):
     The current status tells you things such as if you are within a context, or
     if suite(s) are visible on $PATH.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     @cached_property
-    def context_file(self):
+    def context_file(self) -> str | None:
         """Get path to the current context file.
 
         Returns:
@@ -36,7 +39,7 @@ class Status(object):
         return os.getenv("REZ_RXT_FILE")
 
     @cached_property
-    def context(self):
+    def context(self) -> ResolvedContext | None:
         """Get the current context.
 
         Returns:
@@ -46,7 +49,7 @@ class Status(object):
         return ResolvedContext.load(path) if path else None
 
     @cached_property
-    def suites(self):
+    def suites(self) -> list[Suite]:
         """Get currently visible suites.
 
         Visible suites are those whos bin path appea on $PATH.
@@ -57,7 +60,7 @@ class Status(object):
         return Suite.load_visible_suites()
 
     @cached_property
-    def parent_suite(self):
+    def parent_suite(self) -> Suite | None:
         """Get the current parent suite.
 
         A parent suite exists when a context within a suite is active. That is,
@@ -74,7 +77,7 @@ class Status(object):
 
     # TODO: store this info in env-var instead, remove suite info from context.
     @cached_property
-    def active_suite_context_name(self):
+    def active_suite_context_name(self) -> str | None:
         """Get the name of the currently active context in a parent suite.
 
         If a parent suite exists, then an active context exists - this is the
@@ -88,7 +91,7 @@ class Status(object):
             return self.context.suite_context_name
         return None
 
-    def print_info(self, obj=None, buf=sys.stdout):
+    def print_info(self, obj=None, buf: SupportsWrite = sys.stdout) -> bool:
         """Print a status message about the given object.
 
         If an object is not provided, status info is shown about the current
@@ -121,7 +124,7 @@ class Status(object):
             print("Rez does not know what '%s' is" % obj, file=buf)
         return b
 
-    def print_tools(self, pattern=None, buf=sys.stdout):
+    def print_tools(self, pattern: str | None = None, buf: SupportsWrite = sys.stdout) -> bool:
         """Print a list of visible tools.
 
         Args:
@@ -147,7 +150,7 @@ class Status(object):
                         label = ''
                         color = None
 
-                    rows.append([tool, '-', pkg_str, "active context", label, color])
+                    rows.append((tool, '-', pkg_str, "active context", label, color))
                     seen.add(tool)
 
         for suite in self.suites:
@@ -261,7 +264,7 @@ class Status(object):
 
         return False
 
-    def _print_package_info(self, value, buf=sys.stdout, b=False):
+    def _print_package_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
@@ -269,7 +272,7 @@ class Status(object):
         if request_str != value:
             return False
 
-        def _print_package(package):
+        def _print_package(package) -> None:
             if isinstance(package, Package):
                 name = package.qualified_name
             else:
@@ -314,7 +317,7 @@ class Status(object):
 
         return False
 
-    def _print_suite_info(self, value, buf=sys.stdout, b=False):
+    def _print_suite_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
@@ -330,7 +333,7 @@ class Status(object):
         _pr("'%s' %s a suite. Use 'rez-suite' for more information." % (path, word))
         return True
 
-    def _print_context_info(self, value, buf=sys.stdout, b=False):
+    def _print_context_info(self, value, buf=sys.stdout, b: bool = False) -> bool:
         word = "is also" if b else "is"
         _pr = Printer(buf)
 
@@ -346,7 +349,7 @@ class Status(object):
         _pr("'%s' %s a context. Use 'rez-context' for more information." % (path, word))
         return True
 
-    def _print_info(self, buf=sys.stdout):
+    def _print_info(self, buf=sys.stdout) -> None:
         lines = ["Using Rez v%s" % __version__]
         if self.context:
             if self.context.load_path:

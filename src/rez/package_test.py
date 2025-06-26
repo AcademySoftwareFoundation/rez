@@ -2,9 +2,11 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.config import config
 from rez.resolved_context import ResolvedContext
-from rez.packages import get_latest_package_from_string
+from rez.packages import get_latest_package_from_string, Package
 from rez.exceptions import RezError, PackageNotFoundError, PackageTestError
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.utils.colorize import heading, Printer
@@ -47,10 +49,10 @@ class PackageTestRunner(object):
     Commands can also be a list - in this case, the test process is launched
     directly, rather than interpreted via a shell.
     """
-    def __init__(self, package_request, use_current_env=False,
+    def __init__(self, package_request, use_current_env: bool = False,
                  extra_package_requests=None, package_paths=None, stdout=None,
-                 stderr=None, verbose=0, dry_run=False, stop_on_fail=False,
-                 cumulative_test_results=None, **context_kwargs):
+                 stderr=None, verbose: int = 0, dry_run: bool = False, stop_on_fail: bool = False,
+                 cumulative_test_results=None, **context_kwargs) -> None:
         """Create a package tester.
 
         Args:
@@ -92,7 +94,7 @@ class PackageTestRunner(object):
                               else package_paths)
 
         self.test_results = PackageTestResults()
-        self.package = None
+        self.package: Package | None = None
         self.contexts = {}
         self.stopped_on_fail = False
 
@@ -172,7 +174,7 @@ class PackageTestRunner(object):
             )
 
         if ran_once:
-            def _select(key, value):
+            def _select_kv(key, value) -> bool:
                 if isinstance(value, dict):
                     value = value.get("on_variants")
                 else:
@@ -185,7 +187,7 @@ class PackageTestRunner(object):
 
             tests_dict = dict(
                 (k, v) for k, v in tests_dict.items()
-                if _select(k, v)
+                if _select_kv(k, v)
             )
 
         return sorted(tests_dict.keys())
@@ -443,7 +445,7 @@ class PackageTestRunner(object):
                 )
                 continue
 
-            def _pre_test_commands(executor):
+            def _pre_test_commands(executor) -> None:
                 # run package.py:pre_test_commands() if present
                 pre_test_commands = getattr(variant, "pre_test_commands")
                 if not pre_test_commands:
@@ -499,17 +501,17 @@ class PackageTestRunner(object):
 
         return exitcode
 
-    def print_summary(self):
+    def print_summary(self) -> None:
         self.test_results.print_summary()
 
-    def _add_test_result(self, *nargs, **kwargs):
+    def _add_test_result(self, *nargs, **kwargs) -> None:
         self.test_results.add_test_result(*nargs, **kwargs)
 
         if self.cumulative_test_results:
             self.cumulative_test_results.add_test_result(*nargs, **kwargs)
 
     @classmethod
-    def _print_header(cls, txt, *nargs):
+    def _print_header(cls, txt, *nargs) -> None:
         pr = Printer(sys.stdout)
         pr(txt % nargs, heading)
 
@@ -533,11 +535,11 @@ class PackageTestRunner(object):
         # If the combined requirements, minus conflict requests, is equal to the
         # variant's requirements, then this variant is selected.
         #
-        reqs1 = RequirementList(x for x in reqlist if not x.conflict)
-        reqs2 = RequirementList(x for x in variant.variant_requires if not x.conflict)
+        reqs1 = RequirementList([x for x in reqlist if not x.conflict])
+        reqs2 = RequirementList([x for x in variant.variant_requires if not x.conflict])
         return (reqs1 == reqs2)
 
-    def _get_test_info(self, test_name, variant):
+    def _get_test_info(self, test_name: str, variant) -> dict | None:
         tests_dict = variant.tests or {}
         test_entry = tests_dict.get(test_name)
 
@@ -581,7 +583,7 @@ class PackageTestRunner(object):
             "on_variants": test_entry.get("on_variants", False)
         }
 
-    def _get_context(self, requires, quiet=False):
+    def _get_context(self, requires, quiet: bool = False):
 
         # if using current env, only return current context if it meets
         # requirements, otherwise return None
@@ -590,7 +592,7 @@ class PackageTestRunner(object):
             if current_context is None:
                 return None
 
-            reqs = map(Requirement, requires)
+            reqs = [Requirement(x) for x in requires]
             current_reqs = current_context.get_resolve_as_exact_requests()
 
             meets_requirements = (
@@ -681,29 +683,29 @@ class PackageTestResults(object):
     """
     valid_statuses = ("success", "failed", "skipped")
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.test_results = []
 
     @property
-    def num_tests(self):
+    def num_tests(self) -> int:
         """Get the number of tests, regardless of stats.
         """
         return len(self.test_results)
 
     @property
-    def num_success(self):
+    def num_success(self) -> int:
         """Get the number of successful test runs.
         """
         return len([x for x in self.test_results if x["status"] == "success"])
 
     @property
-    def num_failed(self):
+    def num_failed(self) -> int:
         """Get the number of failed test runs.
         """
         return len([x for x in self.test_results if x["status"] == "failed"])
 
     @property
-    def num_skipped(self):
+    def num_skipped(self) -> int:
         """Get the number of skipped test runs.
         """
         return len([x for x in self.test_results if x["status"] == "skipped"])
@@ -719,7 +721,7 @@ class PackageTestResults(object):
             "description": description
         })
 
-    def print_summary(self):
+    def print_summary(self) -> None:
         from rez.utils.formatting import columnise
 
         pr = Printer(sys.stdout)
