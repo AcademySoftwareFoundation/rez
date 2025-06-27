@@ -5,22 +5,29 @@
 """
 Package-defined build command
 """
+from __future__ import annotations
+
 from shlex import quote
+from typing import TYPE_CHECKING
 import functools
 import os.path
 import sys
 import os
 
-from rez.build_system import BuildSystem
+from rez.build_system import BuildSystem, BuildResult
 from rez.build_process import BuildType
 from rez.utils.execution import create_forwarding_script
-from rez.packages import get_developer_package
+from rez.packages import get_developer_package, Variant
 from rez.resolved_context import ResolvedContext
 from rez.shells import create_shell
 from rez.exceptions import PackageMetadataError
 from rez.utils.colorize import heading, Printer
 from rez.utils.logging_ import print_warning
 from rez.config import config
+
+if TYPE_CHECKING:
+    import argparse
+    from rez.rex import RexExecutor
 
 
 class CustomBuildSystem(BuildSystem):
@@ -48,11 +55,11 @@ class CustomBuildSystem(BuildSystem):
     """
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "custom"
 
     @classmethod
-    def is_valid_root(cls, path, package=None):
+    def is_valid_root(cls, path, package=None) -> bool:
         if package is None:
             try:
                 package = get_developer_package(path)
@@ -61,8 +68,8 @@ class CustomBuildSystem(BuildSystem):
 
         return (getattr(package, "build_command", None) is not None)
 
-    def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
-                 verbose=False, build_args=[], child_build_args=[]):
+    def __init__(self, working_dir, opts=None, package=None, write_build_scripts: bool = False,
+                 verbose: bool = False, build_args=[], child_build_args=[]) -> None:
         super(CustomBuildSystem, self).__init__(
             working_dir,
             opts=opts,
@@ -73,7 +80,7 @@ class CustomBuildSystem(BuildSystem):
             child_build_args=child_build_args)
 
     @classmethod
-    def bind_cli(cls, parser, group):
+    def bind_cli(cls, parser: argparse.ArgumentParser, group: argparse._ArgumentGroup) -> None:
         """
         Uses a 'parse_build_args.py' file to add options, if found.
         """
@@ -97,15 +104,20 @@ class CustomBuildSystem(BuildSystem):
         # store extra args onto parser so we can get to it in self.build()
         setattr(parser, "_rezbuild_extra_args", list(extra_args))
 
-    def build(self, context, variant, build_path, install_path, install=False,
-              build_type=BuildType.local):
+    def build(self,
+              context: ResolvedContext,
+              variant: Variant,
+              build_path: str,
+              install_path: str,
+              install: bool = False,
+              build_type=BuildType.local) -> BuildResult:
         """Perform the build.
 
         Note that most of the func args aren't used here - that's because this
         info is already passed to the custom build command via environment
         variables.
         """
-        ret = {}
+        ret = BuildResult()
 
         if self.write_build_scripts:
             # write out the script that places the user in a build env
@@ -173,7 +185,7 @@ class CustomBuildSystem(BuildSystem):
             install_path=install_path
         )
 
-        def _actions_callback(executor):
+        def _actions_callback(executor) -> None:
             self._add_build_actions(
                 executor,
                 context=context,
@@ -215,8 +227,8 @@ class CustomBuildSystem(BuildSystem):
         return ret
 
     @classmethod
-    def _add_build_actions(cls, executor, context, package, variant,
-                           build_type, install, build_path, install_path=None):
+    def _add_build_actions(cls, executor: RexExecutor, context: ResolvedContext, package, variant,
+                           build_type, install, build_path, install_path=None) -> None:
         cls.add_standard_build_actions(
             executor=executor,
             context=context,
@@ -229,7 +241,7 @@ class CustomBuildSystem(BuildSystem):
 
 
 def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
-                            install_path=None):
+                            install_path=None) -> None:
     # This spawns a shell that the user can run the build command in directly
     context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
     package = get_developer_package(working_dir)

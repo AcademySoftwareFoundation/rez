@@ -5,6 +5,7 @@
 '''
 Run unit tests. Use pytest if available.
 '''
+from __future__ import annotations
 
 import os
 import sys
@@ -27,7 +28,7 @@ tests_dir = os.path.join(src_rez_dir, 'tests')
 all_module_tests = []
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False):
     parser.add_argument(
         "tests", metavar="NAMED_TEST", default=[], nargs="*",
         help="a specific test module/class/method to run; may be repeated "
@@ -45,7 +46,7 @@ def setup_parser(parser, completions=False):
 
     # make an Action that will append the appropriate test to the "--test" arg
     class AddTestModuleAction(argparse.Action):
-        def __call__(self, parser, namespace, values, option_string=None):
+        def __call__(self, parser, namespace, values, option_string=None) -> None:
             name = option_string.lstrip('-')
             if getattr(namespace, "module_tests", None) is None:
                 namespace.module_tests = []
@@ -72,7 +73,7 @@ def setup_parser(parser, completions=False):
             help=module.__doc__.strip().rstrip('.'))
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
     if opts.only_shell:
@@ -101,7 +102,7 @@ def command(opts, parser, extra_arg_groups=None):
         shutil.rmtree(repo)
 
 
-def run_unittest(module_tests, tests, verbosity):
+def run_unittest(module_tests, tests, verbosity) -> None:
     from unittest.main import main
 
     module_tests = [("rez.tests.test_%s" % x) for x in sorted(module_tests)]
@@ -111,7 +112,7 @@ def run_unittest(module_tests, tests, verbosity):
     main(module=None, argv=argv, verbosity=verbosity)
 
 
-def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
+def run_pytest(module_tests, tests, verbosity, extra_arg_groups) -> None:
     from pytest import main
 
     tests_dir = os.path.abspath(os.path.join(__file__, "..", "..", "tests"))
@@ -146,17 +147,17 @@ def run_pytest(module_tests, tests, verbosity, extra_arg_groups):
     sys.exit(exitcode)
 
 
-def create_python_package(repo):
+def create_python_package(repo) -> None:
     from rez.package_maker import make_package
     from rez.utils.lint_helper import env, system
     import venv
 
     print("Creating python package in {0!r}".format(repo))
 
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         venv.create(root)
 
-    def commands():
+    def commands() -> None:
         if system.platform == "windows":
             env.PATH.prepend("{this.root}/Scripts")
         else:

@@ -10,7 +10,7 @@ from rez.utils import formatting
 
 
 class TestFormatting(TestBase):
-    def test_readable_units(self):
+    def test_readable_units(self) -> None:
         readable_units = formatting._readable_units(
             0,
             formatting.memory_divs
