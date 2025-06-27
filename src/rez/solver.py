@@ -1086,9 +1086,6 @@ class _PackageScope(_Common):
         if self.is_conflict or self.is_ephemeral:
             return (self, [])
 
-        assert self.variant_slice is not None, \
-            "variant_slice should always exist for non-conflicted non-ephemeral requests"
-
         # perform the reduction
         new_slice, reductions = self.variant_slice.reduce_by(package_request)
 
@@ -1299,7 +1296,7 @@ class _ResolvePhase(_Common):
             # iteratively extract until no more extractions possible
             while True:
                 self.pr.subheader("EXTRACTING:")
-                extracted_requests_ = []
+                extracted_requests = []
 
                 # perform all possible extractions
                 with self.solver.timed(self.solver.extraction_time):
@@ -1308,7 +1305,7 @@ class _ResolvePhase(_Common):
                             scope_, extracted_request = scopes[i].extract()
 
                             if extracted_request:
-                                extracted_requests_.append(extracted_request)
+                                extracted_requests.append(extracted_request)
                                 k = (scopes[i].package_name, extracted_request.name)
                                 extractions[k] = extracted_request
                                 self.solver.extractions_count += 1
@@ -1316,12 +1313,12 @@ class _ResolvePhase(_Common):
                             else:
                                 break
 
-                if not extracted_requests_:
+                if not extracted_requests:
                     break
 
                 # simplify extractions (there may be overlaps)
                 self.pr.subheader("MERGE-EXTRACTIONS:")
-                extracted_requests = RequirementList(extracted_requests_)
+                extracted_requests = RequirementList(extracted_requests)
 
                 if extracted_requests.conflict:  # extractions are in conflict
                     req1, req2 = extracted_requests.conflict
@@ -1464,10 +1461,10 @@ class _ResolvePhase(_Common):
                 # A different order here wouldn't cause an invalid solve, however
                 # rez solves must be deterministic, so this is why we sort.
                 #
-                pending_reducts_ = sorted(pending_reducts)
+                pending_reducts = sorted(pending_reducts)
 
-                while pending_reducts_:
-                    x, y = pending_reducts_.pop()
+                while pending_reducts:
+                    x, y = pending_reducts.pop()
                     if x == y:
                         continue
 
@@ -1484,7 +1481,7 @@ class _ResolvePhase(_Common):
                         # other scopes need to reduce against x again
                         for j in all_scopes_i:
                             if j != x:
-                                pending_reducts_.append((j, x))
+                                pending_reducts.append((j, x))
 
             changed_scopes_i = set()
 
@@ -1974,12 +1971,12 @@ class Solver(_Common):
             self.optimised = optimised
 
         # these values are all set in _init()
-        self.phase_stack: list[_ResolvePhase]
-        self.failed_phase_list: list[_ResolvePhase]
-        self.depth_counts: dict
-        self.solve_begun: bool
-        self.solve_time: float
-        self.load_time: float
+        self.phase_stack: list[_ResolvePhase] = None
+        self.failed_phase_list: list[_ResolvePhase] = None
+        self.depth_counts: dict = None
+        self.solve_begun: bool = None
+        self.solve_time: float = None
+        self.load_time: float = None
 
         self.abort_reason: str | None = None
         self.callback_return: SolverCallbackReturn | None = None
@@ -2320,7 +2317,7 @@ class Solver(_Common):
         for i, phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))
 
-        print("status: %s (%s)" % (self.status.name, self.status.value[0]))
+        print("status: %s (%s)" % (self.status.name, self.status.description))
         print("initial request: %s" % str(self.request_list))
         print()
         print("solve stack:")
