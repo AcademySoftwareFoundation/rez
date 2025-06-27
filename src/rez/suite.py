@@ -430,7 +430,7 @@ class Suite(object):
     def to_dict(self):
         contexts_ = {}
         for k, data in self.contexts.items():
-            data_ = cast(dict[str, Any], data.copy())
+            data_ = cast("dict[str, Any]", data.copy())
             if "context" in data_:
                 del data_["context"]
             if "loaded" in data_:
