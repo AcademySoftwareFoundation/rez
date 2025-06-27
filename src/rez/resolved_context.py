@@ -267,8 +267,6 @@ class ResolvedContext(object):
         self._package_requests: list[Requirement] = []
         for req in package_requests:
             if isinstance(req, str):
-                # FIXME: Requirement seems like it would work fine here. the only difference
-                #  appears to be that PackageRequest does some additional validation
                 req = PackageRequest(req)
             self._package_requests.append(req)
 
