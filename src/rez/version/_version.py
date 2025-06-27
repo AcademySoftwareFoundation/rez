@@ -282,7 +282,8 @@ class Version(_Comparable):
     """
     inf = None
 
-    def __init__(self, ver_str: str | None = '', make_token: Callable[[str], VersionToken] = AlphanumericVersionToken) -> None:
+    def __init__(self, ver_str: str | None = '',
+                 make_token: Callable[[str], VersionToken] = AlphanumericVersionToken) -> None:
         """
         Args:
             ver_str (str): Version string.
@@ -697,7 +698,9 @@ class _VersionRangeParser(object):
 
     regex = re.compile(version_range_regex, re_flags)
 
-    def __init__(self, input_string: str, make_token: Callable[[str], VersionToken], invalid_bound_error: bool = True) -> None:
+    def __init__(self, input_string: str,
+                 make_token: Callable[[str], VersionToken],
+                 invalid_bound_error: bool = True) -> None:
         self.make_token = make_token
         self._groups: dict[str, Any | None] = {}
         self._input_string = input_string

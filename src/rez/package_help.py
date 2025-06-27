@@ -94,7 +94,7 @@ class PackageHelp(object):
         """Returns a list of (name, uri) 2-tuples."""
         return self._sections
 
-    def open(self, section_index: int=0) -> None:
+    def open(self, section_index: int = 0) -> None:
         """Launch a help section."""
         uri = self._sections[section_index][1]
         if len(uri.split()) == 1:

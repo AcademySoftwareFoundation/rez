@@ -41,7 +41,7 @@ from typing import Any, Iterator, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Self
-    from rez.packages import Package, Variant, PackageRepositoryResourceWrapper
+    from rez.packages import Package, PackageRepositoryResourceWrapper
     from rez.package_resources import PackageRepositoryResource, VariantResource
 
 debug_print = config.debug_printer("resources")

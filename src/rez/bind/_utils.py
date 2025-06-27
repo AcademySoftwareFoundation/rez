@@ -82,7 +82,7 @@ def find_exe(name, filepath=None):
     return filepath
 
 
-def extract_version(exepath, version_arg, word_index=-1, version_rank: int=3):
+def extract_version(exepath, version_arg, word_index=-1, version_rank: int = 3):
     """Run an executable and get the program version.
 
     Args:

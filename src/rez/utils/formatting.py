@@ -308,7 +308,7 @@ def dict_to_attributes_code(dict_: dict) -> str:
     return '\n'.join(lines)
 
 
-def columnise(rows: Sequence[Sequence[Any]], padding: int=2) -> list[str]:
+def columnise(rows: Sequence[Sequence[Any]], padding: int = 2) -> list[str]:
     """Print rows of entries in aligned columns."""
     strs = []
     maxwidths = {}
@@ -333,7 +333,7 @@ def columnise(rows: Sequence[Sequence[Any]], padding: int=2) -> list[str]:
     return strs
 
 
-def print_colored_columns(printer: colorize.Printer, rows: Sequence[tuple], padding: int=2) -> None:
+def print_colored_columns(printer: colorize.Printer, rows: Sequence[tuple], padding: int = 2) -> None:
     """Like `columnise`, but with colored rows.
 
     Args:

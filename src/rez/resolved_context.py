@@ -44,7 +44,7 @@ from rez.utils.platform_ import platform_
 from contextlib import contextmanager
 from functools import wraps
 from enum import Enum
-from typing import cast, Any, Callable, Iterable, Iterator, Mapping, NoReturn, Sequence, TypeVar, \
+from typing import Any, Callable, Iterable, Iterator, Mapping, NoReturn, Sequence, TypeVar, \
     TYPE_CHECKING, overload
 import getpass
 import json
@@ -853,7 +853,7 @@ class ResolvedContext(object):
         return d
 
     @pool_memcached_connections
-    def print_info(self, buf: SupportsWrite = sys.stdout, verbosity: int=0,
+    def print_info(self, buf: SupportsWrite = sys.stdout, verbosity: int = 0,
                    source_order: bool = False, show_resolved_uris: bool = False) -> None:
         """Prints a message summarising the contents of the resolved context.
 

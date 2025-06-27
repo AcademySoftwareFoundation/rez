@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from typing import TypedDict  # not available until python 3.8
     from rez.developer_package import DeveloperPackage
     from rez.resolved_context import ResolvedContext
-    from rez.packages import Package, Variant
+    from rez.packages import Variant
     from rez.rex import RexExecutor
 
     # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped

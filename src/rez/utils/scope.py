@@ -8,7 +8,7 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from collections import UserDict
 import sys
 
-from typing import cast, Any, TYPE_CHECKING, ClassVar, NoReturn
+from typing import cast, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Self

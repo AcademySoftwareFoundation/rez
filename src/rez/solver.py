@@ -784,7 +784,10 @@ class _PackageVariantSlice(_Common):
         #
         self.sort_versions()
 
-        def _split(i_entry: int, n_variants: int, common_fams: set[str] | None = None) -> tuple[_PackageVariantSlice, _PackageVariantSlice]:
+        def _split(i_entry: int,
+                   n_variants: int,
+                   common_fams: set[str] | None = None
+                   ) -> tuple[_PackageVariantSlice, _PackageVariantSlice]:
             # perform a split at a specific point
             result = self.entries[i_entry].split(n_variants)
 
@@ -1617,7 +1620,7 @@ class _ResolvePhase(_Common):
             counter[0] += 1
             return "_%d" % id_
 
-        def _add_edge(id1: str, id2: str, arrowsize: float=0.5) -> tuple[str, str]:
+        def _add_edge(id1: str, id2: str, arrowsize: float = 0.5) -> tuple[str, str]:
             e = (id1, id2)
             if g.has_edge(e):
                 g.del_edge(e)

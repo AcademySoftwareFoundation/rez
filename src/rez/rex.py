@@ -253,7 +253,7 @@ class ActionManager(object):
         except (KeyError, ValueError):
             return value
 
-    def _expand(self, value: str) :
+    def _expand(self, value: str):
         def _fn(str_):
             str_ = expandvars(str_, self.environ)
             str_ = expandvars(str_, self.parent_environ)

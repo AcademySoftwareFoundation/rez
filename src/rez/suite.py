@@ -14,7 +14,7 @@ from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.utils.yaml import dump_yaml
 from collections import defaultdict
-from typing import cast, Callable, TYPE_CHECKING, Any, NoReturn
+from typing import cast, TYPE_CHECKING, Any, NoReturn
 import os
 import os.path
 import shutil

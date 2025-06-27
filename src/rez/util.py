@@ -102,7 +102,7 @@ def which(*programs, **shutilwhich_kwargs) -> str | None:
 
 
 # case-insensitive fuzzy string match
-def get_close_matches(term: str, fields, fuzziness: float=0.4, key=None):
+def get_close_matches(term: str, fields, fuzziness: float = 0.4, key=None):
     import math
     import difflib
 
@@ -130,7 +130,7 @@ def get_close_matches(term: str, fields, fuzziness: float=0.4, key=None):
 
 
 # fuzzy string matching on package names, such as 'boost', 'numpy-3.4'
-def get_close_pkgs(pkg, pkgs, fuzziness: float=0.4):
+def get_close_pkgs(pkg, pkgs, fuzziness: float = 0.4):
     matches = get_close_matches(pkg, pkgs, fuzziness=fuzziness)
     fam_matches = get_close_matches(pkg.split('-')[0], pkgs,
                                     fuzziness=fuzziness,

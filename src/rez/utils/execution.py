@@ -8,8 +8,6 @@ Utilities related to process/script execution.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from rez.utils.yaml import dump_yaml
 from contextlib import contextmanager
 from enum import Enum

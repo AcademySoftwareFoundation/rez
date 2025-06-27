@@ -27,7 +27,6 @@ import sys
 from typing import overload, Any, Iterator, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Literal  # not available in typing module until 3.8
     from rez.config import Config
     from rez.developer_package import DeveloperPackage
     from rez.version import Requirement
@@ -710,9 +709,11 @@ def get_developer_package(path: str, format: FileFormat | None = None) -> Develo
 def create_package(name: str, data: dict, package_cls: type[PackageT]) -> PackageT:
     pass
 
+
 @overload
 def create_package(name: str, data: dict) -> Package:
     pass
+
 
 def create_package(name: str, data: dict, package_cls: type[Package] | None = None) -> Package:
     """Create a package given package data.

@@ -51,7 +51,7 @@ class PackageTestRunner(object):
     """
     def __init__(self, package_request, use_current_env: bool = False,
                  extra_package_requests=None, package_paths=None, stdout=None,
-                 stderr=None, verbose: int=0, dry_run: bool = False, stop_on_fail: bool = False,
+                 stderr=None, verbose: int = 0, dry_run: bool = False, stop_on_fail: bool = False,
                  cumulative_test_results=None, **context_kwargs) -> None:
         """Create a package tester.
 

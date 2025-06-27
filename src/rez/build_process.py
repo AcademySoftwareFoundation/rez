@@ -450,7 +450,7 @@ class BuildProcessHelper(BuildProcess):
                 txt = txt % nargs
             print(txt)
 
-    def _print_header(self, txt, n: int=1) -> None:
+    def _print_header(self, txt, n: int = 1) -> None:
         if self.quiet:
             return
 

@@ -18,7 +18,7 @@ from hashlib import sha1
 from typing import Any, Callable, Iterator, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from rez.package_order import PackageOrder, PackageOrderList
+    from rez.package_order import PackageOrderList
     from rez.resolved_context import ResolvedContext
     from rez.utils.typing import SupportsWrite
 

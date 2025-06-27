@@ -83,7 +83,7 @@ class Client(object):
                 responders.add(server)
         return responders
 
-    def set(self, key: str, val: Any, time: int=0, min_compress_len: int=0) -> None:
+    def set(self, key: str, val: Any, time: int = 0, min_compress_len: int = 0) -> None:
         """See memcache.Client."""
         if not self.servers:
             return
@@ -269,8 +269,8 @@ def pool_memcached_connections(func):
     return update_wrapper(wrapper, func)
 
 
-def memcached(servers, key=None, from_cache=None, to_cache=None, time: int=0,
-              min_compress_len: int=0, debug: bool = False) -> Callable[[CallableT], CallableT]:
+def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
+              min_compress_len: int = 0, debug: bool = False) -> Callable[[CallableT], CallableT]:
     """memcached memoization function decorator.
 
     The wrapped function is expected to return a value that is stored to a

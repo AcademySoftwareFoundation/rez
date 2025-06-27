@@ -41,7 +41,7 @@ class TestTest(TestBase, TempdirMixin):
         # This will get us more code coverage :)
         self._run_tests(context, verbose=0)
 
-    def _run_tests(self, r, verbose: int=2) -> None:
+    def _run_tests(self, r, verbose: int = 2) -> None:
         """Run unit tests in package.py"""
         self.inject_python_repo()
         runner = PackageTestRunner(

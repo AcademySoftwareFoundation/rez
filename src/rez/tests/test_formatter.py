@@ -53,7 +53,7 @@ class TestFormatter(TestBase):
 
         # classes we'll use for testing
         class C(object):
-            def __init__(self, x: int=100) -> None:
+            def __init__(self, x: int = 100) -> None:
                 self._x = x
 
             def __format__(self, spec) -> str:
