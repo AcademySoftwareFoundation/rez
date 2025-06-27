@@ -10,12 +10,13 @@ from bisect import bisect_left
 import copy
 import string
 import re
-from typing import cast, Any, Callable, Iterable, TypeVar, TYPE_CHECKING, overload
+from typing import cast, Any, Callable, Generic, Iterable, TypeVar, TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
+T = TypeVar("T")
 CallableT = TypeVar("CallableT", bound=Callable)
 
 re_token = re.compile(r"[a-zA-Z0-9_]+")
@@ -1208,9 +1209,9 @@ class VersionRange(_Comparable):
 
         return False
 
-    def iter_intersect_test(self, iterable: Iterable[Any],
-                            key: Callable[[Any], Version] | None = None,
-                            descending: bool = False) -> _ContainsVersionIterator[Any]:
+    def iter_intersect_test(self, iterable: Iterable[T],
+                            key: Callable[[T], Version] | None = None,
+                            descending: bool = False) -> _ContainsVersionIterator[T]:
         """Performs containment tests on a sorted list of versions.
 
         This is more optimal than performing separate containment tests on a
@@ -1231,9 +1232,9 @@ class VersionRange(_Comparable):
         """
         return _ContainsVersionIterator(self, iterable, key, descending)
 
-    def iter_intersecting(self, iterable: Iterable[Any],
-                          key: Callable[[Any], Version] | None = None,
-                          descending: bool = False) -> _ContainsVersionIterator[Any]:
+    def iter_intersecting(self, iterable: Iterable[T],
+                          key: Callable[[T], Version] | None = None,
+                          descending: bool = False) -> _ContainsVersionIterator[T]:
         """Like :meth:iter_intersect_test`, but returns intersections only.
 
         Returns:
@@ -1243,9 +1244,9 @@ class VersionRange(_Comparable):
             self, iterable, key, descending, mode=_ContainsVersionIterator.MODE_INTERSECTING
         )
 
-    def iter_non_intersecting(self, iterable: Iterable[Any],
-                              key: Callable[[Any], Version] | None = None,
-                              descending: bool = False) -> _ContainsVersionIterator[Any]:
+    def iter_non_intersecting(self, iterable: Iterable[T],
+                              key: Callable[[T], Version] | None = None,
+                              descending: bool = False) -> _ContainsVersionIterator[T]:
         """Like :meth:`iter_intersect_test`, but returns non-intersections only.
 
         Returns:
@@ -1453,13 +1454,13 @@ class VersionRange(_Comparable):
         return False
 
 
-class _ContainsVersionIterator(object):
+class _ContainsVersionIterator(Generic[T]):
     MODE_INTERSECTING = 0
     MODE_NON_INTERSECTING = 2
     MODE_ALL = 3
 
-    def __init__(self, range_: VersionRange, iterable: Iterable[Any],
-                 key: Callable[[Any], Version] | None = None,
+    def __init__(self, range_: VersionRange, iterable: Iterable[T],
+                 key: Callable[[T], Version] | None = None,
                  descending: bool = False, mode: int = MODE_ALL) -> None:
         self.mode = mode
         self.range_ = range_
@@ -1470,10 +1471,10 @@ class _ContainsVersionIterator(object):
         self.it = iter(iterable)
         if key is None:
             # FIXME: this case seems to assume that iterable is Iterable[Version]
-            key = cast(Callable[[Any], Version], lambda x: x)  # noqa: E731
+            key = cast(Callable[[T], Version], lambda x: x)  # noqa: E731
         self.keyfunc = key
 
-        self.next_fn: Callable[[], tuple[bool, Any]] | Callable[[], Any]
+        self.next_fn: Callable[[], tuple[bool, T]] | Callable[[], T]
         if mode == self.MODE_ALL:
             self.next_fn = self._next
         elif mode == self.MODE_INTERSECTING:
@@ -1481,16 +1482,16 @@ class _ContainsVersionIterator(object):
         else:
             self.next_fn = self._next_non_intersecting
 
-    def __iter__(self) -> _ContainsVersionIterator[Any]:
+    def __iter__(self) -> _ContainsVersionIterator[T]:
         return self
 
-    def __next__(self) -> Any | tuple[bool, Any]:
+    def __next__(self) -> T | tuple[bool, T]:
         return self.next_fn()
 
-    def next(self) -> Any | tuple[bool, Any]:
+    def next(self) -> T | tuple[bool, T]:
         return self.next_fn()
 
-    def _next(self) -> tuple[bool, Any]:
+    def _next(self) -> tuple[bool, T]:
         value = next(self.it)
         if self._constant is not None:
             return self._constant, value
@@ -1499,7 +1500,7 @@ class _ContainsVersionIterator(object):
         intersects = self.fn(version)
         return intersects, value
 
-    def _next_intersecting(self) -> Any:
+    def _next_intersecting(self) -> T:
         while True:
             value = next(self.it)
 
@@ -1513,7 +1514,7 @@ class _ContainsVersionIterator(object):
             if intersects:
                 return value
 
-    def _next_non_intersecting(self) -> Any:
+    def _next_non_intersecting(self) -> T:
         while True:
             value = next(self.it)
 
