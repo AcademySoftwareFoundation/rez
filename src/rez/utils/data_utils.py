@@ -10,11 +10,10 @@ from __future__ import annotations
 import os.path
 import json
 import functools
-from collections.abc import MutableMapping
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
-from typing import Any, Callable, Generic, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, Generic, MutableMapping, TypeVar, TYPE_CHECKING
 
 T = TypeVar("T")
 
