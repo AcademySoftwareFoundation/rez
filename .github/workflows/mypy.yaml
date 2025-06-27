@@ -43,7 +43,7 @@ jobs:
       - name: Run mypy
         run: >-
           echo "To update the baseline run:"
-          echo "mypy | mypy-baseline sync --ignore-categories=note"
+          echo "mypy | mypy-baseline sync --ignore-categories note syntax --ignore ".* is not subscriptable.*""
           echo "then commit mypy-baseline.txt"
           echo
           mypy | mypy-baseline filter --ignore-categories=note --allow-unsynced

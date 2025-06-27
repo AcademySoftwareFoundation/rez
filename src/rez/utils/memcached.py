@@ -14,7 +14,7 @@ from functools import update_wrapper
 from inspect import isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
-from typing import Callable, Iterator, TypeVar
+from typing import Any, Callable, Iterator, TypeVar
 
 
 CallableT = TypeVar("CallableT", bound=Callable)
