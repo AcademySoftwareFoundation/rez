@@ -1697,7 +1697,7 @@ class ResolvedContext(object):
 
         data = d.get("package_orderers")
         if data:
-            r.package_orderers = [package_order.from_pod(x) for x in data]
+            r.package_orderers = PackageOrderList([package_order.from_pod(x) for x in data])
         else:
             r.package_orderers = None
 
