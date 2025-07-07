@@ -326,7 +326,7 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            variant.repository.cache_variant(variant, rootpath)
         finally:
             still_copying = False
 
