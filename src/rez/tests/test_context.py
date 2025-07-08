@@ -353,6 +353,35 @@ class TestContext(TestBase, TempdirMixin):
         lock_request = get_lock_request(pkg, version, patch_lock)
         self.assertEqual(lock_request, expected_lock_request)
 
+    def test_serialize_roundtrip_with_extra_settings(self):
+        from rez.package_order import VersionSplitPackageOrder
+        from rez.version import Version
+
+        packages_path = self.data_path("solver", "packages")
+
+        file = os.path.join(self.root, "roundtrip.rxt")
+        orderers = [VersionSplitPackageOrder(Version("2.6.8"))]
+        r1 = ResolvedContext(
+            ["python"],
+            package_orderers=orderers,
+            package_paths=[packages_path],
+        )
+        r1.save(file)
+        r2 = ResolvedContext.load(file)
+
+        self.assertEqual(r1, r2)
+
+        ignored_properties = [
+            'load_path',
+            'graph_string',
+            'graph_'
+        ]
+        for k, v in r1.__dict__.items():
+            if k in ignored_properties:
+                continue
+            # check types here, as not all type instances are comparable
+            self.assertIs(type(v), type(r2.__dict__.get(k)))
+
 
 if __name__ == '__main__':
     unittest.main()
