@@ -373,9 +373,6 @@ class RezPluginManager(object):
         """Return the class registered under the given plugin name."""
         plugin = self._get_plugin_type(plugin_type)
         cls = plugin.get_plugin_class(plugin_name)
-        if expected_type is not None and not isinstance(cls, type) and issubclass(cls, expected_type):
-            raise RezPluginError("%s: Plugin class for %s was not the expected type: %s != %s"
-                                 % (plugin.pretty_type_name, plugin_name, cls, expected_type))
         return cls
 
     def get_plugin_module(self, plugin_type: str, plugin_name: str) -> types.ModuleType:
