@@ -10,6 +10,7 @@ from shlex import quote
 import subprocess
 
 from rez.utils.filesystem import make_path_writable
+from rez.utils.execution import Popen
 
 
 def get_rpaths(elfpath):
@@ -54,10 +55,11 @@ def patch_rpaths(elfpath, rpaths):
 
 
 def _run(*nargs, **popen_kwargs):
-    proc = subprocess.Popen(
+    proc = Popen(
         nargs,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        text=True,
         **popen_kwargs
     )
 

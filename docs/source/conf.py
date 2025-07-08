@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "myst_parser",
+    "sphinxcontrib.googleanalytics",
     # Rez custom extension
     'rez_sphinxext'
 ]
@@ -116,6 +117,19 @@ extlinks = {
 # https://www.sphinx-doc.org/en/master/usage/extensions/todo.html
 
 todo_emit_warnings = False
+
+# -- Options for googleanalytics extension ----------------------------------
+# https://github.com/sphinx-contrib/googleanalytics
+
+# ReadTheDocs used to support Google Analytics natively. But they no more do
+# since July 2024. See https://github.com/readthedocs/readthedocs.org/issues/9530#issuecomment-2233541583
+
+if not os.environ.get("READTHEDOCS"):
+    # Don't activate if run locally
+    googleanalytics_enabled = False
+
+# https://jira.linuxfoundation.org/plugins/servlet/desk/portal/2/IT-26436
+googleanalytics_id = "G-G11PX36QZS"
 
 
 # -- Custom -----------------------------------------------------------------

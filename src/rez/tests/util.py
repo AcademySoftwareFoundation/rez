@@ -187,33 +187,12 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
 def program_dependent(program_name, *program_names):
     """Function decorator that skips the function if not all given programs are
     visible."""
-    import subprocess
-
-    program_tests = {
-        "cmake": ['cmake', '-h'],
-        "make": ['make', '-h'],
-        "g++": ["g++", "--help"]
-    }
-
-    # test if programs all exist
-    def _test(name):
-        command = program_tests[name]
-
-        with open(os.devnull, 'wb') as DEVNULL:
-            try:
-                subprocess.check_call(command, stdout=DEVNULL, stderr=DEVNULL)
-            except (OSError, IOError, subprocess.CalledProcessError):
-                return False
-            else:
-                return True
-
     names = [program_name] + list(program_names)
-    all_exist = all(_test(x) for x in names)
 
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            if not all_exist:
+            if not all(shutil.which(x) for x in names):
                 self.skipTest(
                     "Requires all programs to be present and functioning: %s"
                     % names
@@ -222,6 +201,21 @@ def program_dependent(program_name, *program_names):
             return func(self, *args, **kwargs)
         return wrapper
     return decorator
+
+
+def get_available_shells():
+    """Helper to get all available shells in a testing context."""
+    shells = get_shell_types()
+
+    only_shell = os.getenv("__REZ_SELFTEST_SHELL")
+    if only_shell:
+        shells = [only_shell]
+
+    # filter to only those shells available
+    return [
+        x for x in shells
+        if get_shell_class(x).is_available()
+    ]
 
 
 def per_available_shell(exclude=None):
