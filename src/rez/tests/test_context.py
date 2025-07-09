@@ -308,14 +308,14 @@ class TestContext(TestBase, TempdirMixin):
                 solver_callback_return = SolverCallbackReturn.keep_going
                 abort_reason = 'No reason'
             return solver_callback_return, abort_reason
-
         callback = ResolvedContext.Callback(max_fails=999, time_limit=0, callback=solver_callback, buf=sys.stdout)
         solve_state = SolverState(3, 1, None)
-        with unittest.mock.patch('rez.resolved_context.ResolvedContext.Callback') as mock_callback:
-            # Mock start time to be Jan 1, 1970.
-            mock_callback.start_time.return_value = 0
-            callback_result = callback(solve_state)
-            assert callback_result[0] == SolverCallbackReturn.abort
+
+        # Mock start time to be Jan 1, 1970.
+        callback.start_time = 0
+
+        callback_result = callback(solve_state)
+        assert callback_result[0] == SolverCallbackReturn.abort
 
     def test_get_lock_request_1(self):
         pkg = 'foo'
