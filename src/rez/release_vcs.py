@@ -27,12 +27,12 @@ def create_release_vcs(path: str, vcs_name: str | None = None) -> ReleaseVCS:
     if vcs_name:
         if vcs_name not in vcs_types:
             raise ReleaseVCSError("Unknown version control system: %r" % vcs_name)
-        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name, expected_type=ReleaseVCS)
+        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
         return cls(path)
 
     classes_by_level = {}
     for vcs_name in vcs_types:
-        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name, expected_type=ReleaseVCS)
+        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
         result = cls.find_vcs_root(path)
         if not result:
             continue

@@ -60,7 +60,7 @@ def create_build_process(process_type: str,
     if process_type not in process_types:
         raise BuildProcessError("Unknown build process: %r" % process_type)
 
-    cls = plugin_manager.get_plugin_class('build_process', process_type, BuildProcess)
+    cls = plugin_manager.get_plugin_class('build_process', process_type)
 
     return cls(working_dir,  # ignored (deprecated)
                build_system,

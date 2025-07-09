@@ -69,13 +69,13 @@ def get_valid_build_systems(working_dir: str,
 
         # package explicitly specifies build system
         if buildsys_name:
-            cls = plugin_manager.get_plugin_class('build_system', buildsys_name, BuildSystem)
+            cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
             return [cls]
 
     # detect valid build systems
     clss = []
     for buildsys_name_ in get_buildsys_types():
-        cls = plugin_manager.get_plugin_class('build_system', buildsys_name_, BuildSystem)
+        cls = plugin_manager.get_plugin_class('build_system', buildsys_name_)
         if cls.is_valid_root(working_dir, package=package):
             clss.append(cls)
 
@@ -115,7 +115,7 @@ def create_build_system(working_dir: str,
         buildsys_type = next(iter(clss)).name()
 
     # create instance of build system
-    cls_ = plugin_manager.get_plugin_class('build_system', buildsys_type, BuildSystem)
+    cls_ = plugin_manager.get_plugin_class('build_system', buildsys_type)
 
     return cls_(working_dir,
                 opts=opts,

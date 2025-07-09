@@ -40,7 +40,7 @@ def create_memory_package_repository(repository_data: dict) -> MemoryPackageRepo
         `PackageRepository` object.
     """
     from rezplugins.package_repository.memory import MemoryPackageRepository  # noqa
-    cls_ = plugin_manager.get_plugin_class("package_repository", "memory", MemoryPackageRepository)
+    cls_ = plugin_manager.get_plugin_class("package_repository", "memory")
     return cls_.create_repository(repository_data)
 
 
@@ -658,7 +658,7 @@ class PackageRepositoryManager(object):
 
     def _get_repository(self, path: str, **repo_args: Any) -> PackageRepository:
         repo_type, location = path.split('@', 1)
-        cls = plugin_manager.get_plugin_class('package_repository', repo_type, PackageRepository)
+        cls = plugin_manager.get_plugin_class('package_repository', repo_type)
         repo = cls(location, self.pool, **repo_args)
         return repo
 

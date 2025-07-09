@@ -14,11 +14,21 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
-from typing import overload, Any, TypeVar
+from typing import overload, Any, TypeVar, TYPE_CHECKING
 import pkgutil
 import os.path
 import sys
 import types
+
+if TYPE_CHECKING:
+    from typing import Literal  # not available in typing module until 3.8
+    from rez.shells import Shell
+    from rez.release_vcs import ReleaseVCS
+    from rez.release_hook import ReleaseHook
+    from rez.build_process import BuildProcess
+    from rez.build_system import BuildSystem
+    from rez.package_repository import PackageRepository
+    from rez.command import Command
 
 T = TypeVar("T")
 
@@ -362,18 +372,37 @@ class RezPluginManager(object):
         return list(self._get_plugin_type(plugin_type).plugin_classes.keys())
 
     @overload
-    def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:
+    def get_plugin_class(self, plugin_type: Literal["shell"], plugin_name: str) -> type[Shell]:
         pass
 
     @overload
-    def get_plugin_class(self, plugin_type: str, plugin_name: str, expected_type: type[T]) -> type[T]:
+    def get_plugin_class(self, plugin_type: Literal["release_vcs"], plugin_name: str) -> type[ReleaseVCS]:
         pass
 
-    def get_plugin_class(self, plugin_type: str, plugin_name: str, expected_type: type | None = None) -> type:
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["release_hook"], plugin_name: str) -> type[ReleaseHook]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["package_repository"], plugin_name: str) -> type[PackageRepository]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["build_system"], plugin_name: str) -> type[BuildSystem]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["build_process"], plugin_name: str) -> type[BuildProcess]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["command"], plugin_name: str) -> type[Command]:
+        pass
+
+    def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:
         """Return the class registered under the given plugin name."""
         plugin = self._get_plugin_type(plugin_type)
-        cls = plugin.get_plugin_class(plugin_name)
-        return cls
+        return plugin.get_plugin_class(plugin_name)
 
     def get_plugin_module(self, plugin_type: str, plugin_name: str) -> types.ModuleType:
         """Return the module defining the class registered under the given

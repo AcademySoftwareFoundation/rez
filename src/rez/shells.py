@@ -52,7 +52,7 @@ def get_shell_class(shell: str | None = None) -> type[Shell]:
             shell = system.shell
 
     from rez.plugin_managers import plugin_manager
-    return plugin_manager.get_plugin_class("shell", shell, Shell)
+    return plugin_manager.get_plugin_class("shell", shell)
 
 
 def create_shell(shell: str | None = None, **kwargs: Any) -> Shell:
