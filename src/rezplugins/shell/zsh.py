@@ -21,12 +21,12 @@ class Zsh(SH):
     histfile = "~/.zsh_history"
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'zsh'
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(cls, rcfile: bool = False, norc: bool = False, stdin: bool = False,
+                             command: bool = False):
         if norc:
             cls._overruled_option('rcfile', 'norc', rcfile)
             rcfile = False
@@ -73,7 +73,7 @@ class Zsh(SH):
             source_bind_files=not norc
         )
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         if config.set_prompt and self.settings.prompt:
             self._addline(r'if [ -z "$REZ_STORED_PROMPT_SH" ]; then export REZ_STORED_PROMPT_SH="$PS1"; fi')
             if config.prefix_prompt:

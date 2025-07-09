@@ -17,7 +17,7 @@ class BrowsePackagePane(QtWidgets.QTabWidget, ContextViewMixin):
     because it is intended to allow browsing of packages within an existing
     context.
     """
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(BrowsePackagePane, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 

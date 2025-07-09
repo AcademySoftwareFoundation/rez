@@ -5,9 +5,10 @@
 '''
 Report current status of the environment, or a tool or package etc.
 '''
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     tools_action = parser.add_argument(
         "-t", "--tools", action="store_true",
         help="List visible tools. In this mode, OBJECT can be a glob pattern "
@@ -22,7 +23,7 @@ def setup_parser(parser, completions=False):
         tools_action.completer = ExecutablesCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.status import status
     import sys
 

@@ -14,18 +14,18 @@ import os.path
 class Writer(QtCore.QObject):
     graph_written = QtCore.Signal(str, str)
 
-    def __init__(self, graph_str, filepath, prune_to=None):
+    def __init__(self, graph_str, filepath, prune_to=None) -> None:
         super(Writer, self).__init__()
         self.graph_str = graph_str
         self.filepath = filepath
         self.prune_to = prune_to
         self.process = None
 
-    def cancel(self):
+    def cancel(self) -> None:
         if self.process:
             self.process.terminate()
 
-    def write_graph(self):
+    def write_graph(self) -> None:
         if self.prune_to:
             graph_str = prune_graph(self.graph_str, self.prune_to)
         else:
@@ -41,7 +41,7 @@ class Writer(QtCore.QObject):
 
 
 class WriteGraphDialog(QtWidgets.QDialog):
-    def __init__(self, graph_str, filepath, parent=None, prune_to=None):
+    def __init__(self, graph_str, filepath, parent=None, prune_to=None) -> None:
         super(WriteGraphDialog, self).__init__(parent)
         self.setWindowTitle("Rendering graph...")
         self.writer = Writer(graph_str, filepath, prune_to)
@@ -72,27 +72,27 @@ class WriteGraphDialog(QtWidgets.QDialog):
         self.thread.join()
         return self.success
 
-    def reject(self):
+    def reject(self) -> None:
         if self._finished:
             super(WriteGraphDialog, self).reject()
         else:
             self._cancel()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         if self._finished:
             event.accept()
         else:
             self._cancel()
             event.ignore()
 
-    def _cancel(self):
+    def _cancel(self) -> None:
         self.bar.setMaximum(10)
         self.bar.setValue(10)
         self.cancel_btn.setText("Cancelling...")
         self.cancel_btn.setEnabled(False)
         self.writer.cancel()
 
-    def _graph_written(self, filepath, error_message):
+    def _graph_written(self, filepath, error_message) -> None:
         self._finished = True
         self.bar.setMaximum(10)
         self.bar.setValue(10)
@@ -110,7 +110,7 @@ class WriteGraphDialog(QtWidgets.QDialog):
 graph_file_lookup = {}
 
 
-def view_graph(graph_str, parent=None, prune_to=None):
+def view_graph(graph_str, parent=None, prune_to=None) -> None:
     """View a graph."""
     from rezgui.dialogs.ImageViewerDialog import ImageViewerDialog
     from rez.config import config

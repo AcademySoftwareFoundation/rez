@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import os.path
 import stat
@@ -15,8 +17,8 @@ from rez.utils.filesystem import is_subdirectory
 from rez.util import which
 
 
-def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
-                   quiet=False, patch_libs=False, verbose=False):
+def bundle_context(context, dest_dir, force: bool = False, skip_non_relocatable: bool = False,
+                   quiet: bool = False, patch_libs: bool = False, verbose: bool = False) -> None:
     """Bundle a context and its variants into a relocatable dir.
 
     This creates a copy of a context with its variants retargeted to a local
@@ -62,8 +64,8 @@ def bundle_context(context, dest_dir, force=False, skip_non_relocatable=False,
 class _ContextBundler(object):
     """Performs context bundling.
     """
-    def __init__(self, context, dest_dir, force=False, skip_non_relocatable=False,
-                 quiet=False, patch_libs=False, verbose=False):
+    def __init__(self, context, dest_dir, force: bool = False, skip_non_relocatable: bool = False,
+                 quiet: bool = False, patch_libs: bool = False, verbose: bool = False) -> None:
         if quiet:
             verbose = False
         if force:
@@ -112,18 +114,18 @@ class _ContextBundler(object):
     def _repo_path(self):
         return os.path.join(self.dest_dir, "packages")
 
-    def _info(self, msg, *nargs):
+    def _info(self, msg, *nargs) -> None:
         self.logs.append("INFO: %s" % (msg % nargs))
 
-    def _verbose_info(self, msg, *nargs):
+    def _verbose_info(self, msg, *nargs) -> None:
         if self.verbose:
             print_info(msg, *nargs)
 
-    def _warning(self, msg, *nargs):
+    def _warning(self, msg, *nargs) -> None:
         print_warning(msg, *nargs)
         self.logs.append("WARNING: %s" % (msg % nargs))
 
-    def _init_bundle(self):
+    def _init_bundle(self) -> None:
         os.mkdir(self.dest_dir)
         os.mkdir(self._repo_path)
 
@@ -143,7 +145,7 @@ class _ContextBundler(object):
         settings_filepath = os.path.join(self._repo_path, "settings.yaml")
         save_yaml(settings_filepath, disable_memcached=True)
 
-    def _finalize_bundle(self):
+    def _finalize_bundle(self) -> None:
         # write metafile
         bundle_metafile = os.path.join(self.dest_dir, "bundle.yaml")
         save_yaml(bundle_metafile, logs=self.logs)
@@ -181,7 +183,7 @@ class _ContextBundler(object):
 
         return relocated_package_names
 
-    def _write_retargeted_context(self, relocated_package_names):
+    def _write_retargeted_context(self, relocated_package_names) -> None:
         rxt_filepath = os.path.join(self.dest_dir, "context.rxt")
 
         bundled_context = self.context.retargeted(
@@ -193,14 +195,14 @@ class _ContextBundler(object):
         bundled_context.save(rxt_filepath)
         self._verbose_info("Bundled context written to to %s", rxt_filepath)
 
-    def _patch_libs(self):
+    def _patch_libs(self) -> None:
         # TODO
         if platform_.name in ("osx", "windows"):
             return
 
         self._patch_libs_linux()
 
-    def _patch_libs_linux(self):
+    def _patch_libs_linux(self) -> None:
         """Fix elfs that reference elfs outside of the bundle.
 
         Finds elf files, inspects their runpath/rpath, then looks to see if
@@ -313,7 +315,7 @@ class _ContextBundler(object):
                 elf, ':'.join(rpaths), ':'.join(new_rpaths)
             )
 
-    def _find_files(self, executable=False, filename_substrs=None):
+    def _find_files(self, executable: bool = False, filename_substrs=None):
         found_files = []
 
         # iterate over payload of each package

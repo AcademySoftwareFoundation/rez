@@ -2,7 +2,7 @@
 # Copyright Contributors to the Rez Project
 
 
-"""
+r"""
 Rez configuration settings. Do not change this file.
 
 Settings are determined in the following way (higher number means higher
@@ -45,6 +45,7 @@ attention to the comment formatting and follow the existing style closely.
 """
 
 # flake8: noqa
+from __future__ import annotations
 
 import os
 

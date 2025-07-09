@@ -20,7 +20,7 @@ import os.path
 
 class CompareCell(QtWidgets.QWidget):
     def __init__(self, context_model, variant_left=None, variant_right=None,
-                 parent=None):
+                 parent=None) -> None:
         super(CompareCell, self).__init__(parent)
         self.context_model = context_model
         self.left_variant = variant_left
@@ -96,13 +96,13 @@ class CompareCell(QtWidgets.QWidget):
                         parent_widget=self)
             widget.clicked.connect(self._clicked)
 
-    def left(self):
+    def left(self) -> bool:
         return (self.side in ("left", "both"))
 
-    def right(self):
+    def right(self) -> bool:
         return (self.side in ("right", "both"))
 
-    def _clicked(self):
+    def _clicked(self) -> None:
         if self.comparable:
             from rezgui.dialogs.VariantVersionsDialog import VariantVersionsDialog
             dlg = VariantVersionsDialog(self.context_model, self.left_variant,
@@ -147,7 +147,7 @@ class CompareCell(QtWidgets.QWidget):
                 "the package in the reference resolve (%s)"
                 % (self.left_variant.uri, self.right_variant.uri))
 
-    def _set_color(self, *c):
+    def _set_color(self, *c) -> None:
         f = 0.8
         col = self.palette().color(QtGui.QPalette.Active, QtGui.QPalette.Base)
         bg_c = (col.redF(), col.greenF(), col.blueF())
@@ -158,7 +158,7 @@ class CompareCell(QtWidgets.QWidget):
 
 
 class CellDelegate(QtWidgets.QStyledItemDelegate):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(CellDelegate, self).__init__(parent)
         pal = self.parent().palette()
         col = pal.color(QtGui.QPalette.Active, QtGui.QPalette.Button)
@@ -186,7 +186,7 @@ class CellDelegate(QtWidgets.QStyledItemDelegate):
         grad.setColorAt(1, c1)
         self.highlight_brush = QtGui.QBrush(grad)
 
-    def paint(self, painter, option, index):
+    def paint(self, painter, option, index) -> None:
         row = index.row()
         column = index.column()
         table = self.parent()
@@ -197,7 +197,7 @@ class CellDelegate(QtWidgets.QStyledItemDelegate):
         oldpen = painter.pen()
         pal = table.palette()
 
-        def _setpen(to_stale):
+        def _setpen(to_stale) -> None:
             pen = self.stale_pen if stale and to_stale else self.pen
             painter.setPen(pen)
 
@@ -238,7 +238,7 @@ class CellDelegate(QtWidgets.QStyledItemDelegate):
             # draw the curvy bits in the comparison column
             draw_right_edge = True
 
-            def _draw_path():
+            def _draw_path() -> None:
                 painter.setRenderHints(QtGui.QPainter.Antialiasing, True)
                 painter.drawPath(self.path)
                 painter.resetTransform()
@@ -291,7 +291,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
     short_double_arrow = u"\u21D4"
     variantSelected = QtCore.Signal(object)
 
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         """Create a context table."""
         super(ContextTableWidget, self).__init__(self.default_row_count,
                                                  2, parent)
@@ -336,7 +336,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         """Returns the currently selected variant, if any."""
         return self._current_variant
 
-    def show_effective_request(self, b):
+    def show_effective_request(self, b) -> None:
         if b != self._show_effective_request:
             self._show_effective_request = b
             self._update_request_column(0, self.context_model)
@@ -351,7 +351,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         """
         return self._get_request(0)
 
-    def enter_diff_mode(self, context_model=None):
+    def enter_diff_mode(self, context_model=None) -> None:
         """Enter diff mode.
 
         Args:
@@ -372,7 +372,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         self.setColumnCount(5)
         self.refresh()
 
-    def leave_diff_mode(self):
+    def leave_diff_mode(self) -> None:
         """Leave diff mode."""
         assert self.diff_mode
         self.diff_mode = False
@@ -381,12 +381,12 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         self.setColumnCount(2)
         self.refresh()
 
-    def revert_to_diff(self):
+    def revert_to_diff(self) -> None:
         assert self.diff_mode
         source_context = self.diff_context_model.context()
         self.context_model.set_context(source_context)
 
-    def revert_to_disk(self):
+    def revert_to_disk(self) -> None:
         filepath = self.context_model.filepath()
         assert filepath
         disk_context = app.load_context(filepath)
@@ -415,20 +415,20 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
 
     # Stops focus loss when a widget inside the table is selected. In an MDI app
     # this can cause the current subwindow to lose focus.
-    def clear(self):
+    def clear(self) -> None:
         self.setFocus()
         super(ContextTableWidget, self).clear()
 
-    def select_variant(self, name):
+    def select_variant(self, name) -> None:
         for row, widget in self._iter_column_widgets(1, VariantCellWidget):
             if widget.variant.name == str(name):
                 self.setCurrentIndex(self.model().index(row, 1))
                 return
 
-    def refresh(self):
+    def refresh(self) -> None:
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         update_request_columns = {}
 
         # apply request and variant widgets to columns
@@ -486,7 +486,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
 
         self.update()
 
-    def _update_request_column(self, column, context_model):
+    def _update_request_column(self, column, context_model) -> None:
         # remove effective request cells
         for row, widget in self._iter_column_widgets(column, EffectivePackageCellWidget):
             self.removeCellWidget(row, column)
@@ -519,7 +519,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
                 and not widget.read_only)
 
     def _currentCellChanged(self, currentRow, currentColumn,
-                            previousRow, previousColumn):
+                            previousRow, previousColumn) -> None:
         widget = self.cellWidget(currentRow, currentColumn)
         if self._widget_is_selectable(widget):
             self._current_variant = widget.variant
@@ -543,7 +543,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
 
     # this is only here to clear the current index, which leaves an annoying
     # visual cue even though the cell is not selected
-    def _itemSelectionChanged(self):
+    def _itemSelectionChanged(self) -> None:
         if not self.selectedIndexes():
             self.setCurrentIndex(QtCore.QModelIndex())
 
@@ -562,7 +562,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
                 request_strs.append(txt)
         return request_strs
 
-    def _apply_request(self, context_model, column):
+    def _apply_request(self, context_model, column) -> None:
         context = context_model.context()
         requests = context.requested_packages()
         num_requests = len(requests)
@@ -571,8 +571,8 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         self._set_package_cell(num_requests, column)
 
     def _apply_resolve(self, context_model, column, reference_column,
-                       hide_locks=False, read_only=False,
-                       reference_column_is_variants=False):
+                       hide_locks: bool = False, read_only: bool = False,
+                       reference_column_is_variants: bool = False) -> None:
         context = context_model.context()
         resolved = context.resolved_packages[:]
         consumed_rows = set()
@@ -611,7 +611,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
                                    hide_locks=hide_locks, read_only=read_only)
             row += 1
 
-    def _update_comparison_column(self, column):
+    def _update_comparison_column(self, column) -> None:
         #no_color = self.palette().color(QtGui.QPalette.Active, QtGui.QPalette.Base)
 
         for row in range(self.rowCount()):
@@ -645,15 +645,15 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
                                                  row, column))
         return edit
 
-    def _set_effective_package_cell(self, row, column, request, lock_type):
+    def _set_effective_package_cell(self, row, column, request, lock_type) -> None:
         if row >= self.rowCount():
             self.setRowCount(row + 1)
         cell = EffectivePackageCellWidget(request, lock_type)
         self.setCellWidget(row, column, cell)
 
     def _set_variant_cell(self, row, column, context_model, variant,
-                          reference_variant=None, hide_locks=False,
-                          read_only=False):
+                          reference_variant=None, hide_locks: bool = False,
+                          read_only: bool = False) -> None:
         if row >= self.rowCount():
             self.setRowCount(row + 1)
 
@@ -663,7 +663,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         self.setCellWidget(row, column, widget)
         widget._set_stale(column != 1)
 
-    def _set_cell_text(self, row, column, txt):
+    def _set_cell_text(self, row, column, txt) -> None:
         if row >= self.rowCount():
             self.setRowCount(row + 1)
 
@@ -672,12 +672,12 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         item = QtWidgets.QTableWidgetItem(txt)
         self.setItem(row, column, item)
 
-    def _packageTextChanged(self, row, column, txt):
+    def _packageTextChanged(self, row, column, txt) -> None:
         if txt:
             if self._set_package_cell(row + 1, column):
                 self._update_request_column(column, self.context_model)
 
-    def _packageFocusOutViaKeyPress(self, row, column, txt):
+    def _packageFocusOutViaKeyPress(self, row, column, txt) -> None:
         if txt:
             self._set_current_cell(row + 1, column)
         else:
@@ -689,7 +689,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
             self.context_model.set_request(new_request)
             self._update_request_column(column, self.context_model)
 
-    def _packageFocusOut(self, row, column, txt):
+    def _packageFocusOut(self, row, column, txt) -> None:
         if txt:
             self._set_package_cell(row + 1, column)
         else:
@@ -701,7 +701,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         self.context_model.set_request(new_request)
         self._update_request_column(column, self.context_model)
 
-    def _delete_cell(self, row, column):
+    def _delete_cell(self, row, column) -> None:
         for i in range(row, self.rowCount()):
             edit = self.cellWidget(i, column)
             if edit and isinstance(edit, PackageSelectWidget):
@@ -711,7 +711,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
                 else:
                     self.removeCellWidget(i, column)
 
-    def _trim_trailing_rows(self):
+    def _trim_trailing_rows(self) -> None:
         n = 0
         for i in reversed(range(self.default_row_count, self.rowCount())):
             row_clear = not any(self.cellWidget(i, x)
@@ -725,7 +725,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
             self.setRowCount(self.rowCount() - n)
             self._set_current_cell(row, column)
 
-    def _set_current_cell(self, row, column):
+    def _set_current_cell(self, row, column) -> None:
         self.setCurrentCell(row, column)
         edit = self.cellWidget(row, column)
         if edit:

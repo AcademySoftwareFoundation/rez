@@ -13,12 +13,12 @@ import unittest
 
 
 class TestPluginManagers(TestBase, TempdirMixin):
-    def __init__(self, *nargs, **kwargs):
+    def __init__(self, *nargs, **kwargs) -> None:
         TestBase.__init__(self, *nargs, **kwargs)
         self._reset_plugin_manager()
 
     @classmethod
-    def _reset_plugin_manager(cls):
+    def _reset_plugin_manager(cls) -> None:
         # for resetting package_repository type plugins
         package_repository_manager.clear_caches()
         package_repository_manager.pool.resource_classes.clear()
@@ -38,18 +38,18 @@ class TestPluginManagers(TestBase, TempdirMixin):
                 del sys.modules[key]
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.settings = {"debug_plugins": True}
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         cls._reset_plugin_manager()
 
-    def setUp(self):
+    def setUp(self) -> None:
         TestBase.setUp(self)
         self._reset_plugin_manager()
 
-    def test_old_loading_style(self):
+    def test_old_loading_style(self) -> None:
         """Test loading rez plugin from plugin_path"""
         self.update_settings(dict(
             plugin_path=[self.data_path("extensions", "foo")]
@@ -59,7 +59,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
             "package_repository", "cloud")
         self.assertEqual(cloud_cls.name(), "cloud")
 
-    def test_new_loading_style(self):
+    def test_new_loading_style(self) -> None:
         """Test loading rez plugin from python modules"""
         with restore_sys_path():
             sys.path.append(self.data_path("extensions"))
@@ -68,7 +68,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
                 "package_repository", "cloud")
             self.assertEqual(cloud_cls.name(), "cloud")
 
-    def test_plugin_override_1(self):
+    def test_plugin_override_1(self) -> None:
         """Test plugin from plugin_path can override the default"""
         self.update_settings(dict(
             plugin_path=[self.data_path("extensions", "non-mod")]
@@ -78,7 +78,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
             "package_repository", "memory")
         self.assertEqual("non-mod", mem_cls.on_test)
 
-    def test_plugin_override_2(self):
+    def test_plugin_override_2(self) -> None:
         """Test plugin from python modules can override the default"""
         with restore_sys_path():
             sys.path.append(self.data_path("extensions"))
@@ -87,7 +87,7 @@ class TestPluginManagers(TestBase, TempdirMixin):
                 "package_repository", "memory")
             self.assertEqual("bar", mem_cls.on_test)
 
-    def test_plugin_override_3(self):
+    def test_plugin_override_3(self) -> None:
         """Test plugin from python modules can override plugin_path"""
         with restore_sys_path():
             # setup new
