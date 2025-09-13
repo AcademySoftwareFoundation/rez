@@ -5,9 +5,10 @@
 '''
 Execute some Rex code and print the interpreted result.
 '''
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     from rez.shells import get_shell_types
     from rez.system import system
 
@@ -38,7 +39,7 @@ def setup_parser(parser, completions=False):
                                                file_patterns=["*.py", "*.rex"])
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.shells import create_shell
     from rez.utils.formatting import columnise
     from rez.rex import RexExecutor, Python

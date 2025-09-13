@@ -12,7 +12,7 @@ from rez.package_test import PackageTestRunner
 
 class TestTest(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         packages_path = cls.data_path("builds", "packages")
@@ -25,23 +25,23 @@ class TestTest(TestBase, TempdirMixin):
         )
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def test_1(self):
+    def test_1(self) -> None:
         """package.py unit tests are correctly run in a testing environment"""
         self.inject_python_repo()
         context = ResolvedContext(["testing_obj", "python"])
         self._run_tests(context)
 
-    def test_2(self):
+    def test_2(self) -> None:
         """package.py unit tests are correctly run in a testing environment when no verbosity is set"""
         self.inject_python_repo()
         context = ResolvedContext(["testing_obj", "python"])
         # This will get us more code coverage :)
         self._run_tests(context, verbose=0)
 
-    def _run_tests(self, r, verbose=2):
+    def _run_tests(self, r, verbose: int = 2) -> None:
         """Run unit tests in package.py"""
         self.inject_python_repo()
         runner = PackageTestRunner(

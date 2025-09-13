@@ -25,7 +25,7 @@ _thread = None
 _num_pending = 0
 
 
-def publish_message(host, amqp_settings, routing_key, data, block=True):
+def publish_message(host, amqp_settings, routing_key, data, block: bool = True):
     """Publish an AMQP message.
 
     Returns:
@@ -58,7 +58,7 @@ def publish_message(host, amqp_settings, routing_key, data, block=True):
     return True
 
 
-def _publish_message(host, amqp_settings, routing_key, data):
+def _publish_message(host, amqp_settings, routing_key, data) -> bool:
     """Publish an AMQP message.
 
     Returns:
@@ -123,7 +123,7 @@ def _publish_message(host, amqp_settings, routing_key, data):
     return True
 
 
-def _publish_messages_async():
+def _publish_messages_async() -> None:
     global _num_pending
 
     while True:
@@ -137,7 +137,7 @@ def _publish_messages_async():
 
 
 @atexit.register
-def on_exit():
+def on_exit() -> None:
     # Give pending messages a chance to publish, otherwise a command like
     # 'rez-env --output ...' could exit before the publish.
     #
@@ -159,7 +159,7 @@ def parse_host_and_port(url):
     return host, port
 
 
-def set_pika_log_level():
+def set_pika_log_level() -> None:
     mod_name = "rez.vendor.pika"
 
     if config.debug("context_tracking"):

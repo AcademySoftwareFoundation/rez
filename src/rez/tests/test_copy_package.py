@@ -22,7 +22,7 @@ from rez.tests.util import TestBase, TempdirMixin
 
 class TestCopyPackage(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         packages_path = cls.data_path("builds", "packages")
@@ -46,10 +46,10 @@ class TestCopyPackage(TestBase, TempdirMixin):
             implicit_packages=[])
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def setup_once(self):
+    def setup_once(self) -> None:
         # build packages used by this test
         self.inject_python_repo()
         self._build_package("build_util", "1")
@@ -66,7 +66,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
                                     build_system=buildsys)
 
     @classmethod
-    def _build_package(cls, name, version=None):
+    def _build_package(cls, name, version=None) -> None:
         # create the builder
         working_dir = os.path.join(cls.src_root, name)
         if version:
@@ -75,7 +75,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
 
         builder.build(install_path=cls.install_root, install=True, clean=True)
 
-    def _reset_dest_repository(self):
+    def _reset_dest_repository(self) -> None:
         system.clear_caches()
         if os.path.exists(self.dest_install_root):
             shutil.rmtree(self.dest_install_root)
@@ -98,11 +98,11 @@ class TestCopyPackage(TestBase, TempdirMixin):
             error=True
         )
 
-    def _assert_copied(self, result, copied, skipped):
+    def _assert_copied(self, result, copied, skipped) -> None:
         self.assertEqual(len(result["copied"]), copied)
         self.assertEqual(len(result["skipped"]), skipped)
 
-    def test_1(self):
+    def test_1(self) -> None:
         """Simple package copy, no variants, no overwrite."""
         self._reset_dest_repository()
 
@@ -135,7 +135,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         # check that package payload wasn't overwritten
         self.assertEqual(os.stat(pyfile).st_ctime, ctime)
 
-    def test_2(self):
+    def test_2(self) -> None:
         """Package copy, no variants, overwrite."""
         self._reset_dest_repository()
 
@@ -163,7 +163,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         # check that package payload was overwritten
         self.assertNotEqual(os.stat(pyfile).st_ctime, ctime)
 
-    def test_3(self):
+    def test_3(self) -> None:
         """Package copy, variants, overwrite and non-overwrite."""
         self._reset_dest_repository()
 
@@ -223,7 +223,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         pyfile = os.path.join(skipped_variant.root, "python", "bah", "__init__.py")
         self.assertEqual(os.stat(pyfile).st_ctime, ctimes[0])
 
-    def test_4(self):
+    def test_4(self) -> None:
         """Package copy with rename, reversion."""
         self._reset_dest_repository()
 
@@ -244,7 +244,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         dest_variant = next(dest_pkg.iter_variants())
         self.assertEqual(dest_variant.handle, result_variant.handle)
 
-    def test_5(self):
+    def test_5(self) -> None:
         """Package copy with standard, new timestamp."""
         self._reset_dest_repository()
 
@@ -262,7 +262,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         dest_pkg = self._get_dest_pkg("floob", "1.2.0")
         self.assertTrue(dest_pkg.timestamp > src_pkg.timestamp)
 
-    def test_6(self):
+    def test_6(self) -> None:
         """Package copy with keep_timestamp."""
         self._reset_dest_repository()
 
@@ -281,7 +281,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         dest_pkg = self._get_dest_pkg("floob", "1.2.0")
         self.assertEqual(dest_pkg.timestamp, src_pkg.timestamp)
 
-    def test_7(self):
+    def test_7(self) -> None:
         """Package copy with overrides."""
         self._reset_dest_repository()
 
@@ -305,7 +305,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         for k, v in list(overrides.items()):
             self.assertEqual(getattr(dest_pkg, k), v)
 
-    def test_8(self):
+    def test_8(self) -> None:
         """Ensure that include modules are copied."""
         self._reset_dest_repository()
 

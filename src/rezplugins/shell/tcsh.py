@@ -16,10 +16,10 @@ import os.path
 class TCSH(CSH):
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'tcsh'
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value, is_path: bool = False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -39,7 +39,7 @@ class TCSH(CSH):
             result += txt
         return result
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         super(TCSH, self)._bind_interactive_rez()
         completion = os.path.join(module_root_path, "completion", "complete.csh")
         self.source(completion)

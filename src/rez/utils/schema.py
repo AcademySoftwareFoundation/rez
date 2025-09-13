@@ -5,7 +5,13 @@
 """
 Utilities for working with dict-based schemas.
 """
+from __future__ import annotations
+
 from rez.vendor.schema.schema import Schema, Optional, Use, And
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.config import Validatable
 
 
 # an alias which just so happens to be the same number of characters as
@@ -13,7 +19,7 @@ from rez.vendor.schema.schema import Schema, Optional, Use, And
 Required = Schema
 
 
-def schema_keys(schema):
+def schema_keys(schema) -> set[str]:
     """Get the string values of keys in a dict-based schema.
 
     Non-string keys are ignored.
@@ -43,7 +49,7 @@ def schema_keys(schema):
     return keys
 
 
-def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None):
+def dict_to_schema(schema_dict, required, allow_custom_keys: bool = True, modifier=None) -> Validatable:
     """Convert a dict of Schemas into a Schema.
 
     Args:
@@ -68,7 +74,7 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None)
                 d[k] = _to(v)
             if allow_custom_keys:
                 d[Optional(str)] = modifier or object
-            schema = Schema(d)
+            schema: Validatable = Schema(d)
         elif modifier:
             schema = And(value, modifier)
         else:
