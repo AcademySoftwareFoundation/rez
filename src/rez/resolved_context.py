@@ -26,6 +26,7 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding, EphemeralsBinding, intersects
 from rez import package_order
 from rez.packages import get_variant, iter_packages
+from rez.package_hander import PackageHandler
 from rez.package_filter import PackageFilterList
 from rez.package_order import PackageOrderList
 from rez.package_cache import PackageCache
@@ -1500,7 +1501,25 @@ class ResolvedContext(object):
         if _add("resolved_packages"):
             resolved_packages = []
             for pkg in (self._resolved_packages or []):
-                resolved_packages.append(pkg.handle.to_dict())
+                d = pkg.handle.to_dict()
+                pkg_vars = d.get('variables')
+        
+                package_handler = PackageHandler(
+                    pkg_root=pkg_vars.get('location'),
+                    name=pkg_vars.get('name'),
+                    version=pkg_vars.get('version')
+                )
+                
+                # Fetch variant sub path for given index
+                if pkg_vars.get('index') is None:
+                    variant_path = None
+                else:
+                    variant_name = package_handler.get_variant_from_index(pkg_vars.get('index'))
+                    variant_path = '/'.join(variant_name)
+
+                d['variables']['variant_path'] = variant_path
+                resolved_packages.append(d)
+
             data["resolved_packages"] = resolved_packages
 
             # since serialization version 4.7

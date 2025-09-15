@@ -58,9 +58,7 @@ import os
 # The package search path. Rez uses this to find packages. A package with the
 # same name and version in an earlier path takes precedence.
 packages_path = [
-    "/storage/rez",           # locally installed pkgs, not yet deployed
-    "~/.rez/packages/int",  # internally developed pkgs, deployed
-    "~/.rez/packages/ext",  # external (3rd party) pkgs, such as houdini, boost
+    "~/packages",
 ]
 
 # The path that Rez will locally install packages to when rez-build is used
@@ -295,9 +293,9 @@ package_cache_log_days = 7
 # Packages that are implicitly added to all package resolves, unless the
 # --no-implicit flag is used.
 implicit_packages = [
-    os.environ.get('MACHINE_PLATFORM'),
-    os.environ.get('MACHINE_ARCH'),
-    os.environ.get('MACHINE_OS'),
+    "~platform=={system.platform}",
+    "~arch=={system.arch}",
+    "~os=={system.os}",
 ]
 
 # Override platform values from Platform.os and arch.
