@@ -72,7 +72,9 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
     late_bind_schemas = {
-        "requires": late_requires_schema
+        "requires": late_requires_schema,
+        "build_requires": late_requires_schema,
+        "private_build_requires": late_requires_schema,
     }
 
     def __init__(self, resource, context=None):
