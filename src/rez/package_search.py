@@ -87,11 +87,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
             )
 
         for req in requires:
-            if isinstance(req, str):
-                # Ignore negated requirements
-                if not req[0] == '!':
-                    lookup[req].add(package_name_)
-            elif not req.conflict:
+            if not req.conflict:
                 lookup[req.name].add(package_name_)
 
         bar.next()
