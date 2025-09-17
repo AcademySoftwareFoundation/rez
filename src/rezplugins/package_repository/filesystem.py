@@ -494,9 +494,10 @@ class FileSystemPackageRepository(PackageRepository):
             disable_pkg_ignore (bool): If True, .ignore* files have no effect
         """
 
-        # ensure that differing case doesn't get interpreted as different repos
-        # on case-insensitive platforms (eg windows)
-        location = canonical_path(location, platform_)
+        if config.use_canonical_path:
+            # ensure that differing case doesn't get interpreted as different repos
+            # on case-insensitive platforms (eg windows)
+            location = canonical_path(location, platform_)
 
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
 
