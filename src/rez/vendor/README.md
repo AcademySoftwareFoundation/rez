@@ -101,6 +101,18 @@ By looking at the code, it's probably enum34. If so, the latest version is
 
 <!-- ######################################################### -->
 <tr><td>
+importlib-metadata
+</td><td>
+6.7.0
+</td><td>
+Apache 2.0
+</td><td>
+https://pypi.org/project/importlib-metadata/<br>
+Pinned to 6.7.0 to support Python 3.7. This dependency can be dropped once we drop support for Python 3.7.
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
 lockfile
 </td><td>
 0.9.1 (Sep 19, 2010)
@@ -233,7 +245,20 @@ No longer needed in rez itself, but still used by other vendored modules.
 
 <!-- ######################################################### -->
 <tr><td>
+typing_extensions
+</td><td>
+4.7.1
+</td><td>
+PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
+</td><td>
+https://pypi.org/project/zipp/<br>
+Dependency for importlib-metadata. Can be dropped once we drop support for Python 3.7.
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
 yaml (PyYAML)
+
 </td><td>
 6.0.1 (July 17, 2023)
 </td><td>
@@ -242,6 +267,18 @@ MIT
 https://github.com/yaml/pyyaml<br>
 No changes. Bounded to 6.0.1 by current py3.7.<br>
 Updated (April 2025) to help address py3.12 update.
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
+zipp
+</td><td>
+3.15.0
+</td><td>
+MIT
+</td><td>
+https://pypi.org/project/zipp/<br>
+Dependency for importlib-metadata. Can be dropped once we drop support for Python 3.7.
 </td></tr>
 
 </table>
