@@ -2,7 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from rez.config import config
 from rez.vendor.memcache.memcache import Client as Client_, \
     SERVER_MAX_KEY_LENGTH, __version__ as memcache_client_version
 from rez.util import get_function_arg_names
@@ -32,7 +31,6 @@ class Client(object):
 
     miss = _Miss()
 
-    logger = config.debug_printer("memcache")
 
     def __init__(self, servers, debug=False):
         """Create a memcached client.
@@ -48,6 +46,8 @@ class Client(object):
         self._client = None
         self.debug = debug
         self.current = ''
+        from rez.config import config
+        self.logger = config.debug_printer("memcache")
 
     def __bool__(self):
         return bool(self.servers)
@@ -223,7 +223,7 @@ scoped_instance_manager = _ScopedInstanceManager()
 
 
 @contextmanager
-def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache):
+def memcached_client(servers=None, debug=None):
     """Get a shared memcached instance.
 
     This function shares the same memcached instance across nested invocations.
@@ -236,6 +236,12 @@ def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache):
     Returns:
         `Client`: Memcached instance.
     """
+    from rez.config import config
+    if servers is None:
+        servers = config.memcached_uri
+    if debug is None:
+        debug = config.debug_memcache
+
     key = None
     try:
         client, key = scoped_instance_manager.acquire(servers, debug=debug)
