@@ -9,6 +9,50 @@ Rez comes with built-in plugins that are located at :gh-rez:`src/rezplugins`. Ne
 This page documents what plugins are available, the plugin types and how plugins are discovered.
 If you want to learn how to develop a plugin, please refer to :doc:`guides/developing_your_own_plugin`.
 
+.. _plugin-types:
+
+Existing plugin types
+=====================
+
+.. table::
+   :align: left
+
+   ====================== =========================================================== ==================
+   Type                   Base class(es)                                              Top level settings [1]_
+   ====================== =========================================================== ==================
+   ``build_process``      | :class:`rez.build_process.BuildProcess`
+                          | :class:`rez.build_process.BuildProcessHelper` [2]_        No
+   ``build_system``       :class:`rez.build_system.BuildSystem`                       No
+   ``command``            :class:`rez.command.Command`                                Yes
+   ``package_repository`` | :class:`rez.package_repository.PackageRepository`         No
+                          | :class:`rez.package_resources.PackageFamilyResource`
+                          | :class:`rez.package_resources.PackageResourceHelper`
+                          | :class:`rez.package_resources.VariantResourceHelper` [3]_
+   ``release_hook``       :class:`rez.release_hook.ReleaseHook`                       Yes
+   ``release_vcs``        :class:`rez.release_vcs.ReleaseVCS`                         Yes
+   ``shell``              :class:`rez.shells.Shell`                                   No
+   ====================== =========================================================== ==================
+
+.. [1] Top level settings: The concept of top level settings is documented in :ref:`default-settings`.
+.. [2] build_process: You have to choose between on of the two classes.
+.. [3] package_repository: All 4 classes have to be implemented.
+
+.. _configuring-plugins:
+
+Configuring plugins
+===================
+
+Plugins can be configured by adding a ``plugins`` key to your ``rezconfig.py``
+like this:
+
+.. code-block:: python
+
+   plugins = {
+       "package_repository": {
+           "filesystem": {}
+       }
+   }
+
 List installed plugins
 ======================
 
@@ -40,47 +84,6 @@ Currently installed plugins can be queried by running :option:`rez -i`
    shell               gitbash     Git Bash (for Windows) shell                       loaded
    shell               powershell  Windows PowerShell 5                               loaded
    shell               pwsh        PowerShell Core 6+                                 loaded
-
-
-Configuring plugins
-===================
-
-Plugins can be configured by adding a ``plugins`` key to your ``rezconfig.py``
-like this:
-
-.. code-block:: python
-
-   plugins = {
-       "filesystem": {}
-   }
-
-.. _plugin-types:
-
-Existing plugin types
-=====================
-
-.. table::
-   :align: left
-
-   ====================== =========================================================== ==================
-   Type                   Base class(es)                                              Top level settings [1]_
-   ====================== =========================================================== ==================
-   ``build_process``      | :class:`rez.build_process.BuildProcess`
-                          | :class:`rez.build_process.BuildProcessHelper` [2]_        No
-   ``build_system``       :class:`rez.build_system.BuildSystem`                       No
-   ``command``            :class:`rez.command.Command`                                Yes
-   ``package_repository`` | :class:`rez.package_repository.PackageRepository`         No
-                          | :class:`rez.package_resources.PackageFamilyResource`
-                          | :class:`rez.package_resources.PackageResourceHelper`
-                          | :class:`rez.package_resources.VariantResourceHelper` [3]_ No
-   ``release_hook``       :class:`rez.release_hook.ReleaseHook`                       Yes
-   ``release_vcs``        :class:`rez.release_vcs.ReleaseVCS`                         Yes
-   ``shell``              :class:`rez.shells.Shell`                                   No
-   ====================== =========================================================== ==================
-
-.. [1] Top level settings: The concept of top level settings is documented in :ref:`default-settings`.
-.. [2] build_process: You have to choose between on of the two classes.
-.. [3] package_repository: All 4 classes have to be implemented.
 
 Discovery mechanisms
 ====================
@@ -151,7 +154,7 @@ This allows a package to define multiple plugins. In fact, a package can contain
 .. _default-settings:
 
 Default settings
-================
+----------------
 
 You can define default settings for the plugins you write by adding a ``rezconfig.py`` or ``rezconfig.yml``
 beside your plugin module. Rez will automatically load these settings.
