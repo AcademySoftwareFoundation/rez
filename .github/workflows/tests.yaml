@@ -81,6 +81,15 @@ jobs:
     - name: Install rez
       run: python ./install.py ./installdir
 
+    - name: Install test system dependencies (macOS)
+      if: ${{ startsWith(matrix.os, 'macos-') }}
+      run: |
+        set -ex
+        # Make sure to use cmake < 4. CMake 4 dropped support for features
+        # from cmake < 3.5 and rez uses these features.
+        brew uninstall cmake
+        python -m pip install 'cmake<4'
+
     - name: Setup environment variables
       shell: bash
       env:
