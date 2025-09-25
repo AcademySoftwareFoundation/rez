@@ -8,19 +8,19 @@ jobs:
     name: SonarQube Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@2500896589ef8f7247069a56136f8dc177c27ccf  #v5.2.0
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602  #v6.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.organization="academysoftwarefoundation"
-            -Dsonar.projectKey="AcademySoftwareFoundation_rez"
-            -Dsonar.projectName="rez"
-            -Dsonar.sources="src/"
-            -Dsonar.tests="tests/"
-            -Dsonar.exclusions="sonar.exclusions=src/build_utils/**,src/rez/data/**,src/rez/tests/**,src/rez/vendor/**"
-            -Dsonar.python.version="3.7, 3.8, 3.9, 3.10, 3.11, 3.12"
+            "-Dsonar.organization=academysoftwarefoundation"
+            "-Dsonar.projectKey=AcademySoftwareFoundation_rez"
+            "-Dsonar.projectName=rez"
+            "-Dsonar.sources=src/"
+            "-Dsonar.tests=tests/"
+            "-Dsonar.exclusions=sonar.exclusions=src/build_utils/**,src/rez/data/**,src/rez/tests/**,src/rez/vendor/**"
+            "-Dsonar.python.version=3.7, 3.8, 3.9, 3.10, 3.11, 3.12"
