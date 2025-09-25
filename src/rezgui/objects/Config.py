@@ -12,7 +12,7 @@ class Config(QtCore.QSettings):
     Methods are also provided for easily attaching widgets to settings.
     """
     def __init__(self, default_settings, organization=None, application=None,
-                 parent=None):
+                 parent=None) -> None:
         super(Config, self).__init__(organization, application, parent)
         self.default_settings = default_settings
 
@@ -50,7 +50,7 @@ class Config(QtCore.QSettings):
         self.endArray()
         return strings
 
-    def prepend_string_list(self, key, value, max_length_key):
+    def prepend_string_list(self, key, value, max_length_key) -> None:
         """Prepend a fixed-length string list with a new string.
 
         The oldest string will be removed from the list. If the string is
@@ -98,11 +98,11 @@ class Config(QtCore.QSettings):
         widget.stateChanged.connect(
             partial(self._checkbox_stateChanged, widget, key))
 
-    def _checkbox_stateChanged(self, widget, key):
+    def _checkbox_stateChanged(self, widget, key) -> None:
         value = widget.isChecked()
         self.setValue(key, value)
 
-    def _attach_combobox(self, widget, key):
+    def _attach_combobox(self, widget, key) -> None:
         value = str(self.value(key))
         index = widget.findText(value)
         if index == -1:
@@ -115,11 +115,11 @@ class Config(QtCore.QSettings):
         widget.editTextChanged.connect(
             partial(self._combobox_editTextChanged, widget, key))
 
-    def _combobox_currentIndexChanged(self, widget, key, index):
+    def _combobox_currentIndexChanged(self, widget, key, index) -> None:
         value = widget.itemText(index)
         self.setValue(key, value)
 
-    def _combobox_editTextChanged(self, widget, key, txt):
+    def _combobox_editTextChanged(self, widget, key, txt) -> None:
         self.setValue(key, txt)
 
     def _default_value(self, key):

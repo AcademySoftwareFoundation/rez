@@ -18,12 +18,12 @@ class Bash(SH):
     norc_arg = '--norc'
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'bash'
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(cls, rcfile: bool = False, norc: bool = False, stdin: bool = False,
+                             command: bool = False):
         if norc:
             cls._overruled_option('rcfile', 'norc', rcfile)
             rcfile = False
@@ -79,12 +79,12 @@ class Bash(SH):
             source_bind_files=True
         )
 
-    def alias(self, key, value):
+    def alias(self, key, value) -> None:
         value = EscapedString.disallow(value)
         cmd = 'function {key}() {{ {value} "$@"; }};export -f {key};'
         self._addline(cmd.format(key=key, value=value))
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         super(Bash, self)._bind_interactive_rez()
         completion = os.path.join(module_root_path, "completion", "complete.sh")
         self.source(completion)
