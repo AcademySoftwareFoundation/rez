@@ -256,7 +256,7 @@ requires = []
             script_output,
             f"""export REZ_BUILD_ENV="1"
 export REZ_BUILD_PATH="{build_path}"
-export REZ_BUILD_THREAD_COUNT="12"
+export REZ_BUILD_THREAD_COUNT="{package.config.build_thread_count}"
 export REZ_BUILD_VARIANT_INDEX="0"
 export REZ_BUILD_VARIANT_REQUIRES=''
 export REZ_BUILD_VARIANT_SUBPATH=""
