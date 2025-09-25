@@ -232,8 +232,8 @@ class BuildSystem(object):
             'REZ_BUILD_PROJECT_NAME': literal(package.name),
             'REZ_BUILD_PROJECT_DESCRIPTION': literal((package.description or '').strip()),
             'REZ_BUILD_PROJECT_FILE': literal(package.filepath),
-            'REZ_BUILD_SOURCE_PATH': executor.normalize_path(
-                os.path.dirname(package.filepath)
+            'REZ_BUILD_SOURCE_PATH': literal(
+                executor.normalize_path(os.path.dirname(package.filepath))
             ),
             'REZ_BUILD_REQUIRES': literal(
                 ' '.join(
@@ -250,7 +250,7 @@ class BuildSystem(object):
         }
 
         if install_path:
-            vars_['REZ_BUILD_INSTALL_PATH'] = executor.normalize_path(install_path)
+            vars_['REZ_BUILD_INSTALL_PATH'] = literal(executor.normalize_path(install_path))
 
         if config.rez_1_environment_variables and \
                 not config.disable_rez_1_compatibility and \
