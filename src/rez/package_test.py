@@ -213,6 +213,12 @@ class PackageTestRunner(object):
         run_on = ["default"] if not requested_tests else None
         pkg_test_names = self.get_test_names(run_on=run_on)
         requested_test_names = set()
+
+        if not requested_tests:
+            # if no tests are explicitly specified, then return all tests
+            # found in the package
+            return pkg_test_names
+
         for requested_test in requested_tests:
             requested_test_names.update(set(fnmatch.filter(pkg_test_names, requested_test)))
         return requested_test_names
