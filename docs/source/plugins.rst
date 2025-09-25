@@ -161,7 +161,7 @@ beside your plugin module. Rez will automatically load these settings.
 
 This is valid both all the discovery mechanisms.
 
-Note that the format of that ``rezconfig.py`` or ``rezconfig.yml`` file is as follows:
+Note that the format of that ``rezconfig.py`` or ``rezconfig.yml`` file for plugins is as follows:
 
 .. code-block:: python
 
