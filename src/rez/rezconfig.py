@@ -847,6 +847,18 @@ set_prompt = True
 # false.
 prefix_prompt = True
 
+###############################################################################
+# Plugins
+#
+# Settings dedicated to plugins
+###############################################################################
+
+# Settings specific to certain plugin implementations can be found in the
+# "rezconfig" file accompanying that plugin. The settings listed here are
+# common to all plugins of that type.
+#
+# Refer to :ref:`configuring-plugins` for more information.
+plugins = {}
 
 ###############################################################################
 # Misc
@@ -1132,19 +1144,6 @@ ephemeral_styles = None
 alias_fore = "cyan"
 alias_back = None
 alias_styles = None
-
-
-###############################################################################
-# Plugin Settings
-###############################################################################
-
-# Settings specific to certain plugin implementations can be found in the
-# "rezconfig" file accompanying that plugin. The settings listed here are
-# common to all plugins of that type.
-
-plugins = {
-
-}
 
 
 ###############################################################################
