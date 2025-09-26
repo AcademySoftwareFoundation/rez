@@ -166,7 +166,7 @@ class PackageCache(object):
         _, _, free = shutil.disk_usage(self.path)
         return (free < config.package_cache_space_buffer)
 
-    def variant_not_cachable(self, rez_variant_root):
+    def variant_meets_space_requirements(self, rez_variant_root):
         """ Check if the cache usage is above config.package_cache_used_threshold.
         If it is, start throttling the cache by checking each variants size to make sure
         it's not going to take the cache size below the minimum buffer we set.
@@ -322,7 +322,7 @@ class PackageCache(object):
 
         # Block adding new variant to cache from rez-pkg-cache --add-variants
         # if the cache size is almost full.
-        if self.cache_near_full() or self.variant_not_cachable(variant_root):
+        if self.cache_near_full() or self.variant_meets_space_requirements(variant_root):
             return (rootpath, self.VARIANT_SKIPPED)
 
         # 1.
@@ -554,7 +554,7 @@ class PackageCache(object):
                 break
 
             # Skip this variant. Too big for the remaining cache space.
-            if self.variant_not_cachable(variant_root):
+            if self.variant_meets_space_requirements(variant_root):
                 continue
 
             filename = prefix + uuid4().hex + ".json"
@@ -871,7 +871,7 @@ class PackageCache(object):
         variant = get_variant(variant_handle_dict)
         variant_root = getattr(variant, "root", None)
 
-        if self.variant_not_cachable(variant_root):
+        if self.variant_meets_space_requirements(variant_root):
             # variant cannot be cached due to its size, so remove as a pending variant.
             logger.info(f"Variant {variant_root} is too big to be cached due to remaining cache space.")
             safe_remove(filepath)
