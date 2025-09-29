@@ -67,6 +67,8 @@ def setup_parser(parser, completions=False):
 
 
 def add_variant(pkgcache, uri, opts):
+    import shutil
+
     from rez.config import config
     from rez.packages import get_variant_from_uri
     from rez.utils.logging_ import print_info, print_warning
@@ -96,7 +98,11 @@ def add_variant(pkgcache, uri, opts):
     elif status == PackageCache.VARIANT_COPYING:
         print_warning("Another process is currently copying to: %s", destpath)
     elif status == PackageCache.VARIANT_SKIPPED:
-        print_warning("Cache no longer accepting new variant due to size limit")
+        print_warning(
+            "Cache no longer accepting new variant due to size limit.\n"
+            f"The remaining cache free space is: {shutil.disk_usage(config.cache_packages_path).free / 1024**2:.2f}MB "
+            f"which is near the {config.package_cache_space_buffer / 1024**2:.2f}MB set by config.package_cache_space_buffer."
+        )
     else:
         print_info("Successfully cached to: %s", destpath)
 

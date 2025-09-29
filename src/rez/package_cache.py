@@ -146,9 +146,9 @@ class PackageCache(object):
         with os.scandir(variant_root) as variant_scan:
             for variant_dir in variant_scan:
                 try:
-                    if variant_dir.is_file(follow_symlinks=False):
-                        variant_size += variant_dir.stat(follow_symlinks=False).st_size
-                    elif variant_dir.is_dir(follow_symlinks=False):
+                    if variant_dir.is_file():
+                        variant_size += variant_dir.stat().st_size
+                    elif variant_dir.is_dir():
                         variant_size += self.get_variant_size(variant_dir.path)
                 except OSError:
                     pass
@@ -167,7 +167,7 @@ class PackageCache(object):
         return (free < config.package_cache_space_buffer)
 
     def variant_meets_space_requirements(self, rez_variant_root):
-        """ Check if the cache usage is above config.package_cache_used_threshold.
+        """Check if the cache usage is above config.package_cache_used_threshold.
         If it is, start throttling the cache by checking each variants size to make sure
         it's not going to take the cache size below the minimum buffer we set.
 
@@ -176,20 +176,17 @@ class PackageCache(object):
 
         Returns:
             bool:
-                - False if the cache space used is below config.package_cache_used_threshold.
-                - True if (free - variant_size) < config.package_cache_space_buffer, otherwise False.
+                - True if the cache space used is below config.package_cache_used_threshold.
+                - False if (free - variant_size) < config.package_cache_space_buffer, otherwise False.
         """
-        if not rez_variant_root or not os.path.isdir(rez_variant_root):
-            return False
-
         total, used, free = shutil.disk_usage(self.path)
         used_percentage = (used / total) * 100 if total else 0.0
 
         if used_percentage > config.package_cache_used_threshold:
             variant_size = self.get_variant_size(rez_variant_root)
-            return (free - variant_size) < config.package_cache_space_buffer
+            return (free - variant_size) > config.package_cache_space_buffer
 
-        return False
+        return True
 
     def add_variant(self, variant, force=False, wait_for_copying=False, logger=None):
         """Copy a variant's payload into the cache.
@@ -322,7 +319,7 @@ class PackageCache(object):
 
         # Block adding new variant to cache from rez-pkg-cache --add-variants
         # if the cache size is almost full.
-        if self.cache_near_full() or self.variant_meets_space_requirements(variant_root):
+        if self.cache_near_full() or not self.variant_meets_space_requirements(variant_root):
             return (rootpath, self.VARIANT_SKIPPED)
 
         # 1.
@@ -547,19 +544,18 @@ class PackageCache(object):
             if already_pending:
                 continue
 
-            variant_root = getattr(variant, "root", None)
+            variant_root = getattr(variant, "root")
 
             # Stop adding new variants to the cache only when the cache is near its minimum buffer.
             if self.cache_near_full():
                 break
 
             # Skip this variant. Too big for the remaining cache space.
-            if self.variant_meets_space_requirements(variant_root):
+            if not self.variant_meets_space_requirements(variant_root):
                 continue
 
             filename = prefix + uuid4().hex + ".json"
             filepath = os.path.join(self._pending_dir, filename)
-
             with open(filepath, 'w') as f:
                 f.write(json.dumps(handle_dict))
 
@@ -846,7 +842,10 @@ class PackageCache(object):
 
         # Keep the cache daemon alive until the cache size reaches its min threshold.
         if self.cache_near_full():
-            logger.info("Cache storage is near buffer, caching will now stop.")
+            logger.info(
+                "Cache storage has reached the configured threshold of "
+                f"{config.package_cache_space_buffer / 1024**2:.2f}MB, caching will now stop."
+            )
             return False
 
         # pick a random pending variant to copy
@@ -869,9 +868,9 @@ class PackageCache(object):
             raise
 
         variant = get_variant(variant_handle_dict)
-        variant_root = getattr(variant, "root", None)
+        variant_root = getattr(variant, "root")
 
-        if self.variant_meets_space_requirements(variant_root):
+        if not self.variant_meets_space_requirements(variant_root):
             # variant cannot be cached due to its size, so remove as a pending variant.
             logger.info(f"Variant {variant_root} is too big to be cached due to remaining cache space.")
             safe_remove(filepath)
