@@ -11,7 +11,6 @@ import os.path
 import time
 import subprocess
 import tempfile
-import shutil
 from unittest.mock import patch
 
 from rez.tests.util import TestBase, TempdirMixin, restore_os_environ, \
