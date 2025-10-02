@@ -162,7 +162,8 @@ class PackageCache(object):
 
                             if stat.S_ISREG(st.st_mode):
                                 variant_size += st.st_size
-                                # Bail out early if variant size will overtake the buffer set by config.package_cache_space_buffer.
+                                # Bail out early if variant size will overtake the buffer
+                                # set by config.package_cache_space_buffer.
                                 if (free - variant_size) < config.package_cache_space_buffer:
                                     return variant_size
                             elif stat.S_ISDIR(st.st_mode):
