@@ -98,10 +98,12 @@ def add_variant(pkgcache, uri, opts):
     elif status == PackageCache.VARIANT_COPYING:
         print_warning("Another process is currently copying to: %s", destpath)
     elif status == PackageCache.VARIANT_SKIPPED:
+        free = shutil.disk_usage(config.cache_packages_path).free / 1024**2
+        buffer = config.package_cache_space_buffer / 1024**2
         print_warning(
             "Cache no longer accepting new variant due to size limit.\n"
-            f"The remaining cache free space is: {shutil.disk_usage(config.cache_packages_path).free / 1024**2:.2f}MB "
-            f"which is near the {config.package_cache_space_buffer / 1024**2:.2f}MB set by config.package_cache_space_buffer."
+            f"Remaining cache free space: {free:.2f}MB is near "
+            f"configured buffer {buffer:.2f}MB (config.package_cache_space_buffer)."
         )
     else:
         print_info("Successfully cached to: %s", destpath)

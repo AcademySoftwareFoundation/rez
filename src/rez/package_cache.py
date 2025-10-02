@@ -132,28 +132,45 @@ class PackageCache(object):
 
         return rootpath
 
-    def get_variant_size(self, variant_root):
+    def get_variant_size(self, free, variant_root):
         """Get the size of the variant root.
 
         Args:
+            free: The available free cache space.
             variant_root: The rez resolved variant root.
 
         Returns:
             int: The size in bytes of the variant root (may exceed buffer slightly).
         """
         variant_size = 0
+        seen_inodes = set()
+        stack = [variant_root]
 
-        with os.scandir(variant_root) as variant_scan:
-            for variant_dir in variant_scan:
-                try:
-                    if variant_dir.is_file():
-                        variant_size += variant_dir.stat().st_size
-                    elif variant_dir.is_dir():
-                        variant_size += self.get_variant_size(variant_dir.path)
-                except OSError:
-                    pass
-                except FileNotFoundError:
-                    pass
+        while stack:
+            current = stack.pop()
+            try:
+                with os.scandir(current) as ref:
+                    for entry in ref:
+                        try:
+                            # Since we are following symlinks, track visited inodes to make sure
+                            # we are not double counting files.
+                            st = entry.stat(follow_symlinks=True)
+                            inode = (st.st_dev, st.st_ino)
+                            if inode in seen_inodes:
+                                continue
+                            seen_inodes.add(inode)
+
+                            if stat.S_ISREG(st.st_mode):
+                                variant_size += st.st_size
+                                # Bail out early if variant size will overtake the buffer set by config.package_cache_space_buffer.
+                                if (free - variant_size) < config.package_cache_space_buffer:
+                                    return variant_size
+                            elif stat.S_ISDIR(st.st_mode):
+                                stack.append(entry.path)
+                        except OSError:
+                            continue
+            except OSError:
+                continue
 
         return variant_size
 
@@ -164,7 +181,7 @@ class PackageCache(object):
             bool: True if available cache space is below buffer, otherwise False.
         """
         _, _, free = shutil.disk_usage(self.path)
-        return (free < config.package_cache_space_buffer)
+        return free < config.package_cache_space_buffer
 
     def variant_meets_space_requirements(self, rez_variant_root):
         """Check if the cache usage is above config.package_cache_used_threshold.
@@ -183,7 +200,7 @@ class PackageCache(object):
         used_percentage = (used / total) * 100 if total else 0.0
 
         if used_percentage > config.package_cache_used_threshold:
-            variant_size = self.get_variant_size(rez_variant_root)
+            variant_size = self.get_variant_size(free, rez_variant_root)
             return (free - variant_size) > config.package_cache_space_buffer
 
         return True
@@ -542,16 +559,6 @@ class PackageCache(object):
                         break
 
             if already_pending:
-                continue
-
-            variant_root = getattr(variant, "root")
-
-            # Stop adding new variants to the cache only when the cache is near its minimum buffer.
-            if self.cache_near_full():
-                break
-
-            # Skip this variant. Too big for the remaining cache space.
-            if not self.variant_meets_space_requirements(variant_root):
                 continue
 
             filename = prefix + uuid4().hex + ".json"
