@@ -536,7 +536,7 @@ def convert_distlib_to_setuptools(installed_dist):
 
         Any runs of non-alphanumeric/. characters are replaced with a single '-'.
         """
-        return re.sub('[^A-Za-z0-9.]+', '-', name)
+        return re.sub('[^A-Za-z0-9.]+', '-', name).lower()
 
     class DirectPathScanner(DistributionFinder):
         @classmethod
@@ -560,7 +560,7 @@ def convert_distlib_to_setuptools(installed_dist):
         else:
             name = setuptools_dist.name
 
-        if name == safe_name(installed_dist.key):
+        if safe_name(name) == safe_name(installed_dist.key):
             return setuptools_dist
 
     return None
