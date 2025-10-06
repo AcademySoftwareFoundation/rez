@@ -180,6 +180,17 @@ you should **not** enable caching on package repositories where packages may get
 overwritten. It is for this reason that caching is disabled for local packages by
 default (see :data:`package_cache_local`).
 
+Control Disk Usage
+------------------
+
+You can control the disk usage of the package cache by using the
+:data:`package_cache_space_buffer` and :data:`package_cache_used_threshold` settings.
+Both have a default value already set to a safe value. You are encouraged to tweak
+them to your liking.
+
+Another way to control the disk usage is to run the :option:`rez-pkg-cache --clean` command
+either manually or as a cron job. See :ref:`caching-cleaning-the-cache`.
+
 Commandline Tool
 ----------------
 
@@ -231,6 +242,8 @@ Caching operations are stored into logfiles within the cache directory. To view:
    rez-pkg-cache 2020-05-23 16:17:45,404 PID-29827 INFO Cached variant to /home/ajohns/package_cache/Werkzeug/1.0.1/fe76/a in 0.202576 seconds
    rez-pkg-cache 2020-05-23 16:17:45,404 PID-29827 INFO Started caching of variant /home/ajohns/packages/python/3.7.4/package.py[0]...
    rez-pkg-cache 2020-05-23 16:17:46,006 PID-29827 INFO Cached variant to /home/ajohns/package_cache/python/3.7.4/ce1c/a in 0.602037 seconds
+
+.. _caching-cleaning-the-cache:
 
 Cleaning The Cache
 ++++++++++++++++++

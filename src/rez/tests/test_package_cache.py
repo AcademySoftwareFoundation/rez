@@ -250,24 +250,24 @@ class TestPackageCache(TestBase, TempdirMixin):
         """cache_near_full returns True when free < buffer."""
         mock_du.return_value = (VIRTUAL_GIGABYTE, 500_000_000, 10_000_000)  # 10MB free
         pkgcache = self._pkgcache()
-        with patch('rez.package_cache.config.package_cache_space_buffer', 50_000_000):  # 50MB buffer
-            self.assertTrue(pkgcache.cache_near_full())
+        self.update_settings({'package_cache_space_buffer': 50_000_000})  # 50MB buffer
+        self.assertTrue(pkgcache.cache_near_full())
 
     @patch('rez.package_cache.shutil.disk_usage')
     def test_cache_near_full_false(self, mock_du):
         """cache_near_full returns False when free >= buffer."""
         mock_du.return_value = (VIRTUAL_GIGABYTE, 400_000_000, 300_000_000)  # 300MB free
         pkgcache = self._pkgcache()
-        with patch('rez.package_cache.config.package_cache_space_buffer', 50_000_000):
-            self.assertFalse(pkgcache.cache_near_full())
+        self.update_settings({'package_cache_space_buffer': 50_000_000})
+        self.assertFalse(pkgcache.cache_near_full())
 
     @patch('rez.package_cache.shutil.disk_usage')
     def test_variant_meets_space_requirements_below_threshold(self, mock_du):
         """Below used threshold always True."""
         mock_du.return_value = (VIRTUAL_GIGABYTE, 300_000_000, 700_000_000)  # 30% used
         pkgcache = self._pkgcache()
-        with tempfile.TemporaryDirectory() as d, \
-             patch('rez.package_cache.config.package_cache_used_threshold', 80):
+        self.update_settings({'package_cache_used_threshold': 80})
+        with tempfile.TemporaryDirectory() as d:
             self.assertTrue(pkgcache.variant_meets_space_requirements(d))
 
     @patch('rez.package_cache.shutil.disk_usage')
@@ -279,9 +279,13 @@ class TestPackageCache(TestBase, TempdirMixin):
             # create small file (1MB)
             with open(os.path.join(d, 'f.bin'), 'wb') as f:
                 f.write(b'0' * 1_000_000)
-            with patch('rez.package_cache.config.package_cache_used_threshold', 80), \
-                 patch('rez.package_cache.config.package_cache_space_buffer', 100_000_000):
-                self.assertTrue(pkgcache.variant_meets_space_requirements(d))  # 150MB - 1MB > 100MB
+            self.update_settings(
+                {
+                    'package_cache_used_threshold': 80,
+                    'package_cache_space_buffer': 100_000_000,
+                }
+            )
+            self.assertTrue(pkgcache.variant_meets_space_requirements(d))  # 150MB - 1MB > 100MB
 
     @patch('rez.package_cache.shutil.disk_usage')
     def test_variant_meets_space_requirements_above_threshold_insufficient(self, mock_du):
@@ -296,9 +300,13 @@ class TestPackageCache(TestBase, TempdirMixin):
         mock_du.return_value = (VIRTUAL_GIGABYTE, 900_000_000, 150_000_000)  # ~83.8% used (>80%), 150MB free
         pkgcache = self._pkgcache()
         with tempfile.TemporaryDirectory() as d:
-            with patch('rez.package_cache.config.package_cache_used_threshold', 80), \
-                 patch('rez.package_cache.config.package_cache_space_buffer', 100_000_000), \
-                 patch.object(pkgcache, 'get_variant_size', return_value=70_000_000):  # 70MB
+            self.update_settings(
+                {
+                    'package_cache_used_threshold': 80,
+                    'package_cache_space_buffer': 100_000_000,
+                }
+            )
+            with patch.object(pkgcache, 'get_variant_size', return_value=70_000_000):  # 70MB
                 # free (150MB) - variant_size (70MB) = 80MB <= buffer (100MB) => False
                 self.assertFalse(pkgcache.variant_meets_space_requirements(d))  # expected False
 
@@ -307,7 +315,11 @@ class TestPackageCache(TestBase, TempdirMixin):
         pkgcache = self._pkgcache()
         self.assertTrue(pkgcache.variant_meets_space_requirements(None))
         self.assertTrue(pkgcache.variant_meets_space_requirements(""))
-        self.assertTrue(pkgcache.variant_meets_space_requirements("/path/does/not/exist"))
+        self.assertTrue(
+            pkgcache.variant_meets_space_requirements(
+                os.path.join(self.root, "path", "does", "not", "exist")
+            )
+        )
 
     def test_add_variant_skipped_cache_near_full(self):
         """add_variant returns VARIANT_SKIPPED when cache_near_full True."""
