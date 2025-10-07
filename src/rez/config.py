@@ -449,6 +449,8 @@ config_schema = Schema({
     "shell_error_truncate_cap":                     Int,
     "package_cache_log_days":                       Int,
     "package_cache_max_variant_days":               Int,
+    "package_cache_space_buffer":                   Int,
+    "package_cache_used_threshold":                 Int,
     "package_cache_clean_limit":                    Float,
     "allow_unversioned_packages":                   Bool,
     "package_cache_during_build":                   Bool,
