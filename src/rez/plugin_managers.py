@@ -166,8 +166,8 @@ class RezPluginType(object):
                 try:
                     plugin_module = sys.modules.get(modname)
                     if plugin_module is None:
-                        loader = importer.find_module(modname)
-                        plugin_module = loader.load_module(modname)
+                        loader = importer.find_spec(modname)
+                        plugin_module = loader.loader.load_module(modname)
 
                     self.register_plugin_module(plugin_name, plugin_module, path)
                     self.load_config_from_plugin(plugin_module)
