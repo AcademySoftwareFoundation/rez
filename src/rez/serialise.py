@@ -330,6 +330,7 @@ def process_python_objects(data, filepath=None):
 
                 # apply globals
                 fn.__globals__["this"] = EarlyThis(data)
+                fn.__globals__["__file__"] = filepath
                 fn.__globals__.update(get_objects())
 
                 # execute the function
