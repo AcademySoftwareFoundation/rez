@@ -8,7 +8,6 @@ import os.path
 import errno
 from hashlib import sha1
 from uuid import uuid4
-import shutil
 import stat
 import subprocess
 import sys
@@ -258,7 +257,7 @@ class PackageCache(object):
                 % variant.uri
             )
 
-        if not os.path.isdir(variant_root):
+        if not variant.exists():
             raise PackageCacheError(
                 "Not cached - variant %s root does not appear on disk: %s"
                 % (variant.uri, variant_root)
@@ -281,7 +280,7 @@ class PackageCache(object):
 
             if not config.package_cache_same_device:
                 st_pkgcache = os.stat(self.path)
-                st_variant = os.stat(variant_root)
+                st_variant = variant.stat()
                 if st_pkgcache.st_dev == st_variant.st_dev:
                     raise PackageCacheError(
                         "Not cached - variant %s is on same device as cache: %s"
@@ -405,7 +404,7 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            variant.repository.cache_variant(variant, rootpath)
         finally:
             still_copying = False
 
