@@ -109,7 +109,7 @@ jobs:
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
       # Run on both success and failure, but only if coverage.xml exists.
-      if: ${{ hashFiles('coverage.xml') != '' && (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') }}
+      if: ${{ (success() || failure()) && ((steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') && hashFiles('coverage.xml') != '') }}
       with:
         slug: AcademySoftwareFoundation/rez
         files: 'coverage.xml'
