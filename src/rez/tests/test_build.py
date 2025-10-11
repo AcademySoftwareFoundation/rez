@@ -6,8 +6,8 @@
 test the build system
 """
 from rez.config import config
-from rez.build_process import create_build_process
-from rez.build_system import create_build_system
+from rez.build_process import create_build_process, BuildType
+from rez.build_system import create_build_system, BuildSystem
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildError, BuildContextResolveError, \
     PackageFamilyNotFoundError
@@ -15,6 +15,9 @@ import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
     per_available_shell, install_dependent, program_dependent
 from rez.utils.platform_ import platform_
+from rez.shells import create_shell
+from rez.packages import get_developer_package
+from rez.rex import RexExecutor
 import shutil
 import os.path
 
@@ -199,6 +202,76 @@ class TestBuild(TestBase, TempdirMixin):
         proc = context.execute_command(['hai'], stdout=PIPE)
         stdout = proc.communicate()[0]
         self.assertEqual('Oh hai!', stdout.decode("utf-8").strip())
+
+    def test_set_standard_vars_escaping(self):
+        """Test that set_standard_vars properly escapes environment variables."""
+        # Create a test package directory with special characters in description
+        temp_pkg_dir = os.path.join(self.root, "test_special_package")
+        os.makedirs(temp_pkg_dir)
+
+        # Create a package.py file with special characters
+        package_py_content = """
+name = "test_special_chars"
+version = "1.0.0"
+description = 'A test package with "quotes" and $pecial characters & more!'
+authors = ["test@example.com"]
+requires = []
+"""
+
+        package_py_path = os.path.join(temp_pkg_dir, "package.py")
+        with open(package_py_path, 'w') as f:
+            f.write(package_py_content)
+
+        # Get the developer package
+        package = get_developer_package(temp_pkg_dir)
+
+        # Get the first variant from the package
+        variant = next(package.iter_variants())
+
+        # Create a minimal context for testing - we don't need to resolve packages
+        # since we're only testing environment variable escaping
+        context = self._create_context()  # Empty context
+
+        # Create a bash shell executor using RexExecutor
+        bash_shell = create_shell("bash")
+        executor = RexExecutor(interpreter=bash_shell, parent_environ={}, shebang=False)
+
+        build_path = os.path.join(self.root, "build")
+        install_path = os.path.join(self.root, "install")
+
+        BuildSystem.set_standard_vars(
+            executor=executor,
+            context=context,
+            variant=variant,
+            build_type=BuildType.local,
+            install=True,
+            build_path=build_path,
+            install_path=install_path
+        )
+
+        # Get the generated shell script
+        script_output = executor.get_output()
+
+        self.assertEqual(
+            script_output,
+            f"""export REZ_BUILD_ENV="1"
+export REZ_BUILD_PATH="{build_path}"
+export REZ_BUILD_THREAD_COUNT="{package.config.build_thread_count}"
+export REZ_BUILD_VARIANT_INDEX="0"
+export REZ_BUILD_VARIANT_REQUIRES=''
+export REZ_BUILD_VARIANT_SUBPATH=""
+export REZ_BUILD_PROJECT_VERSION='1.0.0'
+export REZ_BUILD_PROJECT_NAME='test_special_chars'
+export REZ_BUILD_PROJECT_DESCRIPTION='A test package with "quotes" and $pecial characters & more!'
+export REZ_BUILD_PROJECT_FILE='{package_py_path}'
+export REZ_BUILD_SOURCE_PATH='{temp_pkg_dir}'
+export REZ_BUILD_REQUIRES=''
+export REZ_BUILD_REQUIRES_UNVERSIONED=''
+export REZ_BUILD_TYPE='local'
+export REZ_BUILD_INSTALL="1"
+export REZ_BUILD_INSTALL_PATH='{install_path}'
+"""
+        )
 
 
 if __name__ == '__main__':
