@@ -51,6 +51,12 @@ def setup_parser(parser, completions=False):
         "--paths", type=str, default=None,
         help="set package search path (use %r separator)" % os.pathsep)
     parser.add_argument(
+        "--add-pre-paths", type=str, default=None,
+        help="prepend package search path (use %r separator) to paths defined in rezconfig or --paths." % os.pathsep)
+    parser.add_argument(
+        "--add-post-paths", type=str, default=None,
+        help="append package search path (use %r separator) to paths defined in rezconfig or --paths." % os.pathsep)
+    parser.add_argument(
         "-t", "--time", type=str,
         help="ignore packages released after the given time. Supported formats "
         "are: epoch time (eg 1393014494), or relative time (eg -10s, -5m, "
@@ -170,6 +176,20 @@ def command(opts, parser, extra_arg_groups=None):
     else:
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
+
+    if opts.add_pre_paths:
+        if not pkg_paths:
+            pkg_paths = config.packages_path
+        pre_paths = opts.add_pre_paths.split(os.pathsep)
+        pre_paths = [os.path.expanduser(x) for x in pre_paths if x]
+        pkg_paths = pre_paths + pkg_paths
+
+    if opts.add_post_paths:
+        if not pkg_paths:
+            pkg_paths = config.packages_path
+        post_paths = opts.add_post_paths.split(os.pathsep)
+        post_paths = [os.path.expanduser(x) for x in post_paths if x]
+        pkg_paths = pkg_paths + post_paths
 
     if opts.input:
         if opts.PKG and not opts.patch:
