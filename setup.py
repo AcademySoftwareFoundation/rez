@@ -98,5 +98,5 @@ setup(
         "Topic :: Software Development",
         "Topic :: System :: Software Distribution"
     ],
-    python_requires=">=3.8,<3.14",
+    python_requires=">=3.8",
 )
