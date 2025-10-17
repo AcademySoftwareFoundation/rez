@@ -15,6 +15,7 @@ from rez.config import config, Config, create_config
 from rez.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 
+import os
 from textwrap import dedent
 import os.path
 from hashlib import sha1
@@ -518,3 +519,9 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
     def _load(self):
         # doesn't have its own data, forwards on from parent instead
         return None
+
+    def exists(self):
+        return os.path.isdir(self.root)
+
+    def stat(self):
+        return os.stat(self.root)
