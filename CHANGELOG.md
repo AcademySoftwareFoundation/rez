@@ -2,7 +2,7 @@
 
 <!-- start-here-sphinx-start-after -->
 
-## v3.3.0 (TBD)
+## v3.3.0 (2025-10-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.3.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.1...3.3.0)
 
 This release is a minor update that includes several bug fixes and improvements. The main highlights are support for
