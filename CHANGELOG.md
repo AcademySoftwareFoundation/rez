@@ -2,6 +2,48 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## v3.3.0 (2025-10-17)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.3.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.1...3.3.0)
+
+This release is a minor update that includes several bug fixes and improvements. The main highlights are support for
+python 3.12 and 3.13 (finally), a new way to register plugins using python entry points, new settings
+to control the package payload caching disk usage, and an improved plugins documentation.
+It also contains a lot of various bug fixes that should benifit a lot of users.
+
+Note that this release also drops support for Python 3.7. We are aware that this might affect some users,
+but we believe that the benefits of dropping Python 3.7 outweigh the potential drawbacks. Maintaining
+support for 3.7 was becoming impossible as the ecosystem is moving forward with future versions and
+leaving behind older versions.
+
+### Features
+- Add wildcard support on `rez-test` command [\#1870](https://github.com/AcademySoftwareFoundation/rez/pull/1870) ([Ni-g-3l](https://github.com/Ni-g-3l))
+- Add ability to change the `executable_fullpath` setting for the gitbash shell plugin [\#1938](https://github.com/AcademySoftwareFoundation/rez/pull/1938) ([vanridal](https://github.com/vanridal))
+- Use `$REZ_LOGGING_CONF` in package payload cache daemon to allow configuring the logger via environment variable [\#1969](https://github.com/AcademySoftwareFoundation/rez/pull/1969) ([BryceGattis](https://github.com/BryceGattis))
+- Allow registring plugins using entry points [\#1991](https://github.com/AcademySoftwareFoundation/rez/pull/1991) ([Ni-g-3l](https://github.com/Ni-g-3l))
+- Add new settings to control the package payload caching disk usage [\#2023](https://github.com/AcademySoftwareFoundation/rez/pull/2023) ([sanikache](https://github.com/sanikache))
+- Add support for Python 3.12 and 3.13 and drop support for 3.7 [\#1950](https://github.com/AcademySoftwareFoundation/rez/pull/1950) ([instinct-vfx](https://github.com/instinct-vfx), [maxnbk](https://github.com/maxnbk))
+
+### Fixes
+- Fix `rez.system.is_production_rez_install` to handle forward slash paths under windows [\#1899](https://github.com/AcademySoftwareFoundation/rez/pull/1899) ([michalfratczak](https://github.com/michalfratczak))
+- Fix race condition in `FileSystemPackageRepository` directory creation, modernize usage of `os.makedirs` [\#1913](https://github.com/AcademySoftwareFoundation/rez/pull/1913) ([nrusch](https://github.com/nrusch))
+- PowerShell: Fix assumption that `$LASTEXITCODE` is always defined [\#1962](https://github.com/AcademySoftwareFoundation/rez/pull/1962) ([nrusch](https://github.com/nrusch))
+- Improve package repository case insensitive error handling [\#1974](https://github.com/AcademySoftwareFoundation/rez/pull/1974) ([BryceGattis](https://github.com/BryceGattis))
+- Fix type of PackageOrderList in `ResolvedContext.from_dict` [\#1985](https://github.com/AcademySoftwareFoundation/rez/pull/1985) ([vanridal](https://github.com/vanridal))
+- Fix calling rez-test with empty test name to run all tests [\#1988](https://github.com/AcademySoftwareFoundation/rez/pull/1988) ([Ni-g-3l](https://github.com/Ni-g-3l))
+- Fix an AttributeError in `rez-pip` caused by missing package name normalization [\#1950](https://github.com/AcademySoftwareFoundation/rez/pull/1950) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Documentation
+- Add security policy [\#1883](https://github.com/AcademySoftwareFoundation/rez/pull/1883) ([maxnbk](https://github.com/maxnbk))
+- Add warning about rez bind to docs [\#1922](https://github.com/AcademySoftwareFoundation/rez/pull/1922) ([instinct-vfx](https://github.com/instinct-vfx))
+- Mention `.rezconfig.py` in docs [\#1981](https://github.com/AcademySoftwareFoundation/rez/pull/1981) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Improved plugins docuemntation [\#1991](https://github.com/AcademySoftwareFoundation/rez/pull/1991) ([Ni-g-3l](https://github.com/Ni-g-3l))
+
+### Miscellaneous
+- Drop support for Python 3.7 [\#1950](https://github.com/AcademySoftwareFoundation/rez/pull/1950) ([instinct-vfx](https://github.com/instinct-vfx), [maxnbk](https://github.com/maxnbk))
+- Run code coverage on rezplugins folder [\#1975](https://github.com/AcademySoftwareFoundation/rez/pull/1975) ([BryceGattis](https://github.com/BryceGattis))
+- Update vendored dependencies part 1 [\#1944](https://github.com/AcademySoftwareFoundation/rez/pull/1944) ([maxnbk](https://github.com/maxnbk))
+- Update vendored dependencies part 2 [\#2022](https://github.com/AcademySoftwareFoundation/rez/pull/2022) ([maxnbk](https://github.com/maxnbk))
+
 ## v3.2.1 (2024-10-27)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.0...3.2.1)
 
