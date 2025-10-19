@@ -6,7 +6,6 @@ from inspect import isclass
 from hashlib import sha1
 from typing import Dict, Iterable, List, Optional, Union
 
-from rez.config import config
 from rez.utils.data_utils import cached_class_property
 from rez.version import Version, VersionRange
 from rez.version._version import _Comparable, _ReversedComparable, _LowerBound, _UpperBound, _Bound
@@ -637,6 +636,7 @@ class PackageOrderList(list):
     @cached_class_property
     def singleton(cls):
         """Filter list as configured by rezconfig.package_filter."""
+        from rez.config import config
         return cls.from_pod(config.package_orderers)
 
     @staticmethod
