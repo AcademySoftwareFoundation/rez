@@ -455,6 +455,8 @@ class PackageTestRunner(object):
 
                 with executor.reset_globals():
                     executor.bind("this", variant)
+                    executor.bind('root', variant.root)
+                    executor.bind('base', executor.normalize_path(package.base))
                     executor.bind("test", RO_AttrDictWrapper(test_ns))
                     executor.execute_code(pre_test_commands)
 
