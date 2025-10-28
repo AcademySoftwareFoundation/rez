@@ -57,23 +57,21 @@ Check the calendar for our monthly TSC meeting. Reminders often posted in Slack.
 If you would like to contribute code you can do so through GitHub by forking the
 repository and sending a pull request. Please follow these guidelines:
 
-1.  Always retain backwards compatibility, unless a breaking change is necessary. If it is
-    necessary, the associated release notes must make this explicit and obvious;
-2.  Make every effort to follow existing conventions and style;
-3.  Follow [PEP8](https://www.python.org/dev/peps/pep-0008/);
-4.  Follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
-    for docstrings;
-5.  Use *spaces*, not *tabs*;
-6.  Update the [rez version](src/rez/utils/_version.py) appropriately, and follow
-    [semantic versioning](https://semver.org/);
-7.  Use [this format](https://help.github.com/articles/closing-issues-using-keywords/)
-    to mention the issue(s) your PR closes;
-8.  Add relevant tests to demonstrate that your changes work;
-9.  Add relevant documentation [here](docs/source) to document your changes, if applicable. Those
-    markdown files prefixed with `_` are internal and should not be changed.
-10. If your changes add a new rez config setting, update [rezconfig.py](src/rez/rezconfig.py) and
-    document the setting. The comments in this file are extracted and turned into documentation. Pay
-    attention to the comment formatting and follow the existing style closely.
+1. Always retain backwards compatibility, unless a breaking change is necessary. If it is
+   necessary, the associated release notes must make this explicit and obvious;
+2. Make every effort to follow existing conventions and style;
+3. Follow [PEP8](https://www.python.org/dev/peps/pep-0008/);
+4. Follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+   for docstrings;
+5. Use *spaces*, not *tabs*;
+6. Use [this format](https://help.github.com/articles/closing-issues-using-keywords/)
+   to mention the issue(s) your PR closes;
+7. Add relevant tests to demonstrate that your changes work;
+8. Add relevant documentation [here](docs/source) to document your changes, if applicable. Those
+   markdown files prefixed with `_` are internal and should not be changed.
+9. If your changes add a new rez config setting, update [rezconfig.py](src/rez/rezconfig.py) and
+   document the setting. The comments in this file are extracted and turned into documentation. Pay
+   attention to the comment formatting and follow the existing style closely.
 
 ## Development Environment
 
