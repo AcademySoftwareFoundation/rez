@@ -302,14 +302,10 @@ class CMD(Shell):
     def get_all_key_tokens(cls, key):
         return ["%{}%".format(key)]
 
-    @classmethod
-    def join(cls, command):
-        # TODO: This needs to be properly fixed, see other shell impls
-        # at https://github.com/AcademySoftwareFoundation/rez/pull/1130
-        #
+    def join(self, command):
         # TODO: This may disappear in future [1]
         # [1] https://bugs.python.org/issue10838
-        return subprocess.list2cmdline(command)
+        return self.escape_string(subprocess.list2cmdline(command))
 
     @classmethod
     def line_terminator(cls):
