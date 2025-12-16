@@ -66,12 +66,12 @@ class SH(UnixShell):
 
     @classmethod
     def startup_capabilities(
-            cls,
-            rcfile: str | None | Literal[False] = False,
-            norc: bool = False,
-            stdin: bool = False,
-            command: bool = False
-        ) -> tuple[str | None | Literal[False], bool, bool, bool]:
+        cls,
+        rcfile: str | None | Literal[False] = False,
+        norc: bool = False,
+        stdin: bool = False,
+        command: bool = False
+    ) -> tuple[str | None | Literal[False], bool, bool, bool]:
         cls._unsupported_option('rcfile', rcfile)
         rcfile = False
         if command is not None:

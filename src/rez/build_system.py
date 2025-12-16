@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from rez.packages import Variant
     from rez.rex import RexExecutor
 
+
 class BuildResult(TypedDict, total=False):
     success: bool
     extra_files: list[str]

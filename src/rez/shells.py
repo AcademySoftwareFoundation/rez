@@ -20,7 +20,7 @@ from rez.config import config
 import os
 import os.path
 from shlex import quote
-from typing import Any, Iterable, TYPE_CHECKING
+from typing import Any, Iterable, Literal, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import subprocess
@@ -121,12 +121,12 @@ class Shell(ActionInterpreter):
 
     @classmethod
     def startup_capabilities(
-            cls,
-            rcfile: str | None | Literal[False] = False,
-            norc: bool = False,
-            stdin: bool = False,
-            command: bool = False
-        ) -> tuple[str | None | Literal[False], bool, bool, bool]:
+        cls,
+        rcfile: str | None | Literal[False] = False,
+        norc: bool = False,
+        stdin: bool = False,
+        command: bool = False
+    ) -> tuple[str | None | Literal[False], bool, bool, bool]:
         """
         Given a set of options related to shell startup, return the actual
         options that will be applied.

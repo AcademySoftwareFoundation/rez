@@ -38,7 +38,6 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-
 # modified from pkgutil standard library:
 # this function is called from the __init__.py files of each plugin type inside
 # the 'rezplugins' package.
