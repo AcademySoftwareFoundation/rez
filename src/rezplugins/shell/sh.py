@@ -17,10 +17,7 @@ from rez.shells import UnixShell
 from rez.rex import EscapedString
 from shlex import quote
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Literal
+from typing import Literal
 
 
 class SH(UnixShell):

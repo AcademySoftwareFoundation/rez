@@ -16,10 +16,7 @@ from rezplugins.shell.sh import SH
 from rez import module_root_path
 from shlex import quote
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Literal
+from typing import Literal
 
 
 class Zsh(SH):

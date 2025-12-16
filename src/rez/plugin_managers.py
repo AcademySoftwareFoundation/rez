@@ -14,7 +14,7 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
-from typing import overload, Any, TypeVar, TYPE_CHECKING
+from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
 import pkgutil
 import os.path
 import sys
@@ -26,7 +26,6 @@ else:
     from rez.vendor.importlib_metadata import entry_points
 
 if TYPE_CHECKING:
-    from typing import Literal  # not available in typing module until 3.8
     from rez.shells import Shell
     from rez.release_vcs import ReleaseVCS
     from rez.release_hook import ReleaseHook
