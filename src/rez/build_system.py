@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import argparse
 import os.path
-from typing import Sequence, TYPE_CHECKING
+from typing import Sequence, TypedDict, TYPE_CHECKING
 
 
 from rez.build_process import BuildType
@@ -15,20 +15,15 @@ from rez.packages import get_developer_package
 from rez.rex_bindings import VariantBinding
 
 if TYPE_CHECKING:
-    from typing import TypedDict  # not available until python 3.8
     from rez.developer_package import DeveloperPackage
     from rez.resolved_context import ResolvedContext
     from rez.packages import Variant
     from rez.rex import RexExecutor
 
-    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
-    class BuildResult(TypedDict, total=False):
-        success: bool
-        extra_files: list[str]
-        build_env_script: str
-
-else:
-    BuildResult = dict
+class BuildResult(TypedDict, total=False):
+    success: bool
+    extra_files: list[str]
+    build_env_script: str
 
 
 def get_buildsys_types() -> list[str]:

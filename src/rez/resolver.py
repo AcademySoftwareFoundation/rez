@@ -15,26 +15,22 @@ from rez.version import Requirement
 from contextlib import contextmanager
 from enum import Enum
 from hashlib import sha1
-from typing import Any, Callable, Iterator, TYPE_CHECKING
+from typing import Any, Callable, Iterator, TypedDict, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from rez.package_order import PackageOrderList
     from rez.resolved_context import ResolvedContext
     from rez.utils.typing import SupportsWrite
 
-    from typing import TypedDict
 
-    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
-    class SolverDict(TypedDict):
-        status: ResolverStatus
-        graph: Any  # digraph
-        solve_time: float | None
-        load_time: float | None
-        failure_description: str | None
-        variant_handles: list[dict[str, Any]]
-        ephemerals: list[str]
-else:
-    SolverDict = dict
+class SolverDict(TypedDict):
+    status: ResolverStatus
+    graph: Any  # digraph
+    solve_time: float | None
+    load_time: float | None
+    failure_description: str | None
+    variant_handles: list[dict[str, Any]]
+    ephemerals: list[str]
 
 
 class ResolverStatus(Enum):

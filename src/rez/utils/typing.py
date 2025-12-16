@@ -4,15 +4,7 @@
 
 from __future__ import absolute_import, print_function, annotations
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    # FIXME: use typing.Protocol instead of this workaround when python 3.7 support is dropped
-    from typing import Protocol
-
-else:
-    class Protocol(object):
-        pass
+from typing import Any, Protocol
 
 
 class SupportsLessThan(Protocol):

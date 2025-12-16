@@ -14,38 +14,33 @@ from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.utils.yaml import dump_yaml
 from collections import defaultdict
-from typing import cast, TYPE_CHECKING, Any, NoReturn
+from typing import cast, TYPE_CHECKING, Any, NoReturn, TypedDict
 import os
 import os.path
 import shutil
 import sys
 
-
 if TYPE_CHECKING:
     from rez.packages import Variant
-    from typing import TypedDict
 
-    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
-    class Tool(TypedDict):
-        tool_name: str
-        tool_alias: str
-        context_name: str
-        variant: Variant | set[Variant]
 
-    class Context(TypedDict, total=False):
-        name: str
-        context: ResolvedContext
-        tool_aliases: dict[str, str]
-        hidden_tools: set[str]
-        priority: int
-        prefix_char: str | None
-        loaded: bool
-        prefix: str
-        suffix: str
+class Tool(TypedDict):
+    tool_name: str
+    tool_alias: str
+    context_name: str
+    variant: "Variant | set[Variant]"
 
-else:
-    Tool = dict
-    Context = dict
+
+class Context(TypedDict, total=False):
+    name: str
+    context: ResolvedContext
+    tool_aliases: dict[str, str]
+    hidden_tools: set[str]
+    priority: int
+    prefix_char: str | None
+    loaded: bool
+    prefix: str
+    suffix: str
 
 
 class Suite(object):
