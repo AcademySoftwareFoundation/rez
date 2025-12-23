@@ -7,7 +7,7 @@ Essential packages
 
 .. warning::
    :ref:`rez-bind` is going to be deprecated. The current implementation is not actively maintained.
-   Especially on windows, using :option:`--quickstart <rez-bind --quickstart>` is likely to fail.
+   Especially on Windows, using :option:`--quickstart <rez-bind --quickstart>` is likely to fail.
 
    Even if rez-bind will be deprecated and we generally discourage its use, you can safely use it for creating the ``arch``, ``os`` and ``platform`` packages.
 
@@ -144,7 +144,7 @@ You can use the :ref:`rez-env` tool to request a configured environment containi
    > ]$ █
 
 Now you are within the configured environment. The caret (``>``) prefixed to your prompt is a visual
-cue telling you that you're within a rez-configured subshell. Rez does not update the currect environment,
+cue telling you that you're within a rez-configured subshell. Rez does not update the current environment,
 instead it configures a subshell and puts you within it.
 
 Now you can run the ``hello`` tool in our ``hello_world`` package:
@@ -176,7 +176,7 @@ initially created the environment:
    platform-osx       /home/ajohns/packages/platform/osx                                           (local)
    python-2.7.11      /home/ajohns/packages/python/2.7.11/platform-osx/arch-x86_64/os-osx-10.11.5  (local)
 
-To exit the configured environment, simply exist the shell using the ``exit`` command or :kbd:`Control-d`:
+To exit the configured environment, simply exit the shell using the ``exit`` command or :kbd:`Control-d`:
 
 You can also create a configured environment and run a command inside of it, with a single command.
 When you use this form, the shell is immediately exited after the command runs:
