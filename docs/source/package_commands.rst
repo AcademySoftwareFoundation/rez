@@ -640,7 +640,8 @@ Following is a list of the objects and functions available.
    However, Rez does not currently behave like this - multiple :attr:`setenv` calls to the same variable
    do not abort the resolve. Instead, the latest call to :attr:`setenv` wins.
 
-   And currently, :attr:`resetenv` merely acts as a synonym for :attr:`setenv`.
+   And currently, :attr:`resetenv` merely acts as a synonym for :attr:`setenv`. The `friends`
+   parameter does nothing.
 
 .. py:attribute:: resolve
 
