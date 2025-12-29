@@ -640,8 +640,7 @@ Following is a list of the objects and functions available.
    However, Rez does not currently behave like this - multiple :attr:`setenv` calls to the same variable
    do not abort the resolve. Instead, the latest call to :attr:`setenv` wins.
 
-   And currently, :attr:`resetenv` merely acts as a synonym for :attr:`setenv`. The `friends`
-   parameter does nothing.
+   And currently, :attr:`resetenv` merely acts as a synonym for :attr:`setenv`.
 
 .. py:attribute:: resolve
 
@@ -743,16 +742,61 @@ Following is a list of the objects and functions available.
    .. py:attribute:: this.is_package
       :type: bool
 
-      .. todo:: Document
+      "Package" here means "a containing object that describes a package". It does not mean you are
+      in a resolved context for a package. This variable is set to ``True`` if you are in a package that
+      does not represent a resolved context; this happens, for example, when you are searching
+      through packages.
 
-      TODO: Document
+      If :attr:`this.is_package` is ``True`` then :attr:`this.is_variant` must be ``False``, and vice versa.
+
+      See :attr:`this.is_variant` for a fuller explanation and example.
 
    .. py:attribute:: this.is_variant
       :type: bool
 
-      .. todo:: Document 
+      This is set to ``True`` if you are in a resolved context. That's because a context must be
+      resolved down to a specific :doc:`variant <../variants>`. To see the relationship between :attr:`this.is_package` and
+      :attr:`this.is_variant`, consider a package called ``test`` with the following code in its ``package.py``
+      file:
 
-      TODO: Document
+   .. code-block:: python
+
+      @late()
+      def foo():
+          print(f"in foo: {in_context()=}")
+          print(f"in foo: {this.is_package=}")
+          print(f"in foo: {this.is_variant=}")
+          return ["foo"]
+
+      def commands():
+          print(f"in commands: {this.is_package=}")
+          print(f"in commands: {this.is_variant=}")
+          value = this.foo
+          print(f"{value=}")
+
+
+   In this example, ``foo`` is a late-binding attribute that will be executed as part of resolving the
+   package's context.  If you build the ``test`` package and run ``rez env test`` you will get this output:
+
+   .. code-block:: text
+
+      % rez env test
+      in commands: this.is_package=False
+      in commands: this.is_variant=True
+      in foo: in_context()=True
+      in foo: this.is_package=True
+      in foo: this.is_variant=False
+      value=['foo']
+
+   But if you only search through the ``test`` package, where no context must be resolved, you get this:
+
+   .. code-block:: text
+
+      % rez search -f '{foo}' test
+      in foo: in_context()=False
+      in foo: this.is_package=True
+      in foo: this.is_variant=False
+      foo
 
    .. py:attribute:: this.name
       :type: str
