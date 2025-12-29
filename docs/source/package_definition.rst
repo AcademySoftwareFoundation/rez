@@ -1088,7 +1088,7 @@ of these attributes have been added.
 
    The package release message. This is supplied either via the :option:`rez-release --message`
    option, or was entered in a text editor on release if rez is configured to do this (see the config
-   setting ``TODO_ADD_THIS``). A package may not have a release message.
+   setting :data:`prompt_release_message`). A package may not have a release message.
 
    .. code-block:: python
 
