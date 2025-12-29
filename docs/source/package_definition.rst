@@ -115,7 +115,7 @@ implicit :attr:`this` object:
    @early()
    def description():
       # a not very useful description
-      return "%s version %s" % (this.name, this.version)
+      return "%s version %s" % (name, version)
 
 .. warning::
    Do not reference other early bound or late bound attributes in
