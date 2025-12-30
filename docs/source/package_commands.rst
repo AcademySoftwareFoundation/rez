@@ -614,17 +614,19 @@ Following is a list of the objects and functions available.
          "corelib": "!corelib-1.4.4"
       }
 
-   Use ``get_range`` to test with the :func:`intersects` function:
-
-      if intersects(request.get_range("maya", "0"), "2019"):
-         info("maya 2019.* was asked for!")
-
    Example:
 
    .. code-block:: python
 
       if "maya" in request:
          info("maya was asked for!")
+
+   .. code-block:: python
+   
+   Use ``get_range`` to test with the :func:`intersects` function:
+
+      if intersects(request.get_range("maya", "0"), "2019"):
+         info("maya 2019.* was asked for!")
 
    .. tip::
       If multiple requests are present that refer to the same package, the
