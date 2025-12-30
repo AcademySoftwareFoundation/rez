@@ -405,7 +405,7 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            shutil.copytree(variant_root, rootpath, symlinks=True)
         finally:
             still_copying = False
 
