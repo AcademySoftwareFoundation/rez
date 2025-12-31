@@ -11,6 +11,7 @@ from rez.shells import Shell
 from rez.system import system
 from rez.utils.execution import Popen
 from rez.utils.platform_ import platform_
+from rez.utils.logging_ import print_debug
 from ._utils.windows import to_windows_path, get_syspaths_from_registry
 from functools import partial
 import os
@@ -172,6 +173,9 @@ class CMD(Shell):
         target_file = os.path.join(tmpdir, "rez-shell.%s"
                                    % self.file_extension())
 
+        if config.debug("shell_startup"):
+            print_debug("Writing shell script to %s" % target_file)
+
         with open(target_file, 'w') as f:
             f.write(code)
 
@@ -192,6 +196,9 @@ class CMD(Shell):
             cmd_flags = ['/Q', '/K']
         else:
             cmd_flags = ['/Q', '/C']
+
+        if config.debug("shell_startup"):
+            print_debug("Launching shell with command: %s" % self.join(cmd))
 
         cmd += [self.executable]
         cmd += cmd_flags

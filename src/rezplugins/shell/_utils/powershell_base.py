@@ -12,6 +12,7 @@ from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
+from rez.utils.logging_ import print_debug
 from .windows import get_syspaths_from_registry, to_windows_path
 
 
@@ -173,6 +174,9 @@ class PowerShellBase(Shell):
         target_file = os.path.join(tmpdir,
                                    "rez-shell.%s" % self.file_extension())
 
+        if config.debug("shell_startup"):
+            print_debug("Writing shell script to %s" % target_file)
+
         with open(target_file, 'w') as f:
             f.write(code)
 
@@ -199,6 +203,9 @@ class PowerShellBase(Shell):
 
         if shell_command is None:
             cmd.insert(1, "-NoExit")
+
+        if config.debug("shell_startup"):
+            print_debug("Launching shell with command: %s" % self.join(cmd))
 
         p = Popen(cmd, env=env, **Popen_args)
         return p
