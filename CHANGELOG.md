@@ -2,6 +2,11 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## Unreleased
+
+### Fixes
+- Fix `rez-pkg-cache` to preserve symlinks instead of following them [\#2047](https://github.com/AcademySoftwareFoundation/rez/issues/2047)
+
 ## v3.3.0 (2025-10-17)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.3.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.1...3.3.0)
 
