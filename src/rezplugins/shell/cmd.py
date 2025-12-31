@@ -33,21 +33,21 @@ class CMD(Shell):
     _escape_re = re.compile(r'(?<!\^)[&<>]|(?<!\^)\^(?![&<>\^])|(\|)')
     _escaper = partial(_escape_re.sub, lambda m: '^' + m.group(0))
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(CMD, self).__init__()
         self._doskey_aliases = {}
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'cmd'
 
     @classmethod
-    def file_extension(cls):
+    def file_extension(cls) -> str:
         return 'bat'
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(cls, rcfile: bool = False, norc: bool = False, stdin: bool = False,
+                             command: bool = False):
         cls._unsupported_option('rcfile', rcfile)
         rcfile = False
         cls._unsupported_option('norc', norc)
@@ -83,7 +83,7 @@ class CMD(Shell):
         cls.syspaths = get_syspaths_from_registry()
         return cls.syspaths
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         if config.set_prompt and self.settings.prompt:
             stored_prompt = os.getenv("REZ_STORED_PROMPT_CMD")
             curr_prompt = stored_prompt or os.getenv("PROMPT", "")
@@ -96,15 +96,15 @@ class CMD(Shell):
             new_prompt = new_prompt % curr_prompt
             self._addline('set PROMPT=%s' % new_prompt)
 
-    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, add_rez=True, **Popen_args):
+    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc: bool = False,
+                    stdin: bool = False, command=None, env=None, quiet: bool = False,
+                    pre_command=None, add_rez: bool = True, **Popen_args):
 
         command = self._expand_alias(command)
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         shell_command = None
 
-        def _record_shell(ex, files, bind_rez=True, print_msg=False):
+        def _record_shell(ex, files, bind_rez: bool = True, print_msg: bool = False) -> None:
             ex.source(context_file)
             if startup_sequence["envvar"]:
                 ex.unsetenv(startup_sequence["envvar"])
@@ -201,7 +201,7 @@ class CMD(Shell):
         p = Popen(cmd, env=env, shell=is_detached, **Popen_args)
         return p
 
-    def get_output(self, style=OutputStyle.file):
+    def get_output(self, style=OutputStyle.file) -> str:
         if style == OutputStyle.file:
             script = '\n'.join(self._lines) + '\n'
         else:  # eval style
@@ -213,7 +213,7 @@ class CMD(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value: str, is_path: bool = False) -> str:
         """Escape the <, >, ^, and & special characters reserved by Windows.
 
         Args:
@@ -243,23 +243,23 @@ class CMD(Shell):
     def normalize_path(self, path):
         return to_windows_path(path)
 
-    def _saferefenv(self, key):
+    def _saferefenv(self, key) -> None:
         pass
 
-    def shebang(self):
+    def shebang(self) -> None:
         pass
 
-    def setenv(self, key, value):
+    def setenv(self, key, value) -> None:
         value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('set %s=%s' % (key, value))
 
-    def unsetenv(self, key):
+    def unsetenv(self, key) -> None:
         self._addline("set %s=" % key)
 
-    def resetenv(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None) -> None:
         self._addline(self.setenv(key, value))
 
-    def alias(self, key, value):
+    def alias(self, key, value) -> None:
         # find doskey, falling back to system paths if not in $PATH. Fall back
         # to unqualified 'doskey' if all else fails
         if self._doskey is None:
@@ -273,11 +273,11 @@ class CMD(Shell):
 
         self._addline("%s %s=%s $*" % (self._doskey, key, value))
 
-    def comment(self, value):
+    def comment(self, value) -> None:
         for line in value.split('\n'):
             self._addline('REM %s' % line)
 
-    def info(self, value):
+    def info(self, value) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             line = self.convert_tokens(line)
@@ -286,16 +286,16 @@ class CMD(Shell):
             else:
                 self._addline('echo.')
 
-    def error(self, value):
+    def error(self, value) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             line = self.convert_tokens(line)
             self._addline('echo "%s" 1>&2' % line)
 
-    def source(self, value):
+    def source(self, value) -> None:
         self._addline("call %s" % value)
 
-    def command(self, value):
+    def command(self, value) -> None:
         self._addline(value)
 
     @classmethod
@@ -312,7 +312,7 @@ class CMD(Shell):
         return subprocess.list2cmdline(command)
 
     @classmethod
-    def line_terminator(cls):
+    def line_terminator(cls) -> str:
         return "\r\n"
 
     def _expand_alias(self, command):

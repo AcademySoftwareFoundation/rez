@@ -5,6 +5,8 @@
 """
 Manages loading of all types of Rez plugins.
 """
+from __future__ import annotations
+
 from rez.config import config, expand_system_vars, _load_config_from_filepaths
 from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
@@ -12,14 +14,27 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
+from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
 import pkgutil
 import os.path
 import sys
+import types
 
 if sys.version_info[:2] >= (3, 8):
     from importlib.metadata import entry_points
 else:
     from rez.vendor.importlib_metadata import entry_points
+
+if TYPE_CHECKING:
+    from rez.shells import Shell
+    from rez.release_vcs import ReleaseVCS
+    from rez.release_hook import ReleaseHook
+    from rez.build_process import BuildProcess
+    from rez.build_system import BuildSystem
+    from rez.package_repository import PackageRepository
+    from rez.command import Command
+
+T = TypeVar("T")
 
 
 # modified from pkgutil standard library:
@@ -59,7 +74,7 @@ def extend_path(path, name):
     init_py = "__init__" + os.extsep + "py"
     path = path[:]
 
-    def append_if_valid(dir_):
+    def append_if_valid(dir_) -> None:
         if os.path.isdir(dir_):
             subdir = os.path.normcase(os.path.join(dir_, pname))
             initfile = os.path.join(subdir, init_py)
@@ -79,9 +94,9 @@ def extend_path(path, name):
     return path
 
 
-def uncache_rezplugins_module_paths(instance=None):
+def uncache_rezplugins_module_paths(instance=None) -> None:
     instance = instance or plugin_manager
-    cached_property.uncache(instance, "rezplugins_module_paths")
+    cached_property.uncache(instance, "rezplugins_module_paths")  # type: ignore[attr-defined]
 
 
 class RezPluginType(object):
@@ -90,30 +105,30 @@ class RezPluginType(object):
     'type_name' must correspond with one of the source directories found under
     the 'plugins' directory.
     """
-    type_name = None
+    type_name: str
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self.type_name is None:
             raise TypeError("Subclasses of RezPluginType must provide a "
                             "'type_name' attribute")
         self.pretty_type_name = self.type_name.replace('_', ' ')
-        self.plugin_classes = {}
-        self.failed_plugins = {}
-        self.plugin_modules = {}
+        self.plugin_classes: dict[str, type] = {}
+        self.failed_plugins: dict[str, str] = {}
+        self.plugin_modules: dict[str, types.ModuleType] = {}
         self.config_data = {}
         self.load_plugins()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%s)' % (self.__class__.__name__, self.plugin_classes.keys())
 
-    def register_plugin(self, plugin_name, plugin_class, plugin_module):
+    def register_plugin(self, plugin_name: str, plugin_class: type, plugin_module: types.ModuleType) -> None:
         # TODO: check plugin_class to ensure it is a sub-class of expected base-class?
         # TODO: perhaps have a Plugin base class. This introduces multiple
         # inheritance in Shell class though :/
         self.plugin_classes[plugin_name] = plugin_class
         self.plugin_modules[plugin_name] = plugin_module
 
-    def load_plugins(self):
+    def load_plugins(self) -> None:
         self.load_plugins_from_namespace()
         self.load_plugins_from_entry_points()
 
@@ -246,7 +261,7 @@ class RezPluginType(object):
                     "no 'register_plugin' function at %s: %s"
                     % (plugin_path, module_name))
 
-    def get_plugin_class(self, plugin_name):
+    def get_plugin_class(self, plugin_name: str) -> type:
         """Returns the class registered under the given plugin name."""
         try:
             return self.plugin_classes[plugin_name]
@@ -254,7 +269,7 @@ class RezPluginType(object):
             raise RezPluginError("Unrecognised %s plugin: '%s'"
                                  % (self.pretty_type_name, plugin_name))
 
-    def get_plugin_module(self, plugin_name):
+    def get_plugin_module(self, plugin_name: str) -> types.ModuleType:
         """Returns the module containing the plugin of the given name."""
         try:
             return self.plugin_modules[plugin_name]
@@ -276,7 +291,7 @@ class RezPluginType(object):
                 deep_update(d, d_)
         return dict_to_schema(d, required=True, modifier=expand_system_vars)
 
-    def create_instance(self, plugin, **instance_kwargs):
+    def create_instance(self, plugin: str, **instance_kwargs) -> Any:
         """Create and return an instance of the given plugin."""
         return self.get_plugin_class(plugin)(**instance_kwargs)
 
@@ -334,8 +349,8 @@ class RezPluginManager(object):
             This is important  because it ensures that rez's copy of
             'rezplugins' is always found first.
     """
-    def __init__(self):
-        self._plugin_types = {}
+    def __init__(self) -> None:
+        self._plugin_types: dict[str, LazySingleton[RezPluginType]] = {}
 
     @cached_property
     def rezplugins_module_paths(self):
@@ -370,14 +385,14 @@ class RezPluginManager(object):
 
     # -- plugin types
 
-    def _get_plugin_type(self, plugin_type):
+    def _get_plugin_type(self, plugin_type: str) -> RezPluginType:
         try:
             return self._plugin_types[plugin_type]()
         except KeyError:
             raise RezPluginError("Unrecognised plugin type: '%s'"
                                  % plugin_type)
 
-    def register_plugin_type(self, type_class):
+    def register_plugin_type(self, type_class: type[RezPluginType]) -> None:
         if not issubclass(type_class, RezPluginType):
             raise TypeError("'type_class' must be a RezPluginType sub class")
         if type_class.type_name is None:
@@ -385,38 +400,66 @@ class RezPluginManager(object):
                             "'type_name' attribute")
         self._plugin_types[type_class.type_name] = LazySingleton(type_class)
 
-    def get_plugin_types(self):
+    def get_plugin_types(self) -> list[str]:
         """Return a list of the registered plugin types."""
-        return self._plugin_types.keys()
+        return list(self._plugin_types.keys())
 
     # -- plugins
 
-    def get_plugins(self, plugin_type):
+    def get_plugins(self, plugin_type: str) -> list[str]:
         """Return a list of the registered names available for the given plugin
         type."""
-        return self._get_plugin_type(plugin_type).plugin_classes.keys()
+        return list(self._get_plugin_type(plugin_type).plugin_classes.keys())
 
-    def get_plugin_class(self, plugin_type, plugin_name):
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["shell"], plugin_name: str) -> type[Shell]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["release_vcs"], plugin_name: str) -> type[ReleaseVCS]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["release_hook"], plugin_name: str) -> type[ReleaseHook]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["package_repository"], plugin_name: str) -> type[PackageRepository]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["build_system"], plugin_name: str) -> type[BuildSystem]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["build_process"], plugin_name: str) -> type[BuildProcess]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["command"], plugin_name: str) -> type[Command]:
+        pass
+
+    def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:
         """Return the class registered under the given plugin name."""
         plugin = self._get_plugin_type(plugin_type)
         return plugin.get_plugin_class(plugin_name)
 
-    def get_plugin_module(self, plugin_type, plugin_name):
+    def get_plugin_module(self, plugin_type: str, plugin_name: str) -> types.ModuleType:
         """Return the module defining the class registered under the given
         plugin name."""
         plugin = self._get_plugin_type(plugin_type)
         return plugin.get_plugin_module(plugin_name)
 
-    def get_plugin_config_data(self, plugin_type):
+    def get_plugin_config_data(self, plugin_type: str):
         """Return the merged configuration data for the plugin type."""
         plugin = self._get_plugin_type(plugin_type)
         return plugin.config_data
 
-    def get_plugin_config_schema(self, plugin_type):
+    def get_plugin_config_schema(self, plugin_type: str):
         plugin = self._get_plugin_type(plugin_type)
         return plugin.config_schema
 
-    def get_failed_plugins(self, plugin_type):
+    def get_failed_plugins(self, plugin_type: str) -> list[tuple[str, str]]:
         """Return a list of plugins for the given type that failed to load.
 
         Returns:
@@ -424,14 +467,14 @@ class RezPluginManager(object):
             name (str): Name of the plugin.
             reason (str): Error message.
         """
-        return self._get_plugin_type(plugin_type).failed_plugins.items()
+        return list(self._get_plugin_type(plugin_type).failed_plugins.items())
 
-    def create_instance(self, plugin_type, plugin_name, **instance_kwargs):
+    def create_instance(self, plugin_type: str, plugin_name, **instance_kwargs: Any) -> Any:
         """Create and return an instance of the given plugin."""
         plugin_type = self._get_plugin_type(plugin_type)
         return plugin_type.create_instance(plugin_name, **instance_kwargs)
 
-    def get_summary_string(self):
+    def get_summary_string(self) -> str:
         """Get a formatted string summarising the plugins that were loaded."""
         rows = [["PLUGIN TYPE", "NAME", "DESCRIPTION", "STATUS"],
                 ["-----------", "----", "-----------", "------"]]

@@ -21,7 +21,7 @@ import os.path
 
 class TestBuild(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         packages_path = cls.data_path("builds", "packages")
@@ -42,7 +42,7 @@ class TestBuild(TestBase, TempdirMixin):
             implicit_packages=[])
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
     @classmethod
@@ -56,7 +56,7 @@ class TestBuild(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    def _test_build(self, name, version=None):
+    def _test_build(self, name, version=None) -> None:
         # create the builder
         working_dir = os.path.join(self.src_root, name)
         if version:
@@ -71,17 +71,17 @@ class TestBuild(TestBase, TempdirMixin):
         builder.build(install_path=self.install_root, install=True, clean=True)
         builder.build(install_path=self.install_root, install=True)
 
-    def _test_build_build_util(self):
+    def _test_build_build_util(self) -> None:
         """Build, install, test the build_util package."""
         self._test_build("build_util", "1")
         self._create_context("build_util==1")
 
-    def _test_build_floob(self):
+    def _test_build_floob(self) -> None:
         """Build, install, test the floob package."""
         self._test_build("floob")
         self._create_context("floob==1.2.0")
 
-    def _test_build_foo(self):
+    def _test_build_foo(self) -> None:
         """Build, install, test the foo package."""
         self._test_build("foo", "1.0.0")
         self._create_context("foo==1.0.0")
@@ -96,25 +96,25 @@ class TestBuild(TestBase, TempdirMixin):
         # test that include modules are working
         self.assertEqual(environ.get("EEK"), "2")
 
-    def _test_build_loco(self):
+    def _test_build_loco(self) -> None:
         """Test that a package with conflicting requirements fails correctly.
         """
         working_dir = os.path.join(self.src_root, "loco", "3")
         builder = self._create_builder(working_dir)
         self.assertRaises(BuildContextResolveError, builder.build, clean=True)
 
-    def _test_build_bah(self):
+    def _test_build_bah(self) -> None:
         """Build, install, test the bah package."""
         self._test_build("bah", "2.1")
         self._create_context("bah==2.1", "foo==1.0.0")
         self._create_context("bah==2.1", "foo==1.1.0")
 
-    def _test_build_anti(self):
+    def _test_build_anti(self) -> None:
         """Build, install, test the anti package."""
         self._test_build("anti", "1.0.0")
         self._create_context("anti==1.0.0")
 
-    def _test_build_translate_lib(self):
+    def _test_build_translate_lib(self) -> None:
         """Build, install, test the translate_lib package."""
         self._test_build("translate_lib", "2.2.0")
         context = self._create_context("translate_lib==2.2.0")
@@ -126,7 +126,7 @@ class TestBuild(TestBase, TempdirMixin):
         # is testing spaces in symlinks per issue #553
         self.assertTrue(find_file_in_path('a spaced document', os.path.join(root, 'docs')))
 
-    def _test_build_sup_world(self):
+    def _test_build_sup_world(self) -> None:
         """Build, install, test the sup_world package."""
         from subprocess import PIPE
         self._test_build("sup_world", "3.8")
@@ -137,7 +137,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_build_whack(self, shell):
+    def test_build_whack(self, shell) -> None:
         """Test that a broken build fails correctly.
         """
         config.override("default_shell", shell)
@@ -149,7 +149,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_builds(self, shell):
+    def test_builds(self, shell) -> None:
         """Test an interdependent set of builds.
         """
         config.override("default_shell", shell)
@@ -163,7 +163,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_builds_anti(self, shell):
+    def test_builds_anti(self, shell) -> None:
         """Test we can build packages that contain anti packages
         """
         config.override("default_shell", shell)
@@ -175,7 +175,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @program_dependent("cmake")
     @install_dependent()
-    def test_build_cmake(self):
+    def test_build_cmake(self) -> None:
         """Test a cmake-based package."""
         if platform_.name == "windows":
             self.skipTest("This test does not run on Windows due to temporary"
@@ -189,7 +189,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @unittest.skipIf(platform_.name == "windows", "Skipping because make and GCC are not common on Windows")
     @program_dependent("make", "g++")
-    def test_build_custom(self):
+    def test_build_custom(self) -> None:
         """Test a make-based package that uses the custom_build attribute."""
         from subprocess import PIPE
 

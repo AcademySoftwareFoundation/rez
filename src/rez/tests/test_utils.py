@@ -14,15 +14,15 @@ from rez.utils.platform_ import Platform, platform_
 class TestCanonicalPath(TestBase):
     class CaseSensitivePlatform(Platform):
         @property
-        def has_case_sensitive_filesystem(self):
+        def has_case_sensitive_filesystem(self) -> bool:
             return True
 
     class CaseInsensitivePlatform(Platform):
         @property
-        def has_case_sensitive_filesystem(self):
+        def has_case_sensitive_filesystem(self) -> bool:
             return False
 
-    def test_win32_case_insensitive(self):
+    def test_win32_case_insensitive(self) -> None:
         if platform_.name != 'windows':
             self.skipTest('on linux/macos, `os.path.realpath()` treats windows '
                           'abspaths as relpaths, and prepends `os.getcwd()`')
@@ -31,7 +31,7 @@ class TestCanonicalPath(TestBase):
         expects = 'c:\\dir\\file.txt'.replace('\\', os.sep)
         self.assertEqual(path, expects)
 
-    def test_unix_case_sensistive_platform(self):
+    def test_unix_case_sensistive_platform(self) -> None:
         if platform_.name == 'windows':
             self.skipTest('on windows, `os.path.realpath()` treats unix abspaths '
                           'as relpaths, and prepends `os.getcwd()`')
@@ -40,7 +40,7 @@ class TestCanonicalPath(TestBase):
         expects = '/a/b/File.txt'.replace('\\', os.sep)
         self.assertEqual(path, expects)
 
-    def test_unix_case_insensistive_platform(self):
+    def test_unix_case_insensistive_platform(self) -> None:
         if platform_.name == 'windows':
             self.skipTest('on windows, `os.path.realpath()` treats unix abspaths '
                           'as relpaths, and prepends `os.getcwd()`')
