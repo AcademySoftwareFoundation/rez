@@ -115,7 +115,7 @@ implicit :attr:`this` object:
    @early()
    def description():
       # a not very useful description
-      return "%s version %s" % (this.name, this.version)
+      return "%s version %s" % (name, version)
 
 .. warning::
    Do not reference other early bound or late bound attributes in
@@ -414,7 +414,7 @@ such as :attr:`build_requires`) by using wildcards as shown here:
 If you check the ``package.py`` of the built package, you will see that the boost reference in the
 requires list will be expanded to the latest found within the given range (``boost-1.55`` for example).
 
-There is also a special wilcard available, ``**``. This expands to the full package version. For
+There is also a special wildcard available, ``**``. This expands to the full package version. For
 example, the requirement ``boost-1.**`` might expand to ``boost-1.55.1``.
 
 You can also achieve requirements expansion by implementing :attr:`requires` as an early binding
@@ -476,6 +476,9 @@ It is not uncommon to override config settings such as the release path in a pac
    # in package.py
    with scope("config") as c:
       c.release_packages_path = "/software/packages/external"
+
+Here a package is overriding the default release path - perhaps you're releasing
+internally and externally developed packages to different locations, for example.
 
 Let's say we have a scenario where we want to install third party packages to a specific install
 path, and that we set the arbitrary attribute ``external`` to ``True`` for these packages. We could do
@@ -701,7 +704,7 @@ the data type, and includes a code snippet.
    :type: bool
 
    Indicates that the package is an application that may have plugins. These plugins are often made
-   available as rez packages also. Used in conjuction with the :ref:`rez-plugins` command. Also, see :attr:`plugin_for`.
+   available as rez packages also. Used in conjunction with the :ref:`rez-plugins` command. Also, see :attr:`plugin_for`.
 
    .. code-block:: python
 
@@ -749,7 +752,7 @@ the data type, and includes a code snippet.
       name = "maya_utils"
 
 .. py:attribute:: plugin_for
-   :type: str
+   :type: list[str]
 
    Provided if this package is a plugin of another package. For example, this might be a maya plugin.
    This is useful when using the :ref:`rez-plugins` command. Also, see :attr:`has_plugins`.
@@ -871,11 +874,11 @@ the data type, and includes a code snippet.
          }
       }
 
-   As an example, if you want to run the ``maya_CI`` block defined in the example above (named ``maya_utils``), you can run:
+   As an example, if you want to run the ``maya_CI`` block defined in the example above (named ``maya_CI``), you can run:
 
    .. code-block:: text
 
-      ]$ rez-test maya_utils lint
+      ]$ rez-test maya_CI
 
    .. note::
       Prior to running the tests, you will need to run :ref:`rez-build`. :ref:`rez-test` can only
@@ -1085,7 +1088,7 @@ of these attributes have been added.
 
    The package release message. This is supplied either via the :option:`rez-release --message`
    option, or was entered in a text editor on release if rez is configured to do this (see the config
-   setting ``TODO_ADD_THIS``). A package may not have a release message.
+   setting :data:`prompt_release_message`). A package may not have a release message.
 
    .. code-block:: python
 

@@ -10,7 +10,7 @@ repository, but it will not be visible to the rez API nor to any newly resolved
 runtimes. Any runtimes that are currently using an ignored package are unaffected,
 since the package's payload has not been removed.
 
-To ignore a package via commandline:
+To ignore a package via command line:
 
 .. code-block:: console
 
@@ -36,7 +36,7 @@ Via API:
 Both of these options generate a :file:`.ignore{{version}}` file (e.g.
 ``.ignore3.1.2``) next to the package version directory.
 
-You can also do the reverse (ie unignore a package). Use the :option:`-u <rez-pkg-ignore -u>` option of
+You can also do the reverse (i.e. unignore a package). Use the :option:`-u <rez-pkg-ignore -u>` option of
 :ref:`rez-pkg-ignore`, or the :meth:`~rez.package_repository.PackageRepository.unignore_package` method on the package repository
 object.
 
@@ -46,7 +46,7 @@ Copying Packages
 Packages can be copied from one :ref:`package repository <package-repositories-concept>`
 to another, like so:
 
-Via commandline:
+Via command line:
 
 .. code-block:: console
 
@@ -117,7 +117,7 @@ to another. Be aware that moving a package does not actually delete the source
 package however. Instead, the source package is hidden (ignored). It is up to
 you to delete it at some later date.
 
-To move a package via commandline:
+To move a package via command line:
 
 .. code-block:: console
 
@@ -143,7 +143,7 @@ Via API:
    None
 
 Be aware that a non-relocatable package is also not movable (see
-:attr:`here <relocatable>`. Like package
+:attr:`here <relocatable>`). Like package
 copying, there is a ``force`` option to move it regardless.
 
 A typical reason you might want to move a package is to archive packages that are
@@ -164,7 +164,7 @@ Packages can be removed. This is different from ignoring. The package and its
 payload is deleted from storage, whereas ignoring just hides it. It is not
 possible to un-remove a package.
 
-To remove a package via commandline:
+To remove a package via command line:
 
 .. code-block:: console
 
