@@ -34,7 +34,7 @@ from rez.cli._entry_points import get_specifications  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
 
 
-def create_virtual_environment(dest_dir: str) -> None:
+def create_virtual_environment(dest_dir: str, python_symlinks=True) -> None:
     """Create a virtual environment in the given directory.
 
     Args:
@@ -51,7 +51,7 @@ def create_virtual_environment(dest_dir: str) -> None:
             print(f"Failed to create virtual environment: {err}")
             sys.exit(1)
     else:
-        builder = venv.EnvBuilder(with_pip=True)
+        builder = venv.EnvBuilder(with_pip=True, symlinks=python_symlinks)
         builder.create(dest_dir)
 
 
@@ -147,7 +147,7 @@ def copy_completion_scripts(dest_dir):
     return None
 
 
-def install(dest_dir, print_welcome=False, editable=False):
+def install(dest_dir, print_welcome=False, editable=False, python_symlinks=False):
     """Install rez into the given directory.
 
     Args:
@@ -156,7 +156,7 @@ def install(dest_dir, print_welcome=False, editable=False):
     print("installing rez%s to %s..." % (" (editable mode)" if editable else "", dest_dir))
 
     # create the virtualenv
-    create_virtual_environment(dest_dir)
+    create_virtual_environment(dest_dir, python_symlinks)
 
     # install rez from source
     install_rez_from_source(dest_dir, editable=editable)
@@ -289,6 +289,10 @@ if __name__ == "__main__":
         help="Make the install an editable install (pip install -e). This should "
         "only be used for development purposes"
     )
+    parser.add_argument("-ps", "--keep-python-symlinks", action="store_true",
+        default=False, help="Allow symlinks in python installation. This might "
+        "help with python distribution that use relative links like ie. UV."
+    )
     parser.add_argument(
         "DIR", nargs='?',
         help="Destination directory. If '{version}' is present, it will be "
@@ -323,4 +327,7 @@ if __name__ == "__main__":
     if opts.as_rez_package:
         install_as_rez_package(dest_dir)
     else:
-        install(dest_dir, print_welcome=True, editable=opts.editable)
+        install(
+            dest_dir, print_welcome=True, editable=opts.editable,
+            python_symlinks=opts.keep_python_symlinks
+        )
