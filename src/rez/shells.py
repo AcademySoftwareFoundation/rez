@@ -8,7 +8,7 @@ Pluggable API for creating subshells using different programs, such as bash.
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils.which import which
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_debug, print_warning
 from rez.utils.execution import Popen
 from rez.system import system
 from rez.exceptions import RezSystemError
@@ -404,6 +404,10 @@ class UnixShell(Shell):
         def _write_shell(ex, filename):
             code = ex.get_output()
             target_file = os.path.join(tmpdir, filename)
+
+            if config.debug("shell_startup"):
+                print_debug("Writing shell script to %s" % target_file)
+
             with open(target_file, 'w') as f:
                 f.write(code)
             return target_file
@@ -467,6 +471,9 @@ class UnixShell(Shell):
                                       print_msg=bind_rez)
                         _write_shell(ex, os.path.basename(file_))
 
+                    if config.debug("shell_startup"):
+                        print_debug("Setting $HOME for new shell to %s" % tmpdir)
+
                     executor.setenv("HOME", tmpdir)
 
                     # keep history
@@ -489,6 +496,10 @@ class UnixShell(Shell):
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir, "rez-shell.%s" % self.file_extension())
+
+        if config.debug("shell_startup"):
+            print_debug("Writing rez-shell to %s" % target_file)
+
         with open(target_file, 'w') as f:
             f.write(code)
 
@@ -502,6 +513,9 @@ class UnixShell(Shell):
             else:
                 cmd = pre_command
         cmd.extend([self.executable, target_file])
+
+        if config.debug("shell_startup"):
+            print_debug("Launching shell with command: %s" % self.join(cmd))
 
         try:
             p = Popen(cmd, env=env, **Popen_args)

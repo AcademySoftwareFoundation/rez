@@ -17,7 +17,7 @@ from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
 from rez.utils.data_utils import deep_del
 from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
 from rez.utils.memcached import pool_memcached_connections
-from rez.utils.logging_ import print_error, print_warning
+from rez.utils.logging_ import print_debug, print_error, print_warning
 from rez.utils.which import which
 from rez.rex import RexExecutor, Python, OutputStyle, literal
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -1454,6 +1454,10 @@ class ResolvedContext(object):
 
         # write out the native context file
         context_code = executor.get_output()
+
+        if config.debug("shell_startup"):
+            print_debug("Writing context to %s" % context_file)
+
         with open(context_file, 'w', encoding="utf-8") as f:
             f.write(context_code)
 

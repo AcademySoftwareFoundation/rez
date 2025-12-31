@@ -744,6 +744,9 @@ debug_memcache = False
 # Print debugging info when an AMPQ server is used in context tracking
 debug_context_tracking = False
 
+# Print debugging info related to shell startup
+debug_shell_startup = False
+
 # Turn on all debugging messages
 debug_all = False
 
