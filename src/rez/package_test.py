@@ -20,7 +20,7 @@ import os
 class PackageTestRunner(object):
     """Object for running a package's tests.
 
-    This runs the tests listed in the package's "tests" attribute.
+    This runs the tests listed in the package's :pkgdef:attr:`tests` attribute.
 
     An example tests entry in a package.py might look like this:
 
@@ -42,7 +42,7 @@ class PackageTestRunner(object):
     list is added to the test env.
 
     Command strings automatically expand references such as ``{root}``, much
-    as happens in a :data:`commands` function.
+    as happens in a :pkgdef:attr:`commands` function.
 
     Commands can also be a list - in this case, the test process is launched
     directly, rather than interpreted via a shell.
