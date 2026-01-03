@@ -22,7 +22,7 @@ These are the available built-in orderers.
 sorted
 ------
 
-This is the default orderer that sorts based on the package's :attr:`version` attribute.
+This is the default orderer that sorts based on the package's :pkgdef:attr:`version` attribute.
 
 You can optionally explicitly request this orderer like this:
 

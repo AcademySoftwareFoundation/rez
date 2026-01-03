@@ -2,7 +2,7 @@
 Package commands
 ================
 
-Package definition files (``package.py``) usually define a :func:`.commands` section. This is a python
+Package definition files (``package.py``) usually define a :pkgdef:func:`.commands` section. This is a python
 function that determines how the environment is configured in order to include the package.
 
 Consider the simple example:
@@ -16,13 +16,13 @@ Consider the simple example:
 This is a typical case, where a package adds its source path to ``PYTHONPATH``, and its tools to
 ``PATH``. The ``{root}`` string expands to the installation directory of the package.
 
-When a rez environment is configured, every package in the resolve list has its :func:`.commands` section
+When a rez environment is configured, every package in the resolve list has its :pkgdef:func:`.commands` section
 interpreted and converted into shell code (the language, bash or other, depends on the platform
 and is extensible). The resulting shell code is sourced, and this configures the environment.
 Within a configured environment, the variable :envvar:`REZ_CONTEXT_FILE` points at this shell code, and the
 command :option:`rez-context --interpret` prints it.
 
-The python API that you use in the :func:`.commands` section is called ``rex`` (**R**\ez **EX**\ecution language). It
+The python API that you use in the :pkgdef:func:`.commands` section is called ``rex`` (**R**\ez **EX**\ecution language). It
 is an API for performing shell operations in a shell-agnostic way. Some common operations you would
 perform with this API include setting environment variables, and appending/prepending path-like
 environment variables.
@@ -32,7 +32,7 @@ environment variables.
    are left unaltered. There will typically be many system variables that are left unchanged.
 
 .. warning:: 
-   If you need to import any python modules to use in a :func:`.commands`
+   If you need to import any python modules to use in a :pkgdef:func:`.commands`
    section, the import statements **must** be done inside that function.
 
 .. _package-commands-order-of-execution:
@@ -59,7 +59,7 @@ For example, consider the request:
    ]$ rez-env maya_anim_tool-1.3+ PyYAML-3.10 maya-2015
 
 Assuming that ``PyYAML`` depends on ``python``, and ``maya_anim_tool`` depends on ``maya``, then the
-resulting :func:`.commands` execution order would be:
+resulting :pkgdef:func:`.commands` execution order would be:
 
 * maya;
 * maya_anim_tool;
@@ -107,15 +107,15 @@ String Expansion
 Object Expansion
 ----------------
 
-Any of the objects available to you in a :func:`commands` section can be referred to in formatted strings
-that are passed to rex functions such as :func:`setenv` and so on. For example, consider the code:
+Any of the objects available to you in a :pkgdef:func:`commands` section can be referred to in formatted strings
+that are passed to rex functions such as :rex:func:`setenv` and so on. For example, consider the code:
 
 .. code-block:: python
 
    appendenv("PATH", "{root}/bin")
 
-Here, ``{root}`` will expand out to the value of :attr:`root`, which is the installation path of the
-package (:attr:`this.root` could also have been used).
+Here, ``{root}`` will expand out to the value of :rex:attr:`root`, which is the installation path of the
+package (:rex:attr:`this.root` could also have been used).
 
 You don't *have* to use this feature. It is provided as a convenience. For example, the following
 code is equivalent to the previous example, and is just as valid (but more verbose):
@@ -125,7 +125,7 @@ code is equivalent to the previous example, and is just as valid (but more verbo
    import os.path
    appendenv("PATH", os.path.join(root, "bin"))
 
-Object string expansion is also supported when setting an environment variable via the :attr:`env` object:
+Object string expansion is also supported when setting an environment variable via the :rex:attr:`env` object:
 
 .. code-block:: python
 
@@ -140,16 +140,16 @@ and ``${FOO}`` are supported, regardless of the syntax supported by the target s
 Literal Strings
 ---------------
 
-You can use the :func:`literal` function to inhibit object and environment variable string
+You can use the :rex:func:`literal` function to inhibit object and environment variable string
 expansion. For example, the following code will set the environment variable to the literal string:
 
 .. code-block:: python
 
    env.TEST = literal("this {root} will not expand")
 
-There is also an :func:`expandable` function, which matches the default behavior. You wouldn't typically
+There is also an :rex:func:`expandable` function, which matches the default behavior. You wouldn't typically
 use this function. However, you can define a string containing literal and expandable parts by
-chaining together :func:`literal` and :func:`expandable`:
+chaining together :rex:func:`literal` and :rex:func:`expandable`:
 
 .. code-block:: python
 
@@ -161,18 +161,18 @@ Explicit String Expansion
 -------------------------
 
 Object string expansion usually occurs **only** when a string is passed to a rex function, or to
-the :attr:`env` object. For example the simple statement ``var = "{root}/bin"`` would not expand ``{root}``
-into ``var``. However, you can use the :func:`expandvars` function to enable this behavior
+the :rex:attr:`env` object. For example the simple statement ``var = "{root}/bin"`` would not expand ``{root}``
+into ``var``. However, you can use the :rex:func:`expandvars` function to enable this behavior
 explicitly:
 
 .. code-block:: python
 
    var = expandvars("{root}/bin")
 
-The :func:`expandvars` and :func:`expandable` functions are slightly different. :func:`expandable` will generate a
-shell variable assignment that will expand out while :func:`expandvars` will expand the value immediately.
+The :rex:func:`expandvars` and :rex:func:`expandable` functions are slightly different. :rex:func:`expandable` will generate a
+shell variable assignment that will expand out while :rex:func:`expandvars` will expand the value immediately.
 
-This table illustrates the difference between :func:`literal`, :func:`expandable` and :func:`expandvars`:
+This table illustrates the difference between :rex:func:`literal`, :rex:func:`expandable` and :rex:func:`expandvars`:
 
 =================================== =======================
 Package command                     Equivalent bash command
@@ -216,15 +216,15 @@ Pre And Post Commands
 =====================
 
 Occasionally, it's useful for a package to run commands either before or after all other packages,
-regardless of the command execution order rules. This can be achieved by defining a :func:`pre_commands`
-or :func:`post_commands` function. A package can have any, all or none of :func:`pre_commands`, :func:`commands` and
-:func:`post_commands` defined, although it is very common for a package to define just :func:`commands`.
+regardless of the command execution order rules. This can be achieved by defining a :pkgdef:func:`pre_commands`
+or :pkgdef:func:`post_commands` function. A package can have any, all or none of :pkgdef:func:`pre_commands`, :pkgdef:func:`commands` and
+:pkgdef:func:`post_commands` defined, although it is very common for a package to define just :pkgdef:func:`commands`.
 
 The order of command execution is:
 
-* All package :func:`pre_commands` are executed, in standard execution order;
-* Then, all package :func:`commands` are executed, in standard execution order;
-* Then, all package :func:`post_commands` are executed, in standard execution order.
+* All package :pkgdef:func:`pre_commands` are executed, in standard execution order;
+* Then, all package :pkgdef:func:`commands` are executed, in standard execution order;
+* Then, all package :pkgdef:func:`post_commands` are executed, in standard execution order.
 
 .. _pre-build-commands:
 
@@ -236,9 +236,9 @@ not present in its own build environment! However, sometimes there is a need to 
 specifically for the package being built. For example, you may wish to set some environment
 variables to pass information along to the build system.
 
-The :func:`pre_build_commands` function does just this. It is called prior to the build. Note that info
+The :pkgdef:func:`pre_build_commands` function does just this. It is called prior to the build. Note that info
 about the current build (such as the installation path) is available in a
-:attr:`build` object (other commands functions do not have this object visible).
+:rex:attr:`build` object (other commands functions do not have this object visible).
 
 .. _pre-test-commands:
 
@@ -246,14 +246,14 @@ Pre Test Commands
 =================
 
 Sometimes it's useful to perform some extra configuration in the environment that a package's test
-will run in. You can define the :func:`pre_test_commands` function to do this. It will be invoked just
-before the test is run. As well as the standard :attr:`this` object, a :attr:`test` object is also
+will run in. You can define the :pkgdef:func:`pre_test_commands` function to do this. It will be invoked just
+before the test is run. As well as the standard :rex:attr:`this` object, a :rex:attr:`test` object is also
 provided to distinguish which test is about to run.
 
 A Largish Example
 =================
 
-Here is an example of a package definition with a fairly lengthy :func:`commands` section:
+Here is an example of a package definition with a fairly lengthy :pkgdef:func:`commands` section:
 
 .. code-block:: python
 
@@ -297,14 +297,14 @@ Here is an example of a package definition with a fairly lengthy :func:`commands
 Objects
 =======
 
-Various objects and functions are available to use in the :func:`commands` function (as well as
-:func:`pre_commands` and :func:`post_commands`).
+Various objects and functions are available to use in the :pkgdef:func:`commands` function (as well as
+:pkgdef:func:`pre_commands` and :pkgdef:func:`post_commands`).
 
 Following is a list of the objects and functions available.
 
 .. .. currentmodule:: pkgdefrex
 
-.. py:function:: alias()
+.. rex:function:: alias()
 
    Create a command alias.
 
@@ -315,16 +315,16 @@ Following is a list of the objects and functions available.
    .. note::
       In ``bash``, aliases are implemented as bash functions.
 
-.. py:attribute:: base
+.. rex:attribute:: base
    :type: str
 
-   See :attr:`this.base`.
+   See :rex:attr:`this.base`.
 
-.. py:attribute:: build
+.. rex:attribute:: build
 
    This is a dict like object. Each key can also be accessed as attributes.
 
-   This object is only available in the :func:`pre_build_commands`
+   This object is only available in the :pkgdef:func:`pre_build_commands`
    function. It has the following fields:
 
    .. code-block:: python
@@ -335,38 +335,38 @@ Following is a list of the objects and functions available.
       if build['build_type'] == 'local':
          pass
 
-.. py:attribute:: build.build_type
+.. rex:attribute:: build.build_type
    :type: typing.Literal['local', 'central']
 
    One of ``local``, ``central``. The type is ``central`` if a package release is occurring, and ``local``
    otherwise.
 
-.. py:attribute:: build.install
+.. rex:attribute:: build.install
    :type: bool
 
    True if an installation is taking place, False otherwise.
 
-.. py:attribute:: build.build_path
+.. rex:attribute:: build.build_path
    :type: str
 
    Path to the build directory (not the installation path). This will typically reside somewhere
    within the ``./build`` subdirectory of the package being built.
 
-.. py:attribute:: build.install_path
+.. rex:attribute:: build.install_path
    :type: str
 
    Installation directory. Note that this will be set, even if an installation is **not** taking place.
 
    .. warning::
-      Do not check this variable to detect if an installation is occurring. Use :attr:`build.install` instead.
+      Do not check this variable to detect if an installation is occurring. Use :rex:attr:`build.install` instead.
 
-.. py:attribute:: building
+.. rex:attribute:: building
    :type: bool
 
    This boolean variable is ``True`` if a build is occurring (typically done via the :ref:`rez-build` tool),
    and ``False`` otherwise.
    
-   However, the :func:`commands` block is only executed when the package is brought
+   However, the :pkgdef:func:`commands` block is only executed when the package is brought
    into a resolved environment, so this is not used when the package itself is building. Typically a
    package will use this variable to set environment variables that are only useful during when other
    packages are being built. C++ header include paths are a good example.
@@ -376,7 +376,7 @@ Following is a list of the objects and functions available.
       if building:
          env.FOO_INCLUDE_PATH = "{root}/include"
 
-.. py:function:: command(arg: str)
+.. rex:function:: command(arg: str)
 
    Run an arbitrary shell command.
 
@@ -405,7 +405,7 @@ Following is a list of the objects and functions available.
          if os.path.exists(path):
                shutil.rmtree(path)
 
-.. py:function:: comment(arg: str)
+.. rex:function:: comment(arg: str)
 
    Creates a comment line in the converted shell script code. This is only visible if the user views
    the current shell's code using the command :option:`rez-context --interpret` or looks at the file
@@ -419,7 +419,7 @@ Following is a list of the objects and functions available.
          alias("nuke", "foo_nuke_replacer")
 
 
-.. py:function:: defined(envvar: str) -> bool
+.. rex:function:: defined(envvar: str) -> bool
 
    Use this boolean function to determine whether or not an environment variable is set.
 
@@ -428,7 +428,7 @@ Following is a list of the objects and functions available.
       if defined("REZ_MAYA_VERSION"):
          env.FOO_MAYA = 1
 
-.. py:attribute:: env
+.. rex:attribute:: env
    :type: dict
 
    The ``env`` object represents the environment dict of the configured environment. Environment variables
@@ -436,7 +436,7 @@ Following is a list of the objects and functions available.
    
    .. note::
       Note that this is different from the standard python :data:`os.environ` dict, which represents the current environment,
-      not the one being configured. If a prior package's :func:`commands` sets a variable via the ``env`` object,
+      not the one being configured. If a prior package's :pkgdef:func:`commands` sets a variable via the ``env`` object,
       it will be visible only via ``env``, not :data:`os.environ`. The :data:`os.environ` dict hasn't been updated because the target
       configured environment does not yet exist!
 
@@ -445,7 +445,7 @@ Following is a list of the objects and functions available.
       env.FOO_DEBUG = 1
       env["BAH_LICENSE"] = "/lic/bah.lic"
 
-.. py:function:: env.append(value: str)
+.. rex:function:: env.append(value: str)
 
    Appends a value to an environment variable. By default this will use the :data:`os.pathsep` delimiter
    between list items, but this can be overridden using the config setting :data:`env_var_separators`. See
@@ -455,15 +455,15 @@ Following is a list of the objects and functions available.
 
       env.PATH.append("{root}/bin")
 
-.. py:function:: env.prepend(value: str)
+.. rex:function:: env.prepend(value: str)
 
-   Like :func:`env.append`, but prepends the environment variable instead.
+   Like :rex:func:`env.append`, but prepends the environment variable instead.
 
    .. code-block:: python
 
       env.PYTHONPATH.prepend("{root}/python")
 
-.. py:attribute:: ephemerals
+.. rex:attribute:: ephemerals
 
    A dict like object representing the list of ephemerals in the resolved environment. Each item is a
    string (the full request, eg ``.foo.cli-1``), keyed by the ephemeral package name. Note
@@ -477,9 +477,9 @@ Following is a list of the objects and functions available.
       if "foo.cli" in ephemerals:
          info("Foo cli option is being specified!")
 
-.. py:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.version.VersionRange
+.. rex:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.version.VersionRange
 
-   Use ``get_range`` to test with the :func:`intersects` function.
+   Use ``get_range`` to test with the :rex:func:`intersects` function.
    Here, we enable ``foo``'s commandline tools by default, unless explicitly disabled via
    a request for ``.foo.cli-0``:
 
@@ -489,28 +489,28 @@ Following is a list of the objects and functions available.
          info("Enabling foo cli tools")
          env.PATH.append("{root}/bin")
 
-.. py:function:: error(message: str)
+.. rex:function:: error(message: str)
 
    Prints to standard error.
 
    .. note::
       This function just prints the error, it does not prevent the target
-      environment from being constructed (use the :func:`stop`) command for that).
+      environment from being constructed (use the :rex:func:`stop`) command for that).
 
    .. code-block:: python
 
       if "PyQt" in resolve:
          error("The floob package has problems running in combo with PyQt")
 
-.. py:function:: expandable(arg: str) -> ~rez.rex.EscapedString
+.. rex:function:: expandable(arg: str) -> ~rez.rex.EscapedString
 
    See :ref:`explicit-string-expansion`.
 
-.. py:function:: expandvars(arg: str)
+.. rex:function:: expandvars(arg: str)
 
    See :ref:`explicit-string-expansion`.
 
-.. py:function:: getenv(envvar: str)
+.. rex:function:: getenv(envvar: str)
 
    Gets the value of an environment variable.
 
@@ -519,11 +519,11 @@ Following is a list of the objects and functions available.
       if getenv("REZ_MAYA_VERSION") == "2016.sp1":
          pass
 
-   :raises RexUndefinedVariableError: if the environment variable is not set.
+   :raises rex:exc:`RexUndefinedVariableError`: if the environment variable is not set.
 
-.. py:attribute:: implicits
+.. rex:attribute:: implicits
 
-   A dict like object that is similar to the :attr:`request` object, but it contains only the package request as
+   A dict like object that is similar to the :rex:attr:`request` object, but it contains only the package request as
    defined by the :data:`implicit_packages` configuration setting.
 
    .. code-block:: python
@@ -531,7 +531,7 @@ Following is a list of the objects and functions available.
       if "platform" in implicits:
          pass
 
-.. py:function:: info(message: str)
+.. rex:function:: info(message: str)
 
    Prints to standard out.
 
@@ -539,7 +539,7 @@ Following is a list of the objects and functions available.
 
       info("floob version is %s" % resolve.floob.version)
 
-.. py:function:: intersects(range1: str | ~rez.version.VersionRange | ~rez.rex_bindings.VariantBinding | ~rez.rex_bindings.VersionBinding, range2: str) -> bool
+.. rex:function:: intersects(range1: str | ~rez.version.VersionRange | ~rez.rex_bindings.VariantBinding | ~rez.rex_bindings.VersionBinding, range2: str) -> bool
 
    A boolean function that returns True if the version or version range of the given
    object, intersects with the given version range. Valid objects to query include:
@@ -562,7 +562,7 @@ Following is a list of the objects and functions available.
 
       If ``foo.cli`` is not present, this will unexpectedly compare the unversioned
       package named ``0`` against the version range ``1``, which will succeed! Use
-      :func:`ephemerals.get_range` and ``request.get_range`` functions instead:
+      :rex:func:`ephemerals.get_range` and ``request.get_range`` functions instead:
 
       .. code-block:: python
 
@@ -576,7 +576,7 @@ Following is a list of the objects and functions available.
       if intersects(resolve.maya, "2019+"):
          info("Maya 2019 or greater is present")
 
-.. py:function:: literal(arg: str) -> ~rez.rex.EscapedString
+.. rex:function:: literal(arg: str) -> ~rez.rex.EscapedString
 
    Inhibits expansion of object and environment variable references.
 
@@ -584,17 +584,17 @@ Following is a list of the objects and functions available.
 
       env.FOO = literal("this {root} will not expand")
 
-   You can also chain together ``literal`` and :func:`expandable` functions like so:
+   You can also chain together ``literal`` and :rex:func:`expandable` functions like so:
 
    .. code-block:: python
 
       env.FOO = literal("the value of {root} is").expandable("{root}")
 
-.. py:function:: optionvars(name: str, default: typing.Any | None = None) -> typing.Any
+.. rex:function:: optionvars(name: str, default: typing.Any | None = None) -> typing.Any
 
    A :meth:`dict.get` like function for package accessing arbitrary data from :data:`optionvars` in rez config.
 
-.. py:attribute:: request
+.. rex:attribute:: request
    :type: ~rez.rex_bindings.RequirementsBinding
 
    A dict like object representing the list of package requests. Each item is a request string keyed by the
@@ -614,7 +614,7 @@ Following is a list of the objects and functions available.
          "corelib": "!corelib-1.4.4"
       }
 
-   Use ``get_range`` to test with the :func:`intersects` function:
+   Use ``get_range`` to test with the :rex:func:`intersects` function:
 
       if intersects(request.get_range("maya", "0"), "2019"):
          info("maya 2019.* was asked for!")
@@ -631,11 +631,11 @@ Following is a list of the objects and functions available.
       request is combined ahead of time. In other words, if requests ``foo-4+`` and ``foo-<6`` were both
       present, the single request ``foo-4+<6`` would be present in the ``request`` object.
 
-.. py:function:: resetenv(envvar: str, value: str, friends=None) -> None
+.. rex:function:: resetenv(envvar: str, value: str, friends=None) -> None
 
    TODO: Document
 
-.. py:attribute:: resolve
+.. rex:attribute:: resolve
 
    A dict like object representing the list of packages in the resolved environment. Each item is a
    :ref:`Package <package-attributes>` object, keyed by the package name.
@@ -648,32 +648,32 @@ Following is a list of the objects and functions available.
          info("Maya version is %s", resolve.maya.version)
          # ..or resolve["maya"].version
 
-.. py:attribute:: root
+.. rex:attribute:: root
    :type: str
 
-   See :attr:`this.root`.
+   See :rex:attr:`this.root`.
 
-.. py:function:: setenv(envvar: str, value: str)
+.. rex:function:: setenv(envvar: str, value: str)
 
    This function sets an environment variable to the given value. It is equivalent to setting a
-   variable via the :attr:`env` object (eg, ``env.FOO = 'BAH'``).
+   variable via the :rex:attr:`env` object (eg, ``env.FOO = 'BAH'``).
 
    .. code-block:: python
 
       setenv("FOO_PLUGIN_PATH", "{root}/plugins")
 
-.. py:function:: source(path: str) -> None
+.. rex:function:: source(path: str) -> None
 
-   Source a shell script. Note that, similarly to :func:`commands`, this function cannot return a value, and
+   Source a shell script. Note that, similarly to :pkgdef:func:`commands`, this function cannot return a value, and
    any side effects that the script sourcing has is not visible to any packages. For example, if the
    ``init.sh`` script below contained ``export FOO=BAH``, a subsequent test for this variable on the
-   :attr:`env` object would yield nothing.
+   :rex:attr:`env` object would yield nothing.
 
    .. code-block:: python
 
       source("{root}/scripts/init.sh")
 
-.. py:attribute:: stop(message: str) -> typing.NoReturn
+.. rex:attribute:: stop(message: str) -> typing.NoReturn
 
    Raises an exception and stops a resolve from completing. You should use this when an unrecoverable
    error is detected and it is not possible to configure a valid environment.
@@ -682,7 +682,7 @@ Following is a list of the objects and functions available.
 
       stop("The value should be %s", expected_value)
 
-.. py:attribute:: system
+.. rex:attribute:: system
    :type: ~rez.system.System
 
    This object provided system information, such as current platform, arch and os.
@@ -692,12 +692,12 @@ Following is a list of the objects and functions available.
       if system.platform == "windows":
          ...
 
-.. py:attribute:: test
+.. rex:attribute:: test
 
-   Dict like object to access test related attributes. Only available in the :func:`pre_test_commands` function.
+   Dict like object to access test related attributes. Only available in the :pkgdef:func:`pre_test_commands` function.
    Keys can be accessed as object attributes.
 
-.. py:attribute:: test.name
+.. rex:attribute:: test.name
    :type: str
 
    Name of the test about to run.
@@ -707,7 +707,7 @@ Following is a list of the objects and functions available.
       if test.name == "unit":
          info("My unit test is about to run yay")
 
-.. py:attribute:: testing
+.. rex:attribute:: testing
    :type: bool
 
    This boolean variable is ``True`` if a test is occurring (typically done via the :ref:`rez-test` tool),
@@ -720,45 +720,45 @@ Following is a list of the objects and functions available.
       if testing:
           env.FOO_TEST_DATA_PATH = "{root}/tests/data"
 
-.. py:attribute:: this
+.. rex:attribute:: this
 
    The ``this`` object represents the current package. The following attributes are most commonly used
-   in a :func:`commands`) section (though you have access to all package attributes. See :ref:`here <package-attributes>`):
+   in a :pkgdef:func:`commands`) section (though you have access to all package attributes. See :ref:`here <package-attributes>`):
 
-   .. py:attribute:: this.base
+   .. rex:attribute:: this.base
       :type: str
 
-      Similar to :attr:`this.root`, but does not include the variant subpath, if there is one. Different
-      variants of the same package share the same :attr:`base` directory. See :doc:`here <variants>` for more
+      Similar to :rex:attr:`this.root`, but does not include the variant subpath, if there is one. Different
+      variants of the same package share the same :rex:attr:`base` directory. See :doc:`here <variants>` for more
       information on package structure in relation to variants.
 
-   .. py:attribute:: this.is_package
+   .. rex:attribute:: this.is_package
       :type: bool
 
       .. todo:: Document
 
       TODO: Document
 
-   .. py:attribute:: this.is_variant
+   .. rex:attribute:: this.is_variant
       :type: bool
 
       .. todo:: Document 
 
       TODO: Document
 
-   .. py:attribute:: this.name
+   .. rex:attribute:: this.name
       :type: str
 
       The name of the package, eg ``houdini``.
 
-   .. py:attribute:: this.root
+   .. rex:attribute:: this.root
       :type: str
 
       The installation directory of the package. If the package contains variants, this path will include
       the variant subpath. This is the directory that contains the installed package payload. See
       :doc:`here <variants>` for more information on package structure in relation to variants.
 
-   .. py:attribute:: this.version
+   .. rex:attribute:: this.version
       :type: ~rez.rex_bindings.VersionBinding
 
       The package version. It can be used as a string, however you can also access specific tokens in the
@@ -771,17 +771,17 @@ Following is a list of the objects and functions available.
       The available token references are ``this.version.major``, ``this.version.minor`` and
       ``this.version.patch``, but you can also use a standard list index to reference any version token.
 
-.. py:function:: undefined(envvar: str) -> bool
+.. rex:function:: undefined(envvar: str) -> bool
 
    Use this boolean function to determine whether or not an environment variable is set. This is the
-   opposite of :func:`defined`.
+   opposite of :rex:func:`defined`.
 
    .. code-block:: python
 
       if undefined("REZ_MAYA_VERSION"):
          info("maya is not present")
 
-.. py:function:: unsetenv(envvar: str) -> None
+.. rex:function:: unsetenv(envvar: str) -> None
 
    Unsets an environment variable. This function does nothing if the environment variable was not set.
 
@@ -789,7 +789,7 @@ Following is a list of the objects and functions available.
 
       unsetenv("FOO_LIC_SERVER")
 
-.. py:attribute:: version
+.. rex:attribute:: version
    :type: ~rez.rex_bindings.VersionBinding
 
-   See :attr:`this.version`.
+   See :rex:attr:`this.version`.

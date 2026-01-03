@@ -107,12 +107,12 @@ Package caching is not enabled by default. To enable it, you need to configure
 store the cache in.
 
 You also have granular control over whether an individual package will or will
-not be cached. To make a package cachable, you can set :attr:`cachable`
+not be cached. To make a package cachable, you can set :pkgdef:attr:`cachable`
 to False in its package definition file. Reasons you may *not* want to do this include
 packages that are large, or that aren't relocatable because other compiled packages are
 linked to them in a way that doesn't support library relocation.
 
-There are also config settings that affect cachability in the event that :attr:`cachable`
+There are also config settings that affect cachability in the event that :pkgdef:attr:`cachable`
 is not defined in a package's definition. For example, see
 :data:`default_cachable`, :data:`default_cachable_per_package`
 and :data:`default_cachable_per_repository`.

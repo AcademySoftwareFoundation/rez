@@ -97,7 +97,7 @@ Copying packages is enabled by default, however you're also able to specify whic
 packages are and are not *relocatable*, for much the same reasons as given
 :ref:`here <enabling-package-caching>`.
 
-You can mark a package as non-relocatable by setting :attr:`relocatable`
+You can mark a package as non-relocatable by setting :pkgdef:attr:`relocatable`
 to ``False`` in its package definition file. There are also config settings that affect relocatability
 in the event that relocatable is not defined in a package's definition. For example,
 see :data:`default_relocatable`, :data:`default_relocatable_per_package`
@@ -143,7 +143,7 @@ Via API:
    None
 
 Be aware that a non-relocatable package is also not movable (see
-:attr:`here <relocatable>`. Like package
+:pkgdef:attr:`here <relocatable>`. Like package
 copying, there is a ``force`` option to move it regardless.
 
 A typical reason you might want to move a package is to archive packages that are

@@ -76,10 +76,10 @@ Later, you can read the context back again, to reconstruct the same environment:
 Contexts do not store a copy of the environment that is configured (that is, the
 environment variables exported, for example). A context just stores the resolved
 list of packages that need to be applied in order to configure the environment.
-When you load a context via :option:`rez-env --input`, each of the packages' :attr:`commands`
+When you load a context via :option:`rez-env --input`, each of the packages' :pkgdef:attr:`commands`
 sections are interpreted once more.
 
-You can think of package :attr:`commands` like fragments of a wrapper script which
+You can think of package :pkgdef:attr:`commands` like fragments of a wrapper script which
 configures an environment. By creating a context, you are creating a list of
 script fragments which, when run in serial, produce the target environment. So,
 if your package added a path to ``$PATH`` which included a reference to ``$USER``

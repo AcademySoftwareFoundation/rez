@@ -11,9 +11,149 @@ import sphinx.application
 import sphinx.environment
 import sphinx.util.logging
 import sphinx.util.docutils
+import sphinx.domains
+import sphinx.domains.python
 import docutils.statemachine
+from sphinx.domains.python._object import PyObject
+from sphinx.domains.python import (
+    PyFunction,
+    PyVariable,
+    PyClasslike,
+    PyMethod,
+    PyClassMethod,
+    PyStaticMethod,
+    PyAttribute,
+    PyProperty,
+    PyModule,
+    PyCurrentModule,
+    PyDecoratorFunction,
+    PyDecoratorMethod,
+)
+
+try:
+    from sphinx.domains.python import PyTypeAlias
+except ImportError:
+    PyTypeAlias = PyVariable
 
 _LOG = sphinx.util.logging.getLogger(f"ext.{__name__.split('.')[-1]}")
+
+
+class DomainAwareMixin:
+    """
+    Mixin that fixes PyObject directives to register objects in the correct domain.
+
+    The base PyObject class hardcodes `self.env.domains.python_domain` which always
+    returns the 'py' domain. This mixin overrides add_target_and_index to use
+    `self.env.get_domain(self.domain)` instead.
+    """
+
+    def add_target_and_index(self, name_cls, sig, signode):
+        from sphinx.util.nodes import make_id
+
+        mod_name = self.options.get('module', self.env.ref_context.get(f'{self.domain}:module'))
+        fullname = (f'{mod_name}.' if mod_name else '') + name_cls[0]
+        node_id = make_id(self.env, self.state.document, '', fullname)
+        signode['ids'].append(node_id)
+        self.state.document.note_explicit_target(signode)
+
+        # Use the correct domain instead of hardcoding 'py'
+        domain = self.env.get_domain(self.domain)
+        domain.note_object(fullname, self.objtype, node_id, location=signode)
+
+        canonical_name = self.options.get('canonical')
+        if canonical_name:
+            domain.note_object(
+                canonical_name, self.objtype, node_id, aliased=True, location=signode
+            )
+
+        if 'no-index-entry' not in self.options:
+            if index_text := self.get_index_text(mod_name, name_cls):
+                self.indexnode['entries'].append((
+                    'single',
+                    index_text,
+                    node_id,
+                    '',
+                    None,
+                ))
+
+
+# Create fixed versions of all Python directives
+class FixedPyFunction(DomainAwareMixin, PyFunction):
+    pass
+
+
+class FixedPyVariable(DomainAwareMixin, PyVariable):
+    pass
+
+
+class FixedPyClasslike(DomainAwareMixin, PyClasslike):
+    pass
+
+
+class FixedPyMethod(DomainAwareMixin, PyMethod):
+    pass
+
+
+class FixedPyClassMethod(DomainAwareMixin, PyClassMethod):
+    pass
+
+
+class FixedPyStaticMethod(DomainAwareMixin, PyStaticMethod):
+    pass
+
+
+class FixedPyAttribute(DomainAwareMixin, PyAttribute):
+    pass
+
+
+class FixedPyProperty(DomainAwareMixin, PyProperty):
+    pass
+
+
+class FixedPyTypeAlias(DomainAwareMixin, PyTypeAlias):
+    pass
+
+
+class BareNamePythonDomain(sphinx.domains.python.PythonDomain):
+    """
+    A Python-like domain that:
+    1. Uses fixed directives that register objects in the correct domain
+    2. Falls back to bare-name resolution when qualified name resolution fails
+    """
+
+    # Override directives to use the fixed versions
+    directives = {
+        'function': FixedPyFunction,
+        'data': FixedPyVariable,
+        'class': FixedPyClasslike,
+        'exception': FixedPyClasslike,
+        'method': FixedPyMethod,
+        'classmethod': FixedPyClassMethod,
+        'staticmethod': FixedPyStaticMethod,
+        'attribute': FixedPyAttribute,
+        'property': FixedPyProperty,
+        'type': FixedPyTypeAlias,
+        'module': PyModule,
+        'currentmodule': PyCurrentModule,
+        'decorator': PyDecoratorFunction,
+        'decoratormethod': PyDecoratorMethod,
+    }
+
+
+
+
+class RexDomain(BareNamePythonDomain):
+    """Domain for rex (Rez EXecution language) objects used in commands() functions."""
+
+    name = "rex"
+    label = "Rex"
+
+
+class PkgDefDomain(BareNamePythonDomain):
+    """Domain for package definition attributes in package.py files."""
+
+    name = "pkgdef"
+    label = "Package Definition"
 
 
 def convert_rez_config_to_rst() -> list[str]:
@@ -344,6 +484,9 @@ def setup(app: sphinx.application.Sphinx) -> dict[str, bool | str]:
 
     app.connect('builder-inited', write_cli_documents)
     app.add_directive('rez-autoargparse', RezAutoArgparseDirective)
+
+    app.add_domain(RexDomain)
+    app.add_domain(PkgDefDomain)
 
     return {
         'parallel_read_safe': True,
