@@ -8,7 +8,7 @@ rez knows how to convert/translate Pip packages into rez packages.
 It does this using the :ref:`rez-pip` command.
 
 .. warning::
-   This command will not translate Rez packages into Pip packages.
+   This command will not translate rez packages into Pip packages.
 
 .. hint::
    We are planning to introduce a new rez-pip implemented as a plugin that will
