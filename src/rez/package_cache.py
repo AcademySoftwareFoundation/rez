@@ -239,7 +239,7 @@ class PackageCache(object):
                 is no guarantee the resulting variant payload will be functional).
             wait_for_copying (bool): Whether the caching step should block when one of the
                 pending variants is marked as already copying.
-            logger (None | Logger): If a logger is provided, log information to it.
+            logger (None | logging.Logger): If a logger is provided, log information to it.
 
         Returns:
             tuple: 2-tuple:
@@ -488,7 +488,7 @@ class PackageCache(object):
         are then added to the cache in a separate process.
 
         .. deprecated:: 3.2.0
-           Use :method:`add_variants` instead.
+           Use :meth:`add_variants` instead.
         """
         return self.add_variants(variants, package_cache_async=True)
 
