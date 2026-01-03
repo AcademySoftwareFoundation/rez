@@ -30,7 +30,7 @@ def setup_parser(parser, completions=False):
         help="set package search path (ignores --no-local if set)")
     parser.add_argument(
         "-f", "--format", type=str,
-        help="format package output, eg --format='{qualified_name} | "
+        help="format package output, eg '{qualified_name} | "
         "{description}'. Valid fields include: %s" % format_choices)
     parser.add_argument(
         "--no-newlines", action="store_true",

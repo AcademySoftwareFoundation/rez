@@ -31,7 +31,7 @@ def setup_parser(parser, completions=False):
         "-c", "--command", type=str,
         help="execute command within rez environment and exit, instead of "
         "starting an interactive shell. Alternatively, list command after a "
-        "'--'. The command and arguments passed to '-c' must be passed in as "
+        "'--'. The command and arguments passed to -c must be passed in as "
         "a single shell argument, whereas the command and arguments after "
         "'--' may be passed in as several shell arguments.")
     parser.add_argument(
