@@ -621,9 +621,9 @@ Following is a list of the objects and functions available.
       if "maya" in request:
          info("maya was asked for!")
 
-   .. code-block:: python
-   
    Use ``get_range`` to test with the :func:`intersects` function:
+
+   .. code-block:: python
 
       if intersects(request.get_range("maya", "0"), "2019"):
          info("maya 2019.* was asked for!")
