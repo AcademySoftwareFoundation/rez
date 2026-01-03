@@ -626,7 +626,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if intersects(request.get_range("maya", "0"), "2019"):
-         info("maya 2019.* was asked for!")
+          info("maya 2019.* was asked for!")
 
    .. tip::
       If multiple requests are present that refer to the same package, the
