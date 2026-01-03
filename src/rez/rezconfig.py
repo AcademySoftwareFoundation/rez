@@ -86,12 +86,12 @@ context_tmpdir = None
 # This means that any of the functions in the following list can import modules
 # from these paths:
 #
-# * The :func:`preprocess` function;
+# * The :pkgdef:func:`preprocess` function;
 # * Any function decorated with :ref:`@early <package-definition-early-binding-functions>`. These get evaluated at build time.
 #
 # You can use this to provide common code to your package definition files during
 # a build. To provide common code for packages to use at resolve time instead (for
-# example, in a :func:`commands` function) see the following
+# example, in a :pkgdef:func:`commands` function) see the following
 # :data:`package_definition_python_path` setting.
 package_definition_build_python_paths = []
 
@@ -110,7 +110,7 @@ package_definition_build_python_paths = []
 #
 #    package_definition_python_path = "/src/rezutils"
 #
-# Consider also the following package :func:`commands` function:
+# Consider also the following package :pkgdef:func:`commands` function:
 #
 # .. code-block:: python
 #
@@ -188,7 +188,7 @@ memcached_resolve_min_compress_len = 1
 ###############################################################################
 
 # Whether a package is relocatable or not, if it does not explicitly state with
-# the :attr:`relocatable` attribute in its package definition file.
+# the :pkgdef:attr:`relocatable` attribute in its package definition file.
 default_relocatable = True
 
 # Set relocatable on a per-package basis. This is here for migration purposes.
@@ -230,7 +230,7 @@ default_relocatable_per_repository = None
 ###############################################################################
 
 # Whether a package is cachable or not, if it does not explicitly state with
-# the :attr:`cachable` attribute in its package definition file. If None, defaults
+# the :pkgdef:attr:`cachable` attribute in its package definition file. If None, defaults
 # to packages' relocatability (ie cachable == relocatable).
 default_cachable = False
 
@@ -495,7 +495,7 @@ all_parent_variables = False
 # When two or more packages in a resolve attempt to set the same environment
 # variable, Rez's default behaviour is to flag this as a conflict and abort the
 # resolve. You can overcome this in a package's commands section by using the
-# Rex command :func:`resetenv` instead of :func:`setenv`. However, you can also turn off this
+# Rex command :rex:func:`resetenv` instead of :rex:func:`setenv`. However, you can also turn off this
 # behaviour globally for some varibles by adding them to :data:`resetting_variables`,
 # and for all variables, by setting :data:`all_resetting_variables` to true.
 resetting_variables = []
@@ -619,7 +619,7 @@ standard_system_paths = []
 package_preprocess_function = None
 
 # Defines in which order the :data:`package_preprocess_function`
-# and the :attr:`preprocess` function inside a ``package.py`` are executed.
+# and the :pkgdef:attr:`preprocess` function inside a ``package.py`` are executed.
 #
 # Note that "global preprocess" means the preprocess defined by
 # :data:`package_preprocess_function`.
@@ -967,8 +967,8 @@ pip_install_remaps = [
 ]
 
 # A dict type config for storing arbitrary data that can be
-# accessed by the :func:`optionvars` function in packages
-# :func:`commands`.
+# accessed by the :rex:func:`optionvars` function in packages
+# :pkgdef:func:`commands`.
 #
 # This is like user preferences for packages, which may not easy to define in
 # package's definition file directly due to the differences between machines/users/pipeline-roles.

@@ -83,9 +83,9 @@ class BuildProcess(object):
         """Create a BuildProcess.
 
         Args:
-            working_dir (DEPRECATED): Will be removed in rez 3.0.0.
+            working_dir: Will be removed in rez 3.0.0 (DEPRECATED).
             build_system (`BuildSystem`): Build system used to build the package.
-            package (DEPRECATED): Will be removed in rez 3.0.0.
+            package: Will be removed in rez 3.0.0 (DEPRECATED).
             vcs (`ReleaseVCS`): Version control system to use for the release
                 process.
             ensure_latest: If True, do not allow the release process to occur

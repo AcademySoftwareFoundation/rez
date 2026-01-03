@@ -50,7 +50,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
     will only be present when `overwrite` is False.
 
     .. note::
-       Whether or not a package can be copied is determined by its :attr:`relocatable`
+       Whether or not a package can be copied is determined by its :pkgdef:attr:`relocatable`
        attribute (see the :data:`default_relocatable` config setting for more details).
        An attempt to copy a non-relocatable package will fail. You can override
        this behaviour with the ``force`` argument.
