@@ -639,7 +639,7 @@ Following is a list of the objects and functions available.
    variable during the resolve. In that case, you would use :attr:`resetenv` instead of :attr:`setenv`.
    See :any:`resetting_variables` for more details.
 
-   However, Rez does not currently behave like this - multiple :attr:`setenv` calls to the same variable
+   However, rez does not currently behave like this - multiple :attr:`setenv` calls to the same variable
    do not abort the resolve. Instead, the latest call to :attr:`setenv` wins.
 
    And currently, :attr:`resetenv` merely acts as a synonym for :attr:`setenv`.
