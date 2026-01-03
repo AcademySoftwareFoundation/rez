@@ -71,7 +71,7 @@ The logic is as follows:
       Note that this is deprecated and will be removed in the future
 
 4. If rezified ``pip`` is found, use it;
-5. If not found, fall back to Pip installed in Rez’s own virtualenv.
+5. If not found, fall back to Pip installed in rez’s own virtualenv.
 
 .. note::
    In all of these options, we also check if the version of Pip is greater or equal
