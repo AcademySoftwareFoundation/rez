@@ -7,7 +7,7 @@ Ephemerals
 Ephemeral packages (or simply 'ephemerals') are requests for packages that do not
 exist. Ephemeral package names always begin with a dot (``.``). Like all package
 requests, ephemerals can be requested as part of packages' requires or variants
-lists, or directly by the user (via :ref:`rez-env` for eg).
+lists, or directly by the user (via :ref:`rez-env` for e.g.).
 
 Example:
 
@@ -101,10 +101,10 @@ etc) is present in the resolve. Note that the leading ``.`` is implied and not
 included when querying the :attr:`ephemerals` object.
 
 .. warning::
-   Since :attr:`ephemerals` is a dict-like object, so it has
-   a ``get`` function which will return a full request string if key exists. Hence,
+   Since :attr:`ephemerals` is a dict-like object, it has
+   a ``get`` function which will return a full request string if the key exists. Hence,
    the default value should also be a full request string, not just a version range
-   string like ``0`` in :func:`ephemerals.get_range`. Or :func:`intersects` may not work as expect.
+   string like ``0`` in :func:`ephemerals.get_range`. Otherwise, :func:`intersects` may not work as expected.
 
 Ephemeral Use Cases
 ===================
@@ -162,7 +162,7 @@ Abstract Package Representation
 Sometimes it makes sense for a package to require some form of abstract object or
 capability, rather than an actual package. For example, perhaps your package (or
 one of its variants) requires a GPU to be present on the host machine. To support
-this, you might have something setup that includes a ``.gpu-1`` ephemeral in the
+this, you might have something set up that includes a ``.gpu-1`` ephemeral in the
 :ref:`implicits <implicit-packages-concept>` list on all GPU-enabled hosts.
 Then, your package could look like this:
 
@@ -176,7 +176,7 @@ Then, your package could look like this:
    ]
 
 .. warning::
-   Be aware that on hosts that do **not** have a gpu
+   Be aware that on hosts that do **not** have a GPU
    implicit, either variant could be selected. You would want to either guarantee
-   that every host has the gpu implicit set to 0 or 1, or that the user always
+   that every host has the GPU implicit set to 0 or 1, or that the user always
    explicitly specifies ``.gpu-0`` or ``.gpu-1`` in their request.

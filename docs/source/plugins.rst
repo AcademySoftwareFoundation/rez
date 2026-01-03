@@ -34,7 +34,7 @@ Existing plugin types
    ====================== =========================================================== ==================
 
 .. [1] Top level settings: The concept of top level settings is documented in :ref:`default-settings`.
-.. [2] build_process: You have to choose between on of the two classes.
+.. [2] build_process: You have to choose between one of the two classes.
 .. [3] package_repository: All 4 classes have to be implemented.
 
 .. _configuring-plugins:
@@ -62,7 +62,7 @@ Currently installed plugins can be queried by running :option:`rez -i`
 
    $ rez -i
 
-   Rez 2.113.0
+   Rez 3.3.0
 
    PLUGIN TYPE         NAME        DESCRIPTION                                        STATUS
    -----------         ----        -----------                                        ------
@@ -80,10 +80,12 @@ Currently installed plugins can be queried by running :option:`rez -i`
    release vcs         hg          Mercurial version control                          loaded
    release vcs         stub        Stub version control system, for testing purposes  loaded
    release vcs         svn                                                            FAILED: No module named 'pysvn'
-   shell               cmd         Windows Command Prompt (DOS) shell.                loaded
-   shell               gitbash     Git Bash (for Windows) shell                       loaded
-   shell               powershell  Windows PowerShell 5                               loaded
+   shell               bash        Bash shell                                         loaded
+   shell               csh         CSH shell                                          loaded
    shell               pwsh        PowerShell Core 6+                                 loaded
+   shell               sh          SH shell                                           loaded
+   shell               tcsh        TCSH shell                                         loaded
+   shell               zsh         Zsh shell                                          loaded
 
 Discovery mechanisms
 ====================

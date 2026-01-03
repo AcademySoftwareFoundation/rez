@@ -131,7 +131,7 @@ You may often see packages with just one variant. There are two reasons for this
 * *Future proofing*: Let's say you have a compiled package that links against python.
   It may currently support ``python-2.7``, however it's conceivable that support for
   newer python versions may be added later. **It is not possible to add new variants
-  to a package that does not have any without changing/bumnig the version**. So by
+  to a package that does not have any without changing/bumping the version**. So by
   adding the ``python-2.7`` variant now, you can add variants later without needing
   to move to a newer version.
 * *Installation path*: People often expect to see platform, architecture and/or
@@ -153,7 +153,7 @@ depending on the environment being resolved. For example, consider:
    ]$ rez-env my_maya_plugin maya-2016 -- echo '$REZ_MY_MAYA_PLUGIN_ROOT'
    /rez/packages/my_maya_plugin/1.0.0/maya-2016.sp2
 
-You can see how the correct variant (ie the one that does not conflict with other
+You can see how the correct variant (i.e. the one that does not conflict with other
 packages in the request) has been selected. But what if both variants are valid
 for the given request? Consider:
 

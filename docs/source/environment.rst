@@ -102,7 +102,7 @@ dots replaced with underscore.
 
 .. envvar:: REZ_(PKG)_PATCH_VERSION
 
-   The patch version of the package, or an emopty string.
+   The patch version of the package, or an empty string.
 
 Ephemeral packages environment variables
 ----------------------------------------
@@ -216,7 +216,7 @@ operation of rez.
    For any given rez config entry (see ``rezconfig.py``),
    you can override the setting with an environment variable, for convenience. Here,
    ``XXX`` is the uppercased equivalent of the setting name. For example,
-   a setting commonly overriden this way is :data:`packages_path`, whos equivalent
+   a setting commonly overridden this way is :data:`packages_path`, whose equivalent
    variable is :envvar:`REZ_PACKAGES_PATH`.
 
    .. hint::
@@ -234,7 +234,7 @@ operation of rez.
 
 .. envvar:: EDITOR
 
-   On Linux and OSX systems, this will set the default editor to use
+   On Linux and macOS systems, this will set the default editor to use
    if and when rez requires one (an example is on release if the :data:`prompt_release_message`
    config setting is true).
 
@@ -259,18 +259,18 @@ Development Environment Variables
 .. envvar:: REZ_LOG_DEPRECATION_WARNINGS
 
    Enable all deprecation warnings to be logged regardless of how you have configured
-   your python interpreter. This is usefull to help upgrading to newer versions of rez.
+   your python interpreter. This is useful to help upgrading to newer versions of rez.
    Prior to updating, you should set this environment variable to see if you need to
    change some things to be compatible with newer versions.
 
    .. warning::
 
       Enabling this will forcefully load every configuration file instead of loading them
-      lazilly. This can have an impact on startup time.
+      lazily. This can have an impact on startup time.
 
 .. envvar:: REZ_SIGUSR1_ACTION
 
-   If you set this to ``print_stack``, rez will prints its
+   If you set this to ``print_stack``, rez will print its
    current stacktrace to stdout if sent a USR1 signal. This is for debugging purposes only.
 
 .. envvar:: _REZ_NO_KILLPG
