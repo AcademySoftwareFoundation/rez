@@ -455,8 +455,8 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
             help_str = re.sub(r"[^`]{2}(\*)[^`]{2}", r"\1", help_str)
 
             # Replace everything that looks like an argument with an option directive.
-            help_str = re.sub(r"(?<!\w)-[a-zA-Z](?=\s|\/|\)|\.?$)|(?<!\w)--[a-zA-Z-0-9]+(?=\s|\/|\)|\.?$)", r":option:`\g<0>`", help_str)
-            help_str = re.sub(r"[^`]{2}(--)", "\\--", help_str)
+            help_str = re.sub(r"(?<!\w)-[a-zA-Z](?![\w=])(?=\s|\/|\)|\.?)|(?<!\w)--[a-zA-Z-0-9]+(?![\w=])(?=\s|\/|\)|\.?)", r":option:`\g<0>`", help_str)
+            help_str = re.sub(r"[^` ]{2}(--)", "\\--", help_str)
 
             # Options have the option_strings set, positional arguments don't
             name = action.option_strings
