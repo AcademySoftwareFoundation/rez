@@ -343,7 +343,7 @@ class RezAutoArgparseDirective(sphinx.util.docutils.SphinxDirective):
 """
         listRst = "* :doc:`commands/rez`\n"
 
-        for subcommand, config in rez.cli._util.subcommands.items():
+        for subcommand, config in sorted(rez.cli._util.subcommands.items(), key=lambda x: x[0]):
             if config.get('hidden'):
                 continue
 
@@ -414,19 +414,28 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
         document.append("=======")
         document.append("")
 
+        sentinel = object()
+
         for action in parser._action_groups[1]._group_actions:
             if isinstance(action, argparse._HelpAction):
                 continue
 
+            default = sentinel
             # Quote default values for string/None types
-            default = action.default
-            if action.default not in ['', None, True, False] and action.type in [None, str] and isinstance(action.default, str):
-                default = f'"{default}"'
+            if action.default != argparse.SUPPRESS:
+                default = action.default
+                if default not in ['', None, True, False] and action.type in [None, str] and isinstance(default, str):
+                    default = f"``{default}``"
 
             # fill in any formatters, like %(default)s
-            format_dict = dict(vars(action), prog=parser.prog, default=default)
-            format_dict['default'] = default
+            format_dict = dict(vars(action), prog=parser.prog)
             help_str = action.help or ''  # Ensure we don't print None
+
+            # Remove the default from the description if it's there.
+            # That's kind of dirty... That's life. We would have to review how our defaults
+            # get added to fix that. For example, we could use argparse.ArgumentDefaultsHelpFormatter
+            # in our CLI.
+            help_str = help_str.replace("%(default)s", "").strip().replace("(default: )", "")
             try:
                 help_str = help_str % format_dict
             except Exception:
@@ -435,11 +444,19 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
             if help_str == argparse.SUPPRESS:
                 continue
 
-            # Avoid Sphinx warnings.
-            help_str = help_str.replace("*", "\\*")
+            # Replace known referenced env vars.
+            help_str = help_str.replace("REZ_*_JSON", ":envvar:`REZ_XXX_JSON`")
+
+            # Replace single-quoted strings with double backticks.
+            help_str = re.sub(r"'([^' ]+)'", r"``\1``", help_str)
+
+            # Avoid Sphinx warnings. Escape * only if it's not surrounded by
+            # double backticks.
+            help_str = re.sub(r"[^`]{2}(\*)[^`]{2}", r"\1", help_str)
+
             # Replace everything that looks like an argument with an option directive.
             help_str = re.sub(r"(?<!\w)-[a-zA-Z](?=\s|\/|\)|\.?$)|(?<!\w)--[a-zA-Z-0-9]+(?=\s|\/|\)|\.?$)", r":option:`\g<0>`", help_str)
-            help_str = help_str.replace("--", "\\--")
+            help_str = re.sub(r"[^`]{2}(--)", "\\--", help_str)
 
             # Options have the option_strings set, positional arguments don't
             name = action.option_strings
@@ -459,7 +476,10 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
             document.append(f"   {help_str}")
             if action.choices:
                 document.append("")
-                document.append(f"   Choices: {', '.join(action.choices)}")
+                document.append(f"   **Choices**: {', '.join(f'``{choice}``' for choice in action.choices)}")
+            if default and default != sentinel:
+                document.append("")
+                document.append(f"   **Default**: {default}")
             document.append("")
 
         document = "\n".join(document)
