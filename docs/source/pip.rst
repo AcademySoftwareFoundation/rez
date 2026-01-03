@@ -91,7 +91,7 @@ which Pip is used. Knowing the Pip version is of secondary importance.
 At some point, we supported the :option:`--pip-version <rez-pip --pip-version>` argument, but considering what was just said
 above, we decided to deprecate it (but not remove it yet) just for backward compatibility.
 Pip is too tightly coupled to the python version/interpreter it is installed with
-for us to support having Pip as a Rez package. We just can't guarantee that Pip can be
+for us to support having Pip as a rez package. We just can't guarantee that Pip can be
 install once in a central way and work with multiple different python version, and potentially
 different implementations.
 
