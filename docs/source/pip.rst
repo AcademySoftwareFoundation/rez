@@ -4,7 +4,7 @@ Pip
 
 Rez is language agnostic.
 But since python is so prevalent in the VFX industry (and outside),
-Rez knows how to convert/translate Pip packages into Rez packages.
+rez knows how to convert/translate Pip packages into rez packages.
 It does this using the :ref:`rez-pip` command.
 
 .. warning::
