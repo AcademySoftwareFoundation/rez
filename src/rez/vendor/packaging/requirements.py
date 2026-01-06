@@ -6,9 +6,9 @@ from __future__ import absolute_import, division, print_function
 import string
 import re
 
-from rez.vendor.pyparsing.pyparsing import stringStart, stringEnd, originalTextFor, ParseException
-from rez.vendor.pyparsing.pyparsing import ZeroOrMore, Word, Optional, Regex, Combine
-from rez.vendor.pyparsing.pyparsing import Literal as L  # noqa
+from rez.vendor.pyparsing import stringStart, stringEnd, originalTextFor, ParseException
+from rez.vendor.pyparsing import ZeroOrMore, Word, Optional, Regex, Combine
+from rez.vendor.pyparsing import Literal as L  # noqa
 from rez.vendor.six.six.moves.urllib import parse as urlparse
 
 from .markers import MARKER_EXPR, Marker

@@ -9,7 +9,7 @@ from rez.config import config
 from rez.build_process import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
-from rez.exceptions import BuildError, BuildContextResolveError,\
+from rez.exceptions import BuildError, BuildContextResolveError, \
     PackageFamilyNotFoundError
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
@@ -141,6 +141,7 @@ class TestBuild(TestBase, TempdirMixin):
         """Test that a broken build fails correctly.
         """
         config.override("default_shell", shell)
+        self.inject_python_repo()
 
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)

@@ -116,8 +116,9 @@ class PackageOrder(object):
 
         Args:
             package_name: (str) The family name of the package we are sorting
-            version_like: (Version|_LowerBound|_UpperBound|_Bound|VersionRange)
-                the version-like object you wish to generate a key for
+            version_like: (Version|_LowerBound|_UpperBound|_Bound|VersionRange|None)
+                The version-like object to be used as a basis for generating a sort key.
+                Note that 'None' is also a supported value, which maintains the default sorting order.
 
         Returns:
             Sortable object
@@ -126,21 +127,26 @@ class PackageOrder(object):
         """
         if isinstance(version_like, VersionRange):
             return tuple(self.sort_key(package_name, bound) for bound in version_like.bounds)
-        elif isinstance(version_like, _Bound):
+        if isinstance(version_like, _Bound):
             return (self.sort_key(package_name, version_like.lower),
                     self.sort_key(package_name, version_like.upper))
-        elif isinstance(version_like, _LowerBound):
+        if isinstance(version_like, _LowerBound):
             inclusion_key = -2 if version_like.inclusive else -1
             return self.sort_key(package_name, version_like.version), inclusion_key
-        elif isinstance(version_like, _UpperBound):
+        if isinstance(version_like, _UpperBound):
             inclusion_key = 2 if version_like.inclusive else 1
             return self.sort_key(package_name, version_like.version), inclusion_key
-        elif isinstance(version_like, Version):
+        if isinstance(version_like, Version):
             # finally, the bit that we actually use the sort_key_implementation for.
             return FallbackComparable(
                 self.sort_key_implementation(package_name, version_like), version_like)
-        else:
-            raise TypeError(version_like)
+        if version_like is None:
+            # As no version range is provided for this package,
+            # Python's sort preserves the order of equal elements.
+            # Thus, to maintain the original order,
+            # we return the same object for all None values.
+            return 0
+        raise TypeError(version_like)
 
     def sort_key_implementation(self, package_name, version):
         """Returns a sort key usable for sorting these packages within the
@@ -171,7 +177,7 @@ class PackageOrder(object):
         raise NotImplementedError
 
     def __eq__(self, other):
-        return type(self) == type(other) and str(self) == str(other)
+        return type(self) == type(other) and str(self) == str(other)  # noqa: E721
 
     def __ne__(self, other):
         return not self == other
@@ -198,7 +204,7 @@ class NullPackageOrder(PackageOrder):
         return "{}"
 
     def __eq__(self, other):
-        return type(self) == type(other)
+        return type(self) == type(other)  # noqa: E721
 
     def to_pod(self):
         """
@@ -244,7 +250,7 @@ class SortedOrder(PackageOrder):
         return str(self.descending)
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(self) == type(other)
             and self.descending == other.descending
         )
@@ -321,7 +327,7 @@ class PerFamilyOrder(PackageOrder):
         return str((items, str(self.default_order)))
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(other) == type(self)
             and self.order_dict == other.order_dict
             and self.default_order == other.default_order
@@ -413,7 +419,7 @@ class VersionSplitPackageOrder(PackageOrder):
         return str(self.first_version)
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(other) == type(self)
             and self.first_version == other.first_version
         )
@@ -576,7 +582,7 @@ class TimestampPackageOrder(PackageOrder):
         return str((self.timestamp, self.rank))
 
     def __eq__(self, other):
-        return (
+        return (  # noqa: E721
             type(other) == type(self)
             and self.timestamp == other.timestamp
             and self.rank == other.rank

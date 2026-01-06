@@ -27,69 +27,63 @@ tested.
 <tr><td>
 argcomplete
 </td><td>
-?
+3.1.2 (Sep 16, 2023)
 </td><td>
 Apache 2.0
 </td><td>
 https://github.com/kislyuk/argcomplete<br>
-Our version seems patched.
+Updated (Sept 2025)
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 atomicwrites
 </td><td>
-1.2.1 (Aug 30, 2018)
+1.4.1 (Jul 8, 2022)
 </td><td>
 MIT
 </td><td>
-https://github.com/untitaker/python-atomicwrites
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
-attrs
-</td><td>
-19.1.0 (Mar 3, 2019)
-</td><td>
-MIT
-</td><td>
-https://github.com/python-attrs/attrs<br>
-Added (July 2019) to enable the use of packaging lib that depends on it.
+https://github.com/untitaker/python-atomicwrites<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 colorama
 </td><td>
-0.4.1 (Nov 25, 2018)
+0.4.6 (Oct 24, 2022)
 </td><td>
 BSD 3-Clause
 </td><td>
 https://github.com/tartley/colorama<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 distlib
 </td><td>
-0.2.9.post0 (May 14, 2019)
+0.3.9 (Oct 29, 2024)
 </td><td>
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 </td><td>
 https://bitbucket.org/pypa/distlib/src/master/<br>
-Updated (June 2019) to enable wheel distribution based installations.
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 distro
 </td><td>
-1.5.0 (Mar 31, 2020)
+1.9.0 (Dec 24, 2023)
 </td><td>
 Apache 2.0
 </td><td>
-https://github.com/python-distro/distro
+https://github.com/python-distro/distro<br>
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
@@ -103,6 +97,18 @@ BSD
 https://pypi.org/project/enum34/<br>
 By looking at the code, it's probably enum34. If so, the latest version is
 1.1.6 (May 15, 2016)
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
+importlib-metadata
+</td><td>
+6.7.0
+</td><td>
+Apache 2.0
+</td><td>
+https://pypi.org/project/importlib-metadata/<br>
+Pinned to 6.7.0 to support Python 3.7. This dependency can be dropped once we drop support for Python 3.7.
 </td></tr>
 
 <!-- ######################################################### -->
@@ -149,7 +155,7 @@ Added (July 2019) to enable PEP440 compatible versions handling.
 <tr><td>
 pika
 </td><td>
-1.2.0
+1.2.0 (Feb 5, 2021)
 </td><td>
 BSD 3-Clause
 </td><td>
@@ -161,30 +167,25 @@ https://github.com/pika/pika
 <tr><td>
 progress
 </td><td>
-1.5 (Mar 6, 2019)
+1.6 (July 28, 2021)
 </td><td>
 ISC
 </td><td>
 https://github.com/verigak/progress<br>
-Upgraded from 1.2 to 1.5 as of Oct 16 2019
+No changes.<br>
+Updated (April 2025) to help address py3.12 update.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
 pydot
 </td><td>
-1.4.2.dev0 (Oct 28, 2020)
+2.0.0 (Dec 30, 2023)
 </td><td>
 MIT
 </td><td>
 https://github.com/pydot/pydot<br>
-
-* Updated (July 2019) in order to update pyparsing lib which in turn is
-required by the packaging library. Updated (Aug 2019) for py3.
-* Updated (Nov 2020) for finding right dot executable on Windows + Anaconda,
-see [pydot/pydot#205](https://github.com/pydot/pydot/issues/205) for detail.
-Also, pydot has not bumping version for a long time, log down commit change
-here: a10ced4 -> 03533f3
+Updated (Sept 2025)
 </td></tr>
 
 <!-- ######################################################### -->
@@ -203,12 +204,12 @@ No longer maintained, moved to https://github.com/Shoobx/python-graph
 <tr><td>
 pyparsing
 </td><td>
-2.4.0 (Apr 8, 2019)
+3.1.4 (Aug 25, 2024)
 </td><td>
 MIT
 </td><td>
 https://github.com/pyparsing/pyparsing<br>
-Updated (July 2019) along with pydot to allow for packaging lib to be used.
+Updated (Sept 2025)
 </td></tr>
 
 <!-- ######################################################### -->
@@ -227,37 +228,51 @@ Our version is patched.
 <tr><td>
 six
 </td><td>
-1.12.0 (Dec 9, 2018)
+1.17.0 (Dec 4, 2024)
 </td><td>
 MIT
 </td><td>
 https://github.com/benjaminp/six<br>
-Updated (July 2019) to coincide with packaging lib addition that depends on.
-Also now required to support py2/3 interoperability.
+Updated (April 2025) to help address py3.12 update.<br>
+No longer needed in rez itself, but still used by other vendored modules.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
-yaml lib (PyYAML)
+typing_extensions
 </td><td>
-5.1 (May 30, 2011)
+4.7.1
 </td><td>
-MIT
+PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 </td><td>
-https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
+https://pypi.org/project/zipp/<br>
+Dependency for importlib-metadata. Can be dropped once we drop support for Python 3.7.
 </td></tr>
 
 <!-- ######################################################### -->
 <tr><td>
-yaml lib3 (PyYAML)
+yaml (PyYAML)
+
 </td><td>
-5.1 (May 30, 2011)
+6.0.1 (July 17, 2023)
 </td><td>
 MIT
 </td><td>
 https://github.com/yaml/pyyaml<br>
-No changes but must maintain separate version between py2 and py3 for time being.
+No changes. Bounded to 6.0.1 by current py3.7.<br>
+Updated (April 2025) to help address py3.12 update.
+</td></tr>
+
+<!-- ######################################################### -->
+<tr><td>
+zipp
+</td><td>
+3.15.0
+</td><td>
+MIT
+</td><td>
+https://pypi.org/project/zipp/<br>
+Dependency for importlib-metadata. Can be dropped once we drop support for Python 3.7.
 </td></tr>
 
 </table>

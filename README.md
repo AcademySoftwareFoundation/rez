@@ -16,7 +16,8 @@
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=AcademySoftwareFoundation_rez&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=AcademySoftwareFoundation_rez)<br>
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8389/badge)](https://www.bestpractices.dev/projects/8389)
 
 
 - [What Is Rez?](#what-is-rez)
@@ -138,7 +139,7 @@ Resolved environments can also be created via the API:
 
 ## Quickstart
 
-First, install Rez using Python 3.7+. Download the source, and from the source directory, run
+First, install Rez using Python 3.8+. Download the source, and from the source directory, run
 (with DEST_DIR replaced with your install location):
 
     ]$ python3 ./install.py -v DEST_DIR

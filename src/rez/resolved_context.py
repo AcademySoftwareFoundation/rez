@@ -19,7 +19,7 @@ from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_error, print_warning
 from rez.utils.which import which
-from rez.rex import RexExecutor, Python, OutputStyle
+from rez.rex import RexExecutor, Python, OutputStyle, literal
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding, EphemeralsBinding, intersects
 from rez import package_order
@@ -134,7 +134,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 7)
+    serialize_version = (4, 9)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
     context_tracking_payload = None
     context_tracking_lock = threading.Lock()
@@ -163,11 +163,11 @@ class ResolvedContext(object):
             return SolverCallbackReturn.keep_going, ''
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
-                 building=False, caching=None, package_paths=None,
+                 building=False, testing=False, caching=None, package_paths=None,
                  package_filter=None, package_orderers=None, max_fails=-1,
                  add_implicit_packages=True, time_limit=-1, callback=None,
                  package_load_callback=None, buf=None, suppress_passive=False,
-                 print_stats=False, package_caching=None):
+                 print_stats=False, package_caching=None, package_cache_async=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -176,6 +176,7 @@ class ResolvedContext(object):
             timestamp (float): Ignore packages released after this epoch time. Packages
                 released at exactly this time will not be ignored.
             building (bool): True if we're resolving for a build.
+            testing (bool): True if we're resolving for a test (rez-test).
             caching (bool): If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used. If None, :data:`resolve_caching`
                 is used.
@@ -205,6 +206,8 @@ class ResolvedContext(object):
             package_caching (bool|None): If True, apply package caching settings
                 as per the config. If None, enable as determined by config
                 setting :data:`package_cache_during_build`.
+            package_cache_async (bool|None): If True, cache packages asynchronously.
+                If None, use the config setting :data:`package_cache_async`
         """
         self.load_path = None
 
@@ -212,6 +215,7 @@ class ResolvedContext(object):
         self.requested_timestamp = timestamp
         self.timestamp = self.requested_timestamp or int(time.time())
         self.building = building
+        self.testing = testing
         self.implicit_packages = []
         self.caching = config.resolve_caching if caching is None else caching
         self.verbosity = verbosity
@@ -246,8 +250,11 @@ class ResolvedContext(object):
                 package_caching = config.package_cache_during_build
             else:
                 package_caching = True
-
         self.package_caching = package_caching
+
+        if package_cache_async is None:
+            package_cache_async = config.package_cache_async
+        self.package_cache_async = package_cache_async
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
@@ -1548,6 +1555,7 @@ class ResolvedContext(object):
             timestamp=self.timestamp,
             requested_timestamp=self.requested_timestamp,
             building=self.building,
+            testing=self.testing,
             caching=self.caching,
             implicit_packages=list(map(str, self.implicit_packages)),
             package_requests=list(map(str, self._package_requests)),
@@ -1555,6 +1563,7 @@ class ResolvedContext(object):
 
             append_sys_path=self.append_sys_path,
             package_caching=self.package_caching,
+            package_cache_async=self.package_cache_async,
 
             default_patch_lock=self.default_patch_lock.name,
 
@@ -1688,7 +1697,7 @@ class ResolvedContext(object):
 
         data = d.get("package_orderers")
         if data:
-            r.package_orderers = [package_order.from_pod(x) for x in data]
+            r.package_orderers = PackageOrderList([package_order.from_pod(x) for x in data])
         else:
             r.package_orderers = None
 
@@ -1710,6 +1719,13 @@ class ResolvedContext(object):
         for eph_str in d.get("resolved_ephemerals", []):
             req = Requirement(eph_str)
             r._resolved_ephemerals.append(req)
+
+        # -- SINCE SERIALIZE VERSION 4.8
+
+        r.package_cache_async = d.get("package_cache_async", True)
+
+        # -- SINCE SERIALIZE 4.9
+        r.testing = d.get("testing", False)
 
         # <END SERIALIZATION>
 
@@ -1839,13 +1855,16 @@ class ResolvedContext(object):
                 not self.success:
             return
 
-        # see PackageCache.add_variants_async
+        # see PackageCache.add_variants
         if not system.is_production_rez_install:
             return
 
         pkgcache = self._get_package_cache()
         if pkgcache:
-            pkgcache.add_variants_async(self.resolved_packages)
+            pkgcache.add_variants(
+                self.resolved_packages,
+                self.package_cache_async,
+            )
 
     @classmethod
     def _init_context_tracking_payload_base(cls):
@@ -1946,6 +1965,7 @@ class ResolvedContext(object):
             self.pre_resolve_bindings = {
                 "system": system,
                 "building": self.building,
+                "testing": self.testing,
                 "request": RequirementsBinding(self._package_requests),
                 "implicits": RequirementsBinding(self.implicit_packages),
                 "intersects": intersects
@@ -1978,8 +1998,8 @@ class ResolvedContext(object):
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
         executor.setenv("REZ_USED_REQUESTED_TIMESTAMP", req_timestamp_str)
-        executor.setenv("REZ_USED_REQUEST", request_str)
-        executor.setenv("REZ_USED_IMPLICIT_PACKAGES", implicit_str)
+        executor.setenv("REZ_USED_REQUEST", literal(request_str))
+        executor.setenv("REZ_USED_IMPLICIT_PACKAGES", literal(implicit_str))
         executor.setenv("REZ_USED_RESOLVE", resolve_str)
         executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
 

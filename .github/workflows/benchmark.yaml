@@ -8,6 +8,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
+permissions:
+  contents: read
+
 jobs:
   run_benchmark:
     name: run_benchmark
@@ -22,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Setup python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -46,7 +49,7 @@ jobs:
         run: |
           python ./.github/scripts/validate_benchmark.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: ./out
@@ -65,13 +68,13 @@ jobs:
       max-parallel: 1
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: "benchmark-result-${{ matrix.python-version }}"
           path: .
 
       - name: Checkout (release)
-        uses: actions/checkout@v4
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         if: ${{ github.event_name =='release' }}
         with:
           ref: main
@@ -85,13 +88,13 @@ jobs:
           # token: "${{ secrets.GH_ACTION_TOKEN }}"
 
       - name: Checkout (pr)
-        uses: actions/checkout@v4
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         if: ${{ github.event_name !='release' }}
         with:
           path: src
 
       - name: Setup python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: ${{ matrix.python-version }}
 

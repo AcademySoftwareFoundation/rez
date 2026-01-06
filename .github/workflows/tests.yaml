@@ -26,6 +26,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   core:
     name: Tests
@@ -35,7 +38,7 @@ jobs:
     strategy:
       matrix:
         os: ['macos-latest', 'ubuntu-latest', 'windows-latest']
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         include:
         - os: macos-latest
           shells: 'sh,csh,bash,tcsh,zsh,pwsh'
@@ -51,10 +54,10 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
     - name: Setup python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -72,6 +75,15 @@ jobs:
     - name: Install rez
       run: python ./install.py ./installdir
 
+    - name: Install test system dependencies (macOS)
+      if: ${{ startsWith(matrix.os, 'macos-') }}
+      run: |
+        set -ex
+        # Make sure to use cmake < 4. CMake 4 dropped support for features
+        # from cmake < 3.5 and rez uses these features.
+        brew uninstall cmake
+        python -m pip install 'cmake<4'
+
     - name: Setup environment variables
       shell: bash
       env:
@@ -83,14 +95,16 @@ jobs:
       run: rez-python -m pip install pytest-cov parameterized
 
     - name: Run tests
-      run: rez-selftest -v -- --cov=rez --cov-report=xml:coverage.xml
+      id: tests
+      run: rez-selftest -v -- --cov=rez --cov=rezplugins --cov-report=xml:coverage.xml
       env:
         _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
 
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+      # Run on both success and failure, but only if coverage.xml exists.
+      if: ${{ hashFiles('coverage.xml') != '' && (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') }}
       with:
         slug: AcademySoftwareFoundation/rez
         files: 'coverage.xml'
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ secrets.CODECOV_TOKEN }}

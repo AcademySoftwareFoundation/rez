@@ -174,19 +174,6 @@ def safe_listdir(path):
         raise
 
 
-def safe_makedirs(path):
-    """Safe makedirs.
-
-    Works in a multithreaded scenario.
-    """
-    if not os.path.exists(path):
-        try:
-            os.makedirs(path)
-        except OSError:
-            if not os.path.exists(path):
-                raise
-
-
 def safe_remove(path):
     """Safely remove the given file or directory.
 
@@ -328,8 +315,7 @@ def replace_file_or_dir(dest, source):
 def additive_copytree(src, dst, symlinks=False, ignore=None):
     """Version of `copytree` that merges into an existing directory.
     """
-    if not os.path.exists(dst):
-        os.makedirs(dst)
+    os.makedirs(dst, exist_ok=True)
 
     for item in os.listdir(src):
         s = os.path.join(src, item)
@@ -462,8 +448,7 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
     else:
         copy = shutil.copy2
 
-    if not os.path.isdir(dst):
-        os.makedirs(dst)
+    os.makedirs(dst, exist_ok=True)
 
     errors = []
     for name in names:

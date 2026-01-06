@@ -47,11 +47,16 @@ def bind(path, version_range=None, opts=None, parser=None):
     def make_root(variant, root):
         binpath = make_dirs(root, "bin")
         binpathtmp = make_dirs(root, "bintmp")
-        filepath = os.path.join(binpathtmp, "hello_world")
 
         create_executable_script(
-            filepath,
+            os.path.join(binpathtmp, "hello_world"),
             hello_world_source,
+            py_script_mode=ExecutableScriptMode.single,
+        )
+        create_executable_script(
+            os.path.join(binpathtmp, "hello_world_gui"),
+            hello_world_source,
+            program="pythonw",
             py_script_mode=ExecutableScriptMode.single,
         )
 
@@ -61,11 +66,12 @@ def bind(path, version_range=None, opts=None, parser=None):
         # instead.
         maker = ScriptMaker(binpathtmp, make_dirs(binpath))
         maker.make("hello_world")
+        maker.make("hello_world_gui")
         safe_rmtree(binpathtmp)
 
     with make_package("hello_world", path, make_root=make_root) as pkg:
         pkg.version = version
-        pkg.tools = ["hello_world"]
+        pkg.tools = ["hello_world", "hello_world_gui"]
         pkg.commands = commands
 
     return pkg.installed_variants

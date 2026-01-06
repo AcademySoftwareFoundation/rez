@@ -1,4 +1,38 @@
-# Releasing New Rez Versions
+# Release Procedures and standards for rez
+
+## Version nomenclature and release cadence
+
+### The meaning of the version parts
+
+rez releases observe the [semver 2.0.0](https://semver.org/) version numbering standard.
+Briefly:
+
+* **MAJOR** version when you make incompatible API changes
+* **MINOR** version when you add functionality in a backward compatible manner
+* **PATCH** version when you make backward compatible bug fixes
+
+### Cadence of releases
+
+Currently, rez is not considered a component that studios feel the need to
+include in the [VFX Reference Platform](https://vfxplatform.com/), although
+many do use rez to help manage migrations between and amongst subsequent
+iterations thereof.
+
+As such, rez currently releases on an as-needed basis, which is to say, at the
+discretion of the TSC. For the most part that means that:
+
+* When there is a bugfix for a recent feature version, releasing a "patch"
+bugfix version resolving the issue will be prioritized above new feature
+releases.
+* When there is a naturally occurring set of features or updates that are
+feature-complete, well-tested, self-contained, and ready to go, those will be
+released as a "minor" feature update.
+* When there is a "major" breaking change, it will be deferred for as reasonably
+long as possible. Strategies to make a breaking change into a non-breaking
+change will also be asked-for, investigated, and preferred. rez often has
+normally gone many years between breaking changes.
+
+## Procedures for Releasing New Rez Versions
 
 To merge a PR to the `main` branch and release a new version:
 

@@ -71,6 +71,26 @@ class TestContext(TestBase, TempdirMixin):
         stdout = stdout.strip()
         self.assertEqual(stdout, "Hello Rez World!")
 
+    def test_resolved_packages_testing_environ(self):
+        """Test resolving packages within a testing environment behaves correctly"""
+        packages_path = self.data_path("builds", "packages")
+
+        # Note how we use testing=True
+        r = ResolvedContext(["testing_obj"], testing=True, package_paths=[packages_path])
+        resolvedPackages = [x.qualified_package_name for x in r.resolved_packages]
+        self.assertEqual(resolvedPackages, ["floob", "testing_obj-1.0.0"])
+
+    def test_execute_command_testing_environ(self):
+        """Test that execute_command properly sets test specific environ dict"""
+        self.inject_python_repo()
+        packages_path = self.data_path("builds", "packages")
+        r = ResolvedContext(
+            ["testing_obj", "python"],
+            testing=True,
+            package_paths=[packages_path] + self.settings["packages_path"]
+        )
+        self.assertEqual(r.get_environ().get("CAR_IDEA"), "STURDY STEERING WHEEL")
+
     def test_execute_command_environ(self):
         """Test that execute_command properly sets environ dict."""
         self.inject_python_repo()
@@ -108,6 +128,14 @@ class TestContext(TestBase, TempdirMixin):
         # verify
         env = r2.get_environ()
         self.assertEqual(env.get("OH_HAI_WORLD"), "hello")
+
+    def test_deserialize_older_versions(self):
+        """Test deserialization of older contexts."""
+        baked_contexts_path = self.data_path("contexts")
+
+        for context_file in os.listdir(baked_contexts_path):
+            # load
+            _ = ResolvedContext.load(os.path.join(baked_contexts_path, context_file))
 
     def test_retarget(self):
         """Test that a retargeted context behaves identically."""
@@ -249,6 +277,35 @@ class TestContext(TestBase, TempdirMixin):
         )
         resolved = [x.qualified_package_name for x in r.resolved_packages]
         self.assertEqual(resolved, ['python-2.7.0'])
+
+    def test_serialize_roundtrip_with_extra_settings(self):
+        from rez.package_order import VersionSplitPackageOrder
+        from rez.version import Version
+
+        packages_path = self.data_path("solver", "packages")
+
+        file = os.path.join(self.root, "roundtrip.rxt")
+        orderers = [VersionSplitPackageOrder(Version("2.6.8"))]
+        r1 = ResolvedContext(
+            ["python"],
+            package_orderers=orderers,
+            package_paths=[packages_path],
+        )
+        r1.save(file)
+        r2 = ResolvedContext.load(file)
+
+        self.assertEqual(r1, r2)
+
+        ignored_properties = [
+            'load_path',
+            'graph_string',
+            'graph_'
+        ]
+        for k, v in r1.__dict__.items():
+            if k in ignored_properties:
+                continue
+            # check types here, as not all type instances are comparable
+            self.assertIs(type(v), type(r2.__dict__.get(k)))
 
 
 if __name__ == '__main__':

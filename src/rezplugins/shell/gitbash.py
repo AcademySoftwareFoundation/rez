@@ -37,14 +37,14 @@ class GitBash(Bash):
 
     @classmethod
     def find_executable(cls, name, check_syspaths=False):
-        exepath = Bash.find_executable(name, check_syspaths=check_syspaths)
+        exepath = super(GitBash, cls).find_executable(name, check_syspaths=check_syspaths)
 
         if exepath and "system32" in exepath.lower():
             print_warning(
                 "Git-bash executable has been detected at %s, but this is "
                 "probably not correct (google Windows Subsystem for Linux). "
                 "Consider adjusting your searchpath, or use rez config setting "
-                "plugins.shell.gitbash.executable_fullpath."
+                "plugins.shell.gitbash.executable_fullpath." % exepath
             )
 
         return exepath

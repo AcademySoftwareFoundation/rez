@@ -11,8 +11,9 @@ from rez.resolved_context import ResolvedContext
 from rez.rex import literal, expandable
 from rez.plugin_managers import plugin_manager
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
-from rez.tests.util import TestBase, TempdirMixin, per_available_shell, \
-    install_dependent
+from rez.utils.platform_ import platform_
+from rez.tests.util import TestBase, TempdirMixin, get_available_shells, \
+    per_available_shell, install_dependent
 from rez.bind import hello_world
 from rez.config import config
 import unittest
@@ -251,6 +252,39 @@ class TestShells(TestBase, TempdirMixin):
                 with r.execute_shell(command=cmd, stdout=subprocess.PIPE) as p:
                     p.wait()
                 self.assertEqual(p.returncode, 66)
+
+    @unittest.skipIf(platform_.name != "windows", "GUI entrypoint test is only relevant on Windows")
+    @unittest.skipIf("pwsh" not in get_available_shells(), "PowerShell unavailable or disabled")
+    def test_pwsh_lastexitcode_gui(self):
+        """This validates some semi-unintuitive behavior on Windows, where GUI applications
+        will "return" immediately without any exit status when launched from a shell.
+        """
+        sh = create_shell("pwsh")
+        _, _, _, command = sh.startup_capabilities(command=True)
+
+        if command:
+            def actions_callback(ex):
+                """Action callback to enable PowerShell's "strict" mode."""
+                ex.command("Set-StrictMode -version Latest")
+
+            r = self._create_context(["hello_world"])
+            command = "hello_world -q -r 66"
+            commands = (command, command.split())
+            for cmd in commands:
+                with r.execute_shell(shell="pwsh", command=cmd, actions_callback=actions_callback,
+                                     stdout=subprocess.PIPE) as p:
+                    p.wait()
+                self.assertEqual(p.returncode, 66)
+
+            command = "hello_world_gui -q -r 49"
+            commands = (command, command.split())
+            for cmd in commands:
+                with r.execute_shell(shell="pwsh", command=cmd, actions_callback=actions_callback,
+                                     stdout=subprocess.PIPE) as p:
+                    p.wait()
+                # The GUI application should return control to the shell immediately, and that
+                # should bubble up through the rez shell as a 0 exit status.
+                self.assertEqual(p.returncode, 0)
 
     @per_available_shell()
     def test_norc(self, shell):
@@ -590,6 +624,34 @@ class TestShells(TestBase, TempdirMixin):
 
         out, _ = p.communicate()
         self.assertEqual(0, p.returncode)
+
+    @per_available_shell()
+    def test_alias_return_code(self, shell):
+        """Ensure return codes are correct while using aliases."""
+        config.override("default_shell", shell)
+
+        def _make_alias(ex):
+            ex.alias('my_alias', 'hello_world -r 1')
+
+        r = self._create_context(["hello_world"])
+        p = r.execute_shell(command='my_alias',
+                            actions_callback=_make_alias,
+                            stdout=subprocess.PIPE)
+
+        out, _ = p.communicate()
+        self.assertEqual(1, p.returncode)
+
+    @per_available_shell()
+    def test_find_executable_config_override(self, shell):
+        """Test the shell plugin returns correct exec override from settings."""
+        config.override("default_shell", shell)
+        override_attr = "plugins.shell.{}.executable_fullpath".format(shell)
+        cls = type(create_shell(shell))
+        with tempfile.TemporaryDirectory() as td:
+            exe_path = os.path.join(td, cls.executable_name())
+            with open(exe_path, 'w'):
+                config.override(override_attr, exe_path)
+                assert cls.find_executable(cls.executable_name()) == exe_path
 
 
 if __name__ == '__main__':
