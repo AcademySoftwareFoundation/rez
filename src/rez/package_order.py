@@ -2,15 +2,23 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from inspect import isclass
 from hashlib import sha1
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Iterable, List, TYPE_CHECKING
 
 from rez.config import config
 from rez.utils.data_utils import cached_class_property
 from rez.version import Version, VersionRange
 from rez.version._version import _Comparable, _ReversedComparable, _LowerBound, _UpperBound, _Bound
-from rez.packages import iter_packages
+from rez.packages import iter_packages, Package
+from rez.utils.typing import SupportsLessThan
+
+if TYPE_CHECKING:
+    # this is not available in typing until 3.11, but due to __future__.annotations
+    # we can use it without really importing it
+    from typing import Self
 
 ALL_PACKAGES = "*"
 
@@ -20,23 +28,25 @@ class FallbackComparable(_Comparable):
     fails, compares using the fallback_comparable object.
     """
 
-    def __init__(self, main_comparable, fallback_comparable):
+    def __init__(self,
+                 main_comparable: SupportsLessThan,
+                 fallback_comparable: SupportsLessThan) -> None:
         self.main_comparable = main_comparable
         self.fallback_comparable = fallback_comparable
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         try:
             return self.main_comparable == other.main_comparable
         except Exception:
             return self.fallback_comparable == other.fallback_comparable
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
         try:
             return self.main_comparable < other.main_comparable
         except Exception:
             return self.fallback_comparable < other.fallback_comparable
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '%s(%r, %r)' % (type(self).__name__, self.main_comparable, self.fallback_comparable)
 
 
@@ -46,15 +56,16 @@ class PackageOrder(object):
     #: Orderer name
     name = None
 
-    def __init__(self, packages: Optional[Iterable[str]] = None):
+    def __init__(self, packages: list[str] | None = None) -> None:
         """
         Args:
             packages: If not provided, PackageOrder applies to all packages.
         """
-        self.packages = packages
+        # TYPING: odd behavior where mypy disregards the property setter
+        self.packages = packages  # type: ignore[assignment]
 
     @property
-    def packages(self) -> List[str]:
+    def packages(self) -> list[str]:
         """Returns an iterable over the list of package family names that this
         order applies to
 
@@ -64,7 +75,7 @@ class PackageOrder(object):
         return self._packages
 
     @packages.setter
-    def packages(self, packages: Union[str, Iterable[str]]):
+    def packages(self, packages: str | Iterable[str] | None) -> None:
         if packages is None:
             # Apply to all packages
             self._packages = [ALL_PACKAGES]
@@ -73,7 +84,8 @@ class PackageOrder(object):
         else:
             self._packages = sorted(packages)
 
-    def reorder(self, iterable, key=None):
+    def reorder(self, iterable: Iterable[Package],
+                key: Callable[[Any], Package] | None = None) -> list[Package] | None:
         """Put packages into some order for consumption.
 
         You can safely assume that the packages referred to by `iterable` are
@@ -101,7 +113,9 @@ class PackageOrder(object):
                       reverse=True)
 
     @staticmethod
-    def _get_package_name_from_iterable(iterable, key=None):
+    def _get_package_name_from_iterable(iterable: Iterable[Package],
+                                        key: Callable[[Any], Package] | None = None
+                                        ) -> str | None:
         """Utility method for getting a package from an iterable"""
         try:
             item = next(iter(iterable))
@@ -111,7 +125,9 @@ class PackageOrder(object):
         key = key or (lambda x: x)
         return key(item).name
 
-    def sort_key(self, package_name, version_like):
+    def sort_key(self, package_name: str,
+                 version_like: Version | _LowerBound | _UpperBound | _Bound | VersionRange | None
+                 ) -> SupportsLessThan:
         """Returns a sort key usable for sorting packages within the same family
 
         Args:
@@ -148,7 +164,7 @@ class PackageOrder(object):
             return 0
         raise TypeError(version_like)
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         """Returns a sort key usable for sorting these packages within the
         same family
         Args:
@@ -162,27 +178,27 @@ class PackageOrder(object):
         """
         raise NotImplementedError
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         raise NotImplementedError
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> PackageOrder:
         raise NotImplementedError
 
     @property
-    def sha1(self):
+    def sha1(self) -> str:
         return sha1(repr(self).encode('utf-8')).hexdigest()
 
-    def __str__(self):
+    def __str__(self) -> str:
         raise NotImplementedError
 
     def __eq__(self, other):
         return type(self) == type(other) and str(self) == str(other)  # noqa: E721
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self == other
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
@@ -195,18 +211,18 @@ class NullPackageOrder(PackageOrder):
     """
     name = "no_order"
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         # python's sort will preserve the order of items that compare equal, so
         # to not change anything, we just return the same object for all...
         return 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}"
 
     def __eq__(self, other):
         return type(self) == type(other)  # noqa: E721
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -220,7 +236,7 @@ class NullPackageOrder(PackageOrder):
         }
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         return cls(packages=data.get("packages"))
 
 
@@ -229,11 +245,11 @@ class SortedOrder(PackageOrder):
     """
     name = "sorted"
 
-    def __init__(self, descending, packages=None):
+    def __init__(self, descending: bool, packages: list[str] | None = None) -> None:
         super().__init__(packages)
         self.descending = descending
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         # Note that the name "descending" can be slightly confusing - it
         # indicates that the final ordering this Order gives should be
         # version descending (ie, the default) - however, the sort_key itself
@@ -246,7 +262,7 @@ class SortedOrder(PackageOrder):
         else:
             return _ReversedComparable(version)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.descending)
 
     def __eq__(self, other):
@@ -255,7 +271,7 @@ class SortedOrder(PackageOrder):
             and self.descending == other.descending
         )
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -271,7 +287,7 @@ class SortedOrder(PackageOrder):
         }
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         return cls(
             data["descending"],
             packages=data.get("packages"),
@@ -283,7 +299,8 @@ class PerFamilyOrder(PackageOrder):
     """
     name = "per_family"
 
-    def __init__(self, order_dict, default_order=None):
+    def __init__(self, order_dict: dict[str, PackageOrder],
+                 default_order: PackageOrder | None = None) -> None:
         """Create a reorderer.
 
         Args:
@@ -296,7 +313,8 @@ class PerFamilyOrder(PackageOrder):
         self.order_dict = order_dict.copy()
         self.default_order = default_order
 
-    def reorder(self, iterable, key=None):
+    def reorder(self, iterable: Iterable[Package],
+                key: Callable[[Any], Package] | None = None) -> list[Package] | None:
         package_name = self._get_package_name_from_iterable(iterable, key)
         if package_name is None:
             return None
@@ -309,7 +327,7 @@ class PerFamilyOrder(PackageOrder):
 
         return orderer.reorder(iterable, key)
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         orderer = self.order_dict.get(package_name)
         if orderer is None:
             if self.default_order is None:
@@ -322,7 +340,7 @@ class PerFamilyOrder(PackageOrder):
 
         return orderer.sort_key_implementation(package_name, version)
 
-    def __str__(self):
+    def __str__(self) -> str:
         items = sorted((x[0], str(x[1])) for x in self.order_dict.items())
         return str((items, str(self.default_order)))
 
@@ -333,7 +351,7 @@ class PerFamilyOrder(PackageOrder):
             and self.default_order == other.default_order
         )
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -367,7 +385,7 @@ class PerFamilyOrder(PackageOrder):
             data["packages"] = sorted(fams)
             orderlist.append(data)
 
-        result = {"orderers": orderlist}
+        result: dict[str, Any] = {"orderers": orderlist}
 
         if self.default_order is not None:
             result["default_order"] = to_pod(self.default_order)
@@ -375,7 +393,7 @@ class PerFamilyOrder(PackageOrder):
         return result
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         order_dict = {}
         default_order = None
 
@@ -402,7 +420,7 @@ class VersionSplitPackageOrder(PackageOrder):
     """
     name = "version_split"
 
-    def __init__(self, first_version, packages=None):
+    def __init__(self, first_version: Version, packages: list[str] | None = None) -> None:
         """Create a reorderer.
 
         Args:
@@ -411,11 +429,11 @@ class VersionSplitPackageOrder(PackageOrder):
         super().__init__(packages)
         self.first_version = first_version
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         priority_key = 1 if version <= self.first_version else 0
         return priority_key, version
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.first_version)
 
     def __eq__(self, other):
@@ -424,7 +442,7 @@ class VersionSplitPackageOrder(PackageOrder):
             and self.first_version == other.first_version
         )
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -440,7 +458,7 @@ class VersionSplitPackageOrder(PackageOrder):
         )
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         return cls(
             Version(data["first_version"]),
             packages=data.get("packages"),
@@ -490,7 +508,7 @@ class TimestampPackageOrder(PackageOrder):
     """
     name = "soft_timestamp"
 
-    def __init__(self, timestamp, rank=0, packages=None):
+    def __init__(self, timestamp: int, rank: int = 0, packages: list[str] | None = None) -> None:
         """Create a reorderer.
 
         Args:
@@ -508,7 +526,7 @@ class TimestampPackageOrder(PackageOrder):
         self._cached_first_after = {}
         self._cached_sort_key = {}
 
-    def _get_first_after(self, package_family):
+    def _get_first_after(self, package_family: str) -> Version | None:
         """Get the first package version that is after the timestamp"""
         try:
             first_after = self._cached_first_after[package_family]
@@ -517,7 +535,7 @@ class TimestampPackageOrder(PackageOrder):
             self._cached_first_after[package_family] = first_after
         return first_after
 
-    def _calc_first_after(self, package_family):
+    def _calc_first_after(self, package_family: str) -> Version | None:
         descending = sorted(iter_packages(package_family),
                             key=lambda p: p.version,
                             reverse=True)
@@ -551,11 +569,11 @@ class TimestampPackageOrder(PackageOrder):
 
         return first_after
 
-    def _calc_sort_key(self, package_name, version):
+    def _calc_sort_key(self, package_name: str, version: Version) -> SupportsLessThan:
         first_after = self._get_first_after(package_name)
         if first_after is None:
             # all packages are before T
-            is_before = True
+            is_before: bool | int = True
         else:
             is_before = int(version < first_after)
 
@@ -569,7 +587,7 @@ class TimestampPackageOrder(PackageOrder):
 
         return is_before, _ReversedComparable(version)
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         cache_key = (package_name, str(version))
         result = self._cached_sort_key.get(cache_key)
         if result is None:
@@ -578,7 +596,7 @@ class TimestampPackageOrder(PackageOrder):
 
         return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str((self.timestamp, self.rank))
 
     def __eq__(self, other):
@@ -588,7 +606,7 @@ class TimestampPackageOrder(PackageOrder):
             and self.rank == other.rank
         )
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -606,7 +624,7 @@ class TimestampPackageOrder(PackageOrder):
         )
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         return cls(
             data["timestamp"],
             rank=data.get("rank", 0),
@@ -614,20 +632,20 @@ class TimestampPackageOrder(PackageOrder):
         )
 
 
-class PackageOrderList(list):
+class PackageOrderList(List[PackageOrder]):
     """A list of package orderer.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.by_package: Dict[str, PackageOrder] = {}
+        self.by_package: dict[str, PackageOrder] = {}
         self.dirty = True
 
-    def to_pod(self):
+    def to_pod(self) -> list[dict[str, Any]]:
         return [to_pod(f) for f in self]
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: list[dict[str, Any]]) -> PackageOrderList:
         flist = PackageOrderList()
         for dict_ in data:
             f = from_pod(dict_)
@@ -635,12 +653,12 @@ class PackageOrderList(list):
         return flist
 
     @cached_class_property
-    def singleton(cls):
+    def singleton(cls) -> PackageOrderList:
         """Filter list as configured by rezconfig.package_filter."""
         return cls.from_pod(config.package_orderers)
 
     @staticmethod
-    def _to_orderer(orderer: Union[dict, PackageOrder]) -> PackageOrder:
+    def _to_orderer(orderer: dict | PackageOrder) -> PackageOrder:
         if isinstance(orderer, dict):
             orderer = from_pod(orderer)
         return orderer
@@ -657,31 +675,36 @@ class PackageOrderList(list):
                     continue
                 self.by_package[package] = orderer
 
-    def append(self, *args, **kwargs):
-        self.dirty = True
-        return super().append(*args, **kwargs)
+    if not TYPE_CHECKING:
+        # Since this class inherits from list it's easier to rely on the type hints coming from
+        # that base class than to redefine them here, so we hide them by placing them behind
+        # not TYPE_CHECKING.
 
-    def extend(self, *args, **kwargs):
-        self.dirty = True
-        return super().extend(*args, **kwargs)
+        def append(self, *args, **kwargs):
+            self.dirty = True
+            return super().append(*args, **kwargs)
 
-    def pop(self, *args, **kwargs):
-        self.dirty = True
-        return super().pop(*args, **kwargs)
+        def extend(self, *args, **kwargs):
+            self.dirty = True
+            return super().extend(*args, **kwargs)
 
-    def remove(self, *args, **kwargs):
-        self.dirty = True
-        return super().remove(*args, **kwargs)
+        def pop(self, *args, **kwargs):
+            self.dirty = True
+            return super().pop(*args, **kwargs)
 
-    def clear(self, *args, **kwargs):
-        self.dirty = True
-        return super().clear(*args, **kwargs)
+        def remove(self, *args, **kwargs):
+            self.dirty = True
+            return super().remove(*args, **kwargs)
 
-    def insert(self, *args, **kwargs):
-        self.dirty = True
-        return super().insert(*args, **kwargs)
+        def clear(self, *args, **kwargs):
+            self.dirty = True
+            return super().clear(*args, **kwargs)
 
-    def get(self, key: str, default: Optional[PackageOrder] = None) -> PackageOrder:
+        def insert(self, *args, **kwargs):
+            self.dirty = True
+            return super().insert(*args, **kwargs)
+
+    def get(self, key: str, default: PackageOrder | None = None) -> PackageOrder | None:
         """
         Get an orderer that sorts a package by name.
         """
@@ -692,13 +715,13 @@ class PackageOrderList(list):
         return result
 
 
-def to_pod(orderer):
+def to_pod(orderer: PackageOrder) -> dict:
     data = {"type": orderer.name}
     data.update(orderer.to_pod())
     return data
 
 
-def from_pod(data):
+def from_pod(data: dict[str, Any]) -> PackageOrder:
     if isinstance(data, dict):
         cls_name = data["type"]
         data = data.copy()
@@ -713,7 +736,7 @@ def from_pod(data):
         return cls.from_pod(data_)
 
 
-def get_orderer(package_name, orderers=None):
+def get_orderer(package_name: str, orderers: PackageOrderList | dict[str, PackageOrder] | None = None) -> PackageOrder:
     if orderers is None:
         orderers = PackageOrderList.singleton
     orderer = orderers.get(package_name)
@@ -725,7 +748,7 @@ def get_orderer(package_name, orderers=None):
     return orderer
 
 
-def register_orderer(cls):
+def register_orderer(cls: type[PackageOrder]) -> bool:
     """Register an orderer
 
     Args:

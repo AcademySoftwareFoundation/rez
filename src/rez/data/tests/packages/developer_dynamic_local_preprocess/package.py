@@ -1,14 +1,14 @@
 name = "developer_dynamic_local_preprocess"
 
 @early()
-def description():
+def description() -> str:
     return "This."
 
 requires = [
     "versioned-*"
 ]
 
-def preprocess(this, data):
+def preprocess(this, data) -> None:
     from early_utils import get_authors
     data["authors"] = get_authors()
     data["added_by_local_preprocess"] = True

@@ -2,14 +2,16 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.exceptions import PackageMoveError
 from rez.package_copy import copy_package
 from rez.package_repository import package_repository_manager
 from rez.utils.logging_ import print_info
 
 
-def move_package(package, dest_repository, keep_timestamp=False, force=False,
-                 verbose=False):
+def move_package(package, dest_repository, keep_timestamp: bool = False, force: bool = False,
+                 verbose: bool = False):
     """Move a package.
 
     Moving a package means copying the package to a destination repo, and
@@ -32,7 +34,7 @@ def move_package(package, dest_repository, keep_timestamp=False, force=False,
     Returns:
         `Package`: The newly created package in the destination repo.
     """
-    def _info(msg, *nargs):
+    def _info(msg, *nargs) -> None:
         if verbose:
             print_info(msg, *nargs)
 

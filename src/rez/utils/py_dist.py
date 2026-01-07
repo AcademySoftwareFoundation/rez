@@ -84,7 +84,7 @@ def convert_requirement(req):
     return req_strs
 
 
-def get_dist_dependencies(name, recurse=True):
+def get_dist_dependencies(name, recurse: bool = True):
     """
     Get the dependencies of the given, already installed distribution.
     @param recurse If True, recursively find all dependencies.
@@ -119,7 +119,7 @@ def get_dist_dependencies(name, recurse=True):
 
 
 # TODO: doesn't deal with executable scripts yet
-def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
+def convert_dist(name, dest_path, make_variant: bool = True, ignore_dirs=None,
                  python_requirement="major_minor"):
     """Convert an already installed python distribution into a rez package.
 

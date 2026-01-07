@@ -9,5 +9,5 @@ requires = ['translate_lib-2.2']
 
 tools = ['greeter']
 
-def commands():
+def commands() -> None:
     env.PATH.append('{root}/bin')

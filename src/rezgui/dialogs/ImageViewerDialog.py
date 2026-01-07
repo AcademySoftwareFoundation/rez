@@ -10,7 +10,7 @@ from rezgui.objects.App import app
 
 
 class ImageViewerDialog(QtWidgets.QDialog, StoreSizeMixin):
-    def __init__(self, image_file, parent=None):
+    def __init__(self, image_file, parent=None) -> None:
         config_key = "layout/window/resolve_graph"
         super(ImageViewerDialog, self).__init__(parent)
         StoreSizeMixin.__init__(self, app.config, config_key)

@@ -20,11 +20,11 @@ import sys
 import os.path
 
 
-def commands():
+def commands() -> None:
     env.PYTHONPATH.append('{this.root}/python')
 
 
-def commands_with_bin():
+def commands_with_bin() -> None:
     env.PYTHONPATH.append('{this.root}/python')
     env.PATH.append('{this.root}/bin')
 
@@ -88,7 +88,7 @@ def bind(name, path, import_name=None, version_range=None, version=None,
         except RezBindError as e:
             print_warning(str(e))
 
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         pypath = make_dirs(root, "python")
         copy_module(import_name, pypath)
 

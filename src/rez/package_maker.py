@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils._version import _rez_version
 from rez.utils.schema import Required, extensible_schema_dict
 from rez.utils.filesystem import retain_cwd
@@ -12,12 +14,13 @@ from rez.exceptions import PackageMetadataError
 from rez.package_resources import help_schema, _commands_schema, \
     _function_schema, late_bound
 from rez.package_repository import create_memory_package_repository
-from rez.packages import Package
+from rez.packages import Package, Variant
 from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.version import Version
 from contextlib import contextmanager
 import os
+from typing import Any, Callable, Iterator
 
 
 # this schema will automatically harden request strings like 'python-*'; see
@@ -92,7 +95,7 @@ package_schema = Schema({
 
 class PackageMaker(AttrDictWrapper):
     """Utility class for creating packages."""
-    def __init__(self, name, data=None, package_cls=None):
+    def __init__(self, name: str, data: dict | None = None, package_cls: type[Package] | None = None) -> None:
         """Create a package maker.
 
         Args:
@@ -106,7 +109,7 @@ class PackageMaker(AttrDictWrapper):
         self.installed_variants = []
         self.skipped_variants = []
 
-    def get_package(self):
+    def get_package(self) -> Package:
         """Create the analogous package.
 
         Returns:
@@ -142,7 +145,7 @@ class PackageMaker(AttrDictWrapper):
         package.validate_data()
         return package
 
-    def _get_data(self):
+    def _get_data(self) -> dict:
         data = self._data.copy()
 
         data.pop("installed_variants", None)
@@ -154,8 +157,11 @@ class PackageMaker(AttrDictWrapper):
 
 
 @contextmanager
-def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
-                 warn_on_skip=True):
+def make_package(name: str, path: str,
+                 make_base: Callable[[Variant, str], Any] | None = None,
+                 make_root: Callable[[Variant, str], Any] | None = None,
+                 skip_existing: bool = True,
+                 warn_on_skip: bool = True) -> Iterator[PackageMaker]:
     """Make and install a package.
 
     Example:

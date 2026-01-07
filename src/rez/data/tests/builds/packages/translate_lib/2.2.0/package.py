@@ -6,7 +6,7 @@ authors = ["axl.rose"]
 
 description = "A simple C++ library with minimal dependencies."
 
-def commands():
+def commands() -> None:
     import platform
 
     env.CMAKE_MODULE_PATH.append("{root}/cmake")

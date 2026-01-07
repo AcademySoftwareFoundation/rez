@@ -16,7 +16,7 @@ class ToolWidget(QtWidgets.QWidget):
 
     clicked = QtCore.Signal()
 
-    def __init__(self, context, tool_name, process_tracker=None, parent=None):
+    def __init__(self, context, tool_name, process_tracker=None, parent=None) -> None:
         super(ToolWidget, self).__init__(parent)
         self.context = context
         self.tool_name = tool_name
@@ -48,7 +48,7 @@ class ToolWidget(QtWidgets.QWidget):
 
         return self.process_tracker.running_instances(self.context, self.tool_name)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         super(ToolWidget, self).mouseReleaseEvent(event)
         if not self.context:
             return
@@ -71,7 +71,7 @@ class ToolWidget(QtWidgets.QWidget):
         menu.exec_(self.mapToGlobal(event.pos()))
         self.clicked.emit()
 
-    def _launch_tool(self, terminal=False, moniter=False):
+    def _launch_tool(self, terminal: bool = False, moniter: bool = False) -> None:
         buf = subprocess.PIPE if moniter else None
         proc = app.execute_shell(context=self.context,
                                  command=self.tool_name,
@@ -85,7 +85,7 @@ class ToolWidget(QtWidgets.QWidget):
             dlg = ProcessDialog(proc, self.tool_name)
             dlg.exec_()
 
-    def _list_processes(self):
+    def _list_processes(self) -> None:
         entries = self.get_processes()
         now = int(time.time())
         items = []
@@ -106,7 +106,7 @@ class ToolWidget(QtWidgets.QWidget):
 
         QtWidgets.QMessageBox.information(self, "Processes", txt)
 
-    def set_instance_count(self, nprocs):
+    def set_instance_count(self, nprocs) -> None:
         if nprocs:
             txt = "%d instances running..." % nprocs
         else:

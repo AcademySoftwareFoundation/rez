@@ -11,11 +11,11 @@ from ._utils.powershell_base import PowerShellBase
 class PowerShell(PowerShellBase):
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'powershell'
 
     @classmethod
-    def file_extension(cls):
+    def file_extension(cls) -> str:
         return 'ps1'
 
 

@@ -18,7 +18,7 @@ from rez.version import Version
 class _BaseTestPackagesOrder(TestBase, TempdirMixin):
     """Base class for a package ordering test case"""
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         cls.py_packages_path = cls.data_path("packages", "py_packages")
@@ -32,10 +32,10 @@ class _BaseTestPackagesOrder(TestBase, TempdirMixin):
             package_filter=None)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def _test_reorder(self, orderer, package_name, expected_order):
+    def _test_reorder(self, orderer, package_name, expected_order) -> None:
         """Ensure ordered order package version as expected."""
         it = iter_packages(package_name)
         descending = sorted(it, key=lambda x: x.version, reverse=True)
@@ -43,7 +43,7 @@ class _BaseTestPackagesOrder(TestBase, TempdirMixin):
         result = [str(x.version) for x in ordered]
         self.assertEqual(expected_order, result)
 
-    def _test_pod(self, orderer):
+    def _test_pod(self, orderer) -> None:
         """Ensure an orderer integrity when serialized to pod."""
         pod = json.loads(json.dumps(orderer.to_pod()))  # roundtrip to JSON
         actual = orderer.__class__.from_pod(pod)
@@ -53,16 +53,16 @@ class _BaseTestPackagesOrder(TestBase, TempdirMixin):
 class TestAbstractPackageOrder(TestBase):
     """Test case for the abstract PackageOrder class"""
 
-    def test_to_pod(self):
+    def test_to_pod(self) -> None:
         """Validate to_pod is not implemented"""
         self.assertRaises(NotImplementedError, PackageOrder().to_pod)
 
-    def test_str(self):
+    def test_str(self) -> None:
         """Validate __str__ is not implemented"""
         with self.assertRaises(NotImplementedError):
             str(PackageOrder())
 
-    def test_eq(self):
+    def test_eq(self) -> None:
         """Validate __eq__ is not implemented"""
         with self.assertRaises(NotImplementedError):
             PackageOrder() == PackageOrder()
@@ -71,11 +71,11 @@ class TestAbstractPackageOrder(TestBase):
 class TestNullPackageOrder(_BaseTestPackagesOrder):
     """Test case for the NullPackageOrder class"""
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         """Validate we can represent a VersionSplitPackageOrder as a string."""
         self.assertEqual("NullPackageOrder({})", repr(NullPackageOrder()))
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         """Validate we can compare VersionSplitPackageOrder together."""
         inst1 = NullPackageOrder()
         inst2 = NullPackageOrder()
@@ -84,11 +84,11 @@ class TestNullPackageOrder(_BaseTestPackagesOrder):
         self.assertTrue(inst1 != "wrong_type")  # __ne__ positive (wrong type)
         self.assertFalse(inst1 != inst2)  # __ne__ negative
 
-    def test_pod(self):
+    def test_pod(self) -> None:
         """Validate we can save and load a VersionSplitPackageOrder to it's pod representation."""
         self._test_pod(NullPackageOrder())
 
-    def test_sha1(self):
+    def test_sha1(self) -> None:
         """Validate we can get a sha1 hash.
         """
         self.assertEqual(
@@ -99,15 +99,15 @@ class TestNullPackageOrder(_BaseTestPackagesOrder):
 class TestSortedOrder(_BaseTestPackagesOrder):
     """Test case for the SortedOrder class"""
 
-    def test_reorder_ascending(self):
+    def test_reorder_ascending(self) -> None:
         """Validate we can sort packages in ascending order."""
         self._test_reorder(SortedOrder(descending=False), "pymum", ["1", "2", "3"])
 
-    def test_reorder_descending(self):
+    def test_reorder_descending(self) -> None:
         """Validate we can sort packages in descending order."""
         self._test_reorder(SortedOrder(descending=True), "pymum", ["3", "2", "1"])
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         """Validate we can compare SortedOrder together."""
         inst1 = SortedOrder(descending=False)
         inst2 = SortedOrder(descending=False)
@@ -119,11 +119,11 @@ class TestSortedOrder(_BaseTestPackagesOrder):
         self.assertFalse(inst1 == "wrong_type")  # __eq__ negative (wrong type)
         self.assertTrue(inst1 != "wrong_type")  # __eq__ negative (wrong type)
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         """Validate we can represent a SortedOrder as a string."""
         self.assertEqual("SortedOrder(True)", repr(SortedOrder(descending=True)))
 
-    def test_pod(self):
+    def test_pod(self) -> None:
         """Validate we can save and load a SortedOrder to it's pod representation."""
         self._test_pod(SortedOrder(descending=True))
 
@@ -131,7 +131,7 @@ class TestSortedOrder(_BaseTestPackagesOrder):
 class TestPerFamilyOrder(_BaseTestPackagesOrder):
     """Test case for the PerFamilyOrder class"""
 
-    def test_reorder(self):
+    def test_reorder(self) -> None:
         """Test ordering."""
         expected_null_result = ["7", "6", "5"]
         expected_split_result = ["2.6.0", "2.5.2", "2.7.0", "2.6.8"]
@@ -151,17 +151,17 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
         self._test_reorder(orderer, "timestamped", expected_timestamp_result)
         self._test_reorder(orderer, "pymum", ["1", "2", "3"])
 
-    def test_reorder_no_packages(self):
+    def test_reorder_no_packages(self) -> None:
         """Validate ordering for a family with no packages."""
         orderer = PerFamilyOrder(order_dict=dict(missing_package=NullPackageOrder()))
         self._test_reorder(orderer, "missing_package", [])
 
-    def test_reorder_no_default_order(self):
+    def test_reorder_no_default_order(self) -> None:
         """Test behavior when there's no secondary default_order."""
         fam_orderer = PerFamilyOrder(order_dict={})
         self._test_reorder(fam_orderer, "pymum", ["3", "2", "1"])
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         """Validate we can compare PerFamilyOrder."""
         inst1 = PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=NullPackageOrder())
         inst2 = PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=NullPackageOrder())
@@ -174,12 +174,12 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
         self.assertTrue(inst1 != inst4)  # __ne__ positive (different default order)
         self.assertFalse(inst1 != inst2)  # __ne__ negative
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         """Validate we can represent a PerFamilyOrder as a string."""
         inst = PerFamilyOrder(order_dict={"family1": VersionSplitPackageOrder(Version("2.6.0"))})
         self.assertEqual("PerFamilyOrder(([('family1', '2.6.0')], 'None'))", repr(inst))
 
-    def test_pod(self):
+    def test_pod(self) -> None:
         """Validate we can save and load a PerFamilyOrder to it's pod representation."""
         self._test_pod(
             PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=NullPackageOrder())
@@ -194,13 +194,13 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
 class TestVersionSplitPackageOrder(_BaseTestPackagesOrder):
     """Test case for the VersionSplitPackageOrder class"""
 
-    def test_reordere(self):
+    def test_reordere(self) -> None:
         """Validate package ordering with a VersionSplitPackageOrder"""
         orderer = VersionSplitPackageOrder(Version("2.6.0"))
         expected = ["2.6.0", "2.5.2", "2.7.0", "2.6.8"]
         self._test_reorder(orderer, "python", expected)
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         """Validate we can compare VersionSplitPackageOrder together."""
         inst1 = VersionSplitPackageOrder(first_version=Version("1.2.3"))
         inst2 = VersionSplitPackageOrder(first_version=Version("1.2.3"))
@@ -212,12 +212,12 @@ class TestVersionSplitPackageOrder(_BaseTestPackagesOrder):
         self.assertFalse(inst1 == "wrong_type")  # __eq__ negative (wrong type)
         self.assertTrue(inst1 != "wrong_type")  # __eq__ negative (wrong type)
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         """Validate we can represent a VersionSplitPackageOrder as a string."""
         inst = VersionSplitPackageOrder(first_version=Version("1,2,3"))
         self.assertEqual("VersionSplitPackageOrder(1,2,3)", repr(inst))
 
-    def test_pod(self):
+    def test_pod(self) -> None:
         """Validate we can save and load a VersionSplitPackageOrder to it's pod representation."""
         self._test_pod(VersionSplitPackageOrder(first_version=Version("1.2.3")))
 
@@ -225,13 +225,13 @@ class TestVersionSplitPackageOrder(_BaseTestPackagesOrder):
 class TestTimestampPackageOrder(_BaseTestPackagesOrder):
     """Test cases for the TimestampPackageOrder class"""
 
-    def test_reorder_no_rank(self):
+    def test_reorder_no_rank(self) -> None:
         """Validate reordering with a rank of 0."""
         orderer = TimestampPackageOrder(timestamp=3001)
         expected = ['1.1.0', '1.0.6', '1.0.5', '1.1.1', '1.2.0', '2.0.0', '2.1.0', '2.1.5']
         self._test_reorder(orderer, "timestamped", expected)
 
-    def test_reorder_rank_3(self):
+    def test_reorder_rank_3(self) -> None:
         """Validate reordering with a rank of 3."""
         # after v1.1.0 and before v1.1.1
         orderer1 = TimestampPackageOrder(timestamp=3001, rank=3)
@@ -243,30 +243,30 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
         expected2 = ["2.1.5", "2.1.0", "2.0.0", "1.2.0", "1.1.1", "1.1.0", "1.0.6", "1.0.5"]
         self._test_reorder(orderer2, "timestamped", expected2)
 
-    def test_reorder_rank_2(self):
+    def test_reorder_rank_2(self) -> None:
         """Add coverage for a corner case where there's only one candidate without the rank."""
         orderer = TimestampPackageOrder(timestamp=4001, rank=3)  # 1.1.1
         expected = ['1.1.1', '1.1.0', '1.0.6', '1.0.5', '1.2.0', '2.0.0', '2.1.5', '2.1.0']
         self._test_reorder(orderer, "timestamped", expected)
 
-    def test_reorder_packages_without_timestamps(self):
+    def test_reorder_packages_without_timestamps(self) -> None:
         """Validate reordering of packages that have no timestamp data."""
         orderer = TimestampPackageOrder(timestamp=3001)
         self._test_reorder(orderer, "pymum", ["3", "2", "1"])
 
-    def test_reorder_all_packages_before_timestamp(self):
+    def test_reorder_all_packages_before_timestamp(self) -> None:
         """Test behavior when all packages are before the timestamp."""
         timestamp_orderer = TimestampPackageOrder(timestamp=9999999999, rank=3)
         expected = ['2.1.5', '2.1.0', '2.0.0', '1.2.0', '1.1.1', '1.1.0', '1.0.6', '1.0.5']
         self._test_reorder(timestamp_orderer, "timestamped", expected)
 
-    def test_reorder_all_packages_after_timestamp(self):
+    def test_reorder_all_packages_after_timestamp(self) -> None:
         """Test behavior when all packages are after the timestamp."""
         timestamp_orderer = TimestampPackageOrder(timestamp=0, rank=3)
         expected = ['1.0.6', '1.0.5', '1.1.1', '1.1.0', '1.2.0', '2.0.0', '2.1.5', '2.1.0']
         self._test_reorder(timestamp_orderer, "timestamped", expected)
 
-    def test_comparison(self):
+    def test_comparison(self) -> None:
         """Validate we can compare TimestampPackageOrder."""
         inst1 = TimestampPackageOrder(timestamp=1, rank=1)
         inst2 = TimestampPackageOrder(timestamp=1, rank=1)
@@ -279,12 +279,12 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
         self.assertTrue(inst1 != inst4)  # __ne__ positive (different rank)
         self.assertFalse(inst1 != inst2)  # __ne__ negative
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         """Validate we can represent a TimestampPackageOrder as a string."""
         inst = TimestampPackageOrder(timestamp=1, rank=2)
         self.assertEqual(repr(inst), "TimestampPackageOrder((1, 2))")
 
-    def test_pod(self):
+    def test_pod(self) -> None:
         """Validate we can save and load a TimestampPackageOrder to pod representation."""
         self._test_pod(TimestampPackageOrder(timestamp=3001, rank=3))
 
@@ -292,7 +292,7 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
 class TestPackageOrdererList(_BaseTestPackagesOrder):
     """Test cases for the PackageOrderList class."""
 
-    def test_singleton(self):
+    def test_singleton(self) -> None:
         """Validate we can build a PackageOrderList object from configuration values."""
         config.override("package_orderers", [
             {
@@ -318,7 +318,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
             pass
         self.assertEqual(expected, PackageOrderList.singleton)
 
-    def test_singleton_novalue(self):
+    def test_singleton_novalue(self) -> None:
         """Validate we can build a PackageOrderList object from empty configuration values."""
         config.override("package_orderers", None)
 
@@ -330,7 +330,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
 
         self.assertEqual(PackageOrderList(), PackageOrderList.singleton)
 
-    def test_pod(self):
+    def test_pod(self) -> None:
         """Validate we can save and load a PackageOrdererList to pod representation."""
         inst = PackageOrderList((
             VersionSplitPackageOrder(Version("2.6.0")),
@@ -342,7 +342,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
 class TestPackageOrderPublic(TestBase):
     """Additional tests for public symbols in package_order.py"""
 
-    def test_from_pod_old_style(self):
+    def test_from_pod_old_style(self) -> None:
         """Validate from_pod is still compatible with the older pod style."""
         self.assertEqual(
             VersionSplitPackageOrder(first_version=Version("1.2.3")),

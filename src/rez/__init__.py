@@ -18,7 +18,7 @@ module_root_path = __path__[0]  # noqa
 
 
 # TODO: Revamp logging. For now, this is here for backwards compatibility
-def _init_logging():
+def _init_logging() -> None:
     logging_conf = os.getenv("REZ_LOGGING_CONF")
     if logging_conf:
         import logging.config
@@ -50,7 +50,7 @@ if action:
     import traceback
 
     if action == "print_stack":
-        def callback(sig, frame):
+        def callback(sig, frame) -> None:
             txt = ''.join(traceback.format_stack(frame))
             print()
             print(txt)

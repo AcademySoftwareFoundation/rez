@@ -5,6 +5,9 @@
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
+
+from __future__ import annotations
+
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import shlex_join, is_non_string_iterable
 from rez.utils.which import which
@@ -17,9 +20,16 @@ from rez.config import config
 import os
 import os.path
 from shlex import quote
+from typing import Any, Iterable, Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import subprocess
+    # this is not available in typing until 3.11, but due to __future__.annotations
+    # we can use it without really importing it
+    from typing import Self
 
 
-def get_shell_types():
+def get_shell_types() -> list[str]:
     """Returns the available shell types: bash, tcsh etc.
 
     Returns:
@@ -29,7 +39,7 @@ def get_shell_types():
     return list(plugin_manager.get_plugins('shell'))
 
 
-def get_shell_class(shell=None):
+def get_shell_class(shell: str | None = None) -> type[Shell]:
     """Get the plugin class associated with the given or current shell.
 
     Returns:
@@ -45,7 +55,7 @@ def get_shell_class(shell=None):
     return plugin_manager.get_plugin_class("shell", shell)
 
 
-def create_shell(shell=None, **kwargs):
+def create_shell(shell: str | None = None, **kwargs: Any) -> Shell:
     """Returns a Shell of the given or current type.
 
     Returns:
@@ -67,29 +77,29 @@ class Shell(ActionInterpreter):
     schema_dict = {"prompt": str}
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         """Plugin name.
         """
         raise NotImplementedError
 
     @classmethod
-    def executable_name(cls):
+    def executable_name(cls) -> str:
         """Name of executable to create shell instance.
         """
         return cls.name()
 
     @classmethod
-    def executable_filepath(cls):
+    def executable_filepath(cls) -> str:
         """Get full filepath to executable, or raise if not found.
         """
         return cls.find_executable(cls.executable_name())
 
     @property
-    def executable(self):
+    def executable(self) -> str:
         return self.__class__.executable_filepath()
 
     @classmethod
-    def is_available(cls):
+    def is_available(cls) -> bool:
         """Determine if the shell is available to instantiate.
 
         Returns:
@@ -101,7 +111,7 @@ class Shell(ActionInterpreter):
             return False
 
     @classmethod
-    def file_extension(cls):
+    def file_extension(cls) -> str:
         """Get the file extension associated with the shell.
 
         Returns:
@@ -110,8 +120,13 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(
+        cls,
+        rcfile: str | None | Literal[False] = False,
+        norc: bool = False,
+        stdin: bool = False,
+        command: bool = False
+    ) -> tuple[str | None | Literal[False], bool, bool, bool]:
         """
         Given a set of options related to shell startup, return the actual
         options that will be applied.
@@ -125,14 +140,14 @@ class Shell(ActionInterpreter):
     def get_syspaths(cls):
         raise NotImplementedError
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._lines = []
         self.settings = config.plugins.shell[self.name()]
 
-    def _addline(self, line):
+    def _addline(self, line: str) -> None:
         self._lines.append(line)
 
-    def get_output(self, style=OutputStyle.file):
+    def get_output(self, style: OutputStyle = OutputStyle.file) -> str:
         if style == OutputStyle.file:
             script = '\n'.join(self._lines) + '\n'
         else:  # eval style
@@ -145,24 +160,24 @@ class Shell(ActionInterpreter):
 
         return script
 
-    def new_shell(self):
+    def new_shell(self) -> Self:
         """Returns A new, reset shell of the same type."""
         return self.__class__()
 
     @classmethod
-    def _unsupported_option(cls, option, val):
+    def _unsupported_option(cls, option, val) -> None:
         if val and config.warn("shell_startup"):
             print_warning("%s ignored, not supported by %s shell"
                           % (option, cls.name()))
 
     @classmethod
-    def _overruled_option(cls, option, overruling_option, val):
+    def _overruled_option(cls, option, overruling_option, val) -> None:
         if val and config.warn("shell_startup"):
             print_warning("%s ignored by %s shell - overruled by %s option"
                           % (option, cls.name(), overruling_option))
 
     @classmethod
-    def find_executable(cls, name, check_syspaths=False):
+    def find_executable(cls, name: str, check_syspaths: bool = False) -> str:
         """Find an executable.
 
         Args:
@@ -195,10 +210,19 @@ class Shell(ActionInterpreter):
             raise RuntimeError("Couldn't find executable '%s'." % name)
         return exe
 
-    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, add_rez=True,
-                    package_commands_sourced_first=None, **Popen_args):
+    def spawn_shell(self,
+                    context_file: str,
+                    tmpdir,
+                    rcfile: str | None = None,
+                    norc: bool = False,
+                    stdin: bool = False,
+                    command=None,
+                    env=None,
+                    quiet: bool = False,
+                    pre_command: str | list[str] | None = None,
+                    add_rez: bool = True,
+                    package_commands_sourced_first=None,
+                    **Popen_args) -> subprocess.Popen:
         """Spawn a possibly interactive subshell.
 
         Args:
@@ -233,7 +257,7 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def convert_tokens(cls, value):
+    def convert_tokens(cls, value) -> str:
         """
         Converts any token like ${VAR} and $VAR to shell specific form.
         Uses the ENV_VAR_REGEX to correctly parse tokens.
@@ -250,7 +274,7 @@ class Shell(ActionInterpreter):
         )
 
     @classmethod
-    def get_key_token(cls, key):
+    def get_key_token(cls, key) -> str:
         """
         Encodes the environment variable into the shell specific form.
         Shells might implement multiple forms, but the most common/safest
@@ -265,7 +289,7 @@ class Shell(ActionInterpreter):
         return cls.get_all_key_tokens(key)[0]
 
     @classmethod
-    def get_all_key_tokens(cls, key):
+    def get_all_key_tokens(cls, key: str) -> list[str]:
         """
         Encodes the environment variable into the shell specific forms.
         Shells might implement multiple forms, but the most common/safest
@@ -280,7 +304,7 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def line_terminator(cls):
+    def line_terminator(cls) -> str:
         """
         Returns:
             str: default line terminator
@@ -288,7 +312,7 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def join(cls, command):
+    def join(cls, command: Iterable[str]) -> str:
         """
         Note: Default to unix sh/bash- friendly behaviour.
 
@@ -321,33 +345,33 @@ class UnixShell(Shell):
     r"""
     A base class for common \*nix shells, such as bash and tcsh.
     """
-    rcfile_arg = None
-    norc_arg = None
-    histfile = None
-    histvar = None
+    rcfile_arg: str = None
+    norc_arg: str = None
+    histfile: str = None
+    histvar: str = None
     command_arg = '-c'
     stdin_arg = '-s'
     last_command_status = '$?'
-    syspaths = None
+    syspaths: list[str] = None
 
     #
     # startup rules
     #
 
     @classmethod
-    def supports_norc(cls):
+    def supports_norc(cls) -> bool:
         return True
 
     @classmethod
-    def supports_command(cls):
+    def supports_command(cls) -> bool:
         return True
 
     @classmethod
-    def supports_stdin(cls):
+    def supports_stdin(cls) -> bool:
         return True
 
     @classmethod
-    def get_startup_sequence(cls, rcfile, norc, stdin, command):
+    def get_startup_sequence(cls, rcfile: str | None, norc: bool, stdin: bool, command: bool):
         """
         Return a dict containing:
 
@@ -364,9 +388,16 @@ class UnixShell(Shell):
         """
         raise NotImplementedError
 
-    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, add_rez=True,
+    def spawn_shell(self,
+                    context_file: str,
+                    tmpdir: str,
+                    rcfile: str | None = None,
+                    norc: bool = False,
+                    stdin: bool = False,
+                    command=None, env=None,
+                    quiet: bool = False,
+                    pre_command: str | list[str] | None = None,
+                    add_rez: bool = True,
                     package_commands_sourced_first=None, **Popen_args):
 
         d = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
@@ -379,7 +410,7 @@ class UnixShell(Shell):
         if package_commands_sourced_first is None:
             package_commands_sourced_first = config.package_commands_sourced_first
 
-        def _record_shell(ex, files, bind_rez=True, print_msg=False):
+        def _record_shell(ex: RexExecutor, files, bind_rez: bool = True, print_msg: bool = False) -> None:
             if bind_rez and package_commands_sourced_first:
                 ex.source(context_file)
 
@@ -401,14 +432,14 @@ class UnixShell(Shell):
                 if system.is_production_rez_install:
                     ex.command('rezolve context')
 
-        def _write_shell(ex, filename):
+        def _write_shell(ex: RexExecutor, filename: str):
             code = ex.get_output()
             target_file = os.path.join(tmpdir, filename)
             with open(target_file, 'w') as f:
                 f.write(code)
             return target_file
 
-        def _create_ex():
+        def _create_ex() -> RexExecutor:
             return RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},
                                add_default_namespaces=False)
@@ -511,21 +542,21 @@ class UnixShell(Shell):
                                  % (cmd_str, str(e)))
         return p
 
-    def resetenv(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None) -> None:
         self._addline(self.setenv(key, value))
 
-    def info(self, value):
+    def info(self, value: str) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             self._addline('echo %s' % line)
 
-    def error(self, value):
+    def error(self, value: str) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             self._addline('echo %s 1>&2' % line)
 
     # escaping is allowed in args, but not in program string
-    def command(self, value):
+    def command(self, value) -> None:
         if is_non_string_iterable(value):
             it = iter(value)
             cmd = EscapedString.disallow(next(it))
@@ -535,12 +566,12 @@ class UnixShell(Shell):
             value = EscapedString.disallow(value)
         self._addline(value)
 
-    def comment(self, value):
+    def comment(self, value) -> None:
         value = EscapedString.demote(value)
         for line in value.split('\n'):
             self._addline('# %s' % line)
 
-    def shebang(self):
+    def shebang(self) -> None:
         self._addline("#!%s" % self.executable)
 
     @classmethod
@@ -548,5 +579,5 @@ class UnixShell(Shell):
         return ["${%s}" % key, "$%s" % key]
 
     @classmethod
-    def line_terminator(cls):
+    def line_terminator(cls) -> str:
         return "\n"

@@ -45,6 +45,7 @@ attention to the comment formatting and follow the existing style closely.
 """
 
 # flake8: noqa
+from __future__ import annotations
 
 import os
 

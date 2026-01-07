@@ -3,7 +3,7 @@ version = '2'
 
 requires = ["rextest-1.3"]
 
-def commands():
+def commands() -> None:
     # prepend to existing var
     env.REXTEST_DIRS.append('{root}/data2')
     setenv("REXTEST2_REXTEST_VER", '{resolve.rextest.version}')

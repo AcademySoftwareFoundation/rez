@@ -10,7 +10,7 @@ from rez.vendor.argcomplete import CompletionFinder, default_validator, \
 
 
 class RezCompletionFinder(CompletionFinder):
-    def __init__(self, parser, comp_line, comp_point):
+    def __init__(self, parser, comp_line, comp_point) -> None:
         self._parser = parser
         self.always_complete_options = False
         self.exclude = None
@@ -72,7 +72,7 @@ def ExecutablesCompleter(prefix, **kwargs):
 
 
 class FilesCompleter(object):
-    def __init__(self, files=True, dirs=True, file_patterns=None):
+    def __init__(self, files: bool = True, dirs: bool = True, file_patterns=None) -> None:
         self.files = files
         self.dirs = dirs
         self.file_patterns = file_patterns
@@ -115,7 +115,7 @@ class FilesCompleter(object):
 
 
 class CombinedCompleter(object):
-    def __init__(self, completer, *completers):
+    def __init__(self, completer, *completers) -> None:
         self.completers = [completer]
         self.completers += list(completers)
 
@@ -130,7 +130,7 @@ class AndCompleter(CombinedCompleter):
 
 
 class SequencedCompleter(CombinedCompleter):
-    def __init__(self, arg, completer, *completers):
+    def __init__(self, arg, completer, *completers) -> None:
         super(SequencedCompleter, self).__init__(completer, *completers)
         self.arg = arg
 

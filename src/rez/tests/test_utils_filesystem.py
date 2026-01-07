@@ -17,20 +17,20 @@ import unittest
 
 class TestFileSystem(TestBase, TempdirMixin):
 
-    def __init__(self, *nargs, **kwargs):
+    def __init__(self, *nargs, **kwargs) -> None:
         super().__init__(*nargs, **kwargs)
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         super().setUpClass()
         TempdirMixin.setUpClass()
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         super().tearDownClass()
         TempdirMixin.tearDownClass()
 
-    def test_windows_rename_fallback_to_robocopy(self):
+    def test_windows_rename_fallback_to_robocopy(self) -> None:
         if platform_.name != 'windows':
             self.skipTest('Robocopy is only available on windows.')
         src = tempfile.mkdtemp(dir=self.root)
@@ -41,7 +41,7 @@ class TestFileSystem(TestBase, TempdirMixin):
             self.assertTrue(os.path.exists(dst))
             self.assertFalse(os.path.exists(src))
 
-    def test_windows_robocopy_failed(self):
+    def test_windows_robocopy_failed(self) -> None:
         if platform_.name != 'windows':
             self.skipTest('Robocopy is only available on windows.')
         src = tempfile.mkdtemp(dir=self.root)
@@ -54,7 +54,7 @@ class TestFileSystem(TestBase, TempdirMixin):
                     filesystem.rename(src, dst)
                 self.assertEqual(str(err.exception), "Rename {} to {} failed.".format(src, dst))
 
-    def test_rename_folder_with_permission_error_and_no_robocopy(self):
+    def test_rename_folder_with_permission_error_and_no_robocopy(self) -> None:
         src = tempfile.mkdtemp(dir=self.root)
         dst = tempfile.mkdtemp(dir=self.root)
         with unittest.mock.patch("os.rename") as mock_rename:
@@ -65,7 +65,7 @@ class TestFileSystem(TestBase, TempdirMixin):
                     filesystem.rename(src, dst)
                 self.assertEqual(str(err.exception), "Permission denied")
 
-    def test_rename_folder_with_permission_error_and_src_is_file(self):
+    def test_rename_folder_with_permission_error_and_src_is_file(self) -> None:
         src = tempfile.mktemp(dir=self.root)
         dst = tempfile.mktemp(dir=self.root)
         with open(src, "w") as file_:
@@ -78,7 +78,7 @@ class TestFileSystem(TestBase, TempdirMixin):
         self.assertFalse(os.path.exists(dst))
         self.assertTrue(os.path.exists(src))
 
-    def test_rename_file(self):
+    def test_rename_file(self) -> None:
         src = tempfile.mktemp(dir=self.root)
         dst = tempfile.mktemp(dir=self.root)
         with open(src, "w") as file_:
