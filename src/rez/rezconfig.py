@@ -631,6 +631,11 @@ package_preprocess_function = None
 # - "override": Package's preprocess function completely overrides the global preprocess.
 package_preprocess_mode = "override"
 
+# Defines if we want to use canonical path in our context resolution
+# This is useful when you want to have a consistent path for your context
+# and avoid resolution of mapped drive on Windows.
+use_canonical_path = True
+
 ###############################################################################
 # Context Tracking
 ###############################################################################
