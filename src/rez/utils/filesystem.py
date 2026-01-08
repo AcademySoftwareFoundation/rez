@@ -326,8 +326,8 @@ def make_tmp_name(name):
 
 def is_subdirectory(path_a, path_b):
     """Returns True if `path_a` is a subdirectory of `path_b`."""
-    path_a = os.path.realpath(path_a)
-    path_b = os.path.realpath(path_b)
+    path_a = real_path(path_a)
+    path_b = real_path(path_b)
     try:
         relative = os.path.relpath(path_a, path_b)
     except ValueError:
@@ -504,7 +504,7 @@ def canonical_path(path, platform=None):
     if platform is None:
         platform = platform_
 
-    path = os.path.normpath(os.path.realpath(path))
+    path = os.path.normpath(real_path(path))
 
     if not platform.has_case_sensitive_filesystem:
         return path.lower()
@@ -729,3 +729,15 @@ def rename(src, dst):
                 raise OSError("Rename {} to {} failed.".format(src, dst))
         else:
             raise err
+
+
+def real_path(path):
+    """Determine the real path resolving symbolic links and relative paths.
+
+    Backwards compatibility with python-3.7 behavior of os.path.realpath on windows."""
+
+    from rez.config import config  # Avoid circular imports
+
+    if is_windows and not config.windows_unc_path:
+        return os.path.abspath(path)
+    return os.path.realpath(path)
