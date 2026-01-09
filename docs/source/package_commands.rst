@@ -93,7 +93,7 @@ incorrectly, import the system version.
 
 .. todo:: Add custom class for "construction"?
 
-.. admonition:: Noteasd
+.. admonition:: Note
 
    Better control over environment variable initialization is
    coming. Specifically, you will be able to specify various modes for variables. For example, one
@@ -322,7 +322,7 @@ Following is a list of the objects and functions available.
 
 .. py:attribute:: build
 
-   This is a dict like object. Each key can also be accessed as attributes.
+   This is a dict-like object. Each key can also be accessed as attributes.
 
    This object is only available in the :func:`pre_build_commands`
    function. It has the following fields:
@@ -465,7 +465,7 @@ Following is a list of the objects and functions available.
 
 .. py:attribute:: ephemerals
 
-   A dict like object representing the list of ephemerals in the resolved environment. Each item is a
+   A dict-like object representing the list of ephemerals in the resolved environment. Each item is a
    string (the full request, eg ``.foo.cli-1``), keyed by the ephemeral package name. Note
    that you do **not** include the leading ``.`` when getting items from the ``ephemerals``
    object.
@@ -523,7 +523,7 @@ Following is a list of the objects and functions available.
 
 .. py:attribute:: implicits
 
-   A dict like object that is similar to the :attr:`request` object, but it contains only the package request as
+   A dict-like object that is similar to the :attr:`request` object, but it contains only the package request as
    defined by the :data:`implicit_packages` configuration setting.
 
    .. code-block:: python
@@ -597,7 +597,7 @@ Following is a list of the objects and functions available.
 .. py:attribute:: request
    :type: ~rez.rex_bindings.RequirementsBinding
 
-   A dict like object representing the list of package requests. Each item is a request string keyed by the
+   A dict-like object representing the list of package requests. Each item is a request string keyed by the
    package name. For example, consider the package request:
 
    .. code-block:: text
@@ -614,17 +614,19 @@ Following is a list of the objects and functions available.
          "corelib": "!corelib-1.4.4"
       }
 
-   Use ``get_range`` to test with the :func:`intersects` function:
-
-      if intersects(request.get_range("maya", "0"), "2019"):
-         info("maya 2019.* was asked for!")
-
    Example:
 
    .. code-block:: python
 
       if "maya" in request:
          info("maya was asked for!")
+
+   Use ``get_range`` to test with the :func:`intersects` function:
+
+   .. code-block:: python
+
+      if intersects(request.get_range("maya", "0"), "2019"):
+          info("maya 2019.* was asked for!")
 
    .. tip::
       If multiple requests are present that refer to the same package, the
@@ -633,11 +635,18 @@ Following is a list of the objects and functions available.
 
 .. py:function:: resetenv(envvar: str, value: str, friends=None) -> None
 
-   TODO: Document
+   This is intended to handle the case where multiple packages want to set the same environment
+   variable during the resolve. In that case, you would use :attr:`resetenv` instead of :attr:`setenv`.
+   See :any:`resetting_variables` for more details.
+
+   However, rez does not currently behave like this - multiple :attr:`setenv` calls to the same variable
+   do not abort the resolve. Instead, the latest call to :attr:`setenv` wins.
+
+   And currently, :attr:`resetenv` merely acts as a synonym for :attr:`setenv`.
 
 .. py:attribute:: resolve
 
-   A dict like object representing the list of packages in the resolved environment. Each item is a
+   A dict-like object representing the list of packages in the resolved environment. Each item is a
    :ref:`Package <package-attributes>` object, keyed by the package name.
 
    Packages can be accessed using attributes (ie ``resolve.maya``).
@@ -685,7 +694,7 @@ Following is a list of the objects and functions available.
 .. py:attribute:: system
    :type: ~rez.system.System
 
-   This object provided system information, such as current platform, arch and os.
+   This object provides system information, such as current platform, arch and os.
 
    .. code-block:: python
 
@@ -694,7 +703,7 @@ Following is a list of the objects and functions available.
 
 .. py:attribute:: test
 
-   Dict like object to access test related attributes. Only available in the :func:`pre_test_commands` function.
+   Dict-like object to access test related attributes. Only available in the :func:`pre_test_commands` function.
    Keys can be accessed as object attributes.
 
 .. py:attribute:: test.name
@@ -735,16 +744,61 @@ Following is a list of the objects and functions available.
    .. py:attribute:: this.is_package
       :type: bool
 
-      .. todo:: Document
+      "Package" here means "a containing object that describes a package". It does not mean you are
+      in a resolved context for a package. This variable is set to ``True`` if you are in a package that
+      does not represent a resolved context; this happens, for example, when you are searching
+      through packages.
 
-      TODO: Document
+      If :attr:`this.is_package` is ``True`` then :attr:`this.is_variant` must be ``False``, and vice versa.
+
+      See :attr:`this.is_variant` for a fuller explanation and example.
 
    .. py:attribute:: this.is_variant
       :type: bool
 
-      .. todo:: Document 
+      This is set to ``True`` if you are in a resolved context. That's because a context must be
+      resolved down to a specific :doc:`variant <../variants>`. To see the relationship between :attr:`this.is_package` and
+      :attr:`this.is_variant`, consider a package called ``test`` with the following code in its ``package.py``
+      file:
 
-      TODO: Document
+   .. code-block:: python
+
+      @late()
+      def foo():
+          print(f"in foo: {in_context()=}")
+          print(f"in foo: {this.is_package=}")
+          print(f"in foo: {this.is_variant=}")
+          return ["foo"]
+
+      def commands():
+          print(f"in commands: {this.is_package=}")
+          print(f"in commands: {this.is_variant=}")
+          value = this.foo
+          print(f"{value=}")
+
+
+   In this example, ``foo`` is a late-binding attribute that will be executed as part of resolving the
+   package's context.  If you build the ``test`` package and run ``rez env test`` you will get this output:
+
+   .. code-block:: text
+
+      % rez env test
+      in commands: this.is_package=False
+      in commands: this.is_variant=True
+      in foo: in_context()=True
+      in foo: this.is_package=True
+      in foo: this.is_variant=False
+      value=['foo']
+
+   But if you only search through the ``test`` package, where no context must be resolved, you get this:
+
+   .. code-block:: text
+
+      % rez search -f '{foo}' test
+      in foo: in_context()=False
+      in foo: this.is_package=True
+      in foo: this.is_variant=False
+      foo
 
    .. py:attribute:: this.name
       :type: str
