@@ -332,7 +332,7 @@ class ActionManager(object):
             key, value = expanded_key, expanded_value
         else:
             key, value = unexpanded_key, unexpanded_value
-        self.interpreter.resetenv(key, value)
+        self.interpreter.resetenv(key, value, friends)
 
     def _pendenv(self, key, value, action, interpfunc, addfunc):
         unexpanded_key, expanded_key = self._key(key)

@@ -512,7 +512,7 @@ class UnixShell(Shell):
         return p
 
     def resetenv(self, key, value, friends=None):
-        self._addline(self.setenv(key, value))
+        self.setenv(key, value)
 
     def info(self, value):
         for line in value.split('\n'):
