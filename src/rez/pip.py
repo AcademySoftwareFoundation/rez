@@ -9,6 +9,7 @@ from rez.vendor.packaging.version import Version as PackagingVersion
 from rez.vendor.packaging.specifiers import Specifier
 from rez.resolved_context import ResolvedContext
 from rez.utils.execution import Popen
+from rez.utils.filesystem import safe_rmtree
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
     pip_to_rez_version
 from rez.utils.logging_ import print_debug, print_info, print_error, \
@@ -460,7 +461,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         log_append_pkg_variants(pkg)
 
     # cleanup
-    shutil.rmtree(targetpath)
+    safe_rmtree(targetpath)
 
     # print summary
     #
