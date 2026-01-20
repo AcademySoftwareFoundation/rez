@@ -5,7 +5,6 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez.config import config, expand_system_vars, _load_config_from_filepaths
 from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
 from rez.utils.data_utils import LazySingleton, cached_property, deep_update
@@ -59,6 +58,7 @@ def extend_path(path, name):
     init_py = "__init__" + os.extsep + "py"
     path = path[:]
 
+    from rez.config import config
     def append_if_valid(dir_):
         if os.path.isdir(dir_):
             subdir = os.path.normcase(os.path.join(dir_, pname))
@@ -135,6 +135,7 @@ class RezPluginType(object):
         # be found before the builtin plugins (from /rezplugins).
         paths = reversed(paths)
 
+        from rez.config import config, _load_config_from_filepaths
         for path in paths:
             if config.debug("plugins"):
                 print_debug("searching plugin path %s...", path)
@@ -267,6 +268,7 @@ class RezPluginType(object):
         """Returns the merged configuration data schema for this plugin
         type."""
         from rez.config import _plugin_config_dict
+        from rez.config import expand_system_vars
         d = _plugin_config_dict.get(self.type_name, {})
 
         for name, plugin_class in self.plugin_classes.items():

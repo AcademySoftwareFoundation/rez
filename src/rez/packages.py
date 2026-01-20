@@ -2,7 +2,6 @@
 # Copyright Contributors to the Rez Project
 
 
-from rez.package_repository import package_repository_manager
 from rez.package_resources import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
     package_release_keys, late_requires_schema
@@ -17,7 +16,6 @@ from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.version import Version, VersionRange
 from rez.version import VersionedObject
 from rez.serialise import FileFormat
-from rez.config import config
 
 import os
 import sys
@@ -99,11 +97,13 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         Defaults to global config if this package did not provide a 'config'
         section.
         """
+        from rez.config import config
         return self.resource.config or config
 
     @cached_property
     def is_local(self):
         """Returns True if the package is in the local package repository"""
+        from rez.package_repository import package_repository_manager
         local_repo = package_repository_manager.get_repository(
             self.config.local_packages_path)
         return (self.resource._repository.uid == local_repo.uid)
@@ -262,6 +262,7 @@ class Package(PackageBaseResourceWrapper):
         if self.relocatable is not None:
             return self.relocatable
 
+        from rez.config import config
         if config.default_relocatable_per_repository:
             value = config.default_relocatable_per_repository.get(
                 self.repository.location)
@@ -282,6 +283,7 @@ class Package(PackageBaseResourceWrapper):
         if self.cachable is not None:
             return self.cachable
 
+        from rez.config import config
         if config.default_cachable_per_repository:
             # TODO: The location of filesystem repository is canonical path,
             #   so if the path in `default_cachable_per_repository` isn't
@@ -451,6 +453,7 @@ class Variant(PackageBaseResourceWrapper):
             `Variant` object - the (existing or newly created) variant in the
             specified repository. If `dry_run` is True, None may be returned.
         """
+        from rez.package_repository import package_repository_manager
         repo = package_repository_manager.get_repository(path)
         resource = repo.install_variant(self.resource,
                                         dry_run=dry_run,
@@ -507,6 +510,7 @@ class PackageSearchPath(object):
 
     @cached_property
     def _repository_uids(self):
+        from rez.package_repository import package_repository_manager
         uids = set()
         for path in self.paths:
             repo = package_repository_manager.get_repository(path)
@@ -532,6 +536,8 @@ def iter_package_families(paths=None):
     Returns:
         `PackageFamily` iterator.
     """
+    from rez.config import config
+    from rez.package_repository import package_repository_manager
     for path in (paths or config.packages_path):
         repo = package_repository_manager.get_repository(path)
         for resource in repo.iter_package_families():
@@ -607,6 +613,7 @@ def get_package_family_from_repository(name, path):
     Returns:
         `PackageFamily` object, or None if the family was not found.
     """
+    from rez.package_repository import package_repository_manager
     repo = package_repository_manager.get_repository(path)
 
     family_resource = repo.get_package_family(name)
@@ -626,6 +633,7 @@ def get_package_from_repository(name, version, path):
     Returns:
         `Package` object, or None if the package was not found.
     """
+    from rez.package_repository import package_repository_manager
     repo = package_repository_manager.get_repository(path)
 
     if isinstance(version, str):
@@ -649,6 +657,7 @@ def get_package_from_handle(package_handle):
     Returns:
         `Package`.
     """
+    from rez.package_repository import package_repository_manager
     if isinstance(package_handle, dict):
         package_handle = ResourceHandle.from_dict(package_handle)
     package_resource = package_repository_manager.get_resource_from_handle(package_handle)
@@ -713,6 +722,7 @@ def get_variant(variant_handle, context=None):
     Returns:
         `Variant`.
     """
+    from rez.package_repository import package_repository_manager
     if isinstance(variant_handle, dict):
         variant_handle = ResourceHandle.from_dict(variant_handle)
 
@@ -733,6 +743,7 @@ def get_package_from_uri(uri, paths=None):
     Returns:
         `Package`, or None if the package could not be found.
     """
+    from rez.package_repository import package_repository_manager
     def _find_in_path(path):
         repo = package_repository_manager.get_repository(path)
         pkg_resource = repo.get_package_from_uri(uri)
@@ -741,6 +752,7 @@ def get_package_from_uri(uri, paths=None):
         else:
             return None
 
+    from rez.config import config
     for path in (paths or config.packages_path):
         pkg = _find_in_path(path)
         if pkg is not None:
@@ -780,6 +792,7 @@ def get_variant_from_uri(uri, paths=None):
     Returns:
         `Variant`, or None if the variant could not be found.
     """
+    from rez.package_repository import package_repository_manager
     def _find_in_path(path):
         repo = package_repository_manager.get_repository(path)
         variant_resource = repo.get_variant_from_uri(uri)
@@ -788,6 +801,7 @@ def get_variant_from_uri(uri, paths=None):
         else:
             return None
 
+    from rez.config import config
     for path in (paths or config.packages_path):
         variant = _find_in_path(path)
         if variant is not None:
@@ -951,6 +965,8 @@ def get_latest_package_from_string(txt, paths=None, error=False):
 
 def _get_families(name, paths=None):
     entries = []
+    from rez.config import config
+    from rez.package_repository import package_repository_manager
     for path in (paths or config.packages_path):
         repo = package_repository_manager.get_repository(path)
         family_resource = repo.get_package_family(name)

@@ -24,13 +24,10 @@ from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
 from rez.utils.execution import add_sys_paths
 from rez.util import get_function_arg_names
-from rez.config import config
 from rez.vendor.atomicwrites import atomic_write
 from rez.vendor import yaml
 
 
-tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
-debug_print = config.debug_printer("file_loads")
 file_cache = {}
 
 
@@ -60,14 +57,19 @@ def open_file_for_write(filepath, mode=None):
     Yields:
         File-like object.
     """
+    from rez.config import config
+
     stream = StringIO()
     yield stream
     content = stream.getvalue()
 
     filepath = os.path.realpath(filepath)
+    tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
+
     tmpdir = tmpdir_manager.mkdtemp()
     cache_filepath = os.path.join(tmpdir, os.path.basename(filepath))
 
+    debug_print = config.debug_printer("file_loads")
     debug_print("Writing to %s (local cache of %s)", cache_filepath, filepath)
 
     # Attempt to make file writable if it isn't already. Just fallthrough
@@ -136,9 +138,11 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
                           format_=format_,
                           update_data_callback=update_data_callback)
     else:
-        return _load_from_file(filepath=filepath,
-                               format_=format_,
-                               update_data_callback=update_data_callback)
+        return _load_from_file()(
+            filepath=filepath,
+            format_=format_,
+            update_data_callback=update_data_callback
+        )
 
 
 def _load_from_file__key(filepath, format_, update_data_callback):
@@ -152,17 +156,28 @@ def _load_from_file__key(filepath, format_, update_data_callback):
                 int(st.st_ino), st.st_mtime))
 
 
-@memcached(servers=config.memcached_uri if config.cache_package_files else None,
-           min_compress_len=config.memcached_package_file_min_compress_len,
-           key=_load_from_file__key,
-           debug=config.debug_memcache)
-def _load_from_file(filepath, format_, update_data_callback):
-    return _load_file(filepath, format_, update_data_callback)
+def _load_from_file():
+    from rez.config import config
+
+    # A lot of gymnastics to avoid habing to import rez.config at the top level.
+    @memcached(
+        servers=config.memcached_uri if config.cache_package_files else None,
+        min_compress_len=config.memcached_package_file_min_compress_len,
+        key=_load_from_file__key,
+        debug=config.debug_memcache
+    )
+    def _load_from_file_inner(filepath, format_, update_data_callback):
+        return _load_file(filepath, format_, update_data_callback)
+
+    return _load_from_file_inner
 
 
 def _load_file(filepath, format_, update_data_callback, original_filepath=None):
+    from rez.config import config
+
     load_func = load_functions[format_]
 
+    debug_print = config.debug_printer("file_loads")
     if debug_print:
         if original_filepath:
             debug_print("Loading file: %s (local cache of %s)",
@@ -228,6 +243,7 @@ def load_py(stream, filepath=None):
     Returns:
         dict:
     """
+    from rez.config import config
     with add_sys_paths(config.package_definition_build_python_paths):
         return _load_py(stream, filepath=filepath)
 
@@ -441,7 +457,7 @@ def load_txt(stream, **kwargs):
 
 def clear_file_caches():
     """Clear any cached files."""
-    _load_from_file.forget()
+    _load_from_file().forget()
 
 
 load_functions = {FileFormat.py:      load_py,
