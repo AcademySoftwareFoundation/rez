@@ -771,13 +771,13 @@ class ResolvedContext(object):
                 if other_pkg.version > pkg.version:
                     r = VersionRange.as_span(lower_version=pkg.version,
                                              upper_version=other_pkg.version)
-                    it = iter_packages(pkg.name, range_=r)
+                    it = iter_packages(pkg.name, range_=r, paths=self.package_paths)
                     pkgs = sorted(it, key=lambda x: x.version)
                     newer_packages[pkg.name] = pkgs
                 elif other_pkg.version < pkg.version:
                     r = VersionRange.as_span(lower_version=other_pkg.version,
                                              upper_version=pkg.version)
-                    it = iter_packages(pkg.name, range_=r)
+                    it = iter_packages(pkg.name, range_=r, paths=self.package_paths)
                     pkgs = sorted(it, key=lambda x: x.version, reverse=True)
                     older_packages[pkg.name] = pkgs
 
