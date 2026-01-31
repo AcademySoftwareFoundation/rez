@@ -218,6 +218,17 @@ default_relocatable_per_package = None
 #    }
 default_relocatable_per_repository = None
 
+# Specify a copy process to use when copying packages. By default, shutil is used.
+default_copy_process = "shutil"
+
+# Specify a copy process to override `default_copy_process` when caching package
+# variants.
+cache_copy_process = None
+
+# Specify a copy process to override `default_copy_process` when copying packages
+# between repositories.
+cp_copy_process = None
+
 
 ###############################################################################
 # Package Caching

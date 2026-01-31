@@ -17,6 +17,10 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-f", "--force", action="store_true",
         help="move package even if it isn't relocatable (use at your own risk)")
+    parser.add_argument(
+        "--copy-process", type=str,
+        help="plugin to use for copying the package payload"
+    )
     pkg_action = parser.add_argument(
         "PKG",
         help="package to move (eg 'foo-1.2.3')")
@@ -76,5 +80,6 @@ def command(opts, parser, extra_arg_groups=None):
         dest_repository=opts.dest_path,
         keep_timestamp=opts.keep_timestamp,
         force=opts.force,
-        verbose=opts.verbose
+        verbose=opts.verbose,
+        copy_process=opts.copy_process or config.cp_copy_process
     )

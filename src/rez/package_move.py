@@ -9,7 +9,7 @@ from rez.utils.logging_ import print_info
 
 
 def move_package(package, dest_repository, keep_timestamp=False, force=False,
-                 verbose=False):
+                 verbose=False, copy_process=None):
     """Move a package.
 
     Moving a package means copying the package to a destination repo, and
@@ -28,6 +28,7 @@ def move_package(package, dest_repository, keep_timestamp=False, force=False,
             Use at your own risk (there is no guarantee the resulting package
             will be functional).
         verbose (bool): Verbose mode.
+        copy_process (str): If provided, a copy process plugin to use to copy.
 
     Returns:
         `Package`: The newly created package in the destination repo.
@@ -71,7 +72,8 @@ def move_package(package, dest_repository, keep_timestamp=False, force=False,
             dest_repository=dest_pkg_repo,
             force=force,
             keep_timestamp=keep_timestamp,
-            verbose=verbose
+            verbose=verbose,
+            copy_process=copy_process
         )
     finally:
         # 3.
