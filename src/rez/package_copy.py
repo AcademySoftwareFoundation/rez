@@ -14,16 +14,18 @@ from rez.packages import Variant
 from rez.serialise import FileFormat
 from rez.utils import with_noop
 from rez.utils.base26 import create_unique_base26_symlink
+from rez.utils.copy_process import get_copy_plugin
 from rez.utils.sourcecode import IncludeModuleManager
 from rez.utils.logging_ import print_info, print_warning
-from rez.utils.filesystem import replacing_symlink, replacing_copy, \
-    additive_copytree, make_path_writable, get_existing_path
+from rez.utils.filesystem import replacing_symlink, additive_copytree, \
+    make_path_writable, get_existing_path
 
 
 def copy_package(package, dest_repository, variants=None, shallow=False,
                  dest_name=None, dest_version=None, overwrite=False, force=False,
                  follow_symlinks=False, dry_run=False, keep_timestamp=False,
-                 skip_payload=False, overrides=None, verbose=False):
+                 skip_payload=False, overrides=None, verbose=False,
+                 copy_process=None):
     """Copy a package from one package repository to another.
 
     This copies the package definition and payload. The package can also be
@@ -83,6 +85,7 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
         verbose (bool): Verbose mode.
         dry_run (bool): Dry run mode. Dest variants in the result will be None
             in this case.
+        copy_process (str): If provided, a copy process plugin to use to copy.
 
     Returns:
         Dict: See comments above.
@@ -201,7 +204,8 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
                     shallow=shallow,
                     follow_symlinks=follow_symlinks,
                     overrides=overrides,
-                    verbose=verbose
+                    verbose=verbose,
+                    copy_process=copy_process
                 )
 
             # construct overrides
@@ -228,7 +232,8 @@ def copy_package(package, dest_repository, variants=None, shallow=False,
 
 
 def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
-                          follow_symlinks=False, overrides=None, verbose=False):
+                          follow_symlinks=False, overrides=None, verbose=False,
+                          copy_process=None):
     # Get payload path of source variant. For some types (eg from a "memory"
     # type repo) there may not be a root.
     #
@@ -266,15 +271,6 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
     else:
         variant_install_path = dest_pkg_payload_path
 
-    # get ready for copy/symlinking
-    copy_func = partial(replacing_copy,
-                        follow_symlinks=follow_symlinks)
-
-    if shallow:
-        maybe_symlink = replacing_symlink
-    else:
-        maybe_symlink = copy_func
-
     # possibly make install path temporarily writable
     last_dir = get_existing_path(
         variant_install_path,
@@ -290,7 +286,7 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
         os.makedirs(variant_install_path, exist_ok=True)
 
         # determine files not to copy
-        skip_files = []
+        skip_files = set()
 
         if is_varianted and not src_variant.parent.hashed_variants:
             # Detect overlapped variants. This is the case where one variant subpath
@@ -305,34 +301,47 @@ def _copy_variant_payload(src_variant, dest_pkg_repo, shallow=False,
             # Note that for hashed variants, we don't do this check because overlapped
             # variants are not possible.
             #
-            skip_files.extend(_get_overlapped_variant_dirs(src_variant))
+            overlapped_variant_dirs = _get_overlapped_variant_dirs(src_variant)
+            if verbose:
+                for name in overlapped_variant_dirs:
+                    filepath = os.path.join(variant_root, name)
+                    print_info(
+                        "Will not copy %s - this is part of an overlapping "
+                        "variant's root path.", filepath
+                    )
+            skip_files.update(overlapped_variant_dirs)
         else:
             # just skip package definition file
             for name in config.plugins.package_repository.filesystem.package_filenames:
                 for fmt in (FileFormat.py, FileFormat.yaml):
                     filename = name + '.' + fmt.extension
-                    skip_files.append(filename)
+                    skip_files.add(filename)
 
-        # copy/link all topmost files within the variant root
-        for name in os.listdir(variant_root):
-            if name in skip_files:
-                filepath = os.path.join(variant_root, name)
+        all_items = set(os.listdir(variant_root)) - skip_files
+        if shallow:
+            # Can't link to point to another link - copy it instead.
+            links = set(filter(os.path.islink, all_items))
+            items_to_copy = links
+            items_to_symlink = all_items - links
+        else:
+            items_to_copy = all_items
+            items_to_symlink = set()
 
-                if verbose and is_varianted:
-                    print_info(
-                        "Did not copy %s - this is part of an overlapping "
-                        "variant's root path.", filepath
-                    )
-
-                continue
-
-            src_path = os.path.join(variant_root, name)
-            dest_path = os.path.join(variant_install_path, name)
-
-            if os.path.islink(src_path):
-                copy_func(src_path, dest_path)
-            else:
-                maybe_symlink(src_path, dest_path)
+        if items_to_copy:
+            copy_plugin = get_copy_plugin(name=copy_process)
+            if verbose:
+                print_info("Using copy_process plugin: %s", copy_plugin.name())
+            copy_plugin.execute(
+                src_dir=variant_root,
+                dest_dir=variant_install_path,
+                names=list(items_to_copy),
+                follow_symlinks=follow_symlinks,
+                verbose=verbose
+            )
+        for item in items_to_symlink:
+            src_path = os.path.join(variant_root, item)
+            dest_path = os.path.join(variant_install_path, item)
+            replacing_symlink(src_path, dest_path)
 
     # copy permissions of source variant dirs onto dest
     src_package = src_variant.parent

@@ -24,6 +24,7 @@ from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
 from rez.vendor.progress.spinner import PixelSpinner
+from rez.utils.copy_process import get_copy_plugin
 from rez.utils.filesystem import forceful_rmtree, safe_listdir, safe_remove
 from rez.utils.colorize import ColorizedStreamHandler
 from rez.utils.logging_ import print_warning
@@ -405,7 +406,8 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            copy_plugin = get_copy_plugin(config.cache_copy_process)
+            copy_plugin.execute(variant_root, rootpath, follow_symlinks=True)
         finally:
             still_copying = False
 

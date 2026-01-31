@@ -493,6 +493,12 @@ class CommandPluginType(RezPluginType):
     type_name = "command"
 
 
+class CopyPluginType(RezPluginType):
+    """Support for different file copy backends.
+    """
+    type_name = "copy_process"
+
+
 plugin_manager = RezPluginManager()
 
 
@@ -503,3 +509,4 @@ plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
 plugin_manager.register_plugin_type(CommandPluginType)
+plugin_manager.register_plugin_type(CopyPluginType)

@@ -37,6 +37,10 @@ def setup_parser(parser, completions=False):
         help="follow symlinks when copying package payload, rather than copying "
         "the symlinks themselves.")
     parser.add_argument(
+        "--copy-process", type=str,
+        help="plugin to use for copying the package payload"
+    )
+    parser.add_argument(
         "-k", "--keep-timestamp", action="store_true",
         help="keep timestamp of source package. Note that this is ignored if "
         "you're copying variant(s) into an existing package.")
@@ -164,7 +168,8 @@ def command(opts, parser, extra_arg_groups=None):
         keep_timestamp=opts.keep_timestamp,
         force=opts.force,
         verbose=opts.verbose,
-        dry_run=opts.dry_run
+        dry_run=opts.dry_run,
+        copy_process=opts.copy_process or config.cp_copy_process
     )
 
     # Print info about the result.
