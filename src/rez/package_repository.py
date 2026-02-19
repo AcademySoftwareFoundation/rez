@@ -14,6 +14,7 @@ import threading
 import os.path
 import time
 from typing import Any, Hashable, Iterator, TYPE_CHECKING
+import shutil
 
 if TYPE_CHECKING:
     from rez.package_resources import (PackageFamilyResource, PackageResource, PackageResourceHelper,
@@ -526,6 +527,12 @@ class PackageRepository(object):
             Hashable value.
         """
         return (self.name(), self.location)
+
+    def cache_variant(self, variant, location):
+        """
+        Copy a variant from repository to cache location
+        """
+        shutil.copytree(variant.root, location)
 
 
 class PackageRepositoryManager(object):
