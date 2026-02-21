@@ -400,14 +400,19 @@ class _PackageEntry(object):
 
         version_priority:
         - sort by highest versions of packages shared with request;
-        - THEN least number of additional packages added to solve;
-        - THEN highest versions of additional packages;
-        - THEN alphabetical on name of additional packages;
-        - THEN variant index.
+        - THEN highest versions of additional packages common to all variants;
+        - THEN highest number of packages shared with request;
+        - THEN lowest number of additional packages not common to all variants;
+        - THEN alphabetical on name of any remaining additional packages.
+        - THEN variant index;
 
         intersection_priority:
         - sort by highest number of packages shared with request;
-        - THEN sort according to version_priority
+        - THEN highest versions of packages shared with request;
+        - THEN highest versions of additional packages common to all variants;
+        - THEN lowest number of additional packages not common to all variants;
+        - THEN alphabetical on name of any remaining additional packages.
+        - THEN variant index;
 
         Note:
             In theory 'variant.index' should never factor into the sort unless
@@ -420,9 +425,28 @@ class _PackageEntry(object):
         if self.sorted:
             return
 
+        requested_names = {
+            request.name for request in self.solver.request_list
+            if not request.conflict
+        }
+
+        common_additional_names = None
+        for variant in self.variants:
+            variant_additional_names = {
+                request.name
+                for request in variant.requires_list
+                if not request.conflict and request.name not in requested_names
+            }
+
+            if common_additional_names is None:
+                common_additional_names = variant_additional_names
+            else:
+                common_additional_names &= variant_additional_names
+
+        common_additional_names = common_additional_names or set()
+
         def key(variant):
             requested_key = []
-            names = set()
 
             for i, request in enumerate(self.solver.request_list):
                 if not request.conflict:
@@ -431,27 +455,32 @@ class _PackageEntry(object):
                         orderer = get_orderer(req.name, orderers=self.solver.package_orderers or {})
                         range_key = orderer.sort_key(req.name, req.range)
                         requested_key.append((-i, range_key))
-                        names.add(req.name)
 
-            additional_key = []
+            common_additional_key = []
+            non_common_additional_key = []
             for request in variant.requires_list:
-                if not request.conflict and request.name not in names:
+                if not request.conflict and request.name not in requested_names:
                     orderer = get_orderer(request.name, orderers=self.solver.package_orderers)
                     range_key = orderer.sort_key(request.name, request.range)
-                    additional_key.append((range_key, request.name))
+                    key_item = (range_key, request.name)
+                    if request.name in common_additional_names:
+                        common_additional_key.append(key_item)
+                    else:
+                        non_common_additional_key.append(key_item)
 
+            
             if (VariantSelectMode[config.variant_select_mode] == VariantSelectMode.version_priority):
                 k = (requested_key,
-                     -len(additional_key),
-                     additional_key,
+                     common_additional_key,
+                     len(requested_key),
+                     -len(non_common_additional_key),
                      variant.index)
             else:  # VariantSelectMode.intersection_priority
                 k = (len(requested_key),
-                     requested_key,
-                     -len(additional_key),
-                     additional_key,
-                     variant.index)
-
+                    requested_key,
+                    common_additional_key,
+                    -len(non_common_additional_key),
+                    variant.index)
             return k
 
         self.variants.sort(key=key, reverse=True)

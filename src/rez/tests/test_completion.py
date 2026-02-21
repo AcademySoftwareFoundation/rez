@@ -53,7 +53,8 @@ class TestCompletion(TestBase):
                  "pyodd", "pyson", "pysplit", "python", "pyvariants",
                  "test_variant_split_start", "test_variant_split_mid1",
                  "test_variant_split_mid2", "test_variant_split_end", "missing_variant_requires",
-                 "test_weakly_reference_requires", "test_weakly_reference_variant"])
+                 "test_weakly_reference_requires", "test_weakly_reference_variant", 
+                 "test_prio_both_base", "test_prio_both_extra_package", "test_prio_lower_extra_package", "test_prio_higher_extra_package", "test_prio_both_base_reverse", "test_prio_both_extra_package_reverse", "test_prio_lower_extra_package_reverse", "test_prio_higher_extra_package_reverse", "test_prio_both_versions_equal_extra_package"])
         _eq("py", ["pybah", "pydad", "pyfoo", "pymum", "pyodd", "pyson",
             "pysplit", "python", "pyvariants"])
         _eq("pys", ["pyson", "pysplit"])

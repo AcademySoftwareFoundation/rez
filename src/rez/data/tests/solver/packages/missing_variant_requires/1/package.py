@@ -5,6 +5,6 @@ def commands():
     pass
 
 variants = [
-    ["noexist"],
-    ["nada"]
+    ["nada"],
+    ["noexist"]
 ]

@@ -61,6 +61,15 @@ ALL_PACKAGES = set([
     'missing_variant_requires-1',
     'test_weakly_reference_requires-2.0',
     'test_weakly_reference_variant-2.0',
+    'test_prio_both_extra_package-1.0',
+    'test_prio_both_base-1.0',
+    'test_prio_both_versions_equal_extra_package-1.0',
+    'test_prio_lower_extra_package-1.0',
+    'test_prio_higher_extra_package-1.0',
+    'test_prio_both_extra_package_reverse-1.0',
+    'test_prio_both_base_reverse-1.0',
+    'test_prio_lower_extra_package_reverse-1.0',
+    'test_prio_higher_extra_package_reverse-1.0',
 ])
 
 
