@@ -730,5 +730,35 @@ class TestShells(TestBase, TempdirMixin):
         )
 
 
+    @unittest.skipIf(platform_.name != "windows", "cmd shell path normalization only relevant on Windows")
+    def test_cmd_non_pathed_env_var_not_normalized(self):
+        """Test that CMAKE_MODULE_PATH values are not backslash-converted in cmd shell output.
+
+        CMAKE_MODULE_PATH ends with PATH so it matches the default pathed_env_vars
+        pattern, but it is excluded by default via non_pathed_env_vars. CMake
+        requires forward slashes and breaks if backslashes are used.
+        """
+        sh = create_shell("cmd")
+        sh.setenv("CMAKE_MODULE_PATH", "C:/foo/bar")
+        output = sh.get_output()
+
+        self.assertIn("C:/foo/bar", output)
+        self.assertNotIn("C:\\foo\\bar", output)
+
+    @unittest.skipIf(platform_.name != "windows", "cmd shell path normalization only relevant on Windows")
+    def test_cmd_pathed_env_var_is_normalized(self):
+        """Test that a normal *PATH variable still gets backslash-converted in cmd shell output.
+
+        Ensures that non_pathed_env_vars exclusion does not accidentally suppress
+        normalization for legitimate path variables.
+        """
+        sh = create_shell("cmd")
+        sh.setenv("SOME_CUSTOM_PATH", "C:/foo/bar")
+        output = sh.get_output()
+
+        self.assertIn("C:\\foo\\bar", output)
+        self.assertNotIn("C:/foo/bar", output)
+
+
 if __name__ == '__main__':
     unittest.main()
