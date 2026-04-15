@@ -5,9 +5,9 @@
 """
 test the rex command generator API
 """
-from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
-    Comment, Alias, Command, Source, Error, Shebang, Unsetenv, expandable, \
-    literal
+from rez.rex import RexExecutor, Python, ActionInterpreter, Setenv, Appendenv, \
+    Prependenv, Info, Comment, Alias, Command, Source, Error, Shebang, Unsetenv, \
+    expandable, literal
 from rez.rex_bindings import VersionBinding, VariantBinding, VariantsBinding, \
     RequirementsBinding, EphemeralsBinding, intersects
 from rez.exceptions import RexError, RexUndefinedVariableError
@@ -546,6 +546,33 @@ class TestRex(TestBase):
         ephemerals = EphemeralsBinding([])
         self.assertRaises(RuntimeError,  # no default
                           intersects, ephemerals.get_range("foo.bar"), "0")
+
+    def test_is_pathed_key(self):
+        """Test that _is_pathed_key correctly identifies path-like env vars."""
+        self.assertTrue(ActionInterpreter._is_pathed_key("PATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("PYTHONPATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("LD_LIBRARY_PATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("SOMEPATH"))
+
+        self.assertFalse(ActionInterpreter._is_pathed_key("FOO"))
+        self.assertFalse(ActionInterpreter._is_pathed_key("HOME"))
+
+    def test_non_pathed_env_vars(self):
+        """Test that non_pathed_env_vars excludes vars from path normalization."""
+        self.assertFalse(ActionInterpreter._is_pathed_key("CMAKE_MODULE_PATH"))
+
+        self.assertTrue(ActionInterpreter._is_pathed_key("PYTHONPATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("PATH"))
+
+        config.override("non_pathed_env_vars", [])
+        self.assertTrue(ActionInterpreter._is_pathed_key("CMAKE_MODULE_PATH"))
+
+    def test_non_pathed_env_vars_wildcard_patterns(self):
+        """Test that wildcard patterns work in non_pathed_env_vars."""
+        config.override("non_pathed_env_vars", ["*CMAKE*"])
+        self.assertFalse(ActionInterpreter._is_pathed_key("CMAKE_MODULE_PATH"))
+        self.assertFalse(ActionInterpreter._is_pathed_key("CMAKE_PREFIX_PATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("PYTHONPATH"))  # not excluded
 
 
 if __name__ == '__main__':
