@@ -109,6 +109,7 @@ macro (install_python)
 				COMMAND ${CMAKE_COMMAND} -E make_directory ${pycopy_path}
 				COMMAND ${py_bin} -c "import py_compile; py_compile.compile('${fabs}', '${local_fc}', None, True)"
 				DEPENDS ${fabs}
+				VERBATIM
 			)
 
 			if(install_pyc)
