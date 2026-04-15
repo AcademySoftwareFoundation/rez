@@ -205,6 +205,12 @@ what environment variables are actually paths. You determine this with the
 variable ending in ``PATH`` will be treated as a filepath or list of filepaths, and any
 set/append/prepend operation on it will cause those values to be path-normalized automatically.
 
+However, some variables match ``*PATH`` but must not be path-normalized. For example,
+``CMAKE_MODULE_PATH`` requires forward slashes regardless of shell, and backslash conversion will
+break CMake. You can exclude variables from normalization using the :data:`non_pathed_env_vars`
+config setting, which takes priority over :data:`pathed_env_vars`. By default,
+``CMAKE_MODULE_PATH`` is already excluded. Both settings support ``fnmatch``-style wildcards.
+
 .. warning::
    Avoid using :data:`os.pathsep` or hardcoded lists of paths such as
    ``{root}/foo:{root}/bah``. Doing so can cause your package to be incompatible with some shells or
