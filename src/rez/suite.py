@@ -29,6 +29,8 @@ class Tool(TypedDict):
     tool_alias: str
     context_name: str
     variant: "Variant | set[Variant]"
+    hidden: bool
+    conflicting: bool
 
 
 class Context(TypedDict, total=False):
@@ -755,7 +757,11 @@ class Suite(object):
                     entry = Tool(tool_name=tool_name,
                                  tool_alias=alias,
                                  context_name=context_name,
-                                 variant=variant)
+                                 variant=variant,
+                                 # TODO: This is weird. These are only set to True
+                                 # in self.print_tools. May need a little refactor.
+                                 hidden=False,
+                                 conflicting=False)
 
                     if tool_name in hidden_tools:
                         self.hidden_tools.append(entry)

@@ -52,10 +52,15 @@ def setup_parser(parser, completions: bool = False):
                 namespace.module_tests = []
             namespace.module_tests.append(name)
 
+    from typing import cast
+    from importlib.abc import PathEntryFinder
+
     # find unit tests
     tests = []
     prefix = "test_"
     for importer, name, ispkg in iter_modules([tests_dir]):
+        importer = cast(PathEntryFinder, importer)
+
         if not ispkg and name.startswith(prefix):
             module = importer.find_spec(name).loader.load_module(name)
             name_ = name[len(prefix):]

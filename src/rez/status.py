@@ -160,19 +160,19 @@ class Status(object):
                 if pattern and not fnmatch(tool, pattern):
                     continue
 
-                label = []
+                labels = []
                 color = None
                 path = which(tool)
                 if path:
                     path_ = os.path.join(suite.tools_path, tool)
                     if path != path_:
-                        label.append("(hidden by unknown tool '%s')" % path)
+                        labels.append("(hidden by unknown tool '%s')" % path)
                         color = warning
 
                 variant = d["variant"]
                 if isinstance(variant, set):
                     pkg_str = ", ".join(variant)
-                    label.append("(in conflict)")
+                    labels.append("(in conflict)")
                     color = critical
                 else:
                     pkg_str = variant.qualified_package_name
@@ -181,7 +181,7 @@ class Status(object):
                 if orig_tool == tool:
                     orig_tool = '-'
 
-                label = ' '.join(label)
+                label = ' '.join(labels)
                 source = ("context '%s' in suite '%s'"
                           % (d["context_name"], suite.load_path))
 

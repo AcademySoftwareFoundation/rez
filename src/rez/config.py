@@ -659,7 +659,7 @@ class Config(object, metaclass=LazyAttributeMeta):
             List of str: The sourced files.
         """
         _ = self._data  # noqa; force a config load
-        return self._sourced_filepaths
+        return self._sourced_filepaths or []
 
     @cached_property
     def plugins(self) -> _PluginConfigs:

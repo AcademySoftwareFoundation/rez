@@ -14,7 +14,7 @@ from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
-from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
+from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING, cast
 import pkgutil
 import os.path
 import sys
@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     from rez.build_system import BuildSystem
     from rez.package_repository import PackageRepository
     from rez.command import Command
+    from importlib.abc import PathEntryFinder
+
 
 T = TypeVar("T")
 
@@ -160,6 +162,7 @@ class RezPluginType(object):
                 if importer is None:
                     continue
 
+                importer = cast(PathEntryFinder, importer)
                 plugin_name = modname.split('.')[-1]
                 if plugin_name.startswith('_') or plugin_name == 'rezconfig':
                     continue
