@@ -627,7 +627,7 @@ class _Bound(_Comparable):
 _Bound.any = _Bound()
 
 
-def action(fn: CallableT) -> CallableT:
+def _action(fn: CallableT) -> CallableT:
     def fn_(self: Any) -> Any:
         result = fn(self)
         if self.debug:
@@ -788,7 +788,7 @@ class _VersionRangeParser(object):
     def _create_version_from_token(self, token: str | None) -> Version:
         return Version(token, make_token=self.make_token)
 
-    @action
+    @_action
     def _act_version(self) -> None:
         version = self._create_version_from_token(self._groups['version'])
         lower_bound = _LowerBound(version, True)
@@ -796,7 +796,7 @@ class _VersionRangeParser(object):
 
         self.bounds.append(_Bound(lower_bound, upper_bound))
 
-    @action
+    @_action
     def _act_exact_version(self) -> None:
         version = self._create_version_from_token(self._groups['exact_version_group'])
         lower_bound = _LowerBound(version, True)
@@ -804,7 +804,7 @@ class _VersionRangeParser(object):
 
         self.bounds.append(_Bound(lower_bound, upper_bound))
 
-    @action
+    @_action
     def _act_bound(self) -> None:
         lower_version = self._create_version_from_token(self._groups['inclusive_lower_version'])
         lower_bound = _LowerBound(lower_version, True)
@@ -814,7 +814,7 @@ class _VersionRangeParser(object):
 
         self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
 
-    @action
+    @_action
     def _act_lower_bound(self) -> None:
         version = self._create_version_from_token(self._groups['lower_version'])
         exclusive = self._is_lower_bound_exclusive(self._groups['lower_bound_prefix'])
@@ -822,7 +822,7 @@ class _VersionRangeParser(object):
 
         self.bounds.append(_Bound(lower_bound, None))
 
-    @action
+    @_action
     def _act_upper_bound(self) -> None:
         version = self._create_version_from_token(self._groups['upper_version'])
         exclusive = self._is_upper_bound_exclusive(self._groups['upper_bound_prefix'])
@@ -830,7 +830,7 @@ class _VersionRangeParser(object):
 
         self.bounds.append(_Bound(None, upper_bound))
 
-    @action
+    @_action
     def _act_lower_and_upper_bound_asc(self) -> None:
         lower_bound = None
         upper_bound = None
@@ -847,7 +847,7 @@ class _VersionRangeParser(object):
 
         self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
 
-    @action
+    @_action
     def _act_lower_and_upper_bound_desc(self) -> None:
         lower_bound = None
         upper_bound = None
