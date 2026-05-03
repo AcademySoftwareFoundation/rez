@@ -13,9 +13,13 @@ from rez.vendor.argcomplete.finders import default_validator
 class RezCompletionFinder(CompletionFinder):
     def __init__(self, parser, comp_line, comp_point) -> None:
         self._parser = parser
+        self._formatter = None
         self.always_complete_options = False
         self.exclude = None
         self.validator = default_validator
+        self.print_suppressed = False
+        self._display_completions = {}
+        self.append_space = False
         self.wordbreaks = " \t\"'@><=;|&(:"  # TODO: might need to be configurable/OS specific
 
         sys_encoding = locale.getpreferredencoding()
