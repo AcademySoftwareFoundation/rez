@@ -39,7 +39,6 @@ def create_memory_package_repository(repository_data: dict) -> MemoryPackageRepo
     Returns:
         `PackageRepository` object.
     """
-    from rezplugins.package_repository.memory import MemoryPackageRepository  # noqa
     cls_ = plugin_manager.get_plugin_class("package_repository", "memory")
     return cls_.create_repository(repository_data)
 
