@@ -608,6 +608,7 @@ class ResolvedContext(object):
             request: list[Requirement | PackageRequest] = []
             for variant in self.resolved_packages:
                 req = PackageRequest(variant.qualified_package_name)
+                request.append(req)
         else:
             request = self.requested_packages()[:]
 
