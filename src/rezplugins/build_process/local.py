@@ -32,15 +32,11 @@ import os.path
 
 if TYPE_CHECKING:
     from rez.packages import Variant
-    from rez.build_system import BuildResult
 
-    # FIXME: move this out of TYPE_CHECKING block when python 3.7 support is dropped
-    class LocalBuildResult(BuildResult, total=False):
-        package_install_path: str
-        variant_install_path: str
 
-else:
-    LocalBuildResult = dict
+class LocalBuildResult(BuildResult, total=False):
+    package_install_path: str
+    variant_install_path: str
 
 
 class LocalBuildProcess(BuildProcessHelper):
