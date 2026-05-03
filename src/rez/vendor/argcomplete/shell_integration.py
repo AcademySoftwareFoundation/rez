@@ -5,7 +5,7 @@
 
 from shlex import quote
 
-bashcode = r"""
+bashcode = r"""#compdef %(executables)s
 # Run something, muting output or redirecting it to the debug stream
 # depending on the value of _ARC_DEBUG.
 # If ARGCOMPLETE_USE_TEMPFILES is set, use tempfiles for IPC.
@@ -24,14 +24,15 @@ __python_argcomplete_run() {
 
 __python_argcomplete_run_inner() {
     if [[ -z "${_ARC_DEBUG-}" ]]; then
-        "$@" 8>&1 9>&2 1>/dev/null 2>&1
+        "$@" 8>&1 9>&2 1>/dev/null 2>&1 </dev/null
     else
-        "$@" 8>&1 9>&2 1>&9 2>&1
+        "$@" 8>&1 9>&2 1>&9 2>&1 </dev/null
     fi
 }
 
 _python_argcomplete%(function_suffix)s() {
     local IFS=$'\013'
+    local script="%(argcomplete_script)s"
     if [[ -n "${ZSH_VERSION-}" ]]; then
         local completions
         completions=($(IFS="$IFS" \
@@ -40,8 +41,16 @@ _python_argcomplete%(function_suffix)s() {
             _ARGCOMPLETE=1 \
             _ARGCOMPLETE_SHELL="zsh" \
             _ARGCOMPLETE_SUPPRESS_SPACE=1 \
-            __python_argcomplete_run "${words[1]}") )
-        _describe "${words[1]}" completions -o nosort
+            __python_argcomplete_run ${script:-${words[1]}}))
+        local nosort=()
+        local nospace=()
+        if is-at-least 5.8; then
+            nosort=(-o nosort)
+        fi
+        if [[ "${completions-}" =~ ([^\\\\]): && "${match[1]}" =~ [=/:] ]]; then
+            nospace=(-S '')
+        fi
+        _describe "${words[1]}" completions "${nosort[@]}" "${nospace[@]}"
     else
         local SUPPRESS_SPACE=0
         if compopt +o nospace 2> /dev/null; then
@@ -55,7 +64,7 @@ _python_argcomplete%(function_suffix)s() {
             _ARGCOMPLETE=1 \
             _ARGCOMPLETE_SHELL="bash" \
             _ARGCOMPLETE_SUPPRESS_SPACE=$SUPPRESS_SPACE \
-            __python_argcomplete_run "%(argcomplete_script)s"))
+            __python_argcomplete_run ${script:-$1}))
         if [[ $? != 0 ]]; then
             unset COMPREPLY
         elif [[ $SUPPRESS_SPACE == 1 ]] && [[ "${COMPREPLY-}" =~ [=/:]$ ]]; then
@@ -66,7 +75,16 @@ _python_argcomplete%(function_suffix)s() {
 if [[ -z "${ZSH_VERSION-}" ]]; then
     complete %(complete_opts)s -F _python_argcomplete%(function_suffix)s %(executables)s
 else
-    compdef _python_argcomplete%(function_suffix)s %(executables)s
+    # When called by the Zsh completion system, this will end with
+    # "loadautofunc" when initially autoloaded and "shfunc" later on, otherwise,
+    # the script was "eval"-ed so use "compdef" to register it with the
+    # completion system
+    autoload is-at-least
+    if [[ $zsh_eval_context == *func ]]; then
+        _python_argcomplete%(function_suffix)s "$@"
+    else
+        compdef _python_argcomplete%(function_suffix)s %(executables)s
+    fi
 fi
 """
 
@@ -76,14 +94,14 @@ complete "%(executable)s" 'p@*@`python-argcomplete-tcsh "%(argcomplete_script)s"
 
 fishcode = r"""
 function __fish_%(function_name)s_complete
-    set -x _ARGCOMPLETE 1
-    set -x _ARGCOMPLETE_DFS \t
-    set -x _ARGCOMPLETE_IFS \n
-    set -x _ARGCOMPLETE_SUPPRESS_SPACE 1
-    set -x _ARGCOMPLETE_SHELL fish
-    set -x COMP_LINE (commandline -p)
-    set -x COMP_POINT (string length (commandline -cp))
-    set -x COMP_TYPE
+    set -lx _ARGCOMPLETE 1
+    set -lx _ARGCOMPLETE_DFS \t
+    set -lx _ARGCOMPLETE_IFS \n
+    set -lx _ARGCOMPLETE_SUPPRESS_SPACE 1
+    set -lx _ARGCOMPLETE_SHELL fish
+    set -lx COMP_LINE (commandline -p)
+    set -lx COMP_POINT (string length (commandline -cp))
+    set -lx COMP_TYPE
     if set -q _ARC_DEBUG
         %(argcomplete_script)s 8>&1 9>&2 1>&9 2>&1
     else
@@ -142,9 +160,10 @@ def shellcode(executables, use_defaults=True, shell="bash", complete_arguments=N
         executables_list = " ".join(quoted_executables)
         script = argcomplete_script
         if script:
-            function_suffix = "_" + script
+            # If the script path contain a space, this would generate an invalid function name.
+            function_suffix = "_" + script.replace(" ", "_SPACE_")
         else:
-            script = "$1"
+            script = ""
             function_suffix = ""
         code = bashcode % dict(
             complete_opts=complete_options,

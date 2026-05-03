@@ -27,12 +27,12 @@ tested.
 <tr><td>
 argcomplete
 </td><td>
-3.1.2 (Sep 16, 2023)
+3.6.3 (Oct 19, 2025)
 </td><td>
 Apache 2.0
 </td><td>
 https://github.com/kislyuk/argcomplete<br>
-Updated (Sept 2025)
+Updated (May 2026)
 </td></tr>
 
 <!-- ######################################################### -->
