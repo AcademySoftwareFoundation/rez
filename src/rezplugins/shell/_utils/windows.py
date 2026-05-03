@@ -54,6 +54,9 @@ def get_syspaths_from_registry() -> list[str]:
 
     paths = []
 
+    # This if is needed because winreg is empty
+    # when on a system that is not windows, leading
+    # to mypy complains.
     if sys.platform == "win32":
         path_query_keys = (
             (winreg.HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment'),
