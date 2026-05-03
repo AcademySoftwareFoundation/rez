@@ -169,6 +169,7 @@ src/rez/utils/filesystem.py:0: error: Name "unicode" is not defined  [name-defin
 src/rez/utils/filesystem.py:0: error: Name "xrange" is not defined  [name-defined]
 src/rez/rex.py:0: error: Item "None" of "Optional[ActionManager]" has no attribute "environ"  [union-attr]
 src/rez/rex.py:0: error: Signature of "format" incompatible with supertype "Formatter"  [override]
+src/rez/plugin_managers.py:0: error: Too few arguments for "find_spec" of "MetaPathFinderProtocol"  [call-arg]
 src/rez/plugin_managers.py:0: error: Item "None" of "Optional[ModuleSpec]" has no attribute "loader"  [union-attr]
 src/rez/plugin_managers.py:0: error: Item "None" of "Union[Loader, Any, None]" has no attribute "load_module"  [union-attr]
 src/rez/plugin_managers.py:0: error: "EntryPoint" has no attribute "__name__"  [attr-defined]
