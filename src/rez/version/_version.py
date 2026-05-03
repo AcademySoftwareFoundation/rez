@@ -37,9 +37,13 @@ class _ReversedComparable(_Common):
         self.value = value
 
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _ReversedComparable):
+            return NotImplemented
         return self.value == other.value
 
     def __lt__(self, other: object) -> bool:
+        if not isinstance(other, _ReversedComparable):
+            return NotImplemented
         return self.value > other.value
 
     def __gt__(self, other: object) -> bool:
@@ -129,10 +133,14 @@ class NumericToken(VersionToken):
     def __str__(self) -> str:
         return str(self.n)
 
-    def __eq__(self, other: NumericToken) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NumericToken):
+            return NotImplemented
         return (self.n == other.n)
 
     def less_than(self, other: NumericToken) -> bool:
+        if not isinstance(other, NumericToken):
+            return NotImplemented
         return (self.n < other.n)
 
     def __next__(self) -> NumericToken:
@@ -150,14 +158,18 @@ class _SubToken(_Comparable):
         self.s = s
         self.n = int(s) if s.isdigit() else None
 
-    def __lt__(self, other: _SubToken) -> bool:
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, _SubToken):
+            return NotImplemented
         if self.n is None:
             return (self.s < other.s) if other.n is None else True
         else:
             return False if other.n is None \
                 else ((self.n, self.s) < (other.n, other.s))
 
-    def __eq__(self, other: _SubToken) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _SubToken):
+            return NotImplemented
         return (self.s == other.s) and (self.n == other.n)
 
     def __str__(self) -> str:
@@ -210,7 +222,9 @@ class AlphanumericVersionToken(VersionToken):
     def __str__(self) -> str:
         return ''.join(map(str, self.subtokens))
 
-    def __eq__(self, other: AlphanumericVersionToken) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AlphanumericVersionToken):
+            return NotImplemented
         return (self.subtokens == other.subtokens)
 
     def less_than(self, other: AlphanumericVersionToken) -> bool:
@@ -463,11 +477,15 @@ class _LowerBound(_Comparable):
         else:
             return '' if self.inclusive else ">"
 
-    def __eq__(self, other: _LowerBound | _UpperBound) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, (_LowerBound, _UpperBound)):
+            return NotImplemented
         return (self.version == other.version) \
             and (self.inclusive == other.inclusive)
 
-    def __lt__(self, other: _LowerBound | _UpperBound) -> bool:
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, (_LowerBound, _UpperBound)):
+            return NotImplemented
         return (self.version < other.version) \
             or ((self.version == other.version)
                 and (self.inclusive and not other.inclusive))
@@ -496,11 +514,15 @@ class _UpperBound(_Comparable):
         s = "<=%s" if self.inclusive else "<%s"
         return s % self.version
 
-    def __eq__(self, other: _LowerBound | _UpperBound) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, (_LowerBound, _UpperBound)):
+            return NotImplemented
         return (self.version == other.version) \
             and (self.inclusive == other.inclusive)
 
-    def __lt__(self, other: _LowerBound | _UpperBound) -> bool:
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, (_LowerBound, _UpperBound)):
+            return NotImplemented
         return (self.version < other.version) \
             or ((self.version == other.version)
                 and (not self.inclusive and other.inclusive))
@@ -550,10 +572,14 @@ class _Bound(_Comparable):
         else:
             return "%s%s" % (self.lower, self.upper)
 
-    def __eq__(self, other: _Bound) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _Bound):
+            return NotImplemented
         return (self.lower == other.lower) and (self.upper == other.upper)
 
-    def __lt__(self, other: _Bound) -> bool:
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, _Bound):
+            return NotImplemented
         return (self.lower, self.upper) < (other.lower, other.upper)
 
     def __hash__(self) -> int:
