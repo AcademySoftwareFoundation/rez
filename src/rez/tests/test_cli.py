@@ -12,6 +12,7 @@ import subprocess
 import sys
 import unittest
 from tempfile import TemporaryFile
+from unittest.mock import patch
 
 from rez.system import system
 from rez.cli._entry_points import get_specifications
@@ -66,10 +67,23 @@ class TestComplete(TestBase):
         os.environ["COMP_LINE"] = command
         os.environ["COMP_POINT"] = str(point)
 
+        # argcomplete's __call__ unconditionally does os.fdopen(9, "w") for a
+        # debug stream. Under pytest, fd 9 is part of pytest's capture /
+        # faulthandler machinery; wrapping it here either breaks subsequent
+        # tests or breaks pytest shutdown. Force the fallback by raising on
+        # fd 9 so debug_stream stays as sys.stderr.
+        real_fdopen = os.fdopen
+
+        def fake_fdopen(fd, *args, **kwargs):
+            if fd == 9:
+                raise OSError("fd 9 disabled in tests")
+            return real_fdopen(fd, *args, **kwargs)
+
         parser = setup_parser()
         with TemporaryFile(mode="w+") as t:
-            with self.assertRaises(SystemExit) as cm:
-                autocomplete(parser, output_stream=t, exit_method=sys.exit)
+            with patch("os.fdopen", side_effect=fake_fdopen):
+                with self.assertRaises(SystemExit) as cm:
+                    autocomplete(parser, output_stream=t, exit_method=sys.exit)
             self.assertEqual(cm.exception.code, 0)
             t.seek(0)
             return set(t.read().split(self.IFS))
