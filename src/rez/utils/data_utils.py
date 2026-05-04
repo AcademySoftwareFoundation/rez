@@ -13,7 +13,7 @@ import functools
 
 from rez.vendor.schema.schema import Schema, Optional
 from threading import Lock
-from typing import Any, Callable, Generic, MutableMapping, TypeVar, TYPE_CHECKING
+from typing import Any, Callable, Generic, Mapping, MutableMapping, TypeVar, TYPE_CHECKING
 
 T = TypeVar("T")
 
@@ -392,6 +392,57 @@ class RO_AttrDictWrapper(AttrDictWrapper):
         self[attr]  # may raise 'no attribute' error
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
+
+
+class CaseInsensitiveEnvironDict(MutableMapping[str, str]):
+    """Case-insensitive read/write view over a string-keyed mapping.
+
+    Matches Windows native semantics: keys are stored as provided, but lookup
+    and ``in`` checks compare case-insensitively. If multiple keys collide
+    case-insensitively (e.g. both ``Path`` and ``PATH``), the last one written
+    wins on lookup, mirroring how ``os.environ`` resolves duplicates on
+    Windows.
+
+    Use this to wrap a user-provided ``parent_environ`` on Windows so that
+    rex environment lookups (``env.SomeVariable``) succeed regardless of the
+    casing the user happened to use when populating the dict.
+    """
+    def __init__(self, data: Mapping[str, str] | None = None) -> None:
+        self._data: dict[str, str] = {}
+        # `_index` maps an upper-cased key to the most recently inserted
+        # original-case key. Lookups go through `_index` first.
+        self._index: dict[str, str] = {}
+        if data:
+            for key, value in data.items():
+                self[key] = value
+
+    def __getitem__(self, key: str) -> str:
+        return self._data[self._index[key.upper()]]
+
+    def __setitem__(self, key: str, value: str) -> None:
+        upper = key.upper()
+        existing = self._index.get(upper)
+        if existing is not None and existing != key:
+            del self._data[existing]
+        self._index[upper] = key
+        self._data[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        upper = key.upper()
+        original = self._index.pop(upper)
+        del self._data[original]
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and key.upper() in self._index
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __repr__(self) -> str:
+        return "%s(%r)" % (self.__class__.__name__, self._data)
 
 
 def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):

@@ -547,6 +547,45 @@ class TestRex(TestBase):
         self.assertRaises(RuntimeError,  # no default
                           intersects, ephemerals.get_range("foo.bar"), "0")
 
+    def test_parent_environ_case_insensitive_on_windows(self) -> None:
+        """Regression test for #2089.
+
+        On Windows, env-var lookup is case-insensitive natively, and Python's
+        os.environ preserves that. But a plain dict copy of os.environ (or any
+        user-built dict) is case-sensitive, so passing one as parent_environ
+        used to break rex lookups whenever the casing in the dict differed
+        from the casing referenced in the package commands. The fix wraps
+        any user-provided parent_environ in a case-insensitive view on
+        Windows so env.SomeVariable resolves regardless of how the dict was
+        populated.
+
+        Skipped on non-Windows platforms (the wrapper is a no-op there).
+        """
+        from rez.utils.platform_ import platform_
+        if platform_.name != "windows":
+            self.skipTest("Windows-only behavior")
+
+        # Direct lookup: dict has only one casing, but every variant resolves.
+        env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(env)
+        self.assertEqual(ex.manager.parent_environ["SomeVariable"], "covfefe")
+        self.assertEqual(ex.manager.parent_environ["SOMEVARIABLE"], "covfefe")
+        self.assertEqual(ex.manager.parent_environ["somevariable"], "covfefe")
+        self.assertIn("SOMEVARIABLE", ex.manager.parent_environ)
+        self.assertIn("somevariable", ex.manager.parent_environ)
+        self.assertNotIn("OtherVariable", ex.manager.parent_environ)
+
+        # End-to-end: rex code looking up a different casing than was stored
+        # in the parent_environ dict must succeed. Pre-fix this raised
+        # RexUndefinedVariableError.
+        def _rex() -> None:
+            v = getenv("SOMEVARIABLE")  # noqa: F821 - rex builtin
+            setenv("RESULT", v)  # noqa: F821 - rex builtin
+
+        ex2 = self._create_executor({"SomeVariable": "covfefe"})
+        ex2.execute_function(_rex)
+        self.assertEqual(ex2.manager.environ.get("RESULT"), "covfefe")
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -23,7 +23,7 @@ from rez.util import shlex_join, is_non_string_iterable
 from rez.utils import reraise
 from rez.utils.execution import Popen
 from rez.utils.sourcecode import SourceCode, SourceCodeError
-from rez.utils.data_utils import AttrDictWrapper
+from rez.utils.data_utils import AttrDictWrapper, CaseInsensitiveEnvironDict
 from rez.utils.formatting import expandvars
 from rez.utils.platform_ import platform_
 
@@ -200,7 +200,19 @@ class ActionManager(object):
         '''
         self.interpreter = interpreter
         self.verbose = verbose
-        self.parent_environ = os.environ if parent_environ is None else parent_environ
+        if parent_environ is None:
+            # os.environ is already case-insensitive on Windows (Python's
+            # os._Environ normalizes keys internally), so leave it alone.
+            self.parent_environ = os.environ
+        elif platform_.name == "windows" and not isinstance(
+            parent_environ, CaseInsensitiveEnvironDict
+        ):
+            # User-provided dicts (e.g. dict(os.environ)) are case-sensitive.
+            # Wrap so env.SomeVariable lookups respect Windows native env
+            # semantics. See AcademySoftwareFoundation/rez#2089.
+            self.parent_environ = CaseInsensitiveEnvironDict(parent_environ)
+        else:
+            self.parent_environ = parent_environ
         self.parent_variables = True if parent_variables is True \
             else set(parent_variables or [])
         self.environ = {}
