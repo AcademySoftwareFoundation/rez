@@ -547,6 +547,39 @@ class TestRex(TestBase):
         self.assertRaises(RuntimeError,  # no default
                           intersects, ephemerals.get_range("foo.bar"), "0")
 
+    def test_parent_environ_case_insensitive_on_windows(self):
+        """Regression for #2089.
+
+        On Windows env vars are case-insensitive; os.environ already
+        behaves that way, but a plain dict copy of it doesn't. Passing
+        such a dict as parent_environ used to break env.<MixedCase>
+        lookups inside commands(). We now wrap on the Windows side.
+        """
+        from rez.utils.platform_ import platform_
+        if platform_.name != "windows":
+            self.skipTest("Windows-only behaviour")
+
+        env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(env)
+
+        # any casing of the key resolves
+        self.assertEqual(ex.manager.parent_environ["SomeVariable"], "covfefe")
+        self.assertEqual(ex.manager.parent_environ["SOMEVARIABLE"], "covfefe")
+        self.assertEqual(ex.manager.parent_environ["somevariable"], "covfefe")
+        self.assertIn("SOMEVARIABLE", ex.manager.parent_environ)
+        self.assertNotIn("OtherVariable", ex.manager.parent_environ)
+
+        # end-to-end: rex code references a different casing than the
+        # caller's dict and the lookup must succeed (pre-fix this
+        # raised RexUndefinedVariableError)
+        def _rex():
+            v = getenv("SOMEVARIABLE")  # noqa: F821 - rex builtin
+            setenv("RESULT", v)         # noqa: F821 - rex builtin
+
+        ex2 = self._create_executor({"SomeVariable": "covfefe"})
+        ex2.execute_function(_rex)
+        self.assertEqual(ex2.get_output().get("RESULT"), "covfefe")
+
 
 if __name__ == '__main__':
     unittest.main()
