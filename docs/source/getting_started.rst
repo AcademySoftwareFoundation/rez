@@ -7,41 +7,70 @@ Essential packages
 
 .. warning::
    :ref:`rez-bind` is going to be deprecated. The current implementation is not actively maintained.
-   Especially on windows, using :option:`--quickstart <rez-bind --quickstart>` is likely to fail.
-
    Even if rez-bind will be deprecated and we generally discourage its use, you can safely use it for creating the ``arch``, ``os`` and ``platform`` packages.
 
 After installation, you need to create some essential Rez packages. The :ref:`rez-bind`
 tool creates Rez packages that reference software already installed on your system.
-Use the :option:`--quickstart <rez-bind --quickstart>` argument to bind a set of standard packages:
+
+Create the essential system packages by running these individual commands:
 
 .. note::
    You may require administrative privileges for some of them
 
 .. code-block:: text
 
-   ]$ rez-bind --quickstart
-   Binding platform into /home/ajohns/packages...
+   ]$ rez-bind arch
    Binding arch into /home/ajohns/packages...
+   
+   ]$ rez-bind os
    Binding os into /home/ajohns/packages...
+   
+   ]$ rez-bind platform
+   Binding platform into /home/ajohns/packages...
+
+   Successfully converted the following essential software found on the current system into Rez packages:
+
+   PACKAGE     URI
+   -------     ---
+   arch        /home/ajohns/packages/arch/x86_64/package.py
+   os          /home/ajohns/packages/os/osx-10.11.5/package.py
+   platform    /home/ajohns/packages/platform/osx/package.py
+
+Optional packages
+-----------------
+
+You may also want to bind additional packages for your development environment. These can be bound individually as needed:
+
+.. note::
+   These optional packages may be less reliable, especially on Windows. Consider creating 
+   custom package definitions instead if you encounter issues.
+
+.. code-block:: text
+
+   ]$ rez-bind python      # Python interpreter
    Binding python into /home/ajohns/packages...
+   
+   ]$ rez-bind rez         # Rez itself 
    Binding rez into /home/ajohns/packages...
+   
+   ]$ rez-bind rezgui      # Rez GUI tools
    Binding rezgui into /home/ajohns/packages...
+   
+   ]$ rez-bind setuptools  # Python setuptools
    Binding setuptools into /home/ajohns/packages...
+   
+   ]$ rez-bind pip         # Python package installer
    Binding pip into /home/ajohns/packages...
 
    Successfully converted the following software found on the current system into Rez packages:
 
    PACKAGE     URI
    -------     ---
-   arch        /home/ajohns/packages/arch/x86_64/package.py
-   os          /home/ajohns/packages/os/osx-10.11.5/package.py
-   pip         /home/ajohns/packages/pip/8.0.2/package.py
-   platform    /home/ajohns/packages/platform/osx/package.py
    python      /home/ajohns/packages/python/2.7.11/package.py
    rez         /home/ajohns/packages/rez/2.0.rc1.44/package.py
    rezgui      /home/ajohns/packages/rezgui/2.0.rc1.44/package.py
    setuptools  /home/ajohns/packages/setuptools/19.4/package.py
+   pip         /home/ajohns/packages/pip/8.0.2/package.py
 
 Now you should be able to create an environment containing Python. Try this:
 
