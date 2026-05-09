@@ -140,7 +140,7 @@ Thanks to everybody who contributed and made all these features, bugfixes and im
 - Remove the note about Python 2.7 compatibility from the docs [\#1644](https://github.com/AcademySoftwareFoundation/rez/pull/1644) ([@vergeev](https://github.com/vergeev))
 - Add clear information on how to contact maintainers [\#1659](https://github.com/AcademySoftwareFoundation/rez/pull/1659) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
 - Installation instructions now include how to download rez [\#1660](https://github.com/AcademySoftwareFoundation/rez/pull/1660) ([@JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
-- Add development environment docs to [CONTRIBUTING.md](./CONTRIBUTING.md) [\#1633](https://github.com/AcademySoftwareFoundation/rez/pull/1633) ([@BryceGattis](https://github.com/BryceGattis))
+- Add development environment docs to `CONTRIBUTING.md` [\#1633](https://github.com/AcademySoftwareFoundation/rez/pull/1633) ([@BryceGattis](https://github.com/BryceGattis))
 - Improve clarity and expliciteness of `rez-env --command` flag help [\#1682](https://github.com/AcademySoftwareFoundation/rez/pull/1682) ([@BryceGattis](https://github.com/BryceGattis))
 - Add releasing packages documentation [\#1689](https://github.com/AcademySoftwareFoundation/rez/pull/1689) ([@BryceGattis](https://github.com/BryceGattis))
 - Improve clarify of early binding functions documentation [\#1677](https://github.com/AcademySoftwareFoundation/rez/pull/1677) ([@BryceGattis](https://github.com/BryceGattis))

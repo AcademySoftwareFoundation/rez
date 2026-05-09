@@ -19,6 +19,8 @@ Usage
 
 See :ref:`rez-pip`
 
+.. _which-pip-will-be-used:
+
 Which pip will be used?
 =======================
 

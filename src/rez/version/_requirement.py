@@ -142,7 +142,7 @@ class Requirement(_Common):
         """
         Args:
             s (str): Requirement string
-            invalid_bound_error (bool): If True, raise :exc:`VersionError` if an
+            invalid_bound_error (bool): If True, raise :exc:`.VersionError` if an
                 impossible range is given, such as ``3+<2``.
         """
         self.name_ = None
@@ -248,8 +248,8 @@ class Requirement(_Common):
         return str(self)
 
     def conflicts_with(self, other: Requirement | VersionedObject) -> bool:
-        """Returns True if this requirement conflicts with another :class:`Requirement`
-        or :class:`VersionedObject`.
+        """Returns True if this requirement conflicts with another :class:`.Requirement`
+        or :class:`.VersionedObject`.
 
         Returns:
             bool:
