@@ -233,7 +233,10 @@ requires = []
         context = self._create_context()  # Empty context
 
         # Create a bash shell executor using RexExecutor
-        bash_shell = create_shell("bash")
+        shell_type = "bash"
+        if platform_.name == "windows":
+            shell_type = "gitbash"
+        bash_shell = create_shell(shell_type)
         executor = RexExecutor(interpreter=bash_shell, parent_environ={}, shebang=False)
 
         build_path = os.path.join(self.root, "build")
