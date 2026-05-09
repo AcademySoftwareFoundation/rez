@@ -258,7 +258,7 @@ requires = []
         self.assertEqual(
             script_output,
             f"""export REZ_BUILD_ENV="1"
-export REZ_BUILD_PATH="{build_path}"
+export REZ_BUILD_PATH="{executor.normalize_path(build_path)}"
 export REZ_BUILD_THREAD_COUNT="{package.config.build_thread_count}"
 export REZ_BUILD_VARIANT_INDEX="0"
 export REZ_BUILD_VARIANT_REQUIRES=''
@@ -266,13 +266,13 @@ export REZ_BUILD_VARIANT_SUBPATH=""
 export REZ_BUILD_PROJECT_VERSION='1.0.0'
 export REZ_BUILD_PROJECT_NAME='test_special_chars'
 export REZ_BUILD_PROJECT_DESCRIPTION='A test package with "quotes" and $pecial characters & more!'
-export REZ_BUILD_PROJECT_FILE='{package_py_path}'
-export REZ_BUILD_SOURCE_PATH="{temp_pkg_dir}"
+export REZ_BUILD_PROJECT_FILE='{executor.normalize_path(package_py_path)}'
+export REZ_BUILD_SOURCE_PATH="{executor.normalize_path(temp_pkg_dir)}"
 export REZ_BUILD_REQUIRES=''
 export REZ_BUILD_REQUIRES_UNVERSIONED=''
 export REZ_BUILD_TYPE='local'
 export REZ_BUILD_INSTALL="1"
-export REZ_BUILD_INSTALL_PATH="{install_path}"
+export REZ_BUILD_INSTALL_PATH="{executor.normalize_path(install_path)}"
 """
         )
 
