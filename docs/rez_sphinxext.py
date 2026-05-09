@@ -114,9 +114,7 @@ class FixedPyTypeAlias(DomainAwareMixin, PyTypeAlias):
 
 class BareNamePythonDomain(sphinx.domains.python.PythonDomain):
     """
-    A Python-like domain that:
-    1. Uses fixed directives that register objects in the correct domain
-    2. Falls back to bare-name resolution when qualified name resolution fails
+    A Python-like domain that
     """
 
     # Override directives to use the fixed versions
