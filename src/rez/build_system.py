@@ -259,19 +259,22 @@ class BuildSystem(object):
         # anything that could either contain arbitrary text/commands
         # or things that could be accidentally interpreter by shells.
         # We really want to avoid possible shell injections.
+        # In case of doubt, use literal.
         vars_ = {
-            'REZ_BUILD_ENV': 1,
-            'REZ_BUILD_PATH': executor.normalize_path(build_path),
-            'REZ_BUILD_THREAD_COUNT': package.config.build_thread_count,
-            'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
+            'REZ_BUILD_ENV': literal("1"),
+            'REZ_BUILD_PATH': literal(executor.normalize_path(build_path)),
+            'REZ_BUILD_THREAD_COUNT': literal(str(package.config.build_thread_count)),
+            'REZ_BUILD_VARIANT_INDEX': literal(str(variant.index or 0)),
             'REZ_BUILD_VARIANT_REQUIRES': literal(' '.join(variant_requires)),
-            'REZ_BUILD_VARIANT_SUBPATH': executor.normalize_path(variant_subpath),
+            'REZ_BUILD_VARIANT_SUBPATH': literal(executor.normalize_path(variant_subpath)),
             'REZ_BUILD_PROJECT_VERSION': literal(str(package.version)),
             'REZ_BUILD_PROJECT_NAME': literal(package.name),
             'REZ_BUILD_PROJECT_DESCRIPTION': literal((package.description or '').strip()),
             'REZ_BUILD_PROJECT_FILE': literal(package.filepath),
-            'REZ_BUILD_SOURCE_PATH': executor.normalize_path(
-                os.path.dirname(package.filepath)
+            'REZ_BUILD_SOURCE_PATH': literal(
+                executor.normalize_path(
+                    os.path.dirname(package.filepath)
+                )
             ),
             'REZ_BUILD_REQUIRES': literal(
                 ' '.join(
@@ -284,16 +287,16 @@ class BuildSystem(object):
                 )
             ),
             'REZ_BUILD_TYPE': literal(build_type.name),
-            'REZ_BUILD_INSTALL': 1 if install else 0,
+            'REZ_BUILD_INSTALL': literal("1" if install else "0"),
         }
 
         if install_path:
-            vars_['REZ_BUILD_INSTALL_PATH'] = executor.normalize_path(install_path)
+            vars_['REZ_BUILD_INSTALL_PATH'] = literal(executor.normalize_path(install_path))
 
         if config.rez_1_environment_variables and \
                 not config.disable_rez_1_compatibility and \
                 build_type == BuildType.central:
-            vars_['REZ_IN_REZ_RELEASE'] = 1
+            vars_['REZ_IN_REZ_RELEASE'] = literal("1")
 
         # set env vars
         for key, value in vars_.items():
