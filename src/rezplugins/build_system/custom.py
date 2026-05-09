@@ -206,6 +206,12 @@ class CustomBuildSystem(BuildSystem):
                         varname = "__PARSE_ARG_%s" % key.upper()
 
                         # do some value conversions
+
+                        # Security warning!
+                        # Be very careful with values in this dict. Escape (using quote)
+                        # anything that could either contain arbitrary text/commands
+                        # or things that could be accidentally interpreter by shells.
+                        # We really want to avoid possible shell injections.
                         if isinstance(value, bool):
                             value = 1 if value else 0
                         elif isinstance(value, (list, tuple)):

@@ -254,6 +254,11 @@ class BuildSystem(object):
         else:
             variant_subpath = variant._non_shortlinked_subpath
 
+        # Security warning!
+        # Be very careful with values in this dict. Escape (using literal)
+        # anything that could either contain arbitrary text/commands
+        # or things that could be accidentally interpreter by shells.
+        # We really want to avoid possible shell injections.
         vars_ = {
             'REZ_BUILD_ENV': 1,
             'REZ_BUILD_PATH': executor.normalize_path(build_path),
