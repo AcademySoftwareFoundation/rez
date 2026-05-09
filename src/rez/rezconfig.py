@@ -620,7 +620,7 @@ standard_system_paths = []
 package_preprocess_function = None
 
 # Defines in which order the :data:`package_preprocess_function`
-# and the :pkgdef:attr:`preprocess` function inside a ``package.py`` are executed.
+# and the :pkgdef:func:`preprocess` function inside a ``package.py`` are executed.
 #
 # Note that "global preprocess" means the preprocess defined by
 # :data:`package_preprocess_function`.

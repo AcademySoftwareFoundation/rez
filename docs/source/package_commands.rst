@@ -673,7 +673,7 @@ Following is a list of the objects and functions available.
 
       source("{root}/scripts/init.sh")
 
-.. rex:attribute:: stop(message: str) -> typing.NoReturn
+.. rex:function:: stop(message: str) -> typing.NoReturn
 
    Raises an exception and stops a resolve from completing. You should use this when an unrecoverable
    error is detected and it is not possible to configure a valid environment.

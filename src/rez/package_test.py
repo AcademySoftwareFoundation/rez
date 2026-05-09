@@ -44,7 +44,7 @@ class PackageTestRunner(object):
     list is added to the test env.
 
     Command strings automatically expand references such as ``{root}``, much
-    as happens in a :pkgdef:attr:`commands` function.
+    as happens in a :pkgdef:func:`commands` function.
 
     Commands can also be a list - in this case, the test process is launched
     directly, rather than interpreted via a shell.
