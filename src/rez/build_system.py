@@ -257,7 +257,7 @@ class BuildSystem(object):
         # Security warning!
         # Be very careful with values in this dict. Escape (using literal)
         # anything that could either contain arbitrary text/commands
-        # or things that could be accidentally interpreter by shells.
+        # or things that could be accidentally interpreted by shells.
         # We really want to avoid possible shell injections.
         # In case of doubt, use literal.
         vars_ = {

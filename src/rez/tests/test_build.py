@@ -10,7 +10,7 @@ from rez.build_process import create_build_process, BuildType
 from rez.build_system import create_build_system, BuildSystem
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildError, BuildContextResolveError, \
-    PackageFamilyNotFoundError
+    PackageFamilyNotFoundError, RezPluginError
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
     per_available_shell, install_dependent, program_dependent
@@ -233,10 +233,14 @@ requires = []
         context = self._create_context()  # Empty context
 
         # Create a bash shell executor using RexExecutor
-        shell_type = "bash"
+        shell_type = "gitbash"
         if platform_.name == "windows":
             shell_type = "gitbash"
-        bash_shell = create_shell(shell_type)
+        try:
+            bash_shell = create_shell(shell_type)
+        except RezPluginError:
+            self.skipTest(f"Required shell {shell_type!r} is not available")
+
         executor = RexExecutor(interpreter=bash_shell, parent_environ={}, shebang=False)
 
         build_path = os.path.join(self.root, "build")

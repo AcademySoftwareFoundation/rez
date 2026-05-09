@@ -208,17 +208,19 @@ class CustomBuildSystem(BuildSystem):
                         # do some value conversions
 
                         # Security warning!
-                        # Be very careful with values in this dict. Escape (using quote)
+                        # Be very careful with values in the env var value. Escape (using quote)
                         # anything that could either contain arbitrary text/commands
-                        # or things that could be accidentally interpreter by shells.
+                        # or things that could be accidentally interpreted by shells.
                         # We really want to avoid possible shell injections.
                         if isinstance(value, bool):
                             value = 1 if value else 0
                         elif isinstance(value, (list, tuple)):
                             value = list(map(str, value))
+                            # TODO: use rez.rex.literal?
                             value = list(map(quote, value))
                             value = ' '.join(value)
                         else:
+                            # TODO: use rez.rex.literal?
                             value = quote(str(value))
 
                         executor.env[varname] = value
