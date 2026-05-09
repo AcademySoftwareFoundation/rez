@@ -197,12 +197,13 @@ class CMD(Shell):
         else:
             cmd_flags = ['/Q', '/C']
 
-        if config.debug("shell_startup"):
-            print_debug("Launching shell with command: %s" % self.join(cmd))
-
         cmd += [self.executable]
         cmd += cmd_flags
         cmd += ['call {}'.format(target_file)]
+
+        if config.debug("shell_startup"):
+            print_debug("Launching shell with command: %s" % self.join(cmd))
+
         is_detached = (cmd[0] == 'START')
 
         p = Popen(cmd, env=env, shell=is_detached, **Popen_args)
