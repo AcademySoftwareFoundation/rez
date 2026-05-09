@@ -519,7 +519,7 @@ Following is a list of the objects and functions available.
       if getenv("REZ_MAYA_VERSION") == "2016.sp1":
          pass
 
-   :raises rex:exc:`RexUndefinedVariableError`: if the environment variable is not set.
+   :raises: :py:exc:`~rez.exceptions.RexUndefinedVariableError` if the environment variable is not set.
 
 .. rex:attribute:: implicits
 
