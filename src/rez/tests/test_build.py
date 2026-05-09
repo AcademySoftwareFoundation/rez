@@ -264,12 +264,12 @@ export REZ_BUILD_PROJECT_VERSION='1.0.0'
 export REZ_BUILD_PROJECT_NAME='test_special_chars'
 export REZ_BUILD_PROJECT_DESCRIPTION='A test package with "quotes" and $pecial characters & more!'
 export REZ_BUILD_PROJECT_FILE='{package_py_path}'
-export REZ_BUILD_SOURCE_PATH='{temp_pkg_dir}'
+export REZ_BUILD_SOURCE_PATH="{temp_pkg_dir}"
 export REZ_BUILD_REQUIRES=''
 export REZ_BUILD_REQUIRES_UNVERSIONED=''
 export REZ_BUILD_TYPE='local'
 export REZ_BUILD_INSTALL="1"
-export REZ_BUILD_INSTALL_PATH='{install_path}'
+export REZ_BUILD_INSTALL_PATH="{install_path}"
 """
         )
 
