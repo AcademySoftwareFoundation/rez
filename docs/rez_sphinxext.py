@@ -8,13 +8,11 @@ import rez.rezconfig
 import docutils.nodes
 import sphinx.util.nodes
 import sphinx.application
-import sphinx.environment
 import sphinx.util.logging
 import sphinx.util.docutils
 import sphinx.domains
 import sphinx.domains.python
 import docutils.statemachine
-from sphinx.domains.python._object import PyObject
 from sphinx.domains.python import (
     PyFunction,
     PyVariable,
