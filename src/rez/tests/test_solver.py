@@ -19,7 +19,7 @@ solver_verbosity = 1
 
 class TestSolver(TestBase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         packages_path = cls.data_path("solver", "packages")
         cls.packages_path = [packages_path]
         cls.settings = dict(
@@ -107,7 +107,7 @@ class TestSolver(TestBase):
 
         return s1
 
-    def test_01(self):
+    def test_01(self) -> None:
         """Extremely basic solves involving a single package."""
         self._solve([],
                     [])
@@ -134,7 +134,7 @@ class TestSolver(TestBase):
         self._solve(["!python"],
                     [])
 
-    def test_02(self):
+    def test_02(self) -> None:
         """Basic solves involving a single package."""
         self._solve(["nada", "~nada"],
                     ["nada[]"])
@@ -155,7 +155,7 @@ class TestSolver(TestBase):
         self._solve(["!python-2.6+", "python"],
                     ["python-2.5.2[]"])
 
-    def test_03(self):
+    def test_03(self) -> None:
         """Failures in the initial request."""
         self._fail("nada", "!nada")
         self._fail("python-2.6", "~python-2.7")
@@ -163,19 +163,19 @@ class TestSolver(TestBase):
         self._fail(".foo-1", ".foo-2")
         self._fail(".foo-2.5", "!.foo-2")
 
-    def test_04(self):
+    def test_04(self) -> None:
         """Basic failures."""
         self._fail("pybah", "!python")
         self._fail("pyfoo-3.1", "python-2.7+")
         self._fail("pyodd<2", "python-2.7")
         self._fail("nopy", "python-2.5.2")
 
-    def test_05(self):
+    def test_05(self) -> None:
         """More complex failures."""
         self._fail("bahish", "pybah<5")
         self._fail("pybah-4", "pyfoo-3.0")
 
-    def test_06(self):
+    def test_06(self) -> None:
         """Basic solves involving multiple packages."""
         self._solve(["nada", "nopy"],
                     ["nada[]", "nopy-2.1[]"])
@@ -196,7 +196,7 @@ class TestSolver(TestBase):
         self._solve(["python", "pybah"],
                     ["python-2.6.8[]", "pybah-4[]", ".eek-1"])
 
-    def test_07(self):
+    def test_07(self) -> None:
         """More complex solves."""
         self._solve(["python", "pyodd"],
                     ["python-2.6.8[]", "pybah-4[]", "pyodd-2[]", ".eek-1"])
@@ -211,10 +211,10 @@ class TestSolver(TestBase):
         self._solve([".foo-2.5+", ".foo-2"],
                     [".foo-2.5+<2_"])
 
-    def test_08(self):
+    def test_08(self) -> None:
         """Cyclic failures."""
 
-        def _test(*pkgs):
+        def _test(*pkgs) -> None:
             s = self._fail(*pkgs)
             self.assertTrue(isinstance(s.failure_reason(), Cycle))
 
@@ -228,27 +228,27 @@ class TestSolver(TestBase):
 
     # variant tests
 
-    def test_09_version_priority_mode(self):
+    def test_09_version_priority_mode(self) -> None:
         config.override("variant_select_mode", "version_priority")
         self._solve(["pyvariants", "python"],
                     ["python-2.7.0[]", "pyvariants-2[0]"])
         self._solve(["pyvariants", "python", "nada"],
                     ["python-2.7.0[]", "pyvariants-2[0]", "nada[]"])
 
-    def test_10_intersection_priority_mode(self):
+    def test_10_intersection_priority_mode(self) -> None:
         config.override("variant_select_mode", "intersection_priority")
         self._solve(["pyvariants", "python"],
                     ["python-2.7.0[]", "pyvariants-2[0]"])
         self._solve(["pyvariants", "python", "nada"],
                     ["python-2.6.8[]", "nada[]", "pyvariants-2[1]"])
 
-    def test_11_variant_splitting(self):
+    def test_11_variant_splitting(self) -> None:
         self._solve(["test_variant_split_start"],
                     ["test_variant_split_end-1.0[1]",
                      "test_variant_split_mid2-2.0[0]",
                      "test_variant_split_start-1.0[1]"])
 
-    def test_12_missing_variant_requires(self):
+    def test_12_missing_variant_requires(self) -> None:
         config.override("error_on_missing_variant_requires", True)
         with self.assertRaises(rez.exceptions.PackageFamilyNotFoundError):
             self._solve(["missing_variant_requires"], [])
@@ -256,14 +256,14 @@ class TestSolver(TestBase):
         config.override("error_on_missing_variant_requires", False)
         self._solve(["missing_variant_requires"], ["nada[]", "missing_variant_requires-1[1]"])
 
-    def test_13_resolve_weakly_reference_requires(self):
+    def test_13_resolve_weakly_reference_requires(self) -> None:
         """Test resolving a package with a weakly referenced requirement."""
         self._solve(["test_weakly_reference_requires", "test_variant_split_mid2-2"],
                     ['test_weakly_reference_requires-2.0[]',
                      'test_variant_split_end-3.0[0]',
                      'test_variant_split_mid2-2.0[1]'])
 
-    def test_14_resolve_weakly_reference_variant(self):
+    def test_14_resolve_weakly_reference_variant(self) -> None:
         """Test resolving a package with a weakly referenced variant."""
         self._solve(["test_weakly_reference_variant-2.0", "test_variant_split_mid2-2", "pyfoo"],
                     ['test_variant_split_end-1.0[1]',

@@ -11,23 +11,23 @@ from rez.rex import NamespaceFormatter
 
 
 class TestFormatter(TestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         TestBase.setUp(self)
         self.formatter = NamespaceFormatter({})
 
-    def assert_formatter_equal(self, format, expected, *args, **kwargs):
+    def assert_formatter_equal(self, format, expected, *args, **kwargs) -> None:
         self.assertEqual(self.formatter.format(format, *args, **kwargs), expected)
 
-    def assert_formatter_raises(self, format, error, *args, **kwargs):
+    def assert_formatter_raises(self, format, error, *args, **kwargs) -> None:
         self.assertRaises(error, self.formatter.format, format, *args, **kwargs)
 
-    def test_formatter_rex(self):
+    def test_formatter_rex(self) -> None:
         self.assert_formatter_equal('Hello, ${world}!', 'Hello, ${world}!')
         self.assert_formatter_equal('Hello, $WORLD!', 'Hello, ${WORLD}!')
         self.assert_formatter_equal('Hello, ${{world}}!', 'Hello, ${world}!', world="Earth")
         self.assert_formatter_equal('Hello, {world}!', 'Hello, Earth!', world="Earth")
 
-    def test_formatter_stdlib(self):
+    def test_formatter_stdlib(self) -> None:
         """
         string.Formatter.format tests from the Python standard library used to
         ensure we haven't broken functionality preset in the standard
@@ -53,59 +53,59 @@ class TestFormatter(TestBase):
 
         # classes we'll use for testing
         class C(object):
-            def __init__(self, x=100):
+            def __init__(self, x: int = 100) -> None:
                 self._x = x
 
-            def __format__(self, spec):
+            def __format__(self, spec) -> str:
                 return spec
 
         class D(object):
-            def __init__(self, x):
+            def __init__(self, x) -> None:
                 self.x = x
 
-            def __format__(self, spec):
+            def __format__(self, spec) -> str:
                 return str(self.x)
 
         # class with __str__, but no __format__
         class E(object):
-            def __init__(self, x):
+            def __init__(self, x) -> None:
                 self.x = x
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return 'E(' + self.x + ')'
 
         # class with __repr__, but no __format__ or __str__
         class F(object):
-            def __init__(self, x):
+            def __init__(self, x) -> None:
                 self.x = x
 
-            def __repr__(self):
+            def __repr__(self) -> str:
                 return 'F(' + self.x + ')'
 
         # class with __format__ that forwards to string, for some format_spec's
         class G(object):
-            def __init__(self, x):
+            def __init__(self, x) -> None:
                 self.x = x
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "string is " + self.x
 
-            def __format__(self, format_spec):
+            def __format__(self, format_spec) -> str:
                 if format_spec == 'd':
                     return 'G(' + self.x + ')'
                 return format(str(self), format_spec)
 
         # class that returns a bad type from __format__
         class H(object):
-            def __format__(self, format_spec):
+            def __format__(self, format_spec) -> str:
                 return 1.0
 
         class I(datetime.date):
-            def __format__(self, format_spec):
+            def __format__(self, format_spec) -> str:
                 return self.strftime(format_spec)
 
         class J(int):
-            def __format__(self, format_spec):
+            def __format__(self, format_spec) -> str:
                 return int.__format__(self * 2, format_spec)
 
         self.assert_formatter_equal('', '')
@@ -259,7 +259,7 @@ class TestFormatter(TestBase):
         self.assert_formatter_raises("{0:-s}", ValueError, '')
         self.assert_formatter_raises("{0:=s}", ValueError, '')
 
-    def test_formatter_recurse(self):
+    def test_formatter_recurse(self) -> None:
         self.assert_formatter_equal('Hello {0}!', 'Hello Earth!', '{world}',
                                     world='Earth')
 

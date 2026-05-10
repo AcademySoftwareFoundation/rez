@@ -7,6 +7,8 @@ This file lets you import anything from it, and the result is a variable set to
 None. It is only here to keep linters such as PyFlakes happy. It is used in cases
 where code looks like it references an uninitialised variable, but does not.
 """
+from __future__ import annotations
+
 from types import ModuleType
 import sys
 
@@ -15,7 +17,7 @@ class NoneModule(ModuleType):
     def __getattr__(self, name):
         return None
 
-    def used(self, object_):
+    def used(self, object_) -> None:
         """Use this to stop 'variable/module not used' linting errors."""
         pass
 

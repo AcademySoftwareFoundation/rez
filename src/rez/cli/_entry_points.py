@@ -47,7 +47,7 @@ def scriptname(name):
     return decorator
 
 
-def check_production_install():
+def check_production_install() -> None:
     path = os.path.dirname(sys.argv[0])
     filepath = os.path.join(path, ".rez_production_install")
 

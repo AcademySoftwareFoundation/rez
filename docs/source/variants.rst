@@ -37,7 +37,7 @@ the version of maya present. Only one variant of a package is ever used in a
 given configured environment.
 
 Each variant entry is a list of dependencies, no different to the packages listed
-in the :attr:`requires` field. These dependencies are appended to the ``requires`` list
+in the :pkgdef:attr:`requires` field. These dependencies are appended to the ``requires`` list
 for each variant. Thus the first variant requires ``openexr-2.2`` and ``maya-2016.sp1``,
 and the second variant requires ``openexr-2.2`` and ``maya-2017``.
 
@@ -76,7 +76,7 @@ There are two problems with the variant subpath as illustrated above:
   can cause escaping problems that affect build systems; and, depending on the
   platform, may not be a valid filesystem path.
 
-You can avoid these issues by using :attr:`hashed_variants`. This sets the variant
+You can avoid these issues by using :pkgdef:attr:`hashed_variants`. This sets the variant
 sub-path to a hash of its requirements, rather than the requirements themselves.
 The resulting sub-directory is somewhat unwieldy (example:
 ``83e0c415db1b602f9d59cee028da6ac785e9bacc``). However, another feature,

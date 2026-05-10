@@ -19,12 +19,12 @@ class StubReleaseVCS(ReleaseVCS):
     A writable '.stub' file must be present in the project root. Any created
     tags are written to this yaml file.
     """
-    def __init__(self, pkg_root, vcs_root=None):
+    def __init__(self, pkg_root, vcs_root=None) -> None:
         super(StubReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
         self.time = int(time.time())
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "stub"
 
     @classmethod
@@ -32,16 +32,16 @@ class StubReleaseVCS(ReleaseVCS):
         return os.path.exists(os.path.join(path, '.stub'))
 
     @classmethod
-    def search_parents_for_root(cls):
+    def search_parents_for_root(cls) -> bool:
         return False
 
-    def validate_repostate(self):
+    def validate_repostate(self) -> None:
         pass
 
     def get_current_revision(self):
         return self.time
 
-    def get_changelog(self, previous_revision=None, max_revisions=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None) -> str:
         if previous_revision:
             if isinstance(previous_revision, int):
                 seconds = self.time - previous_revision
@@ -51,11 +51,11 @@ class StubReleaseVCS(ReleaseVCS):
         else:
             return "This is the first commit"
 
-    def tag_exists(self, tag_name):
+    def tag_exists(self, tag_name) -> bool:
         data = self._read_stub()
         return tag_name in data.get("tags", [])
 
-    def create_release_tag(self, tag_name, message=None):
+    def create_release_tag(self, tag_name, message=None) -> None:
         data = self._read_stub()
         if "tags" not in data:
             data["tags"] = {}
@@ -71,7 +71,7 @@ class StubReleaseVCS(ReleaseVCS):
         with open(os.path.join(self.vcs_root, '.stub')) as f:
             return yaml.load(f.read(), Loader=yaml.FullLoader) or {}
 
-    def _write_stub(self, data):
+    def _write_stub(self, data) -> None:
         with open(os.path.join(self.vcs_root, '.stub'), 'w') as f:
             f.write(dump_yaml(data))
 

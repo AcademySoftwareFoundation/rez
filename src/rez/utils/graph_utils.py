@@ -5,6 +5,8 @@
 """
 Functions for manipulating dot-based resolve graphs.
 """
+from __future__ import annotations
+
 import os.path
 import sys
 import tempfile
@@ -17,9 +19,10 @@ from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.vendor.pygraph.classes.digraph import digraph
+from typing import cast
 
 
-def read_graph_from_string(txt):
+def read_graph_from_string(txt: str) -> digraph:
     """Read a graph from a string, either in dot format, or our own
     compressed format.
 
@@ -27,7 +30,7 @@ def read_graph_from_string(txt):
         `pygraph.digraph`: Graph object.
     """
     if not txt.startswith('{'):
-        return read_dot(txt)  # standard dot format
+        return cast(digraph, read_dot(txt))  # standard dot format
 
     def conv(value):
         if isinstance(value, str):
@@ -108,7 +111,7 @@ def write_compacted(g):
     return contents
 
 
-def write_dot(g):
+def write_dot(g: digraph) -> str:
     """Replacement for pygraph.readwrite.dot.write, which is dog slow.
 
     Note:
@@ -261,7 +264,7 @@ def save_graph_object(g, dest_file, fmt=None, image_ratio=None):
     return fmt
 
 
-def view_graph(graph_str, dest_file=None):
+def view_graph(graph_str, dest_file=None) -> None:
     """View a dot graph in an image viewer."""
     from rez.system import system
     from rez.config import config

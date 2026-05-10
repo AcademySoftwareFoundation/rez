@@ -5,6 +5,8 @@
 """
 Zsh shell
 """
+from __future__ import annotations
+
 import os
 import os.path
 from rez.config import config
@@ -14,6 +16,8 @@ from rezplugins.shell.sh import SH
 from rez import module_root_path
 from shlex import quote
 
+from typing import Literal
+
 
 class Zsh(SH):
     rcfile_arg = None
@@ -21,12 +25,17 @@ class Zsh(SH):
     histfile = "~/.zsh_history"
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'zsh'
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(
+        cls,
+        rcfile: str | None | Literal[False] = False,
+        norc: bool = False,
+        stdin: bool = False,
+        command: bool = False
+    ) -> tuple[str | None | Literal[False], bool, bool, bool]:
         if norc:
             cls._overruled_option('rcfile', 'norc', rcfile)
             rcfile = False
@@ -41,7 +50,7 @@ class Zsh(SH):
         return (rcfile, norc, stdin, command)
 
     @classmethod
-    def get_startup_sequence(cls, rcfile, norc, stdin, command):
+    def get_startup_sequence(cls, rcfile: str | None, norc: bool, stdin: bool, command):
         rcfile, norc, stdin, command = \
             cls.startup_capabilities(rcfile, norc, stdin, command)
 
@@ -73,7 +82,7 @@ class Zsh(SH):
             source_bind_files=not norc
         )
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         if config.set_prompt and self.settings.prompt:
             self._addline(r'if [ -z "$REZ_STORED_PROMPT_SH" ]; then export REZ_STORED_PROMPT_SH="$PS1"; fi')
             if config.prefix_prompt:
@@ -84,7 +93,7 @@ class Zsh(SH):
         completion = os.path.join(module_root_path, "completion", "complete.zsh")
         self.source(completion)
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value: str | EscapedString, is_path=False) -> str:
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''

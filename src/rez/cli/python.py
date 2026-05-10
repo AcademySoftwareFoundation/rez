@@ -7,9 +7,10 @@ Start a python interpreter or execute a python script within Rez's own execution
 
 Unrecognised args are passed directly to the underlying python interpreter.
 """
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     file_action = parser.add_argument(
         "FILE", type=str, nargs='?',
         help='python script to execute')
@@ -20,7 +21,7 @@ def setup_parser(parser, completions=False):
                                                file_patterns=["*.py"])
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.cli._main import is_hyphened_command
     from rez.utils.execution import Popen
     import sys

@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import rez
 from rez.package_maker import make_package
 from rez.system import system
@@ -10,7 +12,7 @@ import sys
 import shutil
 
 
-def install_as_rez_package(repo_path):
+def install_as_rez_package(repo_path) -> None:
     """Install the current rez installation as a rez package.
 
     Note: This is very similar to 'rez-bind rez', however rez-bind is intended
@@ -19,10 +21,10 @@ def install_as_rez_package(repo_path):
     Args:
         repo_path (str): Repository to install the rez package into.
     """
-    def commands():
+    def commands() -> None:
         env.PYTHONPATH.append('{this.root}')  # noqa
 
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         # copy source
         rez_path = rez.__path__[0]
         site_path = os.path.dirname(rez_path)

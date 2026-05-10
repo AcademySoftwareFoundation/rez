@@ -43,7 +43,7 @@ def pip_to_rez_package_name(dist_name):
     return dist_name.replace("-", "_")
 
 
-def pip_to_rez_version(dist_version, allow_legacy=True):
+def pip_to_rez_version(dist_version, allow_legacy: bool = True):
     """Convert a distribution version to a rez compatible version.
 
     TODO [AJ] needs a table of example conversions.
@@ -188,7 +188,7 @@ def pip_specifier_to_rez_requirement(specifier):
     Returns:
         `VersionRange`: Equivalent rez version range.
     """
-    def is_release(rez_ver):
+    def is_release(rez_ver) -> bool:
         parts = rez_ver.split('.')
         try:
             _ = int(parts[-1])  # noqa

@@ -5,6 +5,8 @@
 """
 Utility code for supporting earlier Rez data in later Rez releases.
 """
+from __future__ import annotations
+
 import re
 import os
 import os.path
@@ -52,7 +54,7 @@ def convert_old_command_expansions(command):
 within_unescaped_quotes_regex = re.compile('(?<!\\\\)"(.*?)(?<!\\\\)"')
 
 
-def convert_old_commands(commands, annotate=True):
+def convert_old_commands(commands: list[str], annotate: bool = True) -> str:
     """Converts old-style package commands into equivalent Rex code."""
     from rez.config import config
     from rez.utils.logging_ import print_debug

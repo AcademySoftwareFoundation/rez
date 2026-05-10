@@ -6,22 +6,25 @@
 test the build system
 """
 from rez.config import config
-from rez.build_process import create_build_process
-from rez.build_system import create_build_system
+from rez.build_process import create_build_process, BuildType
+from rez.build_system import create_build_system, BuildSystem
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildError, BuildContextResolveError, \
-    PackageFamilyNotFoundError
+    PackageFamilyNotFoundError, RezPluginError
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
     per_available_shell, install_dependent, program_dependent
 from rez.utils.platform_ import platform_
+from rez.shells import create_shell
+from rez.packages import get_developer_package
+from rez.rex import RexExecutor
 import shutil
 import os.path
 
 
 class TestBuild(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         packages_path = cls.data_path("builds", "packages")
@@ -42,7 +45,7 @@ class TestBuild(TestBase, TempdirMixin):
             implicit_packages=[])
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
     @classmethod
@@ -56,7 +59,7 @@ class TestBuild(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    def _test_build(self, name, version=None):
+    def _test_build(self, name, version=None) -> None:
         # create the builder
         working_dir = os.path.join(self.src_root, name)
         if version:
@@ -71,17 +74,17 @@ class TestBuild(TestBase, TempdirMixin):
         builder.build(install_path=self.install_root, install=True, clean=True)
         builder.build(install_path=self.install_root, install=True)
 
-    def _test_build_build_util(self):
+    def _test_build_build_util(self) -> None:
         """Build, install, test the build_util package."""
         self._test_build("build_util", "1")
         self._create_context("build_util==1")
 
-    def _test_build_floob(self):
+    def _test_build_floob(self) -> None:
         """Build, install, test the floob package."""
         self._test_build("floob")
         self._create_context("floob==1.2.0")
 
-    def _test_build_foo(self):
+    def _test_build_foo(self) -> None:
         """Build, install, test the foo package."""
         self._test_build("foo", "1.0.0")
         self._create_context("foo==1.0.0")
@@ -96,25 +99,25 @@ class TestBuild(TestBase, TempdirMixin):
         # test that include modules are working
         self.assertEqual(environ.get("EEK"), "2")
 
-    def _test_build_loco(self):
+    def _test_build_loco(self) -> None:
         """Test that a package with conflicting requirements fails correctly.
         """
         working_dir = os.path.join(self.src_root, "loco", "3")
         builder = self._create_builder(working_dir)
         self.assertRaises(BuildContextResolveError, builder.build, clean=True)
 
-    def _test_build_bah(self):
+    def _test_build_bah(self) -> None:
         """Build, install, test the bah package."""
         self._test_build("bah", "2.1")
         self._create_context("bah==2.1", "foo==1.0.0")
         self._create_context("bah==2.1", "foo==1.1.0")
 
-    def _test_build_anti(self):
+    def _test_build_anti(self) -> None:
         """Build, install, test the anti package."""
         self._test_build("anti", "1.0.0")
         self._create_context("anti==1.0.0")
 
-    def _test_build_translate_lib(self):
+    def _test_build_translate_lib(self) -> None:
         """Build, install, test the translate_lib package."""
         self._test_build("translate_lib", "2.2.0")
         context = self._create_context("translate_lib==2.2.0")
@@ -126,7 +129,7 @@ class TestBuild(TestBase, TempdirMixin):
         # is testing spaces in symlinks per issue #553
         self.assertTrue(find_file_in_path('a spaced document', os.path.join(root, 'docs')))
 
-    def _test_build_sup_world(self):
+    def _test_build_sup_world(self) -> None:
         """Build, install, test the sup_world package."""
         from subprocess import PIPE
         self._test_build("sup_world", "3.8")
@@ -137,7 +140,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_build_whack(self, shell):
+    def test_build_whack(self, shell) -> None:
         """Test that a broken build fails correctly.
         """
         config.override("default_shell", shell)
@@ -149,7 +152,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_builds(self, shell):
+    def test_builds(self, shell) -> None:
         """Test an interdependent set of builds.
         """
         config.override("default_shell", shell)
@@ -163,7 +166,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_builds_anti(self, shell):
+    def test_builds_anti(self, shell) -> None:
         """Test we can build packages that contain anti packages
         """
         config.override("default_shell", shell)
@@ -175,7 +178,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @program_dependent("cmake")
     @install_dependent()
-    def test_build_cmake(self):
+    def test_build_cmake(self) -> None:
         """Test a cmake-based package."""
         if platform_.name == "windows":
             self.skipTest("This test does not run on Windows due to temporary"
@@ -189,7 +192,7 @@ class TestBuild(TestBase, TempdirMixin):
 
     @unittest.skipIf(platform_.name == "windows", "Skipping because make and GCC are not common on Windows")
     @program_dependent("make", "g++")
-    def test_build_custom(self):
+    def test_build_custom(self) -> None:
         """Test a make-based package that uses the custom_build attribute."""
         from subprocess import PIPE
 
@@ -199,6 +202,83 @@ class TestBuild(TestBase, TempdirMixin):
         proc = context.execute_command(['hai'], stdout=PIPE)
         stdout = proc.communicate()[0]
         self.assertEqual('Oh hai!', stdout.decode("utf-8").strip())
+
+    def test_set_standard_vars_escaping(self) -> None:
+        """Test that set_standard_vars properly escapes environment variables."""
+        # Create a test package directory with special characters in description
+        temp_pkg_dir = os.path.join(self.root, "test_special_package")
+        os.makedirs(temp_pkg_dir)
+
+        # Create a package.py file with special characters
+        package_py_content = """
+name = "test_special_chars"
+version = "1.0.0"
+description = 'A test \\'package with "quotes" and $pecial characters & more!'
+authors = ["test@example.com"]
+requires = []
+"""
+
+        package_py_path = os.path.join(temp_pkg_dir, "package.py")
+        with open(package_py_path, 'w') as f:
+            f.write(package_py_content)
+
+        # Get the developer package
+        package = get_developer_package(temp_pkg_dir)
+
+        # Get the first variant from the package
+        variant = next(package.iter_variants())
+
+        # Create a minimal context for testing - we don't need to resolve packages
+        # since we're only testing environment variable escaping
+        context = self._create_context()  # Empty context
+
+        # Create a bash shell executor using RexExecutor
+        shell_type = "gitbash"
+        if platform_.name == "windows":
+            shell_type = "gitbash"
+        try:
+            bash_shell = create_shell(shell_type)
+        except RezPluginError:
+            self.skipTest(f"Required shell {shell_type!r} is not available")
+
+        executor = RexExecutor(interpreter=bash_shell, parent_environ={}, shebang=False)
+
+        build_path = os.path.join(self.root, "build")
+        install_path = os.path.join(self.root, "install")
+
+        BuildSystem.set_standard_vars(
+            executor=executor,
+            context=context,
+            variant=variant,
+            build_type=BuildType.local,
+            install=True,
+            build_path=build_path,
+            install_path=install_path
+        )
+
+        # Get the generated shell script
+        script_output = executor.get_output()
+
+        self.assertEqual(
+            script_output,
+            f"""export REZ_BUILD_ENV='1'
+export REZ_BUILD_PATH='{executor.normalize_path(build_path)}'
+export REZ_BUILD_THREAD_COUNT='{package.config.build_thread_count}'
+export REZ_BUILD_VARIANT_INDEX='0'
+export REZ_BUILD_VARIANT_REQUIRES=''
+export REZ_BUILD_VARIANT_SUBPATH=''
+export REZ_BUILD_PROJECT_VERSION='1.0.0'
+export REZ_BUILD_PROJECT_NAME='test_special_chars'
+export REZ_BUILD_PROJECT_DESCRIPTION='A test '"'"'package with "quotes" and $pecial characters & more!'
+export REZ_BUILD_PROJECT_FILE='{package_py_path}'
+export REZ_BUILD_SOURCE_PATH='{executor.normalize_path(temp_pkg_dir)}'
+export REZ_BUILD_REQUIRES=''
+export REZ_BUILD_REQUIRES_UNVERSIONED=''
+export REZ_BUILD_TYPE='local'
+export REZ_BUILD_INSTALL='1'
+export REZ_BUILD_INSTALL_PATH='{executor.normalize_path(install_path)}'
+"""
+        )
 
 
 if __name__ == '__main__':

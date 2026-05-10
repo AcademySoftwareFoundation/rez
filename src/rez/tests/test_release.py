@@ -25,7 +25,7 @@ import os.path
 
 class TestRelease(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         cls.src_path = cls.data_path("release")
@@ -41,14 +41,14 @@ class TestRelease(TestBase, TempdirMixin):
             implicit_packages=[])
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
     @classmethod
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    def _setup_release(self):
+    def _setup_release(self) -> None:
         # start fresh
         system.clear_caches()
         if os.path.exists(self.install_root):
@@ -78,11 +78,11 @@ class TestRelease(TestBase, TempdirMixin):
         self.vcs = create_release_vcs(self.src_root)
         self.assertEqual(self.vcs.name(), "stub")
 
-    def _write_package(self):
+    def _write_package(self) -> None:
         with open(self.packagefile, 'w') as f:
             dump_package_data(self.package_data, f, format_=FileFormat.yaml)
 
-    def _create_builder(self, ensure_latest=True):
+    def _create_builder(self, ensure_latest: bool = True):
         buildsys = create_build_system(self.src_root, verbose=True)
 
         return create_build_process(process_type="local",
@@ -93,7 +93,7 @@ class TestRelease(TestBase, TempdirMixin):
                                     ignore_existing_tag=True,
                                     verbose=True)
 
-    def assertVariantsEqual(self, vars1, vars2):
+    def assertVariantsEqual(self, vars1, vars2) -> None:
         """Utility function to compare string-variants with formal lists of
         "PackageRequest" objects
         """
@@ -105,7 +105,7 @@ class TestRelease(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_1(self, shell):
+    def test_1(self, shell) -> None:
         """Basic release."""
         self.inject_python_repo()
         config.override("default_shell", shell)
@@ -169,7 +169,7 @@ class TestRelease(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_2_variant_add(self, shell):
+    def test_2_variant_add(self, shell) -> None:
         """Test variant installation on release
         """
         self.inject_python_repo()

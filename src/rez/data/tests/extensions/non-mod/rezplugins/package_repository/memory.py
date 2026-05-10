@@ -3,7 +3,7 @@ from rez.package_repository import PackageRepository
 
 class MemoryPackageRepository(PackageRepository):
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "memory"
     on_test = "non-mod"
 

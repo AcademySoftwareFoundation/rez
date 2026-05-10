@@ -9,15 +9,15 @@ from rezgui.widgets.FindPopup import FindPopup
 class SearchableTextEdit(QtWidgets.QTextEdit):
     """A TextEdit that can be searched.
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(SearchableTextEdit, self).__init__(parent)
         self.searchable = True
         self.popup = None
 
-    def set_searchable(self, enable):
+    def set_searchable(self, enable) -> None:
         self.searchable = enable
 
-    def search(self):
+    def search(self) -> None:
         if not self.searchable:
             return
 
@@ -32,7 +32,7 @@ class SearchableTextEdit(QtWidgets.QTextEdit):
         self.popup.find.connect(self._find_text)
         self.popup.show()
 
-    def _find_text(self, word):
+    def _find_text(self, word) -> None:
         if not self.find(word):
             # search from top
             self.moveCursor(QtGui.QTextCursor.Start)

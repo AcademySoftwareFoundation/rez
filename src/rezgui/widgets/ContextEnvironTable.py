@@ -6,7 +6,7 @@ from Qt import QtCompat, QtCore, QtWidgets
 
 
 class ContextEnvironTable(QtWidgets.QTableWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(ContextEnvironTable, self).__init__(0, 2, parent)
         self.context = None
         self.split_char = None
@@ -27,13 +27,13 @@ class ContextEnvironTable(QtWidgets.QTableWidget):
             vh, QtWidgets.QHeaderView.ResizeToContents)
         self.setEnabled(False)
 
-    def clear(self):
+    def clear(self) -> None:
         super(ContextEnvironTable, self).clear()
         self.setEnabled(False)
         hh = self.horizontalHeader()
         hh.setVisible(False)
 
-    def set_split_character(self, ch=None):
+    def set_split_character(self, ch=None) -> None:
         """Set the 'split' character.
 
         If a 'split' character is set, values containing this character are
@@ -44,12 +44,12 @@ class ContextEnvironTable(QtWidgets.QTableWidget):
         self.split_char = ch
         self.refresh()
 
-    def refresh(self):
+    def refresh(self) -> None:
         context = self.context
         self.context = None
         self.set_context(context)
 
-    def set_context(self, context):
+    def set_context(self, context) -> None:
         self.clear()
         self.context = context
         if self.context is None:

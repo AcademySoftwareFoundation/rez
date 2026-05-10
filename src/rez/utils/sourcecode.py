@@ -2,18 +2,28 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils.formatting import indent
 from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug
 from rez.util import load_module_from_file
 from inspect import getsourcelines
 from textwrap import dedent
+from types import CodeType, ModuleType
+from typing import Callable, Generic, TypeVar, TYPE_CHECKING
 from glob import glob
 import traceback
 import os.path
 
+if TYPE_CHECKING:
+    from rez.packages import PackageBaseResourceWrapper
 
-def early():
+T = TypeVar("T")
+CallabeT = TypeVar("CallabeT", bound=Callable)
+
+
+def early() -> Callable[[CallabeT], CallabeT]:
     """Used by functions in package.py to harden to the return value at build time.
 
     The term 'early' refers to the fact these package attribute are evaluated
@@ -26,7 +36,7 @@ def early():
     return decorated
 
 
-def late():
+def late() -> Callable[[CallabeT], CallabeT]:
     """Used by functions in package.py that are evaluated lazily.
 
     The term 'late' refers to the fact these package attributes are evaluated
@@ -53,7 +63,7 @@ def late():
     return decorated
 
 
-def include(module_name, *module_names):
+def include(module_name: str, *module_names: str) -> Callable[[CallabeT], CallabeT]:
     """Used by functions in package.py to have access to named modules.
 
     See the 'package_definition_python_path' config setting for more info.
@@ -65,7 +75,7 @@ def include(module_name, *module_names):
     return decorated
 
 
-def _add_decorator(fn, name, **kwargs):
+def _add_decorator(fn, name, **kwargs) -> None:
     if not hasattr(fn, "_decorators"):
         setattr(fn, "_decorators", [])
 
@@ -74,7 +84,7 @@ def _add_decorator(fn, name, **kwargs):
 
 
 class SourceCodeError(Exception):
-    def __init__(self, msg, short_msg):
+    def __init__(self, msg: str, short_msg: str) -> None:
         super(SourceCodeError, self).__init__(msg)
         self.short_msg = short_msg
 
@@ -87,27 +97,27 @@ class SourceCodeExecError(SourceCodeError):
     pass
 
 
-class SourceCode(object):
+class SourceCode(Generic[T]):
     """Wrapper for python source code.
 
     This object is aware of the decorators defined in this sourcefile (such as
     'include') and deals with them appropriately.
     """
-    def __init__(self, source=None, func=None, filepath=None,
-                 eval_as_function=True):
+    def __init__(self, source: str | None = None, func: Callable[[], T] | None = None,
+                 filepath: str | None = None, eval_as_function: bool = True) -> None:
         self.source = (source or '').rstrip()
         self.func = func
         self.filepath = filepath
         self.eval_as_function = eval_as_function
-        self.package = None
+        self.package: PackageBaseResourceWrapper | None = None
 
-        self.funcname = None
-        self.decorators = []
+        self.funcname: str | None = None
+        self.decorators: list[dict] = []
 
         if self.func is not None:
             self._init_from_func()
 
-    def copy(self):
+    def copy(self) -> SourceCode[T]:
         other = SourceCode.__new__(SourceCode)
         other.source = self.source
         other.func = self.func
@@ -119,7 +129,7 @@ class SourceCode(object):
 
         return other
 
-    def _init_from_func(self):
+    def _init_from_func(self) -> None:
         self.funcname = self.func.__name__
         self.decorators = getattr(self.func, "_decorators", [])
 
@@ -151,7 +161,7 @@ class SourceCode(object):
         self.source = code
 
     @cached_property
-    def includes(self):
+    def includes(self) -> set | None:
         info = self._get_decorator_info("include")
         if not info:
             return None
@@ -159,12 +169,12 @@ class SourceCode(object):
         return set(info.get("nargs", []))
 
     @cached_property
-    def late_binding(self):
+    def late_binding(self) -> bool:
         info = self._get_decorator_info("late")
         return bool(info)
 
     @cached_property
-    def evaluated_code(self):
+    def evaluated_code(self) -> str:
         if self.eval_as_function:
             funcname = self.funcname or "_unnamed"
 
@@ -180,7 +190,7 @@ class SourceCode(object):
         return code
 
     @property
-    def sourcename(self):
+    def sourcename(self) -> str:
         if self.filepath:
             filename = self.filepath
         else:
@@ -192,7 +202,7 @@ class SourceCode(object):
         return "<%s>" % filename
 
     @cached_property
-    def compiled(self):
+    def compiled(self) -> CodeType:
         try:
             pyc = compile(self.evaluated_code, self.sourcename, 'exec')
         except Exception as e:
@@ -203,11 +213,11 @@ class SourceCode(object):
 
         return pyc
 
-    def set_package(self, package):
+    def set_package(self, package: PackageBaseResourceWrapper) -> None:
         # this is needed to load @included modules
         self.package = package
 
-    def exec_(self, globals_={}):
+    def exec_(self, globals_={}) -> T:
         # bind import modules
         if self.package is not None and self.includes:
             for name in self.includes:
@@ -227,7 +237,7 @@ class SourceCode(object):
 
         return globals_.get("_result")
 
-    def to_text(self, funcname):
+    def to_text(self, funcname: str) -> str:
         # don't indent code if already indented
         if self.source[0] in (' ', '\t'):
             source = self.source
@@ -245,7 +255,7 @@ class SourceCode(object):
 
         return txt
 
-    def _get_decorator_info(self, name):
+    def _get_decorator_info(self, name: str) -> dict | None:
         matches = [x for x in self.decorators if x.get("name") == name]
         if not matches:
             return None
@@ -261,7 +271,7 @@ class SourceCode(object):
             "decorators": self.decorators
         }
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         self.source = state["source"]
         self.filepath = state["filepath"]
         self.funcname = state["funcname"]
@@ -277,13 +287,13 @@ class SourceCode(object):
             and other.source == self.source
         )
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not (other == self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.source
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%r)" % (self.__class__.__name__, self.source)
 
 
@@ -296,10 +306,10 @@ class IncludeModuleManager(object):
     #
     include_modules_subpath = ".rez/include"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.modules = {}
 
-    def load_module(self, name, package):
+    def load_module(self, name: str, package: PackageBaseResourceWrapper) -> ModuleType | None:
         from hashlib import sha1
         from rez.config import config  # avoiding circular import
         from rez.developer_package import DeveloperPackage

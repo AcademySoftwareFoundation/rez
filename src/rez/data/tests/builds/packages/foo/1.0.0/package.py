@@ -8,10 +8,10 @@ build_requires = ["floob"]
 
 private_build_requires = ["build_util", "python"]
 
-def pre_build_commands():
+def pre_build_commands() -> None:
     env.FOO_TEST_VAR = "hello"
 
-def commands():
+def commands() -> None:
     env.PYTHONPATH.append('{root}/python')
 
 build_command = 'python {root}/build.py {install}'

@@ -5,9 +5,10 @@
 '''
 Open a rez-configured shell, possibly interactive.
 '''
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     from argparse import SUPPRESS
     from rez.config import config
     from rez.system import system
@@ -31,7 +32,7 @@ def setup_parser(parser, completions=False):
         "-c", "--command", type=str,
         help="execute command within rez environment and exit, instead of "
         "starting an interactive shell. Alternatively, list command after a "
-        "'--'. The command and arguments passed to '-c' must be passed in as "
+        "'--'. The command and arguments passed to -c must be passed in as "
         "a single shell argument, whereas the command and arguments after "
         "'--' may be passed in as several shell arguments.")
     parser.add_argument(
@@ -143,7 +144,7 @@ def setup_parser(parser, completions=False):
             "extra_0", ExecutablesCompleter, FilesCompleter())
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.resolved_context import ResolvedContext
     from rez.resolver import ResolverStatus
     from rez.package_filter import PackageFilterList, Rule

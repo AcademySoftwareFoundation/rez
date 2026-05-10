@@ -6,7 +6,7 @@ description = "build utilities"
 
 private_build_requires = ["python"]
 
-def commands():
+def commands() -> None:
     env.PYTHONPATH.append('{root}/python')
 
 build_command = 'python {root}/build.py {install}'

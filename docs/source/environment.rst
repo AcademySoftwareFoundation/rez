@@ -71,7 +71,7 @@ These are variables that rez generates within a resolved environment (a "context
 .. envvar:: REZ_CONTEXT_FILE
 
    Filepath of the current context's shell code that is the result of all the
-   resolved packages :func:`commands`'s sections.
+   resolved packages :pkgdef:func:`commands`'s sections.
 
 Package environment variables
 -----------------------------
@@ -160,8 +160,8 @@ to context environment variables listed :ref:`here <context-environment-variable
 
 .. envvar:: REZ_BUILD_REQUIRES
 
-   Space-separated list of requirements for the build - comes from the current package's :attr:`requires`,
-   :attr:`build_requires` and :attr:`private_build_requires` attributes, including the current variant's requirements.
+   Space-separated list of requirements for the build - comes from the current package's :pkgdef:attr:`requires`,
+   :pkgdef:attr:`build_requires` and :pkgdef:attr:`private_build_requires` attributes, including the current variant's requirements.
 
 .. envvar:: REZ_BUILD_REQUIRES_UNVERSIONED
 

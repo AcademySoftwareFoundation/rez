@@ -5,12 +5,14 @@
 '''
 Manipulate a package cache.
 '''
+from __future__ import annotations
+
 from argparse import SUPPRESS
 import os.path
 import sys
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     column_choices = (
         "status",
         "package",
@@ -66,7 +68,7 @@ def setup_parser(parser, completions=False):
     )
 
 
-def add_variant(pkgcache, uri, opts):
+def add_variant(pkgcache, uri, opts) -> None:
     import shutil
 
     from rez.config import config
@@ -109,7 +111,7 @@ def add_variant(pkgcache, uri, opts):
         print_info("Successfully cached to: %s", destpath)
 
 
-def remove_variant(pkgcache, uri, opts):
+def remove_variant(pkgcache, uri, opts) -> None:
     from rez.packages import get_variant_from_uri
     from rez.utils.logging_ import print_info, print_warning, print_error
     from rez.package_cache import PackageCache
@@ -131,7 +133,7 @@ def remove_variant(pkgcache, uri, opts):
         print_info("Variant successfully removed")
 
 
-def view_logs(pkgcache, opts):
+def view_logs(pkgcache, opts) -> None:
     from rez.utils.logging_ import view_file_logs
 
     view_file_logs(
@@ -140,7 +142,7 @@ def view_logs(pkgcache, opts):
     )
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.config import config
     from rez.package_cache import PackageCache
     from rez.utils.formatting import print_colored_columns

@@ -89,10 +89,10 @@ really need to know first is which python you want to use and from there you sho
 which Pip is used. Knowing the Pip version is of secondary importance.
 
 At some point, we supported the :option:`--pip-version <rez-pip --pip-version>` argument, but considering what was just said
-above, we decided to deprecate it (but not remove it yet) just for backward compatibility.
+above, we decided to remove it.
 Pip is too tightly coupled to the python version/interpreter it is installed with
 for us to support having Pip as a rez package. We just can't guarantee that Pip can be
-install once in a central way and work with multiple different python version, and potentially
+installed once in a central way and work with multiple different python version, and potentially
 different implementations.
 
 .. _how-should-i-install-pip:
@@ -137,7 +137,6 @@ See :ref:`which-pip-will-be-used` for more details.
 If the Pip package is not pure (so contains ``.so`` for example), you will need to
 run :ref:`rez-pip` for each python version you want to install the Pip package for.
 
-.. warning::
-   :option:`--pip-version <rez-pip --pip-version>` is deprecated and will be removed in the future.
+.. tip::
    See :ref:`how-should-i-install-pip` on how we recommend
-   to install Pip from now on.
+   to install pip.

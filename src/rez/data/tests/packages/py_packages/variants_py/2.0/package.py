@@ -11,5 +11,5 @@ variants = [
     ["platform-osx"]
 ]
 
-def commands():
+def commands() -> None:
     env.PATH.append("{root}/bin")

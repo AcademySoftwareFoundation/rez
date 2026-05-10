@@ -10,8 +10,8 @@ class ResolveThread(QtCore.QObject):
 
     finished = QtCore.Signal()
 
-    def __init__(self, context_model, verbosity=0, max_fails=-1, timestamp=None,
-                 show_package_loads=True, buf=None):
+    def __init__(self, context_model, verbosity: int=0, max_fails=-1, timestamp=None,
+                 show_package_loads: bool = True, buf=None) -> None:
         super(ResolveThread, self).__init__()
         self.context_model = context_model
         self.context = None
@@ -25,7 +25,7 @@ class ResolveThread(QtCore.QObject):
         self.abort_reason = None
         self.error_message = None
 
-    def run(self):
+    def run(self) -> None:
         package_load_callback = (self._package_load_callback
                                  if self.show_package_loads else None)
         try:
@@ -42,7 +42,7 @@ class ResolveThread(QtCore.QObject):
         if not self.stopped:
             self.finished.emit()
 
-    def stop(self):
+    def stop(self) -> None:
         self.stopped = True
         self.abort_reason = "Cancelled by user."
 
@@ -54,6 +54,6 @@ class ResolveThread(QtCore.QObject):
             print("solve step %d..." % solver_state.num_solves, file=self.buf)
         return (not self.stopped), self.abort_reason
 
-    def _package_load_callback(self, package):
+    def _package_load_callback(self, package) -> None:
         if self.buf:
             print("loading %s..." % str(package), file=self.buf)

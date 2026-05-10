@@ -16,7 +16,7 @@ class PackageSelectWidget(QtWidgets.QWidget, ContextViewMixin):
     focusOut = QtCore.Signal(str)
     textChanged = QtCore.Signal(str)
 
-    def __init__(self, context_model=None, read_only=False, parent=None):
+    def __init__(self, context_model=None, read_only: bool = False, parent=None) -> None:
         super(PackageSelectWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -42,31 +42,31 @@ class PackageSelectWidget(QtWidgets.QWidget, ContextViewMixin):
     def text(self):
         return self.edit.text()
 
-    def setText(self, txt):
+    def setText(self, txt) -> None:
         self.edit.setText(txt)
 
-    def clone_into(self, other):
+    def clone_into(self, other) -> None:
         self.edit.clone_into(other.edit)
 
-    def setFocus(self):
+    def setFocus(self) -> None:
         self.edit.setFocus()
         self.btn.show()
 
-    def _focusIn(self):
+    def _focusIn(self) -> None:
         self.btn.show()
 
-    def _focusOut(self, txt):
+    def _focusOut(self, txt) -> None:
         self.btn.hide()
         self.focusOut.emit(txt)
 
-    def _focusOutViaKeyPress(self, txt):
+    def _focusOutViaKeyPress(self, txt) -> None:
         self.btn.hide()
         self.focusOutViaKeyPress.emit(txt)
 
-    def _textChanged(self, txt):
+    def _textChanged(self, txt) -> None:
         self.textChanged.emit(txt)
 
-    def _browse_package(self, button):
+    def _browse_package(self, button) -> None:
         self.btn.show()
         dlg = BrowsePackageDialog(context_model=self.context_model,
                                   package_text=self.text(),

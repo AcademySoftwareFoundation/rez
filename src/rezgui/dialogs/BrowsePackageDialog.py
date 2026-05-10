@@ -11,8 +11,8 @@ from rezgui.objects.App import app
 
 class BrowsePackageDialog(QtWidgets.QDialog, StoreSizeMixin):
     def __init__(self, context_model, package_text=None, parent=None,
-                 close_only=False, lock_package=False,
-                 package_selectable_callback=None):
+                 close_only: bool = False, lock_package: bool = False,
+                 package_selectable_callback=None) -> None:
         config_key = "layout/window/browse_package"
         super(BrowsePackageDialog, self).__init__(parent)
         StoreSizeMixin.__init__(self, app.config, config_key)
@@ -49,7 +49,7 @@ class BrowsePackageDialog(QtWidgets.QDialog, StoreSizeMixin):
         self.widget.packageSelected.connect(self._set_package)
         self.widget.set_package_text(package_text)
 
-    def _set_package(self):
+    def _set_package(self) -> None:
         package = self.widget.current_package()
         if package is None:
             self.setWindowTitle("Find Package")
@@ -58,6 +58,6 @@ class BrowsePackageDialog(QtWidgets.QDialog, StoreSizeMixin):
             self.setWindowTitle("Find Package - %s" % package.qualified_name)
             self.ok_btn.setEnabled(True)
 
-    def _ok(self):
+    def _ok(self) -> None:
         self.package = self.widget.current_package()
         self.close()

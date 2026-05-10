@@ -7,7 +7,7 @@ Utility for displaying help for the given package.
 """
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument("-m", "--manual", dest="manual", action="store_true",
                         default=False,
                         help="Load the rez technical user manual")
