@@ -181,7 +181,6 @@ overwritten. It is for this reason that caching is disabled for local packages b
 default (see :data:`package_cache_local`).
 
 Controlling Disk Usage
-Controlling Disk Usage
 ----------------------
 
 You can control the disk usage of the package cache by using the
