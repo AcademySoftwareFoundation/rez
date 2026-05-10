@@ -10,8 +10,8 @@ Consider the simple example:
 .. code-block:: python
 
    def commands():
-     env.PYTHONPATH.append("{root}/python")
-     env.PATH.append("{root}/bin")
+       env.PYTHONPATH.append("{root}/python")
+       env.PATH.append("{root}/bin")
 
 This is a typical case, where a package adds its source path to ``PYTHONPATH``, and its tools to
 ``PATH``. The ``{root}`` string expands to the installation directory of the package.
@@ -196,7 +196,7 @@ Thus, even if you're on Windows, you should do this:
 .. code-block:: python
 
    def commands():
-      env.PATH.append("{root}/bin")  # note the forward slash
+       env.PATH.append("{root}/bin")  # note the forward slash
 
 Where necessary, filepaths will be automatically normalized for you. That is, converted into
 the syntax expected by the shell. In order for this to work correctly however, rez needs to know
@@ -262,37 +262,37 @@ Here is an example of a package definition with a fairly lengthy :pkgdef:func:`c
    version = "1.0.0"
 
    requires = [
-      "python-2.7",
-      "~maya-2015"
+       "python-2.7",
+       "~maya-2015"
    ]
 
    def commands():
-      import os.path  # imports MUST be inline to the function
+       import os.path  # imports MUST be inline to the function
 
-      # add python module, executables
-      env.PYTHONPATH.append("{this.root}/python")
-      env.PATH.append("{this.root}/bin")
+       # add python module, executables
+       env.PYTHONPATH.append("{this.root}/python")
+       env.PATH.append("{this.root}/bin")
 
-      # show include path if a build is occurring
-      if building:
-         env.FOO_INCLUDE_PATH = "{this.root}/include"
+       # show include path if a build is occurring
+       if building:
+           env.FOO_INCLUDE_PATH = "{this.root}/include"
 
-      # debug support to point at local config
-      if defined("DEBUG_FOO"):
-         conf_file = os.path.expanduser("~/.foo/config")
-      else:
-         conf_file = "{this.root}/config"
-      env.FOO_CONFIG_FILE = conf_file
+       # debug support to point at local config
+       if defined("DEBUG_FOO"):
+           conf_file = os.path.expanduser("~/.foo/config")
+       else:
+           conf_file = "{this.root}/config"
+       env.FOO_CONFIG_FILE = conf_file
 
-      # if maya is in use then include the maya plugin part of this package
-      if "maya" in resolve:
-         env.MAYA_PLUG_IN_PATH.append("{this.root}/maya/plugins")
+       # if maya is in use then include the maya plugin part of this package
+       if "maya" in resolve:
+           env.MAYA_PLUG_IN_PATH.append("{this.root}/maya/plugins")
 
-         if resolve.maya.version.minor == "sp3":
+           if resolve.maya.version.minor == "sp3":
                error("known issue with GL renderer in service pack 3, beware")
 
-      # license file per major version
-      env.FOO_LIC = "/lic/foo_{this.version.major}.lic"
+       # license file per major version
+       env.FOO_LIC = "/lic/foo_{this.version.major}.lic"
 
 Objects
 =======
@@ -330,10 +330,10 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if build.install:
-         info("An installation is taking place")
+          info("An installation is taking place")
 
       if build['build_type'] == 'local':
-         pass
+          pass
 
 .. rex:attribute:: build.build_type
    :type: typing.Literal['local', 'central']
@@ -374,7 +374,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if building:
-         env.FOO_INCLUDE_PATH = "{root}/include"
+          env.FOO_INCLUDE_PATH = "{root}/include"
 
 .. rex:function:: command(arg: str)
 
@@ -399,11 +399,11 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       def commands():
-         import shutil
-         import os.path
-         path = os.path.expanduser("~/.foo_plugin")
-         if os.path.exists(path):
-               shutil.rmtree(path)
+          import shutil
+          import os.path
+          path = os.path.expanduser("~/.foo_plugin")
+          if os.path.exists(path):
+              shutil.rmtree(path)
 
 .. rex:function:: comment(arg: str)
 
@@ -415,8 +415,8 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "nuke" in resolve:
-         comment("note: taking over 'nuke' binary!")
-         alias("nuke", "foo_nuke_replacer")
+          comment("note: taking over 'nuke' binary!")
+          alias("nuke", "foo_nuke_replacer")
 
 
 .. rex:function:: defined(envvar: str) -> bool
@@ -426,7 +426,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if defined("REZ_MAYA_VERSION"):
-         env.FOO_MAYA = 1
+          env.FOO_MAYA = 1
 
 .. rex:attribute:: env
    :type: dict
@@ -475,7 +475,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "foo.cli" in ephemerals:
-         info("Foo cli option is being specified!")
+          info("Foo cli option is being specified!")
 
 .. rex:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.version.VersionRange
 
@@ -486,8 +486,8 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if intersects(ephemerals.get_range("foo.cli", "1"), "1"):
-         info("Enabling foo cli tools")
-         env.PATH.append("{root}/bin")
+          info("Enabling foo cli tools")
+          env.PATH.append("{root}/bin")
 
 .. rex:function:: error(message: str)
 
@@ -500,7 +500,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "PyQt" in resolve:
-         error("The floob package has problems running in combo with PyQt")
+          error("The floob package has problems running in combo with PyQt")
 
 .. rex:function:: expandable(arg: str) -> ~rez.rex.EscapedString
 
@@ -517,7 +517,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if getenv("REZ_MAYA_VERSION") == "2016.sp1":
-         pass
+          pass
 
    :raises: :py:exc:`~rez.exceptions.RexUndefinedVariableError` if the environment variable is not set.
 
@@ -529,7 +529,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "platform" in implicits:
-         pass
+          pass
 
 .. rex:function:: info(message: str)
 
@@ -556,7 +556,7 @@ Following is a list of the objects and functions available.
       .. code-block:: python
 
          if intersects(ephemerals.get("foo.cli", "0"), "1"):
-            ...
+             ...
 
       .. todo:: document request.get_range
 
@@ -567,14 +567,14 @@ Following is a list of the objects and functions available.
       .. code-block:: python
 
          if intersects(ephemerals.get_range("foo.cli", "0"), "1"):
-            ...
+             ...
 
    Example:
 
    .. code-block:: python
 
       if intersects(resolve.maya, "2019+"):
-         info("Maya 2019 or greater is present")
+          info("Maya 2019 or greater is present")
 
 .. rex:function:: literal(arg: str) -> ~rez.rex.EscapedString
 
@@ -609,9 +609,9 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       {
-         "maya": "maya-2015",
-         "maya_utils": "maya_utils-1.2+<2",
-         "corelib": "!corelib-1.4.4"
+          "maya": "maya-2015",
+          "maya_utils": "maya_utils-1.2+<2",
+          "corelib": "!corelib-1.4.4"
       }
 
    Example:
@@ -619,7 +619,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "maya" in request:
-         info("maya was asked for!")
+          info("maya was asked for!")
 
    Use ``get_range`` to test with the :rex:func:`intersects` function:
 
@@ -654,8 +654,8 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "maya" in resolve:
-         info("Maya version is %s", resolve.maya.version)
-         # ..or resolve["maya"].version
+          info("Maya version is %s", resolve.maya.version)
+          # ..or resolve["maya"].version
 
 .. rex:attribute:: root
    :type: str
@@ -699,7 +699,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if system.platform == "windows":
-         ...
+          ...
 
 .. rex:attribute:: test
 
@@ -714,7 +714,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if test.name == "unit":
-         info("My unit test is about to run yay")
+          info("My unit test is about to run yay")
 
 .. rex:attribute:: testing
    :type: bool
@@ -833,7 +833,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if undefined("REZ_MAYA_VERSION"):
-         info("maya is not present")
+          info("maya is not present")
 
 .. rex:function:: unsetenv(envvar: str) -> None
 

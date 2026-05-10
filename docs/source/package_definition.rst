@@ -20,18 +20,18 @@ Here is an example package definition file:
    authors = ['ajohns']
 
    tools = [
-      'lsq',
-      'cpq'
+       'lsq',
+       'cpq'
    ]
 
    requires = [
-      'python-2.6+<3',
-      'argparse'
+       'python-2.6+<3',
+       'argparse'
    ]
 
    def commands():
-      env.PATH.append("{root}/bin")
-      env.PYTHONPATH.append("{root}/python")
+       env.PATH.append("{root}/bin")
+       env.PYTHONPATH.append("{root}/python")
 
    uuid = '6c43d533-92bb-4f8b-b812-7020bf54d3f1'
 
@@ -97,11 +97,11 @@ attribute that is automatically set to the contributors of the package's git pro
 
    @early()
    def authors():
-      import subprocess
-      p = subprocess.Popen("git shortlog -sn | cut -f2",
-                           shell=True, stdout=subprocess.PIPE)
-      out, _ = p.communicate()
-      return out.strip().split('\n')
+       import subprocess
+       p = subprocess.Popen("git shortlog -sn | cut -f2",
+                            shell=True, stdout=subprocess.PIPE)
+       out, _ = p.communicate()
+       return out.strip().split('\n')
 
 .. note::
    You can assume that during evaluation of early binding functions, the
@@ -114,8 +114,8 @@ implicit :rex:attr:`this` object:
 
    @early()
    def description():
-      # a not very useful description
-      return "%s version %s" % (this.name, this.version)
+       # a not very useful description
+       return "%s version %s" % (this.name, this.version)
 
 .. warning::
    Do not reference other early bound or late bound attributes in
@@ -126,7 +126,7 @@ Early binding functions are a convenience. You can always use an arbitrary funct
 .. code-block:: python
 
    def _description():
-      return "%s version %s" % (this.name, this.version)
+       return "%s version %s" % (this.name, this.version)
 
    description = _description()
 
@@ -165,10 +165,10 @@ might look like so:
 
    @early()
    def requires():
-      if building:
-         return ["python-2"]
-      else:
-         return ["runtimeonly-1.2", "python-2"]
+       if building:
+           return ["python-2"]
+       else:
+           return ["runtimeonly-1.2", "python-2"]
 
 .. warning::
    You **must** ensure that your early-bound function returns the value
@@ -197,17 +197,17 @@ Here is an example of a late binding :pkgdef:attr:`tools` attribute:
 
    @late()
    def tools():
-      import os
+       import os
 
-      # get everything in bin dir
-      binpath = os.path.join(this.root, "bin")
-      result = os.listdir(binpath)
+       # get everything in bin dir
+       binpath = os.path.join(this.root, "bin")
+       result = os.listdir(binpath)
 
-      # we don't want artists to see the admin tools
-      if os.getenv("_USER_ROLE") != "superuser":
-         result = set(result) - set(["delete-all", "mod-things"])
+       # we don't want artists to see the admin tools
+       if os.getenv("_USER_ROLE") != "superuser":
+           result = set(result) - set(["delete-all", "mod-things"])
 
-      return list(result)
+       return list(result)
 
 .. warning::
    Late binding function attributes **must** perform any necessary imports
@@ -226,19 +226,19 @@ reimplement the above example like so:
 
    @late()
    def tools():
-      import os
-      result = this._tools
+       import os
+       result = this._tools
 
-      # we don't want artists to see the admin tools
-      if os.getenv("_USER_ROLE") != "superuser":
-         result = set(result) - set(["delete-all", "mod-things"])
+       # we don't want artists to see the admin tools
+       if os.getenv("_USER_ROLE") != "superuser":
+           result = set(result) - set(["delete-all", "mod-things"])
 
-      return list(result)
+       return list(result)
 
    @early()
    def _tools():
-      import os
-      return os.listdir("./bin")
+       import os
+       return os.listdir("./bin")
 
 .. todo:: Make this.root and co terms or something else like data?
 
@@ -265,12 +265,12 @@ late binding :pkgdef:attr:`tools` attribute below:
 
    @late()
    def tools():
-      result = ["edit"]
+       result = ["edit"]
 
-      if in_context() and "maya" in request:
-         result.append("maya-edit")
+       if in_context() and "maya" in request:
+           result.append("maya-edit")
 
-      return result
+       return result
 
 Here the :rex:attr:`request` object is being checked to see if the ``maya`` package was requested in the
 current env; if it was, a maya-specific tool ``maya-edit`` is added to the tool list.
@@ -320,18 +320,18 @@ Here is an example of a ``package.py`` with a late-bound :pkgdef:attr:`build_req
    version = "1.0.0"
 
    variants = [
-      ["maya-2017"],
-      ["maya-2018"]
+       ["maya-2017"],
+       ["maya-2018"]
    ]
 
    @late()
    def build_requires():
-      if this.is_package:
-         return []
-      elif this.index == 0:
-         return ["maya_2017_build_utils"]
-      else:
-         return ["maya_2018_build_utils"]
+       if this.is_package:
+           return []
+       elif this.index == 0:
+           return ["maya_2017_build_utils"]
+       else:
+           return ["maya_2018_build_utils"]
 
 .. todo:: Figure out why I can't link to this.is_package
 
@@ -391,7 +391,7 @@ Here is an example of a package's :pkgdef:func:`commands` using a shared module:
    # in package.py
    @include("utils")
    def commands():
-      utils.set_common_env_vars(this, env)
+       utils.set_common_env_vars(this, env)
 
 .. _requirements-expansion:
 
@@ -408,7 +408,7 @@ such as :pkgdef:attr:`build_requires`) by using wildcards as shown here:
 .. code-block:: python
 
    requires = [
-      "boost-1.*"
+       "boost-1.*"
    ]
 
 If you check the ``package.py`` of the built package, you will see that the boost reference in the
@@ -425,8 +425,8 @@ using the rez :func:`~rez.package_py_utils.expand_requires` function:
 
    @early()
    def requires():
-      from rez.package_py_utils import expand_requires
-      return expand_requires(["boost-1.*"])
+       from rez.package_py_utils import expand_requires
+       return expand_requires(["boost-1.*"])
 
 .. _preprocess:
 
@@ -444,15 +444,15 @@ Consider the following preprocessing function, defined in a ``package.py``:
 .. code-block:: python
 
    def preprocess(this, data):
-      from rez.package_py_utils import InvalidPackageError
-      import re
+       from rez.package_py_utils import InvalidPackageError
+       import re
 
-      if not re.match("[a-z]+$", this.name):
-         raise InvalidPackageError("Invalid name, only lowercase letters allowed")
+       if not re.match("[a-z]+$", this.name):
+           raise InvalidPackageError("Invalid name, only lowercase letters allowed")
 
-      if not this.authors:
-         from preprocess_utils import get_git_committers
-         data["authors"] = get_git_committers()
+       if not this.authors:
+           from preprocess_utils import get_git_committers
+           data["authors"] = get_git_committers()
 
 This preprocessor checks the package name against a regex and sets the package authors list to its
 git committers, if not already supplied in the ``package.py``. To update package attributes, you have
@@ -475,7 +475,7 @@ It is not uncommon to override config settings such as the release path in a pac
 
    # in package.py
    with scope("config") as c:
-      c.release_packages_path = "/software/packages/external"
+       c.release_packages_path = "/software/packages/external"
 
 Here a package is overriding the default release path - perhaps you're releasing
 internally and externally developed packages to different locations, for example.
@@ -487,17 +487,17 @@ this with a global preprocessing function like this:
 .. code-block:: python
 
    def preprocess(this, data):
-      if not data.get("external"):
-            return
+       if not data.get("external"):
+           return
 
-      try:
-            _ = data["config"]["release_packages_path"]
-            return  # already explicitly specified by package
-      except KeyError:
-            pass
+       try:
+           _ = data["config"]["release_packages_path"]
+           return  # already explicitly specified by package
+       except KeyError:
+           pass
 
-      data["config"] = data.get("config", {})
-      data["config"]["release_packages_path"] = "/software/packages/external"
+       data["config"] = data.get("config", {})
+       data["config"]["release_packages_path"] = "/software/packages/external"
 
 The ``with scope(...)`` statement is just a fancy way of defining a dict, so you can do the same
 thing in the preprocess function simply by updating the ``config`` dict within ``data``.
@@ -517,70 +517,70 @@ installation instead, and binds that into a rez package.
 
    @early()
    def version():
-      return this.__version + "-detected"
+       return this.__version + "-detected"
 
    authors = [
-      "Guido van Rossum"
+       "Guido van Rossum"
    ]
 
    description = \
-      """
-      The Python programming language.
-      """
+       """
+       The Python programming language.
+       """
 
    @early()
    def variants():
-      from rez.package_py_utils import expand_requires
-      requires = ["platform-**", "arch-**", "os-**"]
-      return [expand_requires(*requires)]
+       from rez.package_py_utils import expand_requires
+       requires = ["platform-**", "arch-**", "os-**"]
+       return [expand_requires(*requires)]
 
    @early()
    def tools():
-      version_parts = this.__version.split('.')
+       version_parts = this.__version.split('.')
 
-      return [
-         "2to3",
-         "pydoc",
-         "python",
-         "python%s" % (version_parts[0]),
-         "python%s.%s" % (version_parts[0], version_parts[1])
-      ]
+       return [
+           "2to3",
+           "pydoc",
+           "python",
+           "python%s" % (version_parts[0]),
+           "python%s.%s" % (version_parts[0], version_parts[1])
+       ]
 
    uuid = "recipes.python"
 
    def commands():
-      env.PATH.append("{this._bin_path}")
+       env.PATH.append("{this._bin_path}")
 
-      if building:
-         env.CMAKE_MODULE_PATH.append("{root}/cmake")
+       if building:
+           env.CMAKE_MODULE_PATH.append("{root}/cmake")
 
    # --- internals
 
    def _exec_python(attr, src):
-      import subprocess
+       import subprocess
 
-      p = subprocess.Popen(
-         ["python", "-c", src],
-         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      out, err = p.communicate()
+       p = subprocess.Popen(
+           ["python", "-c", src],
+           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+       out, err = p.communicate()
 
-      if p.returncode:
-         from rez.exceptions import InvalidPackageError
-         raise InvalidPackageError(
+       if p.returncode:
+           from rez.exceptions import InvalidPackageError
+           raise InvalidPackageError(
                "Error determining package attribute '%s':\n%s" % (attr, err))
 
-      return out.strip()
+       return out.strip()
 
    @early()
    def _bin_path():
-      return this._exec_python(
-         "_bin_path",
-         "import sys, os.path; print(os.path.dirname(sys.executable))")
+       return this._exec_python(
+           "_bin_path",
+           "import sys, os.path; print(os.path.dirname(sys.executable))")
 
    def _version():
-      return _exec_python(
-         "version",
-         "import sys; print(sys.version.split()[0])")
+       return _exec_python(
+           "version",
+           "import sys; print(sys.version.split()[0])")
 
    __version = _version()
 
@@ -639,8 +639,8 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       build_requires = [
-         "cmake-2.8",
-         "doxygen"
+          "cmake-2.8",
+          "doxygen"
       ]
 
 .. pkgdef:attribute:: cachable
@@ -672,8 +672,8 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       def commands():
-         env.PYTHONPATH.append("{root}/python")
-         env.PATH.append("{root}/bin")
+          env.PYTHONPATH.append("{root}/python")
+          env.PATH.append("{root}/bin")
 
 .. pkgdef:attribute:: config
    :type: dict[str, typing.Any]
@@ -688,7 +688,7 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       with scope("config"):
-         release_packages_path = "/software/packages/apps"
+          release_packages_path = "/software/packages/apps"
 
 .. pkgdef:attribute:: description
    :type: str
@@ -736,8 +736,8 @@ the data type, and includes a code snippet.
    .. code-block::
 
       help = [
-         ['Documentation', 'https://example.com/docs'],
-         ['API docs', 'https://example.com/docs/api']
+          ['Documentation', 'https://example.com/docs'],
+          ['API docs', 'https://example.com/docs/api']
       ]
 
 .. pkgdef:attribute:: name
@@ -769,7 +769,7 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       def post_commands():
-         env.FOO_PLUGIN_PATH.append("@")
+          env.FOO_PLUGIN_PATH.append("@")
 
 .. pkgdef:function:: pre_commands() -> None
 
@@ -781,8 +781,8 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       def pre_commands():
-         import os.path
-         env.FOO_PLUGIN_PATH = os.path.join(this.root, "plugins")
+          import os.path
+          env.FOO_PLUGIN_PATH = os.path.join(this.root, "plugins")
 
 .. pkgdef:function:: pre_test_commands()
 
@@ -792,8 +792,8 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       def pre_test_commands():
-         if test.name == "unit":
-               env.IS_UNIT_TEST = 1
+          if test.name == "unit":
+              env.IS_UNIT_TEST = 1
 
 .. pkgdef:attribute:: relocatable
    :type: bool
@@ -824,9 +824,9 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       requires = [
-         "python-2",
-         "maya-2016",
-         "maya_utils-3.4+<4"
+          "python-2",
+          "maya-2016",
+          "maya_utils-3.4+<4"
       ]
 
 .. pkgdef:attribute:: tests
@@ -857,21 +857,21 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       tests = {
-         "unit": "python -m unittest discover -s {root}/python/tests",
-         "unit-as-list": ["python", "-m", "unittest", "discover", "-s", "{root}/python/tests"],
-         "lint": {
+          "unit": "python -m unittest discover -s {root}/python/tests",
+          "unit-as-list": ["python", "-m", "unittest", "discover", "-s", "{root}/python/tests"],
+          "lint": {
                "command": "pylint mymodule",
                "requires": ["pylint"],
                "run_on": ["default", "pre_release"]
-         },
-         "maya_CI": {
+          },
+          "maya_CI": {
                "command": ["python", "{root}/ci_tests/maya.py"],
                "on_variants": {
-                  "type": "requires",
-                  "value": ["maya"]
+                   "type": "requires",
+                   "value": ["maya"]
                },
                "run_on": "explicit"
-         }
+          }
       }
 
    As an example, if you want to run the ``maya_CI`` block defined in the example above (named ``maya_CI``), you can run:
@@ -893,9 +893,9 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       tools = [
-         "houdini",
-         "hescape",
-         "hython"
+          "houdini",
+          "hescape",
+          "hython"
       ]
 
 .. pkgdef:attribute:: uuid
@@ -929,9 +929,9 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       variants = [
-         ["maya-2015.3"],
-         ["maya-2016.1"],
-         ["maya-2016.7"]
+          ["maya-2015.3"],
+          ["maya-2016.1"],
+          ["maya-2016.7"]
       ]
 
 .. pkgdef:attribute:: version
@@ -1005,7 +1005,7 @@ package once installed because they are only used at build time.
    .. code-block:: python
 
       def pre_build_commands():
-         env.FOO_BUILT_BY_REZ = 1
+          env.FOO_BUILT_BY_REZ = 1
 
 .. pkgdef:function:: preprocess(this, data: dict[str, typing.Any])
 
@@ -1022,8 +1022,8 @@ package once installed because they are only used at build time.
    .. code-block:: python
 
       private_build_requires = [
-         "cmake-2.8",
-         "doxygen"
+          "cmake-2.8",
+          "doxygen"
       ]
 
 .. pkgdef:attribute:: requires_rez_version
@@ -1056,13 +1056,13 @@ of these attributes have been added.
    .. code-block:: python
 
       changelog = \
-         """
-         commit 22abe31541ceebced8d4e209e3f6c44d8d0bea1c
-         Author: allan johns <>
-         Date:   Sun May 15 15:39:10 2016 -0700
+          """
+          commit 22abe31541ceebced8d4e209e3f6c44d8d0bea1c
+          Author: allan johns <>
+          Date:   Sun May 15 15:39:10 2016 -0700
 
-               first commit
-         """
+          first commit
+          """
 
 .. pkgdef:attribute:: previous_revision
    :type: typing.Any
@@ -1104,11 +1104,11 @@ of these attributes have been added.
    .. code-block:: python
 
       revision = \
-         {'branch': 'master',
-            'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
-            'fetch_url': 'git@github.com:foo/dummy.git',
-            'push_url': 'git@github.com:foo/dummy.git',
-            'tracking_branch': 'origin/master'}
+          {'branch': 'master',
+           'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
+           'fetch_url': 'git@github.com:foo/dummy.git',
+           'push_url': 'git@github.com:foo/dummy.git',
+           'tracking_branch': 'origin/master'}
 
 .. pkgdef:attribute:: timestamp
    :type: int
