@@ -126,7 +126,7 @@ Early binding functions are a convenience. You can always use an arbitrary funct
 .. code-block:: python
 
    def _description():
-       return "%s version %s" % (this.name, this.version)
+       return "%s version %s" % (name, version)
 
    description = _description()
 
