@@ -44,7 +44,7 @@ with open(os.path.join(this_directory, 'README.md')) as f:
 
 
 setup(
-    name="rez",
+    name="jcmorin-rez",
     version=_rez_version,
     description=("A cross-platform packaging system that can build and "
                  "install multiple version of packages, and dynamically "
