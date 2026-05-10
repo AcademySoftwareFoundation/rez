@@ -761,44 +761,44 @@ Following is a list of the objects and functions available.
       :attr:`this.is_variant`, consider a package called ``test`` with the following code in its ``package.py``
       file:
 
-   .. code-block:: python
+      .. code-block:: python
 
-      @late()
-      def foo():
-          print(f"in foo: {in_context()=}")
-          print(f"in foo: {this.is_package=}")
-          print(f"in foo: {this.is_variant=}")
-          return ["foo"]
+         @late()
+         def foo():
+            print(f"in foo: {in_context()=}")
+            print(f"in foo: {this.is_package=}")
+            print(f"in foo: {this.is_variant=}")
+            return ["foo"]
 
-      def commands():
-          print(f"in commands: {this.is_package=}")
-          print(f"in commands: {this.is_variant=}")
-          value = this.foo
-          print(f"{value=}")
+         def commands():
+            print(f"in commands: {this.is_package=}")
+            print(f"in commands: {this.is_variant=}")
+            value = this.foo
+            print(f"{value=}")
 
 
-   In this example, ``foo`` is a late-binding attribute that will be executed as part of resolving the
-   package's context.  If you build the ``test`` package and run ``rez env test`` you will get this output:
+      In this example, ``foo`` is a late-binding attribute that will be executed as part of resolving the
+      package's context.  If you build the ``test`` package and run ``rez env test`` you will get this output:
 
-   .. code-block:: text
+      .. code-block:: text
 
-      % rez env test
-      in commands: this.is_package=False
-      in commands: this.is_variant=True
-      in foo: in_context()=True
-      in foo: this.is_package=True
-      in foo: this.is_variant=False
-      value=['foo']
+         % rez env test
+         in commands: this.is_package=False
+         in commands: this.is_variant=True
+         in foo: in_context()=True
+         in foo: this.is_package=True
+         in foo: this.is_variant=False
+         value=['foo']
 
-   But if you only search through the ``test`` package, where no context must be resolved, you get this:
+      But if you only search through the ``test`` package, where no context must be resolved, you get this:
 
-   .. code-block:: text
+      .. code-block:: text
 
-      % rez search -f '{foo}' test
-      in foo: in_context()=False
-      in foo: this.is_package=True
-      in foo: this.is_variant=False
-      foo
+         % rez search -f '{foo}' test
+         in foo: in_context()=False
+         in foo: this.is_package=True
+         in foo: this.is_variant=False
+         foo
 
    .. rex:attribute:: this.name
       :type: str
