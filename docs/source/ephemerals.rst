@@ -178,5 +178,5 @@ Then, your package could look like this:
 .. warning::
    Be aware that on hosts that do **not** have a GPU
    implicit, either variant could be selected. You would want to either guarantee
-   that every host has the GPU implicit set to 0 or 1, or that the user always
+   that every host has the ``gpu`` implicit set to 0 or 1, or that the user always
    explicitly specifies ``.gpu-0`` or ``.gpu-1`` in their request.
