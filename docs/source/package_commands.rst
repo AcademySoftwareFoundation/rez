@@ -636,13 +636,13 @@ Following is a list of the objects and functions available.
 .. rex:function:: resetenv(envvar: str, value: str, friends=None) -> None
 
    This is intended to handle the case where multiple packages want to set the same environment
-   variable during the resolve. In that case, you would use :attr:`resetenv` instead of :attr:`setenv`.
+   variable during the resolve. In that case, you would use :rex:attr:`resetenv` instead of :rex:attr:`setenv`.
    See :any:`resetting_variables` for more details.
 
-   However, rez does not currently behave like this - multiple :attr:`setenv` calls to the same variable
-   do not abort the resolve. Instead, the latest call to :attr:`setenv` wins.
+   However, rez does not currently behave like this - multiple :rex:attr:`setenv` calls to the same variable
+   do not abort the resolve. Instead, the latest call to :rex:attr:`setenv` wins.
 
-   And currently, :attr:`resetenv` merely acts as a synonym for :attr:`setenv`.
+   And currently, :rex:attr:`resetenv` merely acts as a synonym for :rex:attr:`setenv`.
 
 .. rex:attribute:: resolve
 
@@ -749,16 +749,16 @@ Following is a list of the objects and functions available.
       does not represent a resolved context; this happens, for example, when you are searching
       through packages.
 
-      If :attr:`this.is_package` is ``True`` then :attr:`this.is_variant` must be ``False``, and vice versa.
+      If :rex:attr:`this.is_package` is ``True`` then :rex:attr:`this.is_variant` must be ``False``, and vice versa.
 
-      See :attr:`this.is_variant` for a fuller explanation and example.
+      See :rex:attr:`this.is_variant` for a fuller explanation and example.
 
    .. rex:attribute:: this.is_variant
       :type: bool
 
       This is set to ``True`` if you are in a resolved context. That's because a context must be
-      resolved down to a specific :doc:`variant <../variants>`. To see the relationship between :attr:`this.is_package` and
-      :attr:`this.is_variant`, consider a package called ``test`` with the following code in its ``package.py``
+      resolved down to a specific :doc:`variant <../variants>`. To see the relationship between :rex:attr:`this.is_package` and
+      :rex:attr:`this.is_variant`, consider a package called ``test`` with the following code in its ``package.py``
       file:
 
       .. code-block:: python
