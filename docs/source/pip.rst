@@ -17,41 +17,7 @@ It does this using the :ref:`rez-pip` command.
 Usage
 =====
 
-.. code-block:: text
-
-   usage: rez pip [-h] [--python-version VERSION] [--pip-version VERSION] [-i]
-                  [-s] [-r] [-v]
-                  PACKAGE
-
-   Install a Pip-compatible python package, and its dependencies, as rez
-   packages.
-
-   positional arguments:
-   PACKAGE               package to install or archive/url to install from
-
-   optional arguments:
-   -h, --help            show this help message and exit
-   --python-version VERSION
-                           python version (rez package) to use, default is
-                           latest. Note that the Pip package(s) will be installed
-                           with a dependency on python-MAJOR.MINOR.
-   --pip-version VERSION
-                           Pip version (rez package) to use, default is latest.
-                           This option is deprecated and will be removed in the
-                           future.
-   -i, --install         install the package
-   -s, --search          search for the package on PyPi
-   -r, --release         install as released package; if not set, package is
-                           installed locally only
-   -p PATH, --prefix PATH
-                           install to a custom package repository path.
-   -v, --verbose         verbose mode, repeat for more verbosity
-
-
-The :ref:`rez-pip` command allows you to do two main things.
-
-1. Install or release a Pip package as a rez package.
-2. Search for a package on PyPI
+See :ref:`rez-pip`.
 
 .. _which-pip-will-be-used:
 
@@ -64,12 +30,7 @@ The logic is as follows:
 1. Search for Pip in the rezified ``python`` package specified with :option:`--python-version <rez-pip --python-version>`, or
    the latest version if not specified;
 2. If found, use it;
-3. If not found, search for Pip in the rezified ``pip`` package specified with :option:`--pip-version <rez-pip --pip-version>`,
-   or latest version if not specified.
-
-   .. note::
-      Note that this is deprecated and will be removed in the future
-
+3. If not found, search for pip in the rezified ``pip`` package (this is for backwards compatibility);
 4. If rezified ``pip`` is found, use it;
 5. If not found, fall back to Pip installed in rez’s own virtualenv.
 
@@ -88,7 +49,7 @@ IronPython, etc), the architecture python was built with, and other variables. S
 really need to know first is which python you want to use and from there you should know
 which Pip is used. Knowing the Pip version is of secondary importance.
 
-At some point, we supported the :option:`--pip-version <rez-pip --pip-version>` argument, but considering what was just said
+At some point, we supported a ``--pip-version`` argument, but considering what was just said
 above, we decided to remove it.
 Pip is too tightly coupled to the python version/interpreter it is installed with
 for us to support having Pip as a rez package. We just can't guarantee that Pip can be
