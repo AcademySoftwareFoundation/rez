@@ -765,16 +765,16 @@ Following is a list of the objects and functions available.
 
          @late()
          def foo():
-            print(f"in foo: {in_context()=}")
-            print(f"in foo: {this.is_package=}")
-            print(f"in foo: {this.is_variant=}")
-            return ["foo"]
+             info(f"in foo: in_context()={in_context()}")
+             info(f"in foo: this.is_package={this.is_package}")
+             info(f"in foo: this.is_variant={this.is_variant}")
+             return ["foo"]
 
          def commands():
-            print(f"in commands: {this.is_package=}")
-            print(f"in commands: {this.is_variant=}")
-            value = this.foo
-            print(f"{value=}")
+             info(f"in commands: this.is_package={this.is_package}")
+             info(f"in commands: this.is_variant={this.is_variant}")
+             value = this.foo
+             info(f"value={value}")
 
 
       In this example, ``foo`` is a late-binding attribute that will be executed as part of resolving the
