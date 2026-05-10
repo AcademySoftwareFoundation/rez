@@ -878,7 +878,7 @@ the data type, and includes a code snippet.
 
    .. code-block:: text
 
-      ]$ rez-test maya_CI
+      ]$ rez-test <pkg> maya_CI
 
    .. note::
       Prior to running the tests, you will need to run :ref:`rez-build`. :ref:`rez-test` can only
