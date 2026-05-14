@@ -490,6 +490,9 @@ def to_posixpath(path: str):
     return posixpath.sep.join(path.split(ntpath.sep))
 
 
+_WINDOWS_MAX_PATH = 259  # Win32 MAX_PATH minus the null terminator
+
+
 def _windows_realpath(path: str) -> str:
     """Resolve symlinks and junctions on Windows without expanding mapped drives.
 
@@ -513,14 +516,31 @@ def _windows_realpath(path: str) -> str:
             target = os.readlink(candidate)
             # os.readlink on Windows may return an extended-length path
             # (\\?\C:\... or \\?\UNC\server\share\...). Strip the prefix so
-            # subsequent abspath/normpath calls produce ordinary paths.
+            # we can work with ordinary path strings.
             if target.startswith("\\\\?\\UNC\\"):
                 target = "\\\\" + target[8:]
             elif target.startswith("\\\\?\\"):
                 target = target[4:]
             if not os.path.isabs(target):
                 target = os.path.join(os.path.dirname(candidate), target)
-            candidate = os.path.normpath(os.path.abspath(target))
+            # For paths that exceed MAX_PATH, re-add the extended-length
+            # prefix before calling abspath so the Win32 API (GetFullPathNameW)
+            # can handle the length on hosts without LongPathsEnabled in the
+            # registry.  We strip the prefix again afterwards so the rest of
+            # the walk operates on ordinary path strings.
+            if len(target) > _WINDOWS_MAX_PATH:
+                if target.startswith("\\\\"):
+                    target = "\\\\?\\UNC\\" + target[2:]
+                else:
+                    target = "\\\\?\\" + target
+                candidate = os.path.abspath(target)
+                if candidate.startswith("\\\\?\\UNC\\"):
+                    candidate = "\\\\" + candidate[8:]
+                elif candidate.startswith("\\\\?\\"):
+                    candidate = candidate[4:]
+                candidate = os.path.normpath(candidate)
+            else:
+                candidate = os.path.normpath(os.path.abspath(target))
             depth += 1
         result = candidate
     return result
