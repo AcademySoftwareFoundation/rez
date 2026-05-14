@@ -21,8 +21,16 @@ module_root_path = __path__[0]  # noqa
 def _init_logging() -> None:
     logging_conf = os.getenv("REZ_LOGGING_CONF")
     if logging_conf:
+        import logging
         import logging.config
         logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
+        # Suppress pika unless the external config explicitly configured it.
+        # Without this, noisy pika ERROR logs can leak through when the broker
+        # is unreachable. Users who want pika logs can set rez.vendor.pika in
+        # their logging config, which will leave level != NOTSET here.
+        pika_logger = logging.getLogger("rez.vendor.pika")
+        if pika_logger.level == logging.NOTSET:
+            pika_logger.setLevel(logging.CRITICAL)
         return
 
     import logging
@@ -38,6 +46,10 @@ def _init_logging() -> None:
     logger.propagate = False
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
+
+    # Suppress pika vendor library logs unless context_tracking debug is on.
+    # set_pika_log_level() in amqp.py will override this to DEBUG if needed.
+    logging.getLogger("rez.vendor.pika").setLevel(logging.CRITICAL)
 
 
 _init_logging()
