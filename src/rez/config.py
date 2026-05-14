@@ -415,6 +415,7 @@ config_schema = Schema({
     "suite_alias_prefix_char":                      Char,
     "cache_packages_path":                          OptionalStr,
     "package_definition_python_path":               OptionalStr,
+    "resolve_links_on_windows":                     Bool,
     "tmpdir":                                       OptionalStr,
     "context_tmpdir":                               OptionalStr,
     "default_shell":                                OptionalStr,
