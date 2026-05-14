@@ -5,6 +5,7 @@
 """
 unit tests for 'rez.utils.filesystem' module
 """
+import os
 import os.path
 import tempfile
 import unittest
@@ -195,3 +196,74 @@ class TestCanonicalPathWindowsFormPreservation(TestBase):
             result, result.lower(),
             f"canonical_path did not lowercase on case-insensitive platform: {result!r}",
         )
+
+
+@unittest.skipIf(
+    platform_.name != "windows",
+    "Windows symlink/junction resolution tests are Windows-only.",
+)
+class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
+    """canonical_path resolves symlinks/junctions on Windows when
+    resolve_links_on_windows=True, without expanding mapped drive letters."""
+
+    @classmethod
+    def setUpClass(cls):
+        TempdirMixin.setUpClass()
+        cls.settings = {"resolve_links_on_windows": True}
+
+        # Probe for symlink capability. Dir symlinks require Developer
+        # Mode from Windows 10 Creators Update onward, or an elevated process.
+        probe_src = os.path.join(cls.root, "_symlink_probe_src")
+        probe_lnk = os.path.join(cls.root, "_symlink_probe_lnk")
+        os.makedirs(probe_src)
+        try:
+            os.symlink(probe_src, probe_lnk, target_is_directory=True)
+            os.unlink(probe_lnk)
+        except OSError:
+            raise unittest.SkipTest(
+                "Dir symlink creation not supported on this host "
+                "(enable Developer Mode or run as Admin)."
+            )
+        finally:
+            if os.path.isdir(probe_src):
+                os.rmdir(probe_src)
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
+
+    def _mock_windows_platform(self):
+        m = unittest.mock.Mock(spec=["has_case_sensitive_filesystem", "name"])
+        m.has_case_sensitive_filesystem = False
+        m.name = "windows"
+        return m
+
+    def test_symlink_resolved(self):
+        """canonical_path follows a directory symlink when resolve_links_on_windows=True."""
+        target = os.path.join(self.root, "real_target")
+        link = os.path.join(self.root, "link_to_target")
+        os.makedirs(target)
+        os.symlink(target, link, target_is_directory=True)
+
+        result = canonical_path(link, platform=self._mock_windows_platform())
+        self.assertEqual(result, target.lower())
+
+    def test_symlink_chain_resolved(self):
+        """canonical_path follows a chain of two symlinks."""
+        target = os.path.join(self.root, "final_target")
+        mid = os.path.join(self.root, "mid_link")
+        link = os.path.join(self.root, "outer_link")
+        os.makedirs(target)
+        os.symlink(target, mid, target_is_directory=True)
+        os.symlink(mid, link, target_is_directory=True)
+
+        result = canonical_path(link, platform=self._mock_windows_platform())
+        self.assertEqual(result, target.lower())
+
+    def test_non_symlink_path_unchanged(self):
+        """canonical_path on a plain directory is stable with resolve_links_on_windows=True."""
+        d = os.path.join(self.root, "plain_dir")
+        os.makedirs(d)
+
+        result = canonical_path(d, platform=self._mock_windows_platform())
+        self.assertEqual(result, d.lower())
