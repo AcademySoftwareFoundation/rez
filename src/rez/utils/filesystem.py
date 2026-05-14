@@ -12,6 +12,7 @@ from tempfile import mkdtemp
 from contextlib import contextmanager
 from uuid import uuid4
 import errno
+import sys
 import weakref
 import atexit
 import posixpath
@@ -506,7 +507,15 @@ def canonical_path(path: str, platform=None):
     if platform is None:
         platform = platform_
 
-    path = os.path.normpath(os.path.realpath(path))
+    # On Windows, os.path.realpath from py3.8 onwards silently converts drive
+    # lettered paths to their UNC equivalents (N:\ → \\server\share\). By default,
+    # use abspath instead to preserve the caller's form.
+    # We check sys.platform rather than the platform argument because this is
+    # an OS-level behaviour of os.path.realpath, not a user-configurable choice.
+    if sys.platform == "win32":
+        path = os.path.normpath(os.path.abspath(path))
+    else:
+        path = os.path.normpath(os.path.realpath(path))
 
     if not platform.has_case_sensitive_filesystem:
         return path.lower()
