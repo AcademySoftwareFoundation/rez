@@ -14,7 +14,7 @@ import unittest.mock
 from rez.tests.util import TestBase
 from rez.tests.util import TempdirMixin
 from rez.utils import filesystem
-from rez.utils.filesystem import canonical_path
+from rez.utils.filesystem import canonical_path, _windows_realpath
 from rez.utils.platform_ import platform_
 
 
@@ -198,6 +198,24 @@ class TestCanonicalPathWindowsFormPreservation(TestBase):
         )
 
 
+def _windows_longpaths_enabled() -> bool:
+    """Return True if the Windows LongPathsEnabled registry key is set.
+
+    When False, the Win32 API cannot open paths longer than MAX_PATH (260
+    chars) without an explicit ``\\?\\`` extended-length prefix.
+    """
+    try:
+        import winreg
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Control\FileSystem",
+        ) as key:
+            value, _ = winreg.QueryValueEx(key, "LongPathsEnabled")
+            return bool(value)
+    except OSError:
+        return False
+
+
 @unittest.skipIf(
     platform_.name != "windows",
     "Windows symlink/junction resolution tests are Windows-only.",
@@ -267,3 +285,83 @@ class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
 
         result = canonical_path(d, platform=self._mock_windows_platform())
         self.assertEqual(result, d.lower())
+
+    def test_relative_symlink_resolved(self):
+        """canonical_path resolves a symlink whose target is a relative path."""
+        target = os.path.join(self.root, "rel_target")
+        link_parent = os.path.join(self.root, "linkdir")
+        os.makedirs(target)
+        os.makedirs(link_parent)
+        link = os.path.join(link_parent, "rel_link")
+        os.symlink(os.path.join("..", "rel_target"), link, target_is_directory=True)
+
+        result = canonical_path(link, platform=self._mock_windows_platform())
+        self.assertEqual(result, target.lower())
+
+    def test_long_path_symlink_resolved(self):
+        """canonical_path resolves a symlink whose target exceeds MAX_PATH (260
+        chars) on hosts with LongPathsEnabled set in the registry."""
+        if not _windows_longpaths_enabled():
+            self.skipTest(
+                "LongPathsEnabled not set in registry; skipping long-path test."
+            )
+
+        # self.root is typically ~60-70 chars; 220 'a' chars puts the full
+        # target path comfortably past the 260-char Win32 MAX_PATH limit.
+        target = os.path.join(self.root, "a" * 220)
+        link = os.path.join(self.root, "longpath_link")
+        os.makedirs(target)
+        os.symlink(target, link, target_is_directory=True)
+
+        result = canonical_path(link, platform=self._mock_windows_platform())
+        self.assertEqual(result, target.lower())
+
+
+@unittest.skipIf(
+    platform_.name != "windows",
+    "Windows _windows_realpath internal-branch tests are Windows-only.",
+)
+class TestWindowsRealpathInternals(TestBase):
+    """Unit tests for _windows_realpath edge-case branches.
+
+    These use mocking so no real symlinks or network paths are required.
+    """
+
+    def test_readlink_extended_prefix_stripped(self):
+        """_windows_realpath strips a \\\\?\\ prefix returned by os.readlink."""
+        link_path = "C:\\some\\link"
+        target_path = "C:\\real\\target"
+
+        def _fake_islink(p):
+            return p == link_path
+
+        with unittest.mock.patch("os.path.islink", side_effect=_fake_islink):
+            with unittest.mock.patch("os.readlink", return_value="\\\\?\\" + target_path):
+                result = _windows_realpath(link_path)
+
+        self.assertEqual(result, os.path.normpath(target_path))
+
+    def test_readlink_unc_extended_prefix_stripped(self):
+        """_windows_realpath strips a \\\\?\\UNC\\ prefix returned by os.readlink."""
+        link_path = "C:\\some\\link"
+        target_unc = "\\\\server\\share\\target"
+
+        def _fake_islink(p):
+            return p == link_path
+
+        with unittest.mock.patch("os.path.islink", side_effect=_fake_islink):
+            with unittest.mock.patch(
+                "os.readlink",
+                return_value="\\\\?\\UNC\\" + target_unc[2:],
+            ):
+                result = _windows_realpath(link_path)
+
+        self.assertEqual(result, os.path.normpath(target_unc))
+
+    def test_symlink_depth_limit_terminates(self):
+        """_windows_realpath stops after 40 hops and returns without hanging."""
+        with unittest.mock.patch("os.path.islink", return_value=True):
+            with unittest.mock.patch("os.readlink", return_value="C:\\loop"):
+                result = _windows_realpath("C:\\loop")
+
+        self.assertIsInstance(result, str)
