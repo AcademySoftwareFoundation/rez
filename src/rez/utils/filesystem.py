@@ -12,6 +12,7 @@ from tempfile import mkdtemp
 from contextlib import contextmanager
 from uuid import uuid4
 import errno
+import sys
 import weakref
 import atexit
 import posixpath
@@ -489,6 +490,62 @@ def to_posixpath(path: str):
     return posixpath.sep.join(path.split(ntpath.sep))
 
 
+_WINDOWS_MAX_PATH = 259  # Win32 MAX_PATH minus the null terminator
+
+
+def _windows_realpath(path: str) -> str:
+    """Resolve symlinks and junctions on Windows without expanding mapped drives.
+
+    ``os.path.realpath`` on Python 3.8+ Windows uses ``GetFinalPathNameByHandle``
+    which expands mapped drive letters (e.g. ``N:\\``) to their underlying UNC
+    server paths.  This function resolves only actual filesystem symlinks and
+    junction points, walking the path component-by-component so that the drive
+    root (drive-letter or UNC prefix) is never touched.
+    """
+    path = os.path.normpath(os.path.abspath(path))
+    drive, rest = os.path.splitdrive(path)
+    # Preserve the root separator so UNC paths keep their leading "\\" and
+    # drive-letter paths keep their "\".
+    result = drive + (os.sep if rest.startswith(os.sep) else "")
+    for part in rest.lstrip(os.sep).split(os.sep):
+        if not part:
+            continue
+        candidate = os.path.join(result, part)
+        depth = 0
+        while os.path.islink(candidate) and depth < 40:
+            target = os.readlink(candidate)
+            # os.readlink on Windows may return an extended-length path
+            # (\\?\C:\... or \\?\UNC\server\share\...). Strip the prefix so
+            # we can work with ordinary path strings.
+            if target.startswith("\\\\?\\UNC\\"):
+                target = "\\\\" + target[8:]
+            elif target.startswith("\\\\?\\"):
+                target = target[4:]
+            if not os.path.isabs(target):
+                target = os.path.join(os.path.dirname(candidate), target)
+            # For paths that exceed MAX_PATH, re-add the extended-length
+            # prefix before calling abspath so the Win32 API (GetFullPathNameW)
+            # can handle the length on hosts without LongPathsEnabled in the
+            # registry.  We strip the prefix again afterwards so the rest of
+            # the walk operates on ordinary path strings.
+            if len(target) > _WINDOWS_MAX_PATH:
+                if target.startswith("\\\\"):
+                    target = "\\\\?\\UNC\\" + target[2:]
+                else:
+                    target = "\\\\?\\" + target
+                candidate = os.path.abspath(target)
+                if candidate.startswith("\\\\?\\UNC\\"):
+                    candidate = "\\\\" + candidate[8:]
+                elif candidate.startswith("\\\\?\\"):
+                    candidate = candidate[4:]
+                candidate = os.path.normpath(candidate)
+            else:
+                candidate = os.path.normpath(os.path.abspath(target))
+            depth += 1
+        result = candidate
+    return result
+
+
 def canonical_path(path: str, platform=None):
     r""" Resolves symlinks, and formats filepath.
 
@@ -506,7 +563,22 @@ def canonical_path(path: str, platform=None):
     if platform is None:
         platform = platform_
 
-    path = os.path.normpath(os.path.realpath(path))
+    # On Windows, os.path.realpath from py3.8 onwards silently converts drive
+    # lettered paths to their UNC equivalents (N:\ → \\server\share\).
+    # We check sys.platform rather than the platform argument because this is
+    # an OS-level behaviour of os.path.realpath, not a user-configurable choice.
+    if sys.platform == "win32":
+        # Lazy import avoids a circular dependency (config imports filesystem).
+        from rez.config import config  # noqa: PLC0415
+        if config.resolve_links_on_windows:
+            path = _windows_realpath(path)
+        else:
+            # Default: abspath preserves the caller's path form (drive-letter
+            # stays drive-letter, UNC stays UNC) and restores the pre-3.8
+            # behaviour where realpath on Windows was equivalent to abspath.
+            path = os.path.normpath(os.path.abspath(path))
+    else:
+        path = os.path.normpath(os.path.realpath(path))
 
     if not platform.has_case_sensitive_filesystem:
         return path.lower()
