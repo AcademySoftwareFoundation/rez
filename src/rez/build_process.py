@@ -210,12 +210,15 @@ class BuildProcessHelper(BuildProcess):
                        **kwargs) -> tuple[int, list[str | None]]:
         """Iterate over variants and call a function on each."""
         if variants:
-            present_variants = range(self.package.num_variants)
-            invalid_variants = set(variants) - set(present_variants)
+            n = self.package.num_variants
+            # Valid indices: 0..n-1 and their negative equivalents -n..-1
+            present_variants = set(range(-n, n))
+            invalid_variants = sorted(set(variants) - present_variants)
             if invalid_variants:
                 raise BuildError(
                     "The package does not contain the variants: %s"
-                    % ", ".join(str(x) for x in sorted(invalid_variants)))
+                    % ", ".join(str(v) for v in invalid_variants))
+            variants = sorted({v % n for v in variants})
 
         # iterate over variants
         results = []

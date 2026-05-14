@@ -203,6 +203,52 @@ class TestBuild(TestBase, TempdirMixin):
         stdout = proc.communicate()[0]
         self.assertEqual('Oh hai!', stdout.decode("utf-8").strip())
 
+    @per_available_shell()
+    @install_dependent()
+    def test_build_negative_variants(self, shell) -> None:
+        """Test building with negative variant indices."""
+        config.override("default_shell", shell)
+        self.inject_python_repo()
+
+        # Build dependencies first (bah requires build_util and foo)
+        self._test_build_build_util()
+        self._test_build_floob()
+        self._test_build_foo()
+
+        # bah has 2 variants: [foo-1.0] and [foo-1.1]
+        working_dir = os.path.join(self.src_root, "bah", "2.1")
+        builder = self._create_builder(working_dir)
+
+        # -1 should build only the last variant (index 1)
+        num_built = builder.build(clean=True, variants=[-1])
+        self.assertEqual(num_built, 1)
+
+        # -2 should build only the first variant (index 0)
+        num_built = builder.build(clean=True, variants=[-2])
+        self.assertEqual(num_built, 1)
+
+        # [1, -1] refers to the same variant; deduplication should yield 1 build
+        num_built = builder.build(clean=True, variants=[1, -1])
+        self.assertEqual(num_built, 1)
+
+        # mixed positive and negative indices (distinct variants)
+        num_built = builder.build(clean=True, variants=[0, -1])
+        self.assertEqual(num_built, 2)
+
+        # invalid: -3 on a 2-variant package should raise BuildError
+        # and the error message should name the invalid index
+        with self.assertRaises(BuildError) as exc:
+            builder.build(clean=True, variants=[-3])
+        self.assertIn("-3", str(exc.exception))
+
+        # multiple invalid indices should all appear in the error, sorted
+        with self.assertRaises(BuildError) as exc:
+            builder.build(clean=True, variants=[-3, 5])
+        error_msg = str(exc.exception)
+        self.assertIn("-3", error_msg)
+        self.assertIn("5", error_msg)
+        self.assertLess(error_msg.index("-3"), error_msg.index("5"))
+
     def test_set_standard_vars_escaping(self) -> None:
         """Test that set_standard_vars properly escapes environment variables."""
         # Create a test package directory with special characters in description

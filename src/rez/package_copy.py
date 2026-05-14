@@ -134,6 +134,17 @@ def copy_package(package: Package,
         )
 
     # determine variants to potentially install
+    if variants is not None:
+        n = package.num_variants
+        # Valid indices: 0..n-1 and their negative equivalents -n..-1
+        present_variants = set(range(-n, n))
+        invalid_variants = sorted(set(variants) - present_variants)
+        if invalid_variants:
+            raise PackageCopyError(
+                "The package does not contain the variants: %s"
+                % ", ".join(str(v) for v in invalid_variants))
+        variants = {v % n for v in variants}
+
     src_variants = []
     for variant in package.iter_variants():
         if variants is None or variant.index in variants:
