@@ -601,12 +601,14 @@ class FileSystemPackageRepository(PackageRepository):
         - /svr/packages/mypkg/package.py  # (unversioned package - rare)
         - /svr/packages/mypkg/package.py<1.0.0>  # ("combined" package type - rare)
         """
-        uri = os.path.normcase(uri)
+        norm_uri = os.path.normcase(uri)
 
         prefix = self.location + os.path.sep
-        if not is_subdirectory(uri, prefix):
+        if not is_subdirectory(norm_uri, prefix):
             return None
 
+        # Slice from the original uri, not norm_uri: normcase lowercases on Windows,
+        # which would corrupt pkg_name/pkg_ver_str for mixed-case packages. See #2101.
         part = uri[len(prefix):]  # eg 'mypkg/1.0.0/package.py'
         parts = part.split(os.path.sep)
         pkg_name = parts[0]
