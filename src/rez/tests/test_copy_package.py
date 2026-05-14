@@ -391,3 +391,18 @@ class TestCopyPackage(TestBase, TempdirMixin):
         self.assertIn("-3", error_msg)
         self.assertIn("5", error_msg)
         self.assertLess(error_msg.index("-3"), error_msg.index("5"))
+
+    def test_10(self) -> None:
+        """Copy a no-variant package using variants=[None] (e.g. from bundle_context)."""
+        self._reset_dest_repository()
+
+        # floob has no variants; iter_variants() yields one variant with index=None
+        src_pkg = self._get_src_pkg("floob", "1.2.0")
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[None]
+        )
+
+        # The single null-variant should have been copied without error
+        self._assert_copied(result, 1, 0)
