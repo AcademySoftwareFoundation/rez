@@ -158,9 +158,11 @@ def on_exit() -> None:
 
 
 def parse_host_and_port(url):
+    # Prepend // unless the URL already has a scheme (e.g. "amqp://").
+    # A bare "host:port" string causes urlsplit to misparse the hostname.
+    if "://" not in url and not url.startswith("//"):
+        url = "//" + url
     _url = urllib.parse.urlsplit(url)
-    if not _url.scheme:
-        _url = urllib.parse.urlsplit("//" + url)
     host = _url.hostname
     port = _url.port
 
