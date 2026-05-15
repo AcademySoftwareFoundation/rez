@@ -52,7 +52,8 @@ def setup_parser(parser, completions: bool = False) -> None:
         help="dry run mode")
     parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",
-        help="select variants to copy (zero-indexed).")
+        help="select variants to copy (zero-indexed; negative indices count from the end,"
+             " eg. -1 is the last variant).")
     parser.add_argument(
         "--variant-uri", metavar="URI",
         help="copy variant with the given URI. Ignores --variants.")
