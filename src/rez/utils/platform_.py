@@ -516,8 +516,31 @@ class WindowsPlatform(Platform):
     def _terminal_emulator_command(self) -> str:
         return "START"
 
+    def _physical_cores_from_powershell(self) -> int | None:
+        # wmic was removed in Windows 11 24H2; use PowerShell/CimInstance instead.
+        # powershell.exe (Windows PowerShell 5.1) ships with all Windows 10/11 installs.
+        import subprocess
+        cmd = [
+            'powershell', '-NonInteractive', '-NoProfile', '-Command',
+            '(Get-CimInstance -ClassName Win32_Processor'
+            ' | Measure-Object -Property NumberOfCores -Sum).Sum',
+        ]
+        try:
+            p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        except (OSError, IOError):
+            return None
+
+        stdout, _ = p.communicate()
+        if p.returncode:
+            return None
+
+        try:
+            return int(stdout.strip())
+        except ValueError:
+            return None
+
     def _physical_cores_from_wmic(self) -> int | None:
-        # windows
+        # wmic was removed in Windows 11 24H2; kept as fallback for older Windows versions.
         import subprocess
         try:
             p = Popen(
@@ -548,7 +571,7 @@ class WindowsPlatform(Platform):
         return sum(map(int, result))
 
     def _physical_cores(self) -> int | None:
-        return self._physical_cores_from_wmic()
+        return self._physical_cores_from_powershell() or self._physical_cores_from_wmic()
 
     def _difftool(self):
         # although meld would be preferred, fc ships with all Windows versions back to DOS
