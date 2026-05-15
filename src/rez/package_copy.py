@@ -14,6 +14,7 @@ from rez.exceptions import PackageCopyError
 from rez.package_repository import package_repository_manager, PackageRepository
 from rez.packages import Package, Variant
 from rez.serialise import FileFormat
+from rez.util import resolve_variant_indices
 from rez.utils import with_noop
 from rez.utils.base26 import create_unique_base26_symlink
 from rez.utils.sourcecode import IncludeModuleManager
@@ -135,18 +136,12 @@ def copy_package(package: Package,
 
     # determine variants to potentially install
     if variants is not None:
-        n = package.num_variants
-        if n > 0:
-            # Valid indices: 0..n-1 and their negative equivalents -n..-1
-            present_variants = set(range(-n, n))
-            invalid_variants = sorted(set(variants) - present_variants)
-            if invalid_variants:
-                raise PackageCopyError(
-                    "The package does not contain the variants: %s"
-                    % ", ".join(str(v) for v in invalid_variants))
-            variants = {v % n for v in variants}
-        # When n == 0 the package has no explicit variants; variant.index is
-        # None and integer index arithmetic does not apply.
+        resolved, invalid = resolve_variant_indices(variants, package.num_variants)
+        if invalid:
+            raise PackageCopyError(
+                "The package does not contain the variants: %s"
+                % ", ".join(str(v) for v in invalid))
+        variants = resolved
 
     src_variants = []
     for variant in package.iter_variants():
