@@ -199,6 +199,35 @@ class TestConfig(TestBase):
         with self.assertRaises(ConfigurationError):
             _ = c.debug_all  # noqa
 
+    def test_package_cache_clean_limit_accepts_int_disable_sentinel(self) -> None:
+        c = Config(
+            [self.root_config_file],
+            overrides={"package_cache_clean_limit": -1},
+            locked=True,
+        )
+
+        self.assertEqual(c.package_cache_clean_limit, -1.0)
+
+    def test_package_cache_clean_limit_rejects_bool(self) -> None:
+        c = Config(
+            [self.root_config_file],
+            overrides={"package_cache_clean_limit": False},
+            locked=True,
+        )
+
+        with self.assertRaises(ConfigurationError):
+            _ = c.package_cache_clean_limit
+
+    def test_package_cache_clean_limit_rejects_non_numeric(self) -> None:
+        c = Config(
+            [self.root_config_file],
+            overrides={"package_cache_clean_limit": "1.0"},
+            locked=True,
+        )
+
+        with self.assertRaises(ConfigurationError):
+            _ = c.package_cache_clean_limit
+
     def test_6(self) -> None:
         """Test setting of dict values from environ"""
         from rez.config import Dict

@@ -217,8 +217,14 @@ class Int(Setting):
                                      % self._env_var_name)
 
 
+def _to_float(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError("expected int or float")
+    return float(value)
+
+
 class Float(Setting):
-    schema = Schema(float)
+    schema = Schema(Use(_to_float))
 
     def _parse_env_var(self, value):
         try:
