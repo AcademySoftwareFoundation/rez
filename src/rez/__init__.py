@@ -24,13 +24,6 @@ def _init_logging() -> None:
         import logging
         import logging.config
         logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
-        # Suppress pika unless the external config explicitly configured it.
-        # Without this, noisy pika ERROR logs can leak through when the broker
-        # is unreachable. Users who want pika logs can set rez.vendor.pika in
-        # their logging config, which will leave level != NOTSET here.
-        pika_logger = logging.getLogger("rez.vendor.pika")
-        if pika_logger.level == logging.NOTSET:
-            pika_logger.setLevel(logging.CRITICAL)
         return
 
     import logging

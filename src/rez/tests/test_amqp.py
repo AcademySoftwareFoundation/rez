@@ -262,39 +262,21 @@ class TestInitLogging(TestBase):
         f.close()
         return f.name
 
-    def test_logging_conf_suppresses_pika_when_not_configured(self) -> None:
-        """REZ_LOGGING_CONF branch: pika logger is set to CRITICAL when not
-        explicitly configured by the external config file."""
+    def test_logging_conf_does_not_suppress_pika(self) -> None:
+        """REZ_LOGGING_CONF branch: rez does not touch the pika logger level.
+        The user's config file is solely responsible for configuring it."""
         from rez import _init_logging
 
         conf_path = self._write_logging_conf()
         try:
             pika_logger = logging.getLogger("rez.vendor.pika")
-            # Restore initial state.
             pika_logger.setLevel(logging.NOTSET)
 
             with patch.dict(os.environ, {"REZ_LOGGING_CONF": conf_path}):
                 _init_logging()
 
-            self.assertEqual(pika_logger.level, logging.CRITICAL)
-        finally:
-            os.unlink(conf_path)
-
-    def test_logging_conf_leaves_pika_level_when_already_configured(self) -> None:
-        """REZ_LOGGING_CONF branch: pika logger level is left alone when the
-        external config explicitly set it (level != NOTSET)."""
-        from rez import _init_logging
-
-        conf_path = self._write_logging_conf()
-        try:
-            pika_logger = logging.getLogger("rez.vendor.pika")
-            # simulate explicit config.
-            pika_logger.setLevel(logging.DEBUG)
-
-            with patch.dict(os.environ, {"REZ_LOGGING_CONF": conf_path}):
-                _init_logging()
-
-            self.assertNotEqual(pika_logger.level, logging.CRITICAL)
+            # rez should not have changed it; stays at NOTSET
+            self.assertEqual(pika_logger.level, logging.NOTSET)
         finally:
             os.unlink(conf_path)
 
