@@ -563,7 +563,7 @@ class UnixShell(Shell):
         should override this and _write_startup_env methods.
         """
         return "HOME"
-    
+
     def _write_startup_env(self, ex) -> None:
         """Write env setup into each generated startup file.
         Default sets HOME to real users's home directory so the user's real
