@@ -497,15 +497,16 @@ class UnixShell(Shell):
                             files_ = [file_]
 
                         ex = _create_ex()
-                        ex.setenv('HOME', os.environ.get('HOME', ''))
+                        self._write_startup_env(ex)
                         _record_shell(ex, files=files_, bind_rez=bind_rez,
                                       print_msg=bind_rez)
                         _write_shell(ex, os.path.basename(file_))
 
                     if config.debug("shell_startup"):
-                        print_debug("Setting $HOME for new shell to %s" % tmpdir)
+                        print_debug("Setting $%s for new shell to %s"
+                                    % (self._startup_env_var(), tmpdir))
 
-                    executor.setenv("HOME", tmpdir)
+                    executor.setenv(self._startup_env_var(), tmpdir)
 
                     # keep history
                     if self.histfile and self.histvar:
@@ -555,6 +556,23 @@ class UnixShell(Shell):
             raise RezSystemError("Error running command:\n%s\n%s"
                                  % (cmd_str, str(e)))
         return p
+
+    def _startup_env_var(self) -> str:
+        """Environment variable used to redirect shell startup file loading to tmpdir.
+        Shells that support dedicated dotfile directory var (e.g., zsh's ZDOTDIR)
+        should override this and _write_startup_env methods.
+        """
+        return "HOME"
+
+    def _write_startup_env(self, ex) -> None:
+        """Write env setup into each generated startup file.
+        Default sets HOME to real users's home directory so the user's real
+        dot files can be sourced from within the generated files.
+
+        Args:
+            ex (RexExecutor): shell executor
+        """
+        ex.setenv("HOME", os.environ.get("HOME", ""))
 
     def resetenv(self, key, value, friends=None) -> None:
         self._addline(self.setenv(key, value))
