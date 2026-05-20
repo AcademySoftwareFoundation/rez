@@ -19,14 +19,13 @@ module_root_path = __path__[0]  # noqa
 
 # TODO: Revamp logging. For now, this is here for backwards compatibility
 def _init_logging() -> None:
+    import logging
     logging_conf = os.getenv("REZ_LOGGING_CONF")
     if logging_conf:
-        import logging
         import logging.config
         logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
         return
 
-    import logging
     from rez.utils.colorize import ColorizedStreamHandler
 
     formatter = logging.Formatter(

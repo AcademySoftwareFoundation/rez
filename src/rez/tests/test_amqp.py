@@ -107,10 +107,11 @@ class TestPublishMessageConnectionFailure(TestBase):
         mock_warn.assert_called_once()
         self.assertIn("Cannot connect", mock_warn.call_args[0][0])
 
+    @patch("rez.utils.amqp.set_pika_log_level")
     @patch("rez.utils.amqp.print_debug")
     @patch("rez.utils.amqp.ConnectionParameters")
     @patch("rez.utils.amqp.BlockingConnection")
-    def test_debug_printed_when_no_host_and_debug_enabled(self, mock_conn, _mock_params, mock_debug) -> None:
+    def test_debug_printed_when_no_host_and_debug_enabled(self, mock_conn, _mock_params, mock_debug, _mock_set_level) -> None:
         """Empty host + debug_context_tracking on: print_debug is called."""
         mock_conn.side_effect = socket.error("connection refused")
         self.update_settings({"debug_context_tracking": True})
@@ -223,22 +224,20 @@ class TestPublishMessageConnectionFailure(TestBase):
 class TestSetPikaLogLevel(TestBase):
     """Tests for set_pika_log_level()."""
 
-    def test_sets_debug_when_context_tracking_debug_on(self) -> None:
+    @patch("rez.utils.amqp.logging.getLogger")
+    def test_sets_debug_when_context_tracking_debug_on(self, mock_get_logger) -> None:
         self.update_settings({"debug_context_tracking": True})
         set_pika_log_level()
-        self.assertEqual(
-            logging.getLogger("rez.vendor.pika").level,
-            logging.DEBUG
-        )
+        mock_get_logger.assert_called_with("rez.vendor.pika")
+        mock_get_logger.return_value.setLevel.assert_called_with(logging.DEBUG)
 
-    def test_no_change_when_context_tracking_debug_off(self) -> None:
+    @patch("rez.utils.amqp.logging.getLogger")
+    def test_no_change_when_context_tracking_debug_off(self, mock_get_logger) -> None:
         """When debug_context_tracking is off, level should not be changed to DEBUG."""
-        logger = logging.getLogger("rez.vendor.pika")
-        logger.setLevel(logging.CRITICAL)
         self.update_settings({"debug_context_tracking": False})
         set_pika_log_level()
-        # Level should remain CRITICAL (not promoted to DEBUG)
-        self.assertNotEqual(logger.level, logging.DEBUG)
+        # setLevel should not be called at all
+        mock_get_logger.return_value.setLevel.assert_not_called()
 
 
 class TestInitLogging(TestBase):
@@ -262,23 +261,27 @@ class TestInitLogging(TestBase):
         f.close()
         return f.name
 
-    def test_logging_conf_does_not_suppress_pika(self) -> None:
+    @patch("logging.config.fileConfig")
+    def test_logging_conf_does_not_suppress_pika(self, mock_file_config) -> None:
         """REZ_LOGGING_CONF branch: rez does not touch the pika logger level.
         The user's config file is solely responsible for configuring it."""
         from rez import _init_logging
 
         conf_path = self._write_logging_conf()
-        try:
-            pika_logger = logging.getLogger("rez.vendor.pika")
-            pika_logger.setLevel(logging.NOTSET)
+        self.addCleanup(os.unlink, conf_path)
 
-            with patch.dict(os.environ, {"REZ_LOGGING_CONF": conf_path}):
-                _init_logging()
+        pika_logger = logging.getLogger("rez.vendor.pika")
+        original_level = pika_logger.level
+        self.addCleanup(pika_logger.setLevel, original_level)
+        pika_logger.setLevel(logging.NOTSET)
 
-            # rez should not have changed it; stays at NOTSET
-            self.assertEqual(pika_logger.level, logging.NOTSET)
-        finally:
-            os.unlink(conf_path)
+        with patch.dict(os.environ, {"REZ_LOGGING_CONF": conf_path}):
+            _init_logging()
+
+        # fileConfig was called with the correct arguments
+        mock_file_config.assert_called_with(conf_path, disable_existing_loggers=False)
+        # rez should not have changed the pika logger level
+        self.assertEqual(pika_logger.level, logging.NOTSET)
 
 
 if __name__ == "__main__":
