@@ -111,7 +111,9 @@ class TestPublishMessageConnectionFailure(TestBase):
     @patch("rez.utils.amqp.print_debug")
     @patch("rez.utils.amqp.ConnectionParameters")
     @patch("rez.utils.amqp.BlockingConnection")
-    def test_debug_printed_when_no_host_and_debug_enabled(self, mock_conn, _mock_params, mock_debug, _mock_set_level) -> None:
+    def test_debug_printed_when_no_host_and_debug_enabled(
+        self, mock_conn, _mock_params, mock_debug, _mock_set_level
+    ) -> None:
         """Empty host + debug_context_tracking on: print_debug is called."""
         mock_conn.side_effect = socket.error("connection refused")
         self.update_settings({"debug_context_tracking": True})
