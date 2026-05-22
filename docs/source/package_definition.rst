@@ -293,7 +293,7 @@ is ``True``:
 * **testing**: see :rex:attr:`testing`;
 * **request**: see :rex:attr:`request`;
 * **implicits**: see :rex:attr:`implicits`;
-* **ephemerals**: see :attr:`ephemerals`.
+* **ephemerals**: see :rex:attr:`ephemerals`.
 
 The following objects are available in **all** cases:
 
