@@ -247,7 +247,7 @@ def safe_rmtree(path) -> None:
 
     def _on_error(_func, path, exc_info):
         if not is_mac or exc_info[0] is not FileNotFoundError or not os.path.basename(path).startswith("._"):
-            raise
+            raise exc_info[1].with_traceback(exc_info[2])
 
     shutil.rmtree(path, onerror=_on_error)
 
