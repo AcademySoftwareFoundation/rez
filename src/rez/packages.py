@@ -9,7 +9,6 @@ from rez.package_resources import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
     package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
-from rez.rex_bindings import EphemeralsBinding
 from rez.utils import reraise
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property
