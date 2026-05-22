@@ -160,7 +160,7 @@ Considering a package "foo" with the following versions:
 - "2.1.0" was released at 2019-09-11
 - "3.0.0" was released at 2019-09-12
 
-the following talbes shows the effect of rank:
+the following tables shows the effect of rank:
 
 .. table::
    :align: left
