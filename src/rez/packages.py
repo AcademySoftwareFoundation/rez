@@ -186,7 +186,6 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         else:
             g["in_context"] = lambda: True
             g["context"] = self.context
-            g["ephemerals"] = EphemeralsBinding(self.context.resolved_ephemerals or [])
 
             # 'request', 'system' etc
             bindings = self.context._get_pre_resolve_bindings()
