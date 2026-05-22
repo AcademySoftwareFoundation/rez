@@ -180,7 +180,7 @@ class Resolver(object):
 
     @property
     def resolved_ephemerals(self) -> list[Requirement] | None:
-        """Get the list of resolved ewphemerals.
+        """Get the list of resolved ephemerals.
 
         Returns:
             List of `Requirement` objects, or None if the resolve has not
