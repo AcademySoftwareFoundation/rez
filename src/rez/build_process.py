@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from rez.packages import iter_packages
+from rez.util import resolve_variant_indices
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
     ReleaseVCSError, _NeverError
@@ -210,12 +211,14 @@ class BuildProcessHelper(BuildProcess):
                        **kwargs) -> tuple[int, list[str | None]]:
         """Iterate over variants and call a function on each."""
         if variants:
-            present_variants = range(self.package.num_variants)
-            invalid_variants = set(variants) - set(present_variants)
-            if invalid_variants:
+            resolved, invalid = resolve_variant_indices(
+                variants, self.package.num_variants
+            )
+            if invalid:
                 raise BuildError(
                     "The package does not contain the variants: %s"
-                    % ", ".join(str(x) for x in sorted(invalid_variants)))
+                    % ", ".join(str(v) for v in invalid))
+            variants = sorted(resolved)
 
         # iterate over variants
         results = []

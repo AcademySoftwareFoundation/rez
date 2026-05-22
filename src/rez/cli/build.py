@@ -72,7 +72,8 @@ def setup_parser_common(parser) -> None:
 
     parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",
-        help="select variants to build (zero-indexed).")
+        help="select variants to build (zero-indexed; negative indices count from the end,"
+             " eg. -1 is the last variant).")
     parser.add_argument(
         "--ba", "--build-args", dest="build_args", metavar="ARGS",
         help="arguments to pass to the build system. Alternatively, list these "
