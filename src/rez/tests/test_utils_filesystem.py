@@ -6,13 +6,28 @@
 unit tests for 'rez.utils.filesystem' module
 """
 import os.path
+import sys
 import tempfile
 
 from rez.tests.util import TestBase
 from rez.tests.util import TempdirMixin
 from rez.utils import filesystem
 from rez.utils.platform_ import platform_
-import unittest
+import unittest.mock
+
+
+def rmtree_file_not_found_error(path, onerror):
+    try:
+        raise FileNotFoundError("File not found", path)
+    except:
+        onerror(None, path, sys.exc_info())
+
+
+def rmtree_permission_error(path, onerror):
+    try:
+        raise PermissionError("Permission denied", path)
+    except:
+        onerror(None, path, sys.exc_info())
 
 
 class TestFileSystem(TestBase, TempdirMixin):
@@ -86,3 +101,28 @@ class TestFileSystem(TestBase, TempdirMixin):
         filesystem.rename(src, dst)
         self.assertTrue(os.path.exists(dst))
         self.assertFalse(os.path.exists(src))
+
+    def test_safe_rmtree_with_file_not_found(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error) as mock_rmtree:
+            with self.assertRaises(FileNotFoundError):
+                filesystem.safe_rmtree("path")
+
+    def test_safe_rmtree_with_other_error(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error) as mock_rmtree:
+            with self.assertRaises(PermissionError):
+                filesystem.safe_rmtree("path")
+
+    def test_safe_rmtree_with_file_not_found_and_apple_double(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error) as mock_rmtree:
+            if platform_.name == 'osx':
+                filesystem.safe_rmtree("._path")
+                mock_rmtree.assert_called_once_with("._path", onerror=unittest.mock.ANY)
+            else:
+                with self.assertRaises(FileNotFoundError):
+                    filesystem.safe_rmtree("._path")
+
+    def test_safe_rmtree_with_other_error_and_apple_double(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error) as mock_rmtree:
+            with self.assertRaises(PermissionError):
+                filesystem.safe_rmtree("._path")
+
