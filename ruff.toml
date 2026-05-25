@@ -123,9 +123,6 @@ ignore = [
 "src/rez/resolver.py" = [
     "F821"    # Undefined name
 ]
-"src/rez/cli/_main.py" = [
-    "ISC002"  # Implicitly concatenated string literals over multiple lines
-]
 "src/rez/cli/release.py" = [
     "F821"    # Undefined name
 ]
