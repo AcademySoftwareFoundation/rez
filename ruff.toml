@@ -149,6 +149,9 @@ ignore = [
 "src/rezplugins/release_vcs/git.py" = [
     "F821"    # Undefined name
 ]
+"src/support/package_utils/set_authors.py" = [
+    "INP001"  # part of an implicit namespace package
+]
 "./release-rez.py" = [
     "E402",   # Module level import not at top of file
     "DTZ011"  # `datetime.date.today()` used
