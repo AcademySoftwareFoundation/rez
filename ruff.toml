@@ -126,9 +126,6 @@ ignore = [
 "src/rez/cli/release.py" = [
     "F821"    # Undefined name
 ]
-"src/rez/package_order.py" = [
-    "E721"    # Use `is` and `is not` for type comparisons, or `isinstance()` for isinstance checks
-]
 "src/rez/tests/test_formatter.py" = [
     "E742"    # Ambiguous class name: `I`
 ]
