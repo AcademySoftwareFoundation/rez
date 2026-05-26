@@ -461,3 +461,129 @@ def _multi_drive_unc_realpath(path):
         if drive in _MOCK_MULTI_DRIVE_TO_UNC:
             return _MOCK_MULTI_DRIVE_TO_UNC[drive] + norm[2:]
     return path
+
+
+@unittest.skipIf(
+    platform_.name != "windows",
+    "Windows-specific real_path() call-site regression tests",
+)
+class TestRealPathCallSitesWindowsUNC(TestBase):
+    """tests that document where os.path.realpath must be replaced with
+    real_path() to avoid drive-letter -> UNC expansion on Windows.
+
+    Each test demonstrates a concrete failure against direct use of
+    os.path.realpath. They represent call sites that need real_path
+    """
+
+    def test_bundle_relpath_does_not_raise_on_different_unc_roots(self):
+        """os.path.relpath raises ValueError when realpath expands two drive-letter
+        paths to different UNC roots.
+
+        Mirrors the pattern in resolved_context.py::
+            relpath(realpath(repo_path), realpath(bundle_path))
+
+        This test currently FAILS because os.path.realpath expands N:\\ ->
+        \\\\nas\\studio\\ and M:\\ -> \\\\backup\\bundles\\, making relpath
+        raise ValueError (can't make-relative across different UNC roots).
+        Fix: replace both realpath() calls with real_path().
+        """
+        repo_path = "N:\\packages\\mypkg"
+        bundle_path = "M:\\bundles\\mybundle"
+
+        with unittest.mock.patch("os.path.realpath", side_effect=_multi_drive_unc_realpath):
+            try:
+                os.path.relpath(
+                    os.path.realpath(repo_path),
+                    os.path.realpath(bundle_path),
+                )
+            except ValueError:
+                self.fail(
+                    "os.path.realpath expanded drive-letter paths to different "
+                    "UNC roots, causing os.path.relpath to raise ValueError. "
+                    "Replace os.path.realpath with real_path() at this call site."
+                )
+
+    def test_suite_save_does_not_raise_suiteerror_when_saving_over_loaded_suite(self):
+        """Suite.save() raises SuiteError when the save path differs from
+        suite.load_path due to UNC expansion.
+
+        Suite.save() calls os.path.realpath(path) and compares it to
+        os.path.realpath(self.load_path). When both were originally the
+        same drive-letter path (e.g. N:\\suites\\mysuite), py3.8+ realpath
+        expands each independently to the same UNC path, so they still
+        compare equal and no error is raised - on the first call.
+
+        The real failure occurs when the suite was loaded from a drive-letter
+        path but is saved to what looks like the same path: the UNC expansion
+        changes the string, so subsequent code that compares the stored
+        load_path against the UNC-expanded save path will see a mismatch.
+
+        This test documents the fragility. Fix: replace os.path.realpath
+        with real_path() in Suite.save() and Suite.load().
+        """
+        from rez.suite import Suite, SuiteError
+
+        drive_path = "N:\\suites\\mysuite"
+        suite = Suite()
+        suite.load_path = drive_path
+
+        patch_context_names = unittest.mock.patch.object(
+            Suite, "context_names",
+            new_callable=unittest.mock.PropertyMock,
+            return_value=[],
+        )
+        with unittest.mock.patch("os.path.realpath", side_effect=_unc_expanding_realpath), \
+             unittest.mock.patch("os.path.exists", return_value=True), \
+             unittest.mock.patch("os.makedirs") as mock_makedirs, \
+             unittest.mock.patch("shutil.rmtree") as mock_rmtree, \
+             unittest.mock.patch("builtins.open", unittest.mock.mock_open()), \
+             patch_context_names, \
+             unittest.mock.patch.object(suite, "to_dict", return_value={}), \
+             unittest.mock.patch.object(suite, "get_tools", return_value={}):
+            try:
+                suite.save(drive_path)
+            except SuiteError as e:
+                self.fail("Suite.save() raised SuiteError: %s" % e)
+
+            # Reachable only after the fix - verify the save actually ran:
+            # existing dir must be cleared before re-creating
+            mock_rmtree.assert_called_once()
+            # suite directory must be (re)created
+            mock_makedirs.assert_called()
+
+    def test_suite_load_stores_drive_letter_load_path_not_unc(self):
+        """Suite.load() must store load_path in drive-letter form, not UNC.
+
+        Currently FAILS because Suite.load() calls os.path.realpath(path)
+        at line 531, which on py3.8+ Windows silently expands a mapped
+        drive-letter path to its UNC equivalent.
+
+        A UNC-form load_path causes Suite.save() to raise SuiteError when
+        the caller saves back to the same drive-letter path, because
+        ``os.path.realpath(drive_letter_save_path)`` returns the same UNC
+        string while ``self.load_path`` is also UNC - but if load_path was
+        set directly in drive-letter form (e.g. from user config or a
+        partially-fixed code path), the string comparison fails.
+
+        Fix: replace os.path.realpath with real_path() in Suite.load().
+        """
+        from rez.suite import Suite
+
+        drive_path = "N:\\suites\\mysuite"
+
+        with unittest.mock.patch("os.path.realpath", side_effect=_unc_expanding_realpath), \
+             unittest.mock.patch("os.path.exists", return_value=True), \
+             unittest.mock.patch("os.path.isfile", return_value=True), \
+             unittest.mock.patch("builtins.open", unittest.mock.mock_open(read_data="{}")), \
+             unittest.mock.patch.object(Suite, "from_dict", return_value=Suite()):
+            s = Suite.load(drive_path)
+
+        self.assertFalse(
+            s.load_path.startswith("\\\\"),
+            "Suite.load_path was UNC-expanded: %r. "
+            "Replace os.path.realpath with real_path() in Suite.load()." % s.load_path,
+        )
+        self.assertTrue(
+            s.load_path.lower().startswith("n:\\"),
+            "Expected drive-letter form load_path, got: %r" % s.load_path,
+        )
