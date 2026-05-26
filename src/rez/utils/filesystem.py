@@ -547,14 +547,26 @@ def _windows_realpath(path: str) -> str:
 
 
 def canonical_path(path: str, platform=None):
-    r""" Resolves symlinks, and formats filepath.
+    """Return a normalised path suitable for identity comparison.
 
-    Resolves symlinks, lowercases if filesystem is case-insensitive,
-    formats filepath using slashes appropriate for platform.
+    Resolves symlinks (on non-Windows), lowercases on case-insensitive
+    filesystems, and normalises separators.  Two paths that refer to the
+    same location will compare equal (``==``) after canonicalisation.
+
+    Use this when the question is "do these two paths refer to the same
+    thing?" - e.g. deduplicating package repository locations, or
+    checking whether a loaded resource path matches a stored location.
+
+    Do not use this when you need a path to open a file, pass to an
+    external tool, or store in a bundle/context that may be read on
+    another platform - the lowercasing it applies on case-insensitive
+    filesystems mutates the string and can break case-sensitive consumers
+    (e.g. a Linux NFS mount accessed from a Windows client).  Use
+    :func:`real_path` for those cases instead.
 
     Args:
         path (str): Filepath being formatted
-        platform (rez.utils.platform\_.Platform): Indicates platform path is being
+        platform (rez.utils.platform_.Platform): Indicates platform path is being
             formatted for. Defaults to current platform.
 
     Returns:
