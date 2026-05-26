@@ -137,6 +137,37 @@ class TestIsSubdirectoryBasic(TestBase, TempdirMixin):
         os.makedirs(b)
         self.assertFalse(filesystem.is_subdirectory(a, b))
 
+
+class TestCanonicalPathIdempotency(TestBase, TempdirMixin):
+    """canonical_path(canonical_path(x)) must equal canonical_path(x).
+
+    This invariant guards against naive changes to canonical_path internals that
+    produce an asymmetry on a given platform
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        TempdirMixin.setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        TempdirMixin.tearDownClass()
+
+    def test_idempotent_on_existing_directory(self):
+        once = canonical_path(self.root, platform_)
+        twice = canonical_path(once, platform_)
+        self.assertEqual(once, twice)
+
+    def test_idempotent_on_nested_path(self):
+        subdir = os.path.join(self.root, "a", "b")
+        os.makedirs(subdir)
+        once = canonical_path(subdir, platform_)
+        twice = canonical_path(once, platform_)
+        self.assertEqual(once, twice)
+
+
 # Simulate py3.8+ Windows os.path.realpath: N:\ expands to \\nas\studio\
 _MOCK_DRIVE_TO_UNC = {"n": "\\\\nas\\studio"}
 
