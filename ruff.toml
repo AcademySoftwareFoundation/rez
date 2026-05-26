@@ -145,9 +145,6 @@ ignore = [
     "E402",   # Module level import not at top of file
     "F401"    # "virtualenv" imported but unused
 ]
-"./setup.py" = [
-    "E402"    # Module level import not at top of file
-]
 
 [lint.flake8-annotations]
 # Allow "Any" for dynamically typed *args and **kwargs arguments

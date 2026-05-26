@@ -19,8 +19,8 @@ source_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
-from rez.utils._version import _rez_version
-from rez.cli._entry_points import get_specifications
+from rez.utils._version import _rez_version  # noqa: E402
+from rez.cli._entry_points import get_specifications  # noqa: E402
 
 
 def find_files(pattern, path=None, root="rez"):
