@@ -100,7 +100,7 @@ class TestFormatter(TestBase):
             def __format__(self, format_spec) -> str:
                 return 1.0
 
-        class I(datetime.date):
+        class I(datetime.date):  # noqa: E742
             def __format__(self, format_spec) -> str:
                 return self.strftime(format_spec)
 

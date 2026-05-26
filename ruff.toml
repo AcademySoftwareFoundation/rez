@@ -114,9 +114,6 @@ ignore = [
 "src/rez/cli/release.py" = [
     "F821"    # Undefined name
 ]
-"src/rez/tests/test_formatter.py" = [
-    "E742"    # Ambiguous class name: `I`
-]
 "src/rezplugins/release_vcs/git.py" = [
     "F821"    # Undefined name
 ]
