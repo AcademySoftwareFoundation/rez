@@ -91,6 +91,52 @@ class TestFileSystem(TestBase, TempdirMixin):
         self.assertFalse(os.path.exists(src))
 
 
+class TestIsSubdirectoryBasic(TestBase, TempdirMixin):
+    """Regression guards for is_subdirectory correctness.
+
+    Uses real filesystem paths so the guards hold on every platform.
+    They protect against regressions when the internal path
+    normalisation inside is_subdirectory is changed - for example,
+    replacing os.path.realpath with real_path().
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        TempdirMixin.setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        TempdirMixin.tearDownClass()
+
+    def test_direct_child_is_subdirectory(self):
+        parent = os.path.join(self.root, "parent")
+        child = os.path.join(parent, "child")
+        os.makedirs(child)
+        self.assertTrue(filesystem.is_subdirectory(child, parent))
+
+    def test_deep_nested_child_is_subdirectory(self):
+        parent = os.path.join(self.root, "deep_parent")
+        grandchild = os.path.join(parent, "a", "b", "c")
+        os.makedirs(grandchild)
+        self.assertTrue(filesystem.is_subdirectory(grandchild, parent))
+
+    def test_sibling_is_not_subdirectory(self):
+        base = os.path.join(self.root, "sib_base")
+        left = os.path.join(base, "left")
+        right = os.path.join(base, "right")
+        os.makedirs(left)
+        os.makedirs(right)
+        self.assertFalse(filesystem.is_subdirectory(left, right))
+
+    def test_unrelated_path_is_not_subdirectory(self):
+        a = os.path.join(self.root, "unrelated_a")
+        b = os.path.join(self.root, "unrelated_b")
+        os.makedirs(a)
+        os.makedirs(b)
+        self.assertFalse(filesystem.is_subdirectory(a, b))
+
 # Simulate py3.8+ Windows os.path.realpath: N:\ expands to \\nas\studio\
 _MOCK_DRIVE_TO_UNC = {"n": "\\\\nas\\studio"}
 
