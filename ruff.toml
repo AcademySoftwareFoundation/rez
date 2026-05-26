@@ -108,9 +108,6 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"__init__.py" = [
-    "D104"    # undocumented-public-package
-]
 "src/rez/tests/*.py" = [
     "F821"    # Undefined name
 ]
@@ -143,10 +140,6 @@ ignore = [
 ]
 "src/support/package_utils/set_authors.py" = [
     "INP001"  # part of an implicit namespace package
-]
-"./release-rez.py" = [
-    "E402",   # Module level import not at top of file
-    "DTZ011"  # `datetime.date.today()` used
 ]
 "./install.py" = [
     "E402",   # Module level import not at top of file

@@ -24,7 +24,7 @@ source_path = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
-from rez.utils._version import _rez_version
+from rez.utils._version import _rez_version  # noqa: E402
 
 
 def get_github_repo_owner():
@@ -212,7 +212,7 @@ def generate_changelog_entry(issue_nums):
             )
 
     # print title section
-    today = date.today()
+    today = date.today()  # noqa: DTZ011
     print(
         "## v%s (%d-%02d-%02d)" %
         (_rez_version, today.year, today.month, today.day)
