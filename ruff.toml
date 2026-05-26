@@ -108,9 +108,6 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"src/rez/tests/*.py" = [
-    "F821"    # Undefined name
-]
 "src/rez/bind/_pymodule.py" = [
     "F821"    # Undefined name
 ]
