@@ -108,13 +108,7 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"src/rez/bind/_pymodule.py" = [
-    "F821"    # Undefined name
-]
 "src/rez/utils/filesystem.py" = [
-    "F821"    # Undefined name
-]
-"src/rez/resolver.py" = [
     "F821"    # Undefined name
 ]
 "src/rez/cli/release.py" = [

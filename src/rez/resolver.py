@@ -20,7 +20,9 @@ from typing import Any, Callable, Iterator, TypedDict, TYPE_CHECKING
 if TYPE_CHECKING:
     from rez.package_order import PackageOrderList
     from rez.resolved_context import ResolvedContext
+    from rez.utils.resources import ResourceHandle
     from rez.utils.typing import SupportsWrite
+    from rez.vendor.pygraph.classes.digraph import digraph
 
 
 class SolverDict(TypedDict):
