@@ -155,6 +155,7 @@ ignore = [
     "DTZ011"  # `datetime.date.today()` used
 ]
 "./install.py" = [
+    "E402",   # Module level import not at top of file
     "F401"    # "virtualenv" imported but unused
 ]
 "./setup.py" = [
