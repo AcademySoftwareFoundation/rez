@@ -14,7 +14,7 @@ import unittest.mock
 from rez.tests.util import TestBase
 from rez.tests.util import TempdirMixin
 from rez.utils import filesystem
-from rez.utils.filesystem import canonical_path, _windows_realpath
+from rez.utils.filesystem import canonical_path, real_path, _windows_realpath
 from rez.utils.platform_ import platform_
 
 
@@ -502,6 +502,55 @@ class TestRealPathCallSitesWindowsUNC(TestBase):
                     "UNC roots, causing os.path.relpath to raise ValueError. "
                     "Replace os.path.realpath with real_path() at this call site."
                 )
+
+    def test_bundle_relpath_must_not_use_canonical_path_regression(self):
+        """canonical_path lowercases the path, which corrupts case-sensitive
+        path components stored in bundle files.
+
+        This is a regression guard: if the resolved_context.py call site is
+        fixed by substituting canonical_path() (which lowercases on Windows),
+        the stored relative path will have wrong capitalisation on Linux NFS
+        mounts that are case-sensitive.
+
+        real_path() preserves the original casing, so it is the correct fix.
+        """
+        from rez.utils.platform_ import Platform
+
+        class _CaseInsensitivePlatform(Platform):
+            name = "windows"
+
+            @property
+            def has_case_sensitive_filesystem(self):
+                return False
+
+        mock_plat = _CaseInsensitivePlatform()
+        repo_path = "N:\\packages\\MyPkg\\1.0B"
+        bundle_path = "N:\\bundles\\MyBundle"
+
+        relpath_via_canonical = os.path.relpath(
+            canonical_path(repo_path, mock_plat),
+            canonical_path(bundle_path, mock_plat),
+        )
+        relpath_via_real = os.path.relpath(
+            real_path(repo_path),
+            real_path(bundle_path),
+        )
+
+        # canonical_path lowercases everything; real_path preserves case.
+        self.assertNotEqual(
+            relpath_via_canonical,
+            relpath_via_real,
+            "canonical_path and real_path produced the same relpath - "
+            "expected canonical_path to lowercase and real_path to preserve case.",
+        )
+        self.assertIn(
+            "MyPkg", relpath_via_real,
+            "real_path() must preserve mixed-case package name in relpath.",
+        )
+        self.assertIn(
+            "1.0B", relpath_via_real,
+            "real_path() must preserve mixed-case version string in relpath.",
+        )
 
     def test_suite_save_does_not_raise_suiteerror_when_saving_over_loaded_suite(self):
         """Suite.save() raises SuiteError when the save path differs from
