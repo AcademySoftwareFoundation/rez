@@ -168,6 +168,63 @@ class TestCanonicalPathIdempotency(TestBase, TempdirMixin):
         self.assertEqual(once, twice)
 
 
+class TestRealPath(TestBase, TempdirMixin):
+    """Cross-platform regression guards for real_path().
+
+    real_path() is the form-stable absolute-path helper for file I/O and
+    path storage.  Key contracts verified here:
+
+    - relative paths become absolute
+    - case is never lowercased (unlike canonical_path on case-insensitive FSes)
+    - on non-Windows, symlinks are resolved (delegates to os.path.realpath)
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        TempdirMixin.setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        TempdirMixin.tearDownClass()
+
+    def test_result_is_absolute(self):
+        self.assertTrue(os.path.isabs(real_path(self.root)))
+
+    def test_preserves_case(self):
+        """real_path() must not lowercase path components.
+
+        canonical_path() lowercases on case-insensitive filesystems;
+        real_path() must not, so stored paths are not corrupted for
+        case-sensitive consumers (e.g. a Linux NFS mount from Windows).
+        """
+        mixed = os.path.join(self.root, "FooBar")
+        os.makedirs(mixed)
+        result = real_path(mixed)
+        self.assertIn(
+            "FooBar", result,
+            "real_path() lowercased a path component: %r" % result,
+        )
+
+    @unittest.skipIf(
+        platform_.name == "windows",
+        "Symlink resolution via realpath is non-Windows only.",
+    )
+    def test_resolves_symlinks_on_non_windows(self):
+        """On non-Windows real_path() resolves symlinks (os.path.realpath).
+
+        Guards against real_path() being switched to abspath on all
+        platforms, which would silently break symlink resolution on
+        Linux/macOS.
+        """
+        target = os.path.join(self.root, "real_target")
+        link = os.path.join(self.root, "sym_link")
+        os.makedirs(target)
+        os.symlink(target, link)
+        self.assertEqual(real_path(link), real_path(target))
+
+
 # Simulate py3.8+ Windows os.path.realpath: N:\ expands to \\nas\studio\
 _MOCK_DRIVE_TO_UNC = {"n": "\\\\nas\\studio"}
 
