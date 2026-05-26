@@ -16,6 +16,7 @@ from rez.packages import get_developer_package, Variant
 from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.utils.which import which
+from rez.utils.filesystem import real_path
 from rez.vendor.schema.schema import Or
 from rez.shells import create_shell
 import argparse
@@ -150,9 +151,9 @@ class CMakeBuildSystem(BuildSystem):
 
         # execute cmake within the build env
         _pr("Executing: %s" % ' '.join(cmd))
-        if not os.path.abspath(build_path):
+        if not os.path.isabs(build_path):
             build_path = os.path.join(self.working_dir, build_path)
-            build_path = os.path.realpath(build_path)
+            build_path = real_path(build_path)
 
         actions_callback = functools.partial(
             self._add_build_actions,
