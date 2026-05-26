@@ -365,3 +365,22 @@ class TestWindowsRealpathInternals(TestBase):
                 result = _windows_realpath("C:\\loop")
 
         self.assertIsInstance(result, str)
+
+
+# Map two different drive letters to two different UNC roots.
+# This simulates the py3.8+ realpath expansion that triggers the ValueError
+# in os.path.relpath when the two paths end up on different UNC servers.
+_MOCK_MULTI_DRIVE_TO_UNC = {
+    "n": "\\\\nas\\studio",
+    "m": "\\\\backup\\bundles",
+}
+
+
+def _multi_drive_unc_realpath(path):
+    """Expand two different drive letters to two different UNC roots."""
+    norm = path.replace("/", "\\")
+    if len(norm) >= 2 and norm[1] == ":":
+        drive = norm[0].lower()
+        if drive in _MOCK_MULTI_DRIVE_TO_UNC:
+            return _MOCK_MULTI_DRIVE_TO_UNC[drive] + norm[2:]
+    return path
