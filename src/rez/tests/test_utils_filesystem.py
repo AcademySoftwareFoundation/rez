@@ -533,32 +533,44 @@ class TestRealPathCallSitesWindowsUNC(TestBase):
     """
 
     def test_bundle_relpath_does_not_raise_on_different_unc_roots(self):
-        """os.path.relpath raises ValueError when realpath expands two drive-letter
-        paths to different UNC roots.
+        """_adjust_variant_for_bundling must not raise ValueError when
+        os.path.realpath would have expanded drive-letter paths to UNC form.
 
-        Mirrors the pattern in resolved_context.py::
-            relpath(realpath(repo_path), realpath(bundle_path))
-
-        This test currently FAILS because os.path.realpath expands N:\\ ->
-        \\\\nas\\studio\\ and M:\\ -> \\\\backup\\bundles\\, making relpath
-        raise ValueError (can't make-relative across different UNC roots).
-        Fix: replace both realpath() calls with real_path().
+        Exercises the real call site in resolved_context.py. is_subdirectory
+        is mocked True to force the relpath branch. With real_path() (abspath)
+        the drive-letter form is preserved and os.path.relpath succeeds.
         """
-        repo_path = "N:\\packages\\mypkg"
-        bundle_path = "M:\\bundles\\mybundle"
+        from rez.resolved_context import ResolvedContext
 
-        with unittest.mock.patch("os.path.realpath", side_effect=_multi_drive_unc_realpath):
+        bundle_path = "N:\\bundles\\mybundle"
+        repo_path = "N:\\bundles\\mybundle\\packages\\mypkg"
+
+        handle = {
+            "variables": {
+                "repository_type": "filesystem",
+                "location": repo_path,
+            }
+        }
+
+        with unittest.mock.patch.object(
+            ResolvedContext, "_get_bundle_path", return_value=bundle_path
+        ), unittest.mock.patch(
+            "rez.resolved_context.is_subdirectory", return_value=True
+        ):
             try:
-                os.path.relpath(
-                    os.path.realpath(repo_path),
-                    os.path.realpath(bundle_path),
-                )
-            except ValueError:
+                ResolvedContext._adjust_variant_for_bundling(handle, out=True)
+            except ValueError as e:
                 self.fail(
-                    "os.path.realpath expanded drive-letter paths to different "
-                    "UNC roots, causing os.path.relpath to raise ValueError. "
-                    "Replace os.path.realpath with real_path() at this call site."
+                    "_adjust_variant_for_bundling raised ValueError: %s\n"
+                    "Ensure real_path() (not os.path.realpath) is used at "
+                    "the os.path.relpath call site in resolved_context.py." % e
                 )
+
+        self.assertNotEqual(
+            handle["variables"]["location"],
+            repo_path,
+            "Expected location to be updated to a relative path, was unchanged.",
+        )
 
     def test_bundle_relpath_must_not_use_canonical_path_regression(self):
         """canonical_path lowercases the path, which corrupts case-sensitive
