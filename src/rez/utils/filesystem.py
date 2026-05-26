@@ -586,6 +586,39 @@ def canonical_path(path: str, platform=None):
     return path
 
 
+def real_path(path: str) -> str:
+    """Return an absolute, form-stable path for file I/O and path operations.
+
+    Resolves relative segments and (on non-Windows) symlinks, while
+    preserving the form of the input path - a drive-letter path stays
+    drive-letter; a UNC path stays UNC.
+
+    Use this when you need a stable absolute path to use rather than to
+    compare - opening a file, building a cache key, passing to
+    ``os.path.relpath``, returning a path to the user, or storing a path
+    in a serialised format that may be read on another platform.
+
+    Do not use this when the question is "do these two paths refer to
+    the same filesystem location?" - use :func:`canonical_path` instead,
+    which lowercases on case-insensitive filesystems so that equality
+    checks work regardless of capitalisation.
+
+    Justification: ``os.path.realpath`` on Windows (Python 3.8+)
+    silently expands mapped drive-letter paths to their UNC
+    equivalents (``N:\\`` -> ``\\\\server\\share\\``).  That expansion
+    breaks ``os.path.relpath`` across mismatched UNC roots
+    (``ValueError``), corrupts cache keys, and mutates capitalisation
+    in stored paths. ``os.path.abspath`` avoids this while still
+    making paths absolute and normalising separators.
+
+    Returns:
+        str: Absolute path with the same drive-letter / UNC form as input.
+    """
+    if sys.platform == "win32":
+        return os.path.normpath(os.path.abspath(path))
+    return os.path.realpath(path)
+
+
 def encode_filesystem_name(input_str: str):
     """Encodes an arbitrary unicode string to a generic filesystem-compatible
     non-unicode filename.
