@@ -63,10 +63,9 @@ class TimestampWidget(QtWidgets.QFrame):
         self.refresh()
 
     def _selectPackage(self) -> None:
-        fn = lambda x: bool(x.timestamp)
         dlg = BrowsePackageDialog(context_model=self.context_model,
                                   parent=self.parentWidget(),
-                                  package_selectable_callback=fn)
+                                  package_selectable_callback=lambda x: bool(x.timestamp))
         dlg.exec_()
         if dlg.package:
             self.set_time(dlg.package.timestamp)

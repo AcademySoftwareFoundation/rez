@@ -126,15 +126,6 @@ ignore = [
 "src/rez/tests/test_formatter.py" = [
     "E742"    # Ambiguous class name: `I`
 ]
-"src/rezgui/objects/Config.py" = [
-    "E721"    # Use `is` and `is not` for type comparisons, or `isinstance()` for isinstance checks
-]
-"src/rezgui/widgets/ContextToolsWidget.py" = [
-    "F401"    # "rezgui.objects.App.app" imported but unused
-]
-"src/rezgui/widgets/TimestampWidget.py" = [
-    "E731"    # Do not assign a `lambda` expression, use a `def`
-]
 "src/rezplugins/release_vcs/git.py" = [
     "F821"    # Undefined name
 ]
