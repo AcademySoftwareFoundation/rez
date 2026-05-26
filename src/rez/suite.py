@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from rez.utils.execution import create_forwarding_script
+from rez.utils.filesystem import real_path
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
 from rez.utils.data_utils import cached_property
@@ -458,7 +459,7 @@ class Suite(object):
                 at `path`, then it will be overwritten. Otherwise, if `path`
                 exists, an error is raised.
         """
-        path = os.path.realpath(path)
+        path = real_path(path)
         if os.path.exists(path):
             if self.load_path and self.load_path == path:
                 if verbose:
@@ -528,7 +529,7 @@ class Suite(object):
             raise SuiteError("Failed loading suite: %s" % str(e))
 
         s = cls.from_dict(data)
-        s.load_path = os.path.realpath(path)
+        s.load_path = real_path(path)
         return s
 
     @classmethod
