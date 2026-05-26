@@ -329,8 +329,8 @@ def make_tmp_name(name):
 
 def is_subdirectory(path_a, path_b) -> bool:
     """Returns True if `path_a` is a subdirectory of `path_b`."""
-    path_a = os.path.realpath(path_a)
-    path_b = os.path.realpath(path_b)
+    path_a = real_path(path_a)
+    path_b = real_path(path_b)
     try:
         relative = os.path.relpath(path_a, path_b)
     except ValueError:
