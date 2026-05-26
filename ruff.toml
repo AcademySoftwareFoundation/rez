@@ -23,8 +23,8 @@ extend-exclude = [
     "src/rez/data",
 ]
 
-# Match black formatter defaults
-line-length = 88
+# Match flake8 linter defaults
+line-length = 120
 indent-width = 4
 
 [format]
@@ -103,10 +103,8 @@ select = [
 ]
 
 ignore = [
-    "E501",  # Line too long
     "E722",  # Do not use bare `except`
     "E741",  # Ambiguous variable name
-    "W505",  # Doc line too long
 ]
 
 [lint.per-file-ignores]
@@ -157,6 +155,7 @@ ignore = [
     "DTZ011"  # `datetime.date.today()` used
 ]
 "./install.py" = [
+    "E402",   # Module level import not at top of file
     "F401"    # "virtualenv" imported but unused
 ]
 "./setup.py" = [
@@ -187,7 +186,7 @@ known-third-party = ["rez.vendor"]
 
 [lint.pycodestyle]
 # Enforce line-length on doc lines.
-max-doc-length = 88
+max-doc-length = 120
 
 [lint.pydocstyle]
 convention = "google"
