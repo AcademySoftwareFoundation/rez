@@ -35,7 +35,10 @@ class SetupRezSubParser(object):
 
         error_msg = None
         if not mod.__doc__:
-            error_msg = f"command module {self.module_name} must have a module-level docstring (used as the command help)"
+            error_msg = (
+                f"command module {self.module_name} must have a module-level docstring "
+                "(used as the command help)"
+            )
         if not hasattr(mod, 'command'):
             error_msg = f"command module {self.module_name} must provide a command() function"
         if not hasattr(mod, 'setup_parser'):
