@@ -30,6 +30,7 @@ from rez.util import which
 from rez.utils.execution import Popen
 
 is_windows = platform.system() == "Windows"
+is_mac = platform.system() == "Darwin"
 
 
 class TempDirs(object):
@@ -72,7 +73,7 @@ class TempDirs(object):
 
         for path in dirs:
             if os.path.exists(path) and not os.getenv("REZ_KEEP_TMPDIRS"):
-                shutil.rmtree(path)
+                safe_rmtree(path)
 
     @classmethod
     def clear_all(cls) -> None:
@@ -186,7 +187,7 @@ def safe_remove(path):
 
     try:
         if os.path.isdir(path) and not os.path.islink(path):
-            shutil.rmtree(path)
+            safe_rmtree(path)
         else:
             os.remove(path)
     except OSError:
@@ -203,9 +204,15 @@ def forceful_rmtree(path) -> None:
     Also handled:
         * path length over 259 char (on Windows)
         * unicode path
+        * AppleDouble resource forks
     """
 
     def _on_error(func, path, exc_info) -> None:
+        if is_mac and exc_info[0] is FileNotFoundError and os.path.basename(path).startswith("._"):
+            # Assume if we are on a mac and the file starts with a "._" it is a resource fork and the
+            # corresponding data fork has been removed.  Since we are removing the whole directory tree
+            # it should not be a problem.
+            return
         try:
             if is_windows:
                 path = windows_long_path(path)
@@ -224,6 +231,24 @@ def forceful_rmtree(path) -> None:
             pass
 
         func(path)
+
+    shutil.rmtree(path, onerror=_on_error)
+
+
+def safe_rmtree(path) -> None:
+    """Like shutil.rmtree, but handles race condition caused by AppleDouble files.
+
+    On Mac OSX files may consist of a data fork and a resource fork.  On a foreign file system these files
+    are stored as AppleDouble files.  The data fork is stored as "filename" and the resource fork is stored
+    as "._filename".  When the data fork is removed the corresponding resource fork is also removed.  This
+    results in a FileNotFoundError when `shutil.rmtree` tries to remove the resource fork.  This is addressed
+    in Python 13.3 for another situation not related to AppleDouble files
+    (https://github.com/python/cpython/pull/14064)
+    """
+
+    def _on_error(_func, path, exc_info):
+        if not is_mac or exc_info[0] is not FileNotFoundError or not os.path.basename(path).startswith("._"):
+            raise exc_info[1].with_traceback(exc_info[2])
 
     shutil.rmtree(path, onerror=_on_error)
 
@@ -467,7 +492,7 @@ def movetree(src: str, dst: str) -> None:
         shutil.move(src, dst)
     except:
         copytree(src, dst, symlinks=True, hardlinks=True)
-        shutil.rmtree(src)
+        safe_rmtree(src)
 
 
 def safe_chmod(path: str, mode) -> None:

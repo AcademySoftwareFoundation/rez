@@ -75,7 +75,7 @@ Two kinds of attestations are produced:
   `pypa/gh-action-pypi-publish <https://github.com/pypa/gh-action-pypi-publish>`_
   when the sdist and wheel are uploaded to PyPI.
 
-Both the SLSA and the PyPI Publish attestations are uploadted to PyPI.
+Both the SLSA and the PyPI Publish attestations are uploaded to PyPI.
 
 Verify artifacts downloaded from GitHub
 ---------------------------------------

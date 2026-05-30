@@ -13,7 +13,6 @@ import os.path
 import os
 import stat
 import time
-import shutil
 
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
@@ -30,7 +29,7 @@ from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning, print_info
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, \
-    canonical_path, is_subdirectory
+    canonical_path, is_subdirectory, safe_rmtree
 from rez.utils.platform_ import platform_
 from rez.utils.yaml import load_yaml
 from rez.config import config
@@ -733,7 +732,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # delete the payload
         pkg_dir = os.path.join(self.location, pkg_name, str(pkg_version))
-        shutil.rmtree(pkg_dir)
+        safe_rmtree(pkg_dir)
 
         # unignore (just so the .ignore{ver} file is removed)
         self.unignore_package(pkg_name, pkg_version)
@@ -765,7 +764,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # delete the fam dir
         fam_dir = os.path.join(self.location, pkg_name)
-        shutil.rmtree(fam_dir)
+        safe_rmtree(fam_dir)
 
         self._on_changed(pkg_name)
         return True

@@ -286,6 +286,24 @@ class TestShells(TestBase, TempdirMixin):
                 # should bubble up through the rez shell as a 0 exit status.
                 self.assertEqual(p.returncode, 0)
 
+    @unittest.skipIf(platform_.name != "windows", "PowerShell return-code handling is Windows-specific")
+    def test_powershell_command_not_found_returncode(self) -> None:
+        shells = [shell for shell in ("powershell", "pwsh") if shell in get_available_shells()]
+        if not shells:
+            self.skipTest("PowerShell unavailable or disabled")
+
+        r = self._create_context([])
+        for shell in shells:
+            with self.subTest(shell=shell):
+                with r.execute_shell(
+                    shell=shell,
+                    command="NoSuchRezCommand2073",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                ) as p:
+                    p.wait()
+                self.assertEqual(p.returncode, 1)
+
     @per_available_shell()
     def test_norc(self, shell) -> None:
         sh = create_shell(shell)
