@@ -572,7 +572,8 @@ class UnixShell(Shell):
         Args:
             ex: shell executor
         """
-        ex.setenv("HOME", os.environ.get("HOME", ""))
+        startup_env_var = self._startup_env_var()
+        ex.setenv(startup_env_var, os.environ.get(startup_env_var, ""))
 
     def resetenv(self, key, value, friends=None) -> None:
         self._addline(self.setenv(key, value))
