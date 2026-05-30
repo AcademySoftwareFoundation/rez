@@ -564,13 +564,13 @@ class UnixShell(Shell):
         """
         return "HOME"
 
-    def _write_startup_env(self, ex) -> None:
+    def _write_startup_env(self, ex: RexExecutor) -> None:
         """Write env setup into each generated startup file.
         Default sets HOME to real users's home directory so the user's real
         dot files can be sourced from within the generated files.
 
         Args:
-            ex (RexExecutor): shell executor
+            ex: shell executor
         """
         ex.setenv("HOME", os.environ.get("HOME", ""))
 
