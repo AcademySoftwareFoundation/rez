@@ -809,6 +809,20 @@ class FileSystemPackageRepository(PackageRepository):
 
         return num_removed
 
+    def make_resource_handle(self, resource_key, **variables):
+        # Normalize the caller-supplied location so the base-class raw string
+        # comparison succeeds, even when the caller uses a different case, or
+        # an equivalent path form (e.g. mixed-case drive letter on Windows).
+        #
+        # https://github.com/AcademySoftwareFoundation/rez/issues/2045
+        #
+        location = variables.get("location")
+        if location is not None and location != self.location:
+            norm = canonical_path(location, platform_)
+            if norm == self.location:
+                variables["location"] = self.location
+        return super().make_resource_handle(resource_key, **variables)
+
     def get_resource_from_handle(self, resource_handle, verify_repo: bool = True):
         if verify_repo:
             repository_type = resource_handle.variables.get("repository_type")
