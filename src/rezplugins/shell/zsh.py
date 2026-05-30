@@ -114,6 +114,17 @@ class Zsh(SH):
             result += txt
         return result
 
+    def _startup_env_var(self) -> str:
+        """zsh-specific override for HOME shell env var"""
+        return "ZDOTDIR"
+
+    def _write_startup_env(self, ex) -> None:
+        """ZDOTDIR tells zsh to load dot files from tmpdir
+        without using HOME. Since HOME is always set and correct,
+        there is no need to restore it in the generated startup files.
+        """
+        pass
+
 
 def register_plugin():
     if platform_.name != "windows":

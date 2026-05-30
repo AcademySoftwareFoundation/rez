@@ -13,7 +13,7 @@ from rez.plugin_managers import plugin_manager
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.utils.platform_ import platform_
 from rez.tests.util import TestBase, TempdirMixin, get_available_shells, \
-    per_available_shell, install_dependent
+    per_available_shell, install_dependent, restore_os_environ
 from rez.bind import hello_world
 from rez.config import config
 import unittest
@@ -670,6 +670,64 @@ class TestShells(TestBase, TempdirMixin):
             with open(exe_path, 'w'):
                 config.override(override_attr, exe_path)
                 assert cls.find_executable(cls.executable_name()) == exe_path
+
+    @unittest.skipIf("zsh" not in get_available_shells(), "zsh is not available")
+    def test_zsh_zshenv(self):
+        """Test fix for issue #2058: rez context fails to load in zsh when
+        ``~/.zshenv`` exists.
+        """
+        config.override("default_shell", "zsh")
+
+        user_home = os.path.join(self.root, "user_home")
+        os.makedirs(user_home)
+
+        # The user's .zshenv records what HOME and ZDOTDIR look like at the
+        # time zsh sources it. We can't use ``command=`` mode to inspect this:
+        # that path bypasses the HOME/ZDOTDIR-hijacking branch entirely and
+        # just inlines the rez context into rez-shell.sh. Only ``stdin`` (or
+        # a fully-interactive launch) exercises the code path that this fix
+        # touches.
+        marker_file = os.path.join(self.root, "zshenv_marker.txt")
+        zshenv_path = os.path.join(user_home, ".zshenv")
+        with open(zshenv_path, "w") as fh:
+            fh.write('echo -n "HOME=$HOME\nZDOTDIR=$ZDOTDIR" > "%s"\n' % marker_file)
+
+        with restore_os_environ():
+            os.environ["HOME"] = user_home
+            os.environ.pop("ZDOTDIR", None)
+
+            r = self._create_context([])
+            p = r.execute_shell(
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                text=True,
+            )
+            p.communicate(input="exit")
+            self.assertEqual(p.returncode, 0)
+
+        # The user's .zshenv is sourced twice: once by the outer zsh that
+        # runs rez-shell.sh (before ZDOTDIR is set), and once by the rez
+        # wrapper .zshenv launched by the inner ``zsh -s``. The inner one
+        # runs last and wins, so the marker reflects the env the rez wrapper
+        # exposes to the user's .zshenv.
+        with open(marker_file) as fh:
+            content = fh.read().strip()
+
+        # HOME must be preserved (not silently redirected to rez's tmpdir).
+        self.assertIn("HOME=" + user_home, content)
+
+        # ZDOTDIR must point to the rez wrapper tmpdir, which actually
+        # contains the generated wrapper files.
+        zdotdir = content.split("ZDOTDIR=", 1)[1].strip()
+        self.assertTrue(
+            zdotdir,
+            "ZDOTDIR should be set to the rez wrapper tmpdir, got: %r"
+            % content,
+        )
+        self.assertTrue(
+            os.path.isfile(os.path.join(zdotdir, ".zshenv")),
+            "Expected rez wrapper .zshenv in ZDOTDIR=%s" % zdotdir,
+        )
 
 
 if __name__ == '__main__':
