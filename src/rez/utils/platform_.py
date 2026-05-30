@@ -519,7 +519,6 @@ class WindowsPlatform(Platform):
     def _physical_cores_from_powershell(self) -> int | None:
         # wmic was removed in Windows 11 24H2; use PowerShell/CimInstance instead.
         # powershell.exe (Windows PowerShell 5.1) ships with all Windows 10/11 installs.
-        import subprocess
         cmd = [
             'powershell', '-NonInteractive', '-NoProfile', '-Command',
             '(Get-CimInstance -ClassName Win32_Processor'
