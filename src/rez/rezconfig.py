@@ -683,6 +683,10 @@ package_preprocess_mode = "override"
 # to just print the message to standard out instead, for testing purposes.
 # Otherwise, ``{host}[:{port}]`` is expected.
 #
+# If the broker is unreachable and :data:`context_tracking_host` is set, a warning
+# is printed. If :data:`context_tracking_host` is empty (the default), connection
+# failures are suppressed entirely (expected when tracking is not configured).
+#
 # If any items are present in :data:`context_tracking_extra_fields`, they are added
 # to the payload. If any extra field contains references to unknown env-vars, or
 # is set to an empty string (possibly due to var expansion), it is removed from
@@ -762,7 +766,9 @@ debug_resolve_memcache = False
 # ``memcached -vv`` as the server)
 debug_memcache = False
 
-# Print debugging info when an AMPQ server is used in context tracking
+# Print debugging info when an AMQP server is used in context tracking.
+# Also enables DEBUG-level logging from the pika AMQP library (rez.vendor.pika),
+# which is otherwise suppressed to avoid noise from connection attempts.
 debug_context_tracking = False
 
 # Print debugging info related to shell startup

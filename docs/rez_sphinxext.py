@@ -235,7 +235,7 @@ def convert_rez_config_to_rst() -> list[str]:
             rst.append("-" * len(section))
             rst.append('')
 
-            # This seems benign (storing each line individually), but it's actually extremelly
+            # This seems benign (storing each line individually), but it's actually extremely
             # important. The docutils ViewList class absolutely requires to have only one line per
             # entry. If we don't do that, the docutils parser won't parse the sublines,
             # and we'll get "garbage" (ie unformatted lines) in the output.
@@ -367,7 +367,7 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
     """
     _LOG.info("[rez-autoargparse] generating command line documents")
 
-    _LOG.info("[rez-autoargparse] seting up the parser")
+    _LOG.info("[rez-autoargparse] setting up the parser")
     main_parser = rez.cli._main.setup_parser()
     main_parser._setup_all_subparsers()
 

@@ -292,7 +292,8 @@ is ``True``:
 * **building**: see :rex:attr:`building`;
 * **testing**: see :rex:attr:`testing`;
 * **request**: see :rex:attr:`request`;
-* **implicits**: see :rex:attr:`implicits`.
+* **implicits**: see :rex:attr:`implicits`;
+* **ephemerals**: see :rex:attr:`ephemerals`.
 
 The following objects are available in **all** cases:
 
@@ -704,7 +705,7 @@ the data type, and includes a code snippet.
    :type: bool
 
    Indicates that the package is an application that may have plugins. These plugins are often made
-   available as rez packages also. Used in conjuction with the :ref:`rez-plugins` command. Also, see :pkgdef:attr:`plugin_for`.
+   available as rez packages also. Used in conjunction with the :ref:`rez-plugins` command. Also, see :pkgdef:attr:`plugin_for`.
 
    .. code-block:: python
 
@@ -752,14 +753,14 @@ the data type, and includes a code snippet.
       name = "maya_utils"
 
 .. pkgdef:attribute:: plugin_for
-   :type: str
+   :type: list[str]
 
    Provided if this package is a plugin of another package. For example, this might be a maya plugin.
    This is useful when using the :ref:`rez-plugins` command. Also, see :pkgdef:attr:`has_plugins`.
 
    .. code-block:: python
 
-      plugin_for = "maya"
+      plugin_for = ["maya"]
 
 .. pkgdef:function:: post_commands() -> None
 

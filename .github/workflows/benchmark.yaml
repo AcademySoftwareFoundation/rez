@@ -21,14 +21,14 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - '3.7'
+          - '3.8'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup python ${{ matrix.python-version }}
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -62,7 +62,7 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - '3.7'
+          - '3.8'
 
       # so we don't have jobs trying to push to git at the same time
       max-parallel: 1
@@ -74,7 +74,7 @@ jobs:
           path: .
 
       - name: Checkout (release)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         if: ${{ github.event_name =='release' }}
         with:
           ref: main
@@ -88,13 +88,13 @@ jobs:
           # token: "${{ secrets.GH_ACTION_TOKEN }}"
 
       - name: Checkout (pr)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         if: ${{ github.event_name !='release' }}
         with:
           path: src
 
       - name: Setup python ${{ matrix.python-version }}
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
 

@@ -16,6 +16,7 @@ from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.packages import get_latest_package
 from rez.package_copy import copy_package
+from rez.exceptions import PackageCopyError
 from rez.version import VersionRange
 from rez.tests.util import TestBase, TempdirMixin
 
@@ -330,3 +331,78 @@ class TestCopyPackage(TestBase, TempdirMixin):
         # this can only match if the include module was copied with the package
         environ = ctxt.get_environ(parent_environ={})
         self.assertEqual(environ.get("EEK"), "2")
+
+    def test_9(self) -> None:
+        """Package copy with negative variant indices."""
+        self._reset_dest_repository()
+
+        # bah has 2 variants: index 0 ([foo-1.0]) and index 1 ([foo-1.1])
+        src_pkg = self._get_src_pkg("bah", "2.1")
+
+        # -1 should copy only the last variant (index 1)
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[-1]
+        )
+        self._assert_copied(result, 1, 0)
+        # verify the correct source variant was selected
+        self.assertEqual(result["copied"][0][0].index, 1)
+
+        # -2 should copy only the first variant (index 0)
+        self._reset_dest_repository()
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[-2]
+        )
+        self._assert_copied(result, 1, 0)
+        # verify the correct source variant was selected
+        self.assertEqual(result["copied"][0][0].index, 0)
+
+        # -1 and 1 refer to the same variant; only one copy should be made
+        self._reset_dest_repository()
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[-1, 1]
+        )
+        self._assert_copied(result, 1, 0)
+
+        # invalid: -3 on a 2-variant package should raise PackageCopyError
+        # and the error message should name the invalid index
+        self._reset_dest_repository()
+        with self.assertRaises(PackageCopyError) as exc:
+            copy_package(
+                package=src_pkg,
+                dest_repository=self.dest_install_root,
+                variants=[-3]
+            )
+        self.assertIn("-3", str(exc.exception))
+
+        # multiple invalid indices should all appear in the error, sorted
+        with self.assertRaises(PackageCopyError) as exc:
+            copy_package(
+                package=src_pkg,
+                dest_repository=self.dest_install_root,
+                variants=[-3, 5]
+            )
+        error_msg = str(exc.exception)
+        self.assertIn("-3", error_msg)
+        self.assertIn("5", error_msg)
+        self.assertLess(error_msg.index("-3"), error_msg.index("5"))
+
+    def test_10(self) -> None:
+        """Copy a no-variant package using variants=[None] (e.g. from bundle_context)."""
+        self._reset_dest_repository()
+
+        # floob has no variants; iter_variants() yields one variant with index=None
+        src_pkg = self._get_src_pkg("floob", "1.2.0")
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[None]
+        )
+
+        # The single null-variant should have been copied without error
+        self._assert_copied(result, 1, 0)

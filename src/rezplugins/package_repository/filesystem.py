@@ -13,7 +13,6 @@ import os.path
 import os
 import stat
 import time
-import shutil
 
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
@@ -30,7 +29,7 @@ from rez.utils.resources import cached_property
 from rez.utils.logging_ import print_warning, print_info
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.utils.filesystem import make_path_writable, \
-    canonical_path, is_subdirectory
+    canonical_path, is_subdirectory, safe_rmtree
 from rez.utils.platform_ import platform_
 from rez.utils.yaml import load_yaml
 from rez.config import config
@@ -601,12 +600,14 @@ class FileSystemPackageRepository(PackageRepository):
         - /svr/packages/mypkg/package.py  # (unversioned package - rare)
         - /svr/packages/mypkg/package.py<1.0.0>  # ("combined" package type - rare)
         """
-        uri = os.path.normcase(uri)
+        norm_uri = os.path.normcase(uri)
 
         prefix = self.location + os.path.sep
-        if not is_subdirectory(uri, prefix):
+        if not is_subdirectory(norm_uri, prefix):
             return None
 
+        # Slice from the original uri, not norm_uri: normcase lowercases on Windows,
+        # which would corrupt pkg_name/pkg_ver_str for mixed-case packages. See #2101.
         part = uri[len(prefix):]  # eg 'mypkg/1.0.0/package.py'
         parts = part.split(os.path.sep)
         pkg_name = parts[0]
@@ -733,7 +734,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # delete the payload
         pkg_dir = os.path.join(self.location, pkg_name, str(pkg_version))
-        shutil.rmtree(pkg_dir)
+        safe_rmtree(pkg_dir)
 
         # unignore (just so the .ignore{ver} file is removed)
         self.unignore_package(pkg_name, pkg_version)
@@ -765,7 +766,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # delete the fam dir
         fam_dir = os.path.join(self.location, pkg_name)
-        shutil.rmtree(fam_dir)
+        safe_rmtree(fam_dir)
 
         self._on_changed(pkg_name)
         return True

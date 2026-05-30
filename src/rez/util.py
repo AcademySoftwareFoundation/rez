@@ -201,3 +201,28 @@ def load_module_from_file(name: str, filepath: str) -> ModuleType:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def resolve_variant_indices(
+    variants: list[int], num_variants: int
+) -> tuple[set[int], list[int]]:
+    """Resolve possibly-negative variant indices to canonical non-negative ones.
+
+    Args:
+        variants: Requested variant indices (may include negatives).
+        num_variants: Total number of variants in the package.
+
+    Returns:
+        A 2-tuple of:
+        - resolved (set[int]): Canonical non-negative indices.
+        - invalid (list[int]): Any indices outside [-num_variants, num_variants-1],
+          sorted for deterministic error messages. Empty when all indices are valid.
+          When num_variants is 0 the package has no explicit variants; the
+          input is returned unchanged and invalid is always empty.
+    """
+    if num_variants <= 0:
+        return set(variants), []
+    present = set(range(-num_variants, num_variants))
+    invalid = sorted(set(variants) - present)
+    resolved = {v % num_variants for v in variants}
+    return resolved, invalid

@@ -54,10 +54,10 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
     - name: Setup python ${{ matrix.python-version }}
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -101,7 +101,7 @@ jobs:
         _REZ_ENSURE_TEST_SHELLS: ${{ matrix.shells }}
 
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+      uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
       # Run on both success and failure, but only if coverage.xml exists.
       if: ${{ hashFiles('coverage.xml') != '' && (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure') }}
       with:

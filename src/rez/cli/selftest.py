@@ -11,7 +11,7 @@ import os
 import sys
 import inspect
 import argparse
-import shutil
+from rez.utils.filesystem import safe_rmtree
 from pkgutil import iter_modules
 
 try:
@@ -104,7 +104,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
         else:
             run_unittest(module_tests, opts.tests, opts.verbose)
     finally:
-        shutil.rmtree(repo)
+        safe_rmtree(repo)
 
 
 def run_unittest(module_tests, tests, verbosity) -> None:

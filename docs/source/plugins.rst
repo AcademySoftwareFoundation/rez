@@ -185,6 +185,6 @@ Overriding built-in plugins
 ===========================
 
 Built-in plugins can be overridden by installing a plugin with the same name and type.
-When rez sees this, it will prioritie your plugin over its built-in plugin.
+When rez sees this, it will prioritize your plugin over its built-in plugin.
 
 This is useful if you want to modify a built-in plugin without having to modify rez's source code.

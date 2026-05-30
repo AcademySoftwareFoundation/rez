@@ -149,7 +149,7 @@ The following example will prefer package released before 2019-09-09.
    ]
 
 The rank can be used to allow some versions released after the timestamp to still be considered.
-When using semantic versionnng, a value of 3 is the most common.
+When using semantic versioning, a value of 3 is the most common.
 This will let version with a different patch number to be accepted.
 
 Considering a package "foo" with the following versions:
@@ -160,7 +160,7 @@ Considering a package "foo" with the following versions:
 - "2.1.0" was released at 2019-09-11
 - "3.0.0" was released at 2019-09-12
 
-the following talbes shows the effect of rank:
+the following table shows the effect of rank:
 
 .. table::
    :align: left

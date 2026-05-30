@@ -137,6 +137,7 @@ We could try to move to a more maintained package like pymemcache from
 pinterest. NOTE: A port to redis may be a better option, people are more
 familiar with it and it already has a good python client that supports conn
 pooling.
+Single-character syntax patch on imports to resolve SyntaxWarning on python-3.13+
 </td></tr>
 
 <!-- ######################################################### -->
