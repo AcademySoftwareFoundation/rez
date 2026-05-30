@@ -164,10 +164,11 @@ class PowerShellBase(Shell):
         # See https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/set-strictmode?view=powershell-7.5#description  # noqa
         #
         executor.command(
+            "$_rez_shell_command_status = $?\n"
             "if ((Test-Path variable:LASTEXITCODE) -and $LASTEXITCODE) {\n"
             "  exit $LASTEXITCODE\n"
             "}\n"
-            "if (! $?) {\n"
+            "if (! $_rez_shell_command_status) {\n"
             "  exit 1\n"
             "}"
         )
