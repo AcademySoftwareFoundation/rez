@@ -2,8 +2,58 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## v3.4.0 (2026-05-31)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.4.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.3.0...3.4.0)
+
+This release is a relatively big one. The main change is the addition of type hints to the codebase! This has been
+one of our most requested features for a while now and we are happy to finally be able to release it. A huge
+thank you to @chadrik for making this possible. Note that there are still a lot of gaps to fill and
+the types are not as accurate as we would like. Making them accurate will require changes to the public API,
+which need to be planned, carefully implemented and communicated.
+
+We also fixed a regression introduced in 3.3.0 that caused auto-complete to stop working.
+This was caused by the update of one of our vendored dependencies. It was unfortunately
+not caught by our tests because we were simply not testing that part of the code base.
+To prevent future regressions, we have added tests that cover everything we could realistically
+cover.
+
+Additionally, for the first time in rez's history, we have fixed a low-severity security vulnerability
+that was impacting `rez-build`. See https://github.com/AcademySoftwareFoundation/rez/pull/1979 for
+additional details. Considering that rez is used behind firewalls and that there is no standard way to share
+package definitions, we don't think that anyone was impacted by it from
+a security perspective. Some might classify this as a classic bug rather than a vulnerability.
+
+The other changes are mostly quality of life fixes and enhancements.
+
+### Features
+- Add type annotations. [\#1761](https://github.com/AcademySoftwareFoundation/rez/pull/1761) ([chadrik](https://github.com/chadrik))
+- Add setting called `debug_shell_startup` [\#2059](https://github.com/AcademySoftwareFoundation/rez/pull/2059) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Add `-c/--command` flag to rez-interpret [\#2100](https://github.com/AcademySoftwareFoundation/rez/pull/2100) ([hundreds-of-bears-dev](https://github.com/hundreds-of-bears-dev))
+- Add support for `--variant -1` style syntax to rez-build [\#2103](https://github.com/AcademySoftwareFoundation/rez/pull/2103) ([sanikache](https://github.com/sanikache))
+- Add `ephemerals` to the list of objects available in late functions [\#2117](https://github.com/AcademySoftwareFoundation/rez/pull/2117) ([cfxegbert](https://github.com/cfxegbert))
+
+### Fixes
+- Fix race conditions caused by AppleDouble files when removing a directory tree [\#1716](https://github.com/AcademySoftwareFoundation/rez/pull/1716) ([cfxegbert](https://github.com/cfxegbert))
+- Apply correct schema on build_requires and private_build_requires to avoid crashes in rez-search [\#2004](https://github.com/AcademySoftwareFoundation/rez/pull/2004) ([czerouni](https://github.com/czerouni))
+- Fix shell auto-completion [\#2091](https://github.com/AcademySoftwareFoundation/rez/pull/2091) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Fix SyntaxWarning from vendored memcached [\#2105](https://github.com/AcademySoftwareFoundation/rez/pull/2105) ([maxnbk](https://github.com/maxnbk))
+- Improve AMQP Context Tracking connection error handling [\#2106](https://github.com/AcademySoftwareFoundation/rez/pull/2106) ([sanikache](https://github.com/sanikache))
+- fix: windows case sensitivity in pkg cache variants uri [\#2107](https://github.com/AcademySoftwareFoundation/rez/pull/2107) ([maxnbk](https://github.com/maxnbk))
+- fix: windows core count from powershell [\#2108](https://github.com/AcademySoftwareFoundation/rez/pull/2108) ([maxnbk](https://github.com/maxnbk))
+- Fix PowerShell command failure status [\#2109](https://github.com/AcademySoftwareFoundation/rez/pull/2109) ([snoopuppy582](https://github.com/snoopuppy582))
+- Fix for zsh-specific env loading behavior [\#2111](https://github.com/AcademySoftwareFoundation/rez/pull/2111) ([derrickauyoung](https://github.com/derrickauyoung))
+
+### Security
+- Fix shell injection in rez-build process [\#1979](https://github.com/AcademySoftwareFoundation/rez/pull/1979) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Create attestations for our released artifacts [\#2099](https://github.com/AcademySoftwareFoundation/rez/pull/2099) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Documentation
+- Fix typos and improve docs [\#2060](https://github.com/AcademySoftwareFoundation/rez/pull/2060) ([czerouni](https://github.com/czerouni))
+- Fix sphinx warnings [\#2062](https://github.com/AcademySoftwareFoundation/rez/pull/2062) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- docs: fix spelling in documentation [\#2118](https://github.com/AcademySoftwareFoundation/rez/pull/2118) ([cfxegbert](https://github.com/cfxegbert))
+
 ## v3.3.0 (2025-10-17)
-[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.3.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.1...3.3.0)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.3.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.2.1...3.3.0)
 
 This release is a minor update that includes several bug fixes and improvements. The main highlights are support for
 python 3.12 and 3.13 (finally), a new way to register plugins using python entry points, new settings
@@ -45,7 +95,7 @@ leaving behind older versions.
 - Update vendored dependencies part 2 [\#2022](https://github.com/AcademySoftwareFoundation/rez/pull/2022) ([maxnbk](https://github.com/maxnbk))
 
 ## v3.2.1 (2024-10-27)
-[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/v3.2.0...3.2.1)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.2.1) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.2.0...3.2.1)
 
 ### Fixes
 
