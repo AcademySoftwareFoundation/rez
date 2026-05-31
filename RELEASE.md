@@ -65,16 +65,12 @@ To merge a PR to the `main` branch and release a new version:
 8. Merge in the UI.
 9. Switch your local branch to the main branch and pull.
 10. Make sure that you are on the main branch and that you have pulled the changes.
-11. Create the tag
+11. Create and push the tag
    Note that the script can also create the release, but I recommend against it for now.
    It's better to manually create the release and review the changes yourself to make
    sure that all contributors are properly tagged.
    ```bash
    python ./release-rez.py -s tag
-   ```
-12. Push the tag
-   ```bash
-   python ./release-rez.py -s push
    ```
 13. Go to https://github.com/AcademySoftwareFoundation/rez/releases/new and create the release.
     The release name should be `<version> (<date>)` where `<version>` is NOT prefixed with `v`.

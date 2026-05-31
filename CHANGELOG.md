@@ -9,7 +9,7 @@ This release is a relatively big one. The main change is the addition of type hi
 one of our most requested features for a while now and we are happy to finally be able to release it. A huge
 thank you to @chadrik for making this possible. Note that there are still a lot of gaps to fill and
 the types are not as accurate as we would like. Making them accurate will require changes to the public API,
-which need to be planned, carefully implemented and communicated.
+which needs to be planned, carefully implemented and communicated.
 
 We also fixed a regression introduced in 3.3.0 that caused auto-complete to stop working.
 This was caused by the update of one of our vendored dependencies. It was unfortunately

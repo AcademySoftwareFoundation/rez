@@ -21,7 +21,7 @@ rapidly and post patches within 14 days if possible.
 ## Known Vulnerabilities
 
 The only currently known security vulnerability is issue [#417](https://github.com/AcademySoftwareFoundation/rez/issues/417),
-reported by @ttanimura. The provlem has been fixed in the version 3.4.0. No others are known at this time.
+reported by @ttanimura, which was fixed in the version 3.4.0. No others are known at this time.
 
 See the [release notes](CHANGES.md) for more information.
 
