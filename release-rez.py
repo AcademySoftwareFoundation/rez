@@ -159,11 +159,14 @@ def check_on_main():
 
 
 def create_and_push_tag():
+    check_on_main()
     run_command("git", "tag", _rez_version)
     run_command("git", "push", "origin", _rez_version)
 
 
 def create_github_release():
+    check_on_main()
+
     # check if latest release notes already match current version
     response = github_request("get", "releases/latest")
     response.raise_for_status()
@@ -374,8 +377,6 @@ if __name__ == "__main__":
             file=sys.stderr,
         )
         sys.exit(1)
-
-    check_on_main()
 
     command = command_map.get(opts.subcommand)
     if command:
