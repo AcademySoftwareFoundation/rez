@@ -72,7 +72,7 @@ To merge a PR to the `main` branch and release a new version:
     python release-rez.py release
     ```
     The command will show you what the release will look like (tag, title, release notes).
-    It will ask if if you really want to release.
+    It will ask if you really want to release.
 14. Go to https://github.com/AcademySoftwareFoundation/rez/actions/workflows/pypi.yaml and
     monitor the release. You will see a new run. Go take a look at the logs and make sure
     that the upload to PyPI works.

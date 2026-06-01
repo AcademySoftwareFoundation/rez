@@ -56,6 +56,14 @@ def get_github_repo_owner():
             f"Rename name is {remote[0]!r}. Was expecting 'origin'",
             file=sys.stderr,
         )
+        sys.exit(1)
+
+    if not remote[1].startswith("git@github.com"):
+        print(
+            f"Remote URL must use the SSH protocal and start with 'git@github.com'. Current remote: {remote[1]}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     return remote[1].split(":")[-1].split("/", maxsplit=1)[0]
 
@@ -322,14 +330,13 @@ def generate_changelog_entry():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dry-run", help="Don't run any destructive actions")
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Verbose mode",
     )
 
-    subparsers = parser.add_subparsers(dest="subcommand")
+    subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     changelog_parser = subparsers.add_parser(
         "changelog",
