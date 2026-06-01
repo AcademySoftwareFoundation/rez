@@ -61,8 +61,8 @@ def get_github_repo_owner():
 
 
 _repo_owner = get_github_repo_owner()
-github_baseurl = "github.com/repos/%s/rez" % _repo_owner
-github_baseurl2 = "github.com/%s/rez" % _repo_owner
+repo_name = f"{_repo_owner}/rez"
+github_baseurl = "github.com/%s" % repo_name
 verbose = False
 
 # https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
@@ -86,7 +86,7 @@ def run_command(*nargs):
 
 
 def github_request(method, endpoint, headers=None, **kwargs):
-    url = "https://api.%s/%s" % (github_baseurl, endpoint)
+    url = f"https://api.github.com/repos/{repo_name}/{endpoint}"
     headers = (headers or {}).copy()
     headers["Authorization"] = "token " + github_token
     return requests.request(method, url, headers=headers, **kwargs)
@@ -256,7 +256,7 @@ def generate_changelog_entry(issue_nums):
 
     print(
         "[Source](https://%s/tree/%s) | [Diff](https://%s/compare/%s...%s)" %
-        (github_baseurl2, _rez_version, github_baseurl2, previous_version, _rez_version)
+        (github_baseurl, _rez_version, github_baseurl, previous_version, _rez_version)
     )
 
     print("")
