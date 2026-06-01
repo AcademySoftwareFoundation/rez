@@ -150,16 +150,12 @@ def check_on_main():
         sys.exit(1)
 
 
-def push_codebase():
-    run_command("git", "push")
-
-
 def create_and_push_tag():
     run_command("git", "tag", _rez_version)
     run_command("git", "push", "origin", _rez_version)
 
 
-def create_github_release_notes():
+def create_github_release():
     # check if latest release notes already match current version
     response = github_request("get", "releases/latest")
     response.raise_for_status()
@@ -307,36 +303,43 @@ def generate_changelog_entry():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dry-run", help="Don't run any destructive actions")
     parser.add_argument(
-        "-s", "--step", choices=("push", "tag", "release_notes"),
-        help="Just run one step of the release process")
-    parser.add_argument(
-        "-c", "--changelog", nargs='*', metavar="ISSUE", type=int,
-        help="Generate changelog entry to be added to CHANGELOG.md")
-    parser.add_argument(
-        "-v", "--verbose", action="store_true",
-        help="Verbose mode")
+        "-v", "--verbose",
+        action="store_true",
+        help="Verbose mode",
+    )
+
+    subparsers = parser.add_subparsers(dest="subcommand")
+
+    changelog_parser = subparsers.add_parser(
+        "changelog",
+        help="Generate the changelog entry and print to stdout"
+    )
+
+    subparsers.add_parser(
+        "tag",
+        help="Tag and push the tag"
+    )
+
+    subparsers.add_parser(
+        "release",
+        help="Create the release"
+    )
 
     opts = parser.parse_args()
     verbose = opts.verbose
 
-    if opts.changelog is not None:
-        issue_nums = opts.changelog
-        generate_changelog_entry(issue_nums)
-        sys.exit(0)
-
-    print("Releasing rez-%s..." % _rez_version)
-
-    def doit(step):
-        return (opts.step is None) or (step == opts.step)
+    command_map = {
+        "changelog": generate_changelog_entry,
+        "tag": create_and_push_tag,
+        "release": create_github_release,
+    }
 
     check_on_main()
 
-    if doit("push"):
-        push_codebase()
-
-    if doit("tag"):
-        create_and_push_tag()
-
-    if doit("release_notes"):
-        create_github_release_notes()
+    command = command_map.get(opts.subcommand)
+    if command:
+        command()
+    else:
+        raise RuntimeError(f"Add {opts.subcommand!r} to command_map")
