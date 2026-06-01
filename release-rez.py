@@ -199,7 +199,7 @@ def create_github_release_notes():
     print("Created release notes: " + url)
 
 
-def generate_changelog_entry(issue_nums):
+def generate_changelog_entry():
     # parse previous release out of changelog
     changelog = parse_topmost_changelog()
 
@@ -211,11 +211,37 @@ def generate_changelog_entry(issue_nums):
         )
         sys.exit(1)
 
+    # Discover PRs from commits between the previous tag and HEAD.
+    # For each commit, ask GitHub which PR(s) contain it, and merge the
+    # resulting PR numbers into any issue/PR numbers passed in by the caller.
+    discovered_prs = set()
+
+    response = github_request("get", "compare/%s...HEAD" % previous_version)
+    response.raise_for_status()
+    response_content = response.json()
+    commits = response_content.get("commits", [])
+    if len(commits) < response_content.get("total_commits"):
+        raise ValueError("List of commits is paginated")
+
+    for commit in commits:
+        sha = commit["sha"]
+        pr_response = github_request("get", "commits/%s/pulls" % sha)
+        pr_response.raise_for_status()
+        for pr in pr_response.json():
+            discovered_prs.add(pr["number"])
+
+    if verbose:
+        sys.stderr.write(
+            "Discovered %d PR(s) from %d commit(s) between %s and HEAD: %s\n"
+            % (len(discovered_prs), len(commits), previous_version,
+               sorted(discovered_prs))
+        )
+
     # get issues and PRs from cli
     pr_lines = []
     issue_lines = []
 
-    for issue_num in sorted(issue_nums):
+    for issue_num in sorted(discovered_prs):
         # note that 'issues' endpoint also returns PRs
         response = github_request(
             "get",
