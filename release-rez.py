@@ -68,15 +68,15 @@ def get_github_repo_owner():
     return remote[1].split(":")[-1].split("/", maxsplit=1)[0]
 
 
-_repo_owner = get_github_repo_owner()
-repo_name = f"{_repo_owner}/rez"
-github_baseurl = "github.com/%s" % repo_name
+# Will be set under if __main__
+repo_name = ""
+github_baseurl = ""
 verbose = False
 
 # https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
 # requires 'public_repo' access
 #
-github_token = os.environ["GITHUB_RELEASE_REZ_TOKEN"]
+github_token = ""
 
 
 def run_command(*nargs):
@@ -361,6 +361,19 @@ if __name__ == "__main__":
         "tag": create_and_push_tag,
         "release": create_github_release,
     }
+
+    _repo_owner = get_github_repo_owner()
+    repo_name = f"{_repo_owner}/rez"
+    github_baseurl = "github.com/%s" % repo_name
+
+    github_token = os.environ.get("GITHUB_RELEASE_REZ_TOKEN")
+
+    if not github_token:
+        print(
+            "GITHUB_RELEASE_REZ_TOKEN environment variable must be set to a valid GH API token",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     check_on_main()
 
