@@ -31,10 +31,33 @@ from rez.utils._version import _rez_version
 def get_github_repo_owner():
     out = subprocess.check_output(["git", "remote", "-v"], text=True)
 
-    # eg git@github.com:jbloggs/rez.git, https://github.com/jbloggs/rez.git
-    remote_url = out.split()[1]
-    parts = remote_url.replace('/', ' ').replace(':', ' ').split()
-    return parts[-2]
+    # The output looks like this:
+    # chadrik git@github.com:chadrik/rez (fetch)
+    # chadrik git@github.com:chadrik/rez (push)
+    # origin  git@github.com:JeanChristopheMorinPerso/rez.git (fetch)
+    # origin  git@github.com:JeanChristopheMorinPerso/rez.git (push)
+    # upstream        git@github.com:AcademySoftwareFoundation/rez.git (fetch)
+    # upstream        git@github.com:AcademySoftwareFoundation/rez.git (push)
+
+    remotes: list[tuple[str, str]] = []
+    for line in out.splitlines():
+        remotes.append(line.split()[0:2])
+
+    if len(set([remote[1] for remote in remotes])) > 1:
+        print(
+            "More than one remote are configured. The script doesn't support multiple remotes.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    remote = remotes[0]
+    if remote[0] != "origin":
+        print(
+            f"Rename name is {remote[0]!r}. Was expecting 'origin'",
+            file=sys.stderr,
+        )
+
+    return remote[1].split(":")[-1].split("/", maxsplit=1)[0]
 
 
 _repo_owner = get_github_repo_owner()
