@@ -13,6 +13,7 @@ from datetime import date
 from shlex import quote
 import subprocess
 import sys
+import re
 
 try:
     import requests
@@ -79,11 +80,23 @@ def parse_topmost_changelog():
             # eg: ## 2.38.0 (2019-07-20)
             if parts and parts[0] == "##":
                 if result.get("version"):
+                    for index, line in enumerate(body_lines):
+                        # Replace the user URL to a github handle. This will allow GH to properly
+                        # attribute and tag all contributors on the release page.
+                        # [user](https://github.com/user) > @user
+                        line = re.sub(r"\[([^\]]+)\]\(https://github\.com/\1\)", r"@\1", line)
+                        # Now replace all links to rez GH issues and PR with `#<number>`.
+                        # This is purely cosmetic. It at least makes the output cleaner.
+                        # [\#1234](https://github.com/AcademySoftwareFoundation/rez/pull/1234) > #1234.
+                        line = re.sub(r'\[\\#(\d+)\]\(https://github\.com/AcademySoftwareFoundation/rez/(pull|issues)/\1\)', r'#\1', line)
+                        body_lines[index] = line
+
                     result["body"] = ''.join(body_lines).strip()
                     return result
 
-                result["version"] = parts[1]
-                result["name"] = ' '.join(parts[1:])
+                # The version in our changelog is prefixed with `v`. Get rid of that.
+                result["version"] = parts[1].lstrip("v")
+                result["name"] = ' '.join(parts[1:]).lstrip("v")
 
             elif result.get("version"):
                 # GitHub seems to treat separate lines in the md as line breaks,
