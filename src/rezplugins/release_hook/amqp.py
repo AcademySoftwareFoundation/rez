@@ -52,10 +52,7 @@ class AmqpReleaseHook(ReleaseHook):
         super(AmqpReleaseHook, self).__init__(source_path)
 
     def post_release(self, user, install_path, variants, **kwargs) -> None:
-        if variants:
-            package = variants[0].parent
-        else:
-            package = self.package
+        package = variants[0].parent if variants else self.package
 
         # build the message dict
         data: dict[str, Any] = {}

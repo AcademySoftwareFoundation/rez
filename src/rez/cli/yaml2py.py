@@ -23,10 +23,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
     import os
     import sys
 
-    if opts.PATH:
-        path = os.path.expanduser(opts.PATH)
-    else:
-        path = os.getcwd()
+    path = os.path.expanduser(opts.PATH) if opts.PATH else os.getcwd()
 
     try:
         package = get_developer_package(path, format=FileFormat.yaml)

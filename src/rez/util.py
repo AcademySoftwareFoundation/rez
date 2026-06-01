@@ -34,7 +34,7 @@ class ProgressBar(Bar):
         from rez.config import config
 
         if config.quiet or not config.show_progress:
-            self.file = open(os.devnull, 'w')
+            self.file = open(os.devnull, 'w')  # noqa: SIM115
             self.close_file = True
             self.hide_cursor = False
         else:
@@ -80,10 +80,7 @@ def shlex_join(value: Iterable[str], unsafe_regex=None,
             return s
 
         for from_, to_ in (replacements or []):
-            if isinstance(from_, str):
-                s = s.replace(from_, to_)
-            else:
-                s = from_.sub(to_, s)  # assume from_ is re.compile
+            s = s.replace(from_, to_) if isinstance(from_, str) else from_.sub(to_, s)
 
         return enclose_with + s + enclose_with
 

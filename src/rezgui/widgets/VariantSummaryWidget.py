@@ -78,14 +78,12 @@ class VariantSummaryWidget(QtWidgets.QWidget):
                 rows.append(("authors: ", txt))
             if variant.requires:
                 var_strs = [str(x) for x in variant.requires]
-                if isinstance(variant, Variant):
-                    # put variant-specific requires in square brackets
-                    if variant.requires:
-                        index = find_last_sublist(variant.requires, variant.requires)
-                        if index is not None:
-                            var_strs[index] = "[%s" % var_strs[index]
-                            index2 = index + len(variant.requires) - 1
-                            var_strs[index2] = "%s]" % var_strs[index2]
+                if isinstance(variant, Variant) and variant.requires:
+                    index = find_last_sublist(variant.requires, variant.requires)
+                    if index is not None:
+                        var_strs[index] = "[%s" % var_strs[index]
+                        index2 = index + len(variant.requires) - 1
+                        var_strs[index2] = "%s]" % var_strs[index2]
                 txt = "; ".join(var_strs)
                 rows.append(("requires: ", txt))
 

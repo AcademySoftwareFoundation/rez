@@ -543,7 +543,7 @@ class WindowsPlatform(Platform):
         import subprocess
         try:
             p = Popen(
-                'wmic cpu get NumberOfCores /value'.split(),
+                ("wmic",  "cpu", "get", "NumberOfCores", "/value"),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True
             )

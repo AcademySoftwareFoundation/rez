@@ -75,10 +75,7 @@ class Wrapper(object):
         Returns:
             Return code of the command, or 0 if the command is not run.
         """
-        if self.prefix_char is None:
-            prefix_char = config.suite_alias_prefix_char
-        else:
-            prefix_char = self.prefix_char
+        prefix_char = config.suite_alias_prefix_char if self.prefix_char is None else self.prefix_char
 
         if prefix_char == '':
             # empty prefix char means we don't support the '+' args

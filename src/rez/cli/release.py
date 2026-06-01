@@ -7,6 +7,7 @@ Build a package from source and deploy it.
 '''
 from __future__ import annotations
 
+import contextlib
 import os
 import sys
 from subprocess import call
@@ -144,7 +145,5 @@ def command(opts, parser, extra_arg_groups=None) -> None:
 
     # remove the release message file
     if filepath:
-        try:
+        with contextlib.suppress(BaseException):
             os.remove(filepath)
-        except:
-            pass

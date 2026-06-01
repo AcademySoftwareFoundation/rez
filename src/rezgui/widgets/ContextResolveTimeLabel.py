@@ -28,10 +28,7 @@ class ContextResolveTimeLabel(QtWidgets.QLabel, ContextViewMixin):
 
         minutes = (int(time.time()) - context.created) / 60
 
-        if minutes:
-            time_txt = readable_time_duration(minutes * 60)
-        else:
-            time_txt = "moments"
+        time_txt = readable_time_duration(minutes * 60) if minutes else "moments"
         self.setText("resolved %s ago" % time_txt)
         self.timer.start()
 

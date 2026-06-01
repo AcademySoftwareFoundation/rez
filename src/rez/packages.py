@@ -144,10 +144,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         # 'data' dict property, since it forwards data from its parent package.
         data.pop("config", None)
         if self.config:
-            if isinstance(self, Package):
-                config_dict = self.data.get("config")
-            else:
-                config_dict = self.parent.data.get("config")
+            config_dict = self.data.get("config") if isinstance(self, Package) else self.parent.data.get("config")
             data["config"] = config_dict
 
         if not include_release:
@@ -608,10 +605,7 @@ def get_package(name: str, version: Version | str, paths: list[str] | None = Non
     Returns:
         `Package` object, or None if the package was not found.
     """
-    if isinstance(version, str):
-        range_ = VersionRange("==%s" % version)
-    else:
-        range_ = VersionRange.from_version(version, "==")
+    range_ = VersionRange("==%s" % version) if isinstance(version, str) else VersionRange.from_version(version, "==")
 
     it = iter_packages(name, range_, paths)
     try:
@@ -902,12 +896,11 @@ def get_completions(prefix: str, paths: list[str] | None = None, family_only: bo
         Set of strings, may be empty.
     """
     op = None
-    if prefix:
-        if prefix[0] in ('!', '~'):
-            if family_only:
-                return set()
-            op = prefix[0]
-            prefix = prefix[1:]
+    if prefix and prefix[0] in ('!', '~'):
+        if family_only:
+            return set()
+        op = prefix[0]
+        prefix = prefix[1:]
 
     fam = None
     for ch in ('-', '@', '#'):

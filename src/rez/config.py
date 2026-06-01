@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from rez import __version__
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
     convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \
@@ -283,10 +285,8 @@ class Dict(Setting):
             try:
                 v = int(v)
             except ValueError:
-                try:
+                with contextlib.suppress(ValueError):
                     v = float(v)
-                except ValueError:
-                    pass
 
             result[k] = v
 
@@ -680,10 +680,8 @@ class Config(object, metaclass=LazyAttributeMeta):
             if key == "plugins":
                 d[key] = self.plugins.data()
             else:
-                try:
+                with contextlib.suppress(AttributeError):  # unknown key, just leave it unchanged
                     d[key] = getattr(self, key)
-                except AttributeError:
-                    pass  # unknown key, just leave it unchanged
         return d
 
     @property

@@ -207,11 +207,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
 
             for src_variant, dest_variant in copied:
                 # None possible if dry_run
-                if dest_variant is None:
-                    dest_uri = dry_run_uri
-                else:
-                    dest_uri = dest_variant.uri
-
+                dest_uri = dry_run_uri if dest_variant is None else dest_variant.uri
                 print("  %s -> %s" % (src_variant.uri, dest_uri))
 
         if skipped:

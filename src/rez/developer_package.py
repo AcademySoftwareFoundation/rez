@@ -63,10 +63,7 @@ class DeveloperPackage(Package):
         name = None
         data = None
 
-        if format is None:
-            formats = [FileFormat.py, FileFormat.yaml]
-        else:
-            formats = [format]
+        formats = [FileFormat.py, FileFormat.yaml] if format is None else [format]
 
         try:
             mode = os.stat(path).st_mode
@@ -84,9 +81,8 @@ class DeveloperPackage(Package):
                 else:
                     # if format was not specified, verify that it has the
                     # right extension before trying to load
-                    if format is None:
-                        if os.path.splitext(path)[1] != format_.extension:
-                            continue
+                    if format is None and os.path.splitext(path)[1] != format_.extension:
+                        continue
                     filepath = path
                     exists = True
 

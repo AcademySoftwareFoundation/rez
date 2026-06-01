@@ -194,10 +194,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
 
     if context is None:
         # create package filters
-        if opts.no_filters:
-            package_filter = PackageFilterList()
-        else:
-            package_filter = PackageFilterList.singleton.copy()
+        package_filter = PackageFilterList() if opts.no_filters else PackageFilterList.singleton.copy()
 
         for rule_str in (opts.exclude or []):
             rule = Rule.parse_rule(rule_str)

@@ -233,13 +233,12 @@ class RezPluginType(object):
 
     def register_plugin_module(self, plugin_name, plugin_module, plugin_path):
         module_name = plugin_module.__name__
-        if os.path.dirname(plugin_module.__file__) != plugin_path:
-            if config.debug("plugins"):
-                # this should not happen but if it does, tell why.
-                print_warning(
-                    "plugin module %s is not loaded from current "
-                    "load path but reused from previous imported "
-                    "path: %s" % (module_name, plugin_module.__file__))
+        if os.path.dirname(plugin_module.__file__) != plugin_path and config.debug("plugins"):
+            # this should not happen but if it does, tell why.
+            print_warning(
+                "plugin module %s is not loaded from current "
+                "load path but reused from previous imported "
+                "path: %s" % (module_name, plugin_module.__file__))
 
         if (hasattr(plugin_module, "register_plugin")
                 and callable(plugin_module.register_plugin)):

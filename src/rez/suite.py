@@ -516,7 +516,9 @@ class Suite(object):
     @classmethod
     def load(cls, path: str) -> Suite:
         if not os.path.exists(path):
-            open(path)  # raise IOError
+            # Using open for the side effect of raising FileNotFoundError
+            with open(path):
+                pass
         filepath = os.path.join(path, "suite.yaml")
         if not os.path.isfile(filepath):
             raise SuiteError("Not a suite: %r" % path)

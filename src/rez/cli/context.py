@@ -122,10 +122,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
         print("not in a resolved environment context.", file=sys.stderr)
         sys.exit(1)
 
-    if rxt_file == '-':  # read from stdin
-        rc = ResolvedContext.read_from_buffer(sys.stdin, 'STDIN')
-    else:
-        rc = ResolvedContext.load(rxt_file)
+    rc = ResolvedContext.read_from_buffer(sys.stdin, 'STDIN') if rxt_file == '-' else ResolvedContext.load(rxt_file)
 
     def _graph():
         if rc.has_graph:

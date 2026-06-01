@@ -189,7 +189,7 @@ def get_dict_diff(d1, d2):
                     else:
                         changed.append(namespace + [k1])
 
-        for k2 in d2_.keys():
+        for k2 in d2_:
             if k2 not in d1_:
                 added.append(namespace + [k2])
 
@@ -342,10 +342,7 @@ class AttrDictWrapper(MutableMapping[str, Any]):
         return self.__dict__['_data']
 
     def __getattr__(self, attr: str) -> Any:
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self._data
+        d = self.__dict__ if attr.startswith('__') and attr.endswith('__') else self._data
         try:
             return d[attr]
         except KeyError:

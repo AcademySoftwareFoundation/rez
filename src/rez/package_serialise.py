@@ -213,12 +213,9 @@ def _dump_package_data_py(items: list[tuple[str, Any]], buf: SupportsWrite) -> N
             lines.append("]")
             txt = '\n'.join(lines)
         else:
-            # default serialisation
+            # default serialization
             value_txt = pformat(value)
-            if '\n' in value_txt:
-                txt = "%s = \\\n%s" % (key, indent(value_txt))
-            else:
-                txt = "%s = %s" % (key, value_txt)
+            txt = "%s = \\\n%s" % (key, indent(value_txt)) if '\n' in value_txt else "%s = %s" % (key, value_txt)
 
         print(txt, file=buf)
         if i < len(items) - 1:

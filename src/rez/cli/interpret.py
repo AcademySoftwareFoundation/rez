@@ -66,10 +66,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
 
     parent_env = {} if opts.no_env else None
 
-    if opts.parent_vars == "all":
-        parent_vars = True
-    else:
-        parent_vars = opts.parent_vars
+    parent_vars = True if opts.parent_vars == "all" else opts.parent_vars
 
     ex = RexExecutor(interpreter=interp,
                      parent_environ=parent_env,

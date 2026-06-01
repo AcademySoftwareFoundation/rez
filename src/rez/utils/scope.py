@@ -234,7 +234,7 @@ class ScopeContext(object):
         return self.scope_stack[-1].to_dict()
 
     def __str__(self) -> str:
-        names = ('.'.join(y for y in x) for x in self.scopes.keys())
+        names = ('.'.join(y for y in x) for x in self.scopes)
         return "%r" % (tuple(names),)
 
 

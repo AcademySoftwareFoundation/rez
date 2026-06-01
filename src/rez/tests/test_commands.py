@@ -61,9 +61,7 @@ class TestCommands(TestBase):
                            "PATH"])
 
         for cmd in commands:
-            if isinstance(cmd, (Comment, Shebang)):
-                continue
-            elif isinstance(cmd, EnvAction) and cmd.key in ignore_keys:
+            if isinstance(cmd, (Comment, Shebang)) or (isinstance(cmd, EnvAction) and cmd.key in ignore_keys):
                 continue
             else:
                 commands_.append(cmd)

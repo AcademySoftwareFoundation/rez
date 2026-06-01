@@ -2,6 +2,7 @@
 # Copyright Contributors to the Rez Project
 
 
+import contextlib
 import unittest
 from rez import module_root_path
 from rez.config import config, _create_locked_config
@@ -262,10 +263,8 @@ def per_available_shell(exclude=None):
                 # Remove __wrapped__ because py.test will try to look at __wrapped__
                 # to determine which parameters should be used with this test case,
                 # and obviously we don't need it to do any parameterization.
-                try:
+                with contextlib.suppress(AttributeError):
                     del standalone_func.__wrapped__
-                except AttributeError:
-                    pass
                 return standalone_func
 
         return rez_parametrized.expand(shells)

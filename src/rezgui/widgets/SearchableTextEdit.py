@@ -22,10 +22,7 @@ class SearchableTextEdit(QtWidgets.QTextEdit):
             return
 
         txt = str(self.textCursor().selectedText()).strip()
-        if len(txt) < 32 and len(txt.split()) == 1:
-            initial_word = txt
-        else:
-            initial_word = None
+        initial_word = txt if len(txt) < 32 and len(txt.split()) == 1 else None
 
         self.popup = FindPopup(self, "bottomLeft", initial_word=initial_word,
                                close_on_find=False, parent=self)

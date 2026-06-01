@@ -54,7 +54,7 @@ class TestImports(TestBase):
         if not system.rez_bin_path:
             self.skipTest("Not a production install")
 
-        for toolname in get_specifications().keys():
+        for toolname in get_specifications():
             if toolname.startswith('_'):
                 continue
 
@@ -95,9 +95,8 @@ class TestComplete(TestBase):
 
         parser = setup_parser()
         with TemporaryFile(mode="w+") as t:
-            with _disable_fd_9():
-                with self.assertRaises(SystemExit) as cm:
-                    autocomplete(parser, output_stream=t, exit_method=sys.exit)
+            with _disable_fd_9(), self.assertRaises(SystemExit) as cm:
+                autocomplete(parser, output_stream=t, exit_method=sys.exit)
             self.assertEqual(cm.exception.code, 0)
             t.seek(0)
             return set(t.read().split(self.IFS))

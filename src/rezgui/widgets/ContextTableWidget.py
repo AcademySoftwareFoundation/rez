@@ -673,9 +673,8 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
         self.setItem(row, column, item)
 
     def _packageTextChanged(self, row, column, txt) -> None:
-        if txt:
-            if self._set_package_cell(row + 1, column):
-                self._update_request_column(column, self.context_model)
+        if txt and self._set_package_cell(row + 1, column):
+            self._update_request_column(column, self.context_model)
 
     def _packageFocusOutViaKeyPress(self, row, column, txt) -> None:
         if txt:

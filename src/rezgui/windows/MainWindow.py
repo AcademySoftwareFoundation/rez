@@ -131,10 +131,9 @@ class MainWindow(QtWidgets.QMainWindow):
         context_save_as = False
 
         subwindow = self.mdi.activeSubWindow()
-        if subwindow:
-            if isinstance(subwindow, ContextSubWindow):
-                context_save = subwindow.is_saveable()
-                context_save_as = subwindow.is_save_as_able()
+        if subwindow and isinstance(subwindow, ContextSubWindow):
+            context_save = subwindow.is_saveable()
+            context_save_as = subwindow.is_save_as_able()
 
         self.save_context_action.setEnabled(context_save)
         self.save_context_as_action.setEnabled(context_save_as)
@@ -154,10 +153,9 @@ class MainWindow(QtWidgets.QMainWindow):
         copy_resolve = False
 
         subwindow = self.mdi.activeSubWindow()
-        if subwindow:
-            if isinstance(subwindow, ContextSubWindow):
-                copy_request = True
-                copy_resolve = bool(subwindow.context())
+        if subwindow and isinstance(subwindow, ContextSubWindow):
+            copy_request = True
+            copy_resolve = bool(subwindow.context())
 
         self.copy_request_action.setEnabled(copy_request)
         self.copy_resolve_action.setEnabled(copy_resolve)

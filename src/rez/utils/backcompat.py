@@ -32,10 +32,7 @@ def convert_old_variant_handle(handle_dict):
 
     path = handle_dict["path"]
     filename = os.path.basename(path)
-    if os.path.splitext(filename)[0] == "package":
-        key = "filesystem.variant"
-    else:
-        key = "filesystem.variant.combined"
+    key = "filesystem.variant" if os.path.splitext(filename)[0] == "package" else "filesystem.variant.combined"
 
     return dict(key=key, variables=variables)
 

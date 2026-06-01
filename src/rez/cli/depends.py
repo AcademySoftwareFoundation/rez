@@ -77,10 +77,7 @@ def command(opts, parser, extra_arg_groups=None) -> int | None:
         return 0
 
     for i, pkgs in enumerate(pkgs_list):
-        if opts.quiet:
-            toks = pkgs
-        else:
-            toks = ["#%d:" % i] + pkgs
+        toks = pkgs if opts.quiet else ["#%d:" % i] + pkgs
         print(' '.join(toks))
 
     return None

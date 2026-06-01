@@ -93,10 +93,7 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
         self.depends_icon.setVisible(bool(access))
         if access:
             enable = (access == 2)
-            if access == 1:
-                desc = "%s indirectly requires %s"
-            else:
-                desc = "%s requires %s"
+            desc = "%s indirectly requires %s" if access == 1 else "%s requires %s"
             self.depends_icon.setToolTip(desc % (self.variant.name, variant.name))
             self.depends_icon.setEnabled(enable)
 
@@ -173,11 +170,9 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
                     # test if variant is latest within package filter
                     if (not ticked
                             and packages2
-                            and package_filter):
-                        if all(package_filter.excludes(x) for x in packages2):
-                            new_icons.append(("yellow_tick",
-                                              "package is latest possible"))
-                            ticked = True
+                            and package_filter) and all(package_filter.excludes(x) for x in packages2):
+                        new_icons.append(("yellow_tick", "package is latest possible"))
+                        ticked = True
 
                     # test if variant was latest package at time of resolve
                     if not ticked and self.variant.timestamp:
