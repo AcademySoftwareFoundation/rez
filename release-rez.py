@@ -182,6 +182,25 @@ def create_github_release():
         body=changelog["body"]
     )
 
+    print("\033[1mTag\033[0m:", data["tag_name"])
+    print("\033[1mName\033[0m:", data["name"])
+    print("\033[1mBody\033[0m:")
+    print(data["body"])
+    print()
+    answer = None
+    while answer is None:
+        answer_ = input("Does this look good? [y/n]")
+        if answer_.lower() not in ["y", "n"]:
+            continue
+
+        answer = answer_
+
+    if answer == "n":
+        print("Aborting release!")
+        return
+
+    print("Proceeding with the release")
+
     # create the release on github
     response = github_request(
         "post",
