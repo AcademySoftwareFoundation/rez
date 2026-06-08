@@ -132,8 +132,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
         if not release_msg:
             ch = None
             while ch not in ('A', 'a', 'C', 'c'):
-                print("Empty release message. [A]bort or [C]ontinue release?")
-                ch = raw_input()
+                ch = input("Empty release message. [A]bort or [C]ontinue release? ")
 
             if ch in ('A', 'a'):
                 print("Release aborted.")
