@@ -12,8 +12,8 @@ from fnmatch import fnmatch
 from enum import Enum
 from contextlib import contextmanager
 from string import Formatter
-from collections.abc import MutableMapping
-from typing import Any, Iterable, Mapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any, Iterable
 
 from rez.system import system
 from rez.config import config
@@ -200,7 +200,17 @@ class ActionManager(object):
         '''
         self.interpreter = interpreter
         self.verbose = verbose
-        self.parent_environ = os.environ if parent_environ is None else parent_environ
+        # On Windows env-var keys are case-insensitive; os.environ already
+        # behaves that way but a plain dict supplied by the caller does not,
+        # so wrap it on the Windows path only. See #2089.
+        self.parent_environ: Mapping[str, str]
+        if parent_environ is None:
+            self.parent_environ = os.environ
+        elif platform_.name == "windows" and not isinstance(
+                parent_environ, _CaseInsensitiveEnvironProxy):
+            self.parent_environ = _CaseInsensitiveEnvironProxy(parent_environ)
+        else:
+            self.parent_environ = parent_environ
         self.parent_variables = True if parent_variables is True \
             else set(parent_variables or [])
         self.environ = {}
@@ -445,6 +455,35 @@ class ActionManager(object):
 
     def _keytoken(self, key):
         return self.interpreter.get_key_token(key)
+
+
+class _CaseInsensitiveEnvironProxy(Mapping):
+    """Read-only case-insensitive view over an env-var mapping.
+
+    Used by `ActionManager` to wrap a caller-supplied `parent_environ`
+    on Windows so rex lookups match native Windows env-var semantics
+    regardless of the casing used to populate the input dict.
+
+    Kept private to this module on purpose; promote to a shared util
+    only when a second caller needs it.
+    """
+    def __init__(self, data):
+        # keys are upper-cased once on the way in; same shape as
+        # os.environ on Windows. Last write wins on case collisions,
+        # which mirrors how os.environ resolves them too.
+        self._data = {k.upper(): v for k, v in data.items()}
+
+    def __getitem__(self, key):
+        return self._data[key.upper()]
+
+    def __contains__(self, key):
+        return isinstance(key, str) and key.upper() in self._data
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
 
 
 #===============================================================================
