@@ -26,9 +26,9 @@ from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, 
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.utils.resources import ResourcePool, ResourceHandle
 from rez.utils.formatting import is_valid_package_name
-from rez.utils.resources import cached_property
+from functools import cached_property
 from rez.utils.logging_ import print_warning, print_info
-from rez.utils.memcached import memcached, pool_memcached_connections
+from rez.utils.memcached import memcached
 from rez.utils.filesystem import make_path_writable, \
     canonical_path, is_subdirectory, safe_rmtree
 from rez.utils.platform_ import platform_
@@ -37,12 +37,10 @@ from rez.config import config
 from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
 from rez.version import Version, VersionRange
 
-from typing import cast, Any, Iterator, Iterable, TYPE_CHECKING
+from typing import cast, Any, ClassVar, Iterator, Iterable, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Self
-    from rez.packages import Package, PackageRepositoryResourceWrapper
-    from rez.package_resources import PackageRepositoryResource, VariantResource
+    from typing_extensions import Self
 
 debug_print = config.debug_printer("resources")
 
@@ -80,7 +78,7 @@ def check_format_version(filename: str, data: dict[str, Any]) -> None:
 
 # this is set when the package repository is instantiated, otherwise an infinite
 # loop is caused to to config loading this plugin, loading config ad infinitum
-_settings: RO_AttrDictWrapper = None
+_settings: RO_AttrDictWrapper
 
 
 class PackageDefinitionFileMissing(PackageMetadataError):
@@ -115,9 +113,9 @@ class FileSystemPackageFamilyResource(
     def iter_packages(self) -> Iterator[FileSystemPackageResource]:
         # check for unversioned package
         if config.allow_unversioned_packages:
-            filepath, _ = self._repository._get_file(self.path)
+            filepath, _ = self.repository._get_file(self.path)
             if filepath:
-                package = self._repository.get_resource(
+                package = self.repository.get_resource(
                     FileSystemPackageResource,
                     location=self.location,
                     name=self.name)
@@ -125,13 +123,13 @@ class FileSystemPackageFamilyResource(
                 return
 
         # versioned packages
-        for version_str in self._repository._get_version_dirs(self.path):
+        for version_str in self.repository._get_version_dirs(self.path):
             if _settings.check_package_definition_files:
                 path = os.path.join(self.path, version_str)
-                if not self._repository._get_file(path)[0]:
+                if not self.repository._get_file(path)[0]:
                     continue
 
-            package = self._repository.get_resource(
+            package = self.repository.get_resource(
                 FileSystemPackageResource,
                 location=self.location,
                 name=self.name,
@@ -147,11 +145,23 @@ class FileSystemPackageResource(PackageResourceHelper["FileSystemVariantResource
     schema = package_pod_schema
 
     def _uri(self) -> str:
+        assert self.filepath is not None
         return self.filepath
+
+    @property
+    def _data(self) -> dict[str, Any]:
+        data = super()._data
+        assert data is not None
+        return data
+
+    def validated_data(self) -> dict[str, Any]:
+        data = super().validated_data()
+        assert data is not None
+        return data
 
     @cached_property
     def parent(self) -> FileSystemPackageFamilyResource:
-        family = self._repository.get_resource(
+        family = self.repository.get_resource(
             FileSystemPackageFamilyResource,
             location=self.location,
             name=self.name)
@@ -181,17 +191,19 @@ class FileSystemPackageResource(PackageResourceHelper["FileSystemVariantResource
             path = os.path.join(path, ver_str)
         return path
 
-    @cached_property
-    def filepath(self) -> str | None:
+    @property
+    def filepath(self) -> str:
         return self._filepath_and_format[0]
 
-    @cached_property
-    def file_format(self) -> FileFormat | None:
+    @property
+    def file_format(self) -> FileFormat:
         return self._filepath_and_format[1]
 
     @cached_property
-    def _filepath_and_format(self) -> tuple[str, FileFormat] | tuple[None, None]:
-        return self._repository._get_file(self.path)
+    def _filepath_and_format(self) -> tuple[str, FileFormat]:
+        result = self.repository._get_file(self.path)
+        assert result is not None
+        return result
 
     def _load(self) -> dict[str, Any]:
         if self.filepath is None:
@@ -201,7 +213,7 @@ class FileSystemPackageResource(PackageResourceHelper["FileSystemVariantResource
         data = load_from_file(
             self.filepath,
             self.file_format,
-            disable_memcache=self._repository.disable_memcache
+            disable_memcache=self.repository.disable_memcache
         )
 
         check_format_version(self.filepath, data)
@@ -214,7 +226,7 @@ class FileSystemPackageResource(PackageResourceHelper["FileSystemVariantResource
         return data
 
     # TODO: Deprecate? How could we add deprecation warnings without flooding the user?
-    def _load_old_formats(self):
+    def _load_old_formats(self) -> dict | None:
         data = None
 
         filepath = os.path.join(self.path, "release.yaml")
@@ -243,7 +255,7 @@ class FileSystemPackageResource(PackageResourceHelper["FileSystemVariantResource
         return data
 
     @staticmethod
-    def _update_changelog(file_format, data):
+    def _update_changelog(file_format: FileFormat, data: dict) -> dict:
         # this is to deal with older package releases. They can contain long
         # changelogs (more recent rez versions truncate before release), and
         # release.yaml files can contain a list-of-str changelog.
@@ -276,9 +288,13 @@ class FileSystemVariantResource(VariantResourceHelper):
     key = "filesystem.variant"
     repository_type = "filesystem"
 
+    # note: do not override `_data` to assert non-None here: variant resources
+    # legitimately have no data of their own (VariantResourceHelper._load
+    # returns None) - data is forwarded from the parent package instead.
+
     @cached_property
     def parent(self) -> FileSystemPackageResource:
-        package = self._repository.get_resource(
+        package = self.repository.get_resource(
             FileSystemPackageResource,
             location=self.location,
             name=self.name,
@@ -303,27 +319,35 @@ class FileSystemCombinedPackageFamilyResource(
     })
 
     @property
-    def ext(self):
-        return self.get("ext")
+    def _data(self) -> dict[str, Any]:
+        data = super()._data
+        assert data is not None
+        return data
 
     @property
-    def filepath(self):
+    def ext(self) -> str:
+        ext = self.get("ext")
+        assert isinstance(ext, str)
+        return ext
+
+    @property
+    def filepath(self) -> str:
         filename = "%s.%s" % (self.name, self.ext)
         return os.path.join(self.location, filename)
 
-    def _uri(self):
+    def _uri(self) -> str:
         return self.filepath
 
-    def get_last_release_time(self):
+    def get_last_release_time(self) -> int:
         try:
-            return os.path.getmtime(self.filepath)
+            return int(os.path.getmtime(self.filepath))
         except OSError:
             return 0
 
     def iter_packages(self) -> Iterator[FileSystemCombinedPackageResource]:
         # unversioned package
         if config.allow_unversioned_packages and not self.versions:
-            package = self._repository.get_resource(
+            package = self.repository.get_resource(
                 FileSystemCombinedPackageResource,
                 location=self.location,
                 name=self.name,
@@ -332,8 +356,8 @@ class FileSystemCombinedPackageFamilyResource(
             return
 
         # versioned packages
-        for version in self.versions:
-            package = self._repository.get_resource(
+        for version in self.versions or []:
+            package = self.repository.get_resource(
                 FileSystemCombinedPackageResource,
                 location=self.location,
                 name=self.name,
@@ -341,17 +365,28 @@ class FileSystemCombinedPackageFamilyResource(
                 version=str(version))
             yield package
 
-    def _load(self):
+    def _load(self) -> dict[str, Any]:
         # TODO: Deprecate: What is self.ext?
         format_ = FileFormat[self.ext]
         data = load_from_file(
             self.filepath,
             format_,
-            disable_memcache=self._repository.disable_memcache
+            disable_memcache=self.repository.disable_memcache
         )
 
         check_format_version(self.filepath, data)
         return data
+
+    # -- BEGIN AUTO-GENERATED METHODS --
+    @cached_property
+    def version_overrides(self) -> dict[VersionRange, dict] | None:
+        return self._get_item('version_overrides', True)
+
+    @cached_property
+    def versions(self) -> list[Version] | None:
+        return self._get_item('versions', True)
+
+    # -- END AUTO-GENERATED METHODS --
 
 
 class FileSystemCombinedPackageResource(PackageResourceHelper):
@@ -364,9 +399,20 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
         ver_str = self.get("version", "")
         return "%s<%s>" % (self.parent.filepath, ver_str)
 
+    @property
+    def _data(self) -> dict[str, Any]:
+        data = super()._data
+        assert data is not None
+        return data
+
+    def validated_data(self) -> dict[str, Any]:
+        data = super().validated_data()
+        assert data is not None
+        return data
+
     @cached_property
     def parent(self) -> FileSystemCombinedPackageFamilyResource:
-        family = self._repository.get_resource(
+        family = self.repository.get_resource(
             FileSystemCombinedPackageFamilyResource,
             location=self.location,
             name=self.name,
@@ -389,7 +435,7 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
             indexes = range(num_variants)
 
         for index in indexes:
-            variant = self._repository.get_resource(
+            variant = self.repository.get_resource(
                 self.variant_key,
                 location=self.location,
                 name=self.name,
@@ -399,6 +445,7 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
             yield variant
 
     def _load(self) -> dict[str, Any] | None:
+        assert self.parent._data is not None, "Should not be None since parent has schema"
         data = self.parent._data.copy()
 
         if "versions" in data:
@@ -421,9 +468,13 @@ class FileSystemCombinedVariantResource(VariantResourceHelper):
     key = "filesystem.variant.combined"
     repository_type = "filesystem"
 
+    # note: do not override `_data` to assert non-None here: variant resources
+    # legitimately have no data of their own (VariantResourceHelper._load
+    # returns None) - data is forwarded from the parent package instead.
+
     @cached_property
     def parent(self) -> FileSystemCombinedPackageResource:
-        package = self._repository.get_resource(
+        package = self.repository.get_resource(
             FileSystemCombinedPackageResource,
             location=self.location,
             name=self.name,
@@ -440,7 +491,9 @@ class FileSystemCombinedVariantResource(VariantResourceHelper):
 # ------------------------------------------------------------------------------
 
 class FileSystemPackageRepository(
-    PackageRepository[FileSystemVariantResource, FileSystemPackageResource, FileSystemPackageFamilyResource]):
+    PackageRepository[Union[FileSystemVariantResource, FileSystemCombinedVariantResource],
+                      Union[FileSystemPackageResource, FileSystemCombinedPackageResource],
+                      Union[FileSystemPackageFamilyResource, FileSystemCombinedPackageFamilyResource]]):
     """A filesystem-based package repository.
 
     TODO: Deprecate YAML
@@ -476,10 +529,11 @@ class FileSystemPackageRepository(
                 requires:
                 - python-2.6
     """
-    schema_dict = {"file_lock_timeout": int,
-                   "file_lock_dir": Or(None, str),
-                   "file_lock_type": Or("default", "link", "mkdir", "symlink"),
-                   "package_filenames": [str]}
+    schema_dict: ClassVar[dict[str, Any]] = {
+        "file_lock_timeout": int,
+        "file_lock_dir": Or(None, str),
+        "file_lock_type": Or("default", "link", "mkdir", "symlink"),
+        "package_filenames": [str]}
 
     building_prefix = ".building"
     ignore_prefix = ".ignore"
@@ -543,7 +597,13 @@ class FileSystemPackageRepository(
         self.get_variants = lru_cache(maxsize=None)(self._get_variants)
         self.get_file = lru_cache(maxsize=None)(self._get_file)
 
-        # decorate with memcachemed memoizers unless told otherwise
+        # Memoized dir-listing callables. These are held as instance attributes
+        # (not method overrides) because this class is compiled by mypyc as a
+        # native class with no instance __dict__: assigning to a name that also
+        # exists as a `def` method (e.g. `setattr(self, "_get_family_dirs", ...)`)
+        # raises "attribute ... is read-only". The underlying implementations
+        # live in `_get_family_dirs_impl` / `_get_version_dirs_impl`; here we
+        # optionally wrap them with the memcached memoizer.
         if not self.disable_memcache:
             decorator1 = memcached(
                 servers=config.memcached_uri if config.cache_listdir else None,
@@ -551,7 +611,7 @@ class FileSystemPackageRepository(
                 key=self._get_family_dirs__key,
                 debug=config.debug_memcache
             )
-            self._get_family_dirs = decorator1(self._get_family_dirs)
+            self._get_family_dirs = decorator1(self._get_family_dirs_impl)
 
             decorator2 = memcached(
                 servers=config.memcached_uri if config.cache_listdir else None,
@@ -559,46 +619,54 @@ class FileSystemPackageRepository(
                 key=self._get_version_dirs__key,
                 debug=config.debug_memcache
             )
-            self._get_version_dirs = decorator2(self._get_version_dirs)
+            self._get_version_dirs = decorator2(self._get_version_dirs_impl)
+        else:
+            self._get_family_dirs = self._get_family_dirs_impl
+            self._get_version_dirs = self._get_version_dirs_impl
 
     def _uid(self) -> tuple:
-        t = ["filesystem", self.location]
         if os.path.exists(self.location):
             st = os.stat(self.location)
-            t.append(int(st.st_ino))
-        return tuple(t)
+            return "filesystem", self.location, int(st.st_ino)
+        else:
+            return "filesystem", self.location
 
-    def get_package_family(self, name: str) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource | None:
+    def get_package_family(self, name: str) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource | None:  # type: ignore[override]  # noqa: E501
         return self.get_family(name)
 
-    @pool_memcached_connections
-    def iter_package_families(self) -> Iterator[PackageFamilyResource]:
+    # @pool_memcached_connections
+    def iter_package_families(self) -> Iterator[FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource]:  # noqa: E501
         for family in self.get_families():
             yield family
 
-    @pool_memcached_connections
-    def iter_packages(self, package_family_resource: PackageFamilyResource) -> Iterator[FileSystemPackageResource]:
+    # @pool_memcached_connections
+    def iter_packages(self, package_family_resource: PackageFamilyResource
+                      ) -> Iterator[FileSystemPackageResource | FileSystemCombinedPackageResource]:
         for package in self.get_packages(package_family_resource):
             yield package
 
-    def iter_variants(self, package_resource: FileSystemPackageResource) -> Iterator[FileSystemVariantResource]:
+    def iter_variants(self, package_resource: FileSystemPackageResource | FileSystemCombinedPackageResource
+                      ) -> Iterator[FileSystemVariantResource | FileSystemCombinedVariantResource]:
         for variant in self.get_variants(package_resource):
             yield variant
 
-    def get_parent_package_family(self, package_resource: FileSystemPackageResource) -> FileSystemPackageFamilyResource:
+    def get_parent_package_family(self, package_resource: FileSystemPackageResource | FileSystemCombinedPackageResource
+                                  ) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource:
         return package_resource.parent
 
-    def get_parent_package(self, variant_resource: FileSystemVariantResource) -> FileSystemPackageResource:
+    def get_parent_package(self, variant_resource: FileSystemVariantResource | FileSystemCombinedVariantResource
+                           ) -> FileSystemPackageResource | FileSystemCombinedPackageResource:
         return variant_resource.parent
 
-    def get_variant_state_handle(self, variant_resource: FileSystemVariantResource) -> float | None:
+    def get_variant_state_handle(self, variant_resource: FileSystemVariantResource | FileSystemCombinedVariantResource
+                                 ) -> float | None:
         package_resource = variant_resource.parent
         return package_resource.state_handle
 
-    def get_last_release_time(self, package_family_resource: FileSystemPackageFamilyResource) -> int:
+    def get_last_release_time(self, package_family_resource: FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource) -> int:  # noqa: E501
         return package_family_resource.get_last_release_time()
 
-    def get_package_from_uri(self, uri: str) -> FileSystemPackageResource | None:
+    def get_package_from_uri(self, uri: str) -> FileSystemPackageResource | FileSystemCombinedPackageResource | None:
         """
         Example URIs:
         - /svr/packages/mypkg/1.0.0/package.py
@@ -634,7 +702,7 @@ class FileSystemPackageRepository(
         pkg_ver = Version(pkg_ver_str)
         return self.get_package(pkg_name, pkg_ver)
 
-    def get_variant_from_uri(self, uri: str) -> FileSystemVariantResource | None:
+    def get_variant_from_uri(self, uri: str) -> FileSystemVariantResource | FileSystemCombinedVariantResource | None:
         """
         Example URIs:
         - /svr/packages/mypkg/1.0.0/package.py[1]
@@ -656,7 +724,7 @@ class FileSystemPackageRepository(
 
         # find variant in package
         if variant_index_str == '':
-            variant_index = None
+            variant_index: int | str | None = None
         else:
             try:
                 variant_index = int(variant_index_str)
@@ -776,11 +844,11 @@ class FileSystemPackageRepository(
         self._on_changed(pkg_name)
         return True
 
-    def remove_ignored_since(self, days, dry_run: bool = False, verbose: bool = False) -> int:
+    def remove_ignored_since(self, days: int, dry_run: bool = False, verbose: bool = False) -> int:
         now = int(time.time())
         num_removed = 0
 
-        def _info(msg, *nargs) -> None:
+        def _info(msg: str, *nargs: Any) -> None:
             if verbose:
                 print_info(msg, *nargs)
 
@@ -819,8 +887,8 @@ class FileSystemPackageRepository(
     def get_resource_from_handle(self, resource_handle: ResourceHandle,
                                  verify_repo: bool = True) -> PackageRepositoryResource:
         if verify_repo:
-            repository_type = resource_handle.variables.get("repository_type")
-            location = resource_handle.variables.get("location")
+            repository_type = resource_handle.variables["repository_type"]
+            location = resource_handle.variables["location"]
 
             if repository_type != self.name():
                 raise ResourceError("repository_type mismatch - requested %r, "
@@ -864,7 +932,10 @@ class FileSystemPackageRepository(
 
         return dirname
 
-    def pre_variant_install(self, variant_resource: FileSystemVariantResource) -> None:
+    def pre_variant_install(self, variant_resource: VariantResourceHelper
+                            ) -> None:
+        # note: variant_resource may come from another repository type (e.g.
+        # memory), so it must not be typed as a filesystem-specific resource
         if not variant_resource.version:
             return
 
@@ -881,7 +952,8 @@ class FileSystemPackageRepository(
         with open(filepath, 'w'):  # create empty file
             pass
 
-    def on_variant_install_cancelled(self, variant_resource: FileSystemVariantResource) -> None:
+    def on_variant_install_cancelled(self, variant_resource: VariantResourceHelper
+                                     ) -> None:
         """
         TODO:
             Currently this will not delete a newly created package version
@@ -904,9 +976,12 @@ class FileSystemPackageRepository(
         family_path = os.path.join(self.location, variant_resource.name)
         self._delete_stale_build_tagfiles(family_path)
 
-    def install_variant(self, variant_resource: FileSystemVariantResource,
+    def install_variant(self, variant_resource: VariantResourceHelper,
                         dry_run: bool = False, overrides: dict[str, Any] | None = None
-                        ) -> FileSystemVariantResource:
+                        ) -> FileSystemVariantResource | FileSystemCombinedVariantResource | None:
+        # note: variant_resource is typically a resource from another repository
+        # type (e.g. memory) that is being installed into this one, so it must
+        # not be typed as a filesystem-specific resource
         overrides = overrides or {}
 
         # Name and version overrides are a special case - they change the
@@ -938,7 +1013,11 @@ class FileSystemPackageRepository(
         if variant_resource._repository is self and \
                 variant_name == variant_resource.name and \
                 variant_version == variant_resource.version:
-            return variant_resource
+            # given that the resource belongs to this repository, it must be a
+            # filesystem resource type
+            return cast(
+                "FileSystemVariantResource | FileSystemCombinedVariantResource",
+                variant_resource)
 
         # create repo path on disk if it doesn't exist
         path = self.location
@@ -952,7 +1031,7 @@ class FileSystemPackageRepository(
             )
 
         # install the variant
-        def _create_variant() -> FileSystemVariantResource:
+        def _create_variant() -> FileSystemVariantResource | FileSystemCombinedVariantResource | None:
             return self._create_variant(
                 variant_resource,
                 dry_run=dry_run,
@@ -967,7 +1046,7 @@ class FileSystemPackageRepository(
 
         return variant
 
-    def _copy(self, **kwargs) -> Self:
+    def _copy(self, **kwargs: Any) -> Self:
         """
         Make a copy of the repo that does not share resources with this one.
         """
@@ -979,14 +1058,23 @@ class FileSystemPackageRepository(
     def _lock_package(self, package_name: str, package_version: str | Version | None = None) -> Iterator[None]:
         from rez.vendor.lockfile import NotLocked
 
+        # note: the explicit assignments below (rather than `import ... as LockFile`)
+        # work around a mypyc bug, where a `from x import y` statement inside a
+        # generator does not assign to a pre-declared variable in the generator
+        # environment, resulting in an AttributeError at runtime.
+        LockFile: Any
         if _settings.file_lock_type == 'default':
-            from rez.vendor.lockfile import LockFile
+            from rez.vendor.lockfile import LockFile as _DefaultLockFile
+            LockFile = _DefaultLockFile
         elif _settings.file_lock_type == 'mkdir':
-            from rez.vendor.lockfile.mkdirlockfile import MkdirLockFile as LockFile
+            from rez.vendor.lockfile.mkdirlockfile import MkdirLockFile
+            LockFile = MkdirLockFile
         elif _settings.file_lock_type == 'link':
-            from rez.vendor.lockfile.linklockfile import LinkLockFile as LockFile
+            from rez.vendor.lockfile.linklockfile import LinkLockFile
+            LockFile = LinkLockFile
         elif _settings.file_lock_type == 'symlink':
-            from rez.vendor.lockfile.symlinklockfile import SymlinkLockFile as LockFile
+            from rez.vendor.lockfile.symlinklockfile import SymlinkLockFile
+            LockFile = SymlinkLockFile
 
         path = self.location
 
@@ -1024,8 +1112,8 @@ class FileSystemPackageRepository(
         self.get_file.cache_clear()
 
         if not self.disable_memcache:
-            self._get_family_dirs.forget()
-            self._get_version_dirs.forget()
+            self._get_family_dirs.forget()  # type: ignore[attr-defined]
+            self._get_version_dirs.forget()  # type: ignore[attr-defined]
 
         # unfortunately we need to clear file cache across the board
         clear_file_caches()
@@ -1048,7 +1136,7 @@ class FileSystemPackageRepository(
         else:
             return str(("listdir", self.location))
 
-    def _get_family_dirs(self) -> list[tuple[str, str | None]]:
+    def _get_family_dirs_impl(self) -> list[tuple[str, str | None]]:
         dirs: list[tuple[str, str | None]] = []
         if not os.path.isdir(self.location):
             return dirs
@@ -1073,7 +1161,7 @@ class FileSystemPackageRepository(
         st = os.stat(root)
         return str(("listdir", root, int(st.st_ino), st.st_mtime))
 
-    def _get_version_dirs(self, root: str) -> list[str]:
+    def _get_version_dirs_impl(self, root: str) -> list[str]:
         # Ignore a version if there is a .ignore<version> file next to it
         def ignore_dir(name: str) -> bool:
             if self.disable_pkg_ignore:
@@ -1154,7 +1242,7 @@ class FileSystemPackageRepository(
 
         return families
 
-    def _get_family(self, name: str) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource | None:
+    def _get_family(self, name: str) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource | None:  # noqa: E501
         is_valid_package_name(name, raise_error=True)
         if os.path.isdir(os.path.join(self.location, name)):
             # force case-sensitive match on pkg family dir, on case-insensitive platforms
@@ -1170,6 +1258,7 @@ class FileSystemPackageRepository(
         else:
             filepath, format_ = self.get_file(self.location, package_filename=name)
             if filepath:
+                assert format_ is not None, "if filepath is not None, then format is not None"
                 # force case-sensitive match on pkg filename, on case-insensitive platforms
                 if not platform_.has_case_sensitive_filesystem:
                     ext = os.path.splitext(filepath)[-1]
@@ -1184,14 +1273,16 @@ class FileSystemPackageRepository(
                 )
         return None
 
-    def _get_packages(self, package_family_resource: FileSystemPackageFamilyResource) -> list[FileSystemPackageResource]:
+    def _get_packages(self, package_family_resource: FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource  # noqa: E501
+                      ) -> list[FileSystemPackageResource | FileSystemCombinedPackageResource]:
         return [x for x in package_family_resource.iter_packages()]
 
-    def _get_variants(self, package_resource: FileSystemPackageResource) -> list[FileSystemVariantResource]:
+    def _get_variants(self, package_resource: FileSystemPackageResource | FileSystemCombinedPackageResource
+                      ) -> list[FileSystemVariantResource | FileSystemCombinedVariantResource]:
         # FIXME: PackageResourceHelper should be generic on VariantResourceHelperT
         return [x for x in package_resource.iter_variants()]
 
-    def _get_file(self, path: str, package_filename=None) -> tuple[str, FileFormat] | tuple[None, None]:
+    def _get_file(self, path: str, package_filename: str | None = None) -> tuple[str, FileFormat] | tuple[None, None]:
         if package_filename:
             package_filenames = [package_filename]
         else:
@@ -1206,7 +1297,7 @@ class FileSystemPackageRepository(
                     return filepath, format_
         return None, None
 
-    def _create_family(self, name: str) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource | None:
+    def _create_family(self, name: str) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource | None:  # noqa: E501
         path = os.path.join(self.location, name)
         os.makedirs(path, exist_ok=True)
 
@@ -1214,8 +1305,12 @@ class FileSystemPackageRepository(
         return self.get_package_family(name)
 
     # FIXME: overrides should not default to None, it must be provided
-    def _create_variant(self, variant: FileSystemVariantResource, dry_run: bool = False,
-                        overrides: dict[str, Any] = None) -> FileSystemVariantResource:
+    def _create_variant(self, variant: VariantResourceHelper,
+                        dry_run: bool = False,
+                        *, overrides: dict[str, Any]
+                        ) -> FileSystemVariantResource | FileSystemCombinedVariantResource | None:
+        # note: variant may come from another repository type (e.g. memory),
+        # so it must not be typed as a filesystem-specific resource
         # special case overrides
         variant_name = overrides.get("name") or variant.name
         variant_version = overrides.get("version") or variant.version
@@ -1243,6 +1338,9 @@ class FileSystemPackageRepository(
         existing_package: FileSystemPackageResource | None = None
 
         for package in self.iter_packages(family):
+            # combined-style families are rejected above, so only filesystem
+            # package resources can appear here
+            assert isinstance(package, FileSystemPackageResource)
             if package.version == variant_version:
                 # during a build, the family/version dirs get created ahead of
                 # time, which causes a 'missing package definition file' error.
@@ -1272,21 +1370,22 @@ class FileSystemPackageRepository(
                         "Attempting to install a variant (%r) into an existing "
                         "package without variants (%r)" % (variant, package))
 
-        existing_package_data = None
+        existing_package_data: dict
         release_data = {}
 
         # Need to treat 'config' as special case. In validated data, this is
         # converted to a Config object. We need it as the raw dict that you'd
         # see in a package.py.
         #
-        def _get_package_data(pkg: FileSystemPackageResource):
-            data = pkg.validated_data()
+        def _get_package_data(pkg: PackageResourceHelper) -> dict:
+            data = pkg.validated_data() or {}
             if hasattr(pkg, "_data"):
                 raw_data = pkg._data
             else:
-                raw_data = pkg.resource._data
+                # FIXME: this seems like a real problem
+                raw_data = pkg.resource._data  # type: ignore[attr-defined]
 
-            raw_config_data = raw_data.get('config')
+            raw_config_data = (raw_data or {}).get('config')
             data.pop("config", None)
 
             if raw_config_data:
@@ -1294,7 +1393,7 @@ class FileSystemPackageRepository(
 
             return data
 
-        def _remove_build_keys(obj) -> None:
+        def _remove_build_keys(obj: dict) -> None:
             for key in package_build_only_keys:
                 obj.pop(key, None)
 
@@ -1356,11 +1455,14 @@ class FileSystemPackageRepository(
             else:
                 variant_requires = variant.variant_requires
 
-                for variant_ in self.iter_variants(existing_package):
-                    variant_requires_ = existing_package.variants[variant_.index]
-                    if variant_requires_ == variant_requires:
-                        installed_variant_index = variant_.index
-                        existing_installed_variant = variant_
+                variants = existing_package.variants
+                if variants:
+                    for variant_ in self.iter_variants(existing_package):
+                        assert variant_.index is not None
+                        variant_requires_ = variants[variant_.index]
+                        if variant_requires_ == variant_requires:
+                            installed_variant_index = variant_.index
+                            existing_installed_variant = variant_
 
         if existing_installed_variant:
             debug_print(
@@ -1369,11 +1471,11 @@ class FileSystemPackageRepository(
             )
 
         if dry_run:
-            # ignoring these optional results because they only occur during dry_run
+            # these results may be None, which only occurs during dry_run
             if not package_changed:
-                return existing_installed_variant  # type: ignore[return-value]
+                return existing_installed_variant
             else:
-                return None  # type: ignore[return-value]
+                return None
 
         # construct package data for new installed package definition
         if existing_package:

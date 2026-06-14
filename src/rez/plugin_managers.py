@@ -7,14 +7,15 @@ Manages loading of all types of Rez plugins.
 """
 from __future__ import annotations
 
-from rez.config import config, expand_system_vars, _load_config_from_filepaths
+from rez.config import config, expand_system_vars, _load_config_from_filepaths, Validatable
 from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
-from rez.utils.data_utils import LazySingleton, cached_property, deep_update
+from rez.utils.data_utils import LazySingleton, deep_update
+from functools import cached_property
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
-from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
+from typing import overload, Any, Literal, TYPE_CHECKING
 import pkgutil
 import os.path
 import sys
@@ -33,9 +34,6 @@ if TYPE_CHECKING:
     from rez.build_system import BuildSystem
     from rez.package_repository import PackageRepository
     from rez.command import Command
-
-
-T = TypeVar("T")
 
 
 # modified from pkgutil standard library:
@@ -97,7 +95,7 @@ def extend_path(path, name):
 
 def uncache_rezplugins_module_paths(instance=None) -> None:
     instance = instance or plugin_manager
-    cached_property.uncache(instance, "rezplugins_module_paths")  # type: ignore[attr-defined]
+    instance.__dict__.pop("rezplugins_module_paths", None)
 
 
 class RezPluginType(object):
@@ -350,6 +348,7 @@ class RezPluginManager(object):
             This is important  because it ensures that rez's copy of
             'rezplugins' is always found first.
     """
+
     def __init__(self) -> None:
         self._plugin_types: dict[str, LazySingleton[RezPluginType]] = {}
 

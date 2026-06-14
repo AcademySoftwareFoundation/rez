@@ -18,13 +18,15 @@ from hashlib import sha1
 from typing import Any, Callable, Iterator, TypedDict, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from rez.package_order import PackageOrderList
+    from rez.package_order_list import PackageOrderList
     from rez.resolved_context import ResolvedContext
     from rez.utils.typing import SupportsWrite
+    from rez.utils.resources import ResourceHandle
+    from rez.vendor.pygraph.classes.digraph import digraph
 
 
 class SolverDict(TypedDict):
-    status: ResolverStatus
+    status: "ResolverStatus"
     graph: Any  # digraph
     solve_time: float | None
     load_time: float | None
@@ -43,8 +45,8 @@ class ResolverStatus(Enum):
     failed = ("The resolve is not possible.", )
     aborted = ("The resolve was stopped by the user (via callback).", )
 
-    def __init__(self, description) -> None:
-        self.description = description
+    # def __init__(self, description: str) -> None:
+    #     self.description = description
 
 
 class Resolver(object):
@@ -53,6 +55,7 @@ class Resolver(object):
     The Resolver uses a combination of Solver(s) and cache(s) to resolve a
     package request as quickly as possible.
     """
+
     def __init__(self,
                  context: ResolvedContext,
                  package_requests: list[Requirement],
@@ -279,7 +282,7 @@ class Resolver(object):
                 new_state = variant_states.get(variant)
                 if new_state is None:
                     try:
-                        repo = variant.resource._repository
+                        repo = variant.resource.repository
                         new_state = repo.get_variant_state_handle(variant.resource)
                     except (IOError, OSError) as e:
                         # if, ie a package file was deleted on disk, then
@@ -396,7 +399,7 @@ class Resolver(object):
                 releases_since_solve = True
 
             release_times_dict[variant.name] = time_
-            repo = variant.resource._repository
+            repo = variant.resource.repository
             variant_states_dict[variant.name] = \
                 repo.get_variant_state_handle(variant.resource)
 
@@ -448,7 +451,7 @@ class Resolver(object):
         return solver
 
     def _set_result(self, solver_dict: SolverDict) -> None:
-        self.status_ = solver_dict.get("status")
+        self.status_ = solver_dict["status"]
         self.graph_ = solver_dict.get("graph")
         self.solve_time = solver_dict.get("solve_time")
         self.load_time = solver_dict.get("load_time")
@@ -490,11 +493,13 @@ class Resolver(object):
             status_ = ResolverStatus.solved
 
             variant_handles = []
+            assert solver.resolved_packages is not None, "should be set after solve is complete"
             for solver_variant in solver.resolved_packages:
                 variant_handle_dict = solver_variant.handle
                 variant_handles.append(variant_handle_dict)
 
             ephemerals = []
+            assert solver.resolved_ephemerals is not None, "should be set after solve is complete"
             for ephemeral in solver.resolved_ephemerals:
                 ephemerals.append(str(ephemeral))
 

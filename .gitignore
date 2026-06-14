@@ -23,3 +23,5 @@ docs/source/commands/
 __tests_pkg_repo/
 .idea/
 venv/
+/out*
+/build*

@@ -4,19 +4,19 @@
 
 from __future__ import annotations
 
-from rez.package_resources import (PackageFamilyResource, PackageResource, PackageResourceHelper,
-                                   VariantResource, VariantResourceHelper,
-                                   PackageRepositoryResource)
+from rez.package_resources import (PackageFamilyResource, PackageResourceHelper, VariantResourceHelper)
 from rez.utils.resources import ResourcePool, ResourceHandle, Resource, ResourceT
-from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
 from rez.config import config
 from rez.exceptions import ResourceError
 from contextlib import contextmanager
+from functools import cached_property
 import threading
 import os.path
 import time
 from typing import cast, Any, Hashable, Generic, Iterator, TypeVar, TYPE_CHECKING, overload
+
+from rez.utils._mypyc import mypyc_attr
 
 if TYPE_CHECKING:
     from rez.version import Version
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 VariantResourceHelperT = TypeVar("VariantResourceHelperT", bound=VariantResourceHelper)
 PackageResourceHelperT = TypeVar("PackageResourceHelperT", bound=PackageResourceHelper)
 PackageFamilyResourceT = TypeVar("PackageFamilyResourceT", bound=PackageFamilyResource)
+
 
 def get_package_repository_types() -> list[str]:
     """Returns the available package repository implementations."""
@@ -42,13 +43,17 @@ def create_memory_package_repository(repository_data: dict) -> MemoryPackageRepo
     Returns:
         `PackageRepository` object.
     """
-    cls_ = plugin_manager.get_plugin_class("package_repository", "memory")
+    from rezplugins.package_repository.memory import MemoryPackageRepository  # noqa
+    cls_ = cast(
+        "type[MemoryPackageRepository]",
+        plugin_manager.get_plugin_class("package_repository", "memory"))
     return cls_.create_repository(repository_data)
 
 
 class PackageRepositoryGlobalStats(threading.local):
     """Gathers stats across package repositories.
     """
+
     def __init__(self) -> None:
         # the amount of time that has been spent loading package from ,
         # repositories, since process start
@@ -69,6 +74,7 @@ class PackageRepositoryGlobalStats(threading.local):
 package_repo_stats = PackageRepositoryGlobalStats()
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class PackageRepository(Generic[VariantResourceHelperT, PackageResourceHelperT, PackageFamilyResourceT]):
     """Base class for package repositories implemented in the package_repository
     plugin type.
@@ -318,7 +324,6 @@ class PackageRepository(Generic[VariantResourceHelperT, PackageResourceHelperT, 
         Note that it is the responsibility of the `BuildProcess` to call this
         function at the appropriate time.
         """
-        pass
 
     def on_variant_install_cancelled(self, variant_resource: VariantResourceHelper) -> None:
         """Called when a variant installation is cancelled.
@@ -333,7 +338,6 @@ class PackageRepository(Generic[VariantResourceHelperT, PackageResourceHelperT, 
         Note that it is the responsibility of the `BuildProcess` to call this
         function at the appropriate time.
         """
-        pass
 
     def install_variant(self,
                         variant_resource: VariantResourceHelper,
@@ -547,6 +551,7 @@ class PackageRepositoryManager(object):
     Manages retrieval of resources (packages and variants) from `PackageRepository`
     instances, and caches these resources in a resource pool.
     """
+
     def __init__(self, resource_pool: ResourcePool | None = None) -> None:
         """Create a package repo manager.
 

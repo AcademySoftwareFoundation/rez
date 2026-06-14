@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from rez.utils.formatting import indent
-from rez.utils.data_utils import cached_property
+from functools import cached_property
 from rez.utils.logging_ import print_debug
 from rez.util import load_module_from_file
 from inspect import getsourcelines

@@ -35,26 +35,57 @@ See the 'pets' unit test in tests/test_resources.py for a complete example.
 """
 from __future__ import annotations
 
-from functools import lru_cache
+import importlib.machinery
+import sys
+from functools import lru_cache, cached_property
 
-from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
-    LazyAttributeMeta
-from rez.config import config
-from rez.exceptions import ResourceError
+# from functools import cached_property
+from rez.exceptions import ResourceError, RezError
 from rez.utils.logging_ import print_debug
+from rez.vendor.schema.schema import Schema, Optional as SchemaOptional
+from typing import Any, Generic, TypeVar, TYPE_CHECKING, ClassVar
 
-from typing import Generic, TypeVar, TYPE_CHECKING
+from rez.utils._mypyc import mypyc_attr
 
 if TYPE_CHECKING:
     # this is not available in typing until 3.11, but due to __future__.annotations
     # we can use it without really importing it
-    from typing import Self
-    from rez.vendor.schema.schema import Schema
+    from typing_extensions import Self
+
 
 ResourceT = TypeVar("ResourceT", bound="Resource")
 
+_EXTENSION_SUFFIXES = tuple(importlib.machinery.EXTENSION_SUFFIXES)
 
-class Resource(object, metaclass=LazyAttributeMeta):
+
+def _is_compiled_class(cls: type) -> bool:
+    """Return True if `cls` is defined in a compiled extension module.
+
+    Note that this also works while the defining module is still being
+    initialized (i.e. at class-creation time).
+
+    Known failure modes:
+
+    - Classes synthesized at runtime whose ``__module__`` names a compiled
+      module are misclassified as compiled; any injection attempted on them is
+      silently skipped (``setattr`` on a native mypyc class raises
+      ``TypeError``, so the skip is intentional, but the misclassification
+      means the caller may not realise the class was runtime-synthesized).
+    - If ``__file__`` is absent (e.g. built-in modules) or the module is
+      ``__main__``, the function falls back to returning ``False`` (interpreted).
+      A wrong answer in that direction fails loudly: ``setattr`` on a compiled
+      class raises ``TypeError`` at class-creation time rather than silently
+      applying a broken injection.
+    """
+    module = sys.modules.get(cls.__module__)
+    filename: str | None = getattr(module, "__file__", None) if module is not None else None
+    return filename is not None and filename.endswith(_EXTENSION_SUFFIXES)
+
+
+# class Resource(object, metaclass=LazyAttributeMeta):
+
+@mypyc_attr(allow_interpreted_subclasses=True)
+class Resource(object):
     """Abstract base class for a data resource.
 
     A resource is an object uniquely identified by a 'key' (the resource type),
@@ -81,13 +112,67 @@ class Resource(object, metaclass=LazyAttributeMeta):
         `validated_data` function, and test full validation using `validate_data`.
     """
     #: Unique identifier of the resource type.
-    key: str = None
+    key: ClassVar[str]  # type: ignore[assignment]
     #: Schema for the resource data.
     #: Must validate a dict. Can be None, in which case the resource does
     #: not load any data.
-    schema: Schema | None = None
+    schema: ClassVar[Schema | None] = None
     #: The exception type to raise on key validation failure.
-    schema_error = Exception
+    schema_error: ClassVar[type[RezError]] = RezError
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Add lazily-validated attributes for each key in ``cls.schema``.
+
+        This replicates the behavior of the ``LazyAttributeMeta`` metaclass,
+        which cannot be used here because mypyc does not support custom
+        metaclasses on compiled classes. Compiled (native) subclasses have
+        their schema attributes explicitly written out instead (see the
+        "AUTO-GENERATED METHODS" sections, created with
+        ``rez.utils.data_utils.write_module_dynamic_members``), so they are
+        skipped here; interpreted subclasses get the attributes injected at
+        class-creation time, exactly as the metaclass did.
+        """
+        super().__init_subclass__(**kwargs)
+
+        # use a `type`-typed alias for dunder access, which mypyc disallows
+        # on the native class object
+        klass: type = cls
+
+        if _is_compiled_class(klass):
+            # a compiled subclass: attributes are explicitly generated
+            return
+
+        schema = vars(klass).get("schema")
+        if not schema:
+            return
+
+        from rez.utils.data_utils import LazyAttributeMeta
+
+        for key, key_schema in schema._schema.items():
+            optional = isinstance(key, SchemaOptional)
+            while isinstance(key, Schema):
+                key = key._schema
+            if not isinstance(key, str):
+                continue
+
+            if hasattr(klass, key):
+                attr = "_%s" % key
+                if hasattr(klass, attr):
+                    # both forms already provided - eg by the explicitly
+                    # generated members of a compiled parent class, whose
+                    # getters resolve the key's schema at runtime via
+                    # `_get_item`, so they remain valid for this subclass's
+                    # schema.
+                    continue
+            else:
+                attr = key
+
+            prop = LazyAttributeMeta._make_getter(key, attr, optional, key_schema)
+            # functools.cached_property requires __set_name__, which python
+            # only calls for descriptors present at class creation; this is a
+            # post-creation setattr, so call it explicitly
+            prop.__set_name__(klass, attr)
+            setattr(klass, attr, prop)
 
     @classmethod
     def normalize_variables(cls, variables: dict[str, Any]) -> dict[str, Any]:
@@ -99,18 +184,80 @@ class Resource(object, metaclass=LazyAttributeMeta):
         self.variables = self.normalize_variables(variables or {})
 
     @cached_property
+    def _schema_dict(self) -> dict[str, Any]:
+        """Unwrap the Schema into a dict where keys are strings"""
+        assert self.schema is not None
+        d = {}
+        for key, value in self.schema._schema.items():
+            while isinstance(key, Schema):
+                key = key._schema
+            if isinstance(key, str):
+                d[key] = value
+        return d
+
+    @cached_property
+    def _schema_keys(self) -> frozenset[str]:
+        if self.schema:
+            return frozenset(self._schema_dict.keys())
+        else:
+            return frozenset()
+
+    def validate_data(self) -> None:
+        self.validated_data()
+
+    def validated_data(self) -> dict[str, Any] | None:
+        if self.schema:
+            d = {}
+            for key in self._schema_keys:
+                d[key] = getattr(self, key)
+
+            # arbitrary keys
+            if self._data:
+                akeys = set(self._data.keys()) - set(d.keys())
+                for akey in akeys:
+                    d[akey] = self._data[akey]
+
+            return d
+        else:
+            return None
+
+    def _validate_key_impl(self, key: str, attr: Any, schema: Any) -> Any:
+        schema_ = schema if isinstance(schema, Schema) else Schema(schema)
+        try:
+            return schema_.validate(attr)
+        except Exception as e:
+            raise self.schema_error("Validation of key %r failed: "
+                                    "%s" % (key, str(e)))
+
+    def _get_item(self, key: str, optional: bool) -> Any:
+        if self._data is None or key not in self._data:
+            if optional:
+                return None
+            raise self.schema_error("Required key is missing: %r" % key)
+
+        attr = self._data[key]
+        key_schema = self._schema_dict[key]
+        if hasattr(self, "_validate_key"):
+            return self._validate_key(key, attr, key_schema)
+        else:
+            return self._validate_key_impl(key, attr, key_schema)
+
+    @cached_property
     def handle(self) -> ResourceHandle:
         """Get the resource handle."""
         return ResourceHandle(self.key, self.variables)
 
     @cached_property
     def _data(self) -> dict[str, Any] | None:
-        if not self.schema:
-            return None
+        from rez.config import config
 
-        data = self._load()
-        if config.debug("resources"):
-            print_debug("Loaded resource: %s" % str(self))
+        if not self.schema:
+            data = None
+        else:
+            data = self._load()
+            if config.debug("resources"):
+                print_debug("Loaded resource: %s" % str(self))
+
         return data
 
     def get(self, key: str, default: Any | None = None) -> Any | None:
@@ -153,6 +300,7 @@ class ResourceHandle(object):
     A handle uniquely identifies a resource. A handle can be stored and used
     with a `ResourcePool` to retrieve the same resource at a later date.
     """
+
     def __init__(self, key: str, variables: dict[str, Any] | None = None) -> None:
         self.key = key
         self.variables = variables or {}
@@ -201,6 +349,7 @@ class ResourceHandle(object):
         return hash(self._hashable_repr())
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class ResourcePool(object):
     """A resource pool.
 
@@ -209,6 +358,7 @@ class ResourcePool(object):
     resources are created via some factory class, which first checks for the
     existence of the resource before creating one from a pool.
     """
+
     def __init__(self, cache_size: int | None = None) -> None:
         self.resource_classes: dict[str, type[Resource]] = {}
         cache = lru_cache(maxsize=cache_size)
@@ -250,7 +400,9 @@ class ResourcePool(object):
         return resource_class(resource_handle.variables)
 
 
-class ResourceWrapper(Generic[ResourceT], metaclass=AttributeForwardMeta):
+# class ResourceWrapper(Generic[ResourceT], metaclass=AttributeForwardMeta):
+@mypyc_attr(allow_interpreted_subclasses=True)
+class ResourceWrapper(Generic[ResourceT]):
     """An object that wraps a resource instance.
 
     A resource wrapper is useful for two main reasons. First, we can wrap
@@ -268,7 +420,36 @@ class ResourceWrapper(Generic[ResourceT], metaclass=AttributeForwardMeta):
     the resource that you want to expose in the wrapper. The `schema_keys`
     function is provided to help get a list of keys from a resource schema.
     """
-    keys = None
+    keys: set[str] | None = None
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Add forwarding properties for each attribute named in ``cls.keys``.
+
+        This replicates the behavior of the ``AttributeForwardMeta`` metaclass,
+        which cannot be used here because mypyc does not support custom
+        metaclasses on compiled classes. Compiled (native) subclasses have
+        their forwarded attributes explicitly written out instead (see the
+        "AUTO-GENERATED METHODS" sections, created with
+        ``rez.utils.data_utils.write_module_dynamic_members``), so they are
+        skipped here; interpreted subclasses get the attributes injected at
+        class-creation time, exactly as the metaclass did.
+        """
+        super().__init_subclass__(**kwargs)
+
+        # use a `type`-typed alias for dunder access, which mypyc disallows
+        # on the native class object
+        klass: type = cls
+
+        if _is_compiled_class(klass):
+            # a compiled subclass: attributes are explicitly generated
+            return
+
+        from rez.utils.data_utils import AttributeForwardMeta
+
+        attr_info = AttributeForwardMeta._get_new_attrs(
+            dict(vars(klass)), klass.__mro__[1:])
+        for key in sorted(attr_info):
+            setattr(klass, key, AttributeForwardMeta._make_forwarder(key))
 
     def __init__(self, resource: ResourceT) -> None:
         self.wrapped = resource
@@ -297,7 +478,7 @@ class ResourceWrapper(Generic[ResourceT], metaclass=AttributeForwardMeta):
         if not isinstance(other, ResourceWrapper):
             return NotImplemented
         return (
-            self.__class__ == other.__class__
+            self.__class__ is other.__class__
             and self.resource == other.resource
         )
 

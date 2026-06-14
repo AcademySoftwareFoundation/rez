@@ -10,7 +10,8 @@ from bisect import bisect_left
 import copy
 import string
 import re
-from typing import cast, Any, Callable, Generic, Iterable, TypeVar, TYPE_CHECKING, overload
+from typing import cast, Any, Callable, ClassVar, Generic, Iterable, TypeVar, TYPE_CHECKING, Final, overload
+from rez.utils._mypyc import mypyc_attr
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -22,6 +23,7 @@ CallableT = TypeVar("CallableT", bound=Callable)
 re_token = re.compile(r"[a-zA-Z0-9_]+")
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class _Comparable(_Common):
     def __gt__(self, other: _Comparable) -> bool:
         return not (self < other or self == other)
@@ -73,6 +75,7 @@ class VersionToken(_Comparable):
     Version tokens are only allowed to contain alphanumerics (any case) and
     underscores.
     """
+
     def __init__(self, token: str) -> None:
         """
         Args:
@@ -120,6 +123,7 @@ class NumericToken(VersionToken):
 
     Version token supporting numbers only. Padding is ignored.
     """
+
     def __init__(self, token: str) -> None:
         if not token.isdigit():
             raise VersionError("Invalid version token: '%s'" % token)
@@ -157,6 +161,7 @@ class NumericToken(VersionToken):
 
 class _SubToken(_Comparable):
     """Used internally by AlphanumericVersionToken."""
+
     def __init__(self, s: str) -> None:
         self.s = s
         self.n = int(s) if s.isdigit() else None
@@ -647,14 +652,97 @@ def _action(fn: CallableT) -> CallableT:
                 print("    %-17s= %s" % (key, value))
             print("    %-17s= %s" % ("bounds", self.bounds))
         return result
-
     return fn_  # type: ignore[return-value]
 
 
-class _VersionRangeParser(object):
-    debug = False  # set to True to enable parser debugging
+# The regular expression for a version - one or more version tokens
+# followed by a non-capturing group of version separator followed by
+# one or more version tokens.
+#
+# Note that this assumes AlphanumericVersionToken-based versions!
+#
+# TODO - Would be better to have `VersionRange` keep a static dict of
+# parser instances, per token class type. We would add a 'regex' static
+# string to each token class, and that could be used to construct
+# `version_group` as below. We need to keep a dict of these parser instances,
+# to avoid recompiling the large regex every time a version range is
+# instantiated. In the cpp port this would be simpler - VersionRange could
+# just have a static parser that is instantiated when the version range
+# template class is instantiated.
+#
+version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"
 
-    re_flags = (re.VERBOSE | re.DEBUG) if debug else re.VERBOSE
+version_range_regex = (
+    # Match a version number (e.g. 1.0.0)
+    r"   ^(?P<version>{version_group})$"
+    "|"
+    # Or match an exact version number (e.g. ==1.0.0)
+    "    ^(?P<exact_version>"
+    "        =="  # Required == operator
+    "        (?P<exact_version_group>{version_group})?"
+    "    )$"
+    "|"
+    # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
+    "    ^(?P<inclusive_bound>"
+    "        (?P<inclusive_lower_version>{version_group})?"
+    r"        \.\."  # Required .. operator
+    "        (?P<inclusive_upper_version>{version_group})?"
+    "    )$"
+    "|"
+    # Or match a lower bound (e.g. 1.0.0+)
+    "    ^(?P<lower_bound>"
+    "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
+    "        (?P<lower_version>{version_group})?"
+    r"        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
+    "    )$"
+    "|"
+    # Or match an upper bound (e.g. <=1.0.0)
+    "    ^(?P<upper_bound>"
+    "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
+    "        (?P<upper_version>{version_group})?"
+    "    )$"
+    "|"
+    # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
+    "    ^(?P<range_asc>"
+    "        (?P<range_lower_asc>"
+    "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
+    "           (?P<range_lower_asc_version>{version_group})?"
+    r"           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
+    "       )(?P<range_upper_asc>"
+    "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
+    "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
+    "           (?P<range_upper_asc_version>{version_group})?"
+    "       )"
+    "    )$"
+    "|"
+    # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
+    "    ^(?P<range_desc>"
+    "        (?P<range_upper_desc>"
+    "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
+    "           (?P<range_upper_desc_version>{version_group})?"
+    r"           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
+    "       )(?P<range_lower_desc>"
+    "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want
+                                                  # to recognize something like "<4>3"
+    "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed
+                                                                        # by a version group
+    "           (?P<range_lower_desc_version>{version_group})?"
+    "       )"
+    "    )$"
+).format(version_group=version_group)
+
+_debug_parser = False  # set to True to enable parser debugging
+
+
+class _VersionRangeParser(object):
+
+    # set to True to enable parser debugging (see `_action`, which reads
+    # `self.debug`). Kept as a class attribute so it resolves on compiled
+    # (native) instances, which have no instance __dict__.
+    debug: ClassVar[bool] = _debug_parser
+
+    regex: ClassVar[re.Pattern[str]] = re.compile(
+        version_range_regex, (re.VERBOSE | re.DEBUG) if _debug_parser else re.VERBOSE)
 
     # The regular expression for a version - one or more version tokens
     # followed by a non-capturing group of version separator followed by
@@ -671,68 +759,6 @@ class _VersionRangeParser(object):
     # just have a static parser that is instantiated when the version range
     # template class is instantiated.
     #
-    version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"
-
-    version_range_regex = (
-        # Match a version number (e.g. 1.0.0)
-        r"   ^(?P<version>{version_group})$"
-        "|"
-        # Or match an exact version number (e.g. ==1.0.0)
-        "    ^(?P<exact_version>"
-        "        =="  # Required == operator
-        "        (?P<exact_version_group>{version_group})?"
-        "    )$"
-        "|"
-        # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
-        "    ^(?P<inclusive_bound>"
-        "        (?P<inclusive_lower_version>{version_group})?"
-        r"        \.\."  # Required .. operator
-        "        (?P<inclusive_upper_version>{version_group})?"
-        "    )$"
-        "|"
-        # Or match a lower bound (e.g. 1.0.0+)
-        "    ^(?P<lower_bound>"
-        "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
-        "        (?P<lower_version>{version_group})?"
-        r"        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
-        "    )$"
-        "|"
-        # Or match an upper bound (e.g. <=1.0.0)
-        "    ^(?P<upper_bound>"
-        "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
-        "        (?P<upper_version>{version_group})?"
-        "    )$"
-        "|"
-        # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
-        "    ^(?P<range_asc>"
-        "        (?P<range_lower_asc>"
-        "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
-        "           (?P<range_lower_asc_version>{version_group})?"
-        r"           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
-        "       )(?P<range_upper_asc>"
-        "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
-        "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
-        "           (?P<range_upper_asc_version>{version_group})?"
-        "       )"
-        "    )$"
-        "|"
-        # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
-        "    ^(?P<range_desc>"
-        "        (?P<range_upper_desc>"
-        "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
-        "           (?P<range_upper_desc_version>{version_group})?"
-        r"           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
-        "       )(?P<range_lower_desc>"
-        "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want
-                                                      # to recognize something like "<4>3"
-        "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed
-                                                                            # by a version group
-        "           (?P<range_lower_desc_version>{version_group})?"
-        "       )"
-        "    )$"
-    ).format(version_group=version_group)
-
-    regex = re.compile(version_range_regex, re_flags)
 
     def __init__(self, input_string: str,
                  make_token: Callable[[str], VersionToken],
@@ -932,6 +958,7 @@ class VersionRange(_Comparable):
     valid version range syntax. For example, ``>`` is a valid range - read like
     ``>''``, it means ``any version greater than the empty version``.
     """
+
     def __init__(self, range_str: str | None = '',
                  make_token: Callable[[str], VersionToken] = AlphanumericVersionToken,
                  invalid_bound_error: bool = True) -> None:
@@ -953,12 +980,12 @@ class VersionRange(_Comparable):
             parser = _VersionRangeParser(range_str, make_token,
                                          invalid_bound_error=invalid_bound_error)
             bounds = parser.bounds
-        except ParseException as e:
+        except ParseException as perr:
             raise VersionError("Syntax error in version range '%s': %s"
-                               % (range_str, str(e)))
-        except VersionError as e:
+                               % (range_str, str(perr)))
+        except VersionError as verr:
             raise VersionError("Invalid version range '%s': %s"
-                               % (range_str, str(e)))
+                               % (range_str, str(verr)))
 
         if bounds:
             self.bounds = self._union(bounds)
@@ -1371,13 +1398,16 @@ class VersionRange(_Comparable):
         start = 0
 
         for i, bound in enumerate(bounds_):
-            if i and ((bound.lower.version > upper.version)
-                      or ((bound.lower.version == upper.version)
-                          and (not bound.lower.inclusive)
-                          and (not prev_bound.upper.inclusive))):
-                new_bound = _Bound(bounds_[start].lower, upper)
-                new_bounds.append(new_bound)
-                start = i
+            if i:
+                assert upper is not None
+                assert prev_bound is not None
+                if ((bound.lower.version > upper.version)
+                    or ((bound.lower.version == upper.version)
+                        and (not bound.lower.inclusive)
+                        and (not prev_bound.upper.inclusive))):
+                    new_bound = _Bound(bounds_[start].lower, upper)
+                    new_bounds.append(new_bound)
+                    start = i
 
             prev_bound = bound
             upper = bound.upper if upper is None else max(upper, bound.upper)
@@ -1539,6 +1569,7 @@ class _ContainsVersionIterator(Generic[T]):
 
     @property
     def _bound(self) -> _Bound | None:
+        assert self.index is not None
         if self.index < self.nbounds:
             return self.range_.bounds[self.index]
         else:
@@ -1549,6 +1580,7 @@ class _ContainsVersionIterator(Generic[T]):
             self.index, contains = self.range_._contains_version(version)
             bound = self._bound
             if contains:
+                assert bound is not None
                 if not bound.upper_bounded():
                     self._constant = True
                 return True
@@ -1559,6 +1591,7 @@ class _ContainsVersionIterator(Generic[T]):
                 return False  # there are more bound(s) ahead
         else:
             bound = self._bound
+            assert bound is not None
             j = bound.version_containment(version)
             if j == 0:
                 return True
@@ -1585,6 +1618,7 @@ class _ContainsVersionIterator(Generic[T]):
             self.index, contains = self.range_._contains_version(version)
             bound = self._bound
             if contains:
+                assert bound is not None
                 if not bound.lower_bounded():
                     self._constant = True
                 return True
@@ -1599,6 +1633,7 @@ class _ContainsVersionIterator(Generic[T]):
                 return False
         else:
             bound = self._bound
+            assert bound is not None
             j = bound.version_containment(version)
             if j == 0:
                 return True
@@ -1608,6 +1643,7 @@ class _ContainsVersionIterator(Generic[T]):
                 while self.index:
                     self.index -= 1
                     bound = self._bound
+                    assert bound is not None
                     j = bound.version_containment(version)
                     if j == 0:
                         if not bound.lower_bounded():

@@ -11,14 +11,14 @@ from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
     PackageResourceHelper, package_pod_schema
 from rez.utils.formatting import is_valid_package_name
-from rez.utils.resources import ResourcePool, cached_property
+from functools import cached_property
+from rez.utils.resources import ResourcePool
 from rez.version import VersionedObject
 
 from typing import Any, Iterator, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from rez.packages import VariantResource
-    from rez.package_resources import PackageRepositoryResource
+    pass
 
 
 # This repository type is used when loading 'developer' packages (a package.yaml
@@ -39,11 +39,11 @@ class MemoryPackageFamilyResource(
         return "%s:%s" % (self.location, self.name)
 
     def iter_packages(self) -> Iterator[MemoryPackageResource]:
-        data = self._repository.data.get(self.name, {})
+        data = self.repository.data.get(self.name, {})
 
         # check for unversioned package
         if "_NO_VERSION" in data:
-            package = self._repository.get_resource(
+            package = self.repository.get_resource(
                 MemoryPackageResource,
                 location=self.location,
                 name=self.name)
@@ -52,7 +52,7 @@ class MemoryPackageFamilyResource(
 
         # versioned packages
         for version_str in data.keys():
-            package = self._repository.get_resource(
+            package = self.repository.get_resource(
                 MemoryPackageResource,
                 location=self.location,
                 name=self.name,
@@ -76,14 +76,14 @@ class MemoryPackageResource(PackageResourceHelper["MemoryVariantResource"]):
 
     @cached_property
     def parent(self) -> MemoryPackageFamilyResource:
-        family = self._repository.get_resource(
+        family = self.repository.get_resource(
             MemoryPackageFamilyResource,
             location=self.location,
             name=self.name)
         return family
 
     def _load(self) -> dict[str, Any]:
-        family_data = self._repository.data.get(self.name, {})
+        family_data = self.repository.data.get(self.name, {})
         version_str = self.get("version")
         if not version_str:
             version_str = "_NO_VERSION"
@@ -100,7 +100,7 @@ class MemoryVariantResource(VariantResourceHelper):
 
     @cached_property
     def parent(self) -> MemoryPackageResource:
-        package = self._repository.get_resource(
+        package = self.repository.get_resource(
             MemoryPackageResource,
             location=self.location,
             name=self.name,

@@ -241,6 +241,8 @@ def copy_package(package: Package,
                 variant_resource=src_variant.resource,
                 overrides=overrides_
             )
+            # not a dry run, so a resource must have been returned
+            assert dest_variant_resource is not None
 
             dest_variant = Variant(dest_variant_resource)
 

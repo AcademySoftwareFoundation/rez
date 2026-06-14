@@ -27,7 +27,8 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
 from rez import package_order
 from rez.packages import get_variant, iter_packages, Package, Variant
 from rez.package_filter import PackageFilterList
-from rez.package_order import PackageOrder, PackageOrderList
+from rez.package_order import PackageOrder
+from rez.package_order_list import PackageOrderList
 from rez.package_cache import PackageCache
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, \
@@ -44,8 +45,8 @@ from rez.utils.platform_ import platform_
 from contextlib import contextmanager
 from functools import wraps
 from enum import Enum
-from typing import Any, Callable, Iterable, Iterator, Mapping, NoReturn, Sequence, TypeVar, \
-    TYPE_CHECKING, overload
+from typing import cast, Any, Callable, Iterable, Iterator, Mapping, NoReturn, Sequence, TypeVar, \
+    TYPE_CHECKING, overload, ClassVar
 import getpass
 import json
 import socket
@@ -54,6 +55,7 @@ import time
 import sys
 import os
 import os.path
+from rez.utils._mypyc import mypyc_attr
 
 if TYPE_CHECKING:
     from typing import Literal  # not available in typing module until 3.8
@@ -104,9 +106,41 @@ class PatchLock(Enum):
 
     __order__ = "no_lock,lock_2,lock_3,lock_4,lock"
 
-    def __init__(self, description: str, rank: int) -> None:
-        self.description = description
-        self.rank = rank
+    @property
+    def description(self) -> str:
+        return self.value[0]
+
+    @property
+    def rank(self) -> int:
+        return self.value[1]
+
+    # def __init__(self, description: str, rank: int) -> None:
+    #     self.description = description
+    #     self.rank = rank
+
+
+@contextmanager
+def _detect_bundle(path: str) -> Iterator[None]:
+    bundle_path = None
+    base_dir = os.path.dirname(os.path.abspath(path))
+    bundle_filepath = os.path.join(base_dir, "bundle.yaml")
+
+    try:
+        if os.path.exists(bundle_filepath):
+            bundle_path = base_dir
+    except IOError:
+        pass
+
+    try:
+        if bundle_path:
+            ResolvedContext.local.bundle_path = bundle_path
+
+        yield
+    finally:
+        try:
+            delattr(ResolvedContext.local, "bundle_path")
+        except AttributeError:
+            pass
 
 
 def get_lock_request(name: str,
@@ -151,6 +185,31 @@ def _on_success(fn: CallableT) -> CallableT:
     return _check  # type: ignore[return-value]
 
 
+class _Callback(object):
+    def __init__(self, max_fails: int, time_limit: int,
+                 callback: Callable[[SolverState], tuple[SolverCallbackReturn, str]] | None,
+                 buf: SupportsWrite | None = None) -> None:
+        self.max_fails = max_fails
+        self.time_limit = time_limit
+        self.callback = callback
+        self.start_time = time.time()
+        self.buf = buf or sys.stdout
+
+    def __call__(self, state: SolverState) -> tuple[SolverCallbackReturn, str]:
+        if self.max_fails != -1 and state.num_fails >= self.max_fails:
+            reason = ("fail limit reached: aborted after %d failures"
+                      % state.num_fails)
+            return SolverCallbackReturn.fail, reason
+        if self.time_limit != -1:
+            secs = time.time() - self.start_time
+            if secs > self.time_limit:
+                return SolverCallbackReturn.abort, "time limit exceeded"
+        if self.callback:
+            return self.callback(state)
+        return SolverCallbackReturn.keep_going, ''
+
+
+@mypyc_attr(serializable=True)
 class ResolvedContext(object):
     """A class that resolves, stores and spawns Rez environments.
 
@@ -162,40 +221,17 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 9)
-    tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
-    context_tracking_payload: dict[str, Any] | None = None
-    context_tracking_lock = threading.Lock()
-    package_cache_present = True
-    local = threading.local()
-
-    class Callback(object):
-        def __init__(self, max_fails: int, time_limit: int,
-                     callback: Callable[[SolverState], tuple[SolverCallbackReturn, str]] | None,
-                     buf: SupportsWrite | None = None) -> None:
-            self.max_fails = max_fails
-            self.time_limit = time_limit
-            self.callback = callback
-            self.start_time = time.time()
-            self.buf = buf or sys.stdout
-
-        def __call__(self, state: SolverState) -> tuple[SolverCallbackReturn, str]:
-            if self.max_fails != -1 and state.num_fails >= self.max_fails:
-                reason = ("fail limit reached: aborted after %d failures"
-                          % state.num_fails)
-                return SolverCallbackReturn.fail, reason
-            if self.time_limit != -1:
-                secs = time.time() - self.start_time
-                if secs > self.time_limit:
-                    return SolverCallbackReturn.abort, "time limit exceeded"
-            if self.callback:
-                return self.callback(state)
-            return SolverCallbackReturn.keep_going, ''
+    serialize_version: ClassVar[tuple[int, int]] = (4, 9)
+    tmpdir_manager: ClassVar[TempDirs] = TempDirs(config.context_tmpdir, prefix="rez_context_")
+    context_tracking_payload: ClassVar[dict[str, Any] | None] = None
+    context_tracking_lock: ClassVar[threading.Lock] = threading.Lock()
+    package_cache_present: ClassVar[bool] = True
+    local: ClassVar[threading.local] = threading.local()
 
     def __init__(self,
                  package_requests: Iterable[str | Requirement],
                  verbosity: int = 0,
-                 timestamp: float | None = None,
+                 timestamp: int | None = None,
                  building: bool = False,
                  testing: bool = False,
                  caching: bool | None = None,
@@ -337,10 +373,10 @@ class ResolvedContext(object):
         self.suite_context_name: str | None = None
 
         # perform the solve
-        callback_ = self.Callback(buf=buf,
-                                  max_fails=max_fails,
-                                  time_limit=time_limit,
-                                  callback=callback)
+        callback_ = _Callback(buf=buf,
+                              max_fails=max_fails,
+                              time_limit=time_limit,
+                              callback=callback)
 
         def _package_load_callback(package: Package) -> None:
             if package_load_callback:
@@ -368,15 +404,15 @@ class ResolvedContext(object):
 
         # convert the results
         self.status_ = resolver.status
-        self.solve_time = resolver.solve_time
-        self.load_time = resolver.load_time
+        self.solve_time = self._solved_value(resolver.solve_time)
+        self.load_time = self._solved_value(resolver.load_time)
         self.failure_description = resolver.failure_description
         self.graph_ = resolver.graph
         self.from_cache = resolver.from_cache
 
         if self.status_ == ResolverStatus.solved:
             self._resolved_packages = []
-            for variant in resolver.resolved_packages:
+            for variant in self._solved_value(resolver.resolved_packages):
                 variant.set_context(self)
                 self._resolved_packages.append(variant)
 
@@ -394,11 +430,18 @@ class ResolvedContext(object):
         request = self.requested_packages(include_implicit=True)
         req_str = " ".join(str(x) for x in request)
         if self.status == ResolverStatus.solved:
-            res_str = " ".join(x.qualified_name for x in self._resolved_packages)
+            res_str = " ".join(x.qualified_name for x in self._solved_value(self._resolved_packages))
             return "%s(%s ==> %s)" % (self.status.name, req_str, res_str)
         else:
             return "%s:%s(%s)" % (self.__class__.__name__,
                                   self.status.name, req_str)
+
+    def _solved_value(self, x: T | None) -> T:
+        # if self.status_ != ResolverStatus.solved or self.status_ != ResolverStatus.failed:
+        #     raise ResolvedContextError("This should only be called when solve is complete")
+        if x is None:
+            raise ResolvedContextError("This value should not be None after the solve is complete")
+        return x
 
     @property
     def success(self) -> bool:
@@ -456,13 +499,16 @@ class ResolvedContext(object):
         """
         self.load_path = path
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Equality test.
 
         Two contexts are considered equal if they have an equivalent request,
         and an equivalent resolve. Other details, such as timestamp, are not
         considered.
         """
+        if not isinstance(other, ResolvedContext):
+            return NotImplemented
+
         return (
             isinstance(other, ResolvedContext)
             and other.requested_packages(True) == self.requested_packages(True)
@@ -496,6 +542,7 @@ class ResolvedContext(object):
 
     def copy(self) -> ResolvedContext:
         """Returns a shallow copy of the context."""
+        # return self.from_dict(self.to_dict())
         import copy
         return copy.copy(self)
 
@@ -530,15 +577,14 @@ class ResolvedContext(object):
                 retargeted_variants.append(src_variant)
                 continue
 
-            found = None
+            dest_variant = None
 
             for pkg_repo in pkg_repos:
                 dest_variant = pkg_repo.get_equivalent_variant(src_variant.resource)
                 if dest_variant is not None:
-                    found = True
                     break
 
-            if not found:
+            if dest_variant is None:
                 if skip_missing:
                     retargeted_variants.append(src_variant)
                     continue
@@ -606,9 +652,8 @@ class ResolvedContext(object):
         # assemble source request
         if strict:
             request: list[Requirement | PackageRequest] = []
-            for variant in self.resolved_packages:
-                req = PackageRequest(variant.qualified_package_name)
-                request.append(req)
+            for variant in self._solved_value(self.resolved_packages):
+                request.append(PackageRequest(variant.qualified_package_name))
         else:
             request = self.requested_packages()[:]
 
@@ -666,11 +711,11 @@ class ResolvedContext(object):
             return cast("list[Requirement | PackageRequest | str]", request)
 
     @overload
-    def graph(self, as_dot: Literal[True]) -> str | None:
+    def graph(self, *, as_dot: Literal[True]) -> str | None:
         pass
 
     @overload
-    def graph(self, as_dot: Literal[False] = False) -> digraph | None:
+    def graph(self, *, as_dot: Literal[False] = False) -> digraph | None:
         pass
 
     def graph(self, as_dot: bool = False) -> str | digraph | None:
@@ -709,7 +754,7 @@ class ResolvedContext(object):
 
     def save(self, path: str) -> None:
         """Save the resolved context to file."""
-        with self._detect_bundle(path):
+        with _detect_bundle(path):
             with open(path, 'w') as f:
                 self.write_to_buffer(f)
 
@@ -751,7 +796,7 @@ class ResolvedContext(object):
     @classmethod
     def load(cls, path: str) -> ResolvedContext:
         """Load a resolved context from file."""
-        with cls._detect_bundle(path):
+        with _detect_bundle(path):
             with open(path) as f:
                 context = cls.read_from_buffer(f, path)
 
@@ -766,6 +811,7 @@ class ResolvedContext(object):
         except Exception as e:
             cls._load_error(e, identifier_str)
 
+    # @_on_success
     def get_resolve_diff(self, other: ResolvedContext) -> dict:
         """Get the difference between the resolve in this context and another.
 
@@ -807,8 +853,8 @@ class ResolvedContext(object):
 
         # FIXME: make this a TypedDict
         d: dict[str, Any] = {}
-        self_pkgs_ = set(x.parent for x in self._resolved_packages)
-        other_pkgs_ = set(x.parent for x in other._resolved_packages)
+        self_pkgs_ = set(x.parent for x in self._solved_value(self._resolved_packages))
+        other_pkgs_ = set(x.parent for x in self._solved_value(other._resolved_packages))
         self_pkgs = self_pkgs_ - other_pkgs_
         other_pkgs = other_pkgs_ - self_pkgs_
         if not (self_pkgs or other_pkgs):
@@ -918,12 +964,12 @@ class ResolvedContext(object):
         _pr("requested packages:", heading)
         rows = []
         colors = []
-        for request in self._package_requests:
-            if request.name.startswith('.'):
-                rows.append((str(request), "(ephemeral)"))
+        for req in self._package_requests:
+            if req.name.startswith('.'):
+                rows.append((str(req), "(ephemeral)"))
                 colors.append(ephemeral_color)
             else:
-                rows.append((str(request), ""))
+                rows.append((str(req), ""))
                 colors.append(None)
 
         for request in self.implicit_packages:
@@ -1127,16 +1173,17 @@ class ResolvedContext(object):
         """
         from rez.vendor.pygraph.classes.digraph import digraph
 
+        resolved_packages = self._solved_value(self._resolved_packages)
         # add nodes
         nodes = {}
-        for variant in self._resolved_packages:
+        for variant in resolved_packages:
             nodes[variant.name] = variant.qualified_package_name
-        for ephemeral in self._resolved_ephemerals:
+        for ephemeral in self._solved_value(self._resolved_ephemerals):
             nodes[ephemeral.name] = str(ephemeral)
 
         # add edges
         edges = set()
-        for variant in self._resolved_packages:
+        for variant in resolved_packages:
             nodes[variant.name] = variant.qualified_package_name
             for request in variant.get_requires():
                 if not request.conflict:
@@ -1163,7 +1210,7 @@ class ResolvedContext(object):
     def validate(self) -> None:
         """Validate the context."""
         try:
-            for pkg in self.resolved_packages:
+            for pkg in self._solved_value(self.resolved_packages):
                 pkg.validate_data()
         except RezError as e:
             raise ResolvedContextError("%s: %s" % (e.__class__.__name__, str(e)))
@@ -1201,7 +1248,7 @@ class ResolvedContext(object):
         requested_names = [x.name for x in self._package_requests
                            if not x.conflict]
 
-        for pkg in self.resolved_packages:
+        for pkg in self._solved_value(self.resolved_packages):
             if (not request_only) or (pkg.name in requested_names):
                 value = getattr(pkg, key)
                 if value is not None:
@@ -1573,7 +1620,7 @@ class ResolvedContext(object):
         def to_req(variant: Variant) -> PackageRequest:
             return PackageRequest(variant.parent.as_exact_requirement())
 
-        return [to_req(r) for r in self.resolved_packages]
+        return [to_req(r) for r in self._solved_value(self.resolved_packages)]
 
     def to_dict(self, fields: list[str] | None = None) -> dict:
         """Convert context to dict containing only builtin types.
@@ -1830,7 +1877,7 @@ class ResolvedContext(object):
         if not self.load_path:
             return
 
-        with self._detect_bundle(self.load_path):
+        with _detect_bundle(self.load_path):
             bundle_dir = self._get_bundle_path()
 
         if not bundle_dir:
@@ -1846,30 +1893,6 @@ class ResolvedContext(object):
 
         header_comment(executor, "bundle post-commands")
         executor.execute_code(rex_py)
-
-    @classmethod
-    @contextmanager
-    def _detect_bundle(cls, path: str) -> Iterator[None]:
-        bundle_path = None
-        base_dir = os.path.dirname(os.path.abspath(path))
-        bundle_filepath = os.path.join(base_dir, "bundle.yaml")
-
-        try:
-            if os.path.exists(bundle_filepath):
-                bundle_path = base_dir
-        except IOError:
-            pass
-
-        try:
-            if bundle_path:
-                cls.local.bundle_path = bundle_path
-
-            yield
-        finally:
-            try:
-                delattr(cls.local, "bundle_path")
-            except AttributeError:
-                pass
 
     @classmethod
     def _get_bundle_path(cls) -> str | None:
@@ -1979,7 +2002,8 @@ class ResolvedContext(object):
             if cls.context_tracking_payload is None:
                 cls.context_tracking_payload = data
 
-    def _track_context(self, context_data, action: str) -> None:
+    # @_on_success
+    def _track_context(self, context_data: dict, action: str) -> None:
         # create message payload
         data = {
             "action": action,
@@ -1987,7 +2011,7 @@ class ResolvedContext(object):
         }
 
         self._init_context_tracking_payload_base()
-        data.update(self.context_tracking_payload)
+        data.update(self._solved_value(self.context_tracking_payload))
 
         # publish message
         routing_key = (

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "mypy[mypyc]"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]
@@ -7,24 +7,76 @@ python_version = "3.8"
 files = ["src/rez/", "src/rezplugins/"]
 exclude = [
     '.*/rez/data/.*',
-    '.*/rez/vendor/.*',
     '.*/rez/tests/.*',
     '.*/rez/utils/lint_helper.py',
 ]
 disable_error_code = ["var-annotated", "import-not-found"]
 check_untyped_defs = true
 # allow this for now:
-allow_redefinition = true
+#allow_redefinition = true
 follow_imports = "silent"
+enable_incomplete_feature = ["InlineTypedDict"]
+
+[[tool.mypy.overrides]]
+module = "rez.vendor.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "rez.vendor.schema.schema"
+ignore_errors = false
+
+[[tool.mypy.overrides]]
+module = "rez.utils.formatting"
+disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
 module = 'rez.utils.lint_helper'
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = "rez.version._version"
+module = "rez.packages"
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = "rez.version._requirement"
+module = "rez.package_filter"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.package_order"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.package_repository"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.package_resources"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.solver"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.resolved_context"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.resolver"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.version.*"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.utils.resources"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rez.utils.scope"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "rezplugins.package_repository.filesystem"
 disallow_untyped_defs = true

@@ -7,15 +7,16 @@ from __future__ import annotations
 from rez.packages import iter_packages, Package
 from rez.exceptions import ConfigurationError
 from rez.config import config
-from rez.utils.data_utils import cached_property, cached_class_property
+from functools import cached_property
 from rez.version import VersionedObject, VersionRange, Requirement
+from rez.utils.data_utils import cached_class_property
 from hashlib import sha1
 from typing import Any, Iterator, Pattern, TYPE_CHECKING, ClassVar
 import fnmatch
 import re
 
 if TYPE_CHECKING:
-    from typing import Self
+    from typing_extensions import Self
 
 
 class PackageFilterBase(object):
@@ -58,7 +59,6 @@ class PackageFilterBase(object):
         """Convert to POD type, suitable for storing in an rxt file.
 
         Return type depends on subclass implementation
-            dict[str, list[str]]:
         """
         raise NotImplementedError
 
@@ -106,6 +106,7 @@ class PackageFilter(PackageFilterBase):
     excluded if it matches one or more exclusion rules, and does not match any
     inclusion rules.
     """
+
     def __init__(self) -> None:
         self._excludes: dict[str | None, list[Rule]] = {}
         self._includes: dict[str | None, list[Rule]] = {}
@@ -220,7 +221,8 @@ class PackageFilter(PackageFilterBase):
         family = rule.family()
         rules_ = rules_dict.get(family, [])
         rules_dict[family] = sorted(rules_ + [rule], key=lambda x: x.cost())
-        cached_property.uncache(self, "cost")  # type: ignore[attr-defined]
+        # invalidate the functools.cached_property cache entry
+        self.__dict__.pop("cost", None)
 
     def __str__(self) -> str:
         def sortkey(rule_items: tuple[str | None, list[Rule]]) -> tuple[str, list[Rule]]:
@@ -239,6 +241,7 @@ class PackageFilterList(PackageFilterBase):
     A package is excluded by a filter list iff any filter within the list
     excludes it.
     """
+
     def __init__(self) -> None:
         self.filters: list[PackageFilter] = []
 

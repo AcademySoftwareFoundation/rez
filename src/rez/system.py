@@ -12,7 +12,7 @@ import platform
 from rez import __version__
 from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
-from rez.utils.data_utils import cached_property
+from functools import cached_property
 
 
 class System(object):

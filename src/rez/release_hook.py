@@ -57,7 +57,7 @@ class ReleaseHook(object):
         self.source_path = source_path
         self.package = get_developer_package(source_path)
         self.type_settings = self.package.config.plugins.release_hook
-        self.settings = self.type_settings.get(self.name())
+        self.settings = self.type_settings[self.name()]
 
     def pre_build(self, user, install_path, variants=None, release_message=None,
                   changelog=None, previous_version=None,

@@ -6,10 +6,8 @@ from __future__ import annotations
 
 from inspect import isclass
 from hashlib import sha1
-from typing import Any, Callable, Iterable, List, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, Iterable, TYPE_CHECKING
 
-from rez.config import config
-from rez.utils.data_utils import cached_class_property
 from rez.version import Version, VersionRange
 from rez.version._version import _Comparable, _ReversedComparable, _LowerBound, _UpperBound, _Bound
 from rez.packages import iter_packages, Package
@@ -18,7 +16,8 @@ from rez.utils.typing import SupportsLessThan
 if TYPE_CHECKING:
     # this is not available in typing until 3.11, but due to __future__.annotations
     # we can use it without really importing it
-    from typing import Self
+    from typing_extensions import Self
+    from rez.package_order_list import PackageOrderList
 
 ALL_PACKAGES = "*"
 
@@ -58,16 +57,32 @@ class PackageOrder(object):
     """Package reorderer base class."""
 
     #: Orderer name
-    name: str
+    name: ClassVar[str]
     _packages: list[str]
 
-    def __init__(self, packages: list[str] | None = None) -> None:
+    def __init__(self, packages: str | list[str] | None = None) -> None:
         """
         Args:
-            packages: If not provided, PackageOrder applies to all packages.
+            packages: A package family name, or list of package family names.
+                If not provided, PackageOrder applies to all packages.
         """
-        # TYPING: odd behavior where mypy disregards the property setter
-        self.packages = packages  # type: ignore[assignment]
+        # Note: do not assign via the `packages` property setter here. mypyc
+        # enforces the property getter's return type (list[str]) on setter
+        # assignments at runtime, so passing None/str through the setter would
+        # raise TypeError in the compiled extension (specifically from compiled
+        # call sites — mypyc inserts a runtime cast at each assignment site;
+        # interpreted callers can assign None/str through the public setter fine).
+        self._packages = self._normalize_packages(packages)
+
+    @staticmethod
+    def _normalize_packages(packages: str | list[str] | None) -> list[str]:
+        if packages is None:
+            # Apply to all packages
+            return [ALL_PACKAGES]
+        elif isinstance(packages, str):
+            return [packages]
+        else:
+            return sorted(packages)
 
     @property
     def packages(self) -> list[str]:
@@ -80,14 +95,8 @@ class PackageOrder(object):
         return self._packages
 
     @packages.setter
-    def packages(self, packages: str | Iterable[str] | None) -> None:
-        if packages is None:
-            # Apply to all packages
-            self._packages = [ALL_PACKAGES]
-        elif isinstance(packages, str):
-            self._packages = [packages]
-        else:
-            self._packages = sorted(packages)
+    def packages(self, packages: str | list[str] | None) -> None:
+        self._packages = self._normalize_packages(packages)
 
     def reorder(self, iterable: Iterable[Package],
                 key: Callable[[Any], Package] | None = None) -> list[Package] | None:
@@ -113,6 +122,7 @@ class PackageOrder(object):
         """
         key = key or (lambda x: x)
         package_name = self._get_package_name_from_iterable(iterable, key=key)
+        assert package_name is not None
         return sorted(iterable,
                       key=lambda x: self.sort_key(package_name, key(x).version),
                       reverse=True)
@@ -592,6 +602,7 @@ class TimestampPackageOrder(PackageOrder):
             return is_before, version
 
         if self.rank:
+            assert version.tokens is not None
             return (is_before,
                     _ReversedComparable(version.trim(self.rank - 1)),
                     version.tokens[self.rank - 1:])
@@ -645,89 +656,6 @@ class TimestampPackageOrder(PackageOrder):
         )
 
 
-class PackageOrderList(List[PackageOrder]):
-    """A list of package orderer.
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.by_package: dict[str, PackageOrder] = {}
-        self.dirty = True
-
-    def to_pod(self) -> list[dict[str, Any]]:
-        return [to_pod(f) for f in self]
-
-    @classmethod
-    def from_pod(cls, data: list[dict[str, Any]]) -> PackageOrderList:
-        flist = PackageOrderList()
-        for dict_ in data:
-            f = from_pod(dict_)
-            flist.append(f)
-        return flist
-
-    @cached_class_property
-    def singleton(cls) -> PackageOrderList:
-        """Filter list as configured by rezconfig.package_filter."""
-        return cls.from_pod(config.package_orderers)
-
-    @staticmethod
-    def _to_orderer(orderer: dict | PackageOrder) -> PackageOrder:
-        if isinstance(orderer, dict):
-            orderer = from_pod(orderer)
-        return orderer
-
-    def refresh(self) -> None:
-        """Update the internal order-by-package mapping"""
-        self.by_package = {}
-        for orderer in self:
-            orderer = self._to_orderer(orderer)
-            for package in orderer.packages:
-                # We allow duplicates (so we can have hierarchical configs,
-                # which can override each other) - earlier orderers win
-                if package in self.by_package:
-                    continue
-                self.by_package[package] = orderer
-
-    if not TYPE_CHECKING:
-        # Since this class inherits from list it's easier to rely on the type hints coming from
-        # that base class than to redefine them here, so we hide them by placing them behind
-        # not TYPE_CHECKING.
-
-        def append(self, *args, **kwargs):
-            self.dirty = True
-            return super().append(*args, **kwargs)
-
-        def extend(self, *args, **kwargs):
-            self.dirty = True
-            return super().extend(*args, **kwargs)
-
-        def pop(self, *args, **kwargs):
-            self.dirty = True
-            return super().pop(*args, **kwargs)
-
-        def remove(self, *args, **kwargs):
-            self.dirty = True
-            return super().remove(*args, **kwargs)
-
-        def clear(self, *args, **kwargs):
-            self.dirty = True
-            return super().clear(*args, **kwargs)
-
-        def insert(self, *args, **kwargs):
-            self.dirty = True
-            return super().insert(*args, **kwargs)
-
-    def get(self, key: str, default: PackageOrder | None = None) -> PackageOrder | None:
-        """
-        Get an orderer that sorts a package by name.
-        """
-        if self.dirty:
-            self.refresh()
-            self.dirty = False
-        result = self.by_package.get(key, default)
-        return result
-
-
 def to_pod(orderer: PackageOrder) -> dict:
     data = {"type": orderer.name}
     data.update(orderer.to_pod())
@@ -751,6 +679,9 @@ def from_pod(data: dict[str, Any] | tuple[str, dict[str, Any]]) -> PackageOrder:
 
 def get_orderer(package_name: str, orderers: PackageOrderList | dict[str, PackageOrder] | None = None) -> PackageOrder:
     if orderers is None:
+        # import here to avoid a circular import (package_order_list imports
+        # from this module)
+        from rez.package_order_list import PackageOrderList
         orderers = PackageOrderList.singleton
     orderer = orderers.get(package_name)
     if orderer is None:

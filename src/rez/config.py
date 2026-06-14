@@ -6,8 +6,9 @@ from __future__ import annotations
 
 from rez import __version__
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
-    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta, \
+    convert_dicts, cached_class_property, LazyAttributeMeta, \
     deep_update, ModifyList, DelayLoad
+from functools import cached_property
 from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format

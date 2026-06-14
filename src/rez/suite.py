@@ -7,7 +7,7 @@ from __future__ import annotations
 from rez.utils.execution import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.utils.data_utils import cached_property
+from functools import cached_property
 from rez.utils.filesystem import safe_rmtree
 from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.colorize import warning, critical, Printer, alias as alias_col

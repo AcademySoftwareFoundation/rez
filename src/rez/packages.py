@@ -5,14 +5,15 @@
 from __future__ import annotations
 
 from rez.package_repository import package_repository_manager
-from rez.package_resources import PackageFamilyResource, PackageResource, PackageRepositoryResource, PackageResourceHelper, \
-    VariantResource, VariantResourceHelper, package_family_schema, package_schema, variant_schema, \
-    package_release_keys, late_requires_schema
+from rez.package_resources import (
+    PackageFamilyResource, PackageResource, PackageRepositoryResource, PackageResourceHelper,
+    VariantResource, VariantResourceHelper, package_family_schema, package_schema, variant_schema,
+    package_release_keys, late_requires_schema)
 from rez.package_serialise import dump_package_data
 from rez.utils import reraise
 from rez.utils.sourcecode import SourceCode
-from rez.utils.data_utils import cached_property
-from rez.utils.formatting import StringFormatMixin, StringFormatType
+from functools import cached_property
+from rez.utils.formatting import ObjectStringFormatter, StringFormatType
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
@@ -46,11 +47,38 @@ PackageOrVariantResourceT = TypeVar("PackageOrVariantResourceT", "PackageResourc
 # ------------------------------------------------------------------------------
 
 
-class PackageRepositoryResourceWrapper(ResourceWrapper[PackageRepositoryResourceT], StringFormatMixin):
-    format_expand = StringFormatType.unchanged
+class PackageRepositoryResourceWrapper(ResourceWrapper[PackageRepositoryResourceT]):
+
+    format_expand: ClassVar[StringFormatType] = StringFormatType.unchanged
+    format_pretty: ClassVar[bool] = True
+
+    def format(self, s: str, pretty: bool | None = None,
+               expand: StringFormatType | None = None) -> str:
+        """Format a string.
+
+        Args:
+            s (str): String to format, eg "hello {name}"
+            pretty (bool): If True, references to non-string attributes such as
+                lists are converted to basic form, with characters such as
+                brackets and parenthesis removed. If None, defaults to the
+                object's 'format_pretty' attribute.
+            expand (`StringFormatType`): Expansion mode. If None, will default
+                to the object's 'format_expand' attribute.
+
+        Returns:
+            The formatting string.
+        """
+        if pretty is None:
+            pretty = self.format_pretty
+        if expand is None:
+            expand = self.format_expand
+
+        formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
+        return formatter.format(s)
 
     def validated_data(self) -> dict:
         data = ResourceWrapper.validated_data(self)
+        assert data is not None, "Should never be None if self.schema exists"
         data = dict((k, v) for k, v in data.items() if v is not None)
         return data
 
@@ -61,7 +89,7 @@ class PackageRepositoryResourceWrapper(ResourceWrapper[PackageRepositoryResource
         Returns:
             `PackageRepository`.
         """
-        return self.resource._repository
+        return self.resource.repository
 
 
 class PackageFamily(PackageRepositoryResourceWrapper[PackageFamilyResource]):
@@ -85,6 +113,13 @@ class PackageFamily(PackageRepositoryResourceWrapper[PackageFamilyResource]):
         """
         for package in self.repository.iter_packages(self.resource):
             yield Package(package)
+
+    # -- BEGIN AUTO-GENERATED METHODS --
+    @property
+    def name(self) -> typing.Any:
+        return self.wrapped.name
+
+    # -- END AUTO-GENERATED METHODS --
 
 
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper[PackageOrVariantResourceT]):
@@ -127,7 +162,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper[PackageOrVaria
         """Returns True if the package is in the local package repository"""
         local_repo = package_repository_manager.get_repository(
             self.config.local_packages_path)
-        return (self.resource._repository.uid == local_repo.uid)
+        return (self.resource.repository.uid == local_repo.uid)
 
     def print_info(self, buf: SupportsWrite | None = None, format_: FileFormat = FileFormat.yaml,
                    skip_attributes: list[str] | None = None, include_release: bool = False) -> None:
@@ -232,6 +267,13 @@ class Package(PackageBaseResourceWrapper[PackageResourceHelper]):
             return self._wrap_forwarded(name, value)
         else:
             raise AttributeError("Package instance has no attribute '%s'" % name)
+
+    @property
+    def data(self) -> dict[str, Any]:
+        # super type declares result optional
+        data = super().data
+        assert data is not None
+        return data
 
     def arbitrary_keys(self) -> set[str]:
         """Get the arbitrary keys present in this package.
@@ -341,6 +383,130 @@ class Package(PackageBaseResourceWrapper[PackageResourceHelper]):
             if variant.index == index:
                 return variant
         return None
+
+    # -- BEGIN AUTO-GENERATED METHODS --
+    @property
+    def authors(self) -> list[str] | None:
+        return self._wrap_forwarded('authors', self.wrapped.authors)
+
+    @property
+    def base(self) -> str | None:
+        return self._wrap_forwarded('base', self.wrapped.base)
+
+    @property
+    def build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._wrap_forwarded('build_requires', self.wrapped.build_requires)
+
+    @property
+    def cachable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._wrap_forwarded('cachable', self.wrapped.cachable)
+
+    @property
+    def changelog(self) -> str | None:
+        return self._wrap_forwarded('changelog', self.wrapped.changelog)
+
+    @property
+    def commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._wrap_forwarded('commands', self.wrapped.commands)
+
+    @property
+    def description(self) -> str | None:
+        return self._wrap_forwarded('description', self.wrapped.description)
+
+    @property
+    def has_plugins(self) -> typing.Union[SourceCode, bool] | None:
+        return self._wrap_forwarded('has_plugins', self.wrapped.has_plugins)
+
+    @property
+    def hashed_variants(self) -> bool | None:
+        return self._wrap_forwarded('hashed_variants', self.wrapped.hashed_variants)
+
+    @property
+    def help(self) -> typing.Union[SourceCode, typing.Union[str, list[list[str]]]] | None:
+        return self._wrap_forwarded('help', self.wrapped.help)
+
+    @property
+    def name(self) -> typing.Any:
+        return self._wrap_forwarded('name', self.wrapped.name)
+
+    @property
+    def plugin_for(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._wrap_forwarded('plugin_for', self.wrapped.plugin_for)
+
+    @property
+    def post_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._wrap_forwarded('post_commands', self.wrapped.post_commands)
+
+    @property
+    def pre_build_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._wrap_forwarded('pre_build_commands', self.wrapped.pre_build_commands)
+
+    @property
+    def pre_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._wrap_forwarded('pre_commands', self.wrapped.pre_commands)
+
+    @property
+    def pre_test_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._wrap_forwarded('pre_test_commands', self.wrapped.pre_test_commands)
+
+    @property
+    def previous_revision(self) -> object | None:
+        return self._wrap_forwarded('previous_revision', self.wrapped.previous_revision)
+
+    @property
+    def previous_version(self) -> Version | None:
+        return self._wrap_forwarded('previous_version', self.wrapped.previous_version)
+
+    @property
+    def private_build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._wrap_forwarded('private_build_requires', self.wrapped.private_build_requires)
+
+    @property
+    def release_message(self) -> typing.Union[None, str] | None:
+        return self._wrap_forwarded('release_message', self.wrapped.release_message)
+
+    @property
+    def relocatable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._wrap_forwarded('relocatable', self.wrapped.relocatable)
+
+    @property
+    def requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._wrap_forwarded('requires', self.wrapped.requires)
+
+    @property
+    def revision(self) -> object | None:
+        return self._wrap_forwarded('revision', self.wrapped.revision)
+
+    @property
+    def tests(self) -> typing.Union[SourceCode, dict[str, typing.Union[typing.Union[str, list[str]], dict[str, typing.Any]]]] | None:  # noqa: E501
+        return self._wrap_forwarded('tests', self.wrapped.tests)
+
+    @property
+    def timestamp(self) -> int | None:
+        return self._wrap_forwarded('timestamp', self.wrapped.timestamp)
+
+    @property
+    def tools(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._wrap_forwarded('tools', self.wrapped.tools)
+
+    @property
+    def uuid(self) -> str | None:
+        return self._wrap_forwarded('uuid', self.wrapped.uuid)
+
+    @property
+    def variants(self) -> list[list[PackageRequest]] | None:
+        return self._wrap_forwarded('variants', self.wrapped.variants)
+
+    @property
+    def vcs(self) -> str | None:
+        return self._wrap_forwarded('vcs', self.wrapped.vcs)
+
+    # FIXME: manually corrected
+    @property
+    def version(self) -> Version:
+        return self._wrap_forwarded('version', self.wrapped.version)
+
+    # -- END AUTO-GENERATED METHODS --
 
 
 class Variant(PackageBaseResourceWrapper[VariantResourceHelper]):
@@ -488,8 +654,135 @@ class Variant(PackageBaseResourceWrapper[VariantResourceHelper]):
             return Variant(resource)
 
     @property
-    def _non_shortlinked_subpath(self) -> str:
+    def _non_shortlinked_subpath(self) -> str | None:
         return self.resource._subpath(ignore_shortlinks=True)
+
+    # -- BEGIN AUTO-GENERATED METHODS --
+    @property
+    def authors(self) -> list[str] | None:
+        return self._wrap_forwarded('authors', self.wrapped.authors)
+
+    @property
+    def base(self) -> str | None:
+        return self._wrap_forwarded('base', self.wrapped.base)
+
+    @property
+    def build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._wrap_forwarded('build_requires', self.wrapped.build_requires)
+
+    @property
+    def cachable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._wrap_forwarded('cachable', self.wrapped.cachable)
+
+    @property
+    def changelog(self) -> str | None:
+        return self._wrap_forwarded('changelog', self.wrapped.changelog)
+
+    @property
+    def commands(self) -> SourceCode | None:
+        return self._wrap_forwarded('commands', self.wrapped.commands)
+
+    @property
+    def description(self) -> str | None:
+        return self._wrap_forwarded('description', self.wrapped.description)
+
+    @property
+    def has_plugins(self) -> typing.Union[SourceCode, bool] | None:
+        return self._wrap_forwarded('has_plugins', self.wrapped.has_plugins)
+
+    @property
+    def hashed_variants(self) -> bool | None:
+        return self._wrap_forwarded('hashed_variants', self.wrapped.hashed_variants)
+
+    @property
+    def help(self) -> typing.Union[SourceCode, typing.Union[str, list[list[str]]]] | None:
+        return self._wrap_forwarded('help', self.wrapped.help)
+
+    @property
+    def index(self) -> typing.Any:
+        return self._wrap_forwarded('index', self.wrapped.index)
+
+    @property
+    def name(self) -> typing.Any:
+        return self._wrap_forwarded('name', self.wrapped.name)
+
+    @property
+    def plugin_for(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._wrap_forwarded('plugin_for', self.wrapped.plugin_for)
+
+    @property
+    def post_commands(self) -> SourceCode | None:
+        return self._wrap_forwarded('post_commands', self.wrapped.post_commands)
+
+    @property
+    def pre_build_commands(self) -> SourceCode | None:
+        return self._wrap_forwarded('pre_build_commands', self.wrapped.pre_build_commands)
+
+    @property
+    def pre_commands(self) -> SourceCode | None:
+        return self._wrap_forwarded('pre_commands', self.wrapped.pre_commands)
+
+    @property
+    def pre_test_commands(self) -> SourceCode | None:
+        return self._wrap_forwarded('pre_test_commands', self.wrapped.pre_test_commands)
+
+    @property
+    def previous_revision(self) -> object | None:
+        return self._wrap_forwarded('previous_revision', self.wrapped.previous_revision)
+
+    @property
+    def previous_version(self) -> Version | None:
+        return self._wrap_forwarded('previous_version', self.wrapped.previous_version)
+
+    @property
+    def private_build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._wrap_forwarded('private_build_requires', self.wrapped.private_build_requires)
+
+    @property
+    def release_message(self) -> typing.Union[None, str] | None:
+        return self._wrap_forwarded('release_message', self.wrapped.release_message)
+
+    @property
+    def relocatable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._wrap_forwarded('relocatable', self.wrapped.relocatable)
+
+    @property
+    def revision(self) -> object | None:
+        return self._wrap_forwarded('revision', self.wrapped.revision)
+
+    @property
+    def root(self) -> typing.Any:
+        return self._wrap_forwarded('root', self.wrapped.root)
+
+    @property
+    def subpath(self) -> typing.Any:
+        return self._wrap_forwarded('subpath', self.wrapped.subpath)
+
+    @property
+    def tests(self) -> typing.Union[SourceCode, dict[str, typing.Union[typing.Union[str, list[str]], dict[str, typing.Any]]]] | None:  # noqa: E501
+        return self._wrap_forwarded('tests', self.wrapped.tests)
+
+    @property
+    def timestamp(self) -> int | None:
+        return self._wrap_forwarded('timestamp', self.wrapped.timestamp)
+
+    @property
+    def tools(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._wrap_forwarded('tools', self.wrapped.tools)
+
+    @property
+    def uuid(self) -> str | None:
+        return self._wrap_forwarded('uuid', self.wrapped.uuid)
+
+    @property
+    def vcs(self) -> str | None:
+        return self._wrap_forwarded('vcs', self.wrapped.vcs)
+
+    @property
+    def version(self) -> Version | None:
+        return self._wrap_forwarded('version', self.wrapped.version)
+
+    # -- END AUTO-GENERATED METHODS --
 
 
 class PackageSearchPath(object):
@@ -497,6 +790,7 @@ class PackageSearchPath(object):
 
     For example, $REZ_PACKAGES_PATH refers to a list of repositories.
     """
+
     def __init__(self, packages_path: list[str]) -> None:
         """Create a package repository list.
 
@@ -528,7 +822,7 @@ class PackageSearchPath(object):
             bool: True if the resource is in the list of repositories, False
             otherwise.
         """
-        return (package.resource._repository.uid in self._repository_uids)
+        return (package.resource.repository.uid in self._repository_uids)
 
     @cached_property
     def _repository_uids(self) -> set[tuple[str, str]]:

@@ -1,21 +1,25 @@
+from __future__ import annotations
+
 # REZ: added a .rez to version
 # REZ: added date to version to indicate a non-official release
 __version__ = '0.3.1.2015-03-04.rez'
 # REZ: added a __revision__ attr
 __revision__ = '916ba05e22b7b370b3586f97c40695e7b9e7fe33'
 
+from typing import Any
+
 
 class SchemaError(Exception):
 
     """Error during Schema validation."""
 
-    def __init__(self, autos, errors):
-        self.autos = autos if type(autos) is list else [autos]
-        self.errors = errors if type(errors) is list else [errors]
+    def __init__(self, autos: str | None | list[str | None], errors: str | list[str]):
+        self.autos: list[str | None] = autos if isinstance(autos, list) else [autos]
+        self.errors: list[str] = errors if isinstance(errors, list) else [errors]
         Exception.__init__(self, self.code)
 
     @property
-    def code(self):
+    def code(self) -> str:
         def uniq(seq):
             seen = set()
             seen_add = seen.add

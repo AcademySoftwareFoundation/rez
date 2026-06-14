@@ -17,7 +17,7 @@ from rez.config import config
 from rez.packages import iter_packages, Package, Variant
 from rez.package_repository import package_repo_stats
 from rez.utils.logging_ import print_debug
-from rez.utils.data_utils import cached_property
+from functools import cached_property
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
@@ -38,8 +38,9 @@ import os
 if TYPE_CHECKING:
     from rez.resolved_context import ResolvedContext
     from rez.package_filter import PackageFilterBase
-    from rez.package_order import PackageOrderList
+    from rez.package_order_list import PackageOrderList
 
+from rez.utils._mypyc import mypyc_attr
 
 T = TypeVar("T")
 
@@ -328,7 +329,9 @@ class PackageVariant(_Common):
 
     @property
     def version(self) -> Version:
-        return self.variant.version
+        version = self.variant.version
+        assert version is not None, "should not be None because PackageResource.version is not None"
+        return version
 
     @property
     def index(self) -> int | None:
@@ -379,7 +382,7 @@ class PackageVariant(_Common):
         return (
             self.name < other.name
             and self.version < other.version
-            and self.index < other.index
+            and (self.index is not None and other.index is not None and self.index < other.index)
         )
 
     def __str__(self) -> str:
@@ -401,7 +404,9 @@ class _PackageEntry(object):
 
     @property
     def version(self) -> Version:
-        return self.package.version
+        version = self.package.version
+        assert version is not None, "should not be None because PackageResource.version is not None"
+        return version
 
     def __len__(self) -> int:
         return len(self.variants)
@@ -452,7 +457,7 @@ class _PackageEntry(object):
                     req = variant.requires_list.get(request.name)
                     if req is not None:
                         orderer = get_orderer(req.name, orderers=self.solver.package_orderers or {})
-                        range_key = orderer.sort_key(req.name, req.range)
+                        range_key = orderer.sort_key(req.name, req.range_)
                         requested_key.append((-i, range_key))
                         names.add(req.name)
 
@@ -460,7 +465,7 @@ class _PackageEntry(object):
             for request in variant.requires_list:
                 if not request.conflict and request.name not in names:
                     orderer = get_orderer(request.name, orderers=self.solver.package_orderers)
-                    range_key = orderer.sort_key(request.name, request.range)
+                    range_key = orderer.sort_key(request.name, request.range_)
                     additional_key.append((range_key, request.name))
 
             if (VariantSelectMode[config.variant_select_mode] == VariantSelectMode.version_priority):
@@ -586,6 +591,7 @@ class _PackageVariantList(_Common):
         return "%s[%s]" % (self.package_name, ' '.join(strs))
 
 
+@mypyc_attr(serializable=True)
 class _PackageVariantSlice(_Common):
     """A subset of a variant list, but with more dependency-related info."""
     def __init__(self, package_name: str, entries: list[_PackageEntry], solver: Solver) -> None:
@@ -767,19 +773,19 @@ class _PackageVariantSlice(_Common):
         fam = sorted(extractable)[0]
 
         last_range: VersionRange | None = None
-        ranges = set()
+        ranges_set = set()
 
         for variant in self.iter_variants():
             req = variant.get(fam)
             assert req is not None
             if req.range != last_range:  # will match often, avoids set search
-                ranges.add(req.range)
+                ranges_set.add(req.range)
                 last_range = req.range
 
         slice_ = copy.copy(self)
         slice_.extracted_fams = self.extracted_fams | set([fam])
 
-        ranges = list(ranges)
+        ranges = list(ranges_set)
         range_ = ranges[0].union(ranges[1:])
         common_req = Requirement.construct(fam, range_)
         return slice_, common_req
@@ -983,6 +989,7 @@ class PackageVariantCache(object):
         return slice_
 
 
+@mypyc_attr(serializable=True)
 class _PackageScope(_Common):
     """Contains possible solutions for a package, such as a list of variants,
     or a conflict range. As the resolve progresses, package scopes are narrowed
@@ -1104,6 +1111,8 @@ class _PackageScope(_Common):
             return (self, [])
 
         # perform the reduction
+        assert self.variant_slice is not None, \
+            "variant_slice should always exist for non-conflicted non-ephemeral requests"
         new_slice, reductions = self.variant_slice.reduce_by(package_request)
 
         # there was total reduction
@@ -1261,6 +1270,7 @@ def _get_dependency_order(g: digraph, node_list: list[T]) -> list[T]:
     return ordered_nodes
 
 
+@mypyc_attr(serializable=True)
 class _ResolvePhase(_Common):
     """A resolve phase contains a full copy of the resolve state, and runs the
     resolve algorithm until no further action can be taken without 'selecting'
@@ -1344,15 +1354,15 @@ class _ResolvePhase(_Common):
 
                 # simplify extractions (there may be overlaps)
                 self.pr.subheader("MERGE-EXTRACTIONS:")
-                extracted_requests = RequirementList(extracted_requests)
+                extracted_reqlist = RequirementList(extracted_requests)
 
-                if extracted_requests.conflict:  # extractions are in conflict
-                    req1, req2 = extracted_requests.conflict
+                if extracted_reqlist.conflict:  # extractions are in conflict
+                    req1, req2 = extracted_reqlist.conflict
                     conflict = DependencyConflict(req1, req2)
                     failure_reason = DependencyConflicts([conflict])
                     return _create_phase(SolverStatus.failed)
                 elif self.pr:
-                    self.pr("merged extractions: %s", extracted_requests)
+                    self.pr("merged extractions: %s", extracted_reqlist)
 
                 # intersect extracted requests with current scopes
                 self.pr.subheader("INTERSECTING:")
@@ -1360,7 +1370,7 @@ class _ResolvePhase(_Common):
 
                 with self.solver.timed(self.solver.intersection_test_time):
                     for i, scope in enumerate(scopes):
-                        extracted_req = extracted_requests.get(scope.package_name)
+                        extracted_req = extracted_reqlist.get(scope.package_name)
 
                         if extracted_req is None:
                             continue
@@ -1400,7 +1410,7 @@ class _ResolvePhase(_Common):
 
                 # add new scopes
                 new_extracted_reqs = [
-                    x for x in extracted_requests.requirements
+                    x for x in extracted_reqlist.requirements
                     if x.name not in req_fams]
 
                 if new_extracted_reqs:
@@ -1487,10 +1497,10 @@ class _ResolvePhase(_Common):
                 # A different order here wouldn't cause an invalid solve, however
                 # rez solves must be deterministic, so this is why we sort.
                 #
-                pending_reducts = sorted(pending_reducts)
+                sorted_reducts = sorted(pending_reducts)
 
-                while pending_reducts:
-                    x, y = pending_reducts.pop()
+                while sorted_reducts:
+                    x, y = sorted_reducts.pop()
                     if x == y:
                         continue
 
@@ -1507,7 +1517,7 @@ class _ResolvePhase(_Common):
                         # other scopes need to reduce against x again
                         for j in all_scopes_i:
                             if j != x:
-                                pending_reducts.append((j, x))
+                                sorted_reducts.append((j, x))
 
             changed_scopes_i = set()
 
@@ -2001,12 +2011,12 @@ class Solver(_Common):
             self.optimised = optimised
 
         # these values are all set in _init()
-        self.phase_stack: list[_ResolvePhase] = None
-        self.failed_phase_list: list[_ResolvePhase] = None
-        self.depth_counts: dict = None
-        self.solve_begun: bool = None
-        self.solve_time: float = None
-        self.load_time: float = None
+        self.phase_stack: list[_ResolvePhase]
+        self.failed_phase_list: list[_ResolvePhase]
+        self.depth_counts: dict
+        self.solve_begun: bool
+        self.solve_time: float
+        self.load_time: float
 
         self.abort_reason: str | None = None
         self.callback_return: SolverCallbackReturn | None = None
@@ -2348,7 +2358,7 @@ class Solver(_Common):
         for i, phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))
 
-        print("status: %s (%s)" % (self.status.name, self.status.description))
+        print("status: %s (%s)" % (self.status.name, self.status.value[0]))
         print("initial request: %s" % str(self.request_list))
         print()
         print("solve stack:")

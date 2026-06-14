@@ -43,6 +43,49 @@ with open(os.path.join(this_directory, 'README.md')) as f:
     long_description = f.read()
 
 
+# Compile with mypyc only when explicitly requested via REZ_MYPYC=1. The
+# default (and REZ_MYPYC=0) is a pure python build, regardless of python
+# version. Requesting a mypyc build on a python that mypy does not support
+# (< 3.10) is a hard error rather than a silent fallback.
+use_mypyc = os.environ.get("REZ_MYPYC") == "1"
+
+if use_mypyc and sys.version_info < (3, 10):
+    raise RuntimeError(
+        "Building rez with mypyc requires Python 3.10 or newer (mypy does "
+        "not support older versions). Use Python >= 3.10, or set "
+        "REZ_MYPYC=0 to build pure python."
+    )
+
+if use_mypyc:
+    from mypyc.build import mypycify
+    ext_modules = mypycify(
+        [
+            # "src/rez/package_filter.py",  # errors at runtime calling cached_property.uncache: "attribute 'cost' of 'PackageFilter' objects is not writable"
+            "src/rez/solver.py",
+            # "src/rez/resolved_context.py",  # error in copy().  need to rework from_dict()
+            "src/rez/resolver.py",
+            "src/rez/package_order.py",  # split out PackageOrderList from this module due to inheriting from list
+            "src/rez/package_repository.py",
+            "src/rez/package_resources.py",  # requires fixed version of mypyc
+            "src/rez/version/__init__.py",
+            "src/rez/version/_util.py",
+            "src/rez/version/_requirement.py",
+            "src/rez/version/_version.py",
+            "src/rez/utils/formatting.py",  # includes a mixin, which should not be compiled
+            # "src/rez/utils/memcached.py",
+            "src/rez/utils/resources.py",
+            # "src/rez/utils/scope.py",  # objects directly access/modify __dict__
+            # "src/rez/vendor/schema/schema.py",
+            "src/rezplugins/package_repository/filesystem.py",  # ConfigurationError at runtime with FileSystemPackageRepository plugin
+        ],
+        # only_compile_paths=["src/rez/solver.py"]
+        opt_level="3",
+        multi_file=True
+    )
+else:
+    ext_modules = []
+
+
 setup(
     name="rez",
     version=_rez_version,
@@ -68,7 +111,8 @@ setup(
     packages=find_packages('src', exclude=["build_utils",
                                            "build_utils.*",
                                            "tests"]),
-    install_requires=[],
+    install_requires=["mypy_extensions"],
+    ext_modules=ext_modules,
     package_data={
         'rez':
             ['utils/logging.conf'] +
