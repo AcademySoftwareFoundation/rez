@@ -1,5 +1,9 @@
 [build-system]
-requires = ["setuptools", "mypy[mypyc]"]
+# Building rez with mypyc (the default; set REZ_MYPYC=0 to build pure-python)
+# requires our fork of mypy, which carries fixes needed to compile rez. Those
+# fixes are pending upstreaming; until they land, pin the fork so that an
+# isolated build (pip install ., install.py, etc.) picks up the right mypy.
+requires = ["setuptools", "mypy[mypyc] @ git+https://github.com/chadrik/mypy@rez-mypyc-fixes"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]
