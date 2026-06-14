@@ -3,11 +3,26 @@
 # requires our fork of mypy, which carries fixes needed to compile rez. Those
 # fixes are pending upstreaming; until they land, pin the fork so that an
 # isolated build (pip install ., install.py, etc.) picks up the right mypy.
-requires = ["setuptools", "mypy[mypyc] @ git+https://github.com/chadrik/mypy@rez-mypyc-fixes"]
+#
+# Local testing against a working copy of the mypy fork:
+#   The pin below points at the *pushed* fork branch on GitHub, so an isolated
+#   build always fetches it from the network and ignores any local mypy changes.
+#   To build against a local checkout instead, either:
+#     (a) recommended - install the fork editable in your venv and build with
+#         --no-build-isolation, which uses that installed mypy and ignores the
+#         requirement below entirely (this is what ./mypyc-custom.sh does):
+#             pip install -e /path/to/mypy
+#             pip install --no-build-isolation -e .
+#     (b) for an isolated build, temporarily replace the requirement below with
+#         a local path (revert before committing):
+#             "mypy[mypyc] @ file:///path/to/mypy"
+requires = ["setuptools", "mypy[mypyc] @ git+https://github.com/chadrik/mypy@rez-mypyc-fixes ; python_version >= '3.10'"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]
-python_version = "3.8"
+# mypy 2.1 requires the type-check target to be 3.10+, so we can no longer
+# target rez's lowest supported runtime (3.8). 3.10 is the closest mypy allows.
+python_version = "3.10"
 files = ["src/rez/", "src/rezplugins/"]
 exclude = [
     '.*/rez/data/.*',

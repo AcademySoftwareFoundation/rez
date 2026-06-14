@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install mypy==1.14.1 mypy_baseline==0.7.1 types-setuptools
+          pip install mypy==2.1.0 mypy_baseline==0.7.1 types-setuptools
 
       - name: Run mypy
         run: >-
