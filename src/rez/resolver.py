@@ -45,8 +45,10 @@ class ResolverStatus(Enum):
     failed = ("The resolve is not possible.", )
     aborted = ("The resolve was stopped by the user (via callback).", )
 
-    # def __init__(self, description: str) -> None:
-    #     self.description = description
+    @property
+    def description(self) -> str:
+        """A human readable description of what the state represents."""
+        return self.value[0]
 
 
 class Resolver(object):
