@@ -28,7 +28,7 @@ from rez.utils.resources import ResourcePool, ResourceHandle
 from rez.utils.formatting import is_valid_package_name
 from functools import cached_property
 from rez.utils.logging_ import print_warning, print_info
-from rez.utils.memcached import memcached
+from rez.utils.memcached import memcached, memcached_client
 from rez.utils.filesystem import make_path_writable, \
     canonical_path, is_subdirectory, safe_rmtree
 from rez.utils.platform_ import platform_
@@ -634,16 +634,22 @@ class FileSystemPackageRepository(
     def get_package_family(self, name: str) -> FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource | None:  # type: ignore[override]  # noqa: E501
         return self.get_family(name)
 
-    # @pool_memcached_connections
+    # NOTE: pooling is inlined with `memcached_client()` rather than applied via
+    # the @pool_memcached_connections decorator: mypyc cannot compile a
+    # decorated generator method that overrides a base-class method (it raises
+    # KeyError in handle_ext_method when reconciling the override signature).
+    # Inlining keeps a single pooled client open for the whole iteration while
+    # remaining a plain, compilable generator method.
     def iter_package_families(self) -> Iterator[FileSystemPackageFamilyResource | FileSystemCombinedPackageFamilyResource]:  # noqa: E501
-        for family in self.get_families():
-            yield family
+        with memcached_client():
+            for family in self.get_families():
+                yield family
 
-    # @pool_memcached_connections
     def iter_packages(self, package_family_resource: PackageFamilyResource
                       ) -> Iterator[FileSystemPackageResource | FileSystemCombinedPackageResource]:
-        for package in self.get_packages(package_family_resource):
-            yield package
+        with memcached_client():
+            for package in self.get_packages(package_family_resource):
+                yield package
 
     def iter_variants(self, package_resource: FileSystemPackageResource | FileSystemCombinedPackageResource
                       ) -> Iterator[FileSystemVariantResource | FileSystemCombinedVariantResource]:
