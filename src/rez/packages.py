@@ -1265,6 +1265,14 @@ def get_latest_package(name: str, *, range_: VersionRange | None = None,
 
     Returns:
         `Package` object, or None if no package is found.
+
+    .. note::
+        ``range_``, ``paths`` and ``error`` are keyword-only. This is a
+        breaking change from earlier releases where they could be passed
+        positionally. They were made keyword-only because ``error``'s value
+        determines the return type (``Package`` vs ``Package | None``), and
+        typing that via overloads for every positional/keyword permutation
+        would require an unwieldy number of overloads. Pass them by keyword.
     """
     it = iter_packages(name, range_=range_, paths=paths)
     try:
