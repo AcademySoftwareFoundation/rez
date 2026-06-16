@@ -8,6 +8,7 @@ TODO: Move this into rez.utils.?
 """
 from __future__ import annotations
 
+import atexit
 import collections.abc
 import os
 import os.path
@@ -155,7 +156,7 @@ def find_last_sublist(list_, sublist):
     return None
 
 
-# @atexit.register
+@atexit.register
 def _atexit() -> None:
     try:
         from rez.resolved_context import ResolvedContext
