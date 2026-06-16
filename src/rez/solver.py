@@ -87,6 +87,11 @@ class SolverStatus(Enum):
     cyclic = ("The solve contains a cycle.", )
     unsolved = ("The solve has started, but is not yet solved.", )
 
+    @property
+    def description(self) -> str:
+        """A human readable description of what the state represents."""
+        return self.value[0]
+
 
 class SolverCallbackReturn(Enum):
     """Enum returned by the `callback` callable passed to a `Solver` instance.
