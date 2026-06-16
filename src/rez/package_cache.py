@@ -506,7 +506,7 @@ class PackageCache(object):
         # a prod install. On non-windows we could fork instead, but there would
         # remain no good solution on windows.
         #
-        if not system.is_production_rez_install:
+        if package_cache_async and not system.is_production_rez_install:
             raise PackageCacheError(
                 "PackageCache.add_variants is only supported in a "
                 "production rez installation."
