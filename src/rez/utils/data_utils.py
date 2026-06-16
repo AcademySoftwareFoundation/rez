@@ -712,6 +712,17 @@ BEGIN = "    # -- BEGIN AUTO-GENERATED METHODS --\n"
 END = "    # -- END AUTO-GENERATED METHODS --\n"
 
 
+# Return-type overrides for generated forwarder accessors, keyed by
+# (class name, attribute name). Some forwarded attributes have a narrower
+# runtime type than the wrapped object's schema implies. For example a package
+# always exposes a Version, but 'version' is Optional in the pod schema and so
+# would otherwise be generated as 'Version | None'. Declaring the override here
+# keeps the generated source correct without hand-editing it after generation.
+FORWARDER_TYPE_OVERRIDES = {
+    ("Package", "version"): "Version",
+}
+
+
 def write_module_dynamic_members(module, wrapped=None):
     import inspect
 
@@ -785,6 +796,10 @@ def write_cls_dynamic_members(obj, wrapped_cls=None, source_cls=None):
                     typestr = get_typing_typestr(key_schema)
                     if optional:
                         typestr = f"{typestr} | None"
+
+            override = FORWARDER_TYPE_OVERRIDES.get((obj.__name__, key))
+            if override is not None:
+                typestr = override
 
             data["typestr"] = typestr
             members.append(data["template"].format(**data))

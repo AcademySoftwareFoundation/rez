@@ -501,7 +501,6 @@ class Package(PackageBaseResourceWrapper[PackageResourceHelper]):
     def vcs(self) -> str | None:
         return self._wrap_forwarded('vcs', self.wrapped.vcs)
 
-    # FIXME: manually corrected
     @property
     def version(self) -> Version:
         return self._wrap_forwarded('version', self.wrapped.version)
