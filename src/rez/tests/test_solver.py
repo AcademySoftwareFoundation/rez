@@ -14,7 +14,7 @@ from rez.tests.util import TestBase
 import itertools
 
 
-solver_verbosity = 2 # FIXME
+solver_verbosity = 2  # FIXME
 
 
 class TestSolver(TestBase):
@@ -344,7 +344,8 @@ class TestSolver(TestBase):
         """
         # FIXME: is this the wanted behaviour?
         # FIXME: should probably warn or error as mentioned in #1100
-        # > Perhaps a configurable setting would cause a warning or error; if a warning, perhaps the first package encountered wins.
+        # > Perhaps a configurable setting would cause a warning or error; if a
+        # > warning, perhaps the first package encountered wins.
 
         self._solve(["pydcc-1", "bundledpy-1"],
                     ["pydcc-1[]", "bundledpy-1[]", ".provides.python-2.6.8"])

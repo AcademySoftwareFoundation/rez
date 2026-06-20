@@ -67,6 +67,13 @@ _force_unoptimised_solver = (os.getenv("_FORCE_REZ_UNOPTIMISED_SOLVER") == "1")
 #
 SOLVER_VERSION = 2
 
+
+# Ephemerals with this name prefix (eg '.provides.python-3.11') state that the
+# named package will be provided, usually bundled within the package making the
+# request. Making sure the package so must not be resolved separately. See
+# See: https://github.com/AcademySoftwareFoundation/rez/issues/1100
+# Also: REP-002.013: https://github.com/AcademySoftwareFoundation/rez/issues/673
+#
 PROVIDES_PREFIX = ".provides."
 
 
@@ -1187,6 +1194,16 @@ class _PackageScope(_Common):
         return (scope, next_scope)
 
     def provide(self, range_: VersionRange) -> _PackageScope | None:
+        """Convert this scope into a 'provided' scope.
+
+        The package is supplied by other means (see the 'provides' ephemeral),
+        so the scope drops its variants and becomes a range intersection only,
+        like an ephemeral.
+
+        Returns:
+            A new provided scope, narrowed to the intersection with the given
+            provided range, or None if the ranges are disjoint.
+        """
         intersect_range = self.package_request.range & range_
         if intersect_range is None:
             return None
