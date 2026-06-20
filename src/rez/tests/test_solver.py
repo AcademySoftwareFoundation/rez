@@ -14,7 +14,7 @@ from rez.tests.util import TestBase
 import itertools
 
 
-solver_verbosity = 1
+solver_verbosity = 2 # FIXME
 
 
 class TestSolver(TestBase):
@@ -272,6 +272,47 @@ class TestSolver(TestBase):
                      'test_variant_split_mid2-2.0[0]',
                      'python-2.6.8[]',
                      'pyfoo-3.1.0[]'])
+
+    def test_15_provides(self) -> None:
+        """Tests involving 'provides' ephemerals.
+
+        pydcc-1 requires '.provides.python-2.6.8', pydcc-2 requires
+        '.provides.python-2.7' (ie each bundles its own python)
+        """
+        # a provider on its own; python is not resolved
+        self._solve(["pydcc-1"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+
+        # indirect requests for a provided package are satisfied by it
+        self._solve(["pydcc-1", "pyfoo"],
+                    ["pydcc-1[]", "pyfoo-3.1.0[]", ".provides.python-2.6.8"])
+
+        # ...as are direct requests
+        self._solve(["pydcc-1", "python"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+        self._solve(["pydcc-1", "python-2.6"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+
+        # pydcc-2 provides python-2.7, no pyfoo is compatible with that, so
+        # the solver must backtrack to pydcc-1
+        self._solve(["pydcc", "pyfoo"],
+                    ["pydcc-1[]", "pyfoo-3.1.0[]", ".provides.python-2.6.8"])
+
+        # a 'provides' ephemeral in the request itself
+        self._solve([".provides.python-2.6.8", "pyfoo"],
+                    ["pyfoo-3.1.0[]", ".provides.python-2.6.8"])
+
+        # provides ranges intersect like any other ephemeral
+        self._solve(["pydcc-1", ".provides.python-2.6"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+
+        # variants conflicting with the provided range are reduced away
+        self._solve(["pyvariants", "pydcc-1"],
+                    ["pyvariants-2[2]", "pydcc-1[]", ".provides.python-2.6.8"])
+
+        # requests outside the provided range are conflicts
+        self._fail("pydcc-1", "python-2.7")
+        self._fail("pydcc-1", "pyfoo-3.0")  # pyfoo-3.0.0 requires python-2.5
 
 
 if __name__ == '__main__':
