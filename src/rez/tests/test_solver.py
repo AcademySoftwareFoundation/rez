@@ -322,6 +322,21 @@ class TestSolver(TestBase):
         # an exact provide conflicts with an overlapping-but-different range
         self._fail(".provides.python==2.6.0", ".provides.python-2.6.8")
 
+    def test_17_provides_nonexistent_package(self) -> None:
+        """A provided package does not have to exist in any repository
+
+        needsvendored requires 'vendored-1' but there is no 'vendored' package
+        """
+        self._solve([".provides.vendored-1.2", "needsvendored"],
+                    ["needsvendored-1[]", ".provides.vendored-1.2"])
+
+        # without a provider, the package really is missing
+        with self.assertRaises(rez.exceptions.PackageFamilyNotFoundError):
+            self._solve(["needsvendored"], [])
+
+        # provided, but outside the requested range
+        self._fail(".provides.vendored-2", "needsvendored")
+
 
 if __name__ == '__main__':
     unittest.main()

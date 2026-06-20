@@ -52,10 +52,11 @@ class TestCompletion(TestBase):
         _eq("", ["bahish", "nada", "nopy", "pybah", "pydad", "pyfoo", "pymum",
                  "pyodd", "pyson", "pysplit", "python", "pyvariants",
                  "test_variant_split_start", "test_variant_split_mid1",
-                 "test_variant_split_mid2", "test_variant_split_end", "missing_variant_requires",
-                 "test_weakly_reference_requires", "test_weakly_reference_variant"])
+                 "test_variant_split_mid2", "test_variant_split_end",
+                 "missing_variant_requires", "test_weakly_reference_requires",
+                 "test_weakly_reference_variant", "pydcc", "needsvendored"])
         _eq("py", ["pybah", "pydad", "pyfoo", "pymum", "pyodd", "pyson",
-            "pysplit", "python", "pyvariants"])
+            "pysplit", "python", "pyvariants", "pydcc"])
         _eq("pys", ["pyson", "pysplit"])
         _eq("pyb", ["pybah", "pybah-4", "pybah-5"])
         _eq("pybah-", ["pybah-4", "pybah-5"])
