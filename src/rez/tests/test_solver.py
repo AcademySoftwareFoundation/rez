@@ -337,6 +337,18 @@ class TestSolver(TestBase):
         # provided, but outside the requested range
         self._fail(".provides.vendored-2", "needsvendored")
 
+    def test_18_provides_multiple_providers(self) -> None:
+        """Two separate packages providing the same package.
+
+        pydcc-1 provides 'python-2.6.8' and bundledpy-1 provides 'python-2.6'.
+        """
+        # FIXME: is this the wanted behaviour?
+        # FIXME: should probably warn or error as mentioned in #1100
+        # > Perhaps a configurable setting would cause a warning or error; if a warning, perhaps the first package encountered wins.
+
+        self._solve(["pydcc-1", "bundledpy-1"],
+                    ["pydcc-1[]", "bundledpy-1[]", ".provides.python-2.6.8"])
+
 
 if __name__ == '__main__':
     unittest.main()

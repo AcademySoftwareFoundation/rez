@@ -54,7 +54,8 @@ class TestCompletion(TestBase):
                  "test_variant_split_start", "test_variant_split_mid1",
                  "test_variant_split_mid2", "test_variant_split_end",
                  "missing_variant_requires", "test_weakly_reference_requires",
-                 "test_weakly_reference_variant", "pydcc", "needsvendored"])
+                 "test_weakly_reference_variant", "pydcc", "needsvendored",
+                 "bundledpy"])
         _eq("py", ["pybah", "pydad", "pyfoo", "pymum", "pyodd", "pyson",
             "pysplit", "python", "pyvariants", "pydcc"])
         _eq("pys", ["pyson", "pysplit"])
