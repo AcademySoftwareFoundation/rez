@@ -314,6 +314,14 @@ class TestSolver(TestBase):
         self._fail("pydcc-1", "python-2.7")
         self._fail("pydcc-1", "pyfoo-3.0")  # pyfoo-3.0.0 requires python-2.5
 
+    def test_16_provides_exact(self) -> None:
+        """An exact '==' provide only covers that exact version."""
+        self._solve([".provides.python==2.6.0", "python-2.6"],
+                    [".provides.python==2.6.0"])
+        self._fail(".provides.python==2.6.0", "python-2.6.8")
+        # an exact provide conflicts with an overlapping-but-different range
+        self._fail(".provides.python==2.6.0", ".provides.python-2.6.8")
+
 
 if __name__ == '__main__':
     unittest.main()
