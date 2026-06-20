@@ -350,6 +350,26 @@ class TestSolver(TestBase):
         self._solve(["pydcc-1", "bundledpy-1"],
                     ["pydcc-1[]", "bundledpy-1[]", ".provides.python-2.6.8"])
 
+    def test_19_provides_mixed_variants(self) -> None:
+        """A package with one variant that provides python and one that depends
+        on a real python
+
+        mixedprovides-1 has variants [['.provides.python-2.6'], ['python-2.7']].
+        """
+        # nothing forces the choice: the real-python variant wins (2.7.0 > 2.6),
+        # so a real python is resolved
+        self._solve(["mixedprovides"],
+                    ["python-2.7.0[]", "mixedprovides-1[1]"])
+        self._solve(["mixedprovides", "python-2.7"],
+                    ["python-2.7.0[]", "mixedprovides-1[1]"])
+
+        # requesting python-2.6 rules out the real-python variant, so the
+        # bundled (provides) variant is selected and python is provided
+        self._solve(["mixedprovides", "python-2.6"],
+                    ["mixedprovides-1[0]", ".provides.python-2.6"])
+        self._solve(["mixedprovides", ".provides.python-2.6"],
+                    ["mixedprovides-1[0]", ".provides.python-2.6"])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -32,6 +32,7 @@ ALL_PACKAGES = set([
     # packages from data/solver
     'bahish-1', 'bahish-2',
     'bundledpy-1',
+    'mixedprovides-1',
     'nada',
     'needsvendored-1',
     'nopy-2.1',
