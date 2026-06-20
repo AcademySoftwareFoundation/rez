@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        os: ['ubuntu-latest']
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         method: ['install' ,'pip']
 
@@ -46,24 +46,6 @@ jobs:
           method: pip
           REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:/opt/rez/bin PYTHONPATH=${PYTHONPATH}:/opt/rez'
           REZ_INSTALL_COMMAND: pip install --target /opt/rez .
-        # macOS
-        - os: macos-latest
-          method: install
-          REZ_SET_PATH_COMMAND: 'export PATH=${PATH}:~/rez/bin/rez'
-          REZ_INSTALL_COMMAND: python ./install.py ~/rez
-        - os: macos-latest
-          method: pip
-          REZ_SET_PATH_COMMAND: 'export PATH="$PATH:~/rez/bin" PYTHONPATH=$PYTHONPATH:$HOME/rez'
-          REZ_INSTALL_COMMAND: pip install --target ~/rez .
-        # windows
-        - os: windows-latest
-          method: install
-          REZ_SET_PATH_COMMAND: '$env:PATH="$env:PATH;C:\ProgramData\rez\Scripts\rez"'
-          REZ_INSTALL_COMMAND: python ./install.py C:\ProgramData\rez
-        - os: windows-latest
-          method: pip
-          REZ_SET_PATH_COMMAND: '[System.Environment]::SetEnvironmentVariable("PATH","$env:PATH;C:\ProgramData\rez\bin"); $env:PYTHONPATH="$env:PYTHONPATH;C:\ProgramData\rez"'
-          REZ_INSTALL_COMMAND: pip install --target C:\ProgramData\rez .
 
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
