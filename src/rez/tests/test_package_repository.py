@@ -37,9 +37,9 @@ class TestFilesystemPackageRepository(TestBase, TempdirMixin):
         case_mismatch_package = create_package("MyTestPackage", data={})
         case_mismatch_variant = next(case_mismatch_package.iter_variants())
 
-        pkg_repository._create_variant(variant, overrides={})
+        pkg_repository._create_variant(variant.resource, overrides={})
         with self.assertRaises(filesystem.PackageRepositoryError):
-            pkg_repository._create_variant(case_mismatch_variant, overrides={})
+            pkg_repository._create_variant(case_mismatch_variant.resource, overrides={})
 
 
 @unittest.skipIf(
@@ -74,7 +74,7 @@ class TestFilesystemRepoUriCaseSensitivity(TestBase, TempdirMixin):
         data = {"version": version_str} if version_str else {}
         package = create_package(name, data=data)
         variant = next(package.iter_variants())
-        return repo._create_variant(variant, overrides={})
+        return repo._create_variant(variant.resource, overrides={})
 
     def test_get_package_from_uri_uppercase_version(self):
         """get_package_from_uri finds a package whose version contains uppercase letters."""

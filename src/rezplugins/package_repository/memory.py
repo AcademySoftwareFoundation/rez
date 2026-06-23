@@ -11,14 +11,14 @@ from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
     PackageResourceHelper, package_pod_schema
 from rez.utils.formatting import is_valid_package_name
-from rez.utils.resources import ResourcePool, cached_property
+from functools import cached_property
+from rez.utils.resources import ResourcePool
 from rez.version import VersionedObject
 
 from typing import Any, Iterator, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from rez.packages import VariantResource
-    from rez.package_resources import PackageRepositoryResource
+    pass
 
 
 # This repository type is used when loading 'developer' packages (a package.yaml
@@ -30,7 +30,8 @@ if TYPE_CHECKING:
 # resource classes
 #------------------------------------------------------------------------------
 
-class MemoryPackageFamilyResource(PackageFamilyResource):
+class MemoryPackageFamilyResource(
+        PackageFamilyResource["MemoryPackageRepository", "MemoryPackageResource"]):
     key = "memory.family"
     repository_type = "memory"
 
@@ -38,12 +39,12 @@ class MemoryPackageFamilyResource(PackageFamilyResource):
         return "%s:%s" % (self.location, self.name)
 
     def iter_packages(self) -> Iterator[MemoryPackageResource]:
-        data = self._repository.data.get(self.name, {})
+        data = self.repository.data.get(self.name, {})
 
         # check for unversioned package
         if "_NO_VERSION" in data:
-            package = self._repository.get_resource(
-                MemoryPackageResource.key,
+            package = self.repository.get_resource(
+                MemoryPackageResource,
                 location=self.location,
                 name=self.name)
             yield package
@@ -51,15 +52,15 @@ class MemoryPackageFamilyResource(PackageFamilyResource):
 
         # versioned packages
         for version_str in data.keys():
-            package = self._repository.get_resource(
-                MemoryPackageResource.key,
+            package = self.repository.get_resource(
+                MemoryPackageResource,
                 location=self.location,
                 name=self.name,
                 version=version_str)
             yield package
 
 
-class MemoryPackageResource(PackageResourceHelper):
+class MemoryPackageResource(PackageResourceHelper["MemoryVariantResource"]):
     key = "memory.package"
     variant_key = "memory.variant"
     repository_type = "memory"
@@ -74,15 +75,15 @@ class MemoryPackageResource(PackageResourceHelper):
         return None  # memory types do not have 'base'
 
     @cached_property
-    def parent(self) -> PackageRepositoryResource:
-        family = self._repository.get_resource(
-            MemoryPackageFamilyResource.key,
+    def parent(self) -> MemoryPackageFamilyResource:
+        family = self.repository.get_resource(
+            MemoryPackageFamilyResource,
             location=self.location,
             name=self.name)
         return family
 
     def _load(self) -> dict[str, Any]:
-        family_data = self._repository.data.get(self.name, {})
+        family_data = self.repository.data.get(self.name, {})
         version_str = self.get("version")
         if not version_str:
             version_str = "_NO_VERSION"
@@ -98,9 +99,9 @@ class MemoryVariantResource(VariantResourceHelper):
         return None  # memory types do not have 'root'
 
     @cached_property
-    def parent(self) -> PackageRepositoryResource:
-        package = self._repository.get_resource(
-            MemoryPackageResource.key,
+    def parent(self) -> MemoryPackageResource:
+        package = self.repository.get_resource(
+            MemoryPackageResource,
             location=self.location,
             name=self.name,
             version=self.get("version")
@@ -112,7 +113,8 @@ class MemoryVariantResource(VariantResourceHelper):
 # repository
 #------------------------------------------------------------------------------
 
-class MemoryPackageRepository(PackageRepository):
+class MemoryPackageRepository(
+        PackageRepository[MemoryVariantResource, MemoryPackageResource, MemoryPackageFamilyResource]):
     """An in-memory package repository.
 
     Packages are stored in a dict, organised like so:
@@ -179,7 +181,7 @@ class MemoryPackageRepository(PackageRepository):
         is_valid_package_name(name, raise_error=True)
         if name in self.data:
             family = self.get_resource(
-                MemoryPackageFamilyResource.key,
+                MemoryPackageFamilyResource,
                 location=self.location,
                 name=name)
             return family
@@ -194,14 +196,14 @@ class MemoryPackageRepository(PackageRepository):
         for package in package_family_resource.iter_packages():
             yield package
 
-    def iter_variants(self, package_resource: PackageResourceHelper) -> Iterator[VariantResource]:
+    def iter_variants(self, package_resource: MemoryPackageResource) -> Iterator[MemoryVariantResource]:
         for variant in package_resource.iter_variants():
             yield variant
 
-    def get_parent_package_family(self, package_resource: PackageResourceHelper) -> PackageFamilyResource:
+    def get_parent_package_family(self, package_resource: MemoryPackageResource) -> MemoryPackageFamilyResource:
         return package_resource.parent
 
-    def get_parent_package(self, variant_resource: VariantResource):
+    def get_parent_package(self, variant_resource: MemoryVariantResource) -> MemoryPackageResource:
         return variant_resource.parent
 
 

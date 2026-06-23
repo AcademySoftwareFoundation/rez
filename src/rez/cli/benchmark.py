@@ -49,6 +49,8 @@ def load_packages() -> None:
     """
     from rez.packages import iter_package_families
 
+    assert pkg_repo_dir is not None
+
     print("Warming package cache...")
     fams = list(iter_package_families(paths=[pkg_repo_dir]))
 

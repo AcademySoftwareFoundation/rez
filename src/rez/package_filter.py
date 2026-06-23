@@ -7,15 +7,16 @@ from __future__ import annotations
 from rez.packages import iter_packages, Package
 from rez.exceptions import ConfigurationError
 from rez.config import config
-from rez.utils.data_utils import cached_property, cached_class_property
+from functools import cached_property
 from rez.version import VersionedObject, VersionRange, Requirement
+from rez.utils.data_utils import cached_class_property
 from hashlib import sha1
 from typing import Any, Iterator, Pattern, TYPE_CHECKING, ClassVar
 import fnmatch
 import re
 
 if TYPE_CHECKING:
-    from typing import Self
+    from typing_extensions import Self
 
 
 class PackageFilterBase(object):
@@ -58,7 +59,6 @@ class PackageFilterBase(object):
         """Convert to POD type, suitable for storing in an rxt file.
 
         Return type depends on subclass implementation
-            dict[str, list[str]]:
         """
         raise NotImplementedError
 
@@ -106,6 +106,7 @@ class PackageFilter(PackageFilterBase):
     excluded if it matches one or more exclusion rules, and does not match any
     inclusion rules.
     """
+
     def __init__(self) -> None:
         self._excludes: dict[str | None, list[Rule]] = {}
         self._includes: dict[str | None, list[Rule]] = {}
@@ -158,10 +159,12 @@ class PackageFilter(PackageFilterBase):
     def __and__(self, other: PackageFilter) -> PackageFilter:
         """Combine two filters."""
         result = self.copy()
-        for rule in other._excludes.values():
-            result.add_exclusion(rule)
-        for rule in other._includes.values():
-            result.add_inclusion(rule)
+        for rules in other._excludes.values():
+            for rule in rules:
+                result.add_exclusion(rule)
+        for rules in other._includes.values():
+            for rule in rules:
+                result.add_inclusion(rule)
         return result
 
     def __bool__(self) -> bool:
@@ -218,14 +221,15 @@ class PackageFilter(PackageFilterBase):
         family = rule.family()
         rules_ = rules_dict.get(family, [])
         rules_dict[family] = sorted(rules_ + [rule], key=lambda x: x.cost())
-        cached_property.uncache(self, "cost")  # type: ignore[attr-defined]
+        # invalidate the functools.cached_property cache entry
+        self.__dict__.pop("cost", None)
 
     def __str__(self) -> str:
         def sortkey(rule_items: tuple[str | None, list[Rule]]) -> tuple[str, list[Rule]]:
             family, rules = rule_items
             if family is None:
                 return ("", rules)
-            return rule_items
+            return family, rules
 
         return str((sorted(self._excludes.items(), key=sortkey),
                     sorted(self._includes.items(), key=sortkey)))
@@ -237,6 +241,7 @@ class PackageFilterList(PackageFilterBase):
     A package is excluded by a filter list iff any filter within the list
     excludes it.
     """
+
     def __init__(self) -> None:
         self.filters: list[PackageFilter] = []
 
@@ -334,7 +339,8 @@ class Rule(object):
     """Base package filter rule"""
 
     #: Rule name
-    name = None
+    name: str
+    _family: str | None
 
     def match(self, package: Package) -> bool:
         """Apply the rule to the package.
@@ -436,6 +442,9 @@ class Rule(object):
 class RegexRuleBase(Rule):
     regex: Pattern[str]
     txt: str
+
+    def __init__(self, s: str) -> None:
+        pass
 
     def match(self, package: Package) -> bool:
         return bool(self.regex.match(package.qualified_name))

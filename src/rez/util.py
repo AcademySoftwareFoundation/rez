@@ -8,8 +8,8 @@ TODO: Move this into rez.utils.?
 """
 from __future__ import annotations
 
-import collections.abc
 import atexit
+import collections.abc
 import os
 import os.path
 import re

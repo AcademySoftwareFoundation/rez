@@ -58,10 +58,7 @@ if action:
             txt = ''.join(traceback.format_stack(frame))
             print()
             print(txt)
-    else:
-        callback = None
 
-    if callback:
         signal.signal(signal.SIGUSR1, callback)  # Register handler
 
 

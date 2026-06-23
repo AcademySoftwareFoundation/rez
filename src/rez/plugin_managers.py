@@ -7,14 +7,15 @@ Manages loading of all types of Rez plugins.
 """
 from __future__ import annotations
 
-from rez.config import config, expand_system_vars, _load_config_from_filepaths
+from rez.config import config, expand_system_vars, _load_config_from_filepaths, Validatable
 from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
-from rez.utils.data_utils import LazySingleton, cached_property, deep_update
+from rez.utils.data_utils import LazySingleton, deep_update
+from functools import cached_property
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
-from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
+from typing import overload, Any, Literal, TYPE_CHECKING
 import pkgutil
 import os.path
 import sys
@@ -33,9 +34,6 @@ if TYPE_CHECKING:
     from rez.build_system import BuildSystem
     from rez.package_repository import PackageRepository
     from rez.command import Command
-
-
-T = TypeVar("T")
 
 
 # modified from pkgutil standard library:
@@ -97,7 +95,7 @@ def extend_path(path, name):
 
 def uncache_rezplugins_module_paths(instance=None) -> None:
     instance = instance or plugin_manager
-    cached_property.uncache(instance, "rezplugins_module_paths")  # type: ignore[attr-defined]
+    instance.__dict__.pop("rezplugins_module_paths", None)
 
 
 class RezPluginType(object):
@@ -279,7 +277,7 @@ class RezPluginType(object):
                                  % (self.pretty_type_name, plugin_name))
 
     @cached_property
-    def config_schema(self):
+    def config_schema(self) -> Validatable:
         """Returns the merged configuration data schema for this plugin
         type."""
         from rez.config import _plugin_config_dict
@@ -350,6 +348,7 @@ class RezPluginManager(object):
             This is important  because it ensures that rez's copy of
             'rezplugins' is always found first.
     """
+
     def __init__(self) -> None:
         self._plugin_types: dict[str, LazySingleton[RezPluginType]] = {}
 
@@ -440,6 +439,10 @@ class RezPluginManager(object):
     def get_plugin_class(self, plugin_type: Literal["command"], plugin_name: str) -> type[Command]:
         pass
 
+    @overload
+    def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:
+        pass
+
     def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:
         """Return the class registered under the given plugin name."""
         plugin = self._get_plugin_type(plugin_type)
@@ -451,7 +454,7 @@ class RezPluginManager(object):
         plugin = self._get_plugin_type(plugin_type)
         return plugin.get_plugin_module(plugin_name)
 
-    def get_plugin_config_data(self, plugin_type: str):
+    def get_plugin_config_data(self, plugin_type: str) -> dict:
         """Return the merged configuration data for the plugin type."""
         plugin = self._get_plugin_type(plugin_type)
         return plugin.config_data

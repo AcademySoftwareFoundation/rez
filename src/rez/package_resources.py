@@ -8,25 +8,31 @@ from rez.utils.resources import Resource
 from rez.utils.schema import Required, schema_keys, extensible_schema_dict
 from rez.utils.logging_ import print_warning
 from rez.utils.sourcecode import SourceCode
-from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
-    LazyAttributeMeta
+from functools import cached_property
 from rez.utils.filesystem import find_matching_symlink
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
-from rez.version import Requirement, Version
+from rez.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 
 from textwrap import dedent
 import os.path
 from abc import abstractmethod
 from hashlib import sha1
-from typing import Any, Iterable, Iterator, TYPE_CHECKING
-from types import FunctionType, MethodType
+from typing import cast, Any, Callable, Iterable, Iterator, Generic, TypeVar, TYPE_CHECKING, \
+    ClassVar
+
+from rez.utils._mypyc import mypyc_attr
 
 if TYPE_CHECKING:
-    from rez.packages import Variant
+    import typing
+    from rez.package_repository import PackageRepository
 
+
+VariantResourceHelperT = TypeVar("VariantResourceHelperT", bound="VariantResourceHelper")
+PackageResourceHelperT = TypeVar("PackageResourceHelperT", bound="PackageResourceHelper")
+PackageRepositoryT = TypeVar("PackageRepositoryT", bound="PackageRepository")
 
 # package attributes created at release time
 package_release_keys = (
@@ -67,7 +73,7 @@ help_schema = Or(str,  # single help entry
 _is_late = And(SourceCode, lambda x: hasattr(x, "_late"))
 
 
-def late_bound(schema):
+def late_bound(schema: Any) -> Any:
     return Or(SourceCode, schema)
 
 
@@ -272,15 +278,14 @@ package_pod_schema = Schema(package_pod_schema_dict)
 # resource classes
 # ------------------------------------------------------------------------------
 
-class PackageRepositoryResource(Resource):
+@mypyc_attr(allow_interpreted_subclasses=True)
+class PackageRepositoryResource(Resource, Generic[PackageRepositoryT]):
     """Base class for all package-related resources.
     """
     schema_error = PackageMetadataError
-    #: Type of package repository associated with this resource type.
-    repository_type: str
 
     @classmethod
-    def normalize_variables(cls, variables):
+    def normalize_variables(cls, variables: dict[str, Any]) -> dict[str, Any]:
         if "repository_type" not in variables or "location" not in \
                 variables:
             raise ResourceError("%s resources require a repository_type and "
@@ -288,20 +293,32 @@ class PackageRepositoryResource(Resource):
         return super(PackageRepositoryResource, cls).normalize_variables(
             variables)
 
-    def __init__(self, variables=None) -> None:
-        super(PackageRepositoryResource, self).__init__(variables)
+    def __init__(self, variables: dict[str, Any] | None = None) -> None:
+        super().__init__(variables)
+        # all Resources that are acquired using PackageRepository.get_resource
+        # have this attribute added to them
+        self._repository: PackageRepositoryT | None = None
+
+    @property
+    def repository(self) -> PackageRepositoryT:
+        assert self._repository is not None
+        return self._repository
 
     @cached_property
     def uri(self) -> str:
         return self._uri()
 
     @property
-    def location(self) -> str | None:
-        return self.get("location")
+    def location(self) -> str:
+        location = self.get("location")
+        assert location is not None
+        return location
 
     @property
-    def name(self) -> str | None:
-        return self.get("name")
+    def name(self) -> str:
+        name = self.get("name")
+        assert name is not None
+        return name
 
     def _uri(self) -> str:
         """Return a URI.
@@ -312,15 +329,21 @@ class PackageRepositoryResource(Resource):
         raise NotImplementedError
 
 
-class PackageFamilyResource(PackageRepositoryResource):
+@mypyc_attr(allow_interpreted_subclasses=True)
+class PackageFamilyResource(
+        PackageRepositoryResource[PackageRepositoryT],
+        Generic[PackageRepositoryT, PackageResourceHelperT]):
     """A package family.
 
     A repository implementation's package family resource(s) must derive from
     this class. It must satisfy the schema `package_family_schema`.
     """
-    pass
+
+    def iter_packages(self) -> Iterator[PackageResourceHelperT]:
+        raise NotImplementedError
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class PackageResource(PackageRepositoryResource):
     """A package.
 
@@ -329,7 +352,7 @@ class PackageResource(PackageRepositoryResource):
     """
 
     @classmethod
-    def normalize_variables(cls, variables):
+    def normalize_variables(cls, variables: dict[str, Any]) -> dict[str, Any]:
         """Make sure version is treated consistently
         """
         # if the version is False, empty string, etc, throw it out
@@ -343,6 +366,7 @@ class PackageResource(PackageRepositoryResource):
         return Version(ver_str)
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class VariantResource(PackageResource):
     """A package variant.
 
@@ -356,7 +380,7 @@ class VariantResource(PackageResource):
 
     @property
     @abstractmethod
-    def parent(self) -> PackageRepositoryResource:
+    def parent(self) -> PackageResourceHelper:
         raise NotImplementedError
 
     @property
@@ -364,12 +388,12 @@ class VariantResource(PackageResource):
         return self.get("index", None)
 
     @cached_property
-    def root(self) -> str:
+    def root(self) -> str | None:
         """Return the 'root' path of the variant."""
         return self._root()
 
     @cached_property
-    def subpath(self) -> str:
+    def subpath(self) -> str | None:
         """Return the variant's 'subpath'
 
         The subpath is the relative path the variant's payload should be stored
@@ -379,11 +403,11 @@ class VariantResource(PackageResource):
         return self._subpath()
 
     @abstractmethod
-    def _root(self, ignore_shortlinks: bool = False):
+    def _root(self, ignore_shortlinks: bool = False) -> str | None:
         raise NotImplementedError
 
     @abstractmethod
-    def _subpath(self, ignore_shortlinks: bool = False):
+    def _subpath(self, ignore_shortlinks: bool = False) -> str | None:
         raise NotImplementedError
 
 
@@ -394,16 +418,12 @@ class VariantResource(PackageResource):
 # they may help minimise the amount of code you need to write.
 # ------------------------------------------------------------------------------
 
-class PackageResourceHelper(PackageResource):
+@mypyc_attr(allow_interpreted_subclasses=True)
+class PackageResourceHelper(PackageResource, Generic[VariantResourceHelperT]):
     """PackageResource with some common functionality included.
     """
-    variant_key = None
-    if TYPE_CHECKING:
-        # I think these attributes are provided dynamically be LazyAttributeMeta
-        _commands: list[str] | str | FunctionType | MethodType | SourceCode
-        _pre_commands: list[str] | str | FunctionType | MethodType | SourceCode
-        _post_commands: list[str] | str | FunctionType | MethodType | SourceCode
-        variants: list[Variant]
+    # the resource key for a VariantResourceHelper subclass
+    variant_key: ClassVar[str]
 
     @property
     @abstractmethod
@@ -416,18 +436,18 @@ class PackageResourceHelper(PackageResource):
         raise NotImplementedError
 
     @cached_property
-    def commands(self) -> SourceCode:
+    def commands(self) -> SourceCode | None:
         return self._convert_to_rex(self._commands)
 
     @cached_property
-    def pre_commands(self) -> SourceCode:
+    def pre_commands(self) -> SourceCode | None:
         return self._convert_to_rex(self._pre_commands)
 
     @cached_property
-    def post_commands(self) -> SourceCode:
+    def post_commands(self) -> SourceCode | None:
         return self._convert_to_rex(self._post_commands)
 
-    def iter_variants(self) -> Iterator[VariantResourceHelper]:
+    def iter_variants(self) -> Iterator[VariantResourceHelperT]:
         num_variants = len(self.variants or [])
 
         if num_variants == 0:
@@ -436,15 +456,15 @@ class PackageResourceHelper(PackageResource):
             indexes = range(num_variants)
 
         for index in indexes:
-            variant = self._repository.get_resource(
+            variant = self.repository.get_resource(
                 self.variant_key,
                 location=self.location,
                 name=self.name,
                 version=self.get("version"),
                 index=index)
-            yield variant
+            yield cast(VariantResourceHelperT, variant)
 
-    def _convert_to_rex(self, commands: list[str] | str | FunctionType | MethodType | SourceCode) -> SourceCode:
+    def _convert_to_rex(self, commands: list[str] | str | None | Callable | SourceCode) -> SourceCode | None:
         if isinstance(commands, list):
             from rez.utils.backcompat import convert_old_commands
 
@@ -462,12 +482,136 @@ class PackageResourceHelper(PackageResource):
         else:
             return commands
 
+    # -- BEGIN AUTO-GENERATED METHODS --
+    @cached_property
+    def authors(self) -> list[str] | None:
+        return self._get_item('authors', True)
 
-class _Metas(AttributeForwardMeta, LazyAttributeMeta):
-    pass
+    @cached_property
+    def _base(self) -> str | None:
+        return self._get_item('base', True)
+
+    @cached_property
+    def build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._get_item('build_requires', True)
+
+    @cached_property
+    def cachable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._get_item('cachable', True)
+
+    @cached_property
+    def changelog(self) -> str | None:
+        return self._get_item('changelog', True)
+
+    @cached_property
+    def _commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._get_item('commands', True)
+
+    @cached_property
+    def config(self) -> Config | None:
+        return self._get_item('config', True)
+
+    @cached_property
+    def description(self) -> str | None:
+        return self._get_item('description', True)
+
+    @cached_property
+    def has_plugins(self) -> typing.Union[SourceCode, bool] | None:
+        return self._get_item('has_plugins', True)
+
+    @cached_property
+    def hashed_variants(self) -> bool | None:
+        return self._get_item('hashed_variants', True)
+
+    @cached_property
+    def help(self) -> typing.Union[SourceCode, typing.Union[str, list[list[str]]]] | None:
+        return self._get_item('help', True)
+
+    @cached_property
+    def _name(self) -> str:
+        return self._get_item('name', False)
+
+    @cached_property
+    def plugin_for(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._get_item('plugin_for', True)
+
+    @cached_property
+    def _post_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._get_item('post_commands', True)
+
+    @cached_property
+    def pre_build_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._get_item('pre_build_commands', True)
+
+    @cached_property
+    def _pre_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._get_item('pre_commands', True)
+
+    @cached_property
+    def pre_test_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self._get_item('pre_test_commands', True)
+
+    @cached_property
+    def previous_revision(self) -> object | None:
+        return self._get_item('previous_revision', True)
+
+    @cached_property
+    def previous_version(self) -> Version | None:
+        return self._get_item('previous_version', True)
+
+    @cached_property
+    def private_build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._get_item('private_build_requires', True)
+
+    @cached_property
+    def release_message(self) -> typing.Union[None, str] | None:
+        return self._get_item('release_message', True)
+
+    @cached_property
+    def relocatable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._get_item('relocatable', True)
+
+    @cached_property
+    def requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._get_item('requires', True)
+
+    @cached_property
+    def revision(self) -> object | None:
+        return self._get_item('revision', True)
+
+    @cached_property
+    def tests(self) -> typing.Union[SourceCode, dict[str, typing.Union[typing.Union[str, list[str]], dict[str, typing.Any]]]] | None:  # noqa: E501
+        return self._get_item('tests', True)
+
+    @cached_property
+    def timestamp(self) -> int | None:
+        return self._get_item('timestamp', True)
+
+    @cached_property
+    def tools(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._get_item('tools', True)
+
+    @cached_property
+    def uuid(self) -> str | None:
+        return self._get_item('uuid', True)
+
+    @cached_property
+    def variants(self) -> list[list[PackageRequest]] | None:
+        return self._get_item('variants', True)
+
+    @cached_property
+    def vcs(self) -> str | None:
+        return self._get_item('vcs', True)
+
+    @cached_property
+    def _version(self) -> Version | None:
+        return self._get_item('version', True)
+
+    # -- END AUTO-GENERATED METHODS --
 
 
-class VariantResourceHelper(VariantResource, metaclass=_Metas):
+@mypyc_attr(allow_interpreted_subclasses=True)
+class VariantResourceHelper(VariantResource):
     """Helper class for implementing variants that inherit properties from their
     parent package.
 
@@ -527,26 +671,262 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
             return self.base
         else:
             subpath = self._subpath(ignore_shortlinks=ignore_shortlinks)
+            assert subpath is not None, "Will always be non-None if self.index is non-None"
             root = os.path.join(self.base, subpath)
             return root
 
     @cached_property
-    def variant_requires(self) -> list[Requirement]:
+    def variant_requires(self) -> list[PackageRequest]:
         index = self.index
         if index is None:
             return []
         else:
             try:
-                return self.parent.variants[index] or []
+                return self.parent.variants[index] or []  # type: ignore[index]  # covered by TypeError
             except (IndexError, TypeError):
                 raise ResourceError(
                     "Unexpected error - variant %s cannot be found in its "
                     "parent package %s" % (self.uri, self.parent.uri))
 
     @property
-    def wrapped(self):  # forward Package attributes onto ourself
+    def wrapped(self) -> PackageResourceHelper:  # forward Package attributes onto ourself
         return self.parent
 
-    def _load(self):
+    def _load(self) -> None:
         # doesn't have its own data, forwards on from parent instead
         return None
+
+    # -- BEGIN AUTO-GENERATED METHODS --
+    @property
+    def authors(self) -> list[str] | None:
+        return self.wrapped.authors
+
+    @property
+    def base(self) -> str | None:
+        return self.wrapped.base
+
+    @property
+    def build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self.wrapped.build_requires
+
+    @property
+    def cachable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self.wrapped.cachable
+
+    @property
+    def changelog(self) -> str | None:
+        return self.wrapped.changelog
+
+    @property
+    def commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self.wrapped.commands
+
+    @property
+    def config(self) -> Config | None:
+        return self.wrapped.config
+
+    @property
+    def description(self) -> str | None:
+        return self.wrapped.description
+
+    @property
+    def has_plugins(self) -> typing.Union[SourceCode, bool] | None:
+        return self.wrapped.has_plugins
+
+    @property
+    def hashed_variants(self) -> bool | None:
+        return self.wrapped.hashed_variants
+
+    @property
+    def help(self) -> typing.Union[SourceCode, typing.Union[str, list[list[str]]]] | None:
+        return self.wrapped.help
+
+    @property
+    def plugin_for(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self.wrapped.plugin_for
+
+    @property
+    def post_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self.wrapped.post_commands
+
+    @property
+    def pre_build_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self.wrapped.pre_build_commands
+
+    @property
+    def pre_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self.wrapped.pre_commands
+
+    @property
+    def pre_test_commands(self) -> typing.Union[SourceCode, typing.Callable, str, list[str]] | None:
+        return self.wrapped.pre_test_commands
+
+    @property
+    def previous_revision(self) -> object | None:
+        return self.wrapped.previous_revision
+
+    @property
+    def previous_version(self) -> Version | None:
+        return self.wrapped.previous_version
+
+    @property
+    def private_build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self.wrapped.private_build_requires
+
+    @property
+    def release_message(self) -> typing.Union[None, str] | None:
+        return self.wrapped.release_message
+
+    @property
+    def relocatable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self.wrapped.relocatable
+
+    @property
+    def requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self.wrapped.requires
+
+    @property
+    def revision(self) -> object | None:
+        return self.wrapped.revision
+
+    @property
+    def tests(self) -> typing.Union[SourceCode, dict[str, typing.Union[typing.Union[str, list[str]], dict[str, typing.Any]]]] | None:  # noqa: E501
+        return self.wrapped.tests
+
+    @property
+    def timestamp(self) -> int | None:
+        return self.wrapped.timestamp
+
+    @property
+    def tools(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self.wrapped.tools
+
+    @property
+    def uuid(self) -> str | None:
+        return self.wrapped.uuid
+
+    @property
+    def vcs(self) -> str | None:
+        return self.wrapped.vcs
+
+    @cached_property
+    def _authors(self) -> list[str] | None:
+        return self._get_item('authors', True)
+
+    @cached_property
+    def _base(self) -> str | None:
+        return self._get_item('base', True)
+
+    @cached_property
+    def _build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._get_item('build_requires', True)
+
+    @cached_property
+    def _cachable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._get_item('cachable', True)
+
+    @cached_property
+    def _changelog(self) -> str | None:
+        return self._get_item('changelog', True)
+
+    @cached_property
+    def _commands(self) -> SourceCode | None:
+        return self._get_item('commands', True)
+
+    @cached_property
+    def _config(self) -> Config | None:
+        return self._get_item('config', True)
+
+    @cached_property
+    def _description(self) -> str | None:
+        return self._get_item('description', True)
+
+    @cached_property
+    def _has_plugins(self) -> typing.Union[SourceCode, bool] | None:
+        return self._get_item('has_plugins', True)
+
+    @cached_property
+    def _hashed_variants(self) -> bool | None:
+        return self._get_item('hashed_variants', True)
+
+    @cached_property
+    def _help(self) -> typing.Union[SourceCode, typing.Union[str, list[list[str]]]] | None:
+        return self._get_item('help', True)
+
+    @cached_property
+    def _name(self) -> str:
+        return self._get_item('name', False)
+
+    @cached_property
+    def _plugin_for(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._get_item('plugin_for', True)
+
+    @cached_property
+    def _post_commands(self) -> SourceCode | None:
+        return self._get_item('post_commands', True)
+
+    @cached_property
+    def _pre_build_commands(self) -> SourceCode | None:
+        return self._get_item('pre_build_commands', True)
+
+    @cached_property
+    def _pre_commands(self) -> SourceCode | None:
+        return self._get_item('pre_commands', True)
+
+    @cached_property
+    def _pre_test_commands(self) -> SourceCode | None:
+        return self._get_item('pre_test_commands', True)
+
+    @cached_property
+    def _previous_revision(self) -> object | None:
+        return self._get_item('previous_revision', True)
+
+    @cached_property
+    def _previous_version(self) -> Version | None:
+        return self._get_item('previous_version', True)
+
+    @cached_property
+    def _private_build_requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._get_item('private_build_requires', True)
+
+    @cached_property
+    def _release_message(self) -> typing.Union[None, str] | None:
+        return self._get_item('release_message', True)
+
+    @cached_property
+    def _relocatable(self) -> typing.Union[SourceCode, typing.Union[None, bool]] | None:
+        return self._get_item('relocatable', True)
+
+    @cached_property
+    def _requires(self) -> typing.Union[SourceCode, list[PackageRequest]] | None:
+        return self._get_item('requires', True)
+
+    @cached_property
+    def _revision(self) -> object | None:
+        return self._get_item('revision', True)
+
+    @cached_property
+    def _tests(self) -> typing.Union[SourceCode, dict[str, typing.Union[typing.Union[str, list[str]], dict[str, typing.Any]]]] | None:  # noqa: E501
+        return self._get_item('tests', True)
+
+    @cached_property
+    def _timestamp(self) -> int | None:
+        return self._get_item('timestamp', True)
+
+    @cached_property
+    def _tools(self) -> typing.Union[SourceCode, list[str]] | None:
+        return self._get_item('tools', True)
+
+    @cached_property
+    def _uuid(self) -> str | None:
+        return self._get_item('uuid', True)
+
+    @cached_property
+    def _vcs(self) -> str | None:
+        return self._get_item('vcs', True)
+
+    @cached_property
+    def _version(self) -> Version | None:
+        return self._get_item('version', True)
+
+    # -- END AUTO-GENERATED METHODS --

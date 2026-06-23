@@ -10,17 +10,20 @@ from bisect import bisect_left
 import copy
 import string
 import re
-from typing import cast, Any, Callable, Iterable, TypeVar, TYPE_CHECKING, overload
+from typing import cast, Any, Callable, ClassVar, Generic, Iterable, TypeVar, TYPE_CHECKING, Final, overload
+from rez.utils._mypyc import mypyc_attr
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
+T = TypeVar("T")
 CallableT = TypeVar("CallableT", bound=Callable)
 
 re_token = re.compile(r"[a-zA-Z0-9_]+")
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class _Comparable(_Common):
     def __gt__(self, other: _Comparable) -> bool:
         return not (self < other or self == other)
@@ -72,6 +75,7 @@ class VersionToken(_Comparable):
     Version tokens are only allowed to contain alphanumerics (any case) and
     underscores.
     """
+
     def __init__(self, token: str) -> None:
         """
         Args:
@@ -109,6 +113,8 @@ class VersionToken(_Comparable):
         return self.less_than(other)
 
     def __eq__(self, other: object) -> bool:
+        if not isinstance(other, VersionToken):
+            return NotImplemented
         return (not self < other) and (not other < self)
 
 
@@ -117,6 +123,7 @@ class NumericToken(VersionToken):
 
     Version token supporting numbers only. Padding is ignored.
     """
+
     def __init__(self, token: str) -> None:
         if not token.isdigit():
             raise VersionError("Invalid version token: '%s'" % token)
@@ -154,6 +161,7 @@ class NumericToken(VersionToken):
 
 class _SubToken(_Comparable):
     """Used internally by AlphanumericVersionToken."""
+
     def __init__(self, s: str) -> None:
         self.s = s
         self.n = int(s) if s.isdigit() else None
@@ -201,12 +209,13 @@ class AlphanumericVersionToken(VersionToken):
     - ``alpha`` < ``alpha3``
     - ``gamma33`` < ``33gamma``
     """
-    numeric_regex = re.compile("[0-9]+")
-    regex = re.compile(r"[a-zA-Z0-9_]+\Z")
+    numeric_regex: ClassVar[re.Pattern[str]] = re.compile("[0-9]+")
+    regex: ClassVar[re.Pattern[str]] = re.compile(r"[a-zA-Z0-9_]+\Z")
 
     def __init__(self, token: str | None) -> None:
         if token is None:
-            self.subtokens = None
+            # this is a special case used in __next__, and subtokens is always set there
+            pass
         elif not self.regex.match(token):
             raise VersionError("Invalid version token: '%s'" % token)
         else:
@@ -294,7 +303,7 @@ class Version(_Comparable):
     The empty version ``''`` is the smallest possible version, and can be used to
     represent an unversioned resource.
     """
-    inf = None
+    inf: ClassVar[Version]
 
     def __init__(self, ver_str: str | None = '',
                  make_token: Callable[[str], VersionToken] = AlphanumericVersionToken) -> None:
@@ -411,6 +420,9 @@ class Version(_Comparable):
         Returns:
             tuple[str]:
         """
+        if self.tokens is None:
+            # Version.inf
+            return ()
         return tuple(map(str, self.tokens))
 
     def __len__(self) -> int:
@@ -438,6 +450,9 @@ class Version(_Comparable):
         return isinstance(other, Version) and self.tokens == other.tokens
 
     def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Version):
+            return NotImplemented
+
         if self.tokens is None:
             return False
         elif other.tokens is None:
@@ -464,7 +479,7 @@ Version.inf.tokens = None
 
 
 class _LowerBound(_Comparable):
-    min = None
+    min: ClassVar[_LowerBound]
 
     def __init__(self, version: Version, inclusive: bool) -> None:
         self.version = version
@@ -502,7 +517,7 @@ _LowerBound.min = _LowerBound(Version(), True)
 
 
 class _UpperBound(_Comparable):
-    inf = None
+    inf: ClassVar[_UpperBound]
 
     def __init__(self, version: Version, inclusive: bool) -> None:
         self.version = version
@@ -539,7 +554,7 @@ _UpperBound.inf = _UpperBound(Version.inf, True)
 
 
 class _Bound(_Comparable):
-    any = None
+    any: ClassVar[_Bound]
 
     def __init__(self, lower: _LowerBound | None = None,
                  upper: _UpperBound | None = None,
@@ -637,14 +652,97 @@ def _action(fn: CallableT) -> CallableT:
                 print("    %-17s= %s" % (key, value))
             print("    %-17s= %s" % ("bounds", self.bounds))
         return result
-
     return fn_  # type: ignore[return-value]
 
 
-class _VersionRangeParser(object):
-    debug = False  # set to True to enable parser debugging
+# The regular expression for a version - one or more version tokens
+# followed by a non-capturing group of version separator followed by
+# one or more version tokens.
+#
+# Note that this assumes AlphanumericVersionToken-based versions!
+#
+# TODO - Would be better to have `VersionRange` keep a static dict of
+# parser instances, per token class type. We would add a 'regex' static
+# string to each token class, and that could be used to construct
+# `version_group` as below. We need to keep a dict of these parser instances,
+# to avoid recompiling the large regex every time a version range is
+# instantiated. In the cpp port this would be simpler - VersionRange could
+# just have a static parser that is instantiated when the version range
+# template class is instantiated.
+#
+version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"
 
-    re_flags = (re.VERBOSE | re.DEBUG) if debug else re.VERBOSE
+version_range_regex = (
+    # Match a version number (e.g. 1.0.0)
+    r"   ^(?P<version>{version_group})$"
+    "|"
+    # Or match an exact version number (e.g. ==1.0.0)
+    "    ^(?P<exact_version>"
+    "        =="  # Required == operator
+    "        (?P<exact_version_group>{version_group})?"
+    "    )$"
+    "|"
+    # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
+    "    ^(?P<inclusive_bound>"
+    "        (?P<inclusive_lower_version>{version_group})?"
+    r"        \.\."  # Required .. operator
+    "        (?P<inclusive_upper_version>{version_group})?"
+    "    )$"
+    "|"
+    # Or match a lower bound (e.g. 1.0.0+)
+    "    ^(?P<lower_bound>"
+    "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
+    "        (?P<lower_version>{version_group})?"
+    r"        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
+    "    )$"
+    "|"
+    # Or match an upper bound (e.g. <=1.0.0)
+    "    ^(?P<upper_bound>"
+    "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
+    "        (?P<upper_version>{version_group})?"
+    "    )$"
+    "|"
+    # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
+    "    ^(?P<range_asc>"
+    "        (?P<range_lower_asc>"
+    "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
+    "           (?P<range_lower_asc_version>{version_group})?"
+    r"           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
+    "       )(?P<range_upper_asc>"
+    "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
+    "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
+    "           (?P<range_upper_asc_version>{version_group})?"
+    "       )"
+    "    )$"
+    "|"
+    # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
+    "    ^(?P<range_desc>"
+    "        (?P<range_upper_desc>"
+    "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
+    "           (?P<range_upper_desc_version>{version_group})?"
+    r"           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
+    "       )(?P<range_lower_desc>"
+    "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want
+                                                  # to recognize something like "<4>3"
+    "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed
+                                                                        # by a version group
+    "           (?P<range_lower_desc_version>{version_group})?"
+    "       )"
+    "    )$"
+).format(version_group=version_group)
+
+_debug_parser = False  # set to True to enable parser debugging
+
+
+class _VersionRangeParser(object):
+
+    # set to True to enable parser debugging (see `_action`, which reads
+    # `self.debug`). Kept as a class attribute so it resolves on compiled
+    # (native) instances, which have no instance __dict__.
+    debug: ClassVar[bool] = _debug_parser
+
+    regex: ClassVar[re.Pattern[str]] = re.compile(
+        version_range_regex, (re.VERBOSE | re.DEBUG) if _debug_parser else re.VERBOSE)
 
     # The regular expression for a version - one or more version tokens
     # followed by a non-capturing group of version separator followed by
@@ -661,68 +759,6 @@ class _VersionRangeParser(object):
     # just have a static parser that is instantiated when the version range
     # template class is instantiated.
     #
-    version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"
-
-    version_range_regex = (
-        # Match a version number (e.g. 1.0.0)
-        r"   ^(?P<version>{version_group})$"
-        "|"
-        # Or match an exact version number (e.g. ==1.0.0)
-        "    ^(?P<exact_version>"
-        "        =="  # Required == operator
-        "        (?P<exact_version_group>{version_group})?"
-        "    )$"
-        "|"
-        # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
-        "    ^(?P<inclusive_bound>"
-        "        (?P<inclusive_lower_version>{version_group})?"
-        r"        \.\."  # Required .. operator
-        "        (?P<inclusive_upper_version>{version_group})?"
-        "    )$"
-        "|"
-        # Or match a lower bound (e.g. 1.0.0+)
-        "    ^(?P<lower_bound>"
-        "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
-        "        (?P<lower_version>{version_group})?"
-        r"        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
-        "    )$"
-        "|"
-        # Or match an upper bound (e.g. <=1.0.0)
-        "    ^(?P<upper_bound>"
-        "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
-        "        (?P<upper_version>{version_group})?"
-        "    )$"
-        "|"
-        # Or match a range in ascending order (e.g. 1.0.0+<2.0.0)
-        "    ^(?P<range_asc>"
-        "        (?P<range_lower_asc>"
-        "           (?P<range_lower_asc_prefix>>|>=)?"  # Lower bound is exclusive?
-        "           (?P<range_lower_asc_version>{version_group})?"
-        r"           (?(range_lower_asc_prefix)|\+)?"  # + only if lower bound is not exclusive
-        "       )(?P<range_upper_asc>"
-        "           (?(range_lower_asc_version),?|)"  # , only if lower bound is found
-        "           (?P<range_upper_asc_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
-        "           (?P<range_upper_asc_version>{version_group})?"
-        "       )"
-        "    )$"
-        "|"
-        # Or match a range in descending order (e.g. <=2.0.0,1.0.0+)
-        "    ^(?P<range_desc>"
-        "        (?P<range_upper_desc>"
-        "           (?P<range_upper_desc_prefix><|<=)?"  # Upper bound is exclusive?
-        "           (?P<range_upper_desc_version>{version_group})?"
-        r"           (?(range_upper_desc_prefix)|\+)?"  # + only if upper bound is not exclusive
-        "       )(?P<range_lower_desc>"
-        "           (?(range_upper_desc_version),|)"  # Comma is not optional because we don't want
-                                                      # to recognize something like "<4>3"
-        "           (?P<range_lower_desc_prefix><(?={version_group})|>=?)"  # >= or > only if followed
-                                                                            # by a version group
-        "           (?P<range_lower_desc_version>{version_group})?"
-        "       )"
-        "    )$"
-    ).format(version_group=version_group)
-
-    regex = re.compile(version_range_regex, re_flags)
 
     def __init__(self, input_string: str,
                  make_token: Callable[[str], VersionToken],
@@ -922,6 +958,7 @@ class VersionRange(_Comparable):
     valid version range syntax. For example, ``>`` is a valid range - read like
     ``>''``, it means ``any version greater than the empty version``.
     """
+
     def __init__(self, range_str: str | None = '',
                  make_token: Callable[[str], VersionToken] = AlphanumericVersionToken,
                  invalid_bound_error: bool = True) -> None:
@@ -943,12 +980,12 @@ class VersionRange(_Comparable):
             parser = _VersionRangeParser(range_str, make_token,
                                          invalid_bound_error=invalid_bound_error)
             bounds = parser.bounds
-        except ParseException as e:
+        except ParseException as perr:
             raise VersionError("Syntax error in version range '%s': %s"
-                               % (range_str, str(e)))
-        except VersionError as e:
+                               % (range_str, str(perr)))
+        except VersionError as verr:
             raise VersionError("Invalid version range '%s': %s"
-                               % (range_str, str(e)))
+                               % (range_str, str(verr)))
 
         if bounds:
             self.bounds = self._union(bounds)
@@ -1208,9 +1245,9 @@ class VersionRange(_Comparable):
 
         return False
 
-    def iter_intersect_test(self, iterable: Iterable[Any],
-                            key: Callable[[Any], Version] | None = None,
-                            descending: bool = False) -> _ContainsVersionIterator[Any]:
+    def iter_intersect_test(self, iterable: Iterable[T],
+                            key: Callable[[T], Version] | None = None,
+                            descending: bool = False) -> _ContainsVersionIterator[T]:
         """Performs containment tests on a sorted list of versions.
 
         This is more optimal than performing separate containment tests on a
@@ -1231,9 +1268,9 @@ class VersionRange(_Comparable):
         """
         return _ContainsVersionIterator(self, iterable, key, descending)
 
-    def iter_intersecting(self, iterable: Iterable[Any],
-                          key: Callable[[Any], Version] | None = None,
-                          descending: bool = False) -> _ContainsVersionIterator[Any]:
+    def iter_intersecting(self, iterable: Iterable[T],
+                          key: Callable[[T], Version] | None = None,
+                          descending: bool = False) -> _ContainsVersionIterator[T]:
         """Like :meth:iter_intersect_test`, but returns intersections only.
 
         Returns:
@@ -1243,9 +1280,9 @@ class VersionRange(_Comparable):
             self, iterable, key, descending, mode=_ContainsVersionIterator.MODE_INTERSECTING
         )
 
-    def iter_non_intersecting(self, iterable: Iterable[Any],
-                              key: Callable[[Any], Version] | None = None,
-                              descending: bool = False) -> _ContainsVersionIterator[Any]:
+    def iter_non_intersecting(self, iterable: Iterable[T],
+                              key: Callable[[T], Version] | None = None,
+                              descending: bool = False) -> _ContainsVersionIterator[T]:
         """Like :meth:`iter_intersect_test`, but returns non-intersections only.
 
         Returns:
@@ -1361,13 +1398,16 @@ class VersionRange(_Comparable):
         start = 0
 
         for i, bound in enumerate(bounds_):
-            if i and ((bound.lower.version > upper.version)
-                      or ((bound.lower.version == upper.version)
-                          and (not bound.lower.inclusive)
-                          and (not prev_bound.upper.inclusive))):
-                new_bound = _Bound(bounds_[start].lower, upper)
-                new_bounds.append(new_bound)
-                start = i
+            if i:
+                assert upper is not None
+                assert prev_bound is not None
+                if ((bound.lower.version > upper.version)
+                    or ((bound.lower.version == upper.version)
+                        and (not bound.lower.inclusive)
+                        and (not prev_bound.upper.inclusive))):
+                    new_bound = _Bound(bounds_[start].lower, upper)
+                    new_bounds.append(new_bound)
+                    start = i
 
             prev_bound = bound
             upper = bound.upper if upper is None else max(upper, bound.upper)
@@ -1453,13 +1493,13 @@ class VersionRange(_Comparable):
         return False
 
 
-class _ContainsVersionIterator(object):
-    MODE_INTERSECTING = 0
-    MODE_NON_INTERSECTING = 2
-    MODE_ALL = 3
+class _ContainsVersionIterator(Generic[T]):
+    MODE_INTERSECTING: Final[int] = 0
+    MODE_NON_INTERSECTING: Final[int] = 2
+    MODE_ALL: Final[int] = 3
 
-    def __init__(self, range_: VersionRange, iterable: Iterable[Any],
-                 key: Callable[[Any], Version] | None = None,
+    def __init__(self, range_: VersionRange, iterable: Iterable[T],
+                 key: Callable[[T], Version] | None = None,
                  descending: bool = False, mode: int = MODE_ALL) -> None:
         self.mode = mode
         self.range_ = range_
@@ -1470,10 +1510,10 @@ class _ContainsVersionIterator(object):
         self.it = iter(iterable)
         if key is None:
             # FIXME: this case seems to assume that iterable is Iterable[Version]
-            key = cast(Callable[[Any], Version], lambda x: x)  # noqa: E731
+            key = cast(Callable[[T], Version], lambda x: x)  # noqa: E731
         self.keyfunc = key
 
-        self.next_fn: Callable[[], tuple[bool, Any]] | Callable[[], Any]
+        self.next_fn: Callable[[], tuple[bool, T]] | Callable[[], T]
         if mode == self.MODE_ALL:
             self.next_fn = self._next
         elif mode == self.MODE_INTERSECTING:
@@ -1481,16 +1521,16 @@ class _ContainsVersionIterator(object):
         else:
             self.next_fn = self._next_non_intersecting
 
-    def __iter__(self) -> _ContainsVersionIterator[Any]:
+    def __iter__(self) -> _ContainsVersionIterator[T]:
         return self
 
-    def __next__(self) -> Any | tuple[bool, Any]:
+    def __next__(self) -> T | tuple[bool, T]:
         return self.next_fn()
 
-    def next(self) -> Any | tuple[bool, Any]:
+    def next(self) -> T | tuple[bool, T]:
         return self.next_fn()
 
-    def _next(self) -> tuple[bool, Any]:
+    def _next(self) -> tuple[bool, T]:
         value = next(self.it)
         if self._constant is not None:
             return self._constant, value
@@ -1499,7 +1539,7 @@ class _ContainsVersionIterator(object):
         intersects = self.fn(version)
         return intersects, value
 
-    def _next_intersecting(self) -> Any:
+    def _next_intersecting(self) -> T:
         while True:
             value = next(self.it)
 
@@ -1513,7 +1553,7 @@ class _ContainsVersionIterator(object):
             if intersects:
                 return value
 
-    def _next_non_intersecting(self) -> Any:
+    def _next_non_intersecting(self) -> T:
         while True:
             value = next(self.it)
 
@@ -1529,6 +1569,7 @@ class _ContainsVersionIterator(object):
 
     @property
     def _bound(self) -> _Bound | None:
+        assert self.index is not None
         if self.index < self.nbounds:
             return self.range_.bounds[self.index]
         else:
@@ -1539,6 +1580,7 @@ class _ContainsVersionIterator(object):
             self.index, contains = self.range_._contains_version(version)
             bound = self._bound
             if contains:
+                assert bound is not None
                 if not bound.upper_bounded():
                     self._constant = True
                 return True
@@ -1549,6 +1591,7 @@ class _ContainsVersionIterator(object):
                 return False  # there are more bound(s) ahead
         else:
             bound = self._bound
+            assert bound is not None
             j = bound.version_containment(version)
             if j == 0:
                 return True
@@ -1575,6 +1618,7 @@ class _ContainsVersionIterator(object):
             self.index, contains = self.range_._contains_version(version)
             bound = self._bound
             if contains:
+                assert bound is not None
                 if not bound.lower_bounded():
                     self._constant = True
                 return True
@@ -1589,6 +1633,7 @@ class _ContainsVersionIterator(object):
                 return False
         else:
             bound = self._bound
+            assert bound is not None
             j = bound.version_containment(version)
             if j == 0:
                 return True
@@ -1598,6 +1643,7 @@ class _ContainsVersionIterator(object):
                 while self.index:
                     self.index -= 1
                     bound = self._bound
+                    assert bound is not None
                     j = bound.version_containment(version)
                     if j == 0:
                         if not bound.lower_bounded():

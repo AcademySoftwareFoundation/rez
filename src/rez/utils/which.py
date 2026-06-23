@@ -46,12 +46,12 @@ def which(cmd: str, mode=os.F_OK | os.X_OK, path: str | None = None, env=None) -
         path = env.get("PATH", os.defpath)
     if not path:
         return None
-    path = path.split(os.pathsep)
+    paths = path.split(os.pathsep)
 
     if iswin:
         # The current directory takes precedence on Windows
-        if not dirname and os.curdir not in path:
-            path.insert(0, os.curdir)
+        if not dirname and os.curdir not in paths:
+            paths.insert(0, os.curdir)
 
         # PATHEXT is necessary to check on Windows
         pathext = env.get("PATHEXT", _default_pathext).split(os.pathsep)
@@ -59,7 +59,7 @@ def which(cmd: str, mode=os.F_OK | os.X_OK, path: str | None = None, env=None) -
 
     # iterate over paths
     seen = set()
-    for dir_ in path:
+    for dir_ in paths:
         normdir = os.path.normcase(dir_)
 
         # On windows the system paths might contain %systemroot%

@@ -5,7 +5,8 @@ from __future__ import annotations
 from rez.version._version import Version, VersionRange
 from rez.version._util import _Common
 import re
-from typing import Iterator, Iterable
+from typing import Iterator, Iterable, ClassVar
+from rez.utils._mypyc import mypyc_attr
 
 
 class VersionedObject(_Common):
@@ -18,18 +19,20 @@ class VersionedObject(_Common):
         Note that ``-``, ``@`` or ``#`` can be used as the seperator between object name
         and version, however this is purely cosmetic. ``foo-1`` is the same as ``foo@1``.
     """
-    sep_regex_str = r'[-@#]'
-    sep_regex = re.compile(sep_regex_str)
+    sep_regex: ClassVar[re.Pattern[str]] = re.compile(r'[-@#]')
 
     def __init__(self, s: str) -> None:
         """
         Args:
             s (str):
         """
-        self.name_ = None
-        self.version_ = None
+        self.name_: str
+        self.version_: Version
         self.sep_ = '-'
+
         if s is None:
+            # this is a special case in VersionedObject.construct, but name and version_
+            # are always set.
             return
 
         m = self.sep_regex.search(s)
@@ -104,6 +107,7 @@ class VersionedObject(_Common):
         return self.name_ + sep_str + ver_str
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class Requirement(_Common):
     """
     Defines a requirement for an object. For example, ``foo-5+`` means that you
@@ -136,7 +140,7 @@ class Requirement(_Common):
     - ``foo<3``
     - ``foo==1.0.1``
     """
-    sep_regex = re.compile(r'[-@#=<>]')
+    sep_regex: ClassVar[re.Pattern[str]] = re.compile(r'[-@#=<>]')
 
     def __init__(self, s: str | None, invalid_bound_error: bool = True) -> None:
         """
@@ -145,11 +149,13 @@ class Requirement(_Common):
             invalid_bound_error (bool): If True, raise :exc:`.VersionError` if an
                 impossible range is given, such as ``3+<2``.
         """
-        self.name_ = None
-        self.range_ = None
+        # there are two constructors where Requirement(None) is called, but they
+        # both set self.name, so we do not set its value to None here.
+        self.name_ = ""
+        self.range_: VersionRange | None = None
         self.negate_ = False
         self.conflict_ = False
-        self._str = None
+        self._str: str | None = None
         self.sep_ = '-'
         if s is None:
             return
@@ -213,6 +219,8 @@ class Requirement(_Common):
         Returns:
             VersionRange:
         """
+        if self.range_ is None:
+            raise ValueError("Range is None.  Did you mean self.range_ ?")
         return self.range_
 
     @property
@@ -255,23 +263,25 @@ class Requirement(_Common):
             bool:
         """
         if isinstance(other, Requirement):
-            if (self.name_ != other.name_) or (self.range is None) \
-                    or (other.range is None):
+            if (self.name_ != other.name_) or (self.range_ is None) \
+                    or (other.range_ is None):
                 return False
             elif self.conflict:
                 return False if other.conflict \
-                    else self.range_.issuperset(other.range_)
+                    else self.range.issuperset(other.range)
             elif other.conflict:
-                return other.range_.issuperset(self.range_)
+                return other.range.issuperset(self.range)
             else:
-                return not self.range_.intersects(other.range_)
-        else:  # VersionedObject
-            if (self.name_ != other.name_) or (self.range is None):
+                return not self.range.intersects(other.range)
+        elif isinstance(other, VersionedObject):
+            if (self.name_ != other.name_) or (self.range_ is None):
                 return False
             if self.conflict:
-                return (other.version_ in self.range_)
+                return (other.version_ in self.range)
             else:
-                return (other.version_ not in self.range_)
+                return (other.version_ not in self.range)
+        else:
+            raise TypeError
 
     def merged(self, other: Requirement) -> Requirement | None:
         """Merge two requirements.
@@ -300,14 +310,14 @@ class Requirement(_Common):
             r.sep_ = r_.sep_
             return r
 
-        if self.range is None:
+        if self.range_ is None:
             return other
-        elif other.range is None:
+        elif other.range_ is None:
             return self
         elif self.conflict:
             if other.conflict:
                 r = _r(self)
-                r.range_ = self.range_ | other.range_
+                r.range_ = self.range | other.range
                 r.negate_ = (self.negate_ and other.negate_
                              and not r.range_.is_any())
                 return r
@@ -320,7 +330,7 @@ class Requirement(_Common):
                     r.range_ = range_
                     return r
         elif other.conflict:
-            range_ = self.range_ - other.range_
+            range_ = self.range - other.range
             if range_ is None:
                 return None
             else:
@@ -328,7 +338,7 @@ class Requirement(_Common):
                 r.range_ = range_
                 return r
         else:
-            range_ = self.range_ & other.range_
+            range_ = self.range & other.range
             if range_ is None:
                 return None
             else:
@@ -356,6 +366,7 @@ class Requirement(_Common):
             if self.negate_ or range_ is None:
                 range_ = ~range_ if range_ else VersionRange()
 
+            assert range_ is not None
             if not range_.is_any():
                 range_str = str(range_)
                 if range_str[0] not in ('=', '<', '>'):

@@ -11,7 +11,7 @@ import re
 import subprocess
 from rez.util import which
 from rez.utils.execution import Popen
-from rez.utils.data_utils import cached_property
+from functools import cached_property
 from rez.utils.platform_mapped import platform_mapped
 from rez.exceptions import RezSystemError
 from tempfile import gettempdir

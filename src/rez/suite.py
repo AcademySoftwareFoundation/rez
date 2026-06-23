@@ -7,7 +7,7 @@ from __future__ import annotations
 from rez.utils.execution import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.utils.data_utils import cached_property
+from functools import cached_property
 from rez.utils.filesystem import safe_rmtree
 from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.colorize import warning, critical, Printer, alias as alias_col
@@ -332,6 +332,7 @@ class Suite(object):
               a tool of the same name), this will be a set of Variants.
         """
         self._update_tools()
+        assert self.tools is not None
         return self.tools
 
     def get_tool_filepath(self, tool_alias):
@@ -412,6 +413,7 @@ class Suite(object):
             - variant (`Variant`): Variant providing the tool.
         """
         self._update_tools()
+        assert self.tool_conflicts is not None
         return self.tool_conflicts.get(tool_alias)
 
     def validate(self) -> None:
@@ -643,9 +645,9 @@ class Suite(object):
         else:
             context_names = sorted(self.contexts.keys())
 
-        rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
-                ["----", "--------", "-------", "-------", ""]]
-        colors = [None, None]
+        rows = [("TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""),
+                ("----", "--------", "-------", "-------", "")]
+        colors: list[Callable[[str], str] | None] = [None, None]
 
         entries_dict = defaultdict(list)
         for d in self.get_tools().values():

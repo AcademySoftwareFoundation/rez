@@ -49,6 +49,7 @@ class PackageTestRunner(object):
     Commands can also be a list - in this case, the test process is launched
     directly, rather than interpreted via a shell.
     """
+
     def __init__(self, package_request, use_current_env: bool = False,
                  extra_package_requests=None, package_paths=None, stdout=None,
                  stderr=None, verbose: int = 0, dry_run: bool = False, stop_on_fail: bool = False,
@@ -129,11 +130,12 @@ class PackageTestRunner(object):
 
         else:
             # find latest package within request
-            package = get_latest_package_from_string(str(self.package_request),
-                                                     self.package_paths)
-            if package is None:
+            maybe_package = get_latest_package_from_string(str(self.package_request),
+                                                           self.package_paths)
+            if maybe_package is None:
                 raise PackageNotFoundError("Could not find package to test: %s"
                                            % str(self.package_request))
+            package = maybe_package
 
         self.package = package
         return self.package

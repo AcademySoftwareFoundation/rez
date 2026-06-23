@@ -4,17 +4,17 @@
 
 from __future__ import annotations
 
-from rez.utils.formatting import StringFormatMixin, StringFormatType
+from rez.utils.formatting import ObjectStringFormatter, StringFormatType
 from collections import UserDict
 import sys
 
 from typing import cast, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Self
+    from typing_extensions import Self
 
 
-class RecursiveAttribute(UserDict, StringFormatMixin):
+class RecursiveAttribute(UserDict):
     """An object that can have new attributes added recursively::
 
         >>> a = RecursiveAttribute()
@@ -36,14 +36,39 @@ class RecursiveAttribute(UserDict, StringFormatMixin):
         >>> a.new = True
         AttributeError: 'RecursiveAttribute' object has no attribute 'new'
     """
-    format_expand = StringFormatType.unchanged
+    format_expand: ClassVar[StringFormatType] = StringFormatType.unchanged
+    format_pretty: ClassVar[bool] = True
 
-    def __init__(self, data=None, read_only: bool = False) -> None:
+    def __init__(self, data: dict[str, Any] | None = None, read_only: bool = False) -> None:
         self.__dict__.update(dict(data={}, read_only=read_only))
         self._update(data or {})
 
-    def __getattr__(self, attr):
-        def _noattrib():
+    def format(self, s: str, pretty: bool | None = None,
+               expand: StringFormatType | None = None) -> str:
+        """Format a string.
+
+        Args:
+            s (str): String to format, eg "hello {name}"
+            pretty (bool): If True, references to non-string attributes such as
+                lists are converted to basic form, with characters such as
+                brackets and parenthesis removed. If None, defaults to the
+                object's 'format_pretty' attribute.
+            expand (`StringFormatType`): Expansion mode. If None, will default
+                to the object's 'format_expand' attribute.
+
+        Returns:
+            The formatting string.
+        """
+        if pretty is None:
+            pretty = self.format_pretty
+        if expand is None:
+            expand = self.format_expand
+
+        formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
+        return formatter.format(s)
+
+    def __getattr__(self, attr: str) -> str | RecursiveAttribute:
+        def _noattrib() -> NoReturn:
             raise AttributeError("'%s' object has no attribute '%s'"
                                  % (self.__class__.__name__, attr))
         d = self.__dict__
@@ -207,6 +232,7 @@ class ScopeContext(object):
     and the assigned properties will be merged. If the same property is set
     multiple times, it will be overwritten.
     """
+
     def __init__(self) -> None:
         self.scopes = {}
         self.scope_stack = [_Scope()]

@@ -12,12 +12,13 @@ from rez.version import Requirement
 from rez.exceptions import PackageRequestError
 from pprint import pformat
 from enum import Enum
-from typing import Any, Sequence, Mapping, TYPE_CHECKING
+from typing import Any, Sequence, Mapping, TYPE_CHECKING, ClassVar
 import math
 import os
 import os.path
 import re
 import time
+from rez.utils._mypyc import mypyc_attr
 
 if TYPE_CHECKING:
     from rez.rex import RexExecutor
@@ -166,14 +167,15 @@ class ObjectStringFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwds)
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class StringFormatMixin(object):
     """Turn any object into a string formatter.
 
     An object inheriting this mixin will have a `format` function added, that is
     able to format using attributes of the object.
     """
-    format_expand = StringFormatType.error
-    format_pretty = True
+    format_expand: ClassVar[StringFormatType] = StringFormatType.error
+    format_pretty: ClassVar[bool] = True
 
     def format(self, s: str, pretty: bool | None = None,
                expand: StringFormatType | None = None) -> str:

@@ -4,6 +4,7 @@
 
 from itertools import groupby
 from typing import Iterable, Iterator, TypeVar
+from rez.utils._mypyc import mypyc_attr
 
 T = TypeVar("T")
 
@@ -16,6 +17,7 @@ class ParseException(Exception):
     pass
 
 
+@mypyc_attr(allow_interpreted_subclasses=True)
 class _Common(object):
     def __str__(self) -> str:
         raise NotImplementedError

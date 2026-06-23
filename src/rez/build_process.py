@@ -404,10 +404,15 @@ class BuildProcessHelper(BuildProcess):
             previous_revision = None
 
         changelog = None
-        with self.repo_operation():
-            changelog = self.vcs.get_changelog(
-                previous_revision,
-                max_revisions=config.max_package_changelog_revisions)
+        # self.vcs is Optional; with no vcs there is no changelog to compute.
+        # Both callers already treat a None changelog as "no changelog" (one
+        # only reaches here after a vcs-is-None early return, the other catches
+        # and nulls it), so skipping the lookup when there is no vcs is safe.
+        if self.vcs:
+            with self.repo_operation():
+                changelog = self.vcs.get_changelog(
+                    previous_revision,
+                    max_revisions=config.max_package_changelog_revisions)
 
         return changelog
 

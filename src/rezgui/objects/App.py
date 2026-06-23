@@ -8,7 +8,7 @@ from rezgui.objects.Config import Config
 from rezgui import organisation_name, application_name
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import ResolvedContextError
-from rez.utils.data_utils import cached_property
+from functools import cached_property
 from rez.vendor import yaml
 from contextlib import contextmanager
 import sys
@@ -62,7 +62,7 @@ class App(QtWidgets.QApplication):
                 context = ResolvedContext.load(filepath)
             except ResolvedContextError as e:
                 QtWidgets.QMessageBox.critical(self.main_window,
-                                           "Failed to load context", str(e))
+                                               "Failed to load context", str(e))
             finally:
                 QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -89,6 +89,7 @@ class App(QtWidgets.QApplication):
                                      parent_environ=env,
                                      start_new_session=True,
                                      **Popen_args)
+
 
 # app singleton
 app = App()

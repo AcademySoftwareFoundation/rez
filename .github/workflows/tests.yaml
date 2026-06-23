@@ -39,6 +39,15 @@ jobs:
       matrix:
         os: ['macos-latest', 'ubuntu-latest', 'windows-latest']
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        mypyc: [false, true]
+
+        exclude:
+        # mypyc requires Python >= 3.10 (mypy does not support older versions)
+        - python-version: '3.8'
+          mypyc: true
+        - python-version: '3.9'
+          mypyc: true
+
         include:
         - os: macos-latest
           shells: 'sh,csh,bash,tcsh,zsh,pwsh'
@@ -73,6 +82,8 @@ jobs:
         sudo apt-get install -y csh tcsh zsh
 
     - name: Install rez
+      env:
+        REZ_MYPYC: ${{ matrix.mypyc && '1' || '0' }}
       run: python ./install.py ./installdir
 
     - name: Install test system dependencies (macOS)

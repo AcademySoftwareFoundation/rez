@@ -16,6 +16,7 @@ import os
 import os.path
 import threading
 from io import StringIO
+from typing import Any
 
 from rez.package_resources import package_rex_keys
 from rez.utils.scope import ScopeContext
@@ -106,7 +107,7 @@ def open_file_for_write(filepath, mode=None):
     file_cache[filepath] = cache_filepath
 
 
-def load_from_file(filepath: str, format_=FileFormat.py, update_data_callback=None,
+def load_from_file(filepath: str, format_: FileFormat = FileFormat.py, update_data_callback=None,
                    disable_memcache: bool = False):
     """Load data from a file.
 
@@ -143,7 +144,7 @@ def load_from_file(filepath: str, format_=FileFormat.py, update_data_callback=No
                                update_data_callback=update_data_callback)
 
 
-def _load_from_file__key(filepath, format_, update_data_callback):
+def _load_from_file__key(filepath: str, format_: FileFormat, update_data_callback):
     st = os.stat(filepath)
     if update_data_callback is None:
         callback_key = 'None'
@@ -162,7 +163,7 @@ def _load_from_file(filepath: str, format_, update_data_callback):
     return _load_file(filepath, format_, update_data_callback)
 
 
-def _load_file(filepath: str, format_, update_data_callback, original_filepath=None):
+def _load_file(filepath: str, format_: FileFormat, update_data_callback, original_filepath=None):
     load_func = load_functions[format_]
 
     if debug_print:
@@ -221,7 +222,7 @@ def set_objects(objects):
         _set_objects.variables = {}
 
 
-def load_py(stream, filepath: str = None):
+def load_py(stream, filepath: str = None) -> dict[str, Any]:
     """Load python-formatted data from a stream.
 
     Args:
@@ -234,7 +235,7 @@ def load_py(stream, filepath: str = None):
         return _load_py(stream, filepath=filepath)
 
 
-def _load_py(stream, filepath: str = None):
+def _load_py(stream, filepath: str = None) -> dict[str, Any]:
     scopes = ScopeContext()
 
     g = dict(scope=scopes,
@@ -399,7 +400,7 @@ def process_python_objects(data: dict, filepath: str | None = None) -> dict:
     return data
 
 
-def load_yaml(stream, filepath: str = None):
+def load_yaml(stream, filepath: str = None) -> dict[str, Any]:
     """Load yaml-formatted data from a stream.
 
     Args:
@@ -428,7 +429,7 @@ def load_yaml(stream, filepath: str = None):
         raise e
 
 
-def load_txt(stream, filepath: str = None):
+def load_txt(stream, filepath: str = None) -> str:
     """Load text data from a stream.
 
     Args:

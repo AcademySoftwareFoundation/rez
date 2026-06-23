@@ -11,13 +11,20 @@ from rez.util import get_function_arg_names
 from threading import local
 from contextlib import contextmanager
 from functools import update_wrapper
-from inspect import isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
 from typing import Any, Callable, Iterator, TypeVar
 
+# FIXME: remove this workaround once support for python 3.9 is dropped
+try:
+    from typing import Concatenate, ParamSpec
+except ImportError:
+    from rez.vendor.typing_extensions.typing_extensions import Concatenate, ParamSpec
+
 
 CallableT = TypeVar("CallableT", bound=Callable)
+T = TypeVar("T")
+P = ParamSpec("P")
 
 # this version should be changed if and when the caching interface changes
 cache_interface_version = 2
@@ -202,14 +209,14 @@ class _ScopedInstanceManager(local):
     def __init__(self) -> None:
         self.clients: dict[tuple[tuple, bool], list] = {}
 
-    def acquire(self, servers, debug: bool = False) -> tuple[Client, tuple[tuple, bool]]:
+    def acquire(self, servers: list[str] | None, debug: bool = False) -> tuple[Client, tuple[tuple, bool]]:
         key = (tuple(servers or []), debug)
         entry = self.clients.get(key)
         if entry:
             entry[1] += 1
             return entry[0], key
         else:
-            client = Client(servers, debug=debug)
+            client = Client(servers or [], debug=debug)
             self.clients[key] = [client, 1]
             return client, key
 
@@ -228,7 +235,7 @@ scoped_instance_manager = _ScopedInstanceManager()
 
 
 @contextmanager
-def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache) -> Iterator[Client]:
+def memcached_client(servers: list[str] | None = config.memcached_uri, debug: bool = config.debug_memcache) -> Iterator[Client]:  # noqa: E501
     """Get a shared memcached instance.
 
     This function shares the same memcached instance across nested invocations.
@@ -250,27 +257,30 @@ def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache) 
             scoped_instance_manager.release(key)
 
 
-def pool_memcached_connections(func):
+def pool_memcached_connections(func: Callable[P, T]) -> Callable[P, T]:
     """Function decorator to pool memcached connections.
 
     Use this to wrap functions that might make multiple calls to memcached. This
     will cause a single memcached client to be shared for all connections.
     """
-    if isgeneratorfunction(func):
-        def wrapper(*nargs, **kwargs):
-            with memcached_client():
-                for result in func(*nargs, **kwargs):
-                    yield result
-    else:
-        def wrapper(*nargs, **kwargs):
-            with memcached_client():
-                return func(*nargs, **kwargs)
+    # if isgeneratorfunction(func):
+    #     def wrapper(*nargs: P.args, **kwargs: P.kwargs):
+    #         with memcached_client():
+    #             for result in func(*nargs, **kwargs):
+    #                 yield result
+    # else:
+    def wrapper(*nargs: P.args, **kwargs: P.kwargs) -> T:
+        with memcached_client():
+            return func(*nargs, **kwargs)
 
     return update_wrapper(wrapper, func)
 
 
-def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
-              min_compress_len: int = 0, debug: bool = False) -> Callable[[CallableT], CallableT]:
+def memcached(servers: list[str] | None, key: Callable[P, str] | None = None,
+              from_cache: Callable[Concatenate[T, P], T] | None = None,
+              to_cache: Callable[Concatenate[T, P], T] | None = None,
+              time: int = 0,
+              min_compress_len: int = 0, debug: bool = False) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """memcached memoization function decorator.
 
     The wrapped function is expected to return a value that is stored to a
@@ -321,7 +331,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
             However this increases chances of key clashes so should not be left
             turned on.
     """
-    def default_key(func, *nargs, **kwargs):
+    def default_key(func: Callable, *nargs: Any, **kwargs: Any) -> str:
         parts = [func.__module__]
         argnames = get_function_arg_names(func)
 
@@ -348,15 +358,15 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
 
         return repr(value)
 
-    def identity(value, *nargs, **kwargs):
+    def identity(value: T, *nargs: P.args, **kwargs: P.kwargs) -> T:
         return value
 
     from_cache = from_cache or identity
     to_cache = to_cache or identity
 
-    def decorator(func):
+    def decorator(func: Callable[P, T]):
         if servers:
-            def wrapper(*nargs, **kwargs):
+            def wrapper(*nargs: P.args, **kwargs: P.kwargs) -> T:
                 with memcached_client(servers, debug=debug) as client:
                     if key:
                         cache_key = key(*nargs, **kwargs)
@@ -366,6 +376,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
                     # get
                     result = client.get(cache_key)
                     if result is not client.miss:
+                        assert not isinstance(result, Client._Miss)
                         return from_cache(result, *nargs, **kwargs)
 
                     # cache miss - run target function
@@ -381,7 +392,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
                                min_compress_len=min_compress_len)
                     return result
         else:
-            def wrapper(*nargs, **kwargs):
+            def wrapper(*nargs: P.args, **kwargs: P.kwargs) -> T:
                 result = func(*nargs, **kwargs)
                 if isinstance(result, DoNotCache):
                     return result.result
@@ -398,8 +409,8 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
             with memcached_client(servers, debug=debug) as client:
                 client.flush()
 
-        wrapper.forget = forget
-        wrapper.__wrapped__ = func
+        wrapper.forget = forget  # type: ignore[attr-defined]
+        wrapper.__wrapped__ = func  # type: ignore[attr-defined]
         return update_wrapper(wrapper, func)
     return decorator
 
