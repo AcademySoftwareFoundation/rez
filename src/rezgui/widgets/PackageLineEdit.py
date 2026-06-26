@@ -97,7 +97,7 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
         pal.setColor(QtGui.QPalette.Inactive, QtGui.QPalette.Text, color)
         self.setPalette(pal)
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         if flags & ContextModel.PACKAGES_PATH_CHANGED:
             self._update_status()
 

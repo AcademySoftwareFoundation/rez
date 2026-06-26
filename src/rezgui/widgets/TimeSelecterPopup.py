@@ -92,7 +92,7 @@ class TimeSelecterPopup(QtWidgets.QFrame):
 
     secondsClicked = QtCore.Signal(int)
 
-    def __init__(self, pivot_widget, width: int=240, height: int=160, parent=None) -> None:
+    def __init__(self, pivot_widget, width: int = 240, height: int = 160, parent=None) -> None:
         super(TimeSelecterPopup, self).__init__(parent)
         self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
         self.setWindowFlags(QtCore.Qt.Popup)

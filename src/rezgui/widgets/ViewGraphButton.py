@@ -36,7 +36,7 @@ class ViewGraphButton(QtWidgets.QToolButton, ContextViewMixin):
     def refresh(self) -> None:
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         if not flags & ContextModel.CONTEXT_CHANGED:
             return
 

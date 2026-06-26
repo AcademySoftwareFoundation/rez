@@ -140,7 +140,7 @@ class ContextSubWindow(QtWidgets.QMdiSubWindow, ContextViewMixin, StoreSizeMixin
 
         return bool(filepath)
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         self._update_window_title()
 
     def _diffModeChanged(self) -> None:

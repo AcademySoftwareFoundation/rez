@@ -428,7 +428,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
     def refresh(self) -> None:
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         update_request_columns = {}
 
         # apply request and variant widgets to columns
@@ -612,7 +612,7 @@ class ContextTableWidget(QtWidgets.QTableWidget, ContextViewMixin):
             row += 1
 
     def _update_comparison_column(self, column) -> None:
-        #no_color = self.palette().color(QtGui.QPalette.Active, QtGui.QPalette.Base)
+        # no_color = self.palette().color(QtGui.QPalette.Active, QtGui.QPalette.Base)
 
         for row in range(self.rowCount()):
             left = self.cellWidget(row, column - 1)

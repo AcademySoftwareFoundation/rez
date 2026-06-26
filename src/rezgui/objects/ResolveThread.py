@@ -10,7 +10,7 @@ class ResolveThread(QtCore.QObject):
 
     finished = QtCore.Signal()
 
-    def __init__(self, context_model, verbosity: int=0, max_fails=-1, timestamp=None,
+    def __init__(self, context_model, verbosity: int = 0, max_fails=-1, timestamp=None,
                  show_package_loads: bool = True, buf=None) -> None:
         super(ResolveThread, self).__init__()
         self.context_model = context_model

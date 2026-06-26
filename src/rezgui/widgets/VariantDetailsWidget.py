@@ -46,5 +46,5 @@ class VariantDetailsWidget(QtWidgets.QWidget, ContextViewMixin):
     def _update_graph_btn_visibility(self) -> None:
         self.view_graph_btn.setVisible(bool(self.context()))
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         self._update_graph_btn_visibility()
