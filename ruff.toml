@@ -21,6 +21,7 @@ include = [
 extend-exclude = [
     "src/rez/vendor",
     "src/rez/data",
+    "src/support"
 ]
 
 # Match flake8 linter defaults
@@ -108,17 +109,10 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"src/rez/utils/filesystem.py" = [
-    "F821"    # Undefined name
-]
-"src/rez/cli/release.py" = [
-    "F821"    # Undefined name
-]
+# Bug in the following.  Uses the git python package, which is not installed, in the
+# export # class method.  rez-diff calls the method.
 "src/rezplugins/release_vcs/git.py" = [
     "F821"    # Undefined name
-]
-"src/support/package_utils/set_authors.py" = [
-    "INP001"  # part of an implicit namespace package
 ]
 
 [lint.flake8-annotations]
