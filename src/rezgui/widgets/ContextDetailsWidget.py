@@ -75,7 +75,7 @@ class ContextDetailsWidget(QtWidgets.QTabWidget, ContextViewMixin):
         elif tab_index == 1:
             self.code_edit.search()
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         if not (flags & ContextModel.CONTEXT_CHANGED):
             return
         self.refresh()

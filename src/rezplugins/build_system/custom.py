@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 import functools
 import os.path
 import sys
-import os
 
 from rez.build_system import BuildSystem, BuildResult
 from rez.build_process import BuildType

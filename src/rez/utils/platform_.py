@@ -521,8 +521,7 @@ class WindowsPlatform(Platform):
         # powershell.exe (Windows PowerShell 5.1) ships with all Windows 10/11 installs.
         cmd = [
             'powershell', '-NonInteractive', '-NoProfile', '-Command',
-            '(Get-CimInstance -ClassName Win32_Processor'
-            ' | Measure-Object -Property NumberOfCores -Sum).Sum',
+            '(Get-CimInstance -ClassName Win32_Processor | Measure-Object -Property NumberOfCores -Sum).Sum',
         ]
         try:
             p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
