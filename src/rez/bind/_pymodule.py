@@ -21,12 +21,12 @@ import os.path
 
 
 def commands() -> None:
-    env.PYTHONPATH.append('{this.root}/python')
+    env.PYTHONPATH.append('{this.root}/python')  # noqa: F821
 
 
 def commands_with_bin() -> None:
-    env.PYTHONPATH.append('{this.root}/python')
-    env.PATH.append('{this.root}/bin')
+    env.PYTHONPATH.append('{this.root}/python')  # noqa: F821
+    env.PATH.append('{this.root}/bin')  # noqa: F821
 
 
 def copy_module(name, destpath):
