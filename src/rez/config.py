@@ -659,7 +659,7 @@ class Config(object, metaclass=LazyAttributeMeta):
         Returns:
             List of str: The sourced files.
         """
-        _ = self._data  # noqa; force a config load
+        _ = self._data  # force a config load
         return self._sourced_filepaths or []
 
     @cached_property
