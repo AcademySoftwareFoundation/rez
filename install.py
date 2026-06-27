@@ -7,6 +7,7 @@ This script uses venv/virtualenv to create a standalone, production-ready Rez
 installation in the specified directory.
 """
 import argparse
+import contextlib
 import os
 import platform
 import sys
@@ -91,7 +92,7 @@ def patch_rez_binaries(dest_dir):
     specs = get_specifications()
 
     # delete rez bin files written into virtualenv
-    for name in specs.keys():
+    for name in specs:
         basepath = os.path.join(virtualenv_bin_path, name)
         filepaths = [
             basepath,
@@ -263,10 +264,8 @@ def install_as_rez_package(repo_path):
 
     finally:
         # cleanup temp install
-        try:
+        with contextlib.suppress(BaseException):
             safe_rmtree(tmpdir)
-        except:
-            pass
 
 
 if __name__ == "__main__":
@@ -311,12 +310,9 @@ if __name__ == "__main__":
     else:
         path = "/opt/rez"
 
-    if opts.as_rez_package:
-        dest_dir = path
-    else:
-        dest_dir = path.format(version=_rez_version)
-
+    dest_dir = path if opts.as_rez_package else path.format(version=_rez_version)
     dest_dir = os.path.expanduser(dest_dir)
+
     if not opts.keep_symlinks:
         dest_dir = os.path.realpath(dest_dir)
 

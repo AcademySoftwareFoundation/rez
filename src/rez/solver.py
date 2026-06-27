@@ -641,9 +641,8 @@ class _PackageVariantSlice(_Common):
         if range_.is_any():
             return self
 
-        if self.solver.optimised:
-            if range_ in self.been_intersected_with:
-                return self
+        if self.solver.optimised and range_ in self.been_intersected_with:
+            return self
 
         if self.pr:
             self.pr.passive("intersecting %s wrt range '%s'...", self, range_)
@@ -676,9 +675,8 @@ class _PackageVariantSlice(_Common):
             reqstr = _short_req_str(package_request)
             self.pr.passive("reducing %s wrt %s...", self, reqstr)
 
-        if self.solver.optimised:
-            if package_request in self.been_reduced_by:
-                return (self, [])
+        if self.solver.optimised and package_request in self.been_reduced_by:
+            return (self, [])
 
         if (package_request.range is None) or \
                 (package_request.name not in self.fam_requires):
@@ -804,10 +802,7 @@ class _PackageVariantSlice(_Common):
 
             if self.pr:
                 if common_fams:
-                    if len(common_fams) == 1:
-                        reason_str = next(iter(common_fams))
-                    else:
-                        reason_str = ", ".join(common_fams)
+                    reason_str = next(iter(common_fams)) if len(common_fams) == 1 else ", ".join(common_fams)
                 else:
                     reason_str = "first variant"
                 self.pr("split (reason: %s) %s into %s and %s",
@@ -816,10 +811,7 @@ class _PackageVariantSlice(_Common):
             return slice_, next_slice
 
         # determine if we need to find first variant without common dependency
-        if len(self) > 2:
-            fams = self.first_variant.request_fams - self.extracted_fams
-        else:
-            fams = None
+        fams = self.first_variant.request_fams - self.extracted_fams if len(self) > 2 else None
 
         if not fams:
             # trivial case, split on first variant
@@ -1663,10 +1655,7 @@ class _ResolvePhase(_Common):
                 return id_
 
             label = str(request)
-            if initial_request:
-                color = request_color
-            else:
-                color = node_color
+            color = request_color if initial_request else node_color
 
             id_ = _add_node(label, color, "filled,dashed")
             request_nodes[request] = id_
@@ -1744,7 +1733,7 @@ class _ResolvePhase(_Common):
                 _add_edge(id1, id2)
 
         # add extraction intersections
-        extracted_fams = set(x[1] for x in self.extractions.keys())
+        extracted_fams = set(x[1] for x in self.extractions)
         for fam in extracted_fams:
             requests = [v for k, v in self.extractions.items() if k[1] == fam]
             if len(requests) > 1:
@@ -1868,10 +1857,7 @@ class _ResolvePhase(_Common):
         return g
 
     def _is_solved(self) -> bool:
-        for scope in self.scopes:
-            if not scope._is_solved():
-                return False
-        return True
+        return all(scope._is_solved() for scope in self.scopes)
 
     def _get_solved_variants(self) -> list[PackageVariant]:
         variants = []

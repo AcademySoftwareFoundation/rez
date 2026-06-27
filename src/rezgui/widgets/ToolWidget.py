@@ -107,8 +107,5 @@ class ToolWidget(QtWidgets.QWidget):
         QtWidgets.QMessageBox.information(self, "Processes", txt)
 
     def set_instance_count(self, nprocs) -> None:
-        if nprocs:
-            txt = "%d instances running..." % nprocs
-        else:
-            txt = ""
+        txt = "%d instances running..." % nprocs if nprocs else ""
         self.instances_label.setText(txt)

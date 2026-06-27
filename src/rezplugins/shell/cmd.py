@@ -184,18 +184,12 @@ class CMD(Shell):
 
         cmd = []
         if pre_command:
-            if isinstance(pre_command, str):
-                cmd = pre_command.strip().split()
-            else:
-                cmd = pre_command
+            cmd = pre_command.strip().split() if isinstance(pre_command, str) else pre_command
 
         # Test for None specifically because resolved_context.execute_rex_code
         # passes '' and we do NOT want to keep a shell open during a rex code
         # exec operation.
-        if shell_command is None:
-            cmd_flags = ['/Q', '/K']
-        else:
-            cmd_flags = ['/Q', '/C']
+        cmd_flags = ["/Q", "/K"] if shell_command is None else ["/Q", "/C"]
 
         cmd += [self.executable]
         cmd += cmd_flags

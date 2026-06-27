@@ -145,10 +145,7 @@ def load_from_file(filepath: str, format_=FileFormat.py, update_data_callback=No
 
 def _load_from_file__key(filepath, format_, update_data_callback):
     st = os.stat(filepath)
-    if update_data_callback is None:
-        callback_key = 'None'
-    else:
-        callback_key = getattr(update_data_callback, "__name__", "None")
+    callback_key = "None" if update_data_callback is None else getattr(update_data_callback, "__name__", "None")
 
     return str(("package_file", filepath, str(format_), callback_key,
                 int(st.st_ino), st.st_mtime))
@@ -340,13 +337,9 @@ def process_python_objects(data: dict, filepath: str | None = None) -> dict:
                 if len(args) not in (0, 1):
                     raise ResourceError("@early decorated function must "
                                         "take zero or one args only")
-                if args:
-                    # this 'data' arg support isn't needed anymore, but I'm
-                    # supporting it til I know nobody is using it...
-                    #
-                    value_ = fn(data)
-                else:
-                    value_ = fn()
+                # this 'data' arg support isn't needed anymore, but I'm
+                # supporting it til I know nobody is using it...
+                value_ = fn(data) if args else fn()
 
                 # process again in case this is a function returning a function
                 return _process(value_)

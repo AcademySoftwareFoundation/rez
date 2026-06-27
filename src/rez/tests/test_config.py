@@ -320,27 +320,23 @@ class TestDeprecations(TestBase, TempdirMixin):
             "packages_path": _Deprecation("0.0.0"),
         }
 
-        with unittest.mock.patch(
-            "rez.config._deprecated_settings",
-            fake_deprecated_settings
-        ):
-            with restore_os_environ():
-                os.environ["HOME"] = user_home
-                # On Windows, os.path.expanduser will read HOME and then USERPROFILE with Python 3.7.
-                # https://docs.python.org/3.7/library/os.path.html#os.path.expanduser
-                # Also on Windows but for Python 3.8+, it will look for USERPROFILE and then HOME.
-                # https://docs.python.org/3.8/library/os.path.html#os.path.expanduser
-                os.environ["USERPROFILE"] = user_home
-                config = Config._create_main_config()
-                with self.assertWarns(RezDeprecationWarning) as warning:
-                    _ = config.data
-                    # Assert just to ensure the test was set up properly.
-                    self.assertEqual(config.data["packages_path"], ["/tmp/asd"])
+        with unittest.mock.patch("rez.config._deprecated_settings", fake_deprecated_settings), restore_os_environ():
+            os.environ["HOME"] = user_home
+            # On Windows, os.path.expanduser will read HOME and then USERPROFILE with Python 3.7.
+            # https://docs.python.org/3.7/library/os.path.html#os.path.expanduser
+            # Also on Windows but for Python 3.8+, it will look for USERPROFILE and then HOME.
+            # https://docs.python.org/3.8/library/os.path.html#os.path.expanduser
+            os.environ["USERPROFILE"] = user_home
+            config = Config._create_main_config()
+            with self.assertWarns(RezDeprecationWarning) as warning:
+                _ = config.data
+                # Assert just to ensure the test was set up properly.
+                self.assertEqual(config.data["packages_path"], ["/tmp/asd"])
 
-                self.assertEqual(
-                    str(warning.warning),
-                    "config setting named 'packages_path' is deprecated and will be removed in 0.0.0.",
-                )
+            self.assertEqual(
+                str(warning.warning),
+                "config setting named 'packages_path' is deprecated and will be removed in 0.0.0.",
+            )
 
     def test_deprecation_from_env_var(self) -> None:
         fake_deprecated_settings = {

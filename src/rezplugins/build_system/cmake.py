@@ -120,10 +120,7 @@ class CMakeBuildSystem(BuildSystem):
                 print(s)
 
         # find cmake binary
-        if self.settings.cmake_binary:
-            exe = self.settings.cmake_binary
-        else:
-            exe = context.which("cmake", fallback=True)
+        exe = self.settings.cmake_binary or context.which("cmake", fallback=True)
         if not exe:
             raise RezCMakeError("could not find cmake binary")
         found_exe = which(exe)
@@ -220,10 +217,9 @@ class CMakeBuildSystem(BuildSystem):
         cmd = [make_binary] + (self.child_build_args or [])
 
         # nmake has no -j
-        if make_binary != "nmake":
-            if not any(x.startswith("-j") for x in (self.child_build_args or [])):
-                n = variant.config.build_thread_count
-                cmd.append("-j%d" % n)
+        if make_binary != "nmake" and not any(x.startswith("-j") for x in (self.child_build_args or [])):
+            n = variant.config.build_thread_count
+            cmd.append("-j%d" % n)
 
         # execute make within the build env
         _pr("\nExecuting: %s" % ' '.join(cmd))

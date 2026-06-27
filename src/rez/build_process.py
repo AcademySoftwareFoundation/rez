@@ -398,10 +398,7 @@ class BuildProcessHelper(BuildProcess):
 
     def get_changelog(self) -> str | None:
         previous_package = self.get_previous_release()
-        if previous_package:
-            previous_revision = previous_package.revision
-        else:
-            previous_revision = None
+        previous_revision = previous_package.revision if previous_package else None
 
         changelog = None
         with self.repo_operation():

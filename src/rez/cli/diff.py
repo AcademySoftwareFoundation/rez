@@ -28,9 +28,6 @@ def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.utils.diff_packages import diff_packages
 
     pkg1 = get_package_from_string(opts.PKG1)
-    if opts.PKG2:
-        pkg2 = get_package_from_string(opts.PKG2)
-    else:
-        pkg2 = None
+    pkg2 = get_package_from_string(opts.PKG2) if opts.PKG2 else None
 
     diff_packages(pkg1, pkg2)

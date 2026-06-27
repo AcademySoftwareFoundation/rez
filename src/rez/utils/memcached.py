@@ -358,10 +358,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
         if servers:
             def wrapper(*nargs, **kwargs):
                 with memcached_client(servers, debug=debug) as client:
-                    if key:
-                        cache_key = key(*nargs, **kwargs)
-                    else:
-                        cache_key = default_key(func, *nargs, **kwargs)
+                    cache_key = key(*nargs, **kwargs) if key else default_key(func, *nargs, **kwargs)
 
                     # get
                     result = client.get(cache_key)

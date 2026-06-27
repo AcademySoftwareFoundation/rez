@@ -191,10 +191,7 @@ class SourceCode(Generic[T]):
 
     @property
     def sourcename(self) -> str:
-        if self.filepath:
-            filename = self.filepath
-        else:
-            filename = "string"
+        filename = self.filepath or "string"
 
         if self.funcname:
             filename += ":%s" % self.funcname
@@ -239,10 +236,7 @@ class SourceCode(Generic[T]):
 
     def to_text(self, funcname: str) -> str:
         # don't indent code if already indented
-        if self.source[0] in (' ', '\t'):
-            source = self.source
-        else:
-            source = indent(self.source)
+        source = self.source if self.source[0] in (' ', '\t') else indent(self.source)
 
         txt = "def %s():\n%s" % (funcname, source)
 

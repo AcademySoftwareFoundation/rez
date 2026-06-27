@@ -28,11 +28,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
 
     # We need to skip first arg if 'rez-python' form was used, but we need to
     # skip the first TWO args if 'rez python' form was used.
-    #
-    if is_hyphened_command():
-        args = sys.argv[1:]
-    else:
-        args = sys.argv[2:]
+    args = sys.argv[1:] if is_hyphened_command() else sys.argv[2:]
 
     cmd = [sys.executable, "-E"] + args
 

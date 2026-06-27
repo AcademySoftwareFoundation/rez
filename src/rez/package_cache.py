@@ -3,6 +3,7 @@
 
 
 from __future__ import annotations
+import contextlib
 
 import json
 import os
@@ -371,10 +372,7 @@ class PackageCache(object):
             names = os.listdir(path)
             names = [x for x in names if x.endswith(".json")]
 
-            if names:
-                prev = os.path.splitext(max(names))[0]
-            else:
-                prev = None
+            prev = os.path.splitext(max(names))[0] if names else None
 
             incname = get_next_base26(prev)
 
@@ -399,10 +397,8 @@ class PackageCache(object):
         def _while_copying() -> None:
             while still_copying:
                 time.sleep(self._COPYING_TIME_INC)
-                try:
+                with contextlib.suppress(BaseException):
                     os.utime(copying_filepath, None)
-                except:
-                    pass
 
         rootpath = os.path.join(path, incname)
         th = threading.Thread(target=_while_copying)
@@ -608,10 +604,7 @@ class PackageCache(object):
             with open(os.devnull, 'w') as devnull:
 
                 # don't suppress output if selftest running, easier to debug
-                if system.selftest_is_running:
-                    out_target = None
-                else:
-                    out_target = devnull
+                out_target = None if system.selftest_is_running else devnull
 
                 return subprocess.Popen(
                     args,
@@ -846,10 +839,8 @@ class PackageCache(object):
             lock.acquire(timeout=self._FILELOCK_TIMEOUT)
             yield
         finally:
-            try:
+            with contextlib.suppress(NotLocked):
                 lock.release()
-            except NotLocked:
-                pass
 
     def _run_caching_step(self, state, wait_for_copying: bool = False) -> bool:
         logger = state["logger"]

@@ -540,10 +540,7 @@ class UnixShell(Shell):
 
         cmd = []
         if pre_command:
-            if isinstance(pre_command, str):
-                cmd = pre_command.strip().split()
-            else:
-                cmd = pre_command
+            cmd = pre_command.strip().split() if isinstance(pre_command, str) else pre_command
         cmd.extend([self.executable, target_file])
 
         if config.debug("shell_startup"):

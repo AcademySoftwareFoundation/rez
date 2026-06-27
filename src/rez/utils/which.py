@@ -76,10 +76,7 @@ def which(cmd: str, mode=os.F_OK | os.X_OK, path: str | None = None, env=None) -
             # target's extension matches any of the expected path extensions.
             #
             realfile = os.path.realpath(os.path.join(normdir, cmd)).lower()
-            if any(realfile.endswith(x) for x in pathext):
-                files = [cmd]
-            else:
-                files = [(cmd + ext) for ext in pathext]
+            files = [cmd] if any(realfile.endswith(x) for x in pathext) else [cmd + ext for ext in pathext]
         else:
             files = [cmd]
 

@@ -86,10 +86,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
     else:
         paths = None
 
-    if opts.type == "auto":
-        type_ = None
-    else:
-        type_ = opts.type
+    type_ = None if opts.type == "auto" else opts.type
 
     searcher = ResourceSearcher(
         package_paths=paths,

@@ -5,6 +5,7 @@
 """
 Test cases for package_order.py (package ordering)
 """
+import contextlib
 import json
 
 from rez.config import config
@@ -312,10 +313,8 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         }))
 
         # Clear @classproperty cache
-        try:
+        with contextlib.suppress(AttributeError):
             delattr(PackageOrderList, '_class_property_singleton')
-        except AttributeError:
-            pass
         self.assertEqual(expected, PackageOrderList.singleton)
 
     def test_singleton_novalue(self) -> None:
@@ -323,10 +322,8 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         config.override("package_orderers", None)
 
         # Clear @classproperty cache
-        try:
+        with contextlib.suppress(AttributeError):
             delattr(PackageOrderList, '_class_property_singleton')
-        except AttributeError:
-            pass
 
         self.assertEqual(PackageOrderList(), PackageOrderList.singleton)
 

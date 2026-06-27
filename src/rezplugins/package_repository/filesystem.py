@@ -7,6 +7,7 @@ Filesystem-based package repository
 """
 from __future__ import annotations
 
+import contextlib
 from contextlib import contextmanager
 from functools import lru_cache
 import os.path
@@ -233,10 +234,8 @@ class FileSystemPackageResource(PackageResourceHelper):
                 filepath = os.path.join(path_, "release_time.txt")
                 if os.path.isfile(filepath):
                     value = load_from_file(filepath, FileFormat.txt)
-                    try:
+                    with contextlib.suppress(BaseException):
                         data["timestamp"] = int(value.strip())
-                    except:
-                        pass
         return data
 
     @staticmethod
@@ -613,12 +612,8 @@ class FileSystemPackageRepository(PackageRepository):
         pkg_name = parts[0]
 
         if len(parts) == 2:
-            if '<' in part:
-                # "combined" package type, like 'mypkg/package.py<1.0.0>'
-                pkg_ver_str = parts[1][1:-1]
-            else:
-                # 'mypkg/package.py' (unversioned)
-                pkg_ver_str = ''
+            # "combined" package type, like 'mypkg/package.py<1.0.0>' or 'mypkg/package.py' (unversioned)
+            pkg_ver_str = parts[1][1:-1] if "<" in part else ""
         elif len(parts) == 3:
             # typical case: 'mypkg/1.0.0/package.py'
             pkg_ver_str = parts[1]
@@ -1003,10 +998,8 @@ class FileSystemPackageRepository(PackageRepository):
             yield
 
         finally:
-            try:
+            with contextlib.suppress(NotLocked):
                 lock.release()
-            except NotLocked:
-                pass
 
     def clear_caches(self) -> None:
         super(FileSystemPackageRepository, self).clear_caches()
@@ -1184,10 +1177,7 @@ class FileSystemPackageRepository(PackageRepository):
         return [x for x in package_resource.iter_variants()]
 
     def _get_file(self, path: str, package_filename=None) -> tuple[str, FileFormat] | tuple[None, None]:
-        if package_filename:
-            package_filenames = [package_filename]
-        else:
-            package_filenames = _settings.package_filenames
+        package_filenames = [package_filename] if package_filename else _settings.package_filenames
 
         for name in package_filenames:
             # TODO: Deprecate YAML
@@ -1273,10 +1263,7 @@ class FileSystemPackageRepository(PackageRepository):
         #
         def _get_package_data(pkg: PackageRepositoryResourceWrapper):
             data = pkg.validated_data()
-            if hasattr(pkg, "_data"):
-                raw_data = pkg._data
-            else:
-                raw_data = pkg.resource._data
+            raw_data = pkg._data if hasattr(pkg, "_data") else pkg.resource._data
 
             raw_config_data = raw_data.get('config')
             data.pop("config", None)
@@ -1405,10 +1392,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # create version dir if it doesn't already exist
         family_path = os.path.join(self.location, variant_name)
-        if variant_version:
-            pkg_base_path = os.path.join(family_path, str(variant_version))
-        else:
-            pkg_base_path = family_path
+        pkg_base_path = os.path.join(family_path, str(variant_version)) if variant_version else family_path
         os.makedirs(pkg_base_path, exist_ok=True)
 
         # Apply overrides.
@@ -1446,26 +1430,21 @@ class FileSystemPackageRepository(PackageRepository):
         package_file = ".".join([package_filename, package_extension])
         filepath = os.path.join(pkg_base_path, package_file)
 
-        with make_path_writable(pkg_base_path):
-            with open_file_for_write(filepath, mode=self.package_file_mode) as f:
-                dump_package_data(package_data, buf=f, format_=package_format)
+        with make_path_writable(pkg_base_path), open_file_for_write(filepath, mode=self.package_file_mode) as f:
+            dump_package_data(package_data, buf=f, format_=package_format)
 
         # delete the tmp 'building' file.
         if variant_version:
             filename = self.building_prefix + str(variant_version)
             filepath = os.path.join(family_path, filename)
             if os.path.exists(filepath):
-                try:
+                with contextlib.suppress(BaseException):
                     os.remove(filepath)
-                except:
-                    pass
 
         # delete other stale building files; previous failed releases may have
         # left some around
-        try:
+        with contextlib.suppress(BaseException):
             self._delete_stale_build_tagfiles(family_path)
-        except:
-            pass
 
         self._on_changed(variant_name)
 

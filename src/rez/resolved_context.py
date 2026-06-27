@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from rez import __version__, module_root_path
 from rez.package_repository import package_repository_manager
 from rez.solver import SolverCallbackReturn
@@ -290,10 +292,7 @@ class ResolvedContext(object):
         self.append_sys_path = True
 
         if package_caching is None:
-            if building:
-                package_caching = config.package_cache_during_build
-            else:
-                package_caching = True
+            package_caching = config.package_cache_during_build if building else True
         self.package_caching = package_caching
 
         if package_cache_async is None:
@@ -655,12 +654,11 @@ class ResolvedContext(object):
             overrides = set(x.name for x in package_requests if not x.conflict)
             rank_limiters = []
             for variant in self.resolved_packages:
-                if variant.name not in overrides:
-                    if len(variant.version) >= rank:
-                        version = variant.version.trim(rank - 1)
-                        version = next(version)
-                        req = "~%s<%s" % (variant.name, str(version))
-                        rank_limiters.append(req)
+                if variant.name not in overrides and len(variant.version) >= rank:
+                    version = variant.version.trim(rank - 1)
+                    version = next(version)
+                    req = "~%s<%s" % (variant.name, str(version))
+                    rank_limiters.append(req)
             request += rank_limiters
 
         return request
@@ -706,9 +704,8 @@ class ResolvedContext(object):
 
     def save(self, path: str) -> None:
         """Save the resolved context to file."""
-        with self._detect_bundle(path):
-            with open(path, 'w') as f:
-                self.write_to_buffer(f)
+        with self._detect_bundle(path), open(path, 'w') as f:
+            self.write_to_buffer(f)
 
     def write_to_buffer(self, buf: SupportsWrite) -> None:
         """Save the context to a buffer."""
@@ -748,9 +745,8 @@ class ResolvedContext(object):
     @classmethod
     def load(cls, path: str) -> ResolvedContext:
         """Load a resolved context from file."""
-        with cls._detect_bundle(path):
-            with open(path) as f:
-                context = cls.read_from_buffer(f, path)
+        with cls._detect_bundle(path), open(path) as f:
+            context = cls.read_from_buffer(f, path)
 
         context.set_load_path(path)
         return context
@@ -1366,10 +1362,7 @@ class ResolvedContext(object):
         Note:
             This does not alter the current python session.
         """
-        if parent_environ is None or parent_environ is os.environ:
-            target_environ = {}
-        else:
-            target_environ = parent_environ.copy()
+        target_environ = {} if parent_environ is None or parent_environ is os.environ else parent_environ.copy()
 
         interpreter = Python(target_environ=target_environ)
 
@@ -1863,10 +1856,8 @@ class ResolvedContext(object):
 
             yield
         finally:
-            try:
+            with contextlib.suppress(AttributeError):
                 delattr(cls.local, "bundle_path")
-            except AttributeError:
-                pass
 
     @classmethod
     def _get_bundle_path(cls) -> str | None:
@@ -2012,10 +2003,7 @@ class ResolvedContext(object):
     def _read_from_buffer(cls, buf: SupportsRead, identifier_str: str | None = None) -> ResolvedContext:
         content = buf.read()
 
-        if content.startswith('{'):  # assume json content
-            doc = json.loads(content)
-        else:
-            doc = yaml.load(content, Loader=yaml.FullLoader)
+        doc = json.loads(content) if content.startswith('{') else yaml.load(content, Loader=yaml.FullLoader)
 
         context = cls.from_dict(doc, identifier_str)
         return context
@@ -2119,10 +2107,7 @@ class ResolvedContext(object):
             pkgcache = None
 
         for pkg in resolved_pkgs:
-            if pkgcache:
-                cached_root = pkgcache.get_cached_root(pkg)
-            else:
-                cached_root = None
+            cached_root = pkgcache.get_cached_root(pkg) if pkgcache else None
 
             variant_binding = VariantBinding(
                 pkg, cached_root=cached_root, interpreter=executor.interpreter
@@ -2200,10 +2185,7 @@ class ResolvedContext(object):
 
                 if exc:
                     header = "Error in %s in package %r:\n" % (attr, pkg.uri)
-                    if self.verbosity >= 2:
-                        msg = header + str(exc)
-                    else:
-                        msg = header + exc.short_msg
+                    msg = header + str(exc) if self.verbosity >= 2 else header + exc.short_msg
 
                     raise PackageCommandError(msg)
 

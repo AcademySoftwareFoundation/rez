@@ -26,10 +26,7 @@ class Writer(QtCore.QObject):
             self.process.terminate()
 
     def write_graph(self) -> None:
-        if self.prune_to:
-            graph_str = prune_graph(self.graph_str, self.prune_to)
-        else:
-            graph_str = self.graph_str
+        graph_str = prune_graph(self.graph_str, self.prune_to) if self.prune_to else self.graph_str
 
         error_msg = ''
         try:

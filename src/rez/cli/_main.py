@@ -140,10 +140,7 @@ def run(command=None):
         args = sys.argv[1:]
 
     # parse args depending on subcommand behaviour
-    if command:
-        arg_mode = subcommands[command].get("arg_mode")
-    else:
-        arg_mode = None
+    arg_mode = subcommands[command].get("arg_mode") if command else None
 
     parser = setup_parser()
     if arg_mode == "grouped":
