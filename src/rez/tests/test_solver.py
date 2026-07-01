@@ -14,7 +14,7 @@ from rez.tests.util import TestBase
 import itertools
 
 
-solver_verbosity = 1
+solver_verbosity = 2  # FIXME
 
 
 class TestSolver(TestBase):
@@ -272,6 +272,103 @@ class TestSolver(TestBase):
                      'test_variant_split_mid2-2.0[0]',
                      'python-2.6.8[]',
                      'pyfoo-3.1.0[]'])
+
+    def test_15_provides(self) -> None:
+        """Tests involving 'provides' ephemerals.
+
+        pydcc-1 requires '.provides.python-2.6.8', pydcc-2 requires
+        '.provides.python-2.7' (ie each bundles its own python)
+        """
+        # a provider on its own; python is not resolved
+        self._solve(["pydcc-1"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+
+        # indirect requests for a provided package are satisfied by it
+        self._solve(["pydcc-1", "pyfoo"],
+                    ["pydcc-1[]", "pyfoo-3.1.0[]", ".provides.python-2.6.8"])
+
+        # ...as are direct requests
+        self._solve(["pydcc-1", "python"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+        self._solve(["pydcc-1", "python-2.6"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+
+        # pydcc-2 provides python-2.7, no pyfoo is compatible with that, so
+        # the solver must backtrack to pydcc-1
+        self._solve(["pydcc", "pyfoo"],
+                    ["pydcc-1[]", "pyfoo-3.1.0[]", ".provides.python-2.6.8"])
+
+        # a 'provides' ephemeral in the request itself
+        self._solve([".provides.python-2.6.8", "pyfoo"],
+                    ["pyfoo-3.1.0[]", ".provides.python-2.6.8"])
+
+        # provides ranges intersect like any other ephemeral
+        self._solve(["pydcc-1", ".provides.python-2.6"],
+                    ["pydcc-1[]", ".provides.python-2.6.8"])
+
+        # variants conflicting with the provided range are reduced away
+        self._solve(["pyvariants", "pydcc-1"],
+                    ["pyvariants-2[2]", "pydcc-1[]", ".provides.python-2.6.8"])
+
+        # requests outside the provided range are conflicts
+        self._fail("pydcc-1", "python-2.7")
+        self._fail("pydcc-1", "pyfoo-3.0")  # pyfoo-3.0.0 requires python-2.5
+
+    def test_16_provides_exact(self) -> None:
+        """An exact '==' provide only covers that exact version."""
+        self._solve([".provides.python==2.6.0", "python-2.6"],
+                    [".provides.python==2.6.0"])
+        self._fail(".provides.python==2.6.0", "python-2.6.8")
+        # an exact provide conflicts with an overlapping-but-different range
+        self._fail(".provides.python==2.6.0", ".provides.python-2.6.8")
+
+    def test_17_provides_nonexistent_package(self) -> None:
+        """A provided package does not have to exist in any repository
+
+        needsvendored requires 'vendored-1' but there is no 'vendored' package
+        """
+        self._solve([".provides.vendored-1.2", "needsvendored"],
+                    ["needsvendored-1[]", ".provides.vendored-1.2"])
+
+        # without a provider, the package really is missing
+        with self.assertRaises(rez.exceptions.PackageFamilyNotFoundError):
+            self._solve(["needsvendored"], [])
+
+        # provided, but outside the requested range
+        self._fail(".provides.vendored-2", "needsvendored")
+
+    def test_18_provides_multiple_providers(self) -> None:
+        """Two separate packages providing the same package.
+
+        pydcc-1 provides 'python-2.6.8' and bundledpy-1 provides 'python-2.6'.
+        """
+        # FIXME: is this the wanted behaviour?
+        # FIXME: should probably warn or error as mentioned in #1100
+        # > Perhaps a configurable setting would cause a warning or error; if a
+        # > warning, perhaps the first package encountered wins.
+
+        self._solve(["pydcc-1", "bundledpy-1"],
+                    ["pydcc-1[]", "bundledpy-1[]", ".provides.python-2.6.8"])
+
+    def test_19_provides_mixed_variants(self) -> None:
+        """A package with one variant that provides python and one that depends
+        on a real python
+
+        mixedprovides-1 has variants [['.provides.python-2.6'], ['python-2.7']].
+        """
+        # nothing forces the choice: the real-python variant wins (2.7.0 > 2.6),
+        # so a real python is resolved
+        self._solve(["mixedprovides"],
+                    ["python-2.7.0[]", "mixedprovides-1[1]"])
+        self._solve(["mixedprovides", "python-2.7"],
+                    ["python-2.7.0[]", "mixedprovides-1[1]"])
+
+        # requesting python-2.6 rules out the real-python variant, so the
+        # bundled (provides) variant is selected and python is provided
+        self._solve(["mixedprovides", "python-2.6"],
+                    ["mixedprovides-1[0]", ".provides.python-2.6"])
+        self._solve(["mixedprovides", ".provides.python-2.6"],
+                    ["mixedprovides-1[0]", ".provides.python-2.6"])
 
 
 if __name__ == '__main__':
