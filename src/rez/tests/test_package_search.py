@@ -7,8 +7,12 @@ test package_search module
 """
 import unittest
 
-from rez.package_search import get_reverse_dependency_tree, get_plugins, \
-    ResourceSearcher, ResourceSearchResultFormatter, ResourceSearchResult
+from rez.package_search import (
+    get_reverse_dependency_tree,
+    ResourceSearcher,
+    ResourceSearchResultFormatter,
+    ResourceSearchResult
+)
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
 
