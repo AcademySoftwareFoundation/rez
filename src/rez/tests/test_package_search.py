@@ -8,7 +8,7 @@ test package_search module
 import unittest
 
 from rez.package_search import get_reverse_dependency_tree, get_plugins, \
-    ResourceSearcher
+    ResourceSearcher, ResourceSearchResultFormatter, ResourceSearchResult
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
 
@@ -59,6 +59,28 @@ class TestPackageSearch(TestBase, TempdirMixin):
         self.assertEqual(resource_type, "package")
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].resource.version, Version("3"))
+    def test_formatter_default_output(self) -> None:
+        """test ResourceSearchResultFormatter with default (no output_format) settings"""
+        searcher = ResourceSearcher(package_paths=[self.solver_packages_path], latest=True)
+        resource_type, results = searcher.search("pydad")
+
+        formatter = ResourceSearchResultFormatter()
+        formatted_lines = formatter.format_search_results(results)
+
+        # default output just shows the qualified name
+        self.assertEqual(len(formatted_lines), 1)
+        text, color = formatted_lines[0]
+        self.assertEqual(text, "pydad-3")
+    def test_resource_search_result(self) -> None:
+        """test ResourceSearchResult stores its attributes correctly"""
+        result = ResourceSearchResult("fake_resource", "package")
+
+        self.assertEqual(result.resource, "fake_resource")
+        self.assertEqual(result.resource_type, "package")
+        self.assertIsNone(result.validation_error)
+
+        result_with_error = ResourceSearchResult("fake_resource", "package", "some error")
+        self.assertEqual(result_with_error.validation_error, "some error")
 
 if __name__ == '__main__':
     unittest.main()
