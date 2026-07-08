@@ -10,7 +10,7 @@ import unittest
 from rez.package_search import get_reverse_dependency_tree, get_plugins, \
     ResourceSearcher
 from rez.tests.util import TestBase, TempdirMixin
-
+from rez.version import Version
 
 class TestPackageSearch(TestBase, TempdirMixin):
     @classmethod
@@ -41,6 +41,24 @@ class TestPackageSearch(TestBase, TempdirMixin):
         # depth=0 means only the root package itself, no parents
         self.assertEqual(len(pkgs_list), 1)
         self.assertEqual(pkgs_list[0], ["pymum"])
+
+    def test_resource_searcher_family(self) -> None:
+        """test ResourceSearcher finds a package family by name"""
+        searcher = ResourceSearcher(package_paths=[self.solver_packages_path])
+        resource_type, results = searcher.search("pydad")
+
+        self.assertEqual(resource_type, "package")
+        # pydad has 3 versions, all should be found
+        self.assertEqual(len(results), 3)
+
+    def test_resource_searcher_latest_only(self) -> None:
+        """test ResourceSearcher with latest=True returns only newest version"""
+        searcher = ResourceSearcher(package_paths=[self.solver_packages_path], latest=True)
+        resource_type, results = searcher.search("pydad")
+
+        self.assertEqual(resource_type, "package")
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].resource.version, Version("3"))
 
 if __name__ == '__main__':
     unittest.main()
