@@ -366,3 +366,5 @@ class TestPackageCache(TestBase, TempdirMixin):
         cached_root = pkgcache.get_cached_root(variant)
         self.assertIsNotNone(cached_root)
         self.assertTrue(os.path.isdir(cached_root))
+
+        pkgcache.remove_variant(variant)
