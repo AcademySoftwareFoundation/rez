@@ -11,7 +11,7 @@ import os.path
 import time
 import subprocess
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from rez.tests.util import TestBase, TempdirMixin, restore_os_environ, \
     install_dependent
@@ -340,3 +340,45 @@ class TestPackageCache(TestBase, TempdirMixin):
              patch.object(pkgcache, 'variant_meets_space_requirements', return_value=False):
             _, status = pkgcache.add_variant(variant)
             self.assertEqual(status, PackageCache.VARIANT_SKIPPED)
+
+    def test_cache_fail_missing_root_filesystem_repo(self) -> None:
+        """Filesystem repo variant with nonexistent root raises PackageCacheError."""
+        pkgcache = self._pkgcache()
+
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+
+        with patch.object(type(variant), "root", new="/no/such/path"):
+            with self.assertRaises(PackageCacheError):
+                pkgcache.add_variant(variant)
+
+    def test_cache_skips_root_check_for_non_filesystem_repo(self) -> None:
+        """Non-filesystem repo variant does not fail on missing root dir."""
+        pkgcache = self._pkgcache()
+
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+
+        mock_repo = MagicMock()
+        mock_repo.name.return_value = "custom"
+
+        with patch.object(type(variant.parent), "repository", new=mock_repo), \
+             patch.object(type(variant), "root", new="/no/such/path"):
+            _, status = pkgcache.add_variant(variant)
+            self.assertEqual(status, PackageCache.VARIANT_CREATED)
+
+        pkgcache.remove_variant(variant)
+
+    def test_cache_variant_calls_resource_install(self) -> None:
+        """add_variant delegates to variant.resource.install."""
+        pkgcache = self._pkgcache()
+
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+
+        with patch.object(pkgcache, "_get_cached_root", return_value=(PackageCache.VARIANT_NOT_FOUND, "")), \
+             patch.object(variant.resource, "install") as mock_install:
+            rootpath, status = pkgcache.add_variant(variant)
+
+            self.assertEqual(status, PackageCache.VARIANT_CREATED)
+            mock_install.assert_called_once_with(rootpath)
