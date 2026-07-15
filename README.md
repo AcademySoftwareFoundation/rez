@@ -163,8 +163,8 @@ administrative privileges):
 
 Now you should be able to create an environment containing Python. Try this:
 
-    ]$ rez-env python -- which python
-    /home/ajohns/packages/python-2.7.8/platform-linux/arch-x86_64/os-Ubuntu-12.04/bin/python
+    ]$ rez-env python -- python -V
+    Python 2.6.8
 
 
 ## Building Your First Package
