@@ -472,6 +472,51 @@ class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
         result = canonical_path(link, platform=self._mock_windows_platform())
         self.assertEqual(result, target.lower())
 
+    def test_intermediate_dir_symlink_resolved(self):
+        """canonical_path resolves symlinks on intermediate directory
+        components, not just the final component.
+
+        This is the symlink-chain-through-prefix case: if /a is a symlink to
+        /real_a, then /a/b/link should resolve through /real_a/b/link, not
+        break because /a was already "passed" by the component walk.
+        """
+        real_a = os.path.join(self.root, "real_a")
+        b_dir = os.path.join(real_a, "b")
+        target = os.path.join(b_dir, "final_target")
+        a_link = os.path.join(self.root, "a")
+        link = os.path.join(a_link, "b", "link_to_target")
+
+        os.makedirs(target)
+        os.symlink(target, link, target_is_directory=True)
+        # Create the intermediate symlink *after* the target tree so the
+        # link overlays the directory structure.
+        os.symlink(real_a, a_link, target_is_directory=True)
+
+        result = canonical_path(link, platform=self._mock_windows_platform())
+        self.assertEqual(result, target.lower())
+
+    def test_nested_intermediate_symlink_resolved(self):
+        """canonical_path resolves multiple intermediate directory symlinks
+        in a single path.
+
+        /link_a -> /real_a
+        /link_a/link_b -> /real_b
+        /link_a/link_b/target should resolve to /real_b/target
+        """
+        real_a = os.path.join(self.root, "real_a")
+        real_b = os.path.join(self.root, "real_b")
+        target = os.path.join(real_b, "target")
+        link_a = os.path.join(self.root, "link_a")
+        link_b = os.path.join(link_a, "link_b")
+
+        os.makedirs(target)
+        os.symlink(real_b, link_b, target_is_directory=True)
+        os.symlink(real_a, link_a, target_is_directory=True)
+
+        test_path = os.path.join(link_a, "link_b", "target")
+        result = canonical_path(test_path, platform=self._mock_windows_platform())
+        self.assertEqual(result, target.lower())
+
     def test_long_path_symlink_resolved(self):
         """canonical_path resolves a symlink whose target exceeds MAX_PATH (260
         chars) on hosts with LongPathsEnabled set in the registry."""
