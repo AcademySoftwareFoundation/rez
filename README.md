@@ -217,7 +217,7 @@ ways to get in touch with us:
 * [Report an issue](https://github.com/AcademySoftwareFoundation/rez/issues)
 * [Chat room](https://slack.aswf.io): Join the ``#rez`` channel
 * [Start a discussion](https://github.com/AcademySoftwareFoundation/rez/discussions)
-* [Mailing list](mail:main@lists.aswf.io): Note that are way less active on the mailing
+* [Mailing list](mailto:rez-discussion@lists.aswf.io): Note that we are way less active on the mailing
   list than on any other communication channel.
 
 ## Known issues and limitations
