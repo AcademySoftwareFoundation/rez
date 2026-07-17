@@ -368,3 +368,28 @@ class TestPackageCache(TestBase, TempdirMixin):
         self.assertTrue(os.path.isdir(cached_root))
 
         pkgcache.remove_variant(variant)
+
+    def test_update_package_cache_async_skips_without_prod_install(self):
+        """_update_package_cache returns early for async caching on non-prod install."""
+        c = ResolvedContext(["versioned-3.0"])
+
+        c.package_caching = True
+        c.package_cache_async = True
+
+        with patch.object(type(system), "is_production_rez_install", False), \
+             patch.object(c, "_get_package_cache") as mock_get_cache:
+            c._update_package_cache()
+            mock_get_cache.assert_not_called()
+
+    def test_update_package_cache_sync_proceeds_without_prod_install(self):
+        """_update_package_cache proceeds for sync caching on non-prod install."""
+        pkgcache = self._pkgcache()
+        c = ResolvedContext(["versioned-3.0"])
+
+        c.package_caching = True
+        c.package_cache_async = False
+
+        with patch.object(type(system), "is_production_rez_install", False), \
+             patch.object(c, "_get_package_cache", return_value=pkgcache) as mock_get_cache:
+            c._update_package_cache()
+            mock_get_cache.assert_called_once()
