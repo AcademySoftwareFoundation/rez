@@ -525,15 +525,27 @@ def _windows_realpath(path: str) -> str:
     server paths.  This function resolves only actual filesystem symlinks and
     junction points, walking the path component-by-component so that the drive
     root (drive-letter or UNC prefix) is never touched.
+
+    When a symlink resolves to an absolute path, the target's prefix components
+    are re-walked from the root so that intermediate-directory symlinks are
+    resolved transitively (matching POSIX ``os.path.realpath`` semantics).
     """
     path = os.path.normpath(os.path.abspath(path))
     drive, rest = os.path.splitdrive(path)
     # Preserve the root separator so UNC paths keep their leading "\\" and
     # drive-letter paths keep their "\".
-    result = drive + (os.sep if rest.startswith(os.sep) else "")
-    for part in rest.lstrip(os.sep).split(os.sep):
-        if not part:
-            continue
+    root = drive + (os.sep if rest.startswith(os.sep) else "")
+
+    # Component stack: we process left-to-right, but when a symlink resolves
+    # to an absolute path we push its components onto the front so that any
+    # intermediate-directory symlinks in the target are re-walked.
+    components = rest.lstrip(os.sep).split(os.sep)
+    components = [c for c in components if c]
+    result = root
+    total_depth = 0
+
+    while components:
+        part = components.pop(0)
         candidate = os.path.join(result, part)
         depth = 0
         while os.path.islink(candidate) and depth < 40:
@@ -566,6 +578,24 @@ def _windows_realpath(path: str) -> str:
             else:
                 candidate = os.path.normpath(os.path.abspath(target))
             depth += 1
+            total_depth += 1
+            if total_depth >= 40:
+                break
+
+        # If the symlink resolved to an absolute path, its prefix components
+        # may themselves contain symlinks that haven't been walked.  Re-walk
+        # the entire resolved path from its root by pushing its components
+        # back onto the stack.  This handles the case where, e.g., /a/b is a
+        # symlink to /x/y and /x is itself a symlink.
+        if candidate != os.path.join(result, part):
+            t_drive, t_rest = os.path.splitdrive(candidate)
+            t_root = t_drive + (os.sep if t_rest.startswith(os.sep) else "")
+            new_parts = [c for c in t_rest.lstrip(os.sep).split(os.sep) if c]
+            root = t_root
+            result = t_root
+            components = new_parts + components
+            continue
+
         result = candidate
     return result
 
