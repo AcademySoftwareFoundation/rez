@@ -19,6 +19,10 @@ def commands():
     else:
         env.SKIP_LUNCH = "False"
 
+def pre_test_commands():
+    env.REZ_TEST_ROOT = root
+    env.REZ_TEST_BASE = base
+
 build_command = 'python {root}/build.py {install}'
 
 tests = {
@@ -38,5 +42,10 @@ tests = {
         # should we tested separately.
         "command": ["python", "-c", "import os; assert os.environ.get('SKIP_LUNCH') is not None"],
         "requires": ["python"]
+    },
+    "pre_test_commands_bindings": {
+        "command": ["python", "-c", "import os; assert os.environ.get('REZ_TEST_ROOT') is not None; assert os.environ.get('REZ_TEST_BASE') is not None"],
+        "requires": ["python"],
+        "run_on": "pre_test"
     }
 }
