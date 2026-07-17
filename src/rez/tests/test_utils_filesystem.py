@@ -535,6 +535,36 @@ class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
         result = canonical_path(link, platform=self._mock_windows_platform())
         self.assertEqual(result, target.lower())
 
+    def test_junction_resolved(self):
+        """canonical_path follows a directory junction when
+        resolve_links_on_windows=True.
+
+        Unlike symlinks, junctions are detected via os.path.isjunction
+        (3.12+) or st_reparse_tag (3.8-3.11), not os.path.islink.
+        """
+        target = os.path.join(self.root, "junction_target")
+        junction = os.path.join(self.root, "link_junction")
+        os.makedirs(target)
+
+        _create_junction(target, junction)
+
+        result = canonical_path(junction, platform=self._mock_windows_platform())
+        self.assertEqual(result, target.lower())
+
+
+def _create_junction(target, link):
+    """Create a Windows directory junction from *link* to *target*.
+
+    Junctions don't require Developer Mode or admin privileges (unlike
+    symlinks) and can be created via ``mklink /J``.
+    """
+    import subprocess
+    subprocess.check_call(
+        ["cmd", "/c", "mklink", "/J", link, target],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
 
 @unittest.skipIf(
     platform_.name != "windows",
@@ -584,6 +614,43 @@ class TestWindowsRealpathInternals(TestBase):
                 result = _windows_realpath("C:\\loop")
 
         self.assertIsInstance(result, str)
+
+    def test_junction_resolved_when_islink_false(self):
+        """_windows_realpath resolves junctions even when os.path.islink
+        returns False for them (the case on Python 3.8-3.11).
+
+        The _is_link_or_junction helper should detect junctions via
+        os.path.isjunction (3.12+) or st_reparse_tag (3.8-3.11) and
+        feed them to os.readlink, which handles both types.
+        """
+        link_path = "C:\\some\\junction"
+        target_path = "C:\\real\\target"
+
+        # Simulate py3.8-3.11 where islink returns False for junctions
+        def _fake_islink(p):
+            return False
+
+        def _fake_isjunction(p):
+            return p == link_path
+
+        with unittest.mock.patch("os.path.islink", side_effect=_fake_islink):
+            with unittest.mock.patch("os.path.isjunction", side_effect=_fake_isjunction, create=True):
+                with unittest.mock.patch("os.readlink", return_value=target_path):
+                    result = _windows_realpath(link_path)
+
+        self.assertEqual(result, os.path.normpath(target_path))
+
+    def test_junction_skipped_when_neither_islink_nor_isjunction(self):
+        """_windows_realpath does not attempt readlink on a plain directory
+        that is neither a symlink nor a junction."""
+        plain_path = "C:\\some\\plain_dir"
+
+        with unittest.mock.patch("os.path.islink", return_value=False):
+            with unittest.mock.patch("os.path.isjunction", return_value=False, create=True):
+                with unittest.mock.patch("os.readlink") as mock_readlink:
+                    _windows_realpath(plain_path)
+
+        mock_readlink.assert_not_called()
 
 
 # Map two different drive letters to two different UNC roots.
