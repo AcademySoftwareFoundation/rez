@@ -18,9 +18,6 @@ from rez.utils.resources import ResourceHandle
 from rez.version import Version
 
 
-from rez.utils.resources import ResourceHandle
-
-
 class TestFilesystemPackageRepository(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
