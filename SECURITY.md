@@ -23,7 +23,7 @@ rapidly and post patches within 14 days if possible.
 The only currently known security vulnerability is issue [#417](https://github.com/AcademySoftwareFoundation/rez/issues/417), reported by @ttanimura.
 No others are known at this time.
 
-See the [release notes](CHANGES.md) for more information.
+See the [release notes](CHANGELOG.md) for more information.
 
 ## Supported Versions
 
