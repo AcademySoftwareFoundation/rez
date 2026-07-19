@@ -8,7 +8,6 @@ Utility code for supporting earlier Rez data in later Rez releases.
 from __future__ import annotations
 
 import re
-import os
 import os.path
 import textwrap
 

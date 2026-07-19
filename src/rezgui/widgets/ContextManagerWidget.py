@@ -282,7 +282,7 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
                                            and self.context_table.diff_from_source
                                            and not model.is_stale())
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         stale = self.context_model.is_stale()
         context = self.context()
         is_context = bool(context)

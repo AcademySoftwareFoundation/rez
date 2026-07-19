@@ -131,6 +131,6 @@ class PackageVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
         if first_selectable_row != -1:
             self.selectRow(first_selectable_row)
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         if flags & ContextModel.PACKAGES_PATH_CHANGED:
             self.refresh()

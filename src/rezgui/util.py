@@ -9,7 +9,7 @@ import time
 
 
 def create_pane(widgets, horizontal, parent_widget=None, compact: bool = False,
-                compact_spacing: int=2):
+                compact_spacing: int = 2):
     """Create a widget containing an aligned set of widgets.
 
     Args:

@@ -7,7 +7,6 @@ from rezgui.widgets.ToolWidget import ToolWidget
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.util import get_icon
-from rezgui.objects.App import app
 
 
 class _TreeNode(QtWidgets.QLabel):
@@ -46,8 +45,6 @@ class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
         self.setColumnCount(2)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
 
-        #app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
-
         self.refresh()
 
     def num_tools(self):
@@ -73,7 +70,7 @@ class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
 
             for tool in sorted(variant.tools):
                 item_ = QtWidgets.QTreeWidgetItem(item)
-                widget = ToolWidget(context, tool)  #, app.process_tracker)
+                widget = ToolWidget(context, tool)
                 widget.clicked.connect(self._clear_selection)
                 self.setItemWidget(item_, 1, widget)
                 self.tool_widgets[tool] = widget
@@ -81,7 +78,7 @@ class ContextToolsWidget(QtWidgets.QTreeWidget, ContextViewMixin):
         self.resizeColumnToContents(0)
         self.toolsChanged.emit()
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         if not flags & (ContextModel.CONTEXT_CHANGED):
             return
         self.refresh()

@@ -31,6 +31,8 @@ indent-width = 4
 docstring-code-format = true
 
 [lint]
+preview = true
+
 # Allow rules to add "from __future__ import annotations" in cases where this would
 # simplify a fix or enable a new diagnostic.
 future-annotations = true
