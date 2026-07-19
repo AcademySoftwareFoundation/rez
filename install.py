@@ -18,7 +18,6 @@ try:
     import venv
 except ImportError:
     USE_VIRTUALENV = True
-    import virtualenv
 
 
 source_path = os.path.dirname(os.path.realpath(__file__))
@@ -29,7 +28,7 @@ sys.path.insert(0, src_path)
 # though rez is not yet built.
 #
 from rez.utils._version import _rez_version  # noqa: E402
-from rez.utils.filesystem import safe_rmtree
+from rez.utils.filesystem import safe_rmtree  # noqa: E402
 from rez.utils.which import which  # noqa: E402
 from rez.cli._entry_points import get_specifications  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402

@@ -26,7 +26,7 @@ class Config(QtCore.QSettings):
         if type_ is None:
             default = self._default_value(key)
             val = self._value(key, default)
-            if type(val) == type(default):
+            if type(val) is type(default):
                 return val
             else:
                 return self._convert_value(val, type(default))

@@ -21,6 +21,7 @@ include = [
 extend-exclude = [
     "src/rez/vendor",
     "src/rez/data",
+    "src/support"
 ]
 
 # Match flake8 linter defaults
@@ -108,58 +109,10 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"__init__.py" = [
-    "D104"    # undocumented-public-package
-]
-"src/rez/tests/*.py" = [
-    "F821"    # Undefined name
-]
-"src/rez/bind/_pymodule.py" = [
-    "F821"    # Undefined name
-]
-"src/rez/utils/filesystem.py" = [
-    "F821"    # Undefined name
-]
-"src/rez/resolver.py" = [
-    "F821"    # Undefined name
-]
-"src/rez/cli/_main.py" = [
-    "ISC002"  # Implicitly concatenated string literals over multiple lines
-]
-"src/rez/cli/release.py" = [
-    "F821"    # Undefined name
-]
-"src/rez/package_order.py" = [
-    "E721"    # Use `is` and `is not` for type comparisons, or `isinstance()` for isinstance checks
-]
-"src/rez/tests/test_formatter.py" = [
-    "E742"    # Ambiguous class name: `I`
-]
-"src/rezgui/objects/Config.py" = [
-    "E721"    # Use `is` and `is not` for type comparisons, or `isinstance()` for isinstance checks
-]
-"src/rezgui/widgets/ContextToolsWidget.py" = [
-    "F401"    # "rezgui.objects.App.app" imported but unused
-]
-"src/rezgui/widgets/TimestampWidget.py" = [
-    "E731"    # Do not assign a `lambda` expression, use a `def`
-]
+# Bug in the following.  Uses the git python package, which is not installed, in the
+# export # class method.  rez-diff calls the method.
 "src/rezplugins/release_vcs/git.py" = [
     "F821"    # Undefined name
-]
-"src/support/package_utils/set_authors.py" = [
-    "INP001"  # part of an implicit namespace package
-]
-"./release-rez.py" = [
-    "E402",   # Module level import not at top of file
-    "DTZ011"  # `datetime.date.today()` used
-]
-"./install.py" = [
-    "E402",   # Module level import not at top of file
-    "F401"    # "virtualenv" imported but unused
-]
-"./setup.py" = [
-    "E402"    # Module level import not at top of file
 ]
 
 [lint.flake8-annotations]

@@ -1,0 +1,20 @@
+extend = "../../../ruff.toml"
+
+# Treat rex as builtin 
+builtins = [
+   "alias",
+   "appendenv",
+   "command",
+   "comment",
+   "defined",
+   "env",
+   "error",
+   "getenv",
+   "info",
+   "prependenv",
+   "setenv",
+   "shebang",
+   "source",
+   "undefined",
+   "unsetenv",
+]
