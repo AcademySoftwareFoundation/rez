@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 from rez.tests.util import TestBase, TempdirMixin, restore_os_environ, \
     install_dependent
+from rez.system import system
 from rez.packages import get_package
 from rez.package_cache import PackageCache
 from rez.resolved_context import ResolvedContext
@@ -340,3 +341,55 @@ class TestPackageCache(TestBase, TempdirMixin):
              patch.object(pkgcache, 'variant_meets_space_requirements', return_value=False):
             _, status = pkgcache.add_variant(variant)
             self.assertEqual(status, PackageCache.VARIANT_SKIPPED)
+
+    def test_add_variants_async_fails_without_prod_install(self):
+        """async add_variants raises when not a production install."""
+        pkgcache = self._pkgcache()
+
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+
+        with patch.object(type(system), "is_production_rez_install", False):
+            with self.assertRaises(PackageCacheError):
+                pkgcache.add_variants([variant], package_cache_async=True)
+
+    def test_add_variants_sync(self):
+        """sync add_variants succeeds caching variants when not a production install."""
+        pkgcache = self._pkgcache()
+
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+
+        with patch.object(type(system), "is_production_rez_install", False):
+            pkgcache.add_variants([variant], package_cache_async=False)
+
+        cached_root = pkgcache.get_cached_root(variant)
+        self.assertIsNotNone(cached_root)
+        self.assertTrue(os.path.isdir(cached_root))
+
+        pkgcache.remove_variant(variant)
+
+    def test_update_package_cache_async_skips_without_prod_install(self):
+        """_update_package_cache returns early for async caching on non-prod install."""
+        c = ResolvedContext(["versioned-3.0"])
+
+        c.package_caching = True
+        c.package_cache_async = True
+
+        with patch.object(type(system), "is_production_rez_install", False), \
+             patch.object(c, "_get_package_cache") as mock_get_cache:
+            c._update_package_cache()
+            mock_get_cache.assert_not_called()
+
+    def test_update_package_cache_sync_proceeds_without_prod_install(self):
+        """_update_package_cache proceeds for sync caching on non-prod install."""
+        pkgcache = self._pkgcache()
+        c = ResolvedContext(["versioned-3.0"])
+
+        c.package_caching = True
+        c.package_cache_async = False
+
+        with patch.object(type(system), "is_production_rez_install", False), \
+             patch.object(c, "_get_package_cache", return_value=pkgcache) as mock_get_cache:
+            c._update_package_cache()
+            mock_get_cache.assert_called_once()

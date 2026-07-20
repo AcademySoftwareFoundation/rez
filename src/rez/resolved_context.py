@@ -1935,7 +1935,7 @@ class ResolvedContext(object):
             return
 
         # see PackageCache.add_variants
-        if not system.is_production_rez_install:
+        if self.package_cache_async and not system.is_production_rez_install:
             return
 
         pkgcache = self._get_package_cache()
