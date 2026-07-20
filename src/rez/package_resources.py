@@ -72,9 +72,12 @@ def late_bound(schema):
 
 
 # used when 'requires' is late bound
-late_requires_schema = Schema([
-    Or(PackageRequest, And(str, Use(PackageRequest)))
-])
+late_requires_schema = Schema(
+    Or(
+        And(None, Use(lambda _: [])),
+        [Or(PackageRequest, And(str, Use(PackageRequest)))]
+    )
+)
 
 
 # ------------------------------------------------------------------------------
