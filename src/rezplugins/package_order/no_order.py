@@ -12,6 +12,7 @@ class NullPackageOrder(PackageOrder):
     to a set of packages, but may want to explicitly NOT reorder a particular
     package. You would use a :class:`NullPackageOrder` in a :class:`PerFamilyOrder` to do this.
     """
+
     name = "no_order"
 
     def sort_key_implementation(self, package_name, version):

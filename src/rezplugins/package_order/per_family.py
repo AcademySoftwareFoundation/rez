@@ -6,8 +6,8 @@ from rez.package_order import PackageOrder, to_pod, from_pod
 
 
 class PerFamilyOrder(PackageOrder):
-    """An orderer that applies different orderers to different package families.
-    """
+    """An orderer that applies different orderers to different package families."""
+
     name = "per_family"
 
     def __init__(self, order_dict, default_order=None):
@@ -42,8 +42,8 @@ class PerFamilyOrder(PackageOrder):
             if self.default_order is None:
                 # shouldn't get here, because applies_to should protect us...
                 raise RuntimeError(
-                    "package family orderer %r does not apply to package family %r",
-                    (self, package_name))
+                    "package family orderer %r does not apply to package family %r", (self, package_name)
+                )
 
             orderer = self.default_order
 
