@@ -5,11 +5,20 @@
 """
 Test cases for package_order.py (package ordering)
 """
+
 import json
 
 from rez.config import config
-from rez.package_order import NullPackageOrder, PackageOrder, PerFamilyOrder, VersionSplitPackageOrder, \
-    TimestampPackageOrder, SortedOrder, PackageOrderList, from_pod
+from rez.package_order import (
+    NullPackageOrder,
+    PackageOrder,
+    PerFamilyOrder,
+    VersionSplitPackageOrder,
+    TimestampPackageOrder,
+    SortedOrder,
+    PackageOrderList,
+    from_pod,
+)
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
@@ -17,6 +26,7 @@ from rez.version import Version
 
 class _BaseTestPackagesOrder(TestBase, TempdirMixin):
     """Base class for a package ordering test case"""
+
     @classmethod
     def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
@@ -24,12 +34,7 @@ class _BaseTestPackagesOrder(TestBase, TempdirMixin):
         cls.py_packages_path = cls.data_path("packages", "py_packages")
         cls.solver_packages_path = cls.data_path("solver", "packages")
 
-        cls.settings = dict(
-            packages_path=[
-                cls.solver_packages_path,
-                cls.py_packages_path
-            ],
-            package_filter=None)
+        cls.settings = dict(packages_path=[cls.solver_packages_path, cls.py_packages_path], package_filter=None)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -89,11 +94,8 @@ class TestNullPackageOrder(_BaseTestPackagesOrder):
         self._test_pod(NullPackageOrder())
 
     def test_sha1(self) -> None:
-        """Validate we can get a sha1 hash.
-        """
-        self.assertEqual(
-            'bf7c2fa4e6bd198c02adeea2c3a382cf57242051', NullPackageOrder().sha1
-        )
+        """Validate we can get a sha1 hash."""
+        self.assertEqual("bf7c2fa4e6bd198c02adeea2c3a382cf57242051", NullPackageOrder().sha1)
 
 
 class TestSortedOrder(_BaseTestPackagesOrder):
@@ -141,9 +143,9 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
             order_dict=dict(
                 pysplit=NullPackageOrder(),
                 python=VersionSplitPackageOrder(Version("2.6.0")),
-                timestamped=TimestampPackageOrder(timestamp=3001, rank=3)
+                timestamped=TimestampPackageOrder(timestamp=3001, rank=3),
             ),
-            default_order=SortedOrder(descending=False)
+            default_order=SortedOrder(descending=False),
         )
 
         self._test_reorder(orderer, "pysplit", expected_null_result)
@@ -163,10 +165,10 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
 
     def test_comparison(self) -> None:
         """Validate we can compare PerFamilyOrder."""
-        inst1 = PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=NullPackageOrder())
-        inst2 = PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=NullPackageOrder())
-        inst3 = PerFamilyOrder(order_dict={'bar': NullPackageOrder()}, default_order=NullPackageOrder())
-        inst4 = PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=None)
+        inst1 = PerFamilyOrder(order_dict={"foo": NullPackageOrder()}, default_order=NullPackageOrder())
+        inst2 = PerFamilyOrder(order_dict={"foo": NullPackageOrder()}, default_order=NullPackageOrder())
+        inst3 = PerFamilyOrder(order_dict={"bar": NullPackageOrder()}, default_order=NullPackageOrder())
+        inst4 = PerFamilyOrder(order_dict={"foo": NullPackageOrder()}, default_order=None)
         self.assertTrue(inst1 == inst2)  # __eq__ positive
         self.assertFalse(inst1 == inst3)  # __eq__ negative (different order dict)
         self.assertFalse(inst1 == inst4)  # __eq__ negative (different default_order)
@@ -181,14 +183,10 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
 
     def test_pod(self) -> None:
         """Validate we can save and load a PerFamilyOrder to its pod representation."""
-        self._test_pod(
-            PerFamilyOrder(order_dict={'foo': NullPackageOrder()}, default_order=NullPackageOrder())
-        )
+        self._test_pod(PerFamilyOrder(order_dict={"foo": NullPackageOrder()}, default_order=NullPackageOrder()))
 
         # No default_order
-        self._test_pod(
-            PerFamilyOrder(order_dict={'foo': NullPackageOrder()})
-        )
+        self._test_pod(PerFamilyOrder(order_dict={"foo": NullPackageOrder()}))
 
 
 class TestVersionSplitPackageOrder(_BaseTestPackagesOrder):
@@ -228,7 +226,7 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
     def test_reorder_no_rank(self) -> None:
         """Validate reordering with a rank of 0."""
         orderer = TimestampPackageOrder(timestamp=3001)
-        expected = ['1.1.0', '1.0.6', '1.0.5', '1.1.1', '1.2.0', '2.0.0', '2.1.0', '2.1.5']
+        expected = ["1.1.0", "1.0.6", "1.0.5", "1.1.1", "1.2.0", "2.0.0", "2.1.0", "2.1.5"]
         self._test_reorder(orderer, "timestamped", expected)
 
     def test_reorder_rank_3(self) -> None:
@@ -246,7 +244,7 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
     def test_reorder_rank_2(self) -> None:
         """Add coverage for a corner case where there's only one candidate without the rank."""
         orderer = TimestampPackageOrder(timestamp=4001, rank=3)  # 1.1.1
-        expected = ['1.1.1', '1.1.0', '1.0.6', '1.0.5', '1.2.0', '2.0.0', '2.1.5', '2.1.0']
+        expected = ["1.1.1", "1.1.0", "1.0.6", "1.0.5", "1.2.0", "2.0.0", "2.1.5", "2.1.0"]
         self._test_reorder(orderer, "timestamped", expected)
 
     def test_reorder_packages_without_timestamps(self) -> None:
@@ -257,13 +255,13 @@ class TestTimestampPackageOrder(_BaseTestPackagesOrder):
     def test_reorder_all_packages_before_timestamp(self) -> None:
         """Test behavior when all packages are before the timestamp."""
         timestamp_orderer = TimestampPackageOrder(timestamp=9999999999, rank=3)
-        expected = ['2.1.5', '2.1.0', '2.0.0', '1.2.0', '1.1.1', '1.1.0', '1.0.6', '1.0.5']
+        expected = ["2.1.5", "2.1.0", "2.0.0", "1.2.0", "1.1.1", "1.1.0", "1.0.6", "1.0.5"]
         self._test_reorder(timestamp_orderer, "timestamped", expected)
 
     def test_reorder_all_packages_after_timestamp(self) -> None:
         """Test behavior when all packages are after the timestamp."""
         timestamp_orderer = TimestampPackageOrder(timestamp=0, rank=3)
-        expected = ['1.0.6', '1.0.5', '1.1.1', '1.1.0', '1.2.0', '2.0.0', '2.1.5', '2.1.0']
+        expected = ["1.0.6", "1.0.5", "1.1.1", "1.1.0", "1.2.0", "2.0.0", "2.1.5", "2.1.0"]
         self._test_reorder(timestamp_orderer, "timestamped", expected)
 
     def test_comparison(self) -> None:
@@ -294,26 +292,21 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
 
     def test_singleton(self) -> None:
         """Validate we can build a PackageOrderList object from configuration values."""
-        config.override("package_orderers", [
-            {
-                "type": "per_family",
-                "orderers": [
-                    {
-                        "packages": ["python"],
-                        "type": "version_split",
-                        "first_version": "2.9.9"
-                    }
-                ]
-            }
-        ])
+        config.override(
+            "package_orderers",
+            [
+                {
+                    "type": "per_family",
+                    "orderers": [{"packages": ["python"], "type": "version_split", "first_version": "2.9.9"}],
+                }
+            ],
+        )
         expected = PackageOrderList()
-        expected.append(PerFamilyOrder(order_dict={
-            "python": VersionSplitPackageOrder(Version("2.9.9"))
-        }))
+        expected.append(PerFamilyOrder(order_dict={"python": VersionSplitPackageOrder(Version("2.9.9"))}))
 
         # Clear @classproperty cache
         try:
-            delattr(PackageOrderList, '_class_property_singleton')
+            delattr(PackageOrderList, "_class_property_singleton")
         except AttributeError:
             pass
         self.assertEqual(expected, PackageOrderList.singleton)
@@ -324,7 +317,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
 
         # Clear @classproperty cache
         try:
-            delattr(PackageOrderList, '_class_property_singleton')
+            delattr(PackageOrderList, "_class_property_singleton")
         except AttributeError:
             pass
 
@@ -332,10 +325,12 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
 
     def test_pod(self) -> None:
         """Validate we can save and load a PackageOrdererList to pod representation."""
-        inst = PackageOrderList((
-            VersionSplitPackageOrder(Version("2.6.0")),
-            PerFamilyOrder(order_dict={}, default_order=SortedOrder(descending=False))
-        ))
+        inst = PackageOrderList(
+            (
+                VersionSplitPackageOrder(Version("2.6.0")),
+                PerFamilyOrder(order_dict={}, default_order=SortedOrder(descending=False)),
+            )
+        )
         self._test_pod(inst)
 
     def test_from_pod_module_function_round_trip(self):
@@ -352,35 +347,26 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         self.assertIsInstance(orderer, NullPackageOrder)
 
         # version_split
-        orderer = module_from_pod({
-            "type": "version_split",
-            "first_version": "1.2.3"
-        })
+        orderer = module_from_pod({"type": "version_split", "first_version": "1.2.3"})
         self.assertIsInstance(orderer, VersionSplitPackageOrder)
 
     def test_isinstance_against_imported_classes(self):
         """Verify isinstance works for orderer classes imported from package_order."""
         self.assertIsInstance(SortedOrder(descending=True), SortedOrder)
         self.assertIsInstance(NullPackageOrder(), NullPackageOrder)
-        self.assertIsInstance(
-            VersionSplitPackageOrder(first_version=Version("1.0")),
-            VersionSplitPackageOrder
-        )
-        self.assertIsInstance(
-            TimestampPackageOrder(timestamp=1000),
-            TimestampPackageOrder
-        )
+        self.assertIsInstance(VersionSplitPackageOrder(first_version=Version("1.0")), VersionSplitPackageOrder)
+        self.assertIsInstance(TimestampPackageOrder(timestamp=1000), TimestampPackageOrder)
         # Cross-type checks
         self.assertNotIsInstance(SortedOrder(descending=True), NullPackageOrder)
 
     def test_get_orderer_default_fallback(self):
         """Verify get_orderer falls back to SortedOrder(descending=True)."""
-        from rez.package_order import get_orderer, ALL_PACKAGES
+        from rez.package_order import get_orderer
 
         config.override("package_orderers", None)
         # Clear singleton cache
         try:
-            delattr(PackageOrderList, '_class_property_singleton')
+            delattr(PackageOrderList, "_class_property_singleton")
         except AttributeError:
             pass
 
@@ -401,7 +387,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         }
 
         for plugin_name, class_name in expected.items():
-            cls = plugin_manager.get_plugin_class('package_order', plugin_name)
+            cls = plugin_manager.get_plugin_class("package_order", plugin_name)
             self.assertEqual(cls.__name__, class_name)
 
     def test_pod_round_trip_through_plugin_system(self) -> None:
@@ -413,10 +399,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
             NullPackageOrder(),
             VersionSplitPackageOrder(first_version=Version("1.2.3")),
             TimestampPackageOrder(timestamp=3001, rank=3),
-            PerFamilyOrder(
-                order_dict={"foo": NullPackageOrder()},
-                default_order=NullPackageOrder()
-            ),
+            PerFamilyOrder(order_dict={"foo": NullPackageOrder()}, default_order=NullPackageOrder()),
         ]
 
         for original in orderers:
@@ -427,9 +410,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
 
     def test_legacy_register_orderer_fallback(self) -> None:
         """Verify _find_orderer falls back to _orderers for legacy-registered orderers."""
-        from rez.package_order import (
-            PackageOrder, register_orderer, _find_orderer, _orderers
-        )
+        from rez.package_order import PackageOrder, register_orderer, _find_orderer, _orderers
 
         class TestLegacyOrderer(PackageOrder):
             name = "test_legacy_fallback"
@@ -463,18 +444,14 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         """
         import json
 
-        config_json = json.dumps([
-            {
-                "type": "per_family",
-                "orderers": [
-                    {
-                        "packages": ["python"],
-                        "type": "version_split",
-                        "first_version": "2.9.9"
-                    }
-                ]
-            }
-        ])
+        config_json = json.dumps(
+            [
+                {
+                    "type": "per_family",
+                    "orderers": [{"packages": ["python"], "type": "version_split", "first_version": "2.9.9"}],
+                }
+            ]
+        )
 
         old_overrides = config.overrides.get("package_orderers")
         try:
@@ -504,9 +481,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
             self.assertEqual(len(orderers1), 0)
 
             # Second config: one orderer
-            config.override("package_orderers", json.loads(
-                '[{"type": "sorted", "descending": false}]'
-            ))
+            config.override("package_orderers", json.loads('[{"type": "sorted", "descending": false}]'))
             PackageOrderList.clear_singleton_cache()
             orderers2 = PackageOrderList.singleton
             self.assertEqual(len(orderers2), 1)
@@ -530,9 +505,7 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         we simulate the _JSON path by parsing JSON and using config.override().
         """
         import json
-        from rez.package_order import (
-            PackageOrder, register_orderer, _orderers
-        )
+        from rez.package_order import PackageOrder, register_orderer, _orderers
 
         class TestKwargOrderer(PackageOrder):
             name = "test_kwarg"
@@ -564,9 +537,9 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         try:
             register_orderer(TestKwargOrderer)
 
-            config.override("package_orderers", json.loads(
-                '[{"type": "test_kwarg", "mode": "production", "packages": ["foo"]}]'
-            ))
+            config.override(
+                "package_orderers", json.loads('[{"type": "test_kwarg", "mode": "production", "packages": ["foo"]}]')
+            )
             PackageOrderList.clear_singleton_cache()
 
             orderers = PackageOrderList.singleton
@@ -590,5 +563,5 @@ class TestPackageOrderPublic(TestBase):
         """Validate from_pod is still compatible with the older pod style."""
         self.assertEqual(
             VersionSplitPackageOrder(first_version=Version("1.2.3")),
-            from_pod(("version_split", {"first_version": "1.2.3"}))
+            from_pod(("version_split", {"first_version": "1.2.3"})),
         )
