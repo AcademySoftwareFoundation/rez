@@ -338,6 +338,56 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         ))
         self._test_pod(inst)
 
+    def test_from_pod_module_function_round_trip(self):
+        """Verify the module-level from_pod function resolves orderer types."""
+        from rez.package_order import from_pod as module_from_pod
+
+        # sorted
+        orderer = module_from_pod({"type": "sorted", "descending": True})
+        self.assertIsInstance(orderer, SortedOrder)
+        self.assertTrue(orderer.descending)
+
+        # no_order
+        orderer = module_from_pod({"type": "no_order"})
+        self.assertIsInstance(orderer, NullPackageOrder)
+
+        # version_split
+        orderer = module_from_pod({
+            "type": "version_split",
+            "first_version": "1.2.3"
+        })
+        self.assertIsInstance(orderer, VersionSplitPackageOrder)
+
+    def test_isinstance_against_imported_classes(self):
+        """Verify isinstance works for orderer classes imported from package_order."""
+        self.assertIsInstance(SortedOrder(descending=True), SortedOrder)
+        self.assertIsInstance(NullPackageOrder(), NullPackageOrder)
+        self.assertIsInstance(
+            VersionSplitPackageOrder(first_version=Version("1.0")),
+            VersionSplitPackageOrder
+        )
+        self.assertIsInstance(
+            TimestampPackageOrder(timestamp=1000),
+            TimestampPackageOrder
+        )
+        # Cross-type checks
+        self.assertNotIsInstance(SortedOrder(descending=True), NullPackageOrder)
+
+    def test_get_orderer_default_fallback(self):
+        """Verify get_orderer falls back to SortedOrder(descending=True)."""
+        from rez.package_order import get_orderer, ALL_PACKAGES
+
+        config.override("package_orderers", None)
+        # Clear singleton cache
+        try:
+            delattr(PackageOrderList, '_class_property_singleton')
+        except AttributeError:
+            pass
+
+        orderer = get_orderer("nonexistent_package")
+        self.assertIsInstance(orderer, SortedOrder)
+        self.assertTrue(orderer.descending)
+
 
 class TestPackageOrderPublic(TestBase):
     """Additional tests for public symbols in package_order.py"""
