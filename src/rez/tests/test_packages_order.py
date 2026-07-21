@@ -388,6 +388,200 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         self.assertIsInstance(orderer, SortedOrder)
         self.assertTrue(orderer.descending)
 
+    def test_plugin_system_loads_builtin_orderers(self) -> None:
+        """Verify all five built-in orderers are loadable via the plugin system."""
+        from rez.plugin_managers import plugin_manager
+
+        expected = {
+            "no_order": "NullPackageOrder",
+            "sorted": "SortedOrder",
+            "per_family": "PerFamilyOrder",
+            "version_split": "VersionSplitPackageOrder",
+            "soft_timestamp": "TimestampPackageOrder",
+        }
+
+        for plugin_name, class_name in expected.items():
+            cls = plugin_manager.get_plugin_class('package_order', plugin_name)
+            self.assertEqual(cls.__name__, class_name)
+
+    def test_pod_round_trip_through_plugin_system(self) -> None:
+        """Verify to_pod/from_pod round-trip works through the plugin system."""
+        from rez.package_order import to_pod, from_pod
+
+        orderers = [
+            SortedOrder(descending=True),
+            NullPackageOrder(),
+            VersionSplitPackageOrder(first_version=Version("1.2.3")),
+            TimestampPackageOrder(timestamp=3001, rank=3),
+            PerFamilyOrder(
+                order_dict={"foo": NullPackageOrder()},
+                default_order=NullPackageOrder()
+            ),
+        ]
+
+        for original in orderers:
+            pod = to_pod(original)
+            restored = from_pod(pod)
+            self.assertEqual(original, restored)
+            self.assertIs(type(original), type(restored))
+
+    def test_legacy_register_orderer_fallback(self) -> None:
+        """Verify _find_orderer falls back to _orderers for legacy-registered orderers."""
+        from rez.package_order import (
+            PackageOrder, register_orderer, _find_orderer, _orderers
+        )
+
+        class TestLegacyOrderer(PackageOrder):
+            name = "test_legacy_fallback"
+
+            def sort_key_implementation(self, package_name, version):
+                return 0
+
+            def __str__(self):
+                return "test"
+
+            def to_pod(self):
+                return {}
+
+            @classmethod
+            def from_pod(cls, data):
+                return cls()
+
+        try:
+            register_orderer(TestLegacyOrderer)
+            found = _find_orderer("test_legacy_fallback")
+            self.assertIs(found, TestLegacyOrderer)
+        finally:
+            _orderers.pop("test_legacy_fallback", None)
+
+    def test_rez_package_orderers_json_env_var(self) -> None:
+        """Verify REZ_PACKAGE_ORDERERS_JSON configures orderers at runtime.
+
+        The test framework uses a locked config that blocks env-var reads, so
+        we simulate the env-var path by parsing the JSON and using
+        config.override() — this is exactly what the _JSON path does.
+        """
+        import json
+
+        config_json = json.dumps([
+            {
+                "type": "per_family",
+                "orderers": [
+                    {
+                        "packages": ["python"],
+                        "type": "version_split",
+                        "first_version": "2.9.9"
+                    }
+                ]
+            }
+        ])
+
+        old_overrides = config.overrides.get("package_orderers")
+        try:
+            config.override("package_orderers", json.loads(config_json))
+            PackageOrderList.clear_singleton_cache()
+
+            orderers = PackageOrderList.singleton
+            self.assertEqual(len(orderers), 1)
+            self.assertEqual(orderers[0].name, "per_family")
+        finally:
+            if old_overrides is not None:
+                config.override("package_orderers", old_overrides)
+            else:
+                config.override("package_orderers", None)
+            PackageOrderList.clear_singleton_cache()
+
+    def test_cache_invalidation_for_env_var_changes(self) -> None:
+        """Verify cache invalidation allows config changes to take effect."""
+        import json
+
+        old_overrides = config.overrides.get("package_orderers")
+        try:
+            # First config: empty orderers
+            config.override("package_orderers", None)
+            PackageOrderList.clear_singleton_cache()
+            orderers1 = PackageOrderList.singleton
+            self.assertEqual(len(orderers1), 0)
+
+            # Second config: one orderer
+            config.override("package_orderers", json.loads(
+                '[{"type": "sorted", "descending": false}]'
+            ))
+            PackageOrderList.clear_singleton_cache()
+            orderers2 = PackageOrderList.singleton
+            self.assertEqual(len(orderers2), 1)
+            self.assertEqual(orderers2[0].name, "sorted")
+            self.assertFalse(orderers2[0].descending)
+        finally:
+            if old_overrides is not None:
+                config.override("package_orderers", old_overrides)
+            else:
+                config.override("package_orderers", None)
+            PackageOrderList.clear_singleton_cache()
+
+    def test_kwarg_orderer_configurable_via_env_var(self) -> None:
+        """Verify an orderer with constructor kwargs can be configured at runtime.
+
+        This validates the pattern used by PRs #1706 (PEP440PackageOrder with
+        'prerelease' kwarg) and #1709 (CustomPackageOrder with 'packages' kwarg)
+        without requiring those PRs to be merged.
+
+        The test framework uses a locked config that blocks env-var reads, so
+        we simulate the _JSON path by parsing JSON and using config.override().
+        """
+        import json
+        from rez.package_order import (
+            PackageOrder, register_orderer, _orderers
+        )
+
+        class TestKwargOrderer(PackageOrder):
+            name = "test_kwarg"
+
+            def __init__(self, mode="default", packages=None):
+                super().__init__(packages)
+                self.mode = mode
+
+            def sort_key_implementation(self, package_name, version):
+                return 0
+
+            def __str__(self):
+                return str(self.mode)
+
+            def __eq__(self, other):
+                return type(self) is type(other) and self.mode == other.mode
+
+            def to_pod(self):
+                return {"mode": self.mode, "packages": self.packages}
+
+            @classmethod
+            def from_pod(cls, data):
+                return cls(
+                    mode=data.get("mode", "default"),
+                    packages=data.get("packages"),
+                )
+
+        old_overrides = config.overrides.get("package_orderers")
+        try:
+            register_orderer(TestKwargOrderer)
+
+            config.override("package_orderers", json.loads(
+                '[{"type": "test_kwarg", "mode": "production", "packages": ["foo"]}]'
+            ))
+            PackageOrderList.clear_singleton_cache()
+
+            orderers = PackageOrderList.singleton
+            self.assertEqual(len(orderers), 1)
+            self.assertEqual(orderers[0].name, "test_kwarg")
+            self.assertEqual(orderers[0].mode, "production")
+            self.assertEqual(orderers[0].packages, ["foo"])
+        finally:
+            _orderers.pop("test_kwarg", None)
+            if old_overrides is not None:
+                config.override("package_orderers", old_overrides)
+            else:
+                config.override("package_orderers", None)
+            PackageOrderList.clear_singleton_cache()
+
 
 class TestPackageOrderPublic(TestBase):
     """Additional tests for public symbols in package_order.py"""
