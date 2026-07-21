@@ -189,8 +189,8 @@ class ActionManager(object):
         parent_environ: environment to execute the actions within. If None,
             defaults to the current environment. On Windows, a caller-supplied
             mapping is wrapped in a read-only, case-insensitive snapshot so that
-            env-var lookups match native Windows semantics regardless of key
-            casing (see #2089); `os.environ` and None are used as-is.
+            lookups against it are case-insensitive, matching how ``os.environ``
+            behaves natively (see #2089); `os.environ` and None are used as-is.
         parent_variables: List of variables to append/prepend to, rather than
             overwriting on first reference. If this is set to True instead of a
             list, all variables are treated as parent variables.
@@ -218,6 +218,9 @@ class ActionManager(object):
             self.parent_environ = parent_environ
         self.parent_variables = True if parent_variables is True \
             else set(parent_variables or [])
+        # Variables set during rex execution. Keys are stored verbatim and are
+        # not case-folded on Windows (unlike the parent_environ snapshot above);
+        # that broader normalization is a separate concern, tracked in #2164.
         self.environ = {}
         self.formatter = formatter or str
         self.actions = []
@@ -466,8 +469,9 @@ class _CaseInsensitiveEnvironProxy(Mapping):
     """Read-only, case-insensitive snapshot of an env-var mapping.
 
     Used by `ActionManager` to wrap a caller-supplied `parent_environ`
-    on Windows so rex lookups match native Windows env-var semantics
-    regardless of the casing used to populate the input dict.
+    on Windows so lookups against it are case-insensitive regardless of
+    the casing used to populate the input dict, matching how os.environ
+    behaves natively on Windows.
 
     Keys are normalized (upper-cased) once at construction, so this is a
     point-in-time snapshot: later mutations to the source mapping are not
