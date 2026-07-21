@@ -17,6 +17,7 @@ from rez.version import Version
 from rez.version import Requirement
 from rez.tests.util import TestBase
 from rez.utils.backcompat import convert_old_commands
+from rez.utils.platform_ import platform_
 from rez.package_repository import package_repository_manager
 from rez.packages import iter_package_families
 import inspect
@@ -547,7 +548,45 @@ class TestRex(TestBase):
         self.assertRaises(RuntimeError,  # no default
                           intersects, ephemerals.get_range("foo.bar"), "0")
 
-    def test_parent_environ_case_insensitive_on_windows(self):
+    def test_case_insensitive_environ_proxy(self) -> None:
+        """Unit-test the case-normalizing proxy directly (platform independent).
+
+        Runs on every host so the core logic behind the #2089 fix has real
+        CI coverage even though the ActionManager wiring is Windows-only.
+        """
+        from rez.rex import _CaseInsensitiveEnvironProxy
+
+        proxy = _CaseInsensitiveEnvironProxy({"SomeVariable": "covfefe"})
+        for key in ("SomeVariable", "SOMEVARIABLE", "somevariable"):
+            self.assertEqual(proxy[key], "covfefe")
+            self.assertIn(key, proxy)
+        self.assertNotIn("OtherVariable", proxy)
+        self.assertRaises(KeyError, lambda: proxy["OtherVariable"])
+
+        # copy() yields a plain dict with normalized (upper-cased) keys,
+        # mirroring os.environ.copy() on Windows.
+        copied = proxy.copy()
+        self.assertIsInstance(copied, dict)
+        self.assertEqual(copied, {"SOMEVARIABLE": "covfefe"})
+
+        # normalized iteration / length
+        self.assertEqual(len(proxy), 1)
+        self.assertEqual(set(proxy), {"SOMEVARIABLE"})
+
+        # last-write-wins on case collision, mirroring os.environ
+        collided = _CaseInsensitiveEnvironProxy({"Foo": "a", "FOO": "b"})
+        self.assertEqual(collided["foo"], "b")
+
+    @unittest.skipIf(platform_.name == "windows",
+                     "parent_environ passthrough is non-Windows behaviour")
+    def test_parent_environ_identity_passthrough_on_non_windows(self) -> None:
+        """On non-Windows, a caller dict is used as-is (no wrapping). #2089."""
+        env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(env)
+        self.assertIs(ex.manager.parent_environ, env)
+
+    @unittest.skipIf(platform_.name != "windows", "Windows-only behaviour")
+    def test_parent_environ_case_insensitive_on_windows(self) -> None:
         """Regression for #2089.
 
         On Windows env vars are case-insensitive; os.environ already
@@ -555,10 +594,6 @@ class TestRex(TestBase):
         such a dict as parent_environ used to break env.<MixedCase>
         lookups inside commands(). We now wrap on the Windows side.
         """
-        from rez.utils.platform_ import platform_
-        if platform_.name != "windows":
-            self.skipTest("Windows-only behaviour")
-
         env = {"SomeVariable": "covfefe"}
         ex = self._create_executor(env)
 
@@ -569,16 +604,19 @@ class TestRex(TestBase):
         self.assertIn("SOMEVARIABLE", ex.manager.parent_environ)
         self.assertNotIn("OtherVariable", ex.manager.parent_environ)
 
-        # end-to-end: rex code references a different casing than the
-        # caller's dict and the lookup must succeed (pre-fix this
-        # raised RexUndefinedVariableError)
-        def _rex():
-            v = getenv("SOMEVARIABLE")  # noqa: F821 - rex builtin
-            setenv("RESULT", v)         # noqa: F821 - rex builtin
+        # end-to-end via the real package-commands entrypoint: rex references
+        # a different casing than the caller's dict, exercised through both
+        # execute_function and execute_code (what commands() actually run).
+        # Pre-fix this raised RexUndefinedVariableError.
+        def _rex() -> None:
+            env.RESULT = env.SOMEVARIABLE  # noqa: F821 - rex builtin
 
-        ex2 = self._create_executor({"SomeVariable": "covfefe"})
-        ex2.execute_function(_rex)
-        self.assertEqual(ex2.get_output().get("RESULT"), "covfefe")
+        self._test(
+            func=_rex,
+            env={"SomeVariable": "covfefe"},
+            expected_actions=[Setenv("RESULT", "covfefe")],
+            expected_output={"RESULT": "covfefe"},
+        )
 
 
 if __name__ == '__main__':

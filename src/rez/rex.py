@@ -187,7 +187,10 @@ class ActionManager(object):
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
         parent_environ: environment to execute the actions within. If None,
-            defaults to the current environment.
+            defaults to the current environment. On Windows, a caller-supplied
+            mapping is wrapped in a read-only, case-insensitive snapshot so that
+            env-var lookups match native Windows semantics regardless of key
+            casing (see #2089); `os.environ` and None are used as-is.
         parent_variables: List of variables to append/prepend to, rather than
             overwriting on first reference. If this is set to True instead of a
             list, all variables are treated as parent variables.
@@ -204,7 +207,9 @@ class ActionManager(object):
         # behaves that way but a plain dict supplied by the caller does not,
         # so wrap it on the Windows path only. See #2089.
         self.parent_environ: Mapping[str, str]
-        if parent_environ is None:
+        if parent_environ is None or parent_environ is os.environ:
+            # os.environ is already case-insensitive on Windows, so use it
+            # as-is (preserving liveness and identity); None means "current".
             self.parent_environ = os.environ
         elif platform_.name == "windows" and not isinstance(
                 parent_environ, _CaseInsensitiveEnvironProxy):
@@ -458,11 +463,16 @@ class ActionManager(object):
 
 
 class _CaseInsensitiveEnvironProxy(Mapping):
-    """Read-only case-insensitive view over an env-var mapping.
+    """Read-only, case-insensitive snapshot of an env-var mapping.
 
     Used by `ActionManager` to wrap a caller-supplied `parent_environ`
     on Windows so rex lookups match native Windows env-var semantics
     regardless of the casing used to populate the input dict.
+
+    Keys are normalized (upper-cased) once at construction, so this is a
+    point-in-time snapshot: later mutations to the source mapping are not
+    reflected. That matches how `parent_environ` is used in practice (fixed
+    for the lifetime of an executor).
 
     Kept private to this module on purpose; promote to a shared util
     only when a second caller needs it.
@@ -477,13 +487,19 @@ class _CaseInsensitiveEnvironProxy(Mapping):
         return self._data[key.upper()]
 
     def __contains__(self, key):
-        return isinstance(key, str) and key.upper() in self._data
+        return key.upper() in self._data
 
     def __iter__(self):
         return iter(self._data)
 
     def __len__(self):
         return len(self._data)
+
+    def copy(self):
+        # Return a plain dict with normalized (upper-cased) keys, mirroring
+        # os.environ.copy() on Windows. Defensive: lets callers that expect a
+        # dict-like parent_environ (e.g. `self.parent_environ.copy()`) work.
+        return dict(self._data)
 
 
 #===============================================================================
