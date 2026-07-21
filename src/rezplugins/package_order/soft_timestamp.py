@@ -48,6 +48,7 @@ class TimestampPackageOrder(PackageOrder):
     Newer versions are consumed in ascending order, except within rank (this is
     why 2.1.1 is consumed before 2.1.0).
     """
+
     name = "soft_timestamp"
 
     def __init__(self, timestamp, rank=0, packages=None):
@@ -78,9 +79,7 @@ class TimestampPackageOrder(PackageOrder):
         return first_after
 
     def _calc_first_after(self, package_family):
-        descending = sorted(iter_packages(package_family),
-                            key=lambda p: p.version,
-                            reverse=True)
+        descending = sorted(iter_packages(package_family), key=lambda p: p.version, reverse=True)
         first_after = None
         for i, package in enumerate(descending):
             if not package.timestamp:
@@ -123,9 +122,7 @@ class TimestampPackageOrder(PackageOrder):
             return is_before, version
 
         if self.rank:
-            return (is_before,
-                    _ReversedComparable(version.trim(self.rank - 1)),
-                    version.tokens[self.rank - 1:])
+            return (is_before, _ReversedComparable(version.trim(self.rank - 1)), version.tokens[self.rank - 1 :])
 
         return is_before, _ReversedComparable(version)
 
@@ -142,11 +139,7 @@ class TimestampPackageOrder(PackageOrder):
         return str((self.timestamp, self.rank))
 
     def __eq__(self, other):
-        return (
-            type(self) is type(other)
-            and self.timestamp == other.timestamp
-            and self.rank == other.rank
-        )
+        return type(self) is type(other) and self.timestamp == other.timestamp and self.rank == other.rank
 
     def to_pod(self):
         """

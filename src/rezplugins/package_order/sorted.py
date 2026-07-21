@@ -7,8 +7,8 @@ from rez.version._version import _ReversedComparable
 
 
 class SortedOrder(PackageOrder):
-    """An orderer that sorts based on :attr:`Package.version <rez.packages.Package.version>`.
-    """
+    """An orderer that sorts based on :attr:`Package.version <rez.packages.Package.version>`."""
+
     name = "sorted"
 
     def __init__(self, descending, packages=None):
@@ -32,10 +32,7 @@ class SortedOrder(PackageOrder):
         return str(self.descending)
 
     def __eq__(self, other):
-        return (
-            type(self) is type(other)
-            and self.descending == other.descending
-        )
+        return type(self) is type(other) and self.descending == other.descending
 
     def to_pod(self):
         """

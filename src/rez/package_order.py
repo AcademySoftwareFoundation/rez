@@ -16,11 +16,6 @@ from rez.version._version import _Comparable, _LowerBound, _UpperBound, _Bound
 from rez.packages import Package
 from rez.utils.typing import SupportsLessThan
 
-if TYPE_CHECKING:
-    # this is not available in typing until 3.11, but due to __future__.annotations
-    # we can use it without really importing it
-    from typing import Self
-
 ALL_PACKAGES = "*"
 
 
@@ -29,9 +24,7 @@ class FallbackComparable(_Comparable):
     fails, compares using the fallback_comparable object.
     """
 
-    def __init__(self,
-                 main_comparable: SupportsLessThan,
-                 fallback_comparable: SupportsLessThan) -> None:
+    def __init__(self, main_comparable: SupportsLessThan, fallback_comparable: SupportsLessThan) -> None:
         self.main_comparable = main_comparable
         self.fallback_comparable = fallback_comparable
 
@@ -48,7 +41,7 @@ class FallbackComparable(_Comparable):
             return self.fallback_comparable < other.fallback_comparable
 
     def __repr__(self) -> str:
-        return '%s(%r, %r)' % (type(self).__name__, self.main_comparable, self.fallback_comparable)
+        return "%s(%r, %r)" % (type(self).__name__, self.main_comparable, self.fallback_comparable)
 
 
 class PackageOrder(object):
@@ -85,8 +78,7 @@ class PackageOrder(object):
         else:
             self._packages = sorted(packages)
 
-    def reorder(self, iterable: Iterable[Package],
-                key: Callable[[Any], Package] | None = None) -> list[Package] | None:
+    def reorder(self, iterable: Iterable[Package], key: Callable[[Any], Package] | None = None) -> list[Package] | None:
         """Put packages into some order for consumption.
 
         You can safely assume that the packages referred to by `iterable` are
@@ -109,14 +101,12 @@ class PackageOrder(object):
         """
         key = key or (lambda x: x)
         package_name = self._get_package_name_from_iterable(iterable, key=key)
-        return sorted(iterable,
-                      key=lambda x: self.sort_key(package_name, key(x).version),
-                      reverse=True)
+        return sorted(iterable, key=lambda x: self.sort_key(package_name, key(x).version), reverse=True)
 
     @staticmethod
-    def _get_package_name_from_iterable(iterable: Iterable[Package],
-                                        key: Callable[[Any], Package] | None = None
-                                        ) -> str | None:
+    def _get_package_name_from_iterable(
+        iterable: Iterable[Package], key: Callable[[Any], Package] | None = None
+    ) -> str | None:
         """Utility method for getting a package from an iterable"""
         try:
             item = next(iter(iterable))
@@ -126,9 +116,9 @@ class PackageOrder(object):
         key = key or (lambda x: x)
         return key(item).name
 
-    def sort_key(self, package_name: str,
-                 version_like: Version | _LowerBound | _UpperBound | _Bound | VersionRange | None
-                 ) -> SupportsLessThan:
+    def sort_key(
+        self, package_name: str, version_like: Version | _LowerBound | _UpperBound | _Bound | VersionRange | None
+    ) -> SupportsLessThan:
         """Returns a sort key usable for sorting packages within the same family
 
         Args:
@@ -145,8 +135,7 @@ class PackageOrder(object):
         if isinstance(version_like, VersionRange):
             return tuple(self.sort_key(package_name, bound) for bound in version_like.bounds)
         if isinstance(version_like, _Bound):
-            return (self.sort_key(package_name, version_like.lower),
-                    self.sort_key(package_name, version_like.upper))
+            return (self.sort_key(package_name, version_like.lower), self.sort_key(package_name, version_like.upper))
         if isinstance(version_like, _LowerBound):
             inclusion_key = -2 if version_like.inclusive else -1
             return self.sort_key(package_name, version_like.version), inclusion_key
@@ -155,8 +144,7 @@ class PackageOrder(object):
             return self.sort_key(package_name, version_like.version), inclusion_key
         if isinstance(version_like, Version):
             # finally, the bit that we actually use the sort_key_implementation for.
-            return FallbackComparable(
-                self.sort_key_implementation(package_name, version_like), version_like)
+            return FallbackComparable(self.sort_key_implementation(package_name, version_like), version_like)
         if version_like is None:
             # As no version range is provided for this package,
             # Python's sort preserves the order of equal elements.
@@ -188,7 +176,7 @@ class PackageOrder(object):
 
     @property
     def sha1(self) -> str:
-        return sha1(repr(self).encode('utf-8')).hexdigest()
+        return sha1(repr(self).encode("utf-8")).hexdigest()
 
     def __str__(self) -> str:
         raise NotImplementedError
@@ -211,15 +199,15 @@ _orderers = {}
 def _find_orderer(name):
     """Find an orderer class by name.
 
-    Checks the plugin system first, then falls back to the legacy _orderers
-    registry for backward compatibility with register_orderer().
+    Checks the plugin system first, then falls back to the _orderers
+    registry for orderers registered via register_orderer().
     """
     from rez.plugin_managers import plugin_manager
 
     try:
-        return plugin_manager.get_plugin_class('package_order', name)
+        return plugin_manager.get_plugin_class("package_order", name)
     except RezPluginError:
-        # Fallback to legacy "register_orderer" method
+        # Fallback to register_orderer() API-based registration
         if name not in _orderers:
             raise
         return _orderers[name]
@@ -251,8 +239,7 @@ def __getattr__(name):
 
 
 class PackageOrderList(List[PackageOrder]):
-    """A list of package orderer.
-    """
+    """A list of package orderer."""
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -380,18 +367,22 @@ def get_orderer(package_name: str, orderers: PackageOrderList | dict[str, Packag
     return orderer
 
 
-# Legacy orderer registry. Used as fallback by _find_orderer when an orderer
-# is not found in the plugin system.
+# Orderers registered at runtime via register_orderer(). This is the API-based
+# registration pathway, used as fallback by _find_orderer when an orderer is
+# not found in the plugin system.
 _orderers = {}
 
 
-# Legacy orderer registration. New orderers should be implemented as plugins
-# in rezplugins/package_order/. This function is kept for backward
-# compatibility with custom orderers registered via rezconfig.py.
+# Register an orderer for runtime/API-based use. Orderers registered here are
+# found by _find_orderer as a fallback when the plugin system does not have
+# a matching orderer. For filesystem-based, facility-wide orderers, prefer
+# creating a plugin in rezplugins/package_order/ instead.
 def register_orderer(cls: type[PackageOrder]) -> bool:
     """Register an orderer.
 
-    Kept for backwards compatibility. New orderers should be a plugin.
+    This is the API-based registration pathway, useful for dynamic or
+    programmatic orderer registration. For persistent, facility-wide
+    orderers, prefer the plugin system (rezplugins/package_order/).
 
     Args:
         cls (type[PackageOrder]): Package order class to register.
@@ -399,8 +390,7 @@ def register_orderer(cls: type[PackageOrder]) -> bool:
     returns:
         bool: True if successfully registered, else False.
     """
-    if isclass(cls) and issubclass(cls, PackageOrder) and \
-            hasattr(cls, "name") and cls.name:
+    if isclass(cls) and issubclass(cls, PackageOrder) and hasattr(cls, "name") and cls.name:
         _orderers[cls.name] = cls
         return True
     else:

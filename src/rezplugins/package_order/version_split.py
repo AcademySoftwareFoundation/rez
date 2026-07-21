@@ -12,6 +12,7 @@ class VersionSplitPackageOrder(PackageOrder):
     For example, given the versions [5, 4, 3, 2, 1], an orderer initialized
     with ``version=3`` would give the order [3, 2, 1, 5, 4].
     """
+
     name = "version_split"
 
     def __init__(self, first_version, packages=None):
@@ -31,10 +32,7 @@ class VersionSplitPackageOrder(PackageOrder):
         return str(self.first_version)
 
     def __eq__(self, other):
-        return (
-            type(self) is type(other)
-            and self.first_version == other.first_version
-        )
+        return type(self) is type(other) and self.first_version == other.first_version
 
     def to_pod(self):
         """
