@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from rez.release_hook import ReleaseHook
     from rez.build_process import BuildProcess
     from rez.build_system import BuildSystem
+    from rez.package_order import PackageOrder
     from rez.package_repository import PackageRepository
     from rez.command import Command
 
@@ -434,6 +435,10 @@ class RezPluginManager(object):
 
     @overload
     def get_plugin_class(self, plugin_type: Literal["command"], plugin_name: str) -> type[Command]:
+        pass
+
+    @overload
+    def get_plugin_class(self, plugin_type: Literal["package_order"], plugin_name: str) -> type[PackageOrder]:
         pass
 
     def get_plugin_class(self, plugin_type: str, plugin_name: str) -> type:

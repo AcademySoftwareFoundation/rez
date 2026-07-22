@@ -2,7 +2,16 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
+
 from rez.package_order import PackageOrder
+from rez.utils.typing import SupportsLessThan
+from rez.version import Version
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 
 class NullPackageOrder(PackageOrder):
@@ -10,23 +19,24 @@ class NullPackageOrder(PackageOrder):
 
     This orderer is useful in cases where you want to apply some default orderer
     to a set of packages, but may want to explicitly NOT reorder a particular
-    package. You would use a :class:`NullPackageOrder` in a :class:`PerFamilyOrder` to do this.
+    package. You would use a :class:`NullPackageOrder` in a
+    :class:`rezplugins.package_order.per_family.PerFamilyOrder` to do this.
     """
 
     name = "no_order"
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         # python's sort will preserve the order of items that compare equal, so
         # to not change anything, we just return the same object for all...
         return 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}"
 
     def __eq__(self, other):
         return type(self) is type(other)
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -40,9 +50,9 @@ class NullPackageOrder(PackageOrder):
         }
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         return cls(packages=data.get("packages"))
 
 
-def register_plugin():
+def register_plugin() -> type[NullPackageOrder]:
     return NullPackageOrder
