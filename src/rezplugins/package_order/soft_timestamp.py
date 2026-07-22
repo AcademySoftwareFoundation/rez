@@ -2,9 +2,18 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
+
 from rez.package_order import PackageOrder
 from rez.packages import iter_packages
+from rez.utils.typing import SupportsLessThan
+from rez.version import Version
 from rez.version._version import _ReversedComparable
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 class TimestampPackageOrder(PackageOrder):
@@ -51,7 +60,7 @@ class TimestampPackageOrder(PackageOrder):
 
     name = "soft_timestamp"
 
-    def __init__(self, timestamp, rank=0, packages=None):
+    def __init__(self, timestamp: int, rank: int = 0, packages: list[str] | None = None) -> None:
         """Create a reorderer.
 
         Args:
@@ -69,7 +78,7 @@ class TimestampPackageOrder(PackageOrder):
         self._cached_first_after = {}
         self._cached_sort_key = {}
 
-    def _get_first_after(self, package_family):
+    def _get_first_after(self, package_family: str) -> Version | None:
         """Get the first package version that is after the timestamp"""
         try:
             first_after = self._cached_first_after[package_family]
@@ -78,7 +87,7 @@ class TimestampPackageOrder(PackageOrder):
             self._cached_first_after[package_family] = first_after
         return first_after
 
-    def _calc_first_after(self, package_family):
+    def _calc_first_after(self, package_family: str) -> Version | None:
         descending = sorted(iter_packages(package_family), key=lambda p: p.version, reverse=True)
         first_after = None
         for i, package in enumerate(descending):
@@ -110,11 +119,11 @@ class TimestampPackageOrder(PackageOrder):
 
         return first_after
 
-    def _calc_sort_key(self, package_name, version):
+    def _calc_sort_key(self, package_name: str, version: Version) -> SupportsLessThan:
         first_after = self._get_first_after(package_name)
         if first_after is None:
             # all packages are before T
-            is_before = True
+            is_before: bool | int = True
         else:
             is_before = int(version < first_after)
 
@@ -122,11 +131,11 @@ class TimestampPackageOrder(PackageOrder):
             return is_before, version
 
         if self.rank:
-            return (is_before, _ReversedComparable(version.trim(self.rank - 1)), version.tokens[self.rank - 1 :])
+            return (is_before, _ReversedComparable(version.trim(self.rank - 1)), version.tokens[self.rank - 1:])
 
         return is_before, _ReversedComparable(version)
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         cache_key = (package_name, str(version))
         result = self._cached_sort_key.get(cache_key)
         if result is None:
@@ -135,13 +144,13 @@ class TimestampPackageOrder(PackageOrder):
 
         return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str((self.timestamp, self.rank))
 
     def __eq__(self, other):
-        return type(self) is type(other) and self.timestamp == other.timestamp and self.rank == other.rank
+        return type(other) is type(self) and self.timestamp == other.timestamp and self.rank == other.rank
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -159,7 +168,7 @@ class TimestampPackageOrder(PackageOrder):
         )
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         return cls(
             data["timestamp"],
             rank=data.get("rank", 0),

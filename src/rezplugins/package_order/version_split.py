@@ -2,8 +2,16 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from rez.package_order import PackageOrder
+from rez.utils.typing import SupportsLessThan
 from rez.version import Version
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 class VersionSplitPackageOrder(PackageOrder):
@@ -15,7 +23,7 @@ class VersionSplitPackageOrder(PackageOrder):
 
     name = "version_split"
 
-    def __init__(self, first_version, packages=None):
+    def __init__(self, first_version: Version, packages: list[str] | None = None) -> None:
         """Create a reorderer.
 
         Args:
@@ -24,17 +32,17 @@ class VersionSplitPackageOrder(PackageOrder):
         super().__init__(packages)
         self.first_version = first_version
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         priority_key = 1 if version <= self.first_version else 0
         return priority_key, version
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.first_version)
 
     def __eq__(self, other):
-        return type(self) is type(other) and self.first_version == other.first_version
+        return type(other) is type(self) and self.first_version == other.first_version
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, object]:
         """
         Example (in yaml):
 
@@ -50,7 +58,7 @@ class VersionSplitPackageOrder(PackageOrder):
         )
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, object]) -> Self:
         return cls(
             Version(data["first_version"]),
             packages=data.get("packages"),
