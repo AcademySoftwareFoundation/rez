@@ -2,7 +2,17 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
+from typing import Any, Callable, Iterable, TYPE_CHECKING
+
 from rez.package_order import PackageOrder, to_pod, from_pod
+from rez.packages import Package
+from rez.utils.typing import SupportsLessThan
+from rez.version import Version
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 class PerFamilyOrder(PackageOrder):
@@ -10,7 +20,7 @@ class PerFamilyOrder(PackageOrder):
 
     name = "per_family"
 
-    def __init__(self, order_dict, default_order=None):
+    def __init__(self, order_dict: dict[str, PackageOrder], default_order: PackageOrder | None = None) -> None:
         """Create a reorderer.
 
         Args:
@@ -23,7 +33,7 @@ class PerFamilyOrder(PackageOrder):
         self.order_dict = order_dict.copy()
         self.default_order = default_order
 
-    def reorder(self, iterable, key=None):
+    def reorder(self, iterable: Iterable[Package], key: Callable[[Any], Package] | None = None) -> list[Package] | None:
         package_name = self._get_package_name_from_iterable(iterable, key)
         if package_name is None:
             return None
@@ -36,7 +46,7 @@ class PerFamilyOrder(PackageOrder):
 
         return orderer.reorder(iterable, key)
 
-    def sort_key_implementation(self, package_name, version):
+    def sort_key_implementation(self, package_name: str, version: Version) -> SupportsLessThan:
         orderer = self.order_dict.get(package_name)
         if orderer is None:
             if self.default_order is None:
@@ -49,18 +59,18 @@ class PerFamilyOrder(PackageOrder):
 
         return orderer.sort_key_implementation(package_name, version)
 
-    def __str__(self):
+    def __str__(self) -> str:
         items = sorted((x[0], str(x[1])) for x in self.order_dict.items())
         return str((items, str(self.default_order)))
 
     def __eq__(self, other):
         return (
-            type(self) is type(other)
+            type(other) is type(self)
             and self.order_dict == other.order_dict
             and self.default_order == other.default_order
         )
 
-    def to_pod(self):
+    def to_pod(self) -> dict[str, Any]:
         """
         Example (in yaml):
 
@@ -94,7 +104,7 @@ class PerFamilyOrder(PackageOrder):
             data["packages"] = sorted(fams)
             orderlist.append(data)
 
-        result = {"orderers": orderlist}
+        result: dict[str, Any] = {"orderers": orderlist}
 
         if self.default_order is not None:
             result["default_order"] = to_pod(self.default_order)
@@ -102,7 +112,7 @@ class PerFamilyOrder(PackageOrder):
         return result
 
     @classmethod
-    def from_pod(cls, data):
+    def from_pod(cls, data: dict[str, Any]) -> Self:
         order_dict = {}
         default_order = None
 
