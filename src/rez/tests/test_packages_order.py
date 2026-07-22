@@ -13,10 +13,16 @@ from rez.package_order import (
     PackageOrder,
     PackageOrderList,
     from_pod,
+    to_pod,
+    get_orderer,
+    register_orderer,
+    _find_orderer,
+    _orderers,
+    FallbackComparable,
 )
 from rez.packages import iter_packages
 from rez.tests.util import TestBase, TempdirMixin
-from rez.version import Version
+from rez.version import Version, VersionRange
 
 
 def _orderer(name):
@@ -179,9 +185,25 @@ class TestPerFamilyOrder(_BaseTestPackagesOrder):
         self._test_reorder(orderer, "missing_package", [])
 
     def test_reorder_no_default_order(self) -> None:
-        """Test behavior when there's no secondary default_order."""
+        """Validate we correctly handle no default order for a PerFamilyOrder."""
         fam_orderer = self.PerFamilyOrder(order_dict={})
         self._test_reorder(fam_orderer, "pymum", ["3", "2", "1"])
+
+    def test_sort_key_implementation_with_default_order(self) -> None:
+        """sort_key_implementation falls back to default_order for unregistered families."""
+        orderer = self.PerFamilyOrder(
+            order_dict={},
+            default_order=self.SortedOrder(descending=False),
+        )
+        # "unknown" is not in order_dict, so falls back to default_order
+        key = orderer.sort_key_implementation("unknown", Version("1.0"))
+        self.assertIsNotNone(key)
+
+    def test_sort_key_implementation_no_orderer_raises(self) -> None:
+        """sort_key_implementation raises RuntimeError when no orderer applies."""
+        orderer = self.PerFamilyOrder(order_dict={}, default_order=None)
+        with self.assertRaises(RuntimeError):
+            orderer.sort_key_implementation("unknown", Version("1.0"))
 
     def test_comparison(self) -> None:
         """Validate we can compare PerFamilyOrder."""
@@ -585,6 +607,9 @@ class TestPackageOrderPublic(TestBase):
 
     def setUp(self) -> None:
         self.VersionSplitPackageOrder = _orderer("version_split")
+        self.SortedOrder = _orderer("sorted")
+        self.NullPackageOrder = _orderer("no_order")
+        self.PerFamilyOrder = _orderer("per_family")
         super().setUp()
 
     def test_from_pod_old_style(self) -> None:
@@ -593,3 +618,175 @@ class TestPackageOrderPublic(TestBase):
             self.VersionSplitPackageOrder(first_version=Version("1.2.3")),
             from_pod(("version_split", {"first_version": "1.2.3"})),
         )
+
+    def test_find_orderer_unknown_name(self) -> None:
+        """_find_orderer raises RezPluginError for unknown orderer names."""
+        from rez.exceptions import RezPluginError
+
+        with self.assertRaises(RezPluginError):
+            _find_orderer("nonexistent_orderer")
+
+    def test_getattr_unknown_name(self) -> None:
+        """Module-level __getattr__ raises AttributeError for unknown names."""
+        import rez.package_order as po
+
+        with self.assertRaises(AttributeError):
+            po.nonexistent_attribute  # noqa: B018
+
+    def test_register_orderer_invalid(self) -> None:
+        """register_orderer returns False for non-PackageOrder classes."""
+
+        class NotAnOrderer:
+            pass
+
+        self.assertFalse(register_orderer(NotAnOrderer))
+
+    def test_register_orderer_valid(self) -> None:
+        """register_orderer returns True and registers a valid orderer."""
+
+        class TestOrderer(PackageOrder):
+            name = "test_coverage_orderer"
+
+            def sort_key_implementation(self, package_name, version):
+                return 0
+
+            def __str__(self):
+                return "test"
+
+            def to_pod(self):
+                return {}
+
+            @classmethod
+            def from_pod(cls, data):
+                return cls()
+
+        try:
+            self.assertTrue(register_orderer(TestOrderer))
+            self.assertEqual(_find_orderer("test_coverage_orderer"), TestOrderer)
+        finally:
+            _orderers.pop("test_coverage_orderer", None)
+
+    def test_sort_key_with_version_range(self) -> None:
+        """sort_key handles VersionRange, not just Version."""
+        orderer = self.SortedOrder(descending=True)
+        key = orderer.sort_key("foo", VersionRange("1.0+<2.0"))
+        self.assertIsInstance(key, tuple)
+
+    def test_sort_key_with_none(self) -> None:
+        """sort_key returns 0 for None (preserves original order)."""
+        orderer = self.SortedOrder(descending=True)
+        self.assertEqual(orderer.sort_key("foo", None), 0)
+
+    def test_sort_key_invalid_type(self) -> None:
+        """sort_key raises TypeError for unrecognized types."""
+        orderer = self.SortedOrder(descending=True)
+        with self.assertRaises(TypeError):
+            orderer.sort_key("foo", 123)
+
+    def test_fallback_comparable(self) -> None:
+        """FallbackComparable falls back when main comparison fails."""
+
+        class _Raises:
+            """Object that raises on comparison, forcing fallback path."""
+
+            def __eq__(self, other):
+                raise TypeError("nope")
+
+            def __lt__(self, other):
+                raise TypeError("nope")
+
+        fc1 = FallbackComparable(_Raises(), 1)
+        fc2 = FallbackComparable(_Raises(), 1)
+        # main comparison raises, so falls back to 1 == 1
+        self.assertTrue(fc1 == fc2)
+
+        fc3 = FallbackComparable(_Raises(), 2)
+        self.assertFalse(fc1 == fc3)
+        self.assertTrue(fc1 < fc3)
+
+    def test_fallback_comparable_repr(self) -> None:
+        """FallbackComparable has a useful repr."""
+        fc = FallbackComparable(1, 2)
+        self.assertIn("FallbackComparable", repr(fc))
+
+    def test_get_orderer_default(self) -> None:
+        """get_orderer returns descending SortedOrder as default fallback."""
+        orderer = get_orderer("nonexistent_package")
+        self.assertTrue(orderer.descending)
+
+    def test_to_pod_round_trip(self) -> None:
+        """to_pod produces a dict with 'type' that from_pod can consume."""
+        orderer = self.SortedOrder(descending=True)
+        pod = to_pod(orderer)
+        self.assertEqual(pod["type"], "sorted")
+        result = from_pod(pod)
+        self.assertEqual(orderer, result)
+
+
+class TestPackageOrderListCoverage(_BaseTestPackagesOrder):
+    """Coverage for PackageOrderList methods."""
+
+    def test_dirty_flag_on_append(self) -> None:
+        """append sets dirty flag."""
+        ol = PackageOrderList()
+        ol.append(self.SortedOrder(descending=True))
+        self.assertTrue(ol.dirty)
+
+    def test_dirty_flag_on_extend(self) -> None:
+        """extend sets dirty flag."""
+        ol = PackageOrderList()
+        ol.extend([self.SortedOrder(descending=True)])
+        self.assertTrue(ol.dirty)
+
+    def test_dirty_flag_on_pop(self) -> None:
+        """pop sets dirty flag."""
+        ol = PackageOrderList([self.SortedOrder(descending=True)])
+        ol.pop()
+        self.assertTrue(ol.dirty)
+
+    def test_dirty_flag_on_remove(self) -> None:
+        """remove sets dirty flag."""
+        orderer = self.SortedOrder(descending=True)
+        ol = PackageOrderList([orderer])
+        ol.remove(orderer)
+        self.assertTrue(ol.dirty)
+
+    def test_dirty_flag_on_clear(self) -> None:
+        """clear sets dirty flag."""
+        ol = PackageOrderList([self.SortedOrder(descending=True)])
+        ol.clear()
+        self.assertTrue(ol.dirty)
+
+    def test_dirty_flag_on_insert(self) -> None:
+        """insert sets dirty flag."""
+        ol = PackageOrderList()
+        ol.insert(0, self.SortedOrder(descending=True))
+        self.assertTrue(ol.dirty)
+
+    def test_to_orderer_with_dict(self) -> None:
+        """_to_orderer converts a dict to an orderer via from_pod."""
+        ol = PackageOrderList()
+        orderer = ol._to_orderer({"type": "sorted", "descending": True})
+        self.assertTrue(orderer.descending)
+
+    def test_pod_round_trip(self) -> None:
+        """PackageOrderList to_pod/from_pod round-trip."""
+        ol = PackageOrderList([self.SortedOrder(descending=True)])
+        pod = ol.to_pod()
+        result = PackageOrderList.from_pod(pod)
+        self.assertEqual(ol, result)
+
+    def test_get_with_dirty_refresh(self) -> None:
+        """get() triggers refresh when dirty."""
+        orderer = self.SortedOrder(descending=True, packages=["foo"])
+        ol = PackageOrderList([orderer])
+        self.assertTrue(ol.dirty)
+        result = ol.get("foo")
+        self.assertEqual(result, orderer)
+        self.assertFalse(ol.dirty)
+
+    def test_get_missing_package_returns_default(self) -> None:
+        """get() returns default for unknown package."""
+        ol = PackageOrderList()
+        result = ol.get("nonexistent", default=self.NullPackageOrder())
+        self.assertIsInstance(result, self.NullPackageOrder)
