@@ -13,6 +13,7 @@ from rez.rex_bindings import VersionBinding, VariantBinding, VariantsBinding, \
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
 import unittest
+from unittest import mock
 from rez.version import Version
 from rez.version import Requirement
 from rez.tests.util import TestBase
@@ -581,9 +582,9 @@ class TestRex(TestBase):
                      "parent_environ passthrough is non-Windows behaviour")
     def test_parent_environ_identity_passthrough_on_non_windows(self) -> None:
         """On non-Windows, a caller dict is used as-is (no wrapping). #2089."""
-        env = {"SomeVariable": "covfefe"}
-        ex = self._create_executor(env)
-        self.assertIs(ex.manager.parent_environ, env)
+        parent_env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(parent_env)
+        self.assertIs(ex.manager.parent_environ, parent_env)
 
     @unittest.skipIf(platform_.name != "windows", "Windows-only behaviour")
     def test_parent_environ_case_insensitive_on_windows(self) -> None:
@@ -594,8 +595,8 @@ class TestRex(TestBase):
         such a dict as parent_environ used to break env.<MixedCase>
         lookups inside commands(). We now wrap on the Windows side.
         """
-        env = {"SomeVariable": "covfefe"}
-        ex = self._create_executor(env)
+        parent_env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(parent_env)
 
         # any casing of the key resolves
         self.assertEqual(ex.manager.parent_environ["SomeVariable"], "covfefe")
@@ -607,13 +608,47 @@ class TestRex(TestBase):
         # end-to-end via the real package-commands entrypoint: rex references
         # a different casing than the caller's dict, exercised through both
         # execute_function and execute_code (what commands() actually run).
-        # Pre-fix this raised RexUndefinedVariableError.
+        # Pre-fix this raised RexUndefinedVariableError. Note: the caller dict
+        # is named `parent_env`, not `env`, so the nested rex function does not
+        # close over it and shadow the rex `env` builtin.
         def _rex() -> None:
             env.RESULT = env.SOMEVARIABLE  # noqa: F821 - rex builtin
 
         self._test(
             func=_rex,
-            env={"SomeVariable": "covfefe"},
+            env=parent_env,
+            expected_actions=[Setenv("RESULT", "covfefe")],
+            expected_output={"RESULT": "covfefe"},
+        )
+
+    def test_parent_environ_os_environ_passthrough(self) -> None:
+        """Explicit os.environ is used as-is (identity), never wrapped or
+        copied -- it is already case-insensitive on Windows. #2089.
+        """
+        ex = self._create_executor(os.environ)
+        self.assertIs(ex.manager.parent_environ, os.environ)
+
+    @mock.patch.object(platform_, "name", "windows")
+    def test_parent_environ_case_insensitive_windows_mocked(self) -> None:
+        """Companion to test_parent_environ_case_insensitive_on_windows that
+        runs on every host by mocking the platform, so the Windows-only
+        wrapping branch keeps CI coverage (and local validation) off Windows
+        too. #2089.
+        """
+        from rez.rex import _CaseInsensitiveEnvironProxy
+
+        parent_env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(parent_env)
+        self.assertIsInstance(
+            ex.manager.parent_environ, _CaseInsensitiveEnvironProxy)
+        self.assertEqual(ex.manager.parent_environ["SOMEVARIABLE"], "covfefe")
+
+        def _rex() -> None:
+            env.RESULT = env.SOMEVARIABLE  # noqa: F821 - rex builtin
+
+        self._test(
+            func=_rex,
+            env=parent_env,
             expected_actions=[Setenv("RESULT", "covfefe")],
             expected_output={"RESULT": "covfefe"},
         )
