@@ -12,8 +12,8 @@ from fnmatch import fnmatch
 from enum import Enum
 from contextlib import contextmanager
 from string import Formatter
-from collections.abc import MutableMapping
-from typing import Any, Iterable, Mapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any, Iterable
 
 from rez.system import system
 from rez.config import config
@@ -187,7 +187,10 @@ class ActionManager(object):
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
         parent_environ: environment to execute the actions within. If None,
-            defaults to the current environment.
+            defaults to the current environment. On Windows, a caller-supplied
+            mapping is wrapped in a read-only, case-insensitive snapshot so that
+            lookups against it are case-insensitive, matching how ``os.environ``
+            behaves natively (see #2089); `os.environ` and None are used as-is.
         parent_variables: List of variables to append/prepend to, rather than
             overwriting on first reference. If this is set to True instead of a
             list, all variables are treated as parent variables.
@@ -200,9 +203,24 @@ class ActionManager(object):
         '''
         self.interpreter = interpreter
         self.verbose = verbose
-        self.parent_environ = os.environ if parent_environ is None else parent_environ
+        # On Windows env-var keys are case-insensitive; os.environ already
+        # behaves that way but a plain dict supplied by the caller does not,
+        # so wrap it on the Windows path only. See #2089.
+        self.parent_environ: Mapping[str, str]
+        if parent_environ is None or parent_environ is os.environ:
+            # os.environ is already case-insensitive on Windows, so use it
+            # as-is (preserving liveness and identity); None means "current".
+            self.parent_environ = os.environ
+        elif platform_.name == "windows" and not isinstance(
+                parent_environ, _CaseInsensitiveEnvironProxy):
+            self.parent_environ = _CaseInsensitiveEnvironProxy(parent_environ)
+        else:
+            self.parent_environ = parent_environ
         self.parent_variables = True if parent_variables is True \
             else set(parent_variables or [])
+        # Variables set during rex execution. Keys are stored verbatim and are
+        # not case-folded on Windows (unlike the parent_environ snapshot above);
+        # that broader normalization is a separate concern, tracked in #2164.
         self.environ = {}
         self.formatter = formatter or str
         self.actions = []
@@ -445,6 +463,47 @@ class ActionManager(object):
 
     def _keytoken(self, key):
         return self.interpreter.get_key_token(key)
+
+
+class _CaseInsensitiveEnvironProxy(Mapping):
+    """Read-only, case-insensitive snapshot of an env-var mapping.
+
+    Used by `ActionManager` to wrap a caller-supplied `parent_environ`
+    on Windows so lookups against it are case-insensitive regardless of
+    the casing used to populate the input dict, matching how os.environ
+    behaves natively on Windows.
+
+    Keys are normalized (upper-cased) once at construction, so this is a
+    point-in-time snapshot: later mutations to the source mapping are not
+    reflected. That matches how `parent_environ` is used in practice (fixed
+    for the lifetime of an executor).
+
+    Kept private to this module on purpose; promote to a shared util
+    only when a second caller needs it.
+    """
+    def __init__(self, data):
+        # keys are upper-cased once on the way in; same shape as
+        # os.environ on Windows. Last write wins on case collisions,
+        # which mirrors how os.environ resolves them too.
+        self._data = {k.upper(): v for k, v in data.items()}
+
+    def __getitem__(self, key):
+        return self._data[key.upper()]
+
+    def __contains__(self, key):
+        return key.upper() in self._data
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
+
+    def copy(self):
+        # Return a plain dict with normalized (upper-cased) keys, mirroring
+        # os.environ.copy() on Windows. Defensive: lets callers that expect a
+        # dict-like parent_environ (e.g. `self.parent_environ.copy()`) work.
+        return dict(self._data)
 
 
 #===============================================================================
