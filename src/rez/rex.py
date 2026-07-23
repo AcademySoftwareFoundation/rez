@@ -322,10 +322,7 @@ class ActionManager(object):
 
         if expanded_key in self.environ:
             del self.environ[expanded_key]
-        if self.interpreter.expand_env_vars:
-            key = expanded_key
-        else:
-            key = unexpanded_key
+        key = expanded_key if self.interpreter.expand_env_vars else unexpanded_key
         self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None) -> None:
@@ -350,10 +347,7 @@ class ActionManager(object):
         if (expanded_key not in self.environ) and \
                 ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
             self.environ[expanded_key] = self.parent_environ.get(expanded_key, '')
-            if self.interpreter.expand_env_vars:
-                key_ = expanded_key
-            else:
-                key_ = unexpanded_key
+            key_ = expanded_key if self.interpreter.expand_env_vars else unexpanded_key
             self.interpreter._saferefenv(key_)
 
         # *pend or setenv depending on whether this is first reference to the var
@@ -665,10 +659,9 @@ class Python(ActionInterpreter):
         return self.manager.environ
 
     def setenv(self, key, value: str | EscapedString) -> None:
-        if self.update_session:
-            if key == 'PYTHONPATH':
-                value = self.escape_string(value)
-                sys.path = value.split(self.pathsep)
+        if self.update_session and key == 'PYTHONPATH':
+            value = self.escape_string(value)
+            sys.path = value.split(self.pathsep)
 
     def unsetenv(self, key) -> None:
         pass
@@ -677,16 +670,14 @@ class Python(ActionInterpreter):
         pass
 
     def prependenv(self, key, value: str | EscapedString) -> None:
-        if self.update_session:
-            if key == 'PYTHONPATH':
-                value = self.escape_string(value)
-                sys.path.insert(0, value)
+        if self.update_session and key == 'PYTHONPATH':
+            value = self.escape_string(value)
+            sys.path.insert(0, value)
 
     def appendenv(self, key, value: str | EscapedString) -> None:
-        if self.update_session:
-            if key == 'PYTHONPATH':
-                value = self.escape_string(value)
-                sys.path.append(value)
+        if self.update_session and key == 'PYTHONPATH':
+            value = self.escape_string(value)
+            sys.path.append(value)
 
     def info(self, value) -> None:
         if not self.passive:
@@ -944,10 +935,7 @@ class EscapedString(object):
                 out = EscapedString(value, is_literal)
                 push = False
 
-            if current is None:
-                current = out
-            else:
-                current = current + out
+            current = out if current is None else current + out
             if push:
                 result.append(current)
                 current = None
@@ -1112,7 +1100,7 @@ class EnvironmentDict(MutableMapping):
         """
         self.manager = manager
         self._var_cache = dict((k, EnvironmentVariable(k, self))
-                               for k in manager.parent_environ.keys())
+                               for k in manager.parent_environ)
 
     def keys(self):
         return self._var_cache.keys()
@@ -1135,7 +1123,7 @@ class EnvironmentDict(MutableMapping):
         del self._var_cache[key]
 
     def __iter__(self):
-        for key in self._var_cache.keys():
+        for key in self._var_cache:
             yield key
 
     def __len__(self) -> int:
@@ -1332,10 +1320,7 @@ class RexExecutor(object):
         """Append system paths to $PATH."""
         from rez.shells import Shell, create_shell
 
-        if isinstance(self.interpreter, Shell):
-            sh = self.interpreter
-        else:
-            sh = create_shell()
+        sh = self.interpreter if isinstance(self.interpreter, Shell) else create_shell()
 
         for path in sh.get_syspaths():
             self.env.PATH.append(path)
@@ -1375,17 +1360,11 @@ class RexExecutor(object):
             Compiled code object.
         """
         if filename is None:
-            if isinstance(code, SourceCode):
-                filename = code.sourcename
-            else:
-                filename = "<string>"
+            filename = code.sourcename if isinstance(code, SourceCode) else "<string>"
 
         # compile
         try:
-            if isinstance(code, SourceCode):
-                pyc = code.compiled
-            else:
-                pyc = compile(code, filename, 'exec')
+            pyc = code.compiled if isinstance(code, SourceCode) else compile(code, filename, "exec")
         except SourceCodeError as e:
             reraise(e, RexError)
         except:

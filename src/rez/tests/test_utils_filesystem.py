@@ -103,14 +103,13 @@ class TestFileSystem(TestBase, TempdirMixin):
         self.assertFalse(os.path.exists(src))
 
     def test_safe_rmtree_with_file_not_found(self) -> None:
-        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error):
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error):  # noqa: SIM117
             with self.assertRaises(FileNotFoundError):
                 filesystem.safe_rmtree("path")
 
     def test_safe_rmtree_with_other_error(self) -> None:
-        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
-            with self.assertRaises(PermissionError):
-                filesystem.safe_rmtree("path")
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error), self.assertRaises(PermissionError):
+            filesystem.safe_rmtree("path")
 
     def test_safe_rmtree_with_file_not_found_and_apple_double(self) -> None:
         with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error) as mock_rmtree:
@@ -122,6 +121,5 @@ class TestFileSystem(TestBase, TempdirMixin):
                     filesystem.safe_rmtree("._path")
 
     def test_safe_rmtree_with_other_error_and_apple_double(self) -> None:
-        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
-            with self.assertRaises(PermissionError):
-                filesystem.safe_rmtree("._path")
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error), self.assertRaises(PermissionError):
+            filesystem.safe_rmtree("._path")

@@ -70,8 +70,5 @@ def command(opts, parser, extra_arg_groups=None) -> None:
         print()
         print("CONTENTS:")
 
-    if opts.format == "py":
-        format_ = FileFormat.py
-    else:
-        format_ = FileFormat.yaml
+    format_ = FileFormat.py if opts.format == "py" else FileFormat.yaml
     package.print_info(format_=format_, include_release=opts.all)

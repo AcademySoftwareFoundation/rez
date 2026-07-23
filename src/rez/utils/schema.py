@@ -41,7 +41,7 @@ def schema_keys(schema) -> set[str]:
     dict_ = schema._schema
     assert isinstance(dict_, dict)
 
-    for key in dict_.keys():
+    for key in dict_:
         key_ = _get_leaf(key)
         if isinstance(key_, str):
             keys.add(key_)

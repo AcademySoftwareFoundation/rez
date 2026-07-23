@@ -256,12 +256,9 @@ class TestInitLogging(TestBase):
     )
 
     def _write_logging_conf(self) -> str:
-        f = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".ini", delete=False
-        )
-        f.write(self._LOGGING_INI)
-        f.close()
-        return f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ini", delete=False) as f:
+            f.write(self._LOGGING_INI)
+            return f.name
 
     @patch("logging.config.fileConfig")
     def test_logging_conf_does_not_suppress_pika(self, mock_file_config) -> None:

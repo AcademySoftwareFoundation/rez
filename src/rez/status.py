@@ -273,10 +273,7 @@ class Status(object):
             return False
 
         def _print_package(package) -> None:
-            if isinstance(package, Package):
-                name = package.qualified_name
-            else:
-                name = package.qualified_package_name  # Variant
+            name = package.qualified_name if isinstance(package, Package) else package.qualified_package_name
             _pr("Package:  %s" % name)
             path_str = "URI:      %s" % package.uri
             if package.is_local:
@@ -352,10 +349,7 @@ class Status(object):
     def _print_info(self, buf=sys.stdout) -> None:
         lines = ["Using Rez v%s" % __version__]
         if self.context:
-            if self.context.load_path:
-                line = "\nActive Context: %s" % self.context.load_path
-            else:
-                line = "\nIn Active Context."
+            line = "\nActive Context: %s" % self.context.load_path if self.context.load_path else "\nIn Active Context."
             lines.append(line)
         else:
             lines.append("\nNo active context.")

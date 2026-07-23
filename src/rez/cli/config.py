@@ -57,11 +57,7 @@ def command(opts, parser, extra_arg_groups=None):
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
     if isinstance(data, (dict, list)):
-        if opts.json:
-            txt = json.dumps(convert_json_safe(data))
-        else:
-            txt = dump_yaml(data)
-
+        txt = json.dumps(convert_json_safe(data)) if opts.json else dump_yaml(data)
         print(txt.strip())
     else:
         print(data)

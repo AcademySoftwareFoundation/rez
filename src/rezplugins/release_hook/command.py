@@ -77,10 +77,7 @@ class CommandReleaseHook(ReleaseHook):
                 print(stdout.strip())
             return True
 
-        if not os.path.isfile(cmd_name):
-            cmd_full_path = which(cmd_name)
-        else:
-            cmd_full_path = cmd_name
+        cmd_full_path = which(cmd_name) if not os.path.isfile(cmd_name) else cmd_name
         if not cmd_full_path:
             msg = "%s: command not found" % cmd_name
             _err(msg)
@@ -126,10 +123,7 @@ class CommandReleaseHook(ReleaseHook):
         # developer package (self.package). Otherwise, attributes such as 'root'
         # will be None
         errors = []
-        if variants:
-            package = variants[0].parent
-        else:
-            package = self.package
+        package = variants[0].parent if variants else self.package
 
         self._execute_commands(self.settings.post_release_commands,
                                install_path=install_path,
@@ -201,9 +195,8 @@ class CommandReleaseHook(ReleaseHook):
                                         cmd_arguments=args,
                                         user=conf.get("user"),
                                         errors=errors,
-                                        env=env_):
-                if self.settings.stop_on_error:
-                    return
+                                        env=env_) and self.settings.stop_on_error:
+                return
 
 
 def register_plugin():

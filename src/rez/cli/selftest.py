@@ -87,10 +87,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
     if opts.keep_tmpdirs:
         os.environ["REZ_KEEP_TMPDIRS"] = "1"
 
-    if not opts.module_tests and not opts.tests:
-        module_tests = all_module_tests
-    else:
-        module_tests = opts.module_tests
+    module_tests = all_module_tests if not opts.module_tests and not opts.tests else opts.module_tests
 
     repo = os.path.join(os.getcwd(), "__tests_pkg_repo")
     os.makedirs(repo, exist_ok=True)

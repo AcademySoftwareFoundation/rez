@@ -130,10 +130,7 @@ class ReleaseVCS(object):
         to find it, where 0 means it was found in the indicated path, 1 means it
         was found in that path's parent, etc. If not sucessful, returns None
         """
-        if cls.search_parents_for_root():
-            valid_dirs = walk_up_dirs(path)
-        else:
-            valid_dirs = [path]
+        valid_dirs = walk_up_dirs(path) if cls.search_parents_for_root() else [path]
         for i, current_path in enumerate(valid_dirs):
             if cls.is_valid_root(current_path):
                 return current_path, i

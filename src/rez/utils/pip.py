@@ -199,10 +199,7 @@ def pip_specifier_to_rez_requirement(specifier):
     # 1 --> 2; 1.2 --> 1.3; 1.a2 -> 1.0
     def next_ver(rez_ver):
         parts = rez_ver.split('.')
-        if is_release(rez_ver):
-            parts = parts[:-1] + [str(int(parts[-1]) + 1)]
-        else:
-            parts = parts[:-1] + ["0"]
+        parts = parts[:-1] + [str(int(parts[-1]) + 1)] if is_release(rez_ver) else parts[:-1] + ["0"]
         return '.'.join(parts)
 
     # 1 --> 1.1; 1.2 --> 1.2.1; 1.a2 --> 1.0
@@ -698,10 +695,7 @@ def normalize_requirement(requirement):
         marker_str = requirement.get("environment")
 
         # conditional extra, equivalent to: 'foo ; extra = "doc"'
-        if extra:
-            conditional_extras = set([extra])
-        else:
-            conditional_extras = None
+        conditional_extras = set([extra]) if extra else None
 
         for req_str in requires:
             req = packaging_Requirement(req_str)

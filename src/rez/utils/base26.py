@@ -59,10 +59,7 @@ def create_unique_base26_symlink(path: str, source: str) -> str:
             if os.path.islink(os.path.join(path, x))
         ]
 
-        if names:
-            prev = max(names)
-        else:
-            prev = None
+        prev = max(names) if names else None
 
         linkname = get_next_base26(prev)
         linkpath = os.path.join(path, linkname)

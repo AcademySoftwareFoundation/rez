@@ -31,10 +31,7 @@ def command(opts, parser, extra_arg_groups=None) -> None:
         comp_point = len(comp_line)
 
     last_word = comp_line.split()[-1]
-    if comp_line.endswith(last_word):
-        prefix = last_word
-    else:
-        prefix = None
+    prefix = last_word if comp_line.endswith(last_word) else None
 
     def _pop_arg(l, p):
         words = l.split()
@@ -52,9 +49,8 @@ def command(opts, parser, extra_arg_groups=None) -> None:
     comp_line, comp_point, cmd = _pop_arg(comp_line, comp_point)
     if cmd in ("rez", "rezolve"):
         comp_line, comp_point, arg = _pop_arg(comp_line, comp_point)
-        if arg:
-            if prefix != arg:
-                subcommand = arg
+        if arg and prefix != arg:
+            subcommand = arg
     else:
         subcommand = cmd.split("-", 1)[-1]
 

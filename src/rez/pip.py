@@ -589,10 +589,7 @@ def _cmd(context, command):
     cmd_str = ' '.join(quote(x) for x in command)
     _log("running: %s" % cmd_str)
 
-    if context is None:
-        p = Popen(command)
-    else:
-        p = context.execute_shell(command=command, block=False)
+    p = Popen(command) if context is None else context.execute_shell(command=command, block=False)
 
     with p:
         p.wait()

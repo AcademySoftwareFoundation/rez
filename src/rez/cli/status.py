@@ -27,9 +27,6 @@ def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.status import status
     import sys
 
-    if opts.tools:
-        b = status.print_tools(opts.OBJECT)
-    else:
-        b = status.print_info(opts.OBJECT)
+    b = status.print_tools(opts.OBJECT) if opts.tools else status.print_info(opts.OBJECT)
 
     sys.exit(0 if b else 1)

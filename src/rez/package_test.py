@@ -156,10 +156,7 @@ class PackageTestRunner(object):
 
         if run_on:
             def _select(value):
-                if isinstance(value, dict):
-                    value = value.get("run_on")
-                else:
-                    value = None
+                value = value.get("run_on") if isinstance(value, dict) else None
 
                 if value is None:
                     return ("default" in run_on)
@@ -175,10 +172,7 @@ class PackageTestRunner(object):
 
         if ran_once:
             def _select_kv(key, value) -> bool:
-                if isinstance(value, dict):
-                    value = value.get("on_variants")
-                else:
-                    value = None
+                value = value.get("on_variants") if isinstance(value, dict) else None
 
                 if value in (None, False):
                     return (key not in ran_once)
@@ -410,12 +404,9 @@ class PackageTestRunner(object):
                 continue
 
             # expand refs like {root} in commands
-            if isinstance(command, str):
-                command = variant.format(command)
-            else:
-                # Note that we convert the iterator to a list to
-                # make sure that we can consume the variable more than once.
-                command = [x for x in map(variant.format, command)]
+            # Note that we convert the iterator to a list to
+            # make sure that we can consume the variable more than once.
+            command = variant.format(command) if isinstance(command, str) else [x for x in map(variant.format, command)]
 
             if extra_test_args:
                 if isinstance(command, str):
@@ -429,10 +420,7 @@ class PackageTestRunner(object):
                     context.print_info(self.stdout)
                     print('')
 
-                if isinstance(command, str):
-                    cmd_str = command
-                else:
-                    cmd_str = ' '.join(map(quote, command))
+                cmd_str = command if isinstance(command, str) else ' '.join(map(quote, command))
 
                 self._print_header("Running test command: %s", cmd_str)
 

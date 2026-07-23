@@ -300,20 +300,14 @@ def _copy_variant_payload(src_variant: Variant,
     copy_func = partial(replacing_copy,
                         follow_symlinks=follow_symlinks)
 
-    if shallow:
-        maybe_symlink = replacing_symlink
-    else:
-        maybe_symlink = copy_func
+    maybe_symlink = replacing_symlink if shallow else copy_func
 
     # possibly make install path temporarily writable
     last_dir = get_existing_path(
         variant_install_path,
         topmost_path=os.path.dirname(dest_pkg_payload_path))
 
-    if last_dir and config.make_package_temporarily_writable:
-        ctxt = make_path_writable(last_dir)
-    else:
-        ctxt = with_noop()
+    ctxt = make_path_writable(last_dir) if last_dir and config.make_package_temporarily_writable else with_noop()
 
     # copy the variant payload
     with ctxt:
@@ -450,10 +444,7 @@ def _copy_package_include_modules(src_package: Package, dest_pkg_repo: PackageRe
     last_dir = get_existing_path(dest_include_modules_path,
                                  topmost_path=os.path.dirname(pkg_install_path))
 
-    if last_dir:
-        ctxt = make_path_writable(last_dir)
-    else:
-        ctxt = with_noop()
+    ctxt = make_path_writable(last_dir) if last_dir else with_noop()
 
     with ctxt:
         os.makedirs(dest_include_modules_path, exist_ok=True)

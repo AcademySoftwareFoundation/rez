@@ -132,26 +132,18 @@ class System(object):
                 shell = next(iter(shells))  # give up - just choose a shell
 
             # sh has to be handled as a special case
-            if shell == "sh":
-                if os.path.islink("/bin/sh"):
-                    path = os.readlink("/bin/sh")
-                    shell2 = os.path.split(path)[-1]
+            if shell == "sh" and os.path.islink("/bin/sh"):
+                path = os.readlink("/bin/sh")
+                shell2 = os.path.split(path)[-1]
 
-                    if shell2 == "bash":
-                        # bash switches to sh-like shell when invoked as sh,
-                        # so we want to use the sh shell plugin
-                        pass
-                    elif shell2 == "dash":
-                        # dash doesn't have an sh emulation mode, so we have
-                        # to use the dash shell plugin
-                        if "dash" in shells:
-                            shell = "dash"
-                        else:
-                            # this isn't good!
-                            if "bash" in shells:
-                                shell = "bash"  # fall back on bash
-                            else:
-                                shell = next(iter(shells))  # give up - just choose a shell
+                if shell2 == "bash":
+                    # bash switches to sh-like shell when invoked as sh,
+                    # so we want to use the sh shell plugin
+                    pass
+                elif shell2 == "dash":
+                    # dash doesn't have an sh emulation mode, so we have
+                    # to use the dash shell plugin
+                    shell = "dash" if "dash" in shells else "bash" if "bash" in shells else next(iter(shells))
 
             # TODO: remove this when/if dash support added
             if shell == "dash":
@@ -233,10 +225,7 @@ class System(object):
         i = len(parts) - 1 - i  # unreverse the index
 
         # find rez bin path and look for the production install marker file
-        if platform.system() == "Windows":
-            bin_dirname = "Scripts"
-        else:
-            bin_dirname = "bin"
+        bin_dirname = "Scripts" if platform.system() == "Windows" else "bin"
 
         binpath = os.path.sep.join(parts[:i] + [bin_dirname, "rez"])
 

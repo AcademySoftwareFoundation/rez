@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os.path
 from typing import Sequence, TypedDict, TYPE_CHECKING
 
@@ -52,11 +53,8 @@ def get_valid_build_systems(working_dir: str,
     from rez.plugin_managers import plugin_manager
     from rez.exceptions import PackageMetadataError
 
-    try:
+    with contextlib.suppress(PackageMetadataError):  # no package, or bad package
         package = package or get_developer_package(working_dir)
-    except PackageMetadataError:
-        # no package, or bad package
-        pass
 
     if package:
         if getattr(package, "build_command", None) is not None:
@@ -249,10 +247,7 @@ class BuildSystem(object):
         package = variant.parent
         variant_requires = map(str, variant.variant_requires)
 
-        if variant.index is None:
-            variant_subpath = ''
-        else:
-            variant_subpath = variant._non_shortlinked_subpath
+        variant_subpath = "" if variant.index is None else variant._non_shortlinked_subpath
 
         # Security warning!
         # Be very careful with values in this dict. Escape (using literal)

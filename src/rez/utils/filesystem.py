@@ -434,10 +434,7 @@ def copytree(src: str, dst: str, symlinks: bool = False, ignore=None, hardlinks:
     '''copytree that supports hard-linking
     '''
     names = os.listdir(src)
-    if ignore is not None:
-        ignored_names = ignore(src, names)
-    else:
-        ignored_names = set()
+    ignored_names = ignore(src, names) if ignore is not None else set()
 
     if hardlinks:
         def copy(srcname, dstname) -> None:

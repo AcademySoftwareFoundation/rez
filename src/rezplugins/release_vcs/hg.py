@@ -160,7 +160,7 @@ class HgReleaseVCS(ReleaseVCS):
 
     def tag_exists(self, tag_name) -> bool:
         tags = self.get_tags()
-        return (tag_name in tags.keys())
+        return tag_name in tags
 
     def is_ancestor(self, commit1, commit2, patch: bool = False) -> bool:
         """Returns True if commit1 is a direct ancestor of commit2, or False

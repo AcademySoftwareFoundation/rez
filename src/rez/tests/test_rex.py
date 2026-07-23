@@ -373,8 +373,8 @@ class TestRex(TestBase):
 
         def _rex_1():
             return {
-                "A": "A" in env.keys(),
-                "B": "B" in env.keys(),
+                "A": "A" in env.keys(),  # noqa: SIM118
+                "B": "B" in env.keys(),  # noqa: SIM118
             }
 
         def _rex_2():

@@ -113,10 +113,7 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
         if diff_num is None:
             # normal mode
             if self.table.version_index == 0:
-                if self.table.num_versions == 1:
-                    txt = "the only package"
-                else:
-                    txt = "the latest package"
+                txt = "the only package" if self.table.num_versions == 1 else "the latest package"
             else:
                 nth = positional_number_string(self.table.version_index + 1)
                 txt = "the %s latest package" % nth

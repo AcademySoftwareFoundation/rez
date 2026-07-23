@@ -87,10 +87,7 @@ def remove_package_family(opts, parser, force: bool = False) -> None:
 def remove_ignored_since(opts, parser) -> None:
     from rez.package_remove import remove_packages_ignored_since
 
-    if opts.PATH:
-        paths = [opts.PATH]
-    else:
-        paths = None
+    paths = [opts.PATH] if opts.PATH else None
 
     num_removed = remove_packages_ignored_since(
         days=opts.ignored_since,

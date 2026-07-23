@@ -18,7 +18,8 @@ def get_context_files(filepaths):
             else:
                 raise IOError("Not a file: %s" % path)
         else:
-            open(path)  # raise IOError
+            # Use side effect to raise FileNotFoundError
+            open(path)  # noqa: SIM115
 
     return context_files
 
