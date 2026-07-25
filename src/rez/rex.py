@@ -189,8 +189,8 @@ class ActionManager(object):
         parent_environ: environment to execute the actions within. If None,
             defaults to the current environment. On Windows, a caller-supplied
             mapping is wrapped in a read-only, case-insensitive snapshot so that
-            lookups against it are case-insensitive, matching how ``os.environ``
-            behaves natively (see #2089); `os.environ` and None are used as-is.
+            lookups against it are case-insensitive, matching how :data:`os.environ`
+            behaves natively (see #2089); :data:`os.environ` and None are used as-is.
         parent_variables: List of variables to append/prepend to, rather than
             overwriting on first reference. If this is set to True instead of a
             list, all variables are treated as parent variables.
@@ -468,14 +468,14 @@ class ActionManager(object):
 class _CaseInsensitiveEnvironProxy(Mapping):
     """Read-only, case-insensitive snapshot of an env-var mapping.
 
-    Used by `ActionManager` to wrap a caller-supplied `parent_environ`
+    Used by :class:`ActionManager` to wrap a caller-supplied ``parent_environ``
     on Windows so lookups against it are case-insensitive regardless of
-    the casing used to populate the input dict, matching how os.environ
+    the casing used to populate the input dict, matching how :data:`os.environ`
     behaves natively on Windows.
 
     Keys are normalized (upper-cased) once at construction, so this is a
     point-in-time snapshot: later mutations to the source mapping are not
-    reflected. That matches how `parent_environ` is used in practice (fixed
+    reflected. That matches how ``parent_environ`` is used in practice (fixed
     for the lifetime of an executor).
 
     Kept private to this module on purpose; promote to a shared util
