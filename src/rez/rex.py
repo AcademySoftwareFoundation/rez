@@ -1114,8 +1114,15 @@ class EnvironmentDict(MutableMapping):
         self._var_cache = dict((k, EnvironmentVariable(k, self))
                                for k in manager.parent_environ.keys())
 
+    def _defined_keys(self):
+        # A key is cached on first access, even if it was never defined (eg a
+        # package's commands() referencing a variable that does not exist).
+        # Such keys must not be exposed by the mapping interface, otherwise
+        # iterating the environment raises RexUndefinedVariableError.
+        return [k for k in self._var_cache if not self.manager.undefined(k)]
+
     def keys(self):
-        return self._var_cache.keys()
+        return dict.fromkeys(self._defined_keys()).keys()
 
     def __repr__(self) -> str:
         return '%s(%s)' % (self.__class__.__name__, str(self._var_cache))
@@ -1129,17 +1136,17 @@ class EnvironmentDict(MutableMapping):
         self[key].set(value)
 
     def __contains__(self, key) -> bool:
-        return (key in self._var_cache)
+        return (key in self._var_cache and not self.manager.undefined(key))
 
     def __delitem__(self, key) -> None:
         del self._var_cache[key]
 
     def __iter__(self):
-        for key in self._var_cache.keys():
+        for key in self._defined_keys():
             yield key
 
     def __len__(self) -> int:
-        return len(self._var_cache)
+        return len(self._defined_keys())
 
 
 class EnvironmentVariable(object):
