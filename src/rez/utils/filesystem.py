@@ -352,9 +352,14 @@ def make_tmp_name(name):
 
 
 def is_subdirectory(path_a, path_b) -> bool:
-    """Returns True if `path_a` is a subdirectory of `path_b`."""
-    path_a = real_path(path_a)
-    path_b = real_path(path_b)
+    """Returns True if `path_a` is a subdirectory of `path_b`.
+
+    Both paths are canonicalised (symlinks resolved on non-Windows, and on
+    Windows when resolve_links_on_windows is enabled) so that containment
+    is checked against the physical location, not the lexical spelling.
+    """
+    path_a = canonical_path(path_a)
+    path_b = canonical_path(path_b)
     try:
         relative = os.path.relpath(path_a, path_b)
     except ValueError:
@@ -522,6 +527,32 @@ _WINDOWS_MAX_PATH = 259  # Win32 MAX_PATH minus the null terminator
 _IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003
 
 
+def _strip_extended_length_prefix(path: str) -> str:
+    r"""Strip ``\\?\`` or ``\\?\UNC\`` extended-length prefixes (case-insensitive).
+
+    Volume mount-point targets (``\\?\Volume{GUID}\...``) have no ordinary
+    DOS/UNC equivalent, so stripping the prefix would turn an absolute device
+    path into a bogus relative one. Those are left untouched.
+    """
+    lower = path.lower()
+    if lower.startswith("\\\\?\\unc\\"):
+        return "\\\\" + path[8:]
+    if lower.startswith("\\\\?\\volume{"):
+        return path  # absolute device path -- no DOS/UNC equivalent
+    if lower.startswith("\\\\?\\"):
+        return path[4:]
+    return path
+
+
+def _add_extended_length_prefix(path: str) -> str:
+    r"""Add the ``\\?\`` (or ``\\?\UNC\``) extended-length prefix to ``path``."""
+    if path.lower().startswith("\\\\?\\"):
+        return path  # already prefixed
+    if path.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + path[2:]
+    return "\\\\?\\" + path
+
+
 def _is_link_or_junction(path: str) -> bool:
     """Return True if ``path`` is a symlink or a Windows junction point.
 
@@ -578,37 +609,54 @@ def _windows_realpath(path: str) -> str:
     while components:
         part = components.pop(0)
         candidate = os.path.join(result, part)
-        depth = 0
-        while _is_link_or_junction(candidate) and depth < 40:
-            target = os.readlink(candidate)
+        # Prefix the candidate for filesystem probes when it exceeds MAX_PATH.
+        # On hosts without LongPathsEnabled, islink/isjunction/lstat/readlink
+        # will fail on unprefixed paths longer than MAX_PATH. The \\?\ prefix
+        # bypasses the Win32 path-length limit for these probes.
+        probe = candidate
+        if len(candidate) > _WINDOWS_MAX_PATH:
+            probe = _add_extended_length_prefix(candidate)
+        while _is_link_or_junction(probe):
+            target = os.readlink(probe)
             # os.readlink on Windows may return an extended-length path
-            # (\\?\C:\... or \\?\UNC\server\share\...). Strip the prefix so
-            # we can work with ordinary path strings.
-            if target.startswith("\\\\?\\UNC\\"):
-                target = "\\\\" + target[8:]
-            elif target.startswith("\\\\?\\"):
-                target = target[4:]
+            # (\\?\C:\... or \\?\UNC\server\share\...). Strip the prefix
+            # so we can work with ordinary path strings. Case-insensitive:
+            # Windows path APIs are case-insensitive and \\?\unc\ is just as
+            # valid as \\?\UNC\. Volume mount points return
+            # \\?\Volume{GUID}\... which has no ordinary DOS/UNC equivalent
+            # -- stripping the prefix would turn an absolute device path into
+            # a bogus relative one. Leave those alone.
+            target = _strip_extended_length_prefix(target)
             if not os.path.isabs(target):
                 target = os.path.join(os.path.dirname(candidate), target)
+            else:
+                # On Python 3.8-3.12, ntpath.isabs(r'\targets\pkg') returns
+                # True even though the target has no drive letter. A
+                # root-relative target should inherit the drive of the link
+                # being resolved, not the process CWD drive (which
+                # os.path.abspath would use). Python 3.13 changed isabs to
+                # return False for drive-less paths, so this is a
+                # version-specific fix.
+                t_drive, t_rest = os.path.splitdrive(target)
+                if not t_drive and target.startswith(os.sep):
+                    c_drive, _ = os.path.splitdrive(candidate)
+                    target = c_drive + target
             # For paths that exceed MAX_PATH, re-add the extended-length
             # prefix before calling abspath so the Win32 API (GetFullPathNameW)
             # can handle the length on hosts without LongPathsEnabled in the
-            # registry.  We strip the prefix again afterwards so the rest of
+            # registry. We strip the prefix again afterwards so the rest of
             # the walk operates on ordinary path strings.
             if len(target) > _WINDOWS_MAX_PATH:
-                if target.startswith("\\\\"):
-                    target = "\\\\?\\UNC\\" + target[2:]
-                else:
-                    target = "\\\\?\\" + target
+                target = _add_extended_length_prefix(target)
                 candidate = os.path.abspath(target)
-                if candidate.startswith("\\\\?\\UNC\\"):
-                    candidate = "\\\\" + candidate[8:]
-                elif candidate.startswith("\\\\?\\"):
-                    candidate = candidate[4:]
+                candidate = _strip_extended_length_prefix(candidate)
                 candidate = os.path.normpath(candidate)
             else:
                 candidate = os.path.normpath(os.path.abspath(target))
-            depth += 1
+            # Refresh the probe path for the next inner-loop iteration.
+            probe = candidate
+            if len(candidate) > _WINDOWS_MAX_PATH:
+                probe = _add_extended_length_prefix(candidate)
             total_depth += 1
             if total_depth >= 40:
                 break
@@ -715,6 +763,27 @@ def real_path(path: str) -> str:
         str: Absolute path with the same drive-letter / UNC form as input.
     """
     if sys.platform == "win32":
+        return os.path.normpath(os.path.abspath(path))
+    return os.path.realpath(path)
+
+
+def resolve_path(path: str) -> str:
+    r"""Resolve symlinks in a form-preserving way.
+
+    Like :func:`real_path`, but also resolves symlinks on Windows without
+    expanding drive letters to UNC paths. Use this when you need the
+    physical target of a path (e.g. before ``rmtree`` to avoid severing a
+    symlink) but must not lose the drive-letter form.
+
+    On non-Windows this is identical to ``os.path.realpath``.
+    On Windows with ``resolve_links_on_windows`` enabled, uses
+    :func:`_windows_realpath`. Otherwise, uses ``os.path.abspath``
+    (no symlink resolution, matching :func:`real_path`).
+    """
+    if sys.platform == "win32":
+        from rez.config import config  # noqa: PLC0415
+        if config.resolve_links_on_windows:
+            return _windows_realpath(path)
         return os.path.normpath(os.path.abspath(path))
     return os.path.realpath(path)
 
