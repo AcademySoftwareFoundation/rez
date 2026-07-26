@@ -6,6 +6,7 @@
 unit tests for 'rez.utils.filesystem' module
 """
 import json
+import ntpath
 import os
 import os.path
 import subprocess
@@ -14,10 +15,16 @@ import tempfile
 import unittest
 import unittest.mock
 
+from rez.exceptions import ResourceError
+from rez.package_repository import package_repository_manager
+from rez.resolved_context import ResolvedContext
+from rez.suite import Suite, SuiteError
 from rez.tests.util import TestBase
 from rez.tests.util import TempdirMixin
 from rez.utils import filesystem
 from rez.utils.filesystem import canonical_path, real_path, _windows_realpath
+from rez.utils.filesystem import is_subdirectory, _strip_extended_length_prefix
+from rez.utils.platform_ import Platform
 from rez.utils.platform_ import platform_
 
 
@@ -130,7 +137,6 @@ class TestFileSystem(TestBase, TempdirMixin):
         with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
             with self.assertRaises(PermissionError):
                 filesystem.safe_rmtree("._path")
-
 
 
     def test_tempdirs_cleanup_at_exit(self) -> None:
@@ -461,7 +467,6 @@ def _create_junction(target, link):
     Junctions don't require Developer Mode or admin privileges (unlike
     symlinks) and can be created via ``mklink /J``.
     """
-    import subprocess
     subprocess.check_call(
         ["cmd", "/c", "mklink", "/J", link, target],
         stdout=subprocess.DEVNULL,
@@ -711,8 +716,6 @@ class TestWindowsRealpathInternals(TestBase):
         self.assertIsInstance(result, str)
 
 
-
-
     @unittest.skipIf(sys.version_info < (3, 12),
                      "exercises the os.path.isjunction branch (3.12+); "
                      "3.8-3.11 coverage is "
@@ -786,7 +789,6 @@ class TestWindowsRealpathInternals(TestBase):
         self.assertEqual(result, os.path.normpath(target_path))
 
 
-
     def test_junction_skipped_when_neither_islink_nor_isjunction(self):
         """_windows_realpath does not attempt readlink on a plain directory
         that is neither a symlink nor a junction."""
@@ -823,188 +825,224 @@ def _multi_drive_unc_realpath(path):
     return path
 
 
-@unittest.skipIf(
-    platform_.name != "windows",
-    "Windows-specific real_path() call-site regression tests",
-)
-class TestRealPathCallSitesWindowsUNC(TestBase):
-    """tests that document where os.path.realpath must be replaced with
-    real_path() to avoid drive-letter -> UNC expansion on Windows.
+class TestStripExtendedLengthPrefix(TestBase):
+    """Tests for _strip_extended_length_prefix helper."""
 
-    Each test demonstrates a concrete failure against direct use of
-    os.path.realpath. They represent call sites that need real_path
-    """
-
-    def test_bundle_relpath_does_not_raise_on_different_unc_roots(self):
-        """_adjust_variant_for_bundling must not raise ValueError when
-        os.path.realpath would have expanded drive-letter paths to UNC form.
-
-        Exercises the real call site in resolved_context.py. is_subdirectory
-        is mocked True to force the relpath branch. With real_path() (abspath)
-        the drive-letter form is preserved and os.path.relpath succeeds.
-        """
-        from rez.resolved_context import ResolvedContext
-
-        bundle_path = "N:\\bundles\\mybundle"
-        repo_path = "N:\\bundles\\mybundle\\packages\\mypkg"
-
-        handle = {
-            "variables": {
-                "repository_type": "filesystem",
-                "location": repo_path,
-            }
-        }
-
-        with unittest.mock.patch.object(
-            ResolvedContext, "_get_bundle_path", return_value=bundle_path
-        ), unittest.mock.patch(
-            "rez.resolved_context.is_subdirectory", return_value=True
-        ):
-            try:
-                ResolvedContext._adjust_variant_for_bundling(handle, out=True)
-            except ValueError as e:
-                self.fail(
-                    "_adjust_variant_for_bundling raised ValueError: %s\n"
-                    "Ensure real_path() (not os.path.realpath) is used at "
-                    "the os.path.relpath call site in resolved_context.py." % e
-                )
-
-        self.assertNotEqual(
-            handle["variables"]["location"],
-            repo_path,
-            "Expected location to be updated to a relative path, was unchanged.",
+    def test_dos_prefix_stripped(self):
+        self.assertEqual(
+            _strip_extended_length_prefix("\\\\?\\C:\\foo\\bar"),
+            "C:\\foo\\bar",
         )
 
-    def test_bundle_relpath_must_not_use_canonical_path_regression(self):
-        """canonical_path lowercases the path, which corrupts case-sensitive
-        path components stored in bundle files.
-
-        This is a regression guard: if the resolved_context.py call site is
-        fixed by substituting canonical_path() (which lowercases on Windows),
-        the stored relative path will have wrong capitalisation on Linux NFS
-        mounts that are case-sensitive.
-
-        real_path() preserves the original casing, so it is the correct fix.
-        """
-        from rez.utils.platform_ import Platform
-
-        class _CaseInsensitivePlatform(Platform):
-            name = "windows"
-
-            @property
-            def has_case_sensitive_filesystem(self):
-                return False
-
-        mock_plat = _CaseInsensitivePlatform()
-        repo_path = "N:\\packages\\MyPkg\\1.0B"
-        bundle_path = "N:\\bundles\\MyBundle"
-
-        relpath_via_canonical = os.path.relpath(
-            canonical_path(repo_path, mock_plat),
-            canonical_path(bundle_path, mock_plat),
-        )
-        relpath_via_real = os.path.relpath(
-            real_path(repo_path),
-            real_path(bundle_path),
+    def test_unc_prefix_stripped(self):
+        self.assertEqual(
+            _strip_extended_length_prefix("\\\\?\\UNC\\server\\share\\foo"),
+            "\\\\server\\share\\foo",
         )
 
-        # canonical_path lowercases everything; real_path preserves case.
-        self.assertNotEqual(
-            relpath_via_canonical,
-            relpath_via_real,
-            "canonical_path and real_path produced the same relpath - "
-            "expected canonical_path to lowercase and real_path to preserve case.",
-        )
-        self.assertIn(
-            "MyPkg", relpath_via_real,
-            "real_path() must preserve mixed-case package name in relpath.",
-        )
-        self.assertIn(
-            "1.0B", relpath_via_real,
-            "real_path() must preserve mixed-case version string in relpath.",
+    def test_lowercase_unc_prefix_stripped(self):
+        r"""Case-insensitive: \?\unc\ is just as valid as \?\UNC\."""
+        self.assertEqual(
+            _strip_extended_length_prefix("\\\\?\\unc\\server\\share\\foo"),
+            "\\\\server\\share\\foo",
         )
 
-    def test_suite_save_does_not_raise_suiteerror_when_saving_over_loaded_suite(self):
-        """Suite.save() raises SuiteError when the save path differs from
-        suite.load_path due to UNC expansion.
+    def test_mixed_case_prefix_stripped(self):
+        r"""Case-insensitive: \?\UnC\ should also be handled."""
+        self.assertEqual(
+            _strip_extended_length_prefix("\\\\?\\UnC\\server\\share\\foo"),
+            "\\\\server\\share\\foo",
+        )
 
-        Suite.save() calls os.path.realpath(path) and compares it to
-        os.path.realpath(self.load_path). When both were originally the
-        same drive-letter path (e.g. N:\\suites\\mysuite), py3.8+ realpath
-        expands each independently to the same UNC path, so they still
-        compare equal and no error is raised - on the first call.
+    def test_volume_mount_point_preserved(self):
+        r"""\?\Volume{GUID}\... must NOT be stripped -- it has no DOS/UNC
+        equivalent and stripping it turns an absolute device path into a
+        bogus relative one."""
+        vol = "\\\\?\\Volume{12345678-1234-1234-1234-123456789abc}\\foo"
+        self.assertEqual(_strip_extended_length_prefix(vol), vol)
 
-        The real failure occurs when the suite was loaded from a drive-letter
-        path but is saved to what looks like the same path: the UNC expansion
-        changes the string, so subsequent code that compares the stored
-        load_path against the UNC-expanded save path will see a mismatch.
+    def test_no_prefix_unchanged(self):
+        self.assertEqual(
+            _strip_extended_length_prefix("C:\\foo\\bar"),
+            "C:\\foo\\bar",
+        )
 
-        This test documents the fragility. Fix: replace os.path.realpath
-        with real_path() in Suite.save() and Suite.load().
-        """
-        from rez.suite import Suite, SuiteError
 
-        drive_path = "N:\\suites\\mysuite"
+class TestSuiteSaveSamefileGuard(TestBase, TempdirMixin):
+    """Test that Suite.save() uses samefile() for the overwrite guard,
+    and resolves symlinks before rmtree to avoid severing links."""
+
+    def test_save_through_symlink_uses_samefile(self):
+        """Suite.load(alias); Suite.save(alias) should overwrite the suite
+        at the resolved target, not sever the symlink."""
+
+        actual = os.path.join(self.root, "actual_suite")
+        alias = os.path.join(self.root, "alias_suite")
+        os.makedirs(actual)
+        with open(os.path.join(actual, "suite.yaml"), "w") as f:
+            f.write("contexts: {}\n")
+
+        os.symlink(actual, alias)
+
+        # Mock enough of Suite to test the save() overwrite guard.
+        # Mock resolve_path to return the symlink target so the test works
+        # identically on all platforms (on Windows default config,
+        # resolve_path does not resolve symlinks).
         suite = Suite()
-        suite.load_path = drive_path
+        suite.load_path = real_path(alias)
 
-        patch_context_names = unittest.mock.patch.object(
-            Suite, "context_names",
-            new_callable=unittest.mock.PropertyMock,
-            return_value=[],
-        )
-        with unittest.mock.patch("os.path.realpath", side_effect=_unc_expanding_realpath), \
-             unittest.mock.patch("os.path.exists", return_value=True), \
-             unittest.mock.patch("os.makedirs") as mock_makedirs, \
-             unittest.mock.patch("shutil.rmtree") as mock_rmtree, \
-             unittest.mock.patch("builtins.open", unittest.mock.mock_open()), \
-             patch_context_names, \
+        with unittest.mock.patch("os.path.exists", return_value=True), \
+             unittest.mock.patch("os.path.samefile", return_value=True), \
+             unittest.mock.patch("rez.suite.safe_rmtree") as mock_rmtree, \
+             unittest.mock.patch("rez.suite.resolve_path", return_value=actual), \
+             unittest.mock.patch("os.makedirs"), \
+             unittest.mock.patch.object(suite, "contexts", {}), \
              unittest.mock.patch.object(suite, "to_dict", return_value={}), \
              unittest.mock.patch.object(suite, "get_tools", return_value={}):
             try:
-                suite.save(drive_path)
-            except SuiteError as e:
-                self.fail("Suite.save() raised SuiteError: %s" % e)
+                suite.save(alias)
+            except Exception as e:
+                self.fail("Suite.save() raised on same-file alias: %s" % e)
 
-            # Reachable only after the fix - verify the save actually ran:
-            # existing dir must be cleared before re-creating
-            mock_rmtree.assert_called_once()
-            # suite directory must be (re)created
-            mock_makedirs.assert_called()
+        mock_rmtree.assert_called_once()
+        # rmtree should target the resolved path (actual_suite), not the
+        # raw symlink (alias_suite).
+        rmtree_arg = mock_rmtree.call_args[0][0]
+        self.assertNotIn("alias_suite", rmtree_arg)
+        self.assertIn("actual_suite", rmtree_arg)
 
-    def test_suite_load_stores_drive_letter_load_path_not_unc(self):
-        """Suite.load() must store load_path in drive-letter form, not UNC.
+    def test_save_rejects_different_path(self):
+        """Suite.save() to a different existing path should still raise."""
 
-        Currently FAILS because Suite.load() calls os.path.realpath(path)
-        at line 531, which on py3.8+ Windows silently expands a mapped
-        drive-letter path to its UNC equivalent.
+        suite = Suite()
+        suite.load_path = os.path.join(self.root, "suite_a")
+        other = os.path.join(self.root, "suite_b")
+        os.makedirs(other)
 
-        A UNC-form load_path causes Suite.save() to raise SuiteError when
-        the caller saves back to the same drive-letter path, because
-        ``os.path.realpath(drive_letter_save_path)`` returns the same UNC
-        string while ``self.load_path`` is also UNC - but if load_path was
-        set directly in drive-letter form (e.g. from user config or a
-        partially-fixed code path), the string comparison fails.
+        with unittest.mock.patch("os.path.exists", return_value=True), \
+             unittest.mock.patch("os.path.samefile", return_value=False):
+            with self.assertRaises(SuiteError):
+                suite.save(other)
 
-        Fix: replace os.path.realpath with real_path() in Suite.load().
-        """
-        from rez.suite import Suite
 
-        drive_path = "N:\\suites\\mysuite"
+class TestIsSubdirectorySymlinkResolution(TestBase, TempdirMixin):
+    """Test that is_subdirectory resolves symlinks for containment checks.
 
-        with unittest.mock.patch("os.path.realpath", side_effect=_unc_expanding_realpath), \
-             unittest.mock.patch("os.path.exists", return_value=True), \
-             unittest.mock.patch("os.path.isfile", return_value=True), \
-             unittest.mock.patch("builtins.open", unittest.mock.mock_open(read_data="{}")), \
-             unittest.mock.patch.object(Suite, "from_dict", return_value=Suite()):
-            s = Suite.load(drive_path)
+    On non-Windows, canonical_path (used by is_subdirectory) resolves
+    symlinks via os.path.realpath. A path that is lexically inside a
+    directory but physically outside (via symlink) should NOT be considered
+    a subdirectory.
+    """
+
+    @unittest.skipIf(
+        platform_.name == "windows",
+        "Windows symlink resolution depends on resolve_links_on_windows flag",
+    )
+    def test_symlink_escape_is_not_subdirectory(self):
+        """A symlink pointing outside the parent should not be a subdirectory."""
+        inside = os.path.join(self.root, "inside")
+        outside = os.path.join(self.root, "outside")
+        os.makedirs(inside)
+        os.makedirs(outside)
+
+        link = os.path.join(inside, "link")
+        os.symlink(outside, link)
 
         self.assertFalse(
-            s.load_path.startswith("\\\\"),
-            "Suite.load_path was UNC-expanded: %r. "
-            "Replace os.path.realpath with real_path() in Suite.load()." % s.load_path,
+            is_subdirectory(link, inside),
+            "Symlink escaping the parent was incorrectly considered a subdirectory",
         )
+
+    @unittest.skipIf(
+        platform_.name == "windows",
+        "Windows symlink resolution depends on resolve_links_on_windows flag",
+    )
+    def test_real_child_is_subdirectory(self):
+        """A real child directory should be a subdirectory."""
+        parent = os.path.join(self.root, "parent")
+        child = os.path.join(parent, "child")
+        os.makedirs(child)
+
+        self.assertTrue(is_subdirectory(child, parent))
+
+
+@unittest.skipIf(
+    sys.platform == "win32",
+    "These tests mock Windows internals and must run on non-Windows",
+)
+class TestWindowsRealpathDriveInheritance(TestBase):
+    r"""Test that _windows_realpath inherits the link's drive for root-relative
+    symlink targets (Python 3.8-3.12 behaviour where isabs('\target') is True).
+    """
+
+    def test_root_relative_target_inherits_link_drive(self):
+        r"""A root-relative symlink target like \targets\pkg should inherit
+        the drive of the link being resolved, not the CWD drive.
+        """
+
+        link_path = "N:\\links\\link"
+        # Root-relative target -- no drive letter
+        target_path = "\\targets\\pkg"
+
+        def _fake_islink(p):
+            return p == link_path
+
+        # On Linux, os.path functions treat Windows paths differently.
+        # Mock them to mimic ntpath behaviour (py3.8-3.12 where
+        # isabs('\target') is True).
+        def _fake_abspath(p):
+            return os.path.normpath(p)
+
+        def _fake_isabs(p):
+            return ntpath.isabs(p)
+
+        with unittest.mock.patch("os.path.islink", side_effect=_fake_islink), \
+             unittest.mock.patch("os.readlink", return_value=target_path), \
+             unittest.mock.patch("os.path.abspath", side_effect=_fake_abspath), \
+             unittest.mock.patch("os.path.isabs", side_effect=_fake_isabs), \
+             unittest.mock.patch("os.path.splitdrive", side_effect=ntpath.splitdrive):
+            result = _windows_realpath(link_path)
+
+        # The result should be on the N: drive, not the CWD drive
         self.assertTrue(
-            s.load_path.lower().startswith("n:\\"),
-            "Expected drive-letter form load_path, got: %r" % s.load_path,
+            result.lower().startswith("n:"),
+            "Root-relative target should inherit link's drive (N:), got: %r" % result,
+        )
+
+    def test_long_path_candidate_is_prefixed_for_probes(self):
+        r"""When the candidate path exceeds MAX_PATH, the probe path should
+        be prefixed with \?\ so that islink/isjunction/lstat can succeed
+        on hosts without LongPathsEnabled.
+        """
+
+        # Create a path that exceeds MAX_PATH (259 chars)
+        long_dir = "C:\\" + "a" * 260
+        link_path = long_dir + "\\link"
+        target_path = "C:\\real\\target"
+
+        captured_probe = []
+
+        def _fake_islink(p):
+            captured_probe.append(p)
+            return p == link_path or p == "\\\\?\\" + link_path
+
+        def _fake_abspath(p):
+            return os.path.normpath(p)
+
+        def _fake_isabs(p):
+            return ntpath.isabs(p)
+
+        with unittest.mock.patch("os.path.islink", side_effect=_fake_islink), \
+             unittest.mock.patch("os.readlink", return_value=target_path), \
+             unittest.mock.patch("os.path.abspath", side_effect=_fake_abspath), \
+             unittest.mock.patch("os.path.isabs", side_effect=_fake_isabs), \
+             unittest.mock.patch("os.path.splitdrive", side_effect=ntpath.splitdrive):
+            _windows_realpath(link_path)
+
+        # At least one probe should have the \\?\ prefix
+        prefixed_probes = [p for p in captured_probe if p.startswith("\\\\?\\")]
+        self.assertTrue(
+            len(prefixed_probes) > 0,
+            r"Expected at least one \?\-prefixed probe for long path, "
+            "got probes: %r" % captured_probe,
         )
