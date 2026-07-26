@@ -130,15 +130,15 @@ package_definition_python_path = None
 #
 # When ``False`` (default), rez uses ``os.path.abspath``, which normalises
 # separators and ``.``/``..`` components without following symlinks and without
-# expanding mapped drive letters to their UNC equivalents.  This preserves the
+# expanding mapped drive letters to their UNC equivalents. This preserves the
 # path style supplied by the caller (drive-letter input, drive-letter output,
 # UNC input, UNC output), effectively defaulting to pre-Python-3.8 behaviour of
 # ``os.path.realpath`` on Windows.
 #
 # When ``True``, rez performs a component-by-component walk using
-# ``os.path.islink`` / ``os.readlink``.  This resolves actual symlinks and
+# ``os.path.islink`` / ``os.readlink``. This resolves actual symlinks and
 # junction points without the drive-letter-to-UNC side-effect that
-# ``os.path.realpath`` introduced in Python 3.8.  Useful when package
+# ``os.path.realpath`` introduced in Python 3.8. Useful when package
 # repositories are accessed through directory symlinks or junctions.
 #
 # This setting is a no-op on non-Windows platforms, which always resolve
