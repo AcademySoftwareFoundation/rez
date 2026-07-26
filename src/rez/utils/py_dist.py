@@ -6,7 +6,7 @@
 Functions for converting python distributions to rez packages.
 """
 from rez.exceptions import RezSystemError
-from rez.utils.filesystem import real_path
+from rez.utils.filesystem import real_path, is_subdirectory
 import importlib.metadata as importlib_metadata
 import shutil
 import sys
@@ -197,7 +197,7 @@ def convert_dist(name, dest_path, make_variant: bool = True, ignore_dirs=None,
                 path = os.path.join(eggpath, file)
                 path = real_path(path)
 
-                if os.path.isfile(path) and path.startswith(dist.location + os.sep):
+                if os.path.isfile(path) and is_subdirectory(path, dist.location):
                     dir_ = os.path.dirname(path)
                     if ignore_dirs:
                         reldir = os.path.relpath(dir_, dist.location)
