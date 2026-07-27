@@ -476,6 +476,11 @@ class FileSystemPackageRepository(PackageRepository):
                    "file_lock_type": Or("default", "link", "mkdir", "symlink"),
                    "package_filenames": [str]}
 
+    # Memoization cache for samefile() fallback in get_resource_from_handle.
+    # Maps (canonical_handle_location, self.location) -> bool. Avoids
+    # repeated network I/O when resolving legacy UNC/drive-letter handles.
+    _location_aliases: dict[str, bool] = {}
+
     building_prefix = ".building"
     ignore_prefix = ".ignore"
 
@@ -811,6 +816,20 @@ class FileSystemPackageRepository(PackageRepository):
 
         return num_removed
 
+    def make_resource_handle(self, resource_key, **variables):
+        # Normalize the caller-supplied location so the base-class raw string
+        # comparison succeeds, even when the caller uses a different case, or
+        # an equivalent path form (e.g. mixed-case drive letter on Windows).
+        #
+        # https://github.com/AcademySoftwareFoundation/rez/issues/2045
+        #
+        location = variables.get("location")
+        if location is not None and location != self.location:
+            norm = canonical_path(location, platform_)
+            if norm == self.location:
+                variables["location"] = self.location
+        return super().make_resource_handle(resource_key, **variables)
+
     def get_resource_from_handle(self, resource_handle, verify_repo: bool = True):
         if verify_repo:
             repository_type = resource_handle.variables.get("repository_type")
@@ -823,7 +842,8 @@ class FileSystemPackageRepository(PackageRepository):
 
             # It appears that sometimes, the handle location can differ to the
             # repo location even though they are the same path (different
-            # mounts). We account for that here.
+            # mounts, drive-letter vs UNC form, etc.). We account for that
+            # here.
             #
             # https://github.com/AcademySoftwareFoundation/rez/pull/957
             #
@@ -831,9 +851,38 @@ class FileSystemPackageRepository(PackageRepository):
                 location = canonical_path(location, platform_)
 
             if location != self.location:
-                raise ResourceError("location mismatch - requested %r, "
-                                    "repository location is %r "
-                                    % (location, self.location))
+                # Final fallback: check physical identity. On Windows a
+                # drive-letter path and its UNC equivalent canonicalise to
+                # different strings but refer to the same filesystem location.
+                # os.path.samefile resolves through the OS and works across
+                # path forms, but requires both paths to exist on disk.
+                #
+                # Memoize the result to avoid repeated network I/O on every
+                # resource lookup from a legacy context with a mismatched
+                # path form.
+                cache_key = location + "\0" + self.location
+                same = self._location_aliases.get(cache_key)
+                if same is None:
+                    if not (os.path.exists(location) and os.path.exists(self.location)):
+                        raise ResourceError(
+                            "location mismatch - requested %r, "
+                            "repository location is %r "
+                            % (location, self.location))
+                    try:
+                        same = os.path.samefile(location, self.location)
+                    except OSError:
+                        same = False
+                    # Only cache positive results. A negative result may
+                    # become stale if the repo is moved back to the original
+                    # location in the same process, so re-check every time.
+                    if same:
+                        self._location_aliases[cache_key] = same
+
+                if not same:
+                    raise ResourceError(
+                        "location mismatch - requested %r, "
+                        "repository location is %r "
+                        % (location, self.location))
 
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self

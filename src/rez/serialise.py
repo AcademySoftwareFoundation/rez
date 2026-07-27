@@ -20,7 +20,7 @@ from io import StringIO
 from rez.package_resources import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
-from rez.utils.filesystem import TempDirs
+from rez.utils.filesystem import TempDirs, real_path, resolve_path
 from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
@@ -66,7 +66,13 @@ def open_file_for_write(filepath, mode=None):
     yield stream
     content = stream.getvalue()
 
-    filepath = os.path.realpath(filepath)
+    # Use real_path for the cache key so it matches load_from_file's key.
+    # Separately resolve symlinks for the write target so atomic_write
+    # replaces the symlink's target, not the symlink itself. Use
+    # resolve_path (not os.path.realpath) to avoid expanding drive letters
+    # to UNC paths on Windows.
+    cache_key = real_path(filepath)
+    filepath = resolve_path(cache_key)
     tmpdir = tmpdir_manager.mkdtemp()
     cache_filepath = os.path.join(tmpdir, os.path.basename(filepath))
 
@@ -103,7 +109,7 @@ def open_file_for_write(filepath, mode=None):
     with open(cache_filepath, 'w', encoding="utf-8") as f:
         f.write(content)
 
-    file_cache[filepath] = cache_filepath
+    file_cache[cache_key] = cache_filepath
 
 
 def load_from_file(filepath: str, format_=FileFormat.py, update_data_callback=None,
@@ -123,7 +129,7 @@ def load_from_file(filepath: str, format_=FileFormat.py, update_data_callback=No
     Returns:
         dict:
     """
-    filepath = os.path.realpath(filepath)
+    filepath = real_path(filepath)
     cache_filepath = file_cache.get(filepath)
 
     if cache_filepath:
