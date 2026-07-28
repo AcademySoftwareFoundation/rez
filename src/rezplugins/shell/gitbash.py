@@ -7,7 +7,6 @@ Git Bash (for Windows) shell
 """
 import os
 import re
-import os.path
 import subprocess
 from rez.config import config
 from rezplugins.shell.bash import Bash

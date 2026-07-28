@@ -100,7 +100,7 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
             self.depends_icon.setToolTip(desc % (self.variant.name, variant.name))
             self.depends_icon.setEnabled(enable)
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         self._set_stale(self.context_model.is_stale())
 
         if flags & (ContextModel.PACKAGES_PATH_CHANGED |
@@ -227,10 +227,10 @@ class VariantCellWidget(QtWidgets.QWidget, ContextViewMixin):
                                                 if not package_filter.excludes(x)
                                                 and x.timestamp <= resolve_time)
                             if not newer_package:
-                                    new_icons.append(
-                                        ("yellow_white_tick",
-                                         "package was latest possible at time of resolve"))
-                                    ticked = True
+                                new_icons.append(
+                                    ("yellow_white_tick",
+                                     "package was latest possible at time of resolve"))
+                                ticked = True
 
                     # bring in the old man
                     if not ticked:

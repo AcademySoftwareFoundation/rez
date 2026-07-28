@@ -22,7 +22,6 @@ import argparse
 import functools
 import os.path
 import sys
-import os
 
 
 class RezCMakeError(BuildSystemError):

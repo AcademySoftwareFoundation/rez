@@ -10,7 +10,7 @@ import os.path
 import sys
 
 
-### Utility functions
+# ## Utility functions
 
 def get_specifications():
     """Get entry point specifications
@@ -60,7 +60,7 @@ def check_production_install() -> None:
         )
 
 
-### Entry points
+# ## Entry points
 
 @scriptname("rez")
 def run_rez():

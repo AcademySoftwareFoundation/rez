@@ -5,6 +5,7 @@
 from Qt import QtCore, QtWidgets, QtGui
 import html
 
+
 def plaintext_to_html(txt):
     out = html.escape(txt)
     out = out.replace('\t', "    ")

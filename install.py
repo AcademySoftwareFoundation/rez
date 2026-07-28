@@ -207,7 +207,7 @@ def install(dest_dir, print_welcome=False, editable=False):
 
             if shell:
                 shell = os.path.basename(shell)
-                if "csh" in shell: # csh and tcsh
+                if "csh" in shell:  # csh and tcsh
                     ext = "csh"
                 elif "zsh" in shell:
                     ext = "zsh"

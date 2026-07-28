@@ -18,7 +18,7 @@ from rez.version import VersionError
 
 def _print(txt='') -> None:
     # uncomment for verbose output
-    #print txt
+    # print txt
     pass
 
 

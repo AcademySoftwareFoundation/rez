@@ -176,7 +176,7 @@ class ContextModel(QtCore.QObject):
             self.patch_locks = {}
             self._changed(self.LOCKS_CHANGED)
 
-    def resolve_context(self, verbosity: int=0, max_fails=-1, timestamp=None,
+    def resolve_context(self, verbosity: int = 0, max_fails=-1, timestamp=None,
                         callback=None, buf=None, package_load_callback=None):
         """Update the current context by performing a re-resolve.
 

@@ -4,7 +4,6 @@
 
 from Qt import QtCore, QtWidgets, QtGui
 from rezgui.objects.Config import Config
-#from rezgui.objects.ProcessTrackerThread import ProcessTrackerThread
 from rezgui import organisation_name, application_name
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import ResolvedContextError
@@ -40,9 +39,6 @@ class App(QtWidgets.QApplication):
     @cached_property
     def process_tracker(self):
         return None
-        #th = ProcessTrackerThread()
-        #th.start()
-        #return th
 
     @contextmanager
     def status(self, txt):
@@ -89,6 +85,7 @@ class App(QtWidgets.QApplication):
                                      parent_environ=env,
                                      start_new_session=True,
                                      **Popen_args)
+
 
 # app singleton
 app = App()

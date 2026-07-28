@@ -35,6 +35,6 @@ class ContextResolveTimeLabel(QtWidgets.QLabel, ContextViewMixin):
         self.setText("resolved %s ago" % time_txt)
         self.timer.start()
 
-    def _contextChanged(self, flags: int=0) -> None:
+    def _contextChanged(self, flags: int = 0) -> None:
         if flags & ContextModel.CONTEXT_CHANGED:
             self.refresh()
