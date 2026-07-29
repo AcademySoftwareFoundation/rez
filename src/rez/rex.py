@@ -569,6 +569,7 @@ class ActionInterpreter(object):
 
     @classmethod
     def _is_pathed_key(cls, key):
+        """Return True if ``key`` is a path-like env var subject to normalization."""
         if any(fnmatch(key, x) for x in config.non_pathed_env_vars):
             return False
         return any(fnmatch(key, x) for x in config.pathed_env_vars)

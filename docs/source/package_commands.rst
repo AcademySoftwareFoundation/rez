@@ -209,7 +209,7 @@ However, some variables match ``*PATH`` but must not be path-normalized. For exa
 ``CMAKE_MODULE_PATH`` requires forward slashes regardless of shell, and backslash conversion will
 break CMake. You can exclude variables from normalization using the :data:`non_pathed_env_vars`
 config setting, which takes priority over :data:`pathed_env_vars`. By default,
-``CMAKE_MODULE_PATH`` is already excluded. Both settings support ``fnmatch``-style wildcards.
+``CMAKE_MODULE_PATH`` is already excluded. Both settings support :func:`fnmatch`-style wildcards.
 
 .. warning::
    Avoid using :data:`os.pathsep` or hardcoded lists of paths such as
