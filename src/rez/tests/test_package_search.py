@@ -38,6 +38,10 @@ class TestPackageSearch(TestBase, TempdirMixin):
         self.assertEqual(pkgs_list[0], ["pymum"])
         self.assertEqual(pkgs_list[1], ["pydad", "pyson"])
 
+        # verify the graph itself: nodes and edges
+        self.assertEqual(set(g.nodes()), {"pymum", "pydad", "pyson"})
+        self.assertEqual(set(g.edges()), {("pydad", "pymum"), ("pyson", "pymum")})
+
     def test_reverse_dependency_tree_depth_limit(self) -> None:
         """test get_reverse_dependency_tree respects depth limit"""
         pkgs_list, g = get_reverse_dependency_tree("pymum", depth=0)
