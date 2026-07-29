@@ -63,6 +63,7 @@ class TestPackageSearch(TestBase, TempdirMixin):
         self.assertEqual(resource_type, "package")
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].resource.version, Version("3"))
+
     def test_formatter_default_output(self) -> None:
         """test ResourceSearchResultFormatter with default (no output_format) settings"""
         searcher = ResourceSearcher(package_paths=[self.solver_packages_path], latest=True)
@@ -75,6 +76,7 @@ class TestPackageSearch(TestBase, TempdirMixin):
         self.assertEqual(len(formatted_lines), 1)
         text, color = formatted_lines[0]
         self.assertEqual(text, "pydad-3")
+
     def test_resource_search_result(self) -> None:
         """test ResourceSearchResult stores its attributes correctly"""
         result = ResourceSearchResult("fake_resource", "package")
