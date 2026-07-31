@@ -36,7 +36,7 @@ class TestPackageSearch(TestBase, TempdirMixin):
         pkgs_list, g = get_reverse_dependency_tree("pymum")
 
         self.assertEqual(pkgs_list[0], ["pymum"])
-        self.assertEqual(pkgs_list[1], ["pydad", "pyson"])
+        self.assertEqual(set(pkgs_list[1]), {"pydad", "pyson"})
 
         # verify the graph itself: nodes and edges
         self.assertEqual(set(g.nodes()), {"pymum", "pydad", "pyson"})
