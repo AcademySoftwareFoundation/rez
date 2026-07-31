@@ -16,6 +16,7 @@ from rez.package_search import (
 from rez.tests.util import TestBase, TempdirMixin
 from rez.version import Version
 
+
 class TestPackageSearch(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls) -> None:
@@ -91,6 +92,7 @@ class TestPackageSearch(TestBase, TempdirMixin):
 
         result_with_error = ResourceSearchResult("fake_resource", "package", "some error")
         self.assertEqual(result_with_error.validation_error, "some error")
+
 
 if __name__ == '__main__':
     unittest.main()
