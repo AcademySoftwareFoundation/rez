@@ -729,7 +729,6 @@ class TestShells(TestBase, TempdirMixin):
             "Expected rez wrapper .zshenv in ZDOTDIR=%s" % zdotdir,
         )
 
-
     @unittest.skipIf(platform_.name != "windows", "cmd shell path normalization only relevant on Windows")
     def test_cmd_non_pathed_env_var_not_normalized(self):
         """Test that CMAKE_MODULE_PATH values are not backslash-converted in cmd shell output.
