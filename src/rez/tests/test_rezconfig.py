@@ -14,11 +14,15 @@ import subprocess
 from typing import Optional
 import unittest
 
-from rez import rezconfig
 from rez.utils.docs import parse_documented_settings
 
 
 _REZCONFIG_BASELINE_ENV = "__REZ_SELFTEST_REZCONFIG_BASELINE"
+_REZCONFIG_GIT_PATH = "src/rez/rezconfig.py"
+_REZCONFIG_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "rezconfig.py",
+)
 _VERSIONADDED_RE = re.compile(
     r"^\s*\.\.\s+versionadded::\s+\S+\s*$"
 )
@@ -101,7 +105,7 @@ class TestRezConfigDocumentation(unittest.TestCase):
     def test_documented_settings_belong_to_a_section(self) -> None:
         """Ensure that all settings are declared in a section"""
 
-        with open(rezconfig.__file__, encoding="utf-8") as stream:
+        with open(_REZCONFIG_PATH, encoding="utf-8") as stream:
             settings = parse_documented_settings(stream.read())
 
         sectionless = [
@@ -123,7 +127,7 @@ class TestRezConfigDocumentation(unittest.TestCase):
     def test_documented_settings_have_docs(self) -> None:
         """Ensure that all settings have documentation"""
 
-        with open(rezconfig.__file__, encoding="utf-8") as stream:
+        with open(_REZCONFIG_PATH, encoding="utf-8") as stream:
             settings = parse_documented_settings(stream.read())
 
         missing = [
@@ -159,11 +163,11 @@ class TestRezConfigDocumentation(unittest.TestCase):
         try:
             repo_root = _git_output("rev-parse", "--show-toplevel")
             baseline = _rezconfig_baseline(repo_root, requested_baseline)
-            path = os.path.relpath(rezconfig.__file__, repo_root).replace(os.sep, "/")
-            with open(rezconfig.__file__, encoding="utf-8") as stream:
+            with open(_REZCONFIG_PATH, encoding="utf-8") as stream:
                 current_source = stream.read()
             baseline_source = _git_output(
-                "-C", repo_root, "show", "%s:%s" % (baseline, path)
+                "-C", repo_root, "show",
+                "%s:%s" % (baseline, _REZCONFIG_GIT_PATH),
             )
         except (OSError, subprocess.CalledProcessError) as exc:
             reason = "Git repository or usable rezconfig history is unavailable"
