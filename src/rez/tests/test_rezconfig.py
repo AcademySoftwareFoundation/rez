@@ -190,4 +190,3 @@ class TestRezConfigDocumentation(unittest.TestCase):
                     "\n".join("- %s" % name for name in missing),
                 )
             )
-
