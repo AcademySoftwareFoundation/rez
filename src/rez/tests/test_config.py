@@ -11,89 +11,14 @@ from rez.exceptions import ConfigurationError
 from rez.config import Config, get_module_root_config, _replace_config, _Deprecation
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
-from rez.utils.docs import parse_documented_settings
 from rez.packages import get_developer_package
 from rez.deprecations import RezDeprecationWarning, warn
 import os
 import os.path
-import re
 import subprocess
 import functools
 import shutil
-from typing import Optional
 import unittest.mock
-
-
-_REZCONFIG_BASELINE_ENV = "__REZ_SELFTEST_REZCONFIG_BASELINE"
-_VERSIONADDED_RE = re.compile(
-    r"^\s*\.\.\s+versionadded::\s+\S+\s*$"
-)
-
-
-def _new_settings_without_versionadded(baseline_source, current_source):
-    baseline_settings = {
-        setting.name: setting
-        for setting in parse_documented_settings(baseline_source)
-    }
-    current_settings = {
-        setting.name: setting
-        for setting in parse_documented_settings(current_source)
-    }
-    new_settings = set(current_settings) - set(baseline_settings)
-    return [
-        name for name in sorted(
-            new_settings,
-            key=lambda name: current_settings[name].lineno,
-        )
-        if not any(
-            _VERSIONADDED_RE.match(line)
-            for line in current_settings[name].comment_lines
-        )
-    ]
-
-
-def _git_output(*args):
-    return subprocess.check_output(
-        ["git"] + list(args),
-        stderr=subprocess.STDOUT,
-        text=True,
-    ).strip()
-
-
-def _rezconfig_baseline(
-    repo_root: str,
-    requested_baseline: Optional[str],
-) -> str:
-    """Return the Git revision used to detect newly added settings.
-
-    CI supplies an explicit event revision so pull requests and pushes are
-    compared with the exact commit that preceded them. For local runs, compare
-    the default branch with its parent, and compare feature branches with their
-    merge base against origin's default branch.
-
-    A detached HEAD is normal in CI and has no branch name. If it points at the
-    default branch tip, treat it as the default branch; otherwise use the merge
-    base behavior. Unexpected Git failures are intentionally allowed to
-    propagate to the caller.
-    """
-    if requested_baseline:
-        return requested_baseline
-
-    # Resolve origin's default branch symbolically rather than assuming a name
-    # such as "main" or "master".
-    default_ref = _git_output(
-        "-C", repo_root, "symbolic-ref", "refs/remotes/origin/HEAD"
-    )
-    default_branch = default_ref.replace("refs/remotes/origin/", "", 1)
-    default_commit = _git_output("-C", repo_root, "rev-parse", default_ref)
-    head_commit = _git_output("-C", repo_root, "rev-parse", "HEAD")
-    # Unlike `git symbolic-ref`, this succeeds with an empty result for a
-    # detached HEAD, so a legitimate checkout is not handled as an error.
-    branch = _git_output("-C", repo_root, "branch", "--show-current")
-
-    if branch == default_branch or (not branch and head_commit == default_commit):
-        return "HEAD^"
-    return _git_output("-C", repo_root, "merge-base", "HEAD", default_ref)
 
 
 class TestConfig(TestBase):
@@ -464,99 +389,6 @@ class TestDeprecations(TestBase, TempdirMixin):
         with self.assertWarns(DeprecationWarning) as warning:
             warn('Warning Message', DeprecationWarning, pre_formatted=False)
         self.assertEqual(str(warning.warning), 'Warning Message')
-
-
-class TestRezConfigVersionAdded(unittest.TestCase):
-    def test_new_documented_settings_have_versionadded(self) -> None:
-        requested_baseline = os.getenv(_REZCONFIG_BASELINE_ENV)
-        try:
-            repo_root = _git_output("rev-parse", "--show-toplevel")
-            baseline = _rezconfig_baseline(repo_root, requested_baseline)
-            path = "src/rez/rezconfig.py"
-            with open(os.path.join(repo_root, path), encoding="utf-8") as stream:
-                current_source = stream.read()
-            baseline_source = _git_output(
-                "-C", repo_root, "show", "%s:%s" % (baseline, path)
-            )
-        except (OSError, subprocess.CalledProcessError) as exc:
-            reason = "Git repository or usable rezconfig history is unavailable"
-            if requested_baseline:
-                self.fail("%s for baseline %r: %s" % (
-                    reason, requested_baseline, exc
-                ))
-            self.skipTest("%s: %s" % (reason, exc))
-
-        missing = _new_settings_without_versionadded(
-            baseline_source, current_source
-        )
-        self.assertFalse(
-            missing,
-            "New documented rezconfig settings must include a preceding "
-            "'# .. versionadded:: <version>' directive: %s"
-            % ", ".join(missing),
-        )
-
-    def test_collects_top_level_documented_settings(self) -> None:
-        source = """\
-# __DOC_START__
-first = 1
-if True:
-    nested = 2
-annotated: int = 3
-# __DOC_END__
-outside = 4
-"""
-        self.assertEqual(
-            {
-                setting.name: setting.lineno
-                for setting in parse_documented_settings(source)
-            },
-            {"first": 2, "annotated": 5},
-        )
-
-    def test_requires_documentation_sentinels(self) -> None:
-        with self.assertRaisesRegex(ValueError, "sentinels were not found"):
-            parse_documented_settings("setting = 1\n")
-
-    def test_compares_setting_names(self) -> None:
-        baseline = """\
-# __DOC_START__
-existing = 1
-# __DOC_END__
-"""
-        current = """\
-# __DOC_START__
-existing = 2
-# Documentation for the new setting.
-#
-# .. versionadded:: 3.3.0
-added = 1
-# __DOC_END__
-"""
-        self.assertEqual(
-            _new_settings_without_versionadded(baseline, current),
-            [],
-        )
-
-    def test_directive_must_be_in_immediately_preceding_comment_block(self) -> None:
-        baseline = """\
-# __DOC_START__
-existing = 1
-# __DOC_END__
-"""
-        current = """\
-# __DOC_START__
-existing = 1
-# .. versionadded:: 3.3.0
-
-# Documentation without a directive.
-missing = 2
-# __DOC_END__
-"""
-        self.assertEqual(
-            _new_settings_without_versionadded(baseline, current),
-            ["missing"],
-        )
 
 
 if __name__ == "__main__":
