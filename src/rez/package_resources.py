@@ -529,6 +529,9 @@ class VariantResourceHelper(VariantResource, metaclass=_Metas):
             subpath = self._subpath(ignore_shortlinks=ignore_shortlinks)
             root = os.path.join(self.base, subpath)
             return root
+        
+    def _cache(self, path: str):
+        return self._repository.copy_variant_payload(self, path)
 
     @cached_property
     def variant_requires(self) -> list[Requirement]:

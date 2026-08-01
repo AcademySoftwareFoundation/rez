@@ -528,11 +528,17 @@ class PackageRepository(object):
         """
         return (self.name(), self.location)
 
-    def cache_variant(self, variant, location):
+    def copy_variant_payload(self, variant_resource, path):
         """
-        Copy a variant from repository to cache location
+        Copy a variants payload from repository to a directory location
+        Args:
+            variant_resource (VariantResource): VariantResource to be copied.
+            path (str): Filesystem path to copy variant payload to.
+        
+        Returns:
+            bool: Should return True on success.
         """
-        shutil.copytree(variant.root, location)
+        raise NotImplementedError
 
 
 class PackageRepositoryManager(object):
