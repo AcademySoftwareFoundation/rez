@@ -1032,6 +1032,18 @@ class FileSystemPackageRepository(PackageRepository):
 
         return path
 
+    def copy_variant_payload(self, variant_resource, path):
+        if not variant_resource.repository_type == self.name():
+            msg = f'{self.__class__} cant copy variant resource it doesnt own'
+            raise PackageRepositoryError(msg)
+
+        root = variant_resource.root
+        if not root and not os.path.isdir(root):
+            raise PackageRepositoryError('Variant root is missing')
+
+        shutil.copytree(root, path)
+        return True
+
     # -- internal
 
     def _get_family_dirs__key(self) -> str:

@@ -410,7 +410,7 @@ class PackageCache(object):
         th.start()
 
         try:
-            variant.repository.cache_variant(variant, rootpath)
+            variant.resource._cache(rootpath)
         finally:
             still_copying = False
 
