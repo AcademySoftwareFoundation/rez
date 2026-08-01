@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+
 """Unit tests for :mod:`rez.utils.docs`."""
 
 import unittest

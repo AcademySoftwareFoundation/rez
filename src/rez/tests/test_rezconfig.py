@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+
 """Tests for requirements specific to the default rezconfig."""
 
 from __future__ import annotations
