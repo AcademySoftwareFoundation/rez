@@ -13,6 +13,7 @@ import os.path
 import os
 import stat
 import time
+import shutil
 
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
@@ -1038,7 +1039,7 @@ class FileSystemPackageRepository(PackageRepository):
             raise PackageRepositoryError(msg)
 
         root = variant_resource.root
-        if not root and not os.path.isdir(root):
+        if not isinstance(root, str) or not os.path.isdir(root):
             raise PackageRepositoryError('Variant root is missing')
 
         shutil.copytree(root, path)
