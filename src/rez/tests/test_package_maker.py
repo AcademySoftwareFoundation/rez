@@ -16,7 +16,7 @@ class TestPackages(TestBase, TempdirMixin):
         TempdirMixin.tearDownClass()
 
     def test_make_package(self):
-
+        '''Test make_package makes a package in structure we expect'''
         def make_root(variant, root):
             assert os.path.isdir(root)
             assert variant.resource.repository_type == 'memory'
@@ -31,7 +31,7 @@ class TestPackages(TestBase, TempdirMixin):
         assert os.path.isfile(os.path.join(self.root, 'test_package1', '1.0.0', 'payload.txt'))
 
     def test_make_package_with_variant(self):
-
+        '''Test make_package makes a package with variants sub path'''
         def make_root(variant, root):
             with open(os.path.join(root, 'payload.txt'),'w'):
                 pass
@@ -44,6 +44,7 @@ class TestPackages(TestBase, TempdirMixin):
         assert os.path.isfile(payload_path)
 
     def test_make_package_build_token(self):
+        '''Test make_package has a build prefix token while building payload'''
         def make_base(variant, base):
             assert os.path.isdir(base)
             assert os.path.isfile(os.path.join(os.path.dirname(base), '.building2.0.1'))
