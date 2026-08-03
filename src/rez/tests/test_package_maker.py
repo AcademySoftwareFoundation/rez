@@ -28,7 +28,7 @@ class TestPackages(TestBase, TempdirMixin):
             assert os.path.isdir(root)
             assert variant.resource.repository_type == 'memory'
 
-            with open(os.path.join(root, 'payload.txt'),'w'):
+            with open(os.path.join(root, 'payload.txt'), 'w'):
                 pass
 
         with make_package('test_package1', self.root, make_root=make_root) as pkg:
@@ -40,7 +40,7 @@ class TestPackages(TestBase, TempdirMixin):
     def test_make_package_with_variant(self):
         '''Test make_package makes a package with variants sub path'''
         def make_root(variant, root):
-            with open(os.path.join(root, 'payload.txt'),'w'):
+            with open(os.path.join(root, 'payload.txt'), 'w'):
                 pass
 
         with make_package('test_package2', self.root, make_root=make_root) as pkg:
