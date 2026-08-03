@@ -1,3 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
+"""
+Test package maker.
+"""
 import os
 
 from rez.tests.util import TestBase, TempdirMixin
