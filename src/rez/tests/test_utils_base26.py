@@ -32,9 +32,10 @@ class TestGetNextBase26(TestBase):
         self.assertEqual(get_next_base26('azz'), 'baa')
 
     def test_invalid_input_raises(self) -> None:
-        for bad in ('A', 'a1', 'a-b', ' a', 'a '):
-            with self.assertRaises(ValueError):
-                get_next_base26(bad)
+        for bad in ('A', 'a1', 'a-b', ' a', 'a ', 'a\n', 'ab\n'):
+            with self.subTest(item=bad):
+                with self.assertRaises(ValueError):
+                    get_next_base26(bad)
 
 
 class TestCreateUniqueBase26Symlink(TestBase):
@@ -75,6 +76,21 @@ class TestCreateUniqueBase26Symlink(TestBase):
 
         symlink.assert_called_once_with("/source/2.0", result)
         self.assertTrue(result.endswith('d'))
+
+    def test_creates_symlink_after_highest_existing_with_mixed_lengths(self) -> None:
+        # regression test: a naive max(names) sorts lexicographically, so 'z'
+        # would incorrectly be picked over 'aa' as the "highest" name
+        with patch(
+            "rez.utils.base26.find_matching_symlink", return_value=None
+        ), patch(
+            "os.listdir", return_value=['a', 'b', 'c', 'z', 'aa']
+        ), patch(
+            "os.path.islink", return_value=True
+        ), patch("os.symlink") as symlink:
+            result = create_unique_base26_symlink("/pkgs", "/source/3.0")
+
+        symlink.assert_called_once_with("/source/3.0", result)
+        self.assertTrue(result.endswith('ab'))
 
     def test_retries_on_race_condition_then_succeeds(self) -> None:
         exists_error = OSError(errno.EEXIST, "File exists")
