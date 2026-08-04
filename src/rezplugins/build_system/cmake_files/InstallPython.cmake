@@ -107,7 +107,7 @@ macro (install_python)
 			add_custom_command(
 				OUTPUT ${local_fc}
 				COMMAND ${CMAKE_COMMAND} -E make_directory ${pycopy_path}
-				COMMAND ${py_bin} -c "import py_compile; py_compile.compile('${fabs}', '${local_fc}', None, True)"
+				COMMAND ${py_bin} -c "import sys; import py_compile; py_compile.compile(sys.argv[1], sys.argv[2], None, True)" ${fabs} ${local_fc}
 				DEPENDS ${fabs}
 				VERBATIM
 			)

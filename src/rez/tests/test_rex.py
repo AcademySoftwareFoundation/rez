@@ -652,6 +652,7 @@ class TestRex(TestBase):
             expected_actions=[Setenv("RESULT", "covfefe")],
             expected_output={"RESULT": "covfefe"},
         )
+
     def test_is_pathed_key(self):
         """Test that _is_pathed_key correctly identifies path-like env vars."""
         self.assertTrue(ActionInterpreter._is_pathed_key("PATH"))
