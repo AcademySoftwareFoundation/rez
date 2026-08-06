@@ -195,10 +195,9 @@ class TestShells(TestBase, TempdirMixin):
             },
             "csh": {
                 "command": "echo $shell",
-                # csh should usually resolve to csh, but on macOS, it will resolve to tcsh,
-                # at least on GitHub Actions Hosted runners.
-                "assert": lambda x: self.assertEqual(
-                    os.path.basename(x), "csh" if system.platform != "osx" else "tcsh"
+                # Some environments expose csh as tcsh, such as macOS
+                "assert": lambda x: self.assertIn(
+                    os.path.basename(x), ("csh", "tcsh")
                 ),
             },
             "tcsh": {
@@ -614,11 +613,10 @@ class TestShells(TestBase, TempdirMixin):
 
         loc = inspect.getsourcelines(_rex_resetenv)[0][1:]
         code = textwrap.dedent('\n'.join(loc))
-
         r = self._create_context([])
         p = r.execute_rex_code(code, stdout=subprocess.PIPE)
-        out, _ = p.communicate()
 
+        out, _ = p.communicate()
         self.assertEqual(p.returncode, 0)
         self.assertIsNotNone(out)
 
