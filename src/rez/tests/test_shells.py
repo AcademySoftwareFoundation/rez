@@ -586,6 +586,25 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_alias_after_path_manipulation)
 
     @per_available_shell()
+    def test_rex_resetenv_output(self, shell) -> None:
+        """Test that resetenv does not return None."""
+        config.override("default_shell", shell)
+
+        def _rex_resetenv() -> None:
+            resetenv("FOO", "foo")
+            info(env.FOO)
+
+        loc = inspect.getsourcelines(_rex_resetenv)[0][1:]
+        code = textwrap.dedent('\n'.join(loc))
+
+        r = self._create_context([])
+        p = r.execute_rex_code(code, stdout=subprocess.PIPE)
+        out, _ = p.communicate()
+
+        self.assertEqual(p.returncode, 0)
+        self.assertIsNotNone(out)
+
+    @per_available_shell()
     def test_alias_command(self, shell):
         """Testing alias can be passed in as command
 
