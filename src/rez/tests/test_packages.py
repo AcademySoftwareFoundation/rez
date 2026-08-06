@@ -80,7 +80,7 @@ def _to_qnames(it):
 
 class TestPackages(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         cls.solver_packages_path = cls.data_path("solver", "packages")
@@ -101,15 +101,15 @@ class TestPackages(TestBase, TempdirMixin):
             package_filter=None)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def test_fam_iteration(self):
+    def test_fam_iteration(self) -> None:
         """package family iteration."""
         all_fams = _to_names(iter_package_families())
         self.assertEqual(all_fams, ALL_FAMILIES)
 
-    def test_pkg_iteration(self):
+    def test_pkg_iteration(self) -> None:
         """package iteration."""
         all_packages = set()
         all_fams = iter_package_families()
@@ -135,7 +135,7 @@ class TestPackages(TestBase, TempdirMixin):
                 it = family.iter_packages()
                 self.assertTrue(package in it)
 
-    def test_pkg_data(self):
+    def test_pkg_data(self) -> None:
         """check package contents."""
         # a py-based package
         package = get_package("versioned", "3.0")
@@ -185,7 +185,7 @@ class TestPackages(TestBase, TempdirMixin):
         expected_uri = canonical_path(os.path.join(self.py_packages_path, "multi.py<2.0>"))
         self.assertEqual(package.uri, expected_uri)
 
-    def test_pkg_create(self):
+    def test_pkg_create(self) -> None:
         """test package creation."""
         package_data = {
             "name": "foo",
@@ -205,7 +205,7 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(len(packages), 1)
         self.assertEqual(package, packages[0])
 
-    def test_developer_pkg(self):
+    def test_developer_pkg(self) -> None:
         """test developer package."""
         path = os.path.join(self.packages_base_path, "developer")
         package = get_developer_package(path)
@@ -221,7 +221,7 @@ class TestPackages(TestBase, TempdirMixin):
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
-    def test_developer_dynamic_local_preprocess(self):
+    def test_developer_dynamic_local_preprocess(self) -> None:
         """test developer package with a local preprocess function"""
         # a developer package with features such as expanding requirements,
         # early-binding attribute functions, and preprocessing
@@ -243,7 +243,7 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertFalse(hasattr(package, "added_by_global_preprocess"))
         self.assertEqual(package.added_by_local_preprocess, True)
 
-    def test_developer_dynamic_global_preprocess_string(self):
+    def test_developer_dynamic_global_preprocess_string(self) -> None:
         """test developer package with a global preprocess function as string"""
         # a developer package with features such as expanding requirements,
         # global preprocessing
@@ -259,11 +259,11 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(package.description, "This.")
         self.assertEqual(package.added_by_global_preprocess, True)
 
-    def test_developer_dynamic_global_preprocess_func(self):
+    def test_developer_dynamic_global_preprocess_func(self) -> None:
         """test developer package with a global preprocess function as function"""
         # a developer package with features such as expanding requirements,
         # global preprocessing
-        def preprocess(this, data):
+        def preprocess(this, data) -> None:
             data["dynamic_attribute_added"] = {'test': True}
 
         self.update_settings(
@@ -278,11 +278,11 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(package.description, "This.")
         self.assertEqual(package.dynamic_attribute_added, {'test': True})
 
-    def test_developer_dynamic_before(self):
+    def test_developer_dynamic_before(self) -> None:
         """test developer package with both global and local preprocess in before mode"""
         # a developer package with features such as expanding requirements,
         # global preprocessing
-        def preprocess(this, data):
+        def preprocess(this, data) -> None:
             data["dynamic_attribute_added"] = {'value_set_by': 'global'}
             data["added_by_global_preprocess"] = True
 
@@ -302,11 +302,11 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(package.added_by_global_preprocess, True)
         self.assertEqual(package.added_by_local_preprocess, True)
 
-    def test_developer_dynamic_after(self):
+    def test_developer_dynamic_after(self) -> None:
         """test developer package with both global and local preprocess in after mode"""
         # a developer package with features such as expanding requirements,
         # global preprocessing
-        def preprocess(this, data):
+        def preprocess(this, data) -> None:
             data["dynamic_attribute_added"] = {'value_set_by': 'global'}
             data["added_by_global_preprocess"] = True
 
@@ -326,7 +326,7 @@ class TestPackages(TestBase, TempdirMixin):
         self.assertEqual(package.added_by_global_preprocess, True)
         self.assertEqual(package.added_by_local_preprocess, True)
 
-    def test_variant_iteration(self):
+    def test_variant_iteration(self) -> None:
         """test variant iteration."""
         base = canonical_path(os.path.join(self.py_packages_path, "variants_py", "2.0"))
         expected_data = dict(
@@ -344,7 +344,7 @@ class TestPackages(TestBase, TempdirMixin):
             self.assertEqual(variant.index, i)
             self.assertEqual(variant.parent, package)
 
-    def test_variant_install(self):
+    def test_variant_install(self) -> None:
         """test variant installation."""
         repo_path = os.path.join(self.root, "packages")
         os.makedirs(repo_path, exist_ok=True)
@@ -400,7 +400,7 @@ class TestPackages(TestBase, TempdirMixin):
             data_ = _data(installed_package)
             self.assertDictEqual(data, data_)
 
-    def test_expand_requirement(self):
+    def test_expand_requirement(self) -> None:
         """test expand_requirement function."""
         tests = (
             ("pyfoo", "pyfoo"),
@@ -438,20 +438,20 @@ class TestPackages(TestBase, TempdirMixin):
         for req in bad_tests:
             self.assertRaises(VersionError, expand_requirement, req)
 
-    def test_package_from_uri(self):
+    def test_package_from_uri(self) -> None:
         """Test getting a package from its uri."""
         package = get_package("variants_py", "2.0")
         package2 = get_package_from_uri(package.uri)
         self.assertEqual(package, package2)
 
-    def test_variant_from_uri(self):
+    def test_variant_from_uri(self) -> None:
         """Test getting a variant from its uri."""
         package = get_package("variants_py", "2.0")
         for variant in package.iter_variants():
             variant2 = get_variant_from_uri(variant.uri)
             self.assertEqual(variant, variant2)
 
-    def test_package_ignore(self):
+    def test_package_ignore(self) -> None:
         """Test package ignore/unignore."""
         pkg_name = "pydad"
         pkg_version = Version("2")
@@ -502,7 +502,7 @@ class TestPackages(TestBase, TempdirMixin):
         pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
         self.assertNotEqual(pkg, None)
 
-    def test_package_move(self):
+    def test_package_move(self) -> None:
         """Test package move."""
         pkg_name = "pydad"
         pkg_version = Version("2")
@@ -530,7 +530,7 @@ class TestPackages(TestBase, TempdirMixin):
         src_pkg = get_package_from_repository(pkg_name, pkg_version, repo_path)
         self.assertEqual(src_pkg, None)
 
-    def test_package_remove(self):
+    def test_package_remove(self) -> None:
         """Test package remove."""
         pkg_name = "pydad"
         pkg_version = Version("2")
@@ -552,7 +552,7 @@ class TestPackages(TestBase, TempdirMixin):
         i = repo.unignore_package(pkg_name, pkg_version)
         self.assertEqual(i, -1)
 
-    def test_package_family_remove(self):
+    def test_package_family_remove(self) -> None:
         """Test package family remove."""
         pkg_name = "pydad"
 
@@ -594,7 +594,7 @@ class TestPackages(TestBase, TempdirMixin):
             None
         )
 
-    def test_remove_packages_ignored_since(self):
+    def test_remove_packages_ignored_since(self) -> None:
         pkg_name = "pydad"
         pkg_version = Version("2")
 
@@ -621,7 +621,7 @@ class TestPackages(TestBase, TempdirMixin):
 
 
 class TestMemoryPackages(TestBase):
-    def test_1_memory_variant_parent(self):
+    def test_1_memory_variant_parent(self) -> None:
         """Test that a package's variant's parent is the original package
         """
         desc = 'the foo package'

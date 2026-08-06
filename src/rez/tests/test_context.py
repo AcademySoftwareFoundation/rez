@@ -22,7 +22,7 @@ import os
 
 class TestContext(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         cls.packages_path = os.path.join(cls.root, "packages")
@@ -37,10 +37,10 @@ class TestContext(TestBase, TempdirMixin):
             resolve_caching=False)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def test_create_context(self):
+    def test_create_context(self) -> None:
         """Test creation of context."""
         r = ResolvedContext([])
         r.print_info()
@@ -48,7 +48,7 @@ class TestContext(TestBase, TempdirMixin):
         r = ResolvedContext(["hello_world"])
         r.print_info()
 
-    def test_apply(self):
+    def test_apply(self) -> None:
         """Test apply() function."""
         # Isolate our changes to os.environ and sys.path and return to the
         # original state to not mess with our test environment.
@@ -58,7 +58,7 @@ class TestContext(TestBase, TempdirMixin):
             self.assertEqual(os.environ.get("OH_HAI_WORLD"), "hello")
 
     # TODO make shell-dependent (wait until port to pytest)
-    def test_execute_command(self):
+    def test_execute_command(self) -> None:
         """Test command execution in context."""
         if platform_.name == "windows":
             self.skipTest("This test does not run on Windows due to problems"
@@ -71,7 +71,7 @@ class TestContext(TestBase, TempdirMixin):
         stdout = stdout.strip()
         self.assertEqual(stdout, "Hello Rez World!")
 
-    def test_resolved_packages_testing_environ(self):
+    def test_resolved_packages_testing_environ(self) -> None:
         """Test resolving packages within a testing environment behaves correctly"""
         packages_path = self.data_path("builds", "packages")
 
@@ -80,7 +80,7 @@ class TestContext(TestBase, TempdirMixin):
         resolvedPackages = [x.qualified_package_name for x in r.resolved_packages]
         self.assertEqual(resolvedPackages, ["floob", "testing_obj-1.0.0"])
 
-    def test_execute_command_testing_environ(self):
+    def test_execute_command_testing_environ(self) -> None:
         """Test that execute_command properly sets test specific environ dict"""
         self.inject_python_repo()
         packages_path = self.data_path("builds", "packages")
@@ -91,13 +91,13 @@ class TestContext(TestBase, TempdirMixin):
         )
         self.assertEqual(r.get_environ().get("CAR_IDEA"), "STURDY STEERING WHEEL")
 
-    def test_execute_command_environ(self):
+    def test_execute_command_environ(self) -> None:
         """Test that execute_command properly sets environ dict."""
         self.inject_python_repo()
         r = ResolvedContext(["hello_world", "python"])
         self._test_execute_command_environ(r)
 
-    def _test_execute_command_environ(self, r):
+    def _test_execute_command_environ(self, r) -> None:
         pycode = ("import os; "
                   "print(os.getenv(\"BIGLY\")); "
                   "print(os.getenv(\"OH_HAI_WORLD\"))")
@@ -113,7 +113,7 @@ class TestContext(TestBase, TempdirMixin):
 
         self.assertEqual(parts, ["covfefe", "hello"])
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         """Test context serialization."""
 
         # save
@@ -129,7 +129,7 @@ class TestContext(TestBase, TempdirMixin):
         env = r2.get_environ()
         self.assertEqual(env.get("OH_HAI_WORLD"), "hello")
 
-    def test_deserialize_older_versions(self):
+    def test_deserialize_older_versions(self) -> None:
         """Test deserialization of older contexts."""
         baked_contexts_path = self.data_path("contexts")
 
@@ -137,7 +137,7 @@ class TestContext(TestBase, TempdirMixin):
             # load
             _ = ResolvedContext.load(os.path.join(baked_contexts_path, context_file))
 
-    def test_retarget(self):
+    def test_retarget(self) -> None:
         """Test that a retargeted context behaves identically."""
         self.inject_python_repo()
 
@@ -155,12 +155,12 @@ class TestContext(TestBase, TempdirMixin):
 
         self._test_execute_command_environ(r2)
 
-    def test_bundled(self):
+    def test_bundled(self) -> None:
         """Test that a bundled context behaves identically."""
 
         self.inject_python_repo()
 
-        def _test_bundle(path):
+        def _test_bundle(path) -> None:
             # load the bundled context
             r2 = ResolvedContext.load(os.path.join(path, "context.rxt"))
 
@@ -214,7 +214,7 @@ class TestContext(TestBase, TempdirMixin):
 
             _test_bundle(bundle_path3)
 
-    def test_orderer_variants(self):
+    def test_orderer_variants(self) -> None:
         """Test that package orderers apply to the variants of packages, not just requires."""
         from rez.package_order import PerFamilyOrder, VersionSplitPackageOrder
         from rez.version import Version
@@ -241,7 +241,7 @@ class TestContext(TestBase, TempdirMixin):
         resolved = [x.qualified_package_name for x in r.resolved_packages]
         self.assertEqual(resolved, ['python-2.6.8', 'pyvariants-2'])
 
-    def test_orderer_package_argument(self):
+    def test_orderer_package_argument(self) -> None:
         """Test that the packages argument to an orderer gives expected results."""
         from rez.package_order import VersionSplitPackageOrder
         from rez.version import Version

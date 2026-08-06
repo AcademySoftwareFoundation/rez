@@ -5,6 +5,8 @@
 """
 Filesystem-related utilities.
 """
+from __future__ import annotations
+
 from threading import Lock
 from tempfile import mkdtemp
 from contextlib import contextmanager
@@ -17,7 +19,6 @@ import ntpath
 import os.path
 import shutil
 import os
-import re
 import stat
 import platform
 import uuid
@@ -27,6 +28,7 @@ from rez.util import which
 from rez.utils.execution import Popen
 
 is_windows = platform.system() == "Windows"
+is_mac = platform.system() == "Darwin"
 
 
 class TempDirs(object):
@@ -37,7 +39,7 @@ class TempDirs(object):
     instances_lock = Lock()
     instances = []
 
-    def __init__(self, tmpdir, prefix="rez_"):
+    def __init__(self, tmpdir, prefix="rez_") -> None:
         self.tmpdir = tmpdir
         self.prefix = prefix
         self.dirs = set()
@@ -46,7 +48,7 @@ class TempDirs(object):
         with TempDirs.instances_lock:
             TempDirs.instances.append(weakref.ref(self))
 
-    def mkdtemp(self, cleanup=True):
+    def mkdtemp(self, cleanup: bool = True):
         path = mkdtemp(dir=self.tmpdir, prefix=self.prefix)
         if not cleanup:
             return path
@@ -56,10 +58,10 @@ class TempDirs(object):
 
         return path
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         with self.lock:
             if not self.dirs:
                 return
@@ -69,10 +71,10 @@ class TempDirs(object):
 
         for path in dirs:
             if os.path.exists(path) and not os.getenv("REZ_KEEP_TMPDIRS"):
-                shutil.rmtree(path)
+                safe_rmtree(path)
 
     @classmethod
-    def clear_all(cls):
+    def clear_all(cls) -> None:
         with TempDirs.instances_lock:
             instances = cls.instances[:]
 
@@ -183,7 +185,7 @@ def safe_remove(path):
 
     try:
         if os.path.isdir(path) and not os.path.islink(path):
-            shutil.rmtree(path)
+            safe_rmtree(path)
         else:
             os.remove(path)
     except OSError:
@@ -191,7 +193,7 @@ def safe_remove(path):
             raise
 
 
-def forceful_rmtree(path):
+def forceful_rmtree(path) -> None:
     """Like shutil.rmtree, but may change permissions.
 
     Specifically, non-writable dirs within `path` can cause rmtree to fail. This
@@ -200,9 +202,15 @@ def forceful_rmtree(path):
     Also handled:
         * path length over 259 char (on Windows)
         * unicode path
+        * AppleDouble resource forks
     """
 
-    def _on_error(func, path, exc_info):
+    def _on_error(func, path, exc_info) -> None:
+        if is_mac and exc_info[0] is FileNotFoundError and os.path.basename(path).startswith("._"):
+            # Assume if we are on a mac and the file starts with a "._" it is a resource fork and the
+            # corresponding data fork has been removed.  Since we are removing the whole directory tree
+            # it should not be a problem.
+            return
         try:
             if is_windows:
                 path = windows_long_path(path)
@@ -225,7 +233,25 @@ def forceful_rmtree(path):
     shutil.rmtree(path, onerror=_on_error)
 
 
-def replacing_symlink(source, link_name):
+def safe_rmtree(path) -> None:
+    """Like shutil.rmtree, but handles race condition caused by AppleDouble files.
+
+    On Mac OSX files may consist of a data fork and a resource fork.  On a foreign file system these files
+    are stored as AppleDouble files.  The data fork is stored as "filename" and the resource fork is stored
+    as "._filename".  When the data fork is removed the corresponding resource fork is also removed.  This
+    results in a FileNotFoundError when `shutil.rmtree` tries to remove the resource fork.  This is addressed
+    in Python 13.3 for another situation not related to AppleDouble files
+    (https://github.com/python/cpython/pull/14064)
+    """
+
+    def _on_error(_func, path, exc_info):
+        if not is_mac or exc_info[0] is not FileNotFoundError or not os.path.basename(path).startswith("._"):
+            raise exc_info[1].with_traceback(exc_info[2])
+
+    shutil.rmtree(path, onerror=_on_error)
+
+
+def replacing_symlink(source, link_name) -> None:
     """Create symlink that overwrites any existing target.
     """
     with make_tmp_name(link_name) as tmp_link_name:
@@ -233,7 +259,7 @@ def replacing_symlink(source, link_name):
         replace_file_or_dir(link_name, tmp_link_name)
 
 
-def replacing_copy(src, dest, follow_symlinks=False):
+def replacing_copy(src, dest, follow_symlinks: bool = False) -> None:
     """Perform copy that overwrites any existing target.
 
     Will copy/copytree `src` to `dest`, and will remove `dest` if it exists,
@@ -287,7 +313,7 @@ def replace_file_or_dir(dest, source):
         rename(source, dest)
 
 
-def additive_copytree(src, dst, symlinks=False, ignore=None):
+def additive_copytree(src, dst, symlinks: bool = False, ignore=None) -> None:
     """Version of `copytree` that merges into an existing directory.
     """
     os.makedirs(dst, exist_ok=True)
@@ -324,7 +350,7 @@ def make_tmp_name(name):
         safe_remove(tmp_name)
 
 
-def is_subdirectory(path_a, path_b):
+def is_subdirectory(path_a, path_b) -> bool:
     """Returns True if `path_a` is a subdirectory of `path_b`."""
     path_a = os.path.realpath(path_a)
     path_b = os.path.realpath(path_b)
@@ -339,7 +365,7 @@ def is_subdirectory(path_a, path_b):
     return not relative.startswith(os.pardir + os.sep)
 
 
-def find_matching_symlink(path, source):
+def find_matching_symlink(path: str, source: str) -> str | None:
     """Find a symlink under `path` that points at `source`.
 
     If source is relative, it is considered relative to `path`.
@@ -365,7 +391,7 @@ def find_matching_symlink(path, source):
     return None
 
 
-def copy_or_replace(src, dst):
+def copy_or_replace(src: str, dst: str):
     '''try to copy with mode, and if it fails, try replacing
     '''
     try:
@@ -404,7 +430,7 @@ def copy_or_replace(src, dst):
     shutil.move(dst_temp, dst)
 
 
-def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
+def copytree(src: str, dst: str, symlinks: bool = False, ignore=None, hardlinks: bool = False):
     '''copytree that supports hard-linking
     '''
     names = os.listdir(src)
@@ -414,14 +440,14 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
         ignored_names = set()
 
     if hardlinks:
-        def copy(srcname, dstname):
+        def copy(srcname, dstname) -> None:
             try:
                 # try hard-linking first
                 os.link(srcname, dstname)
             except OSError:
                 shutil.copy2(srcname, dstname)
     else:
-        copy = shutil.copy2
+        copy = shutil.copy2  # type: ignore[assignment]
 
     os.makedirs(dst, exist_ok=True)
 
@@ -452,42 +478,42 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
         # can't copy file access times on Windows
         pass
     except OSError as why:
-        errors.extend((src, dst, str(why)))
+        errors.append((src, dst, str(why)))
     if errors:
         raise shutil.Error(errors)
 
 
-def movetree(src, dst):
+def movetree(src: str, dst: str) -> None:
     """Attempts a move, and falls back to a copy+delete if this fails
     """
     try:
         shutil.move(src, dst)
     except:
         copytree(src, dst, symlinks=True, hardlinks=True)
-        shutil.rmtree(src)
+        safe_rmtree(src)
 
 
-def safe_chmod(path, mode):
+def safe_chmod(path: str, mode) -> None:
     """Set the permissions mode on path, but only if it differs from the current mode.
     """
     if stat.S_IMODE(os.stat(path).st_mode) != mode:
         os.chmod(path, mode)
 
 
-def to_nativepath(path):
+def to_nativepath(path: str):
     path = path.replace('\\', '/')
     return os.path.join(*path.split('/'))
 
 
-def to_ntpath(path):
+def to_ntpath(path: str):
     return ntpath.sep.join(path.split(posixpath.sep))
 
 
-def to_posixpath(path):
+def to_posixpath(path: str):
     return posixpath.sep.join(path.split(ntpath.sep))
 
 
-def canonical_path(path, platform=None):
+def canonical_path(path: str, platform=None):
     r""" Resolves symlinks, and formats filepath.
 
     Resolves symlinks, lowercases if filesystem is case-insensitive,
@@ -512,148 +538,7 @@ def canonical_path(path, platform=None):
     return path
 
 
-def encode_filesystem_name(input_str):
-    """Encodes an arbitrary unicode string to a generic filesystem-compatible
-    non-unicode filename.
-
-    The result after encoding will only contain the standard ascii lowercase
-    letters (a-z), the digits (0-9), or periods, underscores, or dashes
-    (".", "_", or "-").  No uppercase letters will be used, for
-    comaptibility with case-insensitive filesystems.
-
-    The rules for the encoding are:
-
-    1. Any lowercase letter, digit, period, or dash (a-z, 0-9, ., or -) is
-    encoded as-is.
-
-    2. Any underscore is encoded as a double-underscore (``__``)
-
-    3. Any uppercase ascii letter (A-Z) is encoded as an underscore followed
-    by the corresponding lowercase letter (ie, "A" => "_a")
-
-    4. All other characters are encoded using their UTF-8 encoded unicode
-       representation, in the following format: ``_NHH...``, where:
-
-       * N represents the number of bytes needed for the UTF-8 encoding,
-         except with N=0 for one-byte representation (the exception for N=1
-         is made both because it means that for "standard" ascii characters
-         in the range 0-127, their encoding will be _0xx, where xx is their
-         ascii hex code; and because it mirrors the ways UTF-8 encoding
-         itself works, where the number of bytes needed for the character can
-         be determined by counting the number of leading "1"s in the binary
-         representation of the character, except that if it is a 1-byte
-         sequence, there are 0 leading 1's).
-       * HH represents the bytes of the corresponding UTF-8 encoding, in
-         hexadecimal (using lower-case letters)
-
-         As an example, the character ``*``, whose (hex) UTF-8 representation
-         of 2A, would be encoded as "_02a", while the "euro" symbol, which
-         has a UTF-8 representation of E2 82 AC, would be encoded as
-         "_3e282ac".  (Note that, strictly speaking, the "N" part of the
-         encoding is redundant information, since it is essentially encoded
-         in the UTF-8 representation itself, but it makes the resulting
-         string more human-readable, and easier to decode).
-
-    As an example, the string "Foo_Bar (fun).txt" would get encoded as ``_foo___bar_020_028fun_029.txt``.
-    """
-    # TODO: Test this
-    if isinstance(input_str, str):
-        input_str = input_str.encode(encoding="utf-8")
-
-    as_is = u'abcdefghijklmnopqrstuvwxyz0123456789.-'
-    uppercase = u'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    result = []
-    for char in input_str:
-        if char in as_is:
-            result.append(char)
-        elif char == u'_':
-            result.append('__')
-        elif char in uppercase:
-            result.append('_%s' % char.lower())
-        else:
-            utf8 = char.encode('utf8')
-            N = len(utf8)
-            if N == 1:
-                N = 0
-            HH = ''.join('%x' % ord(c) for c in utf8)
-            result.append('_%d%s' % (N, HH))
-    return ''.join(result)
-
-
-_FILESYSTEM_TOKEN_RE = re.compile(r'(?P<as_is>[a-z0-9.-])|(?P<underscore>__)|_(?P<uppercase>[a-z])|_(?P<N>[0-9])')
-_HEX_RE = re.compile('[0-9a-f]+$')
-
-
-def decode_filesystem_name(filename):
-    """Decodes a filename encoded using the rules given in encode_filesystem_name
-    to a unicode string.
-    """
-    result = []
-    remain = filename
-    i = 0
-    while remain:
-        # use match, to ensure it matches from the start of the string...
-        match = _FILESYSTEM_TOKEN_RE.match(remain)
-        if not match:
-            raise ValueError("incorrectly encoded filesystem name %r"
-                             " (bad index: %d - %r)" % (filename, i,
-                                                        remain[:2]))
-        match_str = match.group(0)
-        match_len = len(match_str)
-        i += match_len
-        remain = remain[match_len:]
-        match_dict = match.groupdict()
-        if match_dict['as_is']:
-            result.append(unicode(match_str))
-        elif match_dict['underscore']:
-            result.append(u'_')
-        elif match_dict['uppercase']:
-            result.append(unicode(match_dict['uppercase'].upper()))
-        elif match_dict['N']:
-            N = int(match_dict['N'])
-            if N == 0:
-                N = 1
-            # hex-encoded, so need to grab 2*N chars
-            bytes_len = 2 * N
-            i += bytes_len
-            bytes = remain[:bytes_len]
-            remain = remain[bytes_len:]
-
-            # need this check to ensure that we don't end up eval'ing
-            # something nasty...
-            if not _HEX_RE.match(bytes):
-                raise ValueError("Bad utf8 encoding in name %r"
-                                 " (bad index: %d - %r)" % (filename, i, bytes))
-
-            bytes_repr = ''.join('\\x%s' % bytes[i:i + 2]
-                                 for i in xrange(0, bytes_len, 2))
-            bytes_repr = "'%s'" % bytes_repr
-            result.append(eval(bytes_repr).decode('utf8'))
-        else:
-            raise ValueError("Unrecognized match type in filesystem name %r"
-                             " (bad index: %d - %r)" % (filename, i, remain[:2]))
-
-    return u''.join(result)
-
-
-def test_encode_decode():
-    def do_test(orig, expected_encoded):
-        print('=' * 80)
-        print(orig)
-        encoded = encode_filesystem_name(orig)
-        print(encoded)
-        assert encoded == expected_encoded
-        decoded = decode_filesystem_name(encoded)
-        print(decoded)
-        assert decoded == orig
-
-    do_test("Foo_Bar (fun).txt", '_foo___bar_020_028fun_029.txt')
-
-    # u'\u20ac' == Euro symbol
-    do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
-
-
-def walk_up_dirs(path):
+def walk_up_dirs(path: str):
     """Yields absolute directories starting with the given path, and iterating
     up through all it's parents, until it reaches a root directory"""
     prev_path = None
@@ -664,7 +549,7 @@ def walk_up_dirs(path):
         current_path = os.path.dirname(prev_path)
 
 
-def windows_long_path(dos_path):
+def windows_long_path(dos_path: str):
     """Prefix '\\?\' for path longer than 259 char (Win32API limitation)
     """
     path = os.path.abspath(dos_path)
@@ -679,7 +564,7 @@ def windows_long_path(dos_path):
     return path
 
 
-def rename(src, dst):
+def rename(src: str, dst: str):
     """Utility function to rename a file or folder src to dst with retrying.
 
     This function uses the built-in `os.rename()` function and falls back to `robocopy` tool

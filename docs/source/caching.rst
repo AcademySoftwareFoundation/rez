@@ -11,7 +11,7 @@ Memcached is widely used, easy to deploy (because there is no storage needed sin
 process/executable), and is very fast due to the data residing in memory.
 
 In a studio environment (with many machines), machines that perform a solve that is already cached to the
-resolve cache will simply receive the cached result rather than preforming a re-solve. This can significantly
+resolve cache will simply receive the cached result rather than performing a re-solve. This can significantly
 decrease the time it takes to resolve environments. Slow solves will now be almost instantaneous.
 
 Resolve caching has almost no downsides. Only in rare edge cases where you have to "hack" a released package into
@@ -27,13 +27,13 @@ The following information is stored to the memcached server for each solve:
 * Timestamps of packages seen in previous solves.
 * Variant states information about the state of a variant. For example, in the 'filesystem' repository type,
   the 'state' is the last modified date of the file associated with the variant (perhaps a package.py).
-  If the state of any variant has changed from a cached resolve - eg. if a file has been modified - the cached resolve is discarded.
+  If the state of any variant has changed from a cached resolve - e.g. if a file has been modified - the cached resolve is discarded.
 
 Setup
 -----
 
 To enable memcached caching, you need to configure the :data:`memcached_uri` config variable.
-This variable accepts a list of URI to your memcached servers or None. Example with memcached running on
+This variable accepts a list of URIs to your memcached servers or None. Example with memcached running on
 localhost on its default port:
 
 .. code-block:: python
@@ -107,12 +107,12 @@ Package caching is not enabled by default. To enable it, you need to configure
 store the cache in.
 
 You also have granular control over whether an individual package will or will
-not be cached. To make a package cachable, you can set :attr:`cachable`
-to False in its package definition file. Reasons you may *not* want to do this include
+not be cached. To make a package cachable, you can set :pkgdef:attr:`cachable`
+to True in its package definition file. Reasons you may *not* want to do this include
 packages that are large, or that aren't relocatable because other compiled packages are
 linked to them in a way that doesn't support library relocation.
 
-There are also config settings that affect cachability in the event that :attr:`cachable`
+There are also config settings that affect cacheability in the event that :pkgdef:attr:`cachable`
 is not defined in a package's definition. For example, see
 :data:`default_cachable`, :data:`default_cachable_per_package`
 and :data:`default_cachable_per_repository`.
@@ -180,8 +180,8 @@ you should **not** enable caching on package repositories where packages may get
 overwritten. It is for this reason that caching is disabled for local packages by
 default (see :data:`package_cache_local`).
 
-Control Disk Usage
-------------------
+Controlling Disk Usage
+----------------------
 
 You can control the disk usage of the package cache by using the
 :data:`package_cache_space_buffer` and :data:`package_cache_used_threshold` settings.
@@ -191,8 +191,8 @@ them to your liking.
 Another way to control the disk usage is to run the :option:`rez-pkg-cache --clean` command
 either manually or as a cron job. See :ref:`caching-cleaning-the-cache`.
 
-Commandline Tool
-----------------
+Command Line Tool
+-----------------
 
 Inspection
 ++++++++++
@@ -232,7 +232,7 @@ Cached variants have one of the following statuses at any given time:
 Logging
 +++++++
 
-Caching operations are stored into logfiles within the cache directory. To view:
+Caching operations are stored into log files within the cache directory. To view:
 
 .. code-block:: console
 

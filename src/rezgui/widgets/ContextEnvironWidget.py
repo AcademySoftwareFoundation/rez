@@ -16,7 +16,7 @@ class ContextEnvironWidget(QtWidgets.QWidget):
                      ("Comma (,)", ','),
                      ("Whitespace", ' ')]
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(ContextEnvironWidget, self).__init__(parent)
 
         self.table = ContextEnvironTable()
@@ -35,10 +35,10 @@ class ContextEnvironWidget(QtWidgets.QWidget):
         self.split_combo.currentIndexChanged.connect(self._set_split_char)
         app.config.attach(self.split_combo, "split_char")
 
-    def set_context(self, context):
+    def set_context(self, context) -> None:
         self.table.set_context(context)
 
-    def _set_split_char(self):
+    def _set_split_char(self) -> None:
         index = self.split_combo.currentIndex()
         ch = self.split_entries[index][1]
         self.table.set_split_character(ch)

@@ -29,15 +29,15 @@ except ImportError:
 
 class TestBase(unittest.TestCase):
     """Unit test base class."""
-    def __init__(self, *nargs, **kwargs):
+    def __init__(self, *nargs, **kwargs) -> None:
         super(TestBase, self).__init__(*nargs, **kwargs)
         self.setup_once_called = False
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.settings = {}
 
-    def setUp(self):
+    def setUp(self) -> None:
         # We have some tests that unfortunately don't clean themselves up
         # after they are done. Store the origianl environment to be
         # restored in tearDown
@@ -55,10 +55,10 @@ class TestBase(unittest.TestCase):
             self.setup_once()
             self.setup_once_called = True
 
-    def setup_once(self):
+    def setup_once(self) -> None:
         pass
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.teardown_config()
         os.environ = self.__environ
         # Try to clear as much caches as possible to avoid tests
@@ -75,20 +75,20 @@ class TestBase(unittest.TestCase):
     # These are moved into their own functions so update_settings can call
     # them without having to call setUp / tearDown, and without worrying
     # about future or subclass modifications to those methods...
-    def setup_config(self):
+    def setup_config(self) -> None:
         # to make sure config changes from one test don't affect another, copy
         # the overrides dict...
         self._config = _create_locked_config(dict(self.settings))
         config._swap(self._config)
 
-    def teardown_config(self):
+    def teardown_config(self) -> None:
         # moved to it's own section because it's called in update_settings...
         # so if in the future, tearDown does more than call this,
         # update_settings is still valid
         config._swap(self._config)
         self._config = None
 
-    def update_settings(self, new_settings, override=False):
+    def update_settings(self, new_settings, override: bool = False) -> None:
         """Can be called within test methods to modify settings on a
         per-test basis (as opposed cls.settings, which modifies it for all
         tests on the class)
@@ -132,7 +132,7 @@ class TestBase(unittest.TestCase):
             for k, v in self.settings.items()
         )
 
-    def inject_python_repo(self):
+    def inject_python_repo(self) -> None:
         self.update_settings(
             {
                 "packages_path": config.packages_path + [os.environ["__REZ_SELFTEST_PYTHON_REPO"]],
@@ -143,11 +143,11 @@ class TestBase(unittest.TestCase):
 class TempdirMixin(object):
     """Mixin that adds tmpdir create/delete."""
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.root = tempfile.mkdtemp(prefix="rez_selftest_")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         if os.getenv("REZ_KEEP_TMPDIRS"):
             print("Tempdir kept due to $REZ_KEEP_TMPDIRS: %s" % cls.root)
             return
@@ -169,7 +169,7 @@ class TempdirMixin(object):
                         time.sleep(0.2)
 
 
-def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
+def find_file_in_path(to_find, path_str, pathsep=None, reverse: bool = True):
     """Attempts to find the given relative path to_find in the given path
     """
     if pathsep is None:

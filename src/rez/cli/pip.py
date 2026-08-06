@@ -5,11 +5,13 @@
 """
 Install a pip-compatible python package, and its dependencies, as rez packages.
 """
+from __future__ import annotations
+
 from argparse import REMAINDER
 import logging
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--python-version", dest="py_ver", metavar="VERSION",
         help="python version (rez package) to use, default is latest. Note "
@@ -34,7 +36,7 @@ def setup_parser(parser, completions=False):
     )
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.config import config
 
     # debug_package_release is used by rez.pip._verbose

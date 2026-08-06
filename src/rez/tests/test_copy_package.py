@@ -16,13 +16,14 @@ from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.packages import get_latest_package
 from rez.package_copy import copy_package
+from rez.exceptions import PackageCopyError
 from rez.version import VersionRange
 from rez.tests.util import TestBase, TempdirMixin
 
 
 class TestCopyPackage(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         packages_path = cls.data_path("builds", "packages")
@@ -46,10 +47,10 @@ class TestCopyPackage(TestBase, TempdirMixin):
             implicit_packages=[])
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def setup_once(self):
+    def setup_once(self) -> None:
         # build packages used by this test
         self.inject_python_repo()
         self._build_package("build_util", "1")
@@ -66,7 +67,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
                                     build_system=buildsys)
 
     @classmethod
-    def _build_package(cls, name, version=None):
+    def _build_package(cls, name, version=None) -> None:
         # create the builder
         working_dir = os.path.join(cls.src_root, name)
         if version:
@@ -75,7 +76,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
 
         builder.build(install_path=cls.install_root, install=True, clean=True)
 
-    def _reset_dest_repository(self):
+    def _reset_dest_repository(self) -> None:
         system.clear_caches()
         if os.path.exists(self.dest_install_root):
             shutil.rmtree(self.dest_install_root)
@@ -98,11 +99,11 @@ class TestCopyPackage(TestBase, TempdirMixin):
             error=True
         )
 
-    def _assert_copied(self, result, copied, skipped):
+    def _assert_copied(self, result, copied, skipped) -> None:
         self.assertEqual(len(result["copied"]), copied)
         self.assertEqual(len(result["skipped"]), skipped)
 
-    def test_1(self):
+    def test_1(self) -> None:
         """Simple package copy, no variants, no overwrite."""
         self._reset_dest_repository()
 
@@ -135,7 +136,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         # check that package payload wasn't overwritten
         self.assertEqual(os.stat(pyfile).st_ctime, ctime)
 
-    def test_2(self):
+    def test_2(self) -> None:
         """Package copy, no variants, overwrite."""
         self._reset_dest_repository()
 
@@ -163,7 +164,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         # check that package payload was overwritten
         self.assertNotEqual(os.stat(pyfile).st_ctime, ctime)
 
-    def test_3(self):
+    def test_3(self) -> None:
         """Package copy, variants, overwrite and non-overwrite."""
         self._reset_dest_repository()
 
@@ -223,7 +224,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         pyfile = os.path.join(skipped_variant.root, "python", "bah", "__init__.py")
         self.assertEqual(os.stat(pyfile).st_ctime, ctimes[0])
 
-    def test_4(self):
+    def test_4(self) -> None:
         """Package copy with rename, reversion."""
         self._reset_dest_repository()
 
@@ -244,7 +245,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         dest_variant = next(dest_pkg.iter_variants())
         self.assertEqual(dest_variant.handle, result_variant.handle)
 
-    def test_5(self):
+    def test_5(self) -> None:
         """Package copy with standard, new timestamp."""
         self._reset_dest_repository()
 
@@ -262,7 +263,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         dest_pkg = self._get_dest_pkg("floob", "1.2.0")
         self.assertTrue(dest_pkg.timestamp > src_pkg.timestamp)
 
-    def test_6(self):
+    def test_6(self) -> None:
         """Package copy with keep_timestamp."""
         self._reset_dest_repository()
 
@@ -281,7 +282,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         dest_pkg = self._get_dest_pkg("floob", "1.2.0")
         self.assertEqual(dest_pkg.timestamp, src_pkg.timestamp)
 
-    def test_7(self):
+    def test_7(self) -> None:
         """Package copy with overrides."""
         self._reset_dest_repository()
 
@@ -305,7 +306,7 @@ class TestCopyPackage(TestBase, TempdirMixin):
         for k, v in list(overrides.items()):
             self.assertEqual(getattr(dest_pkg, k), v)
 
-    def test_8(self):
+    def test_8(self) -> None:
         """Ensure that include modules are copied."""
         self._reset_dest_repository()
 
@@ -330,3 +331,78 @@ class TestCopyPackage(TestBase, TempdirMixin):
         # this can only match if the include module was copied with the package
         environ = ctxt.get_environ(parent_environ={})
         self.assertEqual(environ.get("EEK"), "2")
+
+    def test_9(self) -> None:
+        """Package copy with negative variant indices."""
+        self._reset_dest_repository()
+
+        # bah has 2 variants: index 0 ([foo-1.0]) and index 1 ([foo-1.1])
+        src_pkg = self._get_src_pkg("bah", "2.1")
+
+        # -1 should copy only the last variant (index 1)
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[-1]
+        )
+        self._assert_copied(result, 1, 0)
+        # verify the correct source variant was selected
+        self.assertEqual(result["copied"][0][0].index, 1)
+
+        # -2 should copy only the first variant (index 0)
+        self._reset_dest_repository()
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[-2]
+        )
+        self._assert_copied(result, 1, 0)
+        # verify the correct source variant was selected
+        self.assertEqual(result["copied"][0][0].index, 0)
+
+        # -1 and 1 refer to the same variant; only one copy should be made
+        self._reset_dest_repository()
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[-1, 1]
+        )
+        self._assert_copied(result, 1, 0)
+
+        # invalid: -3 on a 2-variant package should raise PackageCopyError
+        # and the error message should name the invalid index
+        self._reset_dest_repository()
+        with self.assertRaises(PackageCopyError) as exc:
+            copy_package(
+                package=src_pkg,
+                dest_repository=self.dest_install_root,
+                variants=[-3]
+            )
+        self.assertIn("-3", str(exc.exception))
+
+        # multiple invalid indices should all appear in the error, sorted
+        with self.assertRaises(PackageCopyError) as exc:
+            copy_package(
+                package=src_pkg,
+                dest_repository=self.dest_install_root,
+                variants=[-3, 5]
+            )
+        error_msg = str(exc.exception)
+        self.assertIn("-3", error_msg)
+        self.assertIn("5", error_msg)
+        self.assertLess(error_msg.index("-3"), error_msg.index("5"))
+
+    def test_10(self) -> None:
+        """Copy a no-variant package using variants=[None] (e.g. from bundle_context)."""
+        self._reset_dest_repository()
+
+        # floob has no variants; iter_variants() yields one variant with index=None
+        src_pkg = self._get_src_pkg("floob", "1.2.0")
+        result = copy_package(
+            package=src_pkg,
+            dest_repository=self.dest_install_root,
+            variants=[None]
+        )
+
+        # The single null-variant should have been copied without error
+        self._assert_copied(result, 1, 0)

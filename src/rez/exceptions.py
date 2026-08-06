@@ -5,15 +5,17 @@
 """
 Exceptions.
 """
+from __future__ import annotations
+
 from contextlib import contextmanager
 
 
 class RezError(Exception):
     """Base-class Rez error."""
-    def __init__(self, value=None):
+    def __init__(self, value=None) -> None:
         self.value = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.value)
 
 
@@ -66,7 +68,7 @@ class ResourceContentError(ResourceError):
     """A resource contains incorrect data."""
     type_name = "resource file"
 
-    def __init__(self, value=None, path=None, resource_key=None):
+    def __init__(self, value=None, path=None, resource_key=None) -> None:
         msg = []
         if resource_key is not None:
             msg.append("resource type: %r" % resource_key)
@@ -150,7 +152,7 @@ class BuildSystemError(BuildError):
 class BuildContextResolveError(BuildError):
     """Raised if unable to resolve the required context when creating the
     environment for a build process."""
-    def __init__(self, context):
+    def __init__(self, context) -> None:
         self.context = context
         assert context.status != "solved"
         msg = ("The build environment could not be resolved:\n%s"

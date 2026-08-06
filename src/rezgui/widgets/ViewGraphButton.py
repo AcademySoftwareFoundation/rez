@@ -10,7 +10,7 @@ from rezgui.util import add_menu_action
 
 
 class ViewGraphButton(QtWidgets.QToolButton, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(ViewGraphButton, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -30,13 +30,13 @@ class ViewGraphButton(QtWidgets.QToolButton, ContextViewMixin):
 
         self.refresh()
 
-    def set_variant(self, variant=None):
+    def set_variant(self, variant=None) -> None:
         self.package_name = variant.name if variant else None
 
-    def refresh(self):
+    def refresh(self) -> None:
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         if not flags & ContextModel.CONTEXT_CHANGED:
             return
 
@@ -51,11 +51,11 @@ class ViewGraphButton(QtWidgets.QToolButton, ContextViewMixin):
         self.action_2.setEnabled(enable_dependency)
         self.setEnabled(enable_resolve or enable_dependency)
 
-    def _view_resolve_graph(self):
+    def _view_resolve_graph(self) -> None:
         graph_str = self.context().graph(as_dot=True)
         view_graph(graph_str, self.window(), prune_to=self.package_name)
 
-    def _view_dependency_graph(self):
+    def _view_dependency_graph(self) -> None:
         from rez.vendor.pygraph.readwrite.dot import write as write_dot
         graph = self.context().get_dependency_graph()
         graph_str = write_dot(graph)

@@ -19,7 +19,7 @@ class ContextViewMixin(object):
             def _contextChanged(self, flags=0):
                 # handle the context update
     """
-    def __init__(self, context_model=None):
+    def __init__(self, context_model=None) -> None:
         assert isinstance(self, QtCore.QObject)
         self.context_model = context_model or ContextModel()
         self._connect(True)
@@ -27,12 +27,12 @@ class ContextViewMixin(object):
     def context(self):
         return self.context_model.context()
 
-    def set_context_model(self, context_model=None):
+    def set_context_model(self, context_model=None) -> None:
         self._connect(False)
         self.context_model = context_model or ContextModel()
         self._connect(True)
 
-    def _connect(self, b):
+    def _connect(self, b) -> None:
         if hasattr(self, "_contextChanged"):
             sig = self.context_model.dataChanged
             fn = sig.connect if b else sig.disconnect

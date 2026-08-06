@@ -11,14 +11,14 @@ from rez.exceptions import RezBindError
 from rez.system import system
 
 
-def setup_parser(parser):
+def setup_parser(parser) -> None:
     parser.add_argument('--exe',
                         type=str,
                         metavar='PATH',
                         help='bind other gcc version than default')
 
 
-def commands():
+def commands() -> None:
     env.PATH.append('{this.root}/bin')
 
 
@@ -39,7 +39,7 @@ def bind(path, version_range=None, opts=None, parser=None):
         raise RezBindError("gcc version different than g++ can not continue")
 
     # create directories and symlink gcc and g++
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         bin_path = make_dirs(root, 'bin')
 
         gcc_link_path = os.path.join(bin_path, 'gcc')

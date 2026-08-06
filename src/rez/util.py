@@ -6,6 +6,8 @@
 Misc useful stuff.
 TODO: Move this into rez.utils.?
 """
+from __future__ import annotations
+
 import collections.abc
 import atexit
 import os
@@ -16,9 +18,19 @@ import inspect
 from rez.exceptions import RezError
 from rez.vendor.progress.bar import Bar
 
+from types import ModuleType
+from typing import Iterable, TypeVar, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # this is not available in typing until 3.10, but due to __future__.annotations
+    # we can use it without really importing it
+    from typing import TypeGuard
+
+T = TypeVar("T")
+
 
 class ProgressBar(Bar):
-    def __init__(self, label, max):
+    def __init__(self, label, max) -> None:
         from rez.config import config
 
         if config.quiet or not config.show_progress:
@@ -30,7 +42,7 @@ class ProgressBar(Bar):
 
         super(Bar, self).__init__(label, max=max, bar_prefix=' [', bar_suffix='] ')
 
-    def __del__(self):
+    def __del__(self) -> None:
         if self.close_file:
             self.file.close()
         if hasattr(Bar, '__del__'):
@@ -49,8 +61,9 @@ def dedup(seq):
 _find_unsafe = re.compile(r'[^\w@%+=`:,./-]').search
 
 
-def shlex_join(value, unsafe_regex=None, replacements=None,
-               enclose_with='"'):
+def shlex_join(value: Iterable[str], unsafe_regex=None,
+               replacements: Iterable[tuple[str | re.Pattern[str], str]] | None = None,
+               enclose_with: str = '"') -> str:
     """Join args into a valid shell command.
     """
 
@@ -78,7 +91,7 @@ def shlex_join(value, unsafe_regex=None, replacements=None,
 
 
 # returns path to first program in the list to be successfully found
-def which(*programs, **shutilwhich_kwargs):
+def which(*programs, **shutilwhich_kwargs) -> str | None:
     from rez.utils.which import which as which_
 
     for prog in programs:
@@ -89,7 +102,7 @@ def which(*programs, **shutilwhich_kwargs):
 
 
 # case-insensitive fuzzy string match
-def get_close_matches(term, fields, fuzziness=0.4, key=None):
+def get_close_matches(term: str, fields, fuzziness: float = 0.4, key=None):
     import math
     import difflib
 
@@ -117,7 +130,7 @@ def get_close_matches(term, fields, fuzziness=0.4, key=None):
 
 
 # fuzzy string matching on package names, such as 'boost', 'numpy-3.4'
-def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
+def get_close_pkgs(pkg, pkgs, fuzziness: float = 0.4):
     matches = get_close_matches(pkg, pkgs, fuzziness=fuzziness)
     fam_matches = get_close_matches(pkg.split('-')[0], pkgs,
                                     fuzziness=fuzziness,
@@ -144,7 +157,7 @@ def find_last_sublist(list_, sublist):
 
 
 @atexit.register
-def _atexit():
+def _atexit() -> None:
     try:
         from rez.resolved_context import ResolvedContext
         ResolvedContext.tmpdir_manager.clear()
@@ -152,7 +165,7 @@ def _atexit():
         pass
 
 
-def is_non_string_iterable(arg):
+def is_non_string_iterable(arg: str | Iterable[str] | None) -> TypeGuard[Iterable[str]]:
     """Python 2 and 3 compatible non-string iterable identifier"""
     return (
         isinstance(arg, collections.abc.Iterable)
@@ -169,7 +182,7 @@ def get_function_arg_names(func):
     return spec.args + spec.kwonlyargs
 
 
-def load_module_from_file(name, filepath):
+def load_module_from_file(name: str, filepath: str) -> ModuleType:
     """Load a python module from a sourcefile.
 
     Args:
@@ -188,3 +201,28 @@ def load_module_from_file(name, filepath):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def resolve_variant_indices(
+    variants: list[int], num_variants: int
+) -> tuple[set[int], list[int]]:
+    """Resolve possibly-negative variant indices to canonical non-negative ones.
+
+    Args:
+        variants: Requested variant indices (may include negatives).
+        num_variants: Total number of variants in the package.
+
+    Returns:
+        A 2-tuple of:
+        - resolved (set[int]): Canonical non-negative indices.
+        - invalid (list[int]): Any indices outside [-num_variants, num_variants-1],
+          sorted for deterministic error messages. Empty when all indices are valid.
+          When num_variants is 0 the package has no explicit variants; the
+          input is returned unchanged and invalid is always empty.
+    """
+    if num_variants <= 0:
+        return set(variants), []
+    present = set(range(-num_variants, num_variants))
+    invalid = sorted(set(variants) - present)
+    resolved = {v % num_variants for v in variants}
+    return resolved, invalid

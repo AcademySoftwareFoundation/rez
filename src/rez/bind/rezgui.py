@@ -16,18 +16,18 @@ import shutil
 import os.path
 
 
-def setup_parser(parser):
+def setup_parser(parser) -> None:
     parser.add_argument(
         "--gui-lib", type=str, default="PyQt-4", metavar="PKG",
         help="manually specify the gui lib to use (default: %(default)s).")
 
 
-def commands():
+def commands() -> None:
     env.PYTHONPATH.append('{this.root}')
     env.PATH.append('{this.root}/bin')
 
 
-def rez_gui_source():
+def rez_gui_source() -> None:
     from rez.cli._main import run
     run("gui")
 
@@ -43,7 +43,7 @@ def bind(path, version_range=None, opts=None, parser=None):
 
     gui_lib = getattr(opts, "gui_lib", "")
 
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         # copy source
         rez_path = rez.__path__[0]
         site_path = os.path.dirname(rez_path)

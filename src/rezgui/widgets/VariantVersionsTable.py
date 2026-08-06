@@ -11,7 +11,7 @@ from rez.version import VersionRange
 
 
 class VariantVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
-    def __init__(self, context_model=None, reference_variant=None, parent=None):
+    def __init__(self, context_model=None, reference_variant=None, parent=None) -> None:
         super(VariantVersionsTable, self).__init__(0, 2, parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -41,7 +41,7 @@ class VariantVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
         return QtCore.QItemSelectionModel.ClearAndSelect if self.allow_selection \
             else QtCore.QItemSelectionModel.NoUpdate
 
-    def clear(self):
+    def clear(self) -> None:
         super(VariantVersionsTable, self).clear()
         self.version_index = -1
         self.setRowCount(0)
@@ -56,15 +56,15 @@ class VariantVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
             return None
         return (self.reference_version_index - self.version_index)
 
-    def refresh(self):
+    def refresh(self) -> None:
         variant = self.variant
         self.variant = None
         self.set_variant(variant)
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         self._set_variant(variant)
 
-    def _set_variant(self, variant, preloaded_packages=None):
+    def _set_variant(self, variant, preloaded_packages=None) -> None:
         self.clear()
 
         hh = self.horizontalHeader()

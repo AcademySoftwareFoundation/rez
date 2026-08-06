@@ -6,6 +6,8 @@
 Utilities related to process/script execution.
 """
 
+from __future__ import annotations
+
 from rez.utils.yaml import dump_yaml
 from contextlib import contextmanager
 from enum import Enum
@@ -15,9 +17,11 @@ import stat
 import os
 import io
 
+from typing import Any, Callable, Iterable, Iterator
+
 
 @contextmanager
-def add_sys_paths(paths):
+def add_sys_paths(paths: Iterable[str]) -> Iterator[None]:
     """Add to sys.path, and revert on scope exit.
     """
     original_syspath = sys.path[:]
@@ -36,7 +40,7 @@ class Popen(subprocess.Popen):
     and also forces the encoding to be utf-8 if text=True or universal_newlines=True
     is set without specifying the encoding.
     """
-    def __init__(self, args, **kwargs):
+    def __init__(self, args, **kwargs) -> None:
         # Avoids python bug described here: https://bugs.python.org/issue3905.
         # This can arise when apps (maya) install a non-standard stdin handler.
         #
@@ -94,7 +98,9 @@ class ExecutableScriptMode(Enum):
 
 
 # TODO: Maybe also allow distlib.ScriptMaker instead of the .py + PATHEXT.
-def create_executable_script(filepath, body, program=None, py_script_mode=None):
+def create_executable_script(filepath: str, body: str | Callable,
+                             program: str | None = None,
+                             py_script_mode: ExecutableScriptMode | None = None) -> list[str]:
     """
     Create an executable script. In case a py_script_mode has been set to create
     a .py script the shell is expected to have the PATHEXT environment
@@ -176,7 +182,7 @@ def create_executable_script(filepath, body, program=None, py_script_mode=None):
     return script_filepaths
 
 
-def _get_python_script_files(filepath, py_script_mode, platform):
+def _get_python_script_files(filepath: str, py_script_mode, platform: str) -> list[str]:
     """
     Evaluates the py_script_mode for the requested filepath on the given
     platform.
@@ -217,7 +223,7 @@ def _get_python_script_files(filepath, py_script_mode, platform):
     return script_filepaths
 
 
-def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
+def create_forwarding_script(filepath: str, module: str | tuple[str, str], func_name: str, *nargs, **kwargs) -> None:
     """Create a 'forwarding' script.
 
     A forwarding script is one that executes some arbitrary Rez function. This
@@ -230,7 +236,7 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
             os.path.splitext(filepath)[-1].lower() != ".cmd":
         filepath += ".cmd"
 
-    doc = dict(
+    doc: dict[str, Any] = dict(
         module=module,
         func_name=func_name)
 

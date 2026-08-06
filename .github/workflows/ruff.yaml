@@ -1,0 +1,41 @@
+name: ruff
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ruff.yaml'
+      - 'ruff.toml'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'install.py'
+      - 'release-rez.py'
+      - 'tests/*.py'
+      - 'src/**.py'
+      - '!src/rez/utils/_version.py'
+      - '!src/rez/vendor/**'
+      - '!src/rez/data/**'
+  push:
+    paths:
+      - '.github/workflows/ruff.yaml'
+      - 'ruff.toml'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'install.py'
+      - 'release-rez.py'
+      - 'tests/*.py'
+      - 'src/**.py'
+      - '!src/rez/utils/_version.py'
+      - '!src/rez/vendor/**'
+      - '!src/rez/data/**'
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Ruff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Ruff Check
+        uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89 # v4.1.0

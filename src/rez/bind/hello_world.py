@@ -13,18 +13,18 @@ from rez.package_maker import make_package
 from rez.version import Version
 from rez.utils.lint_helper import env
 from rez.utils.execution import create_executable_script, ExecutableScriptMode
+from rez.utils.filesystem import safe_rmtree
 from rez.vendor.distlib.scripts import ScriptMaker
 from rez.bind._utils import make_dirs, check_version
 import os.path
-import shutil
 
 
-def commands():
+def commands() -> None:
     env.PATH.append('{this.root}/bin')
     env.OH_HAI_WORLD = "hello"
 
 
-def hello_world_source():
+def hello_world_source() -> None:
     import sys
     from optparse import OptionParser
 
@@ -44,7 +44,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     version = Version("1.0")
     check_version(version, version_range)
 
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         binpath = make_dirs(root, "bin")
         binpathtmp = make_dirs(root, "bintmp")
 
@@ -60,14 +60,14 @@ def bind(path, version_range=None, opts=None, parser=None):
             py_script_mode=ExecutableScriptMode.single,
         )
 
-        # We want to use ScriptMaker on all platofrms. This allows us to
+        # We want to use ScriptMaker on all platforms. This allows us to
         # correctly setup the script to work everywhere, even on Windows.
         # create_executable_script should be fixed to use ScriptMaker
         # instead.
         maker = ScriptMaker(binpathtmp, make_dirs(binpath))
         maker.make("hello_world")
         maker.make("hello_world_gui")
-        shutil.rmtree(binpathtmp)
+        safe_rmtree(binpathtmp)
 
     with make_package("hello_world", path, make_root=make_root) as pkg:
         pkg.version = version

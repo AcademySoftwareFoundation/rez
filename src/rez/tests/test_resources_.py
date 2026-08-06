@@ -55,7 +55,7 @@ pet_schema = Schema({
 class BasePetResource(Resource):
     schema_error = PetResourceError
 
-    def __init__(self, variables=None):
+    def __init__(self, variables=None) -> None:
         super(BasePetResource, self).__init__(variables)
         self.validations = {}
 
@@ -68,7 +68,7 @@ class BasePetResource(Resource):
 class PetResource(BasePetResource):
     schema = pet_schema
 
-    def __init__(self, variables):
+    def __init__(self, variables) -> None:
         super(PetResource, self).__init__(variables)
         self.is_loaded = False
 
@@ -101,14 +101,14 @@ class PetPool(ResourcePool):
 
 
 class PetRepository(PackageRepository):
-    def __init__(self, pool):
+    def __init__(self, pool) -> None:
         self.pool = pool
         self.pool.register_resource(KittenResource)
         self.pool.register_resource(PuppyResource)
         self.location = 'Pets R Us'
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "pet_repository"
 
     def get_kitten(self, name):
@@ -150,7 +150,7 @@ class Puppy(Pet):
 
 
 class PetStore(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self.pool = PetPool(cache_size=None)
         self.repo = PetRepository(self.pool)
 
@@ -171,7 +171,7 @@ class PetStore(object):
 # -- test suite
 
 class TestResources_(TestBase):
-    def test_1(self):
+    def test_1(self) -> None:
         """resource registration test."""
         pool = PetPool(cache_size=None)
 
@@ -189,7 +189,7 @@ class TestResources_(TestBase):
         self.assertTrue(isinstance(resource_a, ResourceA))
         self.assertTrue(isinstance(resource_b, ResourceB))
 
-    def test_2(self):
+    def test_2(self) -> None:
         """basic resource loading test."""
         repo = PetRepository(PetPool(cache_size=None))
         repo.pool.register_resource(ResourceA)
@@ -216,7 +216,7 @@ class TestResources_(TestBase):
         self.assertEqual(resource_.variables, variables)
         self.assertTrue(resource_ is not resource)
 
-    def test_3(self):
+    def test_3(self) -> None:
         """real world(ish) example of a resource system.
 
         In this example, `pets` is a resource repository - in a real resource
@@ -233,7 +233,7 @@ class TestResources_(TestBase):
         the `name` attribute, which means we can query a resource for its name,
         without causing the resource data to be loaded.
         """
-        def _validate(resource, expected_data):
+        def _validate(resource, expected_data) -> None:
             self.assertEqual(resource.validated_data(), expected_data)
 
             # after full validation, each attrib should validate exactly once.

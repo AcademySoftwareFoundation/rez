@@ -41,7 +41,7 @@ _Dumper.add_representer(BuiltinFunctionType, _Dumper.represent_builtin_function)
 _Dumper.add_representer(SourceCode, _Dumper.represent_sourcecode)
 
 
-def dump_yaml(data, Dumper=_Dumper, default_flow_style=False):
+def dump_yaml(data, Dumper=_Dumper, default_flow_style: bool = False):
     """Returns data as yaml-formatted string."""
     content = yaml.dump(data,
                         default_flow_style=default_flow_style,
@@ -56,7 +56,7 @@ def load_yaml(filepath):
     return yaml.load(txt, Loader=yaml.FullLoader)
 
 
-def save_yaml(filepath, **fields):
+def save_yaml(filepath, **fields) -> None:
     """Convenience function for writing yaml-encoded data to disk."""
     content = dump_yaml(fields)
     with open(filepath, 'w') as f:

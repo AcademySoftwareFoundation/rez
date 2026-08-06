@@ -7,10 +7,10 @@ import argparse
 import os
 import sys
 from collections.abc import Mapping
-from typing import Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, List, Optional, Sequence, TextIO, Union
 
 from . import io as _io
-from .completers import ChoicesCompleter, FilesCompleter, SuppressCompleter
+from .completers import BaseCompleter, ChoicesCompleter, FilesCompleter, SuppressCompleter
 from .io import debug, mute_stderr
 from .lexers import split_line
 from .packages._argparse import IntrospectiveArgumentParser, action_is_greedy, action_is_open, action_is_satisfied
@@ -48,6 +48,7 @@ class CompletionFinder(object):
         append_space=None,
     ):
         self._parser = argument_parser
+        self._formatter = None
         self.always_complete_options = always_complete_options
         self.exclude = exclude
         if validator is None:
@@ -66,13 +67,13 @@ class CompletionFinder(object):
         argument_parser: argparse.ArgumentParser,
         always_complete_options: Union[bool, str] = True,
         exit_method: Callable = os._exit,
-        output_stream=None,
+        output_stream: Optional[TextIO] = None,
         exclude: Optional[Sequence[str]] = None,
         validator: Optional[Callable] = None,
         print_suppressed: bool = False,
         append_space: Optional[bool] = None,
-        default_completer=FilesCompleter(),
-    ):
+        default_completer: BaseCompleter = FilesCompleter(),
+    ) -> None:
         """
         :param argument_parser: The argument parser to autocomplete on
         :param always_complete_options:
@@ -117,11 +118,7 @@ class CompletionFinder(object):
             # not an argument completion invocation
             return
 
-        try:
-            _io.debug_stream = os.fdopen(9, "w")
-        except Exception:
-            _io.debug_stream = sys.stderr
-        debug()
+        self._init_debug_stream()
 
         if output_stream is None:
             filename = os.environ.get("_ARGCOMPLETE_STDOUT_FILENAME")
@@ -135,6 +132,8 @@ class CompletionFinder(object):
             except Exception:
                 debug("Unable to open fd 8 for writing, quitting")
                 exit_method(1)
+
+        assert output_stream is not None
 
         ifs = os.environ.get("_ARGCOMPLETE_IFS", "\013")
         if len(ifs) != 1:
@@ -189,6 +188,19 @@ class CompletionFinder(object):
         output_stream.flush()
         _io.debug_stream.flush()
         exit_method(0)
+
+    def _init_debug_stream(self):
+        """Initialize debug output stream
+
+        By default, writes to file descriptor 9, or stderr if that fails.
+        This can be overridden by derived classes, for example to avoid
+        clashes with file descriptors being used elsewhere (such as in pytest).
+        """
+        try:
+            _io.debug_stream = os.fdopen(9, "w")
+        except Exception:
+            _io.debug_stream = sys.stderr
+        debug()
 
     def _get_completions(self, comp_words, cword_prefix, cword_prequote, last_wordbreak_pos):
         active_parsers = self._patch_argument_parser()
@@ -272,6 +284,15 @@ class CompletionFinder(object):
 
         return self.active_parsers
 
+    def _get_action_help(self, action):
+        if action.help is None:
+            return ""
+        if "%" not in action.help:
+            return action.help
+        if self._formatter is None:
+            self._formatter = self._parser.formatter_class(prog=self._parser.prog)
+        return self._formatter._expand_help(action)
+
     def _get_subparser_completions(self, parser, cword_prefix):
         aliases_by_parser: Dict[argparse.ArgumentParser, List[str]] = {}
         for key in parser.choices.keys():
@@ -281,7 +302,7 @@ class CompletionFinder(object):
         for action in parser._get_subactions():
             for alias in aliases_by_parser[parser.choices[action.dest]]:
                 if alias.startswith(cword_prefix):
-                    self._display_completions[alias] = action.help or ""
+                    self._display_completions[alias] = self._get_action_help(action)
 
         completions = [subcmd for subcmd in parser.choices.keys() if subcmd.startswith(cword_prefix)]
         return completions
@@ -302,7 +323,7 @@ class CompletionFinder(object):
             if action.option_strings:
                 for option_string in action.option_strings:
                     if option_string.startswith(cword_prefix):
-                        self._display_completions[option_string] = action.help or ""
+                        self._display_completions[option_string] = self._get_action_help(action)
 
         option_completions = []
         for action in parser._actions:
@@ -394,7 +415,7 @@ class CompletionFinder(object):
                             if self.validator(completion, cword_prefix):
                                 completions.append(completion)
                                 if isinstance(completer, ChoicesCompleter):
-                                    self._display_completions[completion] = active_action.help or ""
+                                    self._display_completions[completion] = self._get_action_help(active_action)
                                 else:
                                     self._display_completions[completion] = ""
                 else:
@@ -504,7 +525,7 @@ class CompletionFinder(object):
             # Bash mangles completions which contain characters in COMP_WORDBREAKS.
             # This workaround has the same effect as __ltrim_colon_completions in bash_completion
             # (extended to characters other than the colon).
-            if last_wordbreak_pos:
+            if last_wordbreak_pos is not None:
                 completions = [c[last_wordbreak_pos + 1 :] for c in completions]
             special_chars += "();<>|&!`$* \t\n\"'"
         elif cword_prequote == '"':
@@ -525,19 +546,29 @@ class CompletionFinder(object):
             special_chars = special_chars.replace('`', '')
         else:
             escape_char = "\\"
-        for char in special_chars:
-            completions = [c.replace(char, escape_char + char) for c in completions]
+            if os.environ.get("_ARGCOMPLETE_SHELL") == "zsh":
+                # zsh uses colon as a separator between a completion and its description.
+                special_chars += ":"
+
+        escaped_completions = []
+        for completion in completions:
+            escaped_completion = completion
+            for char in special_chars:
+                escaped_completion = escaped_completion.replace(char, escape_char + char)
+            escaped_completions.append(escaped_completion)
+            if completion in self._display_completions:
+                self._display_completions[escaped_completion] = self._display_completions[completion]
 
         if self.append_space:
             # Similar functionality in bash was previously turned off by supplying the "-o nospace" option to complete.
             # Now it is conditionally disabled using "compopt -o nospace" if the match ends in a continuation character.
             # This code is retained for environments where this isn't done natively.
             continuation_chars = "=/:"
-            if len(completions) == 1 and completions[0][-1] not in continuation_chars:
+            if len(escaped_completions) == 1 and escaped_completions[0][-1] not in continuation_chars:
                 if cword_prequote == "":
-                    completions[0] += " "
+                    escaped_completions[0] += " "
 
-        return completions
+        return escaped_completions
 
     def rl_complete(self, text, state):
         """
@@ -569,7 +600,7 @@ class CompletionFinder(object):
 
     def get_display_completions(self):
         """
-        This function returns a mapping of option names to their help strings for displaying to the user.
+        This function returns a mapping of completions to their help strings for displaying to the user.
         """
         return self._display_completions
 

@@ -5,9 +5,10 @@
 '''
 Manage a suite or print information about an existing suite.
 '''
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "-l", "--list", action="store_true",
         help="list visible suites")
@@ -85,7 +86,7 @@ def setup_parser(parser, completions=False):
         find_resolve_action.completer = PackageCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.suite import Suite
     from rez.status import status
     from rez.exceptions import SuiteError
@@ -97,7 +98,7 @@ def command(opts, parser, extra_arg_groups=None):
     save_needed = set(("add", "remove", "bump", "prefix", "suffix", "hide",
                        "unhide", "alias", "unalias"))
 
-    def _pr(s):
+    def _pr(s) -> None:
         if opts.verbose:
             print(s)
 

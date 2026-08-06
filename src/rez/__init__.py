@@ -18,14 +18,14 @@ module_root_path = __path__[0]  # noqa
 
 
 # TODO: Revamp logging. For now, this is here for backwards compatibility
-def _init_logging():
+def _init_logging() -> None:
+    import logging
     logging_conf = os.getenv("REZ_LOGGING_CONF")
     if logging_conf:
         import logging.config
         logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
         return
 
-    import logging
     from rez.utils.colorize import ColorizedStreamHandler
 
     formatter = logging.Formatter(
@@ -39,6 +39,10 @@ def _init_logging():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
 
+    # Suppress pika vendor library logs unless context_tracking debug is on.
+    # set_pika_log_level() in amqp.py will override this to DEBUG if needed.
+    logging.getLogger("rez.vendor.pika").setLevel(logging.CRITICAL)
+
 
 _init_logging()
 
@@ -50,7 +54,7 @@ if action:
     import traceback
 
     if action == "print_stack":
-        def callback(sig, frame):
+        def callback(sig, frame) -> None:
             txt = ''.join(traceback.format_stack(frame))
             print()
             print(txt)

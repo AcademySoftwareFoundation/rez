@@ -2,13 +2,15 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.package_repository import package_repository_manager
 from rez.version import Version
 from rez.utils.logging_ import print_info
 from rez.config import config
 
 
-def remove_package_family(name, path, force=False):
+def remove_package_family(name: str, path: str, force: bool = False) -> bool:
     """Remove a package family from its repository.
 
     A family can only be deleted if it contains no packages, hidden or
@@ -26,7 +28,7 @@ def remove_package_family(name, path, force=False):
     return repo.remove_package_family(name, force=force)
 
 
-def remove_package(name, version, path):
+def remove_package(name: str, version: Version | str, path: str) -> bool:
     """Remove a package from its repository.
 
     Note that you are able to remove a package that is hidden (ie ignored).
@@ -48,7 +50,8 @@ def remove_package(name, version, path):
     return repo.remove_package(name, version)
 
 
-def remove_packages_ignored_since(days, paths=None, dry_run=False, verbose=False):
+def remove_packages_ignored_since(days: int, paths: list[str] | None = None,
+                                  dry_run: bool = False, verbose: bool = False) -> int:
     """Remove packages ignored for >= specified number of days.
 
     Args:

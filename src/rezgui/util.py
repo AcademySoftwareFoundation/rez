@@ -8,8 +8,8 @@ import os.path
 import time
 
 
-def create_pane(widgets, horizontal, parent_widget=None, compact=False,
-                compact_spacing=2):
+def create_pane(widgets, horizontal, parent_widget=None, compact: bool = False,
+                compact_spacing: int=2):
     """Create a widget containing an aligned set of widgets.
 
     Args:
@@ -51,7 +51,7 @@ def create_pane(widgets, horizontal, parent_widget=None, compact=False,
 icons = {}
 
 
-def get_icon(name, as_qicon=False):
+def get_icon(name, as_qicon: bool = False):
     """Returns a `QPixmap` containing the given image, or a QIcon if `as_qicon`
     is True"""
     filename = name + ".png"
@@ -78,7 +78,7 @@ def get_icon_widget(filename, tooltip=None):
     return icon_label
 
 
-def get_timestamp_str(timestamp):
+def get_timestamp_str(timestamp) -> str:
     now = int(time.time())
     release_time = time.localtime(timestamp)
     release_time_str = time.strftime('%d %b %Y %H:%M:%S', release_time)
@@ -143,7 +143,7 @@ def create_toolbutton(entries, parent=None):
     return btn, actions
 
 
-def update_font(widget, italic=None, bold=None, underline=None):
+def update_font(widget, italic=None, bold=None, underline=None) -> None:
     font = widget.font()
     if italic is not None:
         font.setItalic(italic)

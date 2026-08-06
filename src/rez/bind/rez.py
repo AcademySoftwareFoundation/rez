@@ -14,7 +14,7 @@ import shutil
 import os.path
 
 
-def commands():
+def commands() -> None:
     env.PYTHONPATH.append('{this.root}')
 
 
@@ -22,7 +22,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     version = rez.__version__
     check_version(version, version_range)
 
-    def make_root(variant, root):
+    def make_root(variant, root) -> None:
         # copy source
         rez_path = rez.__path__[0]
         site_path = os.path.dirname(rez_path)

@@ -5,23 +5,26 @@
 import os
 import os.path
 from fnmatch import fnmatch
-from rez.vendor.argcomplete import CompletionFinder, default_validator, \
-    sys_encoding, split_line, debug, USING_PYTHON2
+import locale
+from rez.vendor.argcomplete import CompletionFinder, split_line, debug
+from rez.vendor.argcomplete.finders import default_validator
 
 
 class RezCompletionFinder(CompletionFinder):
-    def __init__(self, parser, comp_line, comp_point):
+    def __init__(self, parser, comp_line, comp_point) -> None:
         self._parser = parser
+        self._formatter = None
         self.always_complete_options = False
         self.exclude = None
         self.validator = default_validator
+        self.print_suppressed = False
+        self._display_completions = {}
+        self.append_space = False
         self.wordbreaks = " \t\"'@><=;|&(:"  # TODO: might need to be configurable/OS specific
 
-        if USING_PYTHON2:
-            comp_line = comp_line.decode(sys_encoding)
-            comp_point = len(comp_line[:comp_point].decode(sys_encoding))
-        else:
-            comp_point = len(comp_line.encode(sys_encoding)[:comp_point].decode(sys_encoding))
+        sys_encoding = locale.getpreferredencoding()
+
+        comp_point = len(comp_line.encode(sys_encoding)[:comp_point].decode(sys_encoding))
 
         cword_prequote, cword_prefix, cword_suffix, comp_words, \
             first_colon_pos = split_line(comp_line, comp_point)
@@ -72,7 +75,7 @@ def ExecutablesCompleter(prefix, **kwargs):
 
 
 class FilesCompleter(object):
-    def __init__(self, files=True, dirs=True, file_patterns=None):
+    def __init__(self, files: bool = True, dirs: bool = True, file_patterns=None) -> None:
         self.files = files
         self.dirs = dirs
         self.file_patterns = file_patterns
@@ -115,7 +118,7 @@ class FilesCompleter(object):
 
 
 class CombinedCompleter(object):
-    def __init__(self, completer, *completers):
+    def __init__(self, completer, *completers) -> None:
         self.completers = [completer]
         self.completers += list(completers)
 
@@ -130,7 +133,7 @@ class AndCompleter(CombinedCompleter):
 
 
 class SequencedCompleter(CombinedCompleter):
-    def __init__(self, arg, completer, *completers):
+    def __init__(self, arg, completer, *completers) -> None:
         super(SequencedCompleter, self).__init__(completer, *completers)
         self.arg = arg
 

@@ -59,10 +59,10 @@ def get_svn_login(realm, username, may_save):
 
 class SvnReleaseVCS(ReleaseVCS):
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'svn'
 
-    def __init__(self, pkg_root, vcs_root=None):
+    def __init__(self, pkg_root, vcs_root=None) -> None:
         super(SvnReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
 
         self.svnc = svn_get_client()
@@ -77,7 +77,7 @@ class SvnReleaseVCS(ReleaseVCS):
         return os.path.isdir(os.path.join(path, '.svn'))
 
     @classmethod
-    def search_parents_for_root(cls):
+    def search_parents_for_root(cls) -> bool:
         return True
 
     def validate_repostate(self):
@@ -93,13 +93,13 @@ class SvnReleaseVCS(ReleaseVCS):
                 "'%s' is not in a state to release - you may need to svn-checkin "
                 "and/or svn-update: %s" % (self.pkg_root, str(status_list_known)))
 
-    def _create_tag_impl(self, tag_name, message=None):
+    def _create_tag_impl(self, tag_name, message=None) -> None:
         tag_url = self.get_tag_url(tag_name)
         print("rez-release: creating project tag in: %s..." % tag_url)
         self.svnc.callback_get_log_message = lambda x: (True, x)
         self.svnc.copy2([(self.this_url,)], tag_url, make_parents=True)
 
-    def get_changelog(self, previous_revision=None, max_revisions=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None) -> str:
         return "TODO"
 
     def get_tag_url(self, tag_name=None):
@@ -126,7 +126,7 @@ class SvnReleaseVCS(ReleaseVCS):
     def get_current_revision(self):
         return self.svnc.info(self.pkg_root)['revision'].number
 
-    def create_release_tag(self, tag_name, message=None):
+    def create_release_tag(self, tag_name, message=None) -> None:
         # svn requires a message - if not provided, make it the same as the
         # tag name..
         if not message:

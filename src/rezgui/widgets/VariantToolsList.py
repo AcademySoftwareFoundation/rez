@@ -9,7 +9,7 @@ from rezgui.widgets.ToolWidget import ToolWidget
 
 
 class VariantToolsList(QtWidgets.QTableWidget, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(VariantToolsList, self).__init__(0, 1, parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -29,12 +29,12 @@ class VariantToolsList(QtWidgets.QTableWidget, ContextViewMixin):
 
         #app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
 
-    def clear(self):
+    def clear(self) -> None:
         self.tool_widgets = {}
         super(VariantToolsList, self).clear()
         self.setEnabled(False)
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         if variant == self.variant:
             return
 
@@ -58,11 +58,11 @@ class VariantToolsList(QtWidgets.QTableWidget, ContextViewMixin):
 
         self.variant = variant
 
-    def _clear_selection(self):
+    def _clear_selection(self) -> None:
         self.clearSelection()
         self.setCurrentIndex(QtCore.QModelIndex())
 
-    def _instanceCountChanged(self, context_id, tool_name, num_procs):
+    def _instanceCountChanged(self, context_id, tool_name, num_procs) -> None:
         if self.context() is None or context_id != id(self.context()):
             return
 

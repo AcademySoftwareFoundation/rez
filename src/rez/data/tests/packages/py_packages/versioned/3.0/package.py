@@ -1,5 +1,5 @@
 name = 'versioned'
 version = '3.0'
 
-def commands():
+def commands() -> None:
     env.PATH.append("{root}/bin")

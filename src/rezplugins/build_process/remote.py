@@ -14,10 +14,10 @@ class RemoteBuildProcess(BuildProcessHelper):
     This process builds a package's variants sequentially, on remote hosts.
     """
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "remote"
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self, install_path=None, clean: bool = False, install: bool = False, variants=None):
         raise NotImplementedError("coming soon...")
 
     def release(self, release_message=None, variants=None):

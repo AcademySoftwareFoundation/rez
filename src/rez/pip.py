@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.packages import get_latest_package
 from rez.version import Version
 from rez.vendor.distlib.database import DistributionPath
@@ -9,6 +11,7 @@ from rez.vendor.packaging.version import Version as PackagingVersion
 from rez.vendor.packaging.specifiers import Specifier
 from rez.resolved_context import ResolvedContext
 from rez.utils.execution import Popen
+from rez.utils.filesystem import safe_rmtree
 from rez.utils.pip import get_rez_requirements, pip_to_rez_package_name, \
     pip_to_rez_version
 from rez.utils.logging_ import print_debug, print_info, print_error, \
@@ -43,7 +46,7 @@ class InstallMode(Enum):
     min_deps = 1
 
 
-def run_pip_command(command_args, pip_version=None, python_version=None):
+def run_pip_command(command_args, pip_version=None, python_version=None) -> Popen:
     """Run a pip command.
     Args:
         command_args (list of str): Args to pip.
@@ -234,7 +237,7 @@ def find_pip_from_context(python_version, pip_version=None):
 
 
 def pip_install_package(source_name, pip_version=None, python_version=None,
-                        mode=InstallMode.min_deps, release=False, prefix=None,
+                        mode=InstallMode.min_deps, release: bool = False, prefix=None,
                         extra_args=None):
     """Install a pip-compatible python package as a rez package.
     Args:
@@ -319,7 +322,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     distributions = list(distribution_path.get_distributions())
     dist_names = [x.name for x in distributions]
 
-    def log_append_pkg_variants(pkg_maker):
+    def log_append_pkg_variants(pkg_maker) -> None:
         template = '{action} [{package.qualified_name}] {package.uri}{suffix}'
         actions_variants = [
             (
@@ -377,7 +380,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
                 message += '\nTry again with rez-pip --verbose ...'
             print_warning(message.format(distribution.name_and_version))
 
-        def make_root(variant, path):
+        def make_root(variant, path) -> None:
             """Using distlib to iterate over all installed files of the current
             distribution to copy files to the target directory of the rez package
             variant
@@ -460,7 +463,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         log_append_pkg_variants(pkg)
 
     # cleanup
-    shutil.rmtree(targetpath)
+    safe_rmtree(targetpath)
 
     # print summary
     #
@@ -574,7 +577,7 @@ def _get_distribution_files_mapping(distribution, targetdir):
     return result
 
 
-def _option_present(opts, *args):
+def _option_present(opts, *args) -> bool:
     for opt in opts:
         for arg in args:
             if opt == arg or opt.startswith(arg + '='):
@@ -598,7 +601,7 @@ def _cmd(context, command):
         raise BuildError("Failed to download source with pip: %s" % cmd_str)
 
 
-def _check_found(py_exe, version_text, log_invalid=True):
+def _check_found(py_exe, version_text, log_invalid: bool = True):
     """Check the Python and pip version text found.
 
     Args:
@@ -628,6 +631,6 @@ def _check_found(py_exe, version_text, log_invalid=True):
 _verbose = config.debug("package_release")
 
 
-def _log(msg):
+def _log(msg) -> None:
     if _verbose:
         print_debug(msg)

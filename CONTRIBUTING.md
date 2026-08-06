@@ -180,6 +180,11 @@ If you report a bug, please ensure to specify the following:
 3.  Contextual information (what were you trying to do using Rez);
 4.  Simplest possible steps to reproduce.
 
+## Reporting Security Vulnerabilities
+
+Do not report security vulnerabilities through public GitHub issues. See
+[SECURITY.md](SECURITY.md) for the reporting process and supported versions.
+
 ## Versioning Policy
 
 rez releases observe the [semver 2.0.0](https://semver.org/) version numbering standard.

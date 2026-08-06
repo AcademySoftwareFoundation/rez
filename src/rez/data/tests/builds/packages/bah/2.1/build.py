@@ -4,7 +4,7 @@ from build_util import build_directory_recurse, check_visible
 
 
 
-def build(source_path, build_path, install_path, targets):
+def build(source_path, build_path, install_path, targets) -> None:
 
     # normal requirement 'foo' should be visible
     check_visible("bah", "foo")

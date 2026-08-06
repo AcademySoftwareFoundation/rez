@@ -17,7 +17,7 @@ import os
 
 
 class App(QtWidgets.QApplication):
-    def __init__(self, argv=None):
+    def __init__(self, argv=None) -> None:
         if argv is None:
             argv = sys.argv
         super(App, self).__init__(argv)
@@ -49,7 +49,7 @@ class App(QtWidgets.QApplication):
         with self.main_window.status(txt):
             yield
 
-    def set_main_window(self, window):
+    def set_main_window(self, window) -> None:
         self.main_window = window
 
     def load_context(self, filepath):
@@ -72,7 +72,7 @@ class App(QtWidgets.QApplication):
                                             "max_most_recent_contexts")
         return context
 
-    def execute_shell(self, context, command=None, terminal=False, **Popen_args):
+    def execute_shell(self, context, command=None, terminal: bool = False, **Popen_args):
 
         # if the gui was called from a rez-env'd environ, then the new shell
         # here will have a prompt like '>>'. It's not incorrect, but it is a

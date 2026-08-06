@@ -20,18 +20,18 @@ Here is an example package definition file:
    authors = ['ajohns']
 
    tools = [
-      'lsq',
-      'cpq'
+       'lsq',
+       'cpq'
    ]
 
    requires = [
-      'python-2.6+<3',
-      'argparse'
+       'python-2.6+<3',
+       'argparse'
    ]
 
    def commands():
-      env.PATH.append("{root}/bin")
-      env.PYTHONPATH.append("{root}/python")
+       env.PATH.append("{root}/bin")
+       env.PYTHONPATH.append("{root}/python")
 
    uuid = '6c43d533-92bb-4f8b-b812-7020bf54d3f1'
 
@@ -58,7 +58,7 @@ Python variables that do **not** become package attributes include:
 
 * Python modules;
 * Functions, not including :ref:`early <package-definition-early-binding-functions>` and :ref:`late <package-definition-late-binding-functions>`
-  binding functions (see next), and not including the :attr:`commands` and related functions;
+  binding functions (see next), and not including the :pkgdef:func:`commands` and related functions;
 * Any variable with a leading double underscore;
 * Any variable that is a :ref:`build-package-attributes`.
 
@@ -70,7 +70,7 @@ the attribute value. There are two types of attribute functions: *early binding*
 and *late binding* functions - and these are decorated using ``@early`` and ``@late`` respectively.
 
 .. warning::
-   The :func:`commands` functions are an exception to the rule. They are
+   The :pkgdef:func:`commands` functions are an exception to the rule. They are
    late bound, but are not the same as a standard function attribute, and are **never** decorated
    with the early or late decorators.
 
@@ -87,35 +87,35 @@ evaluated before the resolve has occurred, and as such, before the
 there are some important distinctions that set early-bound functions apart from
 other function attributes:
 
-- The :attr:`this` object only exposes package attributes. Nothing else is accessible when inside an early-bound function.
+- The :rex:attr:`this` object only exposes package attributes. Nothing else is accessible when inside an early-bound function.
 - No rez-set :doc:`environment variables <environment>` can be accessed inside an early bound function.
 
-Any package attribute can be implemented as an early binding function. Here is an example of an :attr:`authors`
+Any package attribute can be implemented as an early binding function. Here is an example of an :pkgdef:attr:`authors`
 attribute that is automatically set to the contributors of the package's git project:
 
 .. code-block:: python
 
    @early()
    def authors():
-      import subprocess
-      p = subprocess.Popen("git shortlog -sn | cut -f2",
-                           shell=True, stdout=subprocess.PIPE)
-      out, _ = p.communicate()
-      return out.strip().split('\n')
+       import subprocess
+       p = subprocess.Popen("git shortlog -sn | cut -f2",
+                            shell=True, stdout=subprocess.PIPE)
+       out, _ = p.communicate()
+       return out.strip().split('\n')
 
 .. note::
    You can assume that during evaluation of early binding functions, the
    current working directory is the root directory containing your ``package.py``.
 
 An early bound function can also have access to other package attributes. To do this, use the
-implicit :attr:`this` object:
+implicit :rex:attr:`this` object:
 
 .. code-block:: python
 
    @early()
    def description():
-      # a not very useful description
-      return "%s version %s" % (this.name, this.version)
+       # a not very useful description
+       return "%s version %s" % (this.name, this.version)
 
 .. warning::
    Do not reference other early bound or late bound attributes in
@@ -126,7 +126,7 @@ Early binding functions are a convenience. You can always use an arbitrary funct
 .. code-block:: python
 
    def _description():
-      return "%s version %s" % (this.name, this.version)
+       return "%s version %s" % (name, version)
 
    description = _description()
 
@@ -143,12 +143,12 @@ Following is the list of objects that are available during early evaluation.
 
 .. todo:: Document these properly with py:attribute?
 
-* **building**: See :attr:`building`;
+* **building**: See :rex:attr:`building`;
 * **build_variant_index**: The index of the variant currently being built. This is only relevant if
-  :attr:`building` is True.
+  :rex:attr:`building` is True.
 * **build_variant_requires**: The subset of package requirements specific to the variant
   currently being built. This is a list of ``PackageRequest`` objects. This is only relevant if
-  :attr:`building` is True.
+  :rex:attr:`building` is True.
 * **this**: The current package, as described previously.
 
 Be aware that early-bound functions are actually evaluated multiple times during a build: once
@@ -157,18 +157,18 @@ functions to change their return value based on variables like ``build_variant_i
 *pre-build* evaluated value is the one set into the installed package, and in this case, ``building``
 is False.
 
-An example of where you'd need to be aware of this is if you wanted the :attr:`requires` field to include
-a certain package at runtime only (ie, not present during the package build). In this case, :attr:`requires`
+An example of where you'd need to be aware of this is if you wanted the :pkgdef:attr:`requires` field to include
+a certain package at runtime only (ie, not present during the package build). In this case, :pkgdef:attr:`requires`
 might look like so:
 
 .. code-block:: python
 
    @early()
    def requires():
-      if building:
-         return ["python-2"]
-      else:
-         return ["runtimeonly-1.2", "python-2"]
+       if building:
+           return ["python-2"]
+       else:
+           return ["runtimeonly-1.2", "python-2"]
 
 .. warning::
    You **must** ensure that your early-bound function returns the value
@@ -191,23 +191,23 @@ Not any attribute can be implemented as a late binding function. The allowed att
 * help
 * any arbitrary attribute
 
-Here is an example of a late binding :attr:`tools` attribute:
+Here is an example of a late binding :pkgdef:attr:`tools` attribute:
 
 .. code-block:: python
 
    @late()
    def tools():
-      import os
+       import os
 
-      # get everything in bin dir
-      binpath = os.path.join(this.root, "bin")
-      result = os.listdir(binpath)
+       # get everything in bin dir
+       binpath = os.path.join(this.root, "bin")
+       result = os.listdir(binpath)
 
-      # we don't want artists to see the admin tools
-      if os.getenv("_USER_ROLE") != "superuser":
-         result = set(result) - set(["delete-all", "mod-things"])
+       # we don't want artists to see the admin tools
+       if os.getenv("_USER_ROLE") != "superuser":
+           result = set(result) - set(["delete-all", "mod-things"])
 
-      return list(result)
+       return list(result)
 
 .. warning::
    Late binding function attributes **must** perform any necessary imports
@@ -226,25 +226,25 @@ reimplement the above example like so:
 
    @late()
    def tools():
-      import os
-      result = this._tools
+       import os
+       result = this._tools
 
-      # we don't want artists to see the admin tools
-      if os.getenv("_USER_ROLE") != "superuser":
-         result = set(result) - set(["delete-all", "mod-things"])
+       # we don't want artists to see the admin tools
+       if os.getenv("_USER_ROLE") != "superuser":
+           result = set(result) - set(["delete-all", "mod-things"])
 
-      return list(result)
+       return list(result)
 
    @early()
    def _tools():
-      import os
-      return os.listdir("./bin")
+       import os
+       return os.listdir("./bin")
 
 .. todo:: Make this.root and co terms or something else like data?
 
 Note how in the ``_tools`` function we're referring to a relative path. Remember that early binding
 functions are evaluated at build time. The package hasn't actually been built or installed yet,
-so attributes such as :attr:`this.root` don't exist.
+so attributes such as :rex:attr:`this.root` don't exist.
 
 .. _in_context:
 
@@ -259,20 +259,20 @@ the :ref:`rez-env` tool does) and iterate over its resolved packages, these belo
 
 The in-context or not-in-context distinction is important, because often the package attribute
 will need information from the context to give desired behavior. For example, consider the
-late binding :attr:`tools` attribute below:
+late binding :pkgdef:attr:`tools` attribute below:
 
 .. code-block:: python
 
    @late()
    def tools():
-      result = ["edit"]
+       result = ["edit"]
 
-      if in_context() and "maya" in request:
-         result.append("maya-edit")
+       if in_context() and "maya" in request:
+           result.append("maya-edit")
 
-      return result
+       return result
 
-Here the :attr:`request` object is being checked to see if the ``maya`` package was requested in the
+Here the :rex:attr:`request` object is being checked to see if the ``maya`` package was requested in the
 current env; if it was, a maya-specific tool ``maya-edit`` is added to the tool list.
 
 .. warning::
@@ -288,30 +288,31 @@ Following is the list of objects that are available during late evaluation, if :
 is ``True``:
 
 * **context**: the :class:`~rez.resolved_context.ResolvedContext` instance this package belongs to;
-* **system**: see :attr:`system`;
-* **building**: see :attr:`building`;
-* **testing**: see :attr:`testing`;
-* **request**: see :attr:`request`;
-* **implicits**: see :attr:`implicits`.
+* **system**: see :rex:attr:`system`;
+* **building**: see :rex:attr:`building`;
+* **testing**: see :rex:attr:`testing`;
+* **request**: see :rex:attr:`request`;
+* **implicits**: see :rex:attr:`implicits`;
+* **ephemerals**: see :rex:attr:`ephemerals`.
 
 The following objects are available in **all** cases:
 
-* :attr:`this`: the current package/variant (see note below);
+* :rex:attr:`this`: the current package/variant (see note below);
 * **in_context**: the :ref:`in_context <in_context>` function itself.
 
 .. warning::
-   The :attr:`this` object may be either a package or a variant,
+   The :rex:attr:`this` object may be either a package or a variant,
    depending on the situation. For example, if :ref:`in_context <in_context>` is ``True``,
-   then :attr:`this` is a variant, because variants are the objects present in a resolved context. On the other
+   then :rex:attr:`this` is a variant, because variants are the objects present in a resolved context. On the other
    hand, if a package is accessed via API (for example, by using the :ref:`rez-search` tool),
-   then :attr:`this` may be a package. The difference matters, because variants have some
+   then :rex:attr:`this` may be a package. The difference matters, because variants have some
    attributes that packages don't, notably, ``root`` and ``index``. Use the properties
-   :attr:`this.is_package` and :attr:`this.is_variant` to distinguish the case if needed.
+   :rex:attr:`this.is_package` and :rex:attr:`this.is_variant` to distinguish the case if needed.
 
 Example - Late Bound build_requires
 ***********************************
 
-Here is an example of a ``package.py`` with a late-bound :attr:`build_requires` field:
+Here is an example of a ``package.py`` with a late-bound :pkgdef:attr:`build_requires` field:
 
 .. code-block:: python
 
@@ -320,30 +321,30 @@ Here is an example of a ``package.py`` with a late-bound :attr:`build_requires` 
    version = "1.0.0"
 
    variants = [
-      ["maya-2017"],
-      ["maya-2018"]
+       ["maya-2017"],
+       ["maya-2018"]
    ]
 
    @late()
    def build_requires():
-      if this.is_package:
-         return []
-      elif this.index == 0:
-         return ["maya_2017_build_utils"]
-      else:
-         return ["maya_2018_build_utils"]
+       if this.is_package:
+           return []
+       elif this.index == 0:
+           return ["maya_2017_build_utils"]
+       else:
+           return ["maya_2018_build_utils"]
 
 .. todo:: Figure out why I can't link to this.is_package
 
-Note the check for :attr:`this.is_package`. This is necessary, otherwise the evaluation would
-fail in some circumstances. Specifically, if someone ran the following command, the :attr:`this`
+Note the check for :rex:attr:`this.is_package`. This is necessary, otherwise the evaluation would
+fail in some circumstances. Specifically, if someone ran the following command, the :rex:attr:`this`
 field would actually be a :class:`.Package` instance, which doesn't have an ``index`` method:
 
 .. code-block:: text
 
    ]$ rez-search maya_thing --type package --format '{build_requires}'
 
-In this case, :attr:`build_requires` is somewhat nonsensical (there is no common build requirement
+In this case, :pkgdef:attr:`build_requires` is somewhat nonsensical (there is no common build requirement
 for both variants here), but something needs to be returned nonetheless.
 
 .. _package-definition-sharing-code:
@@ -361,7 +362,7 @@ Sharing Code During A Build
 
 Functions in a ``package.py`` file which are evaluated at build time include:
 
-* The :attr:`preprocess` function;
+* The :pkgdef:func:`preprocess` function;
 * Any package attribute implemented as a function using the :ref:`@early <package-definition-early-binding-functions>` decorator.
 
 You expose common code to these functions by using the
@@ -384,14 +385,14 @@ stays self-contained, and will not break or change behavior if the original modu
 files are changed. The downside though, is that these modules are not imported, and they themselves
 cannot import other modules managed in the same way.
 
-Here is an example of a package's :attr:`commands` using a shared module:
+Here is an example of a package's :pkgdef:func:`commands` using a shared module:
 
 .. code-block:: python
 
    # in package.py
    @include("utils")
    def commands():
-      utils.set_common_env_vars(this, env)
+       utils.set_common_env_vars(this, env)
 
 .. _requirements-expansion:
 
@@ -402,31 +403,31 @@ Often a package may be compatible with a broader range of its dependencies at bu
 at runtime. For example, a C++ package may build against any version of ``boost-1``, but may
 then need to link to the specific minor version that it was built against, say ``boost-1.55``.
 
-You can describe this in your package's :attr:`requires` attribute (or any of the related attributes,
-such as :attr:`build_requires`) by using wildcards as shown here:
+You can describe this in your package's :pkgdef:attr:`requires` attribute (or any of the related attributes,
+such as :pkgdef:attr:`build_requires`) by using wildcards as shown here:
 
 .. code-block:: python
 
    requires = [
-      "boost-1.*"
+       "boost-1.*"
    ]
 
 If you check the ``package.py`` of the built package, you will see that the boost reference in the
 requires list will be expanded to the latest found within the given range (``boost-1.55`` for example).
 
-There is also a special wilcard available, ``**``. This expands to the full package version. For
+There is also a special wildcard available, ``**``. This expands to the full package version. For
 example, the requirement ``boost-1.**`` might expand to ``boost-1.55.1``.
 
-You can also achieve requirements expansion by implementing :attr:`requires` as an early binding
-function (and you may want to use some variation of this to generate :attr:`variants` for example), and
+You can also achieve requirements expansion by implementing :pkgdef:attr:`requires` as an early binding
+function (and you may want to use some variation of this to generate :pkgdef:attr:`variants` for example), and
 using the rez :func:`~rez.package_py_utils.expand_requires` function:
 
 .. code-block:: python
 
    @early()
    def requires():
-      from rez.package_py_utils import expand_requires
-      return expand_requires(["boost-1.*"])
+       from rez.package_py_utils import expand_requires
+       return expand_requires(["boost-1.*"])
 
 .. _preprocess:
 
@@ -435,7 +436,7 @@ using the rez :func:`~rez.package_py_utils.expand_requires` function:
 Package Preprocessing
 =====================
 
-You can define a :func:`preprocess` function either globally or in a ``package.py``. This can be used to
+You can define a :pkgdef:func:`preprocess` function either globally or in a ``package.py``. This can be used to
 validate a package, or even change some of its attributes, before it is built. To set a global
 preprocessing function, see the :data:`package_preprocess_function` config setting.
 
@@ -444,19 +445,19 @@ Consider the following preprocessing function, defined in a ``package.py``:
 .. code-block:: python
 
    def preprocess(this, data):
-      from rez.package_py_utils import InvalidPackageError
-      import re
+       from rez.package_py_utils import InvalidPackageError
+       import re
 
-      if not re.match("[a-z]+$", this.name):
-         raise InvalidPackageError("Invalid name, only lowercase letters allowed")
+       if not re.match("[a-z]+$", this.name):
+           raise InvalidPackageError("Invalid name, only lowercase letters allowed")
 
-      if not this.authors:
-         from preprocess_utils import get_git_committers
-         data["authors"] = get_git_committers()
+       if not this.authors:
+           from preprocess_utils import get_git_committers
+           data["authors"] = get_git_committers()
 
 This preprocessor checks the package name against a regex and sets the package authors list to its
 git committers, if not already supplied in the ``package.py``. To update package attributes, you have
-to update the given ``data`` dict, **not** the package instance (:attr:`this`).
+to update the given ``data`` dict, **not** the package instance (:rex:attr:`this`).
 
 To halt a build because a package is not valid, you must raise an :exc:`~rez.exceptions.InvalidPackageError` as shown
 above.
@@ -475,7 +476,10 @@ It is not uncommon to override config settings such as the release path in a pac
 
    # in package.py
    with scope("config") as c:
-      c.release_packages_path = "/software/packages/external"
+       c.release_packages_path = "/software/packages/external"
+
+Here a package is overriding the default release path - perhaps you're releasing
+internally and externally developed packages to different locations, for example.
 
 Let's say we have a scenario where we want to install third party packages to a specific install
 path, and that we set the arbitrary attribute ``external`` to ``True`` for these packages. We could do
@@ -484,17 +488,17 @@ this with a global preprocessing function like this:
 .. code-block:: python
 
    def preprocess(this, data):
-      if not data.get("external"):
-            return
+       if not data.get("external"):
+           return
 
-      try:
-            _ = data["config"]["release_packages_path"]
-            return  # already explicitly specified by package
-      except KeyError:
-            pass
+       try:
+           _ = data["config"]["release_packages_path"]
+           return  # already explicitly specified by package
+       except KeyError:
+           pass
 
-      data["config"] = data.get("config", {})
-      data["config"]["release_packages_path"] = "/software/packages/external"
+       data["config"] = data.get("config", {})
+       data["config"]["release_packages_path"] = "/software/packages/external"
 
 The ``with scope(...)`` statement is just a fancy way of defining a dict, so you can do the same
 thing in the preprocess function simply by updating the ``config`` dict within ``data``.
@@ -514,70 +518,70 @@ installation instead, and binds that into a rez package.
 
    @early()
    def version():
-      return this.__version + "-detected"
+       return this.__version + "-detected"
 
    authors = [
-      "Guido van Rossum"
+       "Guido van Rossum"
    ]
 
    description = \
-      """
-      The Python programming language.
-      """
+       """
+       The Python programming language.
+       """
 
    @early()
    def variants():
-      from rez.package_py_utils import expand_requires
-      requires = ["platform-**", "arch-**", "os-**"]
-      return [expand_requires(*requires)]
+       from rez.package_py_utils import expand_requires
+       requires = ["platform-**", "arch-**", "os-**"]
+       return [expand_requires(*requires)]
 
    @early()
    def tools():
-      version_parts = this.__version.split('.')
+       version_parts = this.__version.split('.')
 
-      return [
-         "2to3",
-         "pydoc",
-         "python",
-         "python%s" % (version_parts[0]),
-         "python%s.%s" % (version_parts[0], version_parts[1])
-      ]
+       return [
+           "2to3",
+           "pydoc",
+           "python",
+           "python%s" % (version_parts[0]),
+           "python%s.%s" % (version_parts[0], version_parts[1])
+       ]
 
    uuid = "recipes.python"
 
    def commands():
-      env.PATH.append("{this._bin_path}")
+       env.PATH.append("{this._bin_path}")
 
-      if building:
-         env.CMAKE_MODULE_PATH.append("{root}/cmake")
+       if building:
+           env.CMAKE_MODULE_PATH.append("{root}/cmake")
 
    # --- internals
 
    def _exec_python(attr, src):
-      import subprocess
+       import subprocess
 
-      p = subprocess.Popen(
-         ["python", "-c", src],
-         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      out, err = p.communicate()
+       p = subprocess.Popen(
+           ["python", "-c", src],
+           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+       out, err = p.communicate()
 
-      if p.returncode:
-         from rez.exceptions import InvalidPackageError
-         raise InvalidPackageError(
+       if p.returncode:
+           from rez.exceptions import InvalidPackageError
+           raise InvalidPackageError(
                "Error determining package attribute '%s':\n%s" % (attr, err))
 
-      return out.strip()
+       return out.strip()
 
    @early()
    def _bin_path():
-      return this._exec_python(
-         "_bin_path",
-         "import sys, os.path; print(os.path.dirname(sys.executable))")
+       return this._exec_python(
+           "_bin_path",
+           "import sys, os.path; print(os.path.dirname(sys.executable))")
 
    def _version():
-      return _exec_python(
-         "version",
-         "import sys; print(sys.version.split()[0])")
+       return _exec_python(
+           "version",
+           "import sys; print(sys.version.split()[0])")
 
    __version = _version()
 
@@ -585,17 +589,17 @@ Note the following:
 
 .. todo:: Document which attributes supports automatic wildcard expansion?
 
-* :attr:`variants` is implemented as an early bound attribute, and uses :ref:`requirements-expansion` to
-  dynamically define the variant requirements. Even though only the :attr:`requires` and related attributes
+* :pkgdef:attr:`variants` is implemented as an early bound attribute, and uses :ref:`requirements-expansion` to
+  dynamically define the variant requirements. Even though only the :pkgdef:attr:`requires` and related attributes
   natively expand wildcards, you can still use the :func:`~rez.package_py_utils.expand_requires` function
   yourself, as illustrated here.
 * A ``_version`` function has been defined, and its return value stored into the ``__version`` variable.
-  This is done because two other early binding attributes. :attr:`version` and :attr:`tools` use this value,
+  This is done because two other early binding attributes. :pkgdef:attr:`version` and :pkgdef:attr:`tools` use this value,
   and we avoid calling the function twice. Both ``_version`` and ``__version`` are later stripped from
   the package, because one is a normal function, and the other has double leading underscores.
 * An arbitrary attribute ``_bin_path`` has been defined, and implemented as an early bound attribute.
-  The :attr:`commands` function then uses this value. In this example, it was far better to take this
-  approach than the alternative of running the python subprocess in the :attr:`commands` function. Doing that
+  The :pkgdef:func:`commands` function then uses this value. In this example, it was far better to take this
+  approach than the alternative of running the python subprocess in the :pkgdef:func:`commands` function. Doing that
   would have been very costly, since commands are executed every time a new environment is created
   (and launching a subprocess is slow). Instead, here we take this cost at build time, and cache the
   result into the package attribute.
@@ -618,7 +622,7 @@ the data type, and includes a code snippet.
 
 .. .. currentmodule:: pkgdef
 
-.. py:attribute:: authors
+.. pkgdef:attribute:: authors
    :type: list[str]
 
    Package authors. Should be in order, starting with the major contributor.
@@ -627,20 +631,20 @@ the data type, and includes a code snippet.
 
       authors = ["jchrist", "sclaus"]
 
-.. py:attribute:: build_requires
+.. pkgdef:attribute:: build_requires
    :type: list[str]
 
-   This is the same as :attr:`requires`, except that these dependencies are only included during a build
+   This is the same as :pkgdef:attr:`requires`, except that these dependencies are only included during a build
    (typically invoked using the :ref:`rez-build` tool).
 
    .. code-block:: python
 
       build_requires = [
-         "cmake-2.8",
-         "doxygen"
+          "cmake-2.8",
+          "doxygen"
       ]
 
-.. py:attribute:: cachable
+.. pkgdef:attribute:: cachable
    :type: bool
 
    Determines whether a package can be cached when :ref:`package-caching` is enabled.
@@ -650,7 +654,7 @@ the data type, and includes a code snippet.
 
       cachable = True
 
-.. py:function:: commands() -> None
+.. pkgdef:function:: commands() -> None
 
    This is a block of python code which tells rez how to update an environment so that this package
    can be used. It is executed when the package is brought into a rez environment, either by explicit
@@ -669,10 +673,10 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       def commands():
-         env.PYTHONPATH.append("{root}/python")
-         env.PATH.append("{root}/bin")
+          env.PYTHONPATH.append("{root}/python")
+          env.PATH.append("{root}/bin")
 
-.. py:attribute:: config
+.. pkgdef:attribute:: config
    :type: dict[str, typing.Any]
 
    Packages are able to override rez configuration settings. This is useful in some cases. For example,
@@ -685,9 +689,9 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       with scope("config"):
-         release_packages_path = "/software/packages/apps"
+          release_packages_path = "/software/packages/apps"
 
-.. py:attribute:: description
+.. pkgdef:attribute:: description
    :type: str
 
    This is a general description of the package. It should not mention details about a particular
@@ -697,17 +701,17 @@ the data type, and includes a code snippet.
 
       description = "Library for communicating with the dead."
 
-.. py:attribute:: has_plugins
+.. pkgdef:attribute:: has_plugins
    :type: bool
 
    Indicates that the package is an application that may have plugins. These plugins are often made
-   available as rez packages also. Used in conjuction with the :ref:`rez-plugins` command. Also, see :attr:`plugin_for`.
+   available as rez packages also. Used in conjunction with the :ref:`rez-plugins` command. Also, see :pkgdef:attr:`plugin_for`.
 
    .. code-block:: python
 
       has_plugins = True
 
-.. py:attribute:: hashed_variants
+.. pkgdef:attribute:: hashed_variants
    :type: bool
 
    Instructs the package to install variants into a subdirectory based on a hash of the variant's
@@ -719,7 +723,7 @@ the data type, and includes a code snippet.
 
       hashed_variants = True
 
-.. py:attribute:: help
+.. pkgdef:attribute:: help
    :type: str | list[list[str]]
 
    URL for package webpage, or, if a string containing spaces, a command to run. You can show the help
@@ -733,11 +737,11 @@ the data type, and includes a code snippet.
    .. code-block::
 
       help = [
-         ['Documentation', 'https://example.com/docs'],
-         ['API docs', 'https://example.com/docs/api']
+          ['Documentation', 'https://example.com/docs'],
+          ['API docs', 'https://example.com/docs/api']
       ]
 
-.. py:attribute:: name
+.. pkgdef:attribute:: name
    :type: str
 
    **Mandatory**
@@ -748,29 +752,29 @@ the data type, and includes a code snippet.
 
       name = "maya_utils"
 
-.. py:attribute:: plugin_for
-   :type: str
+.. pkgdef:attribute:: plugin_for
+   :type: list[str]
 
    Provided if this package is a plugin of another package. For example, this might be a maya plugin.
-   This is useful when using the :ref:`rez-plugins` command. Also, see :attr:`has_plugins`.
+   This is useful when using the :ref:`rez-plugins` command. Also, see :pkgdef:attr:`has_plugins`.
 
    .. code-block:: python
 
-      plugin_for = "maya"
+      plugin_for = ["maya"]
 
-.. py:function:: post_commands() -> None
+.. pkgdef:function:: post_commands() -> None
 
-   Similar to :func:`pre_commands`, but runs in a final phase rather than the first. See that attribute for
+   Similar to :pkgdef:func:`pre_commands`, but runs in a final phase rather than the first. See that attribute for
    further details.
 
    .. code-block:: python
 
       def post_commands():
-         env.FOO_PLUGIN_PATH.append("@")
+          env.FOO_PLUGIN_PATH.append("@")
 
-.. py:function:: pre_commands() -> None
+.. pkgdef:function:: pre_commands() -> None
 
-   This is the same as :func:`commands`, except that all packages' ``pre_commands`` are executed in a first
+   This is the same as :pkgdef:func:`commands`, except that all packages' ``pre_commands`` are executed in a first
    pass; then, all ``commands`` are run in a second; and lastly, ``post_commands`` are all run in a third
    phase. It is sometimes useful to ensure that some of a package's commands are run before, or after
    all others, and using pre/post_commands is a way of doing that.
@@ -778,21 +782,21 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       def pre_commands():
-         import os.path
-         env.FOO_PLUGIN_PATH = os.path.join(this.root, "plugins")
+          import os.path
+          env.FOO_PLUGIN_PATH = os.path.join(this.root, "plugins")
 
-.. py:function:: pre_test_commands()
+.. pkgdef:function:: pre_test_commands()
 
-   This is similar to :func:`commands`, except that it is run prior to each test defined in
-   :attr:`tests`. See :ref:`pre-test-commands` for more details.
+   This is similar to :pkgdef:func:`commands`, except that it is run prior to each test defined in
+   :pkgdef:attr:`tests`. See :ref:`pre-test-commands` for more details.
 
    .. code-block:: python
 
       def pre_test_commands():
-         if test.name == "unit":
-               env.IS_UNIT_TEST = 1
+          if test.name == "unit":
+              env.IS_UNIT_TEST = 1
 
-.. py:attribute:: relocatable
+.. pkgdef:attribute:: relocatable
    :type: bool
 
    Determines whether a package can be copied to another package repository (using the :ref:`rez-cp` tool for
@@ -803,7 +807,7 @@ the data type, and includes a code snippet.
 
       relocatable = True
 
-.. py:attribute:: requires
+.. pkgdef:attribute:: requires
    :type: list[str]
 
    This is a list of other packages that this package depends on. A rez package should list all the
@@ -821,12 +825,12 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       requires = [
-         "python-2",
-         "maya-2016",
-         "maya_utils-3.4+<4"
+          "python-2",
+          "maya-2016",
+          "maya_utils-3.4+<4"
       ]
 
-.. py:attribute:: tests
+.. pkgdef:attribute:: tests
    :type: dict[str, str | dict]
 
    This is a dict of tests that can be run on the package using the :ref:`rez-test` tool.
@@ -854,34 +858,34 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       tests = {
-         "unit": "python -m unittest discover -s {root}/python/tests",
-         "unit-as-list": ["python", "-m", "unittest", "discover", "-s", "{root}/python/tests"],
-         "lint": {
+          "unit": "python -m unittest discover -s {root}/python/tests",
+          "unit-as-list": ["python", "-m", "unittest", "discover", "-s", "{root}/python/tests"],
+          "lint": {
                "command": "pylint mymodule",
                "requires": ["pylint"],
                "run_on": ["default", "pre_release"]
-         },
-         "maya_CI": {
+          },
+          "maya_CI": {
                "command": ["python", "{root}/ci_tests/maya.py"],
                "on_variants": {
-                  "type": "requires",
-                  "value": ["maya"]
+                   "type": "requires",
+                   "value": ["maya"]
                },
                "run_on": "explicit"
-         }
+          }
       }
 
-   As an example, if you want to run the ``maya_CI`` block defined in the example above (named ``maya_utils``), you can run:
+   As an example, if you want to run the ``maya_CI`` block defined in the example above (named ``maya_CI``), you can run:
 
    .. code-block:: text
 
-      ]$ rez-test maya_utils lint
+      ]$ rez-test <pkg> maya_CI
 
    .. note::
       Prior to running the tests, you will need to run :ref:`rez-build`. :ref:`rez-test` can only
       run tests on already built packages.
 
-.. py:attribute:: tools
+.. pkgdef:attribute:: tools
    :type: list[str]
 
    This is a list of tools that the package provides. This entry is important later on when we talk
@@ -890,12 +894,12 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       tools = [
-         "houdini",
-         "hescape",
-         "hython"
+          "houdini",
+          "hescape",
+          "hython"
       ]
 
-.. py:attribute:: uuid
+.. pkgdef:attribute:: uuid
    :type: str
 
    This string should uniquely identify this *package family*. In other words, all the versions of a
@@ -917,7 +921,7 @@ the data type, and includes a code snippet.
 
       uuid = "489ad32867494baab7e5be3e462473c6"
 
-.. py:attribute:: variants
+.. pkgdef:attribute:: variants
    :type: list[list[str]]
 
    A package can contain *variants* - think of them as different flavors of the same package version,
@@ -926,12 +930,12 @@ the data type, and includes a code snippet.
    .. code-block:: python
 
       variants = [
-         ["maya-2015.3"],
-         ["maya-2016.1"],
-         ["maya-2016.7"]
+          ["maya-2015.3"],
+          ["maya-2016.1"],
+          ["maya-2016.7"]
       ]
 
-.. py:attribute:: version
+.. pkgdef:attribute:: version
    :type: str
 
    This is the version of the package. See :ref:`versions-concept` for further details on valid
@@ -949,7 +953,7 @@ Build Time Package Attributes
 The following package attributes only appear in packages to be built; they are stripped from the
 package once installed because they are only used at build time.
 
-.. py:attribute:: build_command
+.. pkgdef:attribute:: build_command
    :type: str | list[str] | False
 
    Package build command. If present, this is used as the build command when :ref:`rez-build` is run,
@@ -981,7 +985,7 @@ package once installed because they are only used at build time.
 
       build_command = "bash {root}/build.sh {install}"
 
-.. py:attribute:: build_system
+.. pkgdef:attribute:: build_system
    :type: str
 
    .. todo:: reference the real --build-system cli flag
@@ -994,36 +998,36 @@ package once installed because they are only used at build time.
       build_system = "cmake"
 
 
-.. py:function:: pre_build_commands() -> None
+.. pkgdef:function:: pre_build_commands() -> None
 
-   This is similar to :func:`commands`, except that it is run *prior to the current package being built*.
+   This is similar to :pkgdef:func:`commands`, except that it is run *prior to the current package being built*.
    See :ref:`pre-build-commands` for more details.
 
    .. code-block:: python
 
       def pre_build_commands():
-         env.FOO_BUILT_BY_REZ = 1
+          env.FOO_BUILT_BY_REZ = 1
 
-.. py:function:: preprocess(this, data: dict[str, typing.Any])
+.. pkgdef:function:: preprocess(this, data: dict[str, typing.Any])
 
    See :ref:`package-preprocessing`.
 
-.. py:attribute:: private_build_requires
+.. pkgdef:attribute:: private_build_requires
    :type: list[str]
 
-   This is the same as :attr:`build_requires`, except that these dependencies are only included if this
-   package is being built. Contrast this with :attr:`build_requires`, whose dependencies are included if a
+   This is the same as :pkgdef:attr:`build_requires`, except that these dependencies are only included if this
+   package is being built. Contrast this with :pkgdef:attr:`build_requires`, whose dependencies are included if a
    build is occurring regardless of whether this package specifically is being built, or whether
    this package is a dependency of the package being built.
 
    .. code-block:: python
 
       private_build_requires = [
-         "cmake-2.8",
-         "doxygen"
+          "cmake-2.8",
+          "doxygen"
       ]
 
-.. py:attribute:: requires_rez_version
+.. pkgdef:attribute:: requires_rez_version
    :type: str
 
    This defines the minimum version of rez needed to build this package. New package features have
@@ -1042,7 +1046,7 @@ The following package attributes are created for you by Rez when your package is
 :ref:`rez-release` tool. If you look at the released ``package.py`` file you will notice that some or all
 of these attributes have been added.
 
-.. py:attribute:: changelog
+.. pkgdef:attribute:: changelog
    :type: str
 
    Change log containing all commits since the last released package. If the previous release was from
@@ -1053,21 +1057,21 @@ of these attributes have been added.
    .. code-block:: python
 
       changelog = \
-         """
-         commit 22abe31541ceebced8d4e209e3f6c44d8d0bea1c
-         Author: allan johns <>
-         Date:   Sun May 15 15:39:10 2016 -0700
+          """
+          commit 22abe31541ceebced8d4e209e3f6c44d8d0bea1c
+          Author: allan johns <>
+          Date:   Sun May 15 15:39:10 2016 -0700
 
-               first commit
-         """
+          first commit
+          """
 
-.. py:attribute:: previous_revision
+.. pkgdef:attribute:: previous_revision
    :type: typing.Any
 
-   Revision information of the previously released package, if any (see :attr:`revision` for code example -
+   Revision information of the previously released package, if any (see :pkgdef:attr:`revision` for code example -
    the code for this attribute is the same).
 
-.. py:attribute:: previous_version
+.. pkgdef:attribute:: previous_version
    :type: str
 
    The version of the package previously released, if any.
@@ -1076,7 +1080,7 @@ of these attributes have been added.
 
       previous_version = "1.0.1"
 
-.. py:attribute:: release_message
+.. pkgdef:attribute:: release_message
    :type: str
 
    .. todo:: Reference --message option directly
@@ -1085,13 +1089,13 @@ of these attributes have been added.
 
    The package release message. This is supplied either via the :option:`rez-release --message`
    option, or was entered in a text editor on release if rez is configured to do this (see the config
-   setting ``TODO_ADD_THIS``). A package may not have a release message.
+   setting :data:`prompt_release_message`). A package may not have a release message.
 
    .. code-block:: python
 
       release_message = "Fixed the flickering thingo"
 
-.. py:attribute:: revision
+.. pkgdef:attribute:: revision
    :type: typing.Any
 
    Information about the source control revision containing the source code that was released. The
@@ -1101,13 +1105,13 @@ of these attributes have been added.
    .. code-block:: python
 
       revision = \
-         {'branch': 'master',
-            'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
-            'fetch_url': 'git@github.com:foo/dummy.git',
-            'push_url': 'git@github.com:foo/dummy.git',
-            'tracking_branch': 'origin/master'}
+          {'branch': 'master',
+           'commit': '22abe31541ceebced8d4e209e3f6c44d8d0bea1c',
+           'fetch_url': 'git@github.com:foo/dummy.git',
+           'push_url': 'git@github.com:foo/dummy.git',
+           'tracking_branch': 'origin/master'}
 
-.. py:attribute:: timestamp
+.. pkgdef:attribute:: timestamp
    :type: int
 
    Epoch time at which the package was released.
@@ -1116,7 +1120,7 @@ of these attributes have been added.
 
       timestamp = 1463350552
 
-.. py:attribute:: vcs
+.. pkgdef:attribute:: vcs
    :type: str
 
    Name of the version control system this package was released from.

@@ -13,7 +13,7 @@ from rez.packages import get_completions
 
 class TestCompletion(TestBase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         packages_path = cls.data_path("solver", "packages")
         cls.settings = dict(
             packages_path=[packages_path],
@@ -21,9 +21,9 @@ class TestCompletion(TestBase):
 
         cls.config = Config([get_module_root_config()], locked=True)
 
-    def test_config(self):
+    def test_config(self) -> None:
         """Test config completion."""
-        def _eq(prefix, expected_completions):
+        def _eq(prefix, expected_completions) -> None:
             completions = self.config.get_completions(prefix)
             self.assertEqual(set(completions), set(expected_completions))
 
@@ -42,9 +42,9 @@ class TestCompletion(TestBase):
         _eq("plugins.release_vcs.releasable_",
             ["plugins.release_vcs.releasable_branches"])
 
-    def test_packages(self):
+    def test_packages(self) -> None:
         """Test packages completion."""
-        def _eq(prefix, expected_completions):
+        def _eq(prefix, expected_completions) -> None:
             completions = get_completions(prefix)
             self.assertEqual(set(completions), set(expected_completions))
 

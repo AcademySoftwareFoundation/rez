@@ -27,7 +27,7 @@ VIRTUAL_GIGABYTE = 1024 * 1024 * 1024
 
 class TestPackageCache(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         cls.py_packages_path = canonical_path(cls.data_path("packages", "py_packages"))
@@ -54,13 +54,13 @@ class TestPackageCache(TestBase, TempdirMixin):
         )
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
     def _pkgcache(self):
         return PackageCache(self.package_cache_path)
 
-    def test_cache_variant(self):
+    def test_cache_variant(self) -> None:
         """Test direct caching of a cachable variant."""
         pkgcache = self._pkgcache()
 
@@ -74,7 +74,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         _, status = pkgcache.add_variant(variant)
         self.assertEqual(status, PackageCache.VARIANT_FOUND)
 
-    def test_delete_cached_variant(self):
+    def test_delete_cached_variant(self) -> None:
         """Test variant deletion from cache."""
         pkgcache = self._pkgcache()
 
@@ -90,7 +90,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         result = pkgcache.remove_variant(variant)
         self.assertEqual(result, PackageCache.VARIANT_NOT_FOUND)
 
-    def test_cache_fail_uncachable_variant(self):
+    def test_cache_fail_uncachable_variant(self) -> None:
         """Test that caching of an uncachable variant fails."""
         pkgcache = self._pkgcache()
 
@@ -100,7 +100,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
-    def test_cache_fail_no_variant_payload(self):
+    def test_cache_fail_no_variant_payload(self) -> None:
         """Test that adding a variant with no disk payload, fails."""
         pkgcache = self._pkgcache()
 
@@ -110,7 +110,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
-    def test_cache_fail_per_repo(self):
+    def test_cache_fail_per_repo(self) -> None:
         """Test that caching fails on a package from a repo set to non-cachable."""
         pkgcache = self._pkgcache()
 
@@ -120,7 +120,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
-    def test_cache_fail_per_package(self):
+    def test_cache_fail_per_package(self) -> None:
         """Test that caching fails on a package with a blacklisted name."""
         pkgcache = self._pkgcache()
 
@@ -143,7 +143,7 @@ class TestPackageCache(TestBase, TempdirMixin):
             self.assertEqual(logger.handlers[0].level, logging.DEBUG)
 
     @install_dependent()
-    def test_caching_on_resolve(self):
+    def test_caching_on_resolve(self) -> None:
         """Test that cache is updated as expected on resolved env."""
         pkgcache = self._pkgcache()
 
@@ -205,7 +205,7 @@ class TestPackageCache(TestBase, TempdirMixin):
             )
 
     @install_dependent()
-    def test_caching_on_resolve_synchronous(self):
+    def test_caching_on_resolve_synchronous(self) -> None:
         """Test that cache is updated as expected on
         resolved env using syncrhonous package caching."""
         pkgcache = self._pkgcache()

@@ -17,7 +17,7 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
     closeWindow = QtCore.Signal()
 
     def __init__(self, context_model=None, reference_variant=None,
-                 in_window=False, parent=None):
+                 in_window: bool = False, parent=None) -> None:
         """
         Args:
             reference_variant (`Variant`): Used to show the difference between
@@ -64,18 +64,18 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
         self.set_loader_swap_delay(300)
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         self.label.setText("no package selected")
         self.table.clear()
         self.pending_changelog_packages = None
         self.setEnabled(False)
 
-    def refresh(self):
+    def refresh(self) -> None:
         variant = self.variant
         self.variant = None
         self.set_variant(variant)
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         self.tab.setCurrentIndex(0)
         self.stop_loading_packages()
         self.clear()
@@ -102,13 +102,13 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
                            range_=range_,
                            package_attributes=("timestamp",))
 
-    def set_packages(self, packages):
+    def set_packages(self, packages) -> None:
         self.table._set_variant(self.variant, packages)
         self._update_label()
         self._update_changelogs(packages)
         self.setEnabled(True)
 
-    def _update_label(self):
+    def _update_label(self) -> None:
         diff_num = self.table.get_reference_difference()
         if diff_num is None:
             # normal mode
@@ -132,38 +132,38 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
 
         self.label.setText(txt)
 
-    def _update_changelogs(self, packages):
+    def _update_changelogs(self, packages) -> None:
         # don't actually update until tab is selected - changelogs may get big,
         # we don't want to block up the gui thread unless necessary
         self.pending_changelog_packages = packages
         if self.tab.currentIndex() == 1:
             self._apply_changelogs()
 
-    def _tabIndexChanged(self, index):
+    def _tabIndexChanged(self, index) -> None:
         if index == 1:
             self._apply_changelogs()
 
-    def _apply_changelogs(self):
+    def _apply_changelogs(self) -> None:
         if self.pending_changelog_packages:
             self.changelog_edit.set_packages(self.pending_changelog_packages)
             self.pending_changelog_packages = None
 
-    def _changelogStateChanged(self, state):
+    def _changelogStateChanged(self, state) -> None:
         self._view_changelogs(state == QtCore.Qt.Checked)
         self.refresh()
 
-    def _view_or_hide_changelogs(self):
+    def _view_or_hide_changelogs(self) -> None:
         enable = (not self.table.view_changelog)
         self._view_changelogs(enable)
         self.refresh()
 
-    def _view_changelogs_window(self):
+    def _view_changelogs_window(self) -> None:
         from rezgui.dialogs.VariantVersionsDialog import VariantVersionsDialog
         dlg = VariantVersionsDialog(self.context_model, self.variant,
                                     parent=self)
         dlg.exec_()
 
-    def _browseVersions(self):
+    def _browseVersions(self) -> None:
         from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
         dlg = BrowsePackageDialog(context_model=self.context_model,
                                   package_text=self.variant.qualified_package_name,
@@ -174,5 +174,5 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
         dlg.setWindowTitle("Versions - %s" % self.variant.name)
         dlg.exec_()
 
-    def _close_window(self):
+    def _close_window(self) -> None:
         self.closeWindow.emit()

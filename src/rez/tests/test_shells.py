@@ -13,7 +13,7 @@ from rez.plugin_managers import plugin_manager
 from rez.utils.execution import ExecutableScriptMode, _get_python_script_files
 from rez.utils.platform_ import platform_
 from rez.tests.util import TestBase, TempdirMixin, get_available_shells, \
-    per_available_shell, install_dependent
+    per_available_shell, install_dependent, restore_os_environ
 from rez.bind import hello_world
 from rez.config import config
 import unittest
@@ -35,7 +35,7 @@ def _stdout(proc):
 
 class TestShells(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         packages_path = os.path.join(cls.root, "packages")
@@ -49,7 +49,7 @@ class TestShells(TestBase, TempdirMixin):
             warn_untimestamped=False)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
     @classmethod
@@ -100,7 +100,7 @@ class TestShells(TestBase, TempdirMixin):
                 )
 
     @per_available_shell()
-    def test_no_output(self, shell):
+    def test_no_output(self, shell) -> None:
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
@@ -114,7 +114,7 @@ class TestShells(TestBase, TempdirMixin):
                 "startup scripts are printing to stdout. Please remove the "
                 "printout and try again.")
 
-    def test_create_executable_script(self):
+    def test_create_executable_script(self) -> None:
         script_file = os.path.join(self.root, "script")
         py_script_file = os.path.join(self.root, "script.py")
 
@@ -164,7 +164,7 @@ class TestShells(TestBase, TempdirMixin):
             self.assertListEqual(files, [py_script_file])
 
     @per_available_shell()
-    def test_command(self, shell):
+    def test_command(self, shell) -> None:
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
@@ -175,7 +175,7 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
-    def test_per_available_shell_decorator(self, shell):
+    def test_per_available_shell_decorator(self, shell) -> None:
         """
         Test that the "per_available_shell" decorator correctly sets the default shell
         and that ResolvedContext.execute_shell will use the default shell as expected.
@@ -240,7 +240,7 @@ class TestShells(TestBase, TempdirMixin):
         data[shell]["assert"](_stdout(p).strip())
 
     @per_available_shell()
-    def test_command_returncode(self, shell):
+    def test_command_returncode(self, shell) -> None:
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
@@ -286,8 +286,26 @@ class TestShells(TestBase, TempdirMixin):
                 # should bubble up through the rez shell as a 0 exit status.
                 self.assertEqual(p.returncode, 0)
 
+    @unittest.skipIf(platform_.name != "windows", "PowerShell return-code handling is Windows-specific")
+    def test_powershell_command_not_found_returncode(self) -> None:
+        shells = [shell for shell in ("powershell", "pwsh") if shell in get_available_shells()]
+        if not shells:
+            self.skipTest("PowerShell unavailable or disabled")
+
+        r = self._create_context([])
+        for shell in shells:
+            with self.subTest(shell=shell):
+                with r.execute_shell(
+                    shell=shell,
+                    command="NoSuchRezCommand2073",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                ) as p:
+                    p.wait()
+                self.assertEqual(p.returncode, 1)
+
     @per_available_shell()
-    def test_norc(self, shell):
+    def test_norc(self, shell) -> None:
         sh = create_shell(shell)
         _, norc, _, command = sh.startup_capabilities(norc=True, command=True)
 
@@ -299,7 +317,7 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @per_available_shell()
-    def test_stdin(self, shell):
+    def test_stdin(self, shell) -> None:
         sh = create_shell(shell)
         _, _, stdin, _ = sh.startup_capabilities(stdin=True)
 
@@ -313,7 +331,7 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(stdout, "Hello Rez World!")
 
     @per_available_shell()
-    def test_rcfile(self, shell):
+    def test_rcfile(self, shell) -> None:
         sh = create_shell(shell)
         rcfile, _, _, command = sh.startup_capabilities(rcfile=True, command=True)
 
@@ -336,7 +354,7 @@ class TestShells(TestBase, TempdirMixin):
     #
     @per_available_shell(exclude=["cmd"])
     @install_dependent()
-    def test_rez_env_output(self, shell):
+    def test_rez_env_output(self, shell) -> None:
 
         def _test(txt):
             # Assumes that the shell has an echo command, built-in or alias
@@ -374,7 +392,7 @@ class TestShells(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_rez_command(self, shell):
+    def test_rez_command(self, shell) -> None:
         sh = create_shell(shell)
         _, _, _, command = sh.startup_capabilities(command=True)
 
@@ -389,13 +407,13 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(p.returncode, 0)
 
     @per_available_shell()
-    def test_rex_code(self, shell):
+    def test_rex_code(self, shell) -> None:
         """Test that Rex code run in the shell creates the environment variable
         values that we expect.
         """
         config.override("default_shell", shell)
 
-        def _execute_code(func, expected_output):
+        def _execute_code(func, expected_output) -> None:
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
             r = self._create_context([])
@@ -407,11 +425,11 @@ class TestShells(TestBase, TempdirMixin):
             output = out.strip().split("\n")
             self.assertEqual(output, expected_output)
 
-        def _rex_assigning():
+        def _rex_assigning() -> None:
             from rez.shells import create_shell
             sh = create_shell()
 
-            def _print(value):
+            def _print(value) -> None:
                 env.FOO = value
                 # Wrap the output in quotes to prevent the shell from
                 # interpreting parts of our output as commands. This can happen
@@ -515,7 +533,7 @@ class TestShells(TestBase, TempdirMixin):
 
         _execute_code(_rex_assigning, expected_output)
 
-        def _rex_appending():
+        def _rex_appending() -> None:
             from rez.shells import create_shell
             sh = create_shell()
 
@@ -535,7 +553,7 @@ class TestShells(TestBase, TempdirMixin):
 
         _execute_code(_rex_appending, expected_output)
 
-        def _rex_prepending():
+        def _rex_prepending() -> None:
             from rez.shells import create_shell
             sh = create_shell()
 
@@ -556,7 +574,7 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_rex_prepending, expected_output)
 
     @per_available_shell()
-    def test_rex_code_alias(self, shell):
+    def test_rex_code_alias(self, shell) -> None:
         """Ensure PATH changes do not influence the alias command.
 
         This is important for Windows because the doskey.exe might not be on
@@ -566,7 +584,7 @@ class TestShells(TestBase, TempdirMixin):
         """
         config.override("default_shell", shell)
 
-        def _execute_code(func):
+        def _execute_code(func) -> None:
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
             r = self._create_context([])
@@ -575,7 +593,7 @@ class TestShells(TestBase, TempdirMixin):
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
 
-        def _alias_after_path_manipulation():
+        def _alias_after_path_manipulation() -> None:
             # Appending something to the PATH and creating an alias afterwards
             # did fail before we implemented a doskey specific fix.
             env.PATH.append("hey")
@@ -613,7 +631,7 @@ class TestShells(TestBase, TempdirMixin):
         """
         config.override("default_shell", shell)
 
-        def _make_alias(ex):
+        def _make_alias(ex) -> None:
             ex.alias('hi', 'echo "hi"')
 
         r = self._create_context([])
@@ -625,7 +643,7 @@ class TestShells(TestBase, TempdirMixin):
         self.assertEqual(0, p.returncode)
 
     @per_available_shell()
-    def test_alias_command_with_args(self, shell):
+    def test_alias_command_with_args(self, shell) -> None:
         """Testing alias can be passed in as command with args
 
         This is important for Windows CMD shell because the doskey.exe isn't
@@ -633,7 +651,7 @@ class TestShells(TestBase, TempdirMixin):
         """
         config.override("default_shell", shell)
 
-        def _make_alias(ex):
+        def _make_alias(ex) -> None:
             ex.alias('tell', 'echo')
 
         r = self._create_context([])
@@ -645,11 +663,11 @@ class TestShells(TestBase, TempdirMixin):
         self.assertEqual(0, p.returncode)
 
     @per_available_shell()
-    def test_alias_return_code(self, shell):
+    def test_alias_return_code(self, shell) -> None:
         """Ensure return codes are correct while using aliases."""
         config.override("default_shell", shell)
 
-        def _make_alias(ex):
+        def _make_alias(ex) -> None:
             ex.alias('my_alias', 'hello_world -r 1')
 
         r = self._create_context(["hello_world"])
@@ -671,6 +689,64 @@ class TestShells(TestBase, TempdirMixin):
             with open(exe_path, 'w'):
                 config.override(override_attr, exe_path)
                 assert cls.find_executable(cls.executable_name()) == exe_path
+
+    @unittest.skipIf("zsh" not in get_available_shells(), "zsh is not available")
+    def test_zsh_zshenv(self):
+        """Test fix for issue #2058: rez context fails to load in zsh when
+        ``~/.zshenv`` exists.
+        """
+        config.override("default_shell", "zsh")
+
+        user_home = os.path.join(self.root, "user_home")
+        os.makedirs(user_home)
+
+        # The user's .zshenv records what HOME and ZDOTDIR look like at the
+        # time zsh sources it. We can't use ``command=`` mode to inspect this:
+        # that path bypasses the HOME/ZDOTDIR-hijacking branch entirely and
+        # just inlines the rez context into rez-shell.sh. Only ``stdin`` (or
+        # a fully-interactive launch) exercises the code path that this fix
+        # touches.
+        marker_file = os.path.join(self.root, "zshenv_marker.txt")
+        zshenv_path = os.path.join(user_home, ".zshenv")
+        with open(zshenv_path, "w") as fh:
+            fh.write('echo -n "HOME=$HOME\nZDOTDIR=$ZDOTDIR" > "%s"\n' % marker_file)
+
+        with restore_os_environ():
+            os.environ["HOME"] = user_home
+            os.environ.pop("ZDOTDIR", None)
+
+            r = self._create_context([])
+            p = r.execute_shell(
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                text=True,
+            )
+            p.communicate(input="exit")
+            self.assertEqual(p.returncode, 0)
+
+        # The user's .zshenv is sourced twice: once by the outer zsh that
+        # runs rez-shell.sh (before ZDOTDIR is set), and once by the rez
+        # wrapper .zshenv launched by the inner ``zsh -s``. The inner one
+        # runs last and wins, so the marker reflects the env the rez wrapper
+        # exposes to the user's .zshenv.
+        with open(marker_file) as fh:
+            content = fh.read().strip()
+
+        # HOME must be preserved (not silently redirected to rez's tmpdir).
+        self.assertIn("HOME=" + user_home, content)
+
+        # ZDOTDIR must point to the rez wrapper tmpdir, which actually
+        # contains the generated wrapper files.
+        zdotdir = content.split("ZDOTDIR=", 1)[1].strip()
+        self.assertTrue(
+            zdotdir,
+            "ZDOTDIR should be set to the rez wrapper tmpdir, got: %r"
+            % content,
+        )
+        self.assertTrue(
+            os.path.isfile(os.path.join(zdotdir, ".zshenv")),
+            "Expected rez wrapper .zshenv in ZDOTDIR=%s" % zdotdir,
+        )
 
 
 if __name__ == '__main__':

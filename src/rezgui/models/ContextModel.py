@@ -31,7 +31,7 @@ class ContextModel(QtCore.QObject):
     PACKAGE_FILTER_CHANGED = 32
     CACHING_CHANGED = 64
 
-    def __init__(self, context=None, parent=None):
+    def __init__(self, context=None, parent=None) -> None:
         super(ContextModel, self).__init__(parent)
 
         self._context = None
@@ -137,19 +137,19 @@ class ContextModel(QtCore.QObject):
                     d[lock].append(request)
         return d
 
-    def set_request(self, request_strings):
+    def set_request(self, request_strings) -> None:
         self._attr_changed("request", request_strings, self.REQUEST_CHANGED)
 
-    def set_packages_path(self, packages_path):
+    def set_packages_path(self, packages_path) -> None:
         self._attr_changed("packages_path", packages_path, self.PACKAGES_PATH_CHANGED)
 
-    def set_package_filter(self, package_filter):
+    def set_package_filter(self, package_filter) -> None:
         self._attr_changed("package_filter", package_filter, self.PACKAGE_FILTER_CHANGED)
 
-    def set_caching(self, caching):
+    def set_caching(self, caching) -> None:
         self._attr_changed("caching", caching, self.CACHING_CHANGED)
 
-    def save(self, filepath):
+    def save(self, filepath) -> None:
         assert self._context
         assert not self._stale
         self._context.save(filepath)
@@ -157,26 +157,26 @@ class ContextModel(QtCore.QObject):
         self._modified = False
         self.dataChanged.emit(self.LOADPATH_CHANGED)
 
-    def set_default_patch_lock(self, lock):
+    def set_default_patch_lock(self, lock) -> None:
         self._attr_changed("default_patch_lock", lock, self.LOCKS_CHANGED)
 
-    def set_patch_lock(self, package_name, lock):
+    def set_patch_lock(self, package_name, lock) -> None:
         existing_lock = self.patch_locks.get(package_name)
         if lock != existing_lock:
             self.patch_locks[package_name] = lock
             self._changed(self.LOCKS_CHANGED)
 
-    def remove_patch_lock(self, package_name):
+    def remove_patch_lock(self, package_name) -> None:
         if package_name in self.patch_locks:
             del self.patch_locks[package_name]
             self._changed(self.LOCKS_CHANGED)
 
-    def remove_all_patch_locks(self):
+    def remove_all_patch_locks(self) -> None:
         if self.patch_locks:
             self.patch_locks = {}
             self._changed(self.LOCKS_CHANGED)
 
-    def resolve_context(self, verbosity=0, max_fails=-1, timestamp=None,
+    def resolve_context(self, verbosity: int=0, max_fails=-1, timestamp=None,
                         callback=None, buf=None, package_load_callback=None):
         """Update the current context by performing a re-resolve.
 
@@ -210,12 +210,12 @@ class ContextModel(QtCore.QObject):
         """Return True if the model is revertable, False otherwise."""
         return bool(self._stale and self._context)
 
-    def revert(self):
+    def revert(self) -> None:
         """Discard any pending changes."""
         if self.can_revert():
             self._set_context(self._context)
 
-    def set_context(self, context):
+    def set_context(self, context) -> None:
         """Replace the current context with another."""
         self._set_context(context, emit=False)
         self._modified = (not context.load_path)
@@ -227,7 +227,7 @@ class ContextModel(QtCore.QObject):
                               self.PACKAGE_FILTER_CHANGED |
                               self.CACHING_CHANGED)
 
-    def _set_context(self, context, emit=True):
+    def _set_context(self, context, emit: bool = True) -> None:
         self._context = context
         self._stale = False
         self._dependency_lookup = None
@@ -245,12 +245,12 @@ class ContextModel(QtCore.QObject):
                                   self.PACKAGES_PATH_CHANGED |
                                   self.LOCKS_CHANGED)
 
-    def _changed(self, flags):
+    def _changed(self, flags) -> None:
         self._stale = True
         self._modified = True
         self.dataChanged.emit(flags)
 
-    def _attr_changed(self, attr, value, flags):
+    def _attr_changed(self, attr, value, flags) -> None:
         if getattr(self, attr) == value:
             return
         setattr(self, attr, value)

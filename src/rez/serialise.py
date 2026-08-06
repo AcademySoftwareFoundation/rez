@@ -5,6 +5,8 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from __future__ import annotations
+
 from contextlib import contextmanager
 from enum import Enum
 from inspect import isfunction, ismodule
@@ -41,7 +43,7 @@ class FileFormat(Enum):
 
     __order__ = "py,yaml,txt"
 
-    def __init__(self, extension):
+    def __init__(self, extension) -> None:
         self.extension = extension
 
 
@@ -104,8 +106,8 @@ def open_file_for_write(filepath, mode=None):
     file_cache[filepath] = cache_filepath
 
 
-def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
-                   disable_memcache=False):
+def load_from_file(filepath: str, format_=FileFormat.py, update_data_callback=None,
+                   disable_memcache: bool = False):
     """Load data from a file.
 
     Note:
@@ -156,11 +158,11 @@ def _load_from_file__key(filepath, format_, update_data_callback):
            min_compress_len=config.memcached_package_file_min_compress_len,
            key=_load_from_file__key,
            debug=config.debug_memcache)
-def _load_from_file(filepath, format_, update_data_callback):
+def _load_from_file(filepath: str, format_, update_data_callback):
     return _load_file(filepath, format_, update_data_callback)
 
 
-def _load_file(filepath, format_, update_data_callback, original_filepath=None):
+def _load_file(filepath: str, format_, update_data_callback, original_filepath=None):
     load_func = load_functions[format_]
 
     if debug_print:
@@ -219,7 +221,7 @@ def set_objects(objects):
         _set_objects.variables = {}
 
 
-def load_py(stream, filepath=None):
+def load_py(stream, filepath: str = None):
     """Load python-formatted data from a stream.
 
     Args:
@@ -232,7 +234,7 @@ def load_py(stream, filepath=None):
         return _load_py(stream, filepath=filepath)
 
 
-def _load_py(stream, filepath=None):
+def _load_py(stream, filepath: str = None):
     scopes = ScopeContext()
 
     g = dict(scope=scopes,
@@ -276,7 +278,7 @@ class EarlyThis(object):
 
     Just exposes raw package data as object attributes.
     """
-    def __init__(self, data):
+    def __init__(self, data) -> None:
         self._data = data
 
     def __getattr__(self, attr):
@@ -293,7 +295,7 @@ class EarlyThis(object):
         return value
 
 
-def process_python_objects(data, filepath=None):
+def process_python_objects(data: dict, filepath: str | None = None) -> dict:
     """Replace certain values in the given package data dict.
 
     Does things like:
@@ -397,7 +399,7 @@ def process_python_objects(data, filepath=None):
     return data
 
 
-def load_yaml(stream, **kwargs):
+def load_yaml(stream, filepath: str = None):
     """Load yaml-formatted data from a stream.
 
     Args:
@@ -426,7 +428,7 @@ def load_yaml(stream, **kwargs):
         raise e
 
 
-def load_txt(stream, **kwargs):
+def load_txt(stream, filepath: str = None):
     """Load text data from a stream.
 
     Args:
@@ -439,7 +441,7 @@ def load_txt(stream, **kwargs):
     return content
 
 
-def clear_file_caches():
+def clear_file_caches() -> None:
     """Clear any cached files."""
     _load_from_file.forget()
 

@@ -6,31 +6,46 @@
 unit tests for 'rez.utils.filesystem' module
 """
 import os.path
+import sys
 import tempfile
 
 from rez.tests.util import TestBase
 from rez.tests.util import TempdirMixin
 from rez.utils import filesystem
 from rez.utils.platform_ import platform_
-import unittest
+import unittest.mock
+
+
+def rmtree_file_not_found_error(path, onerror):
+    try:
+        raise FileNotFoundError("File not found", path)
+    except:
+        onerror(None, path, sys.exc_info())
+
+
+def rmtree_permission_error(path, onerror):
+    try:
+        raise PermissionError("Permission denied", path)
+    except:
+        onerror(None, path, sys.exc_info())
 
 
 class TestFileSystem(TestBase, TempdirMixin):
 
-    def __init__(self, *nargs, **kwargs):
+    def __init__(self, *nargs, **kwargs) -> None:
         super().__init__(*nargs, **kwargs)
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         super().setUpClass()
         TempdirMixin.setUpClass()
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         super().tearDownClass()
         TempdirMixin.tearDownClass()
 
-    def test_windows_rename_fallback_to_robocopy(self):
+    def test_windows_rename_fallback_to_robocopy(self) -> None:
         if platform_.name != 'windows':
             self.skipTest('Robocopy is only available on windows.')
         src = tempfile.mkdtemp(dir=self.root)
@@ -41,7 +56,7 @@ class TestFileSystem(TestBase, TempdirMixin):
             self.assertTrue(os.path.exists(dst))
             self.assertFalse(os.path.exists(src))
 
-    def test_windows_robocopy_failed(self):
+    def test_windows_robocopy_failed(self) -> None:
         if platform_.name != 'windows':
             self.skipTest('Robocopy is only available on windows.')
         src = tempfile.mkdtemp(dir=self.root)
@@ -54,7 +69,7 @@ class TestFileSystem(TestBase, TempdirMixin):
                     filesystem.rename(src, dst)
                 self.assertEqual(str(err.exception), "Rename {} to {} failed.".format(src, dst))
 
-    def test_rename_folder_with_permission_error_and_no_robocopy(self):
+    def test_rename_folder_with_permission_error_and_no_robocopy(self) -> None:
         src = tempfile.mkdtemp(dir=self.root)
         dst = tempfile.mkdtemp(dir=self.root)
         with unittest.mock.patch("os.rename") as mock_rename:
@@ -65,7 +80,7 @@ class TestFileSystem(TestBase, TempdirMixin):
                     filesystem.rename(src, dst)
                 self.assertEqual(str(err.exception), "Permission denied")
 
-    def test_rename_folder_with_permission_error_and_src_is_file(self):
+    def test_rename_folder_with_permission_error_and_src_is_file(self) -> None:
         src = tempfile.mktemp(dir=self.root)
         dst = tempfile.mktemp(dir=self.root)
         with open(src, "w") as file_:
@@ -78,7 +93,7 @@ class TestFileSystem(TestBase, TempdirMixin):
         self.assertFalse(os.path.exists(dst))
         self.assertTrue(os.path.exists(src))
 
-    def test_rename_file(self):
+    def test_rename_file(self) -> None:
         src = tempfile.mktemp(dir=self.root)
         dst = tempfile.mktemp(dir=self.root)
         with open(src, "w") as file_:
@@ -86,3 +101,27 @@ class TestFileSystem(TestBase, TempdirMixin):
         filesystem.rename(src, dst)
         self.assertTrue(os.path.exists(dst))
         self.assertFalse(os.path.exists(src))
+
+    def test_safe_rmtree_with_file_not_found(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error):
+            with self.assertRaises(FileNotFoundError):
+                filesystem.safe_rmtree("path")
+
+    def test_safe_rmtree_with_other_error(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
+            with self.assertRaises(PermissionError):
+                filesystem.safe_rmtree("path")
+
+    def test_safe_rmtree_with_file_not_found_and_apple_double(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error) as mock_rmtree:
+            if platform_.name == 'osx':
+                filesystem.safe_rmtree("._path")
+                mock_rmtree.assert_called_once_with("._path", onerror=unittest.mock.ANY)
+            else:
+                with self.assertRaises(FileNotFoundError):
+                    filesystem.safe_rmtree("._path")
+
+    def test_safe_rmtree_with_other_error_and_apple_double(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
+            with self.assertRaises(PermissionError):
+                filesystem.safe_rmtree("._path")

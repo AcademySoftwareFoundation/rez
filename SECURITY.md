@@ -20,10 +20,10 @@ rapidly and post patches within 14 days if possible.
 
 ## Known Vulnerabilities
 
-The only currently known security vulnerability is issue [#417](https://github.com/AcademySoftwareFoundation/rez/issues/417), reported by @ttanimura.
-No others are known at this time.
+The only currently known security vulnerability is issue [#417](https://github.com/AcademySoftwareFoundation/rez/issues/417),
+reported by @ttanimura, which was fixed in the version 3.4.0. No others are known at this time.
 
-See the [release notes](CHANGES.md) for more information.
+See the [release notes](CHANGELOG.md) for more information.
 
 ## Supported Versions
 
@@ -35,18 +35,9 @@ reasonable to expect that users of rez attempt to stay close to the newest versi
 
 ## Signed Releases
 
-Signed releases are not yet supported.
-
-We plan to add signed releases soon. The following details are speculative but likely:
-
-Release artifacts are signed via
-[sigstore](https://www.sigstore.dev). See
-[release-sign.yml](.github/workflows/release-sign.yml) for details.
-
-To verify a downloaded release at a given tag:
-
-    % pip install sigstore
-    % sigstore verify github --cert-identity https://github.com/AcademySoftwareFoundation/rez/.github/workflows/release-sign.yml@refs/tags/<tag> rez-<tag>.tar.gz
+Release artifacts are signed via [sigstore](https://www.sigstore.dev).
+See https://rez.readthedocs.io/en/stable/installation.html#verifying-release-artifacts
+for information on how to verify our releases.
 
 ## Security Expectations
 

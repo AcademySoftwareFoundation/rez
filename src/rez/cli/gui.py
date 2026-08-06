@@ -5,9 +5,10 @@
 """
 Run the Rez GUI application.
 """
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--diff", nargs=2, metavar=("RXT1", "RXT2"),
         help="open in diff mode with the given contexts")
@@ -20,6 +21,6 @@ def setup_parser(parser, completions=False):
         FILE_action.completer = FilesCompleter()
 
 
-def command(opts, parser=None, extra_arg_groups=None):
+def command(opts, parser=None, extra_arg_groups=None) -> None:
     from rezgui.app import run
     run(opts, parser)

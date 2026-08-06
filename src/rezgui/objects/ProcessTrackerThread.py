@@ -11,7 +11,7 @@ class ProcessTrackerThread(QtCore.QThread):
 
     instanceCountChanged = QtCore.Signal(int, str, int)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(ProcessTrackerThread, self).__init__(parent)
         self.processes = {}
         self.proc_list = []
@@ -21,7 +21,7 @@ class ProcessTrackerThread(QtCore.QThread):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._update)
 
-    def run(self):
+    def run(self) -> None:
         self.timer.start()
         self.exec_()
 
@@ -41,7 +41,7 @@ class ProcessTrackerThread(QtCore.QThread):
         entries = [x for x in it if x[0].poll() is None]
         return entries
 
-    def add_instance(self, context, process_name, process):
+    def add_instance(self, context, process_name, process) -> None:
         try:
             self.lock.acquire()
             entry = (id(context), process_name, process, int(time.time()))
@@ -49,7 +49,7 @@ class ProcessTrackerThread(QtCore.QThread):
         finally:
             self.lock.release()
 
-    def _update(self):
+    def _update(self) -> None:
         # add pending instances
         if self.pending_procs:
             try:

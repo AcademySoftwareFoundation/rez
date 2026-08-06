@@ -11,10 +11,11 @@ import logging
 import urllib.parse
 import queue
 
-from rez.utils.logging_ import print_error
+from rez.utils.logging_ import print_debug, print_error, print_warning
 from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
 from rez.vendor.pika.connection import ConnectionParameters
 from rez.vendor.pika.credentials import PlainCredentials
+from rez.vendor.pika.exceptions import AMQPConnectionError
 from rez.vendor.pika.spec import BasicProperties
 from rez.config import config
 
@@ -25,7 +26,7 @@ _thread = None
 _num_pending = 0
 
 
-def publish_message(host, amqp_settings, routing_key, data, block=True):
+def publish_message(host, amqp_settings, routing_key, data, block: bool = True):
     """Publish an AMQP message.
 
     Returns:
@@ -58,7 +59,7 @@ def publish_message(host, amqp_settings, routing_key, data, block=True):
     return True
 
 
-def _publish_message(host, amqp_settings, routing_key, data):
+def _publish_message(host, amqp_settings, routing_key, data) -> bool:
     """Publish an AMQP message.
 
     Returns:
@@ -68,7 +69,8 @@ def _publish_message(host, amqp_settings, routing_key, data):
         print("Published to %s: %s" % (routing_key, data))
         return True
 
-    set_pika_log_level()
+    if config.debug("context_tracking"):
+        set_pika_log_level()
 
     conn_kwargs = dict()
 
@@ -77,6 +79,7 @@ def _publish_message(host, amqp_settings, routing_key, data):
         "connection_name": "rez.publish.%s" % socket.gethostname()
     }
 
+    original_host = host
     host, port = parse_host_and_port(url=host)
     conn_kwargs["host"] = host
     if port is not None:
@@ -101,8 +104,13 @@ def _publish_message(host, amqp_settings, routing_key, data):
 
     try:
         conn = BlockingConnection(params)
-    except socket.error as e:
-        print_error("Cannot connect to the message broker: %s" % e)
+    except (socket.error, AMQPConnectionError) as e:
+        if original_host:
+            # Host was explicitly passed in. This is an unexpected failure.
+            print_warning("Cannot connect to the message broker: %s" % e)
+        elif config.debug("context_tracking"):
+            # No host configured, only display this in debug.
+            print_debug("Cannot connect to the message broker: %s" % e)
         return False
 
     try:
@@ -123,7 +131,7 @@ def _publish_message(host, amqp_settings, routing_key, data):
     return True
 
 
-def _publish_messages_async():
+def _publish_messages_async() -> None:
     global _num_pending
 
     while True:
@@ -137,7 +145,7 @@ def _publish_messages_async():
 
 
 @atexit.register
-def on_exit():
+def on_exit() -> None:
     # Give pending messages a chance to publish, otherwise a command like
     # 'rez-env --output ...' could exit before the publish.
     #
@@ -150,19 +158,19 @@ def on_exit():
 
 
 def parse_host_and_port(url):
+    # Prepend // unless the URL already has a scheme (e.g. "amqp://").
+    # A bare "host:port" string causes urlsplit to misparse the hostname.
+    if "://" not in url and not url.startswith("//"):
+        url = "//" + url
     _url = urllib.parse.urlsplit(url)
-    if not _url.scheme:
-        _url = urllib.parse.urlsplit("//" + url)
     host = _url.hostname
     port = _url.port
 
     return host, port
 
 
-def set_pika_log_level():
+def set_pika_log_level() -> None:
     mod_name = "rez.vendor.pika"
 
     if config.debug("context_tracking"):
         logging.getLogger(mod_name).setLevel(logging.DEBUG)
-    else:
-        logging.getLogger(mod_name).setLevel(logging.WARNING)

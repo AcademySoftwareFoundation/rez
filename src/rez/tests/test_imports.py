@@ -10,7 +10,7 @@ import unittest
 
 
 class TestImports(TestBase):
-    def test_1(self):
+    def test_1(self) -> None:
         """import every file in rez."""
         import rez  # noqa
         import rez.build_process  # noqa

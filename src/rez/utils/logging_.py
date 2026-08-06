@@ -12,57 +12,57 @@ import os
 logger = logging.getLogger(__name__)
 
 
-def print_debug(msg, *nargs):
+def print_debug(msg, *nargs) -> None:
     logger.debug(msg, *nargs)
 
 
-def print_info(msg, *nargs):
+def print_info(msg, *nargs) -> None:
     logger.info(msg, *nargs)
 
 
-def print_warning(msg, *nargs):
+def print_warning(msg, *nargs) -> None:
     logger.warning(msg, *nargs)
 
 
-def print_error(msg, *nargs):
+def print_error(msg, *nargs) -> None:
     logger.error(msg, *nargs)
 
 
-def print_critical(msg, *nargs):
+def print_critical(msg, *nargs) -> None:
     logger.critical(msg, *nargs)
 
 
-def get_debug_printer(enabled=True):
+def get_debug_printer(enabled: bool = True):
     return _Printer(enabled, logger.debug)
 
 
-def get_info_printer(enabled=True):
+def get_info_printer(enabled: bool = True):
     return _Printer(enabled, logger.info)
 
 
-def get_warning_printer(enabled=True):
+def get_warning_printer(enabled: bool = True):
     return _Printer(enabled, logger.warning)
 
 
-def get_error_printer(enabled=True):
+def get_error_printer(enabled: bool = True):
     return _Printer(enabled, logger.error)
 
 
-def get_critical_printer(enabled=True):
+def get_critical_printer(enabled: bool = True):
     return _Printer(enabled, logger.critical)
 
 
 class _Printer(object):
-    def __init__(self, enabled=True, printer_function=None):
+    def __init__(self, enabled: bool = True, printer_function=None) -> None:
         self.printer_function = printer_function if enabled else None
 
-    def __call__(self, msg, *nargs):
+    def __call__(self, msg, *nargs) -> None:
         if self.printer_function:
             if nargs:
                 msg = msg % nargs
             self.printer_function(msg)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.printer_function)
 
 
@@ -76,7 +76,7 @@ def log_duration(printer, msg):
     printer(msg, str(secs))
 
 
-def view_file_logs(globbed_path, loglevel_index=None):
+def view_file_logs(globbed_path, loglevel_index=None) -> None:
     """View logs from one or more logfiles.
 
     Prints to stdout.

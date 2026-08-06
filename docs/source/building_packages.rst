@@ -31,12 +31,12 @@ The Build Environment
 The build environment is a rez resolved environment. Its requirement list is
 constructed like so:
 
-* First, the package's :attr:`requires` list is used;
-* Then, the package's :attr:`build_requires` is
-  appended. This is transitive, meaning that the :attr:`build_requires` of all other packages in the
+* First, the package's :pkgdef:attr:`requires` list is used;
+* Then, the package's :pkgdef:attr:`build_requires` is
+  appended. This is transitive, meaning that the :pkgdef:attr:`build_requires` of all other packages in the
   environment are also used;
-* Then, the package's :attr:`private_build_requires`
-  is appended (unlike :attr:`build_requires`, it is not transitive).
+* Then, the package's :pkgdef:attr:`private_build_requires`
+  is appended (unlike :pkgdef:attr:`build_requires`, it is not transitive).
 * Finally, if the package has variants, the current variant's requirements are
   appended.
 
@@ -53,12 +53,12 @@ example: a C++ project may need to builds its docs using doxygen, but once the d
 generated, doxygen is no longer needed.
 
 This is achieved by listing build-time dependencies under a
-:attr:`build_requires` or :attr:`private_build_requires`
-section in the ``package.py``. The requirements in :attr:`private_build_requires` are only used
-from the package being built. Requirements from :attr:`build_requires` however are transitive, build
+:pkgdef:attr:`build_requires` or :pkgdef:attr:`private_build_requires`
+section in the ``package.py``. The requirements in :pkgdef:attr:`private_build_requires` are only used
+from the package being built. Requirements from :pkgdef:attr:`build_requires` however are transitive, build
 requirements from all packages in the build environment are included.
 
-Some example :attr:`private_build_requires` use cases include:
+Some example :pkgdef:attr:`private_build_requires` use cases include:
 
 * Documentation generators such as ``doxygen`` or ``sphinx``;
 * Build utilities. For example, you may have a package called ``pyqt_cmake_utils``, which
@@ -66,7 +66,7 @@ Some example :attr:`private_build_requires` use cases include:
 * Statically linked libraries (since the library is linked at build time, the package
   is not needed at runtime).
 
-An example use case of :attr:`build_requires` is a header-only (hpp) C++ library. If your own
+An example use case of :pkgdef:attr:`build_requires` is a header-only (hpp) C++ library. If your own
 C++ package includes this library in its own headers, other packages will also need this
 library at build time (since they may include your headers, which in turn include the
 hpp headers).
@@ -84,9 +84,9 @@ Having said that, `CMake <https://cmake.org/>`_ has been supported by rez for so
 decent amount of utility code to manage CMake builds.
 
 When a rez environment is configured, each required package's
-:func:`~commands` section configures the environment for the building
+:pkgdef:func:`~commands` section configures the environment for the building
 package to use. When a build is occurring, a special variable
-:attr:`building` is set to ``True``. Your required packages should use this
+:rex:attr:`building` is set to ``True``. Your required packages should use this
 variable to communicate build information to the package being built.
 
 For example, our ``boost`` package's commands might look like so:
@@ -99,8 +99,8 @@ For example, our ``boost`` package's commands might look like so:
          env.CMAKE_MODULE_PATH.append("{root}/cmake")
 
 .. warning::
-   Note that :func:`commands` is never executed for the package actually being built.
-   If you want to run commands in that case, you can use :func:`pre_build_commands` instead.
+   Note that :pkgdef:func:`commands` is never executed for the package actually being built.
+   If you want to run commands in that case, you can use :pkgdef:func:`pre_build_commands` instead.
 
 A (very simple) ``FindBoost.cmake`` file might look like this:
 
@@ -161,7 +161,7 @@ Custom Build Commands
 
 As well as detecting the build system from build files, a package can explicitly
 specify its own build command, using the
-:attr:`build_command` package attribute. If present,
+:pkgdef:attr:`build_command` package attribute. If present,
 this takes precedence over other detected build systems.
 
 For example, consider the following ``package.py`` snippet:
