@@ -557,8 +557,6 @@ class UnixShell(Shell):
                                  % (cmd_str, str(e)))
         return p
 
-    def resetenv(self, key, value, friends=None):
-        self.setenv(key, value)
     def _startup_env_var(self) -> str:
         """Environment variable used to redirect shell startup file loading to tmpdir.
         Shells that support dedicated dotfile directory var (e.g., zsh's ZDOTDIR)
