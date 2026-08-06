@@ -286,8 +286,8 @@ class PowerShellBase(Shell):
             'Remove-Item -ErrorAction SilentlyContinue "Env:{0}"'.format(key)
         )
 
-    def resetenv(self, key, value, friends=None) -> None:
-        self._addline(self.setenv(key, value))
+    def resetenv(self, key, value, friends=None):
+        self.setenv(key, value)
 
     def alias(self, key, value: str | EscapedString) -> None:
         value = EscapedString.disallow(value)
