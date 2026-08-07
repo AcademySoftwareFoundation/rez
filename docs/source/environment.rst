@@ -88,6 +88,14 @@ dots replaced with underscore.
 
    The root directory of the package installation (actually,the variant), eg ``/packages/utils/1.0.0/python-2.7``.
 
+.. envvar:: REZ_(PKG)_ORIG_ROOT
+
+   The original root directory of the package installation (actually, the
+   variant), before package caching retargets :envvar:`REZ_(PKG)_ROOT` to the
+   cached payload. It is only set when the package is cached.
+
+   .. seealso:: Documentation on :ref:`package caching <package-caching>`.
+
 .. envvar:: REZ_(PKG)_VERSION
 
    The version of the package.
