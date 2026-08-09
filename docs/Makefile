@@ -25,4 +25,5 @@ livehtml:
 clean:
 	rm -rf _build
 	rm -rf source/api
+	rm -rf source/apivendor
 	rm -rf source/commands

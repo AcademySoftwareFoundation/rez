@@ -51,3 +51,12 @@ Python API
    rez.utils
    rez.version
    rez.wrapper
+   rezplugins.package_repository.memory
+
+.. autosummary::
+   :toctree: apivendor
+   :recursive:
+
+   rez.vendor.pygraph.classes
+   rez.vendor.packaging.version.InvalidVersion
+   rez.vendor.schema.schema

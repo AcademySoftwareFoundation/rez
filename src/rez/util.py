@@ -213,12 +213,10 @@ def resolve_variant_indices(
         num_variants: Total number of variants in the package.
 
     Returns:
-        A 2-tuple of:
-        - resolved (set[int]): Canonical non-negative indices.
-        - invalid (list[int]): Any indices outside [-num_variants, num_variants-1],
-          sorted for deterministic error messages. Empty when all indices are valid.
-          When num_variants is 0 the package has no explicit variants; the
-          input is returned unchanged and invalid is always empty.
+        tuple[set[int], list[int]]: The resolved and invalid indices. Invalid
+        indices are sorted for deterministic error messages. When
+        ``num_variants`` is 0, the input is returned unchanged and the invalid
+        indices are always empty.
     """
     if num_variants <= 0:
         return set(variants), []
