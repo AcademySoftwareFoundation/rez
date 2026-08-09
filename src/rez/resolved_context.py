@@ -68,7 +68,7 @@ CallableT = TypeVar("CallableT", bound=Callable)
 
 
 class RezToolsVisibility(Enum):
-    """Determines if/how rez cli tools are added back to PATH within a
+    """Determines if/how rez cli tools are added back to $PATH within a
     resolved environment.
     """
     #: Don't expose rez in resolved env
@@ -114,20 +114,20 @@ def get_lock_request(name: str,
                      weak: bool = True) -> PackageRequest | None:
     """Given a package and patch lock, return the equivalent request.
 
-    For example, for object 'foo-1.2.1' and lock type 'lock_3', the equivalent
-    request is '~foo-1.2'. This restricts updates to foo to patch-or-lower
+    For example, for object ``foo-1.2.1`` and lock type ``lock_3``, the equivalent
+    request is ``~foo-1.2``. This restricts updates to foo to patch-or-lower
     version changes only.
 
     For objects not versioned down to a given lock level, the closest possible
-    lock is applied. So 'lock_3' applied to 'foo-1' would give '~foo-1'.
+    lock is applied. So ``lock_3`` applied to ``foo-1`` would give ``~foo-1``.
 
     Args:
-        name (str): Package name.
-        version (Version): Package version.
-        patch_lock (PatchLock): Lock type to apply.
+        name: Package name.
+        version: Package version.
+        patch_lock: Lock type to apply.
 
     Returns:
-        typing.Optional[PackageRequest]: PackageRequest object, or None if there is no equivalent request.
+        PackageRequest object, or None if there is no equivalent request.
     """
     ch = '~' if weak else ''
     if patch_lock == PatchLock.lock:
@@ -161,15 +161,31 @@ class ResolvedContext(object):
     supported shell plugin type, such as bash and tcsh. It can also run a
     command within a configured python namespace, without spawning a child
     shell.
+
+    Creating an instance will resolve the requested package requests.
+
+    An existing environment (context) can be loaded by using either
+    :meth:`load` or :meth:`read_from_buffer`.
+
+    Saving the environment for later reuse can be done using :meth:`save`
+    or :meth:`write_to_buffer`.
     """
+
+    #: :meta private:
     serialize_version = (4, 9)
+    #: :meta private:
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
+    #: :meta private:
     context_tracking_payload: dict[str, Any] | None = None
+    #: :meta private:
     context_tracking_lock = threading.Lock()
+    #: :meta private:
     package_cache_present = True
+    #: :meta private:
     local = threading.local()
 
     class Callback(object):
+        """:meta private:"""
         def __init__(self, max_fails: int, time_limit: int,
                      callback: Callable[[SolverState], tuple[SolverCallbackReturn, str]] | None,
                      buf: SupportsWrite | None = None) -> None:
@@ -215,54 +231,63 @@ class ResolvedContext(object):
         """Perform a package resolve, and store the result.
 
         Args:
-            package_requests (list[typing.Union[str, Requirement]]): request
-            verbosity (int): Verbosity level. One of [0,1,2].
-            timestamp (float): Ignore packages released after this epoch time. Packages
+            package_requests: request
+            verbosity: Verbosity level. One of 0, 1 or 2.
+            timestamp: Ignore packages released after this epoch time. Packages
                 released at exactly this time will not be ignored.
-            building (bool): True if we're resolving for a build.
-            testing (bool): True if we're resolving for a test (rez-test).
-            caching (bool): If True, cache(s) may be used to speed the resolve. If
+            building: True if we're resolving for a build.
+            testing: True if we're resolving for a test (rez-test).
+            caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used. If None, :data:`resolve_caching`
                 is used.
-            package_paths (list[str]): List of paths to search for pkgs, defaults to
+            package_paths: List of paths to search for pkgs, defaults to
                 :data:`packages_path`.
-            package_filter (PackageFilterList): Filter used to exclude certain
+            package_filter: Filter used to exclude certain
                 packages. Defaults to settings from :data:`package_filter`. Use
                 :data:`rez.package_filter.no_filter` to remove all filtering.
-            package_orderers (list[PackageOrder]): Custom package ordering.
+            package_orderers: Custom package ordering.
                 Defaults to settings from :data:`package_orderers`.
-            add_implicit_packages (bool): If True, the implicit package list defined
+            add_implicit_packages: If True, the implicit package list defined
                 by :data:`implicit_packages` is appended to the request.
-            max_fails (int): Abort the resolve if the number of failed steps is
+            max_fails: Abort the resolve if the number of failed steps is
                 greater or equal to this number. If -1, does not abort.
-            time_limit (int): Abort the resolve if it takes longer than this
+            time_limit: Abort the resolve if it takes longer than this
                 many seconds. If -1, there is no time limit.
             callback: See :class:`.Solver`.
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 :class:`.Package` object.
-            buf (typing.IO): Where to print verbose output to, defaults
+            buf: Where to print verbose output to, defaults
                 to stdout.
-            suppress_passive (bool): If True, don't print debugging info that
+            suppress_passive: If True, don't print debugging info that
                 has had no effect on the solve. This argument only has an
                 effect if ``verbosity`` > 2.
-            print_stats (bool): If True, print advanced solver stats at the end.
-            package_caching (bool|None): If True, apply package caching settings
+            print_stats: If True, print advanced solver stats at the end.
+            package_caching: If True, apply package caching settings
                 as per the config. If None, enable as determined by config
                 setting :data:`package_cache_during_build`.
-            package_cache_async (bool|None): If True, cache packages asynchronously.
+            package_cache_async: If True, cache packages asynchronously.
                 If None, use the config setting :data:`package_cache_async`
         """
         self.load_path: str | None = None
 
         # resolving settings
+        #: The epoch time of this resolved environment, explicitly set by the user
+        #: with (for example) the :option:`rez-env --time` flag; zero otherwise.
         self.requested_timestamp = timestamp
-        self.timestamp = self.requested_timestamp or int(time.time())
-        self.building = building
-        self.testing = testing
+        #: The epoch time when this environment was resolved; OR, the value of
+        #: :data:`requested_timestamp`, if non-zero.
+        self.timestamp: float = self.requested_timestamp or int(time.time())
+        #: True if we're resolving for a build.
+        self.building: bool = building
+        #: True if we're resolving for a test (rez-test).
+        self.testing: bool = testing
+        #: List of packages that were implicitly added when the context was created.
         self.implicit_packages: list[Requirement] = []
-        self.caching = config.resolve_caching if caching is None else caching
-        self.verbosity = verbosity
+        #: Whether package payload caching is enabled or not.
+        self.caching: bool = config.resolve_caching if caching is None else caching
+        #: Verbosity level of the solver.
+        self.verbosity: int = verbosity
 
         self._package_requests: list[Requirement] = []
         for req in package_requests:
@@ -407,22 +432,15 @@ class ResolvedContext(object):
 
     @property
     def status(self) -> ResolverStatus:
-        """Return the current status of the context.
-
-        Returns:
-            ResolverStatus:
-        """
+        """Status of the context."""
         return self.status_
 
     def requested_packages(self, include_implicit: bool = False) -> list[Requirement]:
         """Get packages in the request.
 
         Args:
-            include_implicit (bool): If True, implicit packages are appended
+            include_implicit: If True, implicit packages are appended
                 to the result.
-
-        Returns:
-            list[Requirement]:
         """
         if include_implicit:
             return self._package_requests + self.implicit_packages
@@ -434,7 +452,7 @@ class ResolvedContext(object):
         """Get packages in the resolve.
 
         Returns:
-            typing.Optional[list[Variant]]: Resolved variant objects, or None if the resolve failed.
+            Resolved variant objects, or None if the resolve failed.
         """
         return self._resolved_packages
 
@@ -443,7 +461,7 @@ class ResolvedContext(object):
         """Get non-conflict ephemerals in the resolve.
 
         Returns:
-            typing.Optional[list[Requirement]]: Requirement objects, or None if the resolve failed.
+            Requirement objects, or None if the resolve failed.
         """
         return self._resolved_ephemerals
 
@@ -488,7 +506,7 @@ class ResolvedContext(object):
         return bool((self.graph_ is not None) or self.graph_string)
 
     def get_resolved_package(self, name: str) -> Variant | None:
-        """Returns a `Variant` object or None if the package is not in the
+        """Returns a :class:`.Variant` object or None if the package is not in the
         resolve.
         """
         pkgs = [x for x in (self._resolved_packages or []) if x.name == name]
@@ -508,14 +526,14 @@ class ResolvedContext(object):
 
         Args:
             package_paths: List of paths to search for pkgs to retarget to.
-            package_names (list of str): Only retarget these packages. If None,
+            package_names: Only retarget these packages. If None,
                 retarget all packages.
-            skip_missing (bool): If True, skip retargeting of variants that
+            skip_missing: If True, skip retargeting of variants that
                 cannot be found in ``package_paths``. By default, a
                 :exc:`.PackageNotFoundError` is raised.
 
         Returns:
-            ResolvedContext: The retargeted context.
+            The retargeted context.
         """
         retargeted_variants: list[Variant | VariantResource] = []
 
@@ -585,14 +603,13 @@ class ResolvedContext(object):
         in the order that they appear in `package_requests`.
 
         Args:
-            package_requests (list[typing.Union[str, PackageRequest]):
-                Overriding requests.
-            package_subtractions (list[str]): Any original request with a
+            package_requests: Overriding requests.
+            package_subtractions: Any original request with a
                 package name in this list is removed, before the new requests
                 are added.
-            strict (bool): If True, the current context's resolve is used as the
+            strict: If True, the current context's resolve is used as the
                 original request list, rather than the request.
-            rank (int): If > 1, package versions can only increase in this rank
+            rank: If > 1, package versions can only increase in this rank
                 and further - for example, rank=3 means that only version patch
                 numbers are allowed to increase, major and minor versions will
                 not change. This is only applied to packages that have not been
@@ -600,7 +617,7 @@ class ResolvedContext(object):
                 ``strict`` is True, rank is ignored.
 
         Returns:
-            list[PackageRequest]: PackageRequests objects that can be used to construct a
+            PackageRequests objects that can be used to construct a
             new :class:`ResolvedContext` object.
         """
         # assemble source request
@@ -678,10 +695,10 @@ class ResolvedContext(object):
 
         Args:
             as_dot: If True, get the graph as a dot-language string. Otherwise,
-                a pygraph.digraph object is returned.
+                a :class:`.digraph` object is returned.
 
         Returns:
-            A string or `pygraph.digraph` object, or None if there is no graph
+            A string or :class:`.digraph` object, or None if there is no graph
             associated with the resolve.
         """
         if not self.has_graph:
@@ -723,7 +740,7 @@ class ResolvedContext(object):
         """Get the context for the current env, if there is one.
 
         Returns:
-            ResolvedContext: Current context, or None if not in a resolved env.
+            Current context, or None if not in a resolved env.
         """
         filepath = os.getenv("REZ_RXT_FILE")
         if not filepath or not os.path.exists(filepath):
@@ -734,7 +751,7 @@ class ResolvedContext(object):
     def is_current(self) -> bool | None:
         """
         Returns:
-            bool: True if this is the currently sourced context, False otherwise.
+            True if this is the currently sourced context, False otherwise.
         """
         if not self.load_path:
             return False
@@ -763,12 +780,12 @@ class ResolvedContext(object):
         except Exception as e:
             cls._load_error(e, identifier_str)
 
-    def get_resolve_diff(self, other: ResolvedContext) -> dict:
+    def get_resolve_diff(self, other: ResolvedContext) -> dict[str, Any]:
         """Get the difference between the resolve in this context and another.
 
         The difference is described from the point of view of the current context
-        - a newer package means that the package in `other` is newer than the
-        package in `self`.
+        - a newer package means that the package in ``other`` is newer than the
+        package in ``self``.
 
         Diffs can only be compared if their package search paths match, an error
         is raised otherwise.
@@ -777,22 +794,22 @@ class ResolvedContext(object):
         of a package is ignored.
 
         Returns:
-            dict: A dict containing:
+            A dict containing
 
-            - 'newer_packages': A dict containing items:
-                - package name (str);
-                - List of `Package` objects. These are the packages up to and
-                  including the newer package in `self`, in ascending order.
-            - 'older_packages': A dict containing:
-                - package name (str);
-                - List of `Package` objects. These are the packages down to and
-                  including the older package in `self`, in descending order.
-            - 'added_packages': Set of `Package` objects present in `self` but
-               not in `other`;
-            - 'removed_packages': Set of `Package` objects present in `other`,
-               but not in `self`.
+            - ``newer_packages``: A dict containing items:
+                - package name (``str``);
+                - List of :class:`.Package` objects. These are the packages up to and
+                  including the newer package in ``self``, in ascending order.
+            - ``older_packages``: A dict containing:
+                - package name (``str``);
+                - List of :class:`.Package` objects. These are the packages down to and
+                  including the older package in ``self``, in descending order.
+            - ``added_packages``: Set of :class:`.Package` objects present in ``self`` but
+               not in ``other``;
+            - ``removed_packages``: Set of :class:`.Package` objects present in ``other``,
+               but not in ``self``.
 
-            If any item ('added_packages' etc) is empty, it is not added to the
+            If any item (``added_packages``, etc) is empty, it is not added to the
             resulting dict. Thus, an empty dict is returned if there is no
             difference between contexts.
         """
@@ -857,13 +874,14 @@ class ResolvedContext(object):
         """Prints a message summarising the contents of the resolved context.
 
         Args:
-            buf (typing.IO): Where to print this info to.
-            verbosity (bool): Verbose mode.
-            source_order (bool): If True, print resolved packages in the order
+            buf: Where to print this info to.
+            verbosity: Verbose mode.
+            source_order: If True, print resolved packages in the order
                 they are sourced, rather than alphabetical order.
-            show_resolved_uris (bool): By default, resolved packages have their
-                'root' property listed, or their 'uri' if 'root' is None. Use
-                this option to list 'uri' regardless.
+            show_resolved_uris: By default, resolved packages have their
+                :attr:`.Variant.root` property listed, or their :attr:`.Variant.uri` if
+                :attr:`.Variant.root` is None. Use this option to list
+                :attr:`.Variant.uri` regardless.
         """
         _pr = Printer(buf)
 
@@ -1018,6 +1036,11 @@ class ResolvedContext(object):
             self.print_tools(buf=buf)
 
     def print_tools(self, buf: SupportsWrite = sys.stdout) -> None:
+        """Print the command line tools in a table.
+
+        Args:
+            buf: Where to print this info to.
+        """
         data = self.get_tools()
         if not data:
             return
@@ -1047,14 +1070,14 @@ class ResolvedContext(object):
         """Print the difference between the resolve of two contexts.
 
         Args:
-            other (ResolvedContext): Context to compare to.
+            other: Context to compare to.
             heading: One of:
 
                 - None: Do not display a heading;
                 - True: Display the filename of each context as a heading, if
                   both contexts have a filepath;
                 - 2-tuple: Use the given two strings as headings - the first is
-                  the heading for `self`, the second for `other`.
+                  the heading for ``self``, the second for ``other``.
         """
         d = self.get_resolve_diff(other)
         if not d:
@@ -1114,8 +1137,8 @@ class ResolvedContext(object):
     def get_dependency_graph(self, as_dot: bool = False) -> digraph | str:
         """Generate the dependency graph.
 
-        The dependency graph is a simpler subset of the resolve graph. It
-        contains package name nodes connected directly to their dependencies.
+        The dependency graph is a simpler subset of the resolve graph (:meth:`graph`).
+        It contains package name nodes connected directly to their dependencies.
         Weak references and conflict requests are not included in the graph.
         The dependency graph does not show conflicts.
 
@@ -1158,7 +1181,11 @@ class ResolvedContext(object):
 
     @_on_success
     def validate(self) -> None:
-        """Validate the context."""
+        """Validate the context.
+
+        Raises:
+            ResolvedContextError: If the context is not valid.
+        """
         try:
             for pkg in self.resolved_packages:
                 pkg.validate_data()
@@ -1167,7 +1194,7 @@ class ResolvedContext(object):
 
     @_on_success
     def get_environ(self, parent_environ: Mapping[str, str] | None = None) -> dict[str, str]:
-        """Get the environ dict resulting from interpreting this context.
+        """Get the environment variables resulting from interpreting this context.
 
         Args:
             parent_environ: Environment to interpret the context within,
@@ -1184,11 +1211,11 @@ class ResolvedContext(object):
 
     @_on_success
     def get_key(self, key: str, request_only: bool = False) -> dict[str, tuple[Variant, Any]]:
-        """Get a data key value for each resolved package.
+        """Get a data key/value for each resolved package.
 
         Args:
-            key (str): String key of property, eg 'tools'.
-            request_only (bool): If True, only return the key from resolved
+            key: String key of property, eg 'tools'.
+            request_only: If True, only return the key from resolved
                 packages that were also present in the request.
 
         Returns:
@@ -1227,10 +1254,10 @@ class ResolvedContext(object):
         does not know which variant's tool is actually exposed.
 
         Args:
-            tool_name(str): Name of the tool to search for.
+            tool_name: Name of the tool to search for.
 
         Returns:
-            Set of `Variant` objects. If no variant provides the tool, an
+            Set of :class:`.Variant` objects. If no variant provides the tool, an
             empty set is returned.
         """
         variants = set()
@@ -1269,11 +1296,11 @@ class ResolvedContext(object):
         """Get the shell code resulting from intepreting this context.
 
         Args:
-            shell (str): Shell type, for eg 'bash'. If None, the current shell
+            shell: Shell type, for eg 'bash'. If None, the current shell
                 type is used.
-            parent_environ (dict): Environment to interpret the context within,
-                defaults to os.environ if None.
-            style (OutputStyle): Style to format shell code in.
+            parent_environ: Environment to interpret the context within,
+                defaults to :data:`os.environ` if None.
+            style: Style to format shell code in.
         """
         executor = self._create_executor(interpreter=create_shell(shell),
                                          parent_environ=parent_environ)
@@ -1286,7 +1313,7 @@ class ResolvedContext(object):
 
     @_on_success
     def get_actions(self, parent_environ: Mapping[str, str] | None = None) -> list[Action]:
-        """Get the list of rex.Action objects resulting from interpreting this
+        """Get the list of rex :class:`.Action` objects resulting from interpreting this
         context. This is provided mainly for testing purposes.
 
         Args:
@@ -1305,12 +1332,13 @@ class ResolvedContext(object):
     def apply(self, parent_environ: Mapping[str, str] | None = None) -> None:
         """Apply the context to the current python session.
 
-        Note that this updates os.environ and possibly sys.path, if
-        `parent_environ` is not provided.
+        Note:
+            This updates :data:`os.environ` and possibly :data:`sys.path`, if
+            ``parent_environ`` is not provided.
 
         Args:
             parent_environ: Environment to interpret the context within,
-                defaults to os.environ if None.
+                defaults to :data:`os.environ` if None.
         """
         interpreter = Python(target_environ=os.environ)
         executor = self._create_executor(interpreter, parent_environ)
@@ -1325,7 +1353,7 @@ class ResolvedContext(object):
         Args:
             cmd: String name of the program to find.
             parent_environ: Environment to interpret the context within,
-                defaults to os.environ if None.
+                defaults to :data:`os.environ` if None.
             fallback: If True, and the program is not found in the context,
                 the current environment will then be searched.
 
@@ -1347,21 +1375,21 @@ class ResolvedContext(object):
         This applies the context to a python environ dict, then runs a
         subprocess in that namespace. This is not a fully configured subshell -
         shell-specific commands such as aliases will not be applied. To execute
-        a command within a subshell instead, use execute_shell().
+        a command within a subshell instead, use :meth:`execute_shell`.
 
         Warning:
             This runs a command in a configured environ dict only, not in a true
-            shell. To do that, call `execute_shell` using the `command` keyword
+            shell. To do that, call :meth:`execute_shell` using the ``command`` keyword
             argument.
 
         Args:
             args: Command arguments, can be a string.
             parent_environ: Environment to interpret the context within,
                 defaults to os.environ if None.
-            Popen_args: Args to pass to subprocess.Popen.
+            Popen_args: Args to pass to :class:`.Popen`.
 
         Returns:
-            A subprocess.Popen object.
+            A :class:`.Popen` object.
 
         Note:
             This does not alter the current python session.
@@ -1386,11 +1414,11 @@ class ResolvedContext(object):
         """Run some rex code in the context.
 
         Note:
-            This is just a convenience form of `execute_shell`.
+            This is just a convenience form of :meth:`execute_shell`.
 
         Args:
-            code (str): Rex code to execute.
-            filename (str): Filename to report if there are syntax errors.
+            code: Rex code to execute.
+            filename: Filename to report if there are syntax errors.
             shell: Shell type, for eg 'bash'. If None, the current shell type
                 is used.
             parent_environ: Environment to run the shell process in, if None
@@ -1398,7 +1426,7 @@ class ResolvedContext(object):
             Popen_args: args to pass to the shell process object constructor.
 
         Returns:
-            subprocess.Popen: Subprocess object for the shell process.
+            Subprocess object for the shell process.
         """
         def _actions_callback(executor: RexExecutor) -> None:
             executor.execute_code(code, filename=filename)
@@ -1444,11 +1472,11 @@ class ResolvedContext(object):
             block: If True, block until the shell is terminated. If False,
                 return immediately. If None, will default to blocking if the
                 shell is interactive.
-            actions_callback: Callback with signature (RexExecutor). This lets
+            actions_callback: Actions callback. This lets
                 the user append custom actions to the context, such as setting
                 extra environment variables. Callback is run prior to context Rex
                 execution.
-            post_actions_callback: Callback with signature (RexExecutor). This lets
+            post_actions_callback: Post-actions callback. This lets
                 the user append custom actions to the context, such as setting
                 extra environment variables. Callback is run after context Rex
                 execution.
@@ -1458,9 +1486,9 @@ class ResolvedContext(object):
                 up the file.
             start_new_session: If True, change the process group of the target
                 process. Note that this may override the Popen_args keyword
-                'preexec_fn'.
+                ``preexec_fn``.
             detached: If True, open a separate terminal. Note that this may
-                override the `pre_command` argument.
+                override the ``pre_command`` argument.
             pre_command: Command to inject before the shell command itself. This
                 is for internal use.
             Popen_args: args to pass to the shell process object constructor.
@@ -1468,9 +1496,9 @@ class ResolvedContext(object):
         Returns:
             If blocking, a 3-tuple of (returncode, stdout, stderr).
                 Note that if you want to get anything other than None for stdout
-                and/or stderr, you need to give stdout=PIPE and/or stderr=PIPE.
+                and/or stderr, you need to give ``stdout=PIPE`` and/or ``stderr=PIPE``.
 
-            If non-blocking, a subprocess.Popen object for the shell process.
+            If non-blocking, a :class:`.Popen` object for the shell process.
         """
         sh = create_shell(shell)
 
@@ -1559,13 +1587,14 @@ class ResolvedContext(object):
     def get_resolve_as_exact_requests(self) -> list[PackageRequest]:
         """Convert to a package request list of exact resolved package versions.
 
-            >>> r = ResolvedContext(['foo']
-            >>> r.get_resolve_as_exact_requests()
-            ['foo==1.2.3', 'bah==1.0.1', 'python==2.7.12']
+        .. code-block:: python
+
+           >>> r = ResolvedContext(['foo']
+           >>> r.get_resolve_as_exact_requests()
+           ['foo==1.2.3', 'bah==1.0.1', 'python==2.7.12']
 
         Returns:
-            List of `PackageRequest`: Context as a list of exact version
-            requests.
+            Context as a list of exact version requests.
         """
         def to_req(variant: Variant) -> PackageRequest:
             return PackageRequest(variant.parent.as_exact_requirement())
@@ -1576,12 +1605,12 @@ class ResolvedContext(object):
         """Convert context to dict containing only builtin types.
 
         Args:
-            fields (list of str): If present, only write these fields into the
+            fields: If present, only write these fields into the
                 dict. This can be used to avoid constructing expensive fields
                 (such as 'graph') for some cases.
 
         Returns:
-            dict: Dictified context.
+            Dictified context.
         """
         data: dict[str, Any] = {}
 
@@ -1673,11 +1702,11 @@ class ResolvedContext(object):
 
     @classmethod
     def from_dict(cls, d: dict, identifier_str: str | None = None) -> ResolvedContext:
-        """Load a `ResolvedContext` from a dict.
+        """Load a :class:`ResolvedContext` from a dict.
 
         Args:
-            d (dict): Dict containing context data.
-            identifier_str (str): String identifying the context, this is only
+            d: Dict containing context data.
+            identifier_str: String identifying the context, this is only
                 used to display in an error string if a serialization version
                 mismatch is detected.
 
