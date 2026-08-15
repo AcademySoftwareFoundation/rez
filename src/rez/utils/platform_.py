@@ -516,6 +516,105 @@ class WindowsPlatform(Platform):
     def _terminal_emulator_command(self) -> str:
         return "START"
 
+    def _physical_cores_native(self) -> int | None:
+        """Query the physical CPU count using `ctypes` wrappers for the Win32 API."""
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+        # Taken from the `GetLogicalProcessorInformationEx` API reference:
+        # https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlogicalprocessorinformationex
+        # > When this function is called with a relationship type of RelationProcessorCore, it returns a
+        # > PROCESSOR_RELATIONSHIP structure for every active processor core in every processor group in
+        # > the system.
+        RelationProcessorCore = 0
+
+        # Taken from the "System Error Codes" list:
+        # https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+        ERROR_INSUFFICIENT_BUFFER = 0x7A
+
+        class SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX(ctypes.Structure):
+            """
+            typedef struct _SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX {
+              LOGICAL_PROCESSOR_RELATIONSHIP Relationship;
+              DWORD                          Size;
+              union {
+                PROCESSOR_RELATIONSHIP           Processor;
+                NUMA_NODE_RELATIONSHIP           NumaNode;
+                CACHE_RELATIONSHIP               Cache;
+                GROUP_RELATIONSHIP               Group;
+                SHARED_COMPUTE_UNIT_RELATIONSHIP SharedComputeUnit;
+              } DUMMYUNIONNAME;
+            } SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX;
+            """
+
+            _fields_ = [
+                ("Relationship", ctypes.c_int),  # LOGICAL_PROCESSOR_RELATIONSHIP enum
+                ("Size", wintypes.DWORD),
+                # NOTE: We only need the `Relationship` and `Size` fields for counting cores, and we
+                # only ever instantiate this struct from an offset into an existing buffer, so we can
+                # omit any remaining fields.
+            ]
+
+        # BOOL GetLogicalProcessorInformationEx(
+        #   [in]            LOGICAL_PROCESSOR_RELATIONSHIP           RelationshipType,
+        #   [out, optional] PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Buffer,
+        #   [in, out]       PDWORD                                   ReturnedLength
+        # );
+        GetLogicalProcessorInformationEx = kernel32.GetLogicalProcessorInformationEx
+        GetLogicalProcessorInformationEx.argtypes = [
+            ctypes.c_int,  # RelationshipType
+            ctypes.c_void_p,  # Buffer
+            ctypes.POINTER(wintypes.DWORD),  # ReturnedLength
+        ]
+        GetLogicalProcessorInformationEx.restype = wintypes.BOOL
+
+        buffer_size = wintypes.DWORD(0)
+
+        # Call `GetLogicalProcessorInformationEx` once with a null buffer, which will "fail" with a
+        # known error, but will set the `ReturnedLength` pointer's value to the required buffer size.
+        success = GetLogicalProcessorInformationEx(
+            RelationProcessorCore,
+            None,
+            ctypes.byref(buffer_size),
+        )
+        if success:
+            # XXX: This should never happen, but we'll be paranoid.
+            return None
+
+        if ctypes.get_last_error() != ERROR_INSUFFICIENT_BUFFER:
+            # The call failed for an unknown reason, so give up.
+            return None
+
+        # Now we know how big of a buffer we need, so we can allocate it and call the function again.
+        buffer = (ctypes.c_byte * buffer_size.value)()
+        success = GetLogicalProcessorInformationEx(
+            RelationProcessorCore,
+            buffer,
+            ctypes.byref(buffer_size),
+        )
+        if not success:
+            return None
+
+        # Walk the buffer of `SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX` struct instances and count the
+        # number of matching entries.
+        offset = 0
+        num_cpus = 0
+        buffer_start = ctypes.addressof(buffer)
+
+        while offset < buffer_size.value:
+            proc_info = SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX.from_address(buffer_start + offset)
+
+            # This check should be redundant given that we're already passing this relationship type to
+            # `GetLogicalProcessorInformationEx`, but just to be safe...
+            if proc_info.Relationship == RelationProcessorCore:
+                num_cpus += 1
+
+            offset += proc_info.Size
+
+        return num_cpus if num_cpus else None
+
     def _physical_cores_from_powershell(self) -> int | None:
         # wmic was removed in Windows 11 24H2; use PowerShell/CimInstance instead.
         # powershell.exe (Windows PowerShell 5.1) ships with all Windows 10/11 installs.
@@ -570,7 +669,9 @@ class WindowsPlatform(Platform):
         return sum(map(int, result))
 
     def _physical_cores(self) -> int | None:
-        return self._physical_cores_from_powershell() or self._physical_cores_from_wmic()
+        return (
+            self._physical_cores_native() or self._physical_cores_from_powershell() or self._physical_cores_from_wmic()
+        )
 
     def _difftool(self):
         # although meld would be preferred, fc ships with all Windows versions back to DOS
