@@ -181,7 +181,6 @@ class TestFilesystemRepoCopyVariant(TestBase, TempdirMixin):
         variant = next(package.iter_variants())
 
         fs_variant = variant.install(repo_path)
- 
+
         with self.assertRaises(filesystem.PackageRepositoryError):
             pkg_repository.copy_variant_payload(fs_variant.resource, copy_target)
-

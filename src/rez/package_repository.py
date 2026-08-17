@@ -533,7 +533,7 @@ class PackageRepository(object):
         Args:
             variant_resource (VariantResource): VariantResource to be copied.
             path (str): Filesystem path to copy variant payload to.
-        
+
         Returns:
             bool: Should return True on success.
         """
