@@ -23,7 +23,6 @@ import unittest
 from rez.version import Version
 from rez.version import VersionError
 from rez.utils.filesystem import canonical_path
-from rezplugins.package_repository import filesystem
 import shutil
 import os.path
 import os
