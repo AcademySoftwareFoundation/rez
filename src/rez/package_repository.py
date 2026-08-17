@@ -14,7 +14,6 @@ import threading
 import os.path
 import time
 from typing import Any, Hashable, Iterator, TYPE_CHECKING
-import shutil
 
 if TYPE_CHECKING:
     from rez.package_resources import (PackageFamilyResource, PackageResource, PackageResourceHelper,
