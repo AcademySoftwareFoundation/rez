@@ -654,9 +654,6 @@ class TestPackageCopyVariant(TestBase, TempdirMixin):
         '''Test copy_payload copies a variant payload to path'''
         repo_path = os.path.join(self.root, 'repo')
         copy_target = os.path.join(self.root, 'copy_target')
-        
-        pool = filesystem.ResourcePool(cache_size=None)
-        pkg_repository = filesystem.FileSystemPackageRepository(repo_path, pool)
 
         package = create_package("copy_test1", data={})
         variant = next(package.iter_variants())
