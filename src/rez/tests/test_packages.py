@@ -23,6 +23,7 @@ import unittest
 from rez.version import Version
 from rez.version import VersionError
 from rez.utils.filesystem import canonical_path
+from rezplugins.package_repository import filesystem
 import shutil
 import os.path
 import os
@@ -630,6 +631,43 @@ class TestMemoryPackages(TestBase):
         variant = next(package.iter_variants())
         parent_package = variant.parent
         self.assertEqual(parent_package.description, desc)
+
+
+class TestPackageCopyVariant(TestBase, TempdirMixin):
+    """Test variant.copy_payload will copy a variants payload to dest path,
+
+    Similar testing is done for package_repository.copy_variant_payload
+
+    This test confirms interface on variant is correct
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        TempdirMixin.setUpClass()
+        cls.settings = {}
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
+
+    def test_copy_variant_payload(self):
+        '''Test copy_payload copies a variant payload to path'''
+        repo_path = os.path.join(self.root, 'repo')
+        copy_target = os.path.join(self.root, 'copy_target')
+        
+        pool = filesystem.ResourcePool(cache_size=None)
+        pkg_repository = filesystem.FileSystemPackageRepository(repo_path, pool)
+
+        package = create_package("copy_test1", data={})
+        variant = next(package.iter_variants())
+
+        fs_variant = variant.install(repo_path)
+        with open(os.path.join(fs_variant.root, 'payload.txt'), 'w'):
+            pass
+
+        fs_variant.copy_payload(copy_target)
+
+        assert os.path.isfile(os.path.join(copy_target, 'payload.txt'))
 
 
 if __name__ == '__main__':
