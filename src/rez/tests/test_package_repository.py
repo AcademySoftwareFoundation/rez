@@ -122,7 +122,7 @@ class TestFilesystemRepoUriCaseSensitivity(TestBase, TempdirMixin):
 class TestFilesystemRepoCopyVariant(TestBase, TempdirMixin):
     """copy_variant_payload will copy a variants payload to dest path,
 
-    Test that it will not copy files that are in its payload, fail where required
+    Test that it will copy data that is in its payload, fail where required
     """
 
     @classmethod
