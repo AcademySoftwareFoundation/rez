@@ -29,7 +29,7 @@ from rez.utils.typing import SupportsLessThan, SupportsWrite
 from contextlib import contextmanager
 from enum import Enum
 from itertools import product, chain
-from typing import cast, Any, Callable, Generator, Iterator, TypeVar, TYPE_CHECKING
+from typing import cast, Any, Callable, Generator, Iterable, Iterator, TypeVar, TYPE_CHECKING
 import copy
 import time
 import sys
@@ -66,6 +66,22 @@ _force_unoptimised_solver = (os.getenv("_FORCE_REZ_UNOPTIMISED_SOLVER") == "1")
 # against the previous results, if the solver version differs.
 #
 SOLVER_VERSION = 2
+
+
+# Ephemerals with this name prefix (eg '.provides.python-3.11') state that the
+# named package will be provided, usually bundled within the package making the
+# request. Making sure the package so must not be resolved separately. See
+# See: https://github.com/AcademySoftwareFoundation/rez/issues/1100
+# Also: REP-002.013: https://github.com/AcademySoftwareFoundation/rez/issues/673
+#
+PROVIDES_PREFIX = ".provides."
+
+
+def _provided_fam(request: Requirement) -> str | None:
+    """Return the package family a 'provides' ephemeral refers to, or None."""
+    if request.conflict or not request.name.startswith(PROVIDES_PREFIX):
+        return None
+    return request.name[len(PROVIDES_PREFIX):] or None
 
 
 class VariantSelectMode(Enum):
@@ -973,14 +989,27 @@ class _PackageScope(_Common):
     or a conflict range. As the resolve progresses, package scopes are narrowed
     down.
     """
-    def __init__(self, package_request: Requirement, solver: Solver) -> None:
+    def __init__(self, package_request: Requirement, solver: Solver,
+                 provided: bool = False) -> None:
+        """
+        Args:
+            package_request: The package request this scope represents
+            solver: The solver that owns this scope
+            provided: Whether this package is "provided" by another request,
+                rather than the package itself being prefixed with '.provides'.
+                Unlike `is_ephemeral`, it can't be read from the package's own
+                name: 'python' is provided only because a separate
+                '.provides.python' ephemeral exists elsewhere in the request
+                list
+        """
         self.package_name = package_request.name
         self.solver = solver
         self.variant_slice = None
         self.pr = solver.pr
         self.is_ephemeral = (package_request.name.startswith('.'))
+        self.is_provided = provided
 
-        if package_request.conflict or self.is_ephemeral:
+        if package_request.conflict or self.is_ephemeral or provided:
             # these cases don't actually contain variants
             self.package_request = package_request
         else:
@@ -1008,8 +1037,8 @@ class _PackageScope(_Common):
             returned. If all variants were removed, None is returned.
         """
 
-        # ephemerals are just a range intersection
-        if self.is_ephemeral:
+        # ephemerals and provided packages are just a range intersection
+        if self.is_ephemeral or self.is_provided:
             if self.is_conflict:
                 intersect_range = range_ - self.package_request.range
             else:
@@ -1081,9 +1110,9 @@ class _PackageScope(_Common):
         """
         self.solver.reduction_broad_tests_count += 1
 
-        # reduction of conflicts and ephemerals is nonsensical (they have no
-        # variant list to reduce)
-        if self.is_conflict or self.is_ephemeral:
+        # reduction of conflicts, ephemerals and provided packages is
+        # nonsensical (they have no variant list to reduce)
+        if self.is_conflict or self.is_ephemeral or self.is_provided:
             return (self, [])
 
         # perform the reduction
@@ -1123,8 +1152,9 @@ class _PackageScope(_Common):
             was extracted, then (self,None) is returned.
         """
 
-        # extraction is nonsensical for conflicts and ephemerals
-        if self.is_conflict or self.is_ephemeral:
+        # extraction is nonsensical for conflicts, ephemerals and provided
+        # packages
+        if self.is_conflict or self.is_ephemeral or self.is_provided:
             return (self, None)
 
         new_slice, package_request = self.variant_slice.extract()
@@ -1149,6 +1179,7 @@ class _PackageScope(_Common):
         if (
             self.is_conflict
             or self.is_ephemeral
+            or self.is_provided
             or len(self.variant_slice) == 1
         ):
             return None
@@ -1162,6 +1193,28 @@ class _PackageScope(_Common):
         next_scope = self._copy(next_slice)
         return (scope, next_scope)
 
+    def provide(self, range_: VersionRange) -> _PackageScope | None:
+        """Convert this scope into a 'provided' scope.
+
+        The package is supplied by other means (see the 'provides' ephemeral),
+        so the scope drops its variants and becomes a range intersection only,
+        like an ephemeral.
+
+        Returns:
+            A new provided scope, narrowed to the intersection with the given
+            provided range, or None if the ranges are disjoint.
+        """
+        intersect_range = self.package_request.range & range_
+        if intersect_range is None:
+            return None
+
+        scope = copy.copy(self)
+        scope.is_provided = True
+        scope.variant_slice = None
+        scope.package_request = Requirement.construct(
+            self.package_name, intersect_range)
+        return scope
+
     def _copy(self, new_slice: _PackageVariantSlice) -> _PackageScope:
         scope = copy.copy(self)
         scope.variant_slice = new_slice
@@ -1172,6 +1225,7 @@ class _PackageScope(_Common):
         return (
             self.is_conflict
             or self.is_ephemeral
+            or self.is_provided
             or (
                 len(self.variant_slice) == 1
                 and not self.variant_slice.extractable
@@ -1200,10 +1254,28 @@ class _PackageScope(_Common):
                 self.package_name, self.variant_slice.range_)
 
     def __str__(self) -> str:
-        if self.variant_slice is None:
+        if self.is_provided:
+            return "%s (provided)" % str(self.package_request)
+        elif self.variant_slice is None:
             return str(self.package_request)
         else:
             return str(self.variant_slice)
+
+
+def _get_provided_fams(scopes: list[_PackageScope],
+                       requests: Iterable[Requirement] = ()) -> set[str]:
+    """Get families provided by 'provides' ephemerals in the given scopes
+    and requests."""
+    fams = set()
+    requests_ = chain(
+        (x.package_request for x in scopes if x.is_ephemeral), requests)
+
+    for request in requests_:
+        fam = _provided_fam(request)
+        if fam:
+            fams.add(fam)
+
+    return fams
 
 
 def _get_dependency_order(g: digraph, node_list: list[T]) -> list[T]:
@@ -1251,9 +1323,16 @@ class _ResolvePhase(_Common):
         self.extractions: dict[tuple[str, str], Requirement] = {}
         self.status = SolverStatus.pending
 
-        self.scopes = []
+        # families provided by 'provides' ephemerals in the request; scopes
+        # for these are not loaded from a repository
+        provided_fams = _get_provided_fams([], self.solver.request_list)
+
+        self.scopes: list[_PackageScope] = []
         for package_request in self.solver.request_list:
-            scope = _PackageScope(package_request, solver=solver)
+            provided = (not package_request.conflict
+                        and package_request.name in provided_fams)
+            scope = _PackageScope(package_request, solver=solver,
+                                  provided=provided)
             self.scopes.append(scope)
 
         # only so an initial reduction across all scopes happens in a new phase
@@ -1380,7 +1459,22 @@ class _ResolvePhase(_Common):
                 if new_extracted_reqs:
                     self.pr.subheader("ADDING:")
 
+                    # families provided by 'provides' ephemerals, either
+                    # already in scope or extracted in this batch. Scopes for
+                    # these are not loaded from a repository - the package
+                    # need not exist
+                    provided_fams = _get_provided_fams(
+                        scopes, new_extracted_reqs)
+
                     for req in new_extracted_reqs:
+                        if not req.conflict and req.name in provided_fams:
+                            scope = _PackageScope(
+                                req, solver=self.solver, provided=True)
+                            scopes.append(scope)
+                            if self.pr:
+                                self.pr("added %s", scope)
+                            continue
+
                         try:
                             scope = _PackageScope(req, solver=self.solver)
                         except PackageFamilyNotFoundError as e:
@@ -1410,6 +1504,51 @@ class _ResolvePhase(_Common):
                         scopes.append(scope)
                         if self.pr:
                             self.pr("added %s", scope)
+
+            # satisfy package scopes with matching 'provides' ephemerals. The
+            # provided package is supplied by other means, so its scope drops
+            # its variants and becomes a range intersection only. A request
+            # outside the provided range is a conflict.
+
+            # map provided family -> its 'provides' ephemeral. Same-named
+            # ephemerals are already merged into one scope, so no overwrites.
+            provides_map = {}
+            for scope in scopes:
+                if scope.is_ephemeral:
+                    fam = _provided_fam(scope.package_request)
+                    if fam:
+                        provides_map[fam] = scope.package_request
+
+            if provides_map:
+                self.pr.subheader("PROVIDES:")
+
+                for i, scope in enumerate(scopes):
+                    if scope.is_ephemeral or scope.is_conflict:
+                        continue
+
+                    provider_req = provides_map.get(scope.package_name)
+                    if provider_req is None:
+                        continue
+
+                    if scope.is_provided:
+                        # re-intersect, the provided range may have narrowed
+                        provided_scope = scope.intersect(provider_req.range)
+                    else:
+                        # first time provided: drop variants, range-only now
+                        provided_scope = scope.provide(provider_req.range)
+                        if provided_scope is not None and self.pr:
+                            self.pr("%s was provided by %s", scope, provider_req)
+
+                    if provided_scope is None:
+                        conflict = DependencyConflict(
+                            provider_req, scope.package_request)
+                        failure_reason = DependencyConflicts([conflict])
+                        return _create_phase(SolverStatus.failed)
+
+                    if provided_scope is not scope:
+                        # scope changed, swap it in and flag for reduction
+                        scopes[i] = provided_scope
+                        changed_scopes_i.add(i)
 
             num_scopes = len(scopes)
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from rez import __version__, module_root_path
 from rez.package_repository import package_repository_manager
-from rez.solver import SolverCallbackReturn
+from rez.solver import SolverCallbackReturn, PROVIDES_PREFIX
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
@@ -916,7 +916,10 @@ class ResolvedContext(object):
         rows = []
         colors = []
         for request in self._package_requests:
-            if request.name.startswith('.'):
+            if request.name.startswith(PROVIDES_PREFIX):
+                rows.append((str(request), "(provides)"))
+                colors.append(ephemeral_color)
+            elif request.name.startswith('.'):
                 rows.append((str(request), "(ephemeral)"))
                 colors.append(ephemeral_color)
             else:
@@ -995,7 +998,21 @@ class ResolvedContext(object):
         ephemerals = self.resolved_ephemerals or []
         ephemerals = sorted(ephemerals, key=lambda x: x.name)
         for req in ephemerals:
-            rows3.append((str(req), '', "(ephemeral)"))
+            if req.name.startswith(PROVIDES_PREFIX):
+                # name the resolved package(s) that introduced this 'provides'
+                # ephemeral, if any (it may instead come from the request).
+                providers = [
+                    pkg.qualified_package_name
+                    for pkg in (self.resolved_packages or [])
+                    if any(r.name == req.name for r in (pkg.requires or []))
+                ]
+                if providers:
+                    label = "(provided by %s)" % ", ".join(providers)
+                else:
+                    label = "(provides)"
+            else:
+                label = "(ephemeral)"
+            rows3.append((str(req), '', label))
             colors.append(ephemeral_color)
 
         for col, line in zip(colors, columnise(rows3)):
