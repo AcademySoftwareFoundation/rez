@@ -29,6 +29,15 @@ from typing import Any, Protocol, TypeVar, TYPE_CHECKING
 
 T = TypeVar("T")
 
+__all__ = [
+    "Config",
+    "expand_system_vars",
+    "create_config",
+    "get_module_root_config",
+    "config",
+    "Validatable",
+]
+
 
 class Validatable(Protocol):
     def validate(self, data: T) -> T:
@@ -551,16 +560,33 @@ _plugin_config_dict = {
 class Config(object, metaclass=LazyAttributeMeta):
     """Rez configuration settings.
 
-    You should call the `create_config` function, rather than constructing a
-    `Config` object directly.
+    You should call the :func:`create_config` function, rather than constructing a
+    :class:`Config` object directly.
 
-    Config files are merged with other config files to create a `Config`
+    Config files are merged with other config files to create a :class:`Config`
     instance. The 'rezconfig' file in rez acts as the primary - other config
     files update the primary configuration to create the final config. See the
     comments at the top of 'rezconfig' for more details.
     """
+
+    #: :meta private:
     schema = config_schema
+
+    #: :meta private:
     schema_error = ConfigurationError
+
+    #: List of filepaths specified during initialization. Note that
+    #: this doesn't correspond to the actual list of filepaths
+    #: that participated to create the loaded config.
+    filepaths: list[str]
+
+    #: Overrides applied to the current config instance.
+    #: Note that it is preferable to use :meth:`override`
+    #: and :meth:`remove_override` to modify the overrides.
+    overrides: dict[str, Any]
+
+    #: If True, settings overrides in environment variables are ignored.
+    locked: bool
 
     if TYPE_CHECKING:
         # mypy: The use of LazyAttributeMeta means that this class generates hundreds
@@ -569,12 +595,11 @@ class Config(object, metaclass=LazyAttributeMeta):
         def __getattr__(self, item: str) -> Any:
             pass
 
-    def __init__(self, filepaths: list[str], overrides=None, locked: bool = False) -> None:
-        """Create a config.
-
+    def __init__(self, filepaths: list[str], overrides: dict[str, Any] | None = None, locked: bool = False) -> None:
+        """
         Args:
-            filepaths (list of str): List of config files to load.
-            overrides (dict): A dict containing settings that override all
+            filepaths: List of config files to load.
+            overrides: A dict containing settings that override all
                 others. Nested settings are overridden with nested dicts.
             locked: If True, settings overrides in environment variables are
                 ignored.
@@ -584,11 +609,11 @@ class Config(object, metaclass=LazyAttributeMeta):
         self.overrides = overrides or {}
         self.locked = locked
 
-    def get(self, key, default=None):
+    def get(self, key: str, default=None):
         """Get the value of a setting."""
         return getattr(self, key, default)
 
-    def copy(self, overrides=None, locked: bool = False) -> Config:
+    def copy(self, overrides: dict[str, Any] | None = None, locked: bool = False) -> Config:
         """Create a separate copy of this config."""
         other = copy.copy(self)
 
@@ -600,11 +625,11 @@ class Config(object, metaclass=LazyAttributeMeta):
         other._uncache()
         return other
 
-    def override(self, key: str, value):
+    def override(self, key: str, value: Any):
         """Set a setting to the given value.
 
-        Note that `key` can be in dotted form, eg
-        'plugins.release_hook.emailer.sender'.
+        Note that ``key`` can be in dotted form, eg
+        ``plugins.release_hook.emailer.sender``.
         """
         keys = key.split('.')
         if len(keys) > 1:
@@ -651,13 +676,13 @@ class Config(object, metaclass=LazyAttributeMeta):
         """Get the list of files actually sourced to create the config.
 
         Note:
-            `self.filepaths` refers to the filepaths used to search for the
+            :attr:`Config.filepaths` refers to the filepaths used to search for the
             configs, which does dot necessarily match the files used. For example,
             some files may not exist, while others are chosen as rezconfig.py in
             preference to rezconfig, rezconfig.yaml.
 
         Returns:
-            List of str: The sourced files.
+            The sourced files.
         """
         # Force a config reload
         _ = self._data  # noqa
@@ -674,7 +699,8 @@ class Config(object, metaclass=LazyAttributeMeta):
     def data(self):
         """Returns the entire configuration as a dict.
 
-        Note that this will force all plugins to be loaded.
+        Note:
+            This will force all plugins to be loaded.
         """
         d = {}
         for key in self._data:
@@ -695,7 +721,8 @@ class Config(object, metaclass=LazyAttributeMeta):
             paths.remove(self.local_packages_path)
         return paths
 
-    def get_completions(self, prefix):
+    def get_completions(self, prefix: str):
+        """:meta private:"""
         def _get_plugin_completions(prefix_):
             from rez.utils.data_utils import get_object_completions
             words = get_object_completions(
@@ -910,7 +937,7 @@ class _PluginConfigs(object):
 
 
 def expand_system_vars(data: T) -> T:
-    """Expands any strings within `data` such as '{system.user}'."""
+    """Expands any strings within ``data`` such as ``{system.user}``."""
     def _expanded(value):
         if isinstance(value, str):
             str_value = expandvars(value)
@@ -1051,10 +1078,11 @@ def _load_config_from_filepaths(filepaths: list[str]) -> tuple[dict[str, Any], l
 
 
 def get_module_root_config() -> str:
+    """Get the path to the default config"""
     return os.path.join(module_root_path, "rezconfig.py")
 
 
-# singleton
+#: singleton representing the currently active config
 config = Config._create_main_config()
 
 if os.getenv("REZ_LOG_DEPRECATION_WARNINGS"):
