@@ -539,6 +539,15 @@ pathed_env_vars = [
     "*PATH"
 ]
 
+# This setting identifies environment variables that should not have path
+# normalization applied, even if they match a pattern in :data:`pathed_env_vars`.
+# This is useful for variables like ``CMAKE_MODULE_PATH`` which end in ``PATH``
+# but require forward slashes regardless of the shell. Wildcards are supported.
+# Takes priority over :data:`pathed_env_vars`.
+non_pathed_env_vars = [
+    "CMAKE_*_PATH"
+]
+
 # Defines what suites on ``$PATH`` stay visible when a new rez environment is resolved.
 # Possible values are:
 #
