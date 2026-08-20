@@ -299,12 +299,19 @@ class BuildProcessHelper(BuildProcess):
         return context, rxt_filepath
 
     def pre_release(self) -> None:
+        from rez.package_repository import package_repository_manager
+
         release_settings = self.package.config.plugins.release_vcs
 
-        # test that the release path exists
         release_path = self.package.config.release_packages_path
-        if not os.path.exists(release_path):
-            raise ReleaseError("Release path does not exist: %r" % release_path)
+        try:
+            # make sure the release path exists for filesystem repos
+            repository = package_repository_manager.get_repository(release_path)
+            if repository.name() == "filesystem" and not os.path.exists(release_path):
+                raise ReleaseError(f"Release path does not exist: {release_path!r}")
+
+        except Exception as e:
+            raise ReleaseError(f"Could not access release package repository {release_path!r}: {e}")
 
         # test that the repo is in a state to release
         if self.vcs:

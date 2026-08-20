@@ -33,7 +33,10 @@ from rez.packages import get_variant, Variant
 from rez.system import system
 from rez.utils.filesystem import rename
 
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.package_resources import VariantResource
 
 
 class PackageCache(object):
@@ -263,7 +266,10 @@ class PackageCache(object):
                 % variant.uri
             )
 
-        if not os.path.isdir(variant_root):
+        # Non fs repos may not fetch the variant from disk
+        if package.repository.name() == "filesystem" and not os.path.isdir(
+            variant_root
+        ):
             raise PackageCacheError(
                 "Not cached - variant %s root does not appear on disk: %s"
                 % (variant.uri, variant_root)
@@ -410,7 +416,7 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            cast("VariantResource", variant.resource).install(rootpath)
         finally:
             still_copying = False
 
