@@ -576,14 +576,14 @@ class Config(object, metaclass=LazyAttributeMeta):
     schema_error = ConfigurationError
 
     #: List of filepaths specified during initialization. Note that
-    #: this doesn't corresponds to the actual list of filepaths
+    #: this doesn't correspond to the actual list of filepaths
     #: that participated to create the loaded config.
     filepaths: list[str]
 
     #: Overrides applied to the current config instance.
-    #: Note that is is preferable to use :meth:`override`
+    #: Note that it is preferable to use :meth:`override`
     #: and :meth:`remove_override` to modify the overrides.
-    overrides: dict[str, Any] | None
+    overrides: dict[str, Any]
 
     #: If True, settings overrides in environment variables are ignored.
     locked: bool
@@ -613,7 +613,7 @@ class Config(object, metaclass=LazyAttributeMeta):
         """Get the value of a setting."""
         return getattr(self, key, default)
 
-    def copy(self, overrides: dict[str, Any] = None, locked: bool = False) -> Config:
+    def copy(self, overrides: dict[str, Any] | None = None, locked: bool = False) -> Config:
         """Create a separate copy of this config."""
         other = copy.copy(self)
 

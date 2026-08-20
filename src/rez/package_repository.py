@@ -279,7 +279,7 @@ class PackageRepository(object):
 
         Args:
             pkg_name: Package name
-            force: If Trur, delete even if not empty.
+            force: If True, delete even if not empty.
 
         Returns:
             True if the family was removed, False if it wasn't found.
@@ -467,7 +467,7 @@ class PackageRepository(object):
 
     def get_resource_from_handle(self, resource_handle: ResourceHandle,
                                  verify_repo: bool = True) -> Resource:
-        """Get a resource from an handle.
+        """Get a resource from a handle.
 
         Args:
             resource_handle: Handle of the resource.
