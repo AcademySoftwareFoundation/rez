@@ -124,7 +124,7 @@ class MemoryPackageRepository(PackageRepository):
                "1.0.0": {
                    "name":         "foo",
                    "version":      "1.0.0",
-                   "description":  "does foo-like things.",
+                   "description":  "does foo-like things."
                }
            },
 
