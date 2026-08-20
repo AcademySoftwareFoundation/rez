@@ -695,11 +695,11 @@ class ResolvedContext(object):
 
         Args:
             as_dot: If True, get the graph as a dot-language string. Otherwise,
-                a :class:`.digraph` object is returned.
+                a :class:`rez.vendor.pygraph.classes.digraph.digraph` object is returned.
 
         Returns:
-            A string or :class:`.digraph` object, or None if there is no graph
-            associated with the resolve.
+            A string or :class:`rez.vendor.pygraph.classes.digraph.digraph` object, or
+            None if there is no graph associated with the resolve.
         """
         if not self.has_graph:
             return None
@@ -1143,7 +1143,7 @@ class ResolvedContext(object):
         The dependency graph does not show conflicts.
 
         Returns:
-            `pygraph.digraph` object.
+            :class:`rez.vendor.pygraph.classes.digraph.digraph` object.
         """
         from rez.vendor.pygraph.classes.digraph import digraph
 
