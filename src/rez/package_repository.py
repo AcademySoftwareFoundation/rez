@@ -527,6 +527,18 @@ class PackageRepository(object):
         """
         return (self.name(), self.location)
 
+    def copy_variant_payload(self, variant_resource, path):
+        """
+        Copy a variants payload from repository to a directory location
+        Args:
+            variant_resource (VariantResource): VariantResource to be copied.
+            path (str): Filesystem path to copy variant payload to.
+
+        Returns:
+            bool: Should return True on success.
+        """
+        raise NotImplementedError
+
 
 class PackageRepositoryManager(object):
     """Package repository manager.
