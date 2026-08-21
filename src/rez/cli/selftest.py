@@ -43,6 +43,10 @@ def setup_parser(parser, completions: bool = False):
     parser.add_argument(
         "--keep-tmpdirs", action="store_true", help="Keep temporary directories."
     )
+    parser.add_argument(
+        "--rezconfig-baseline", metavar="REV",
+        help="Git revision used to find newly added documented settings"
+    )
 
     # make an Action that will append the appropriate test to the "--test" arg
     class AddTestModuleAction(argparse.Action):
@@ -86,6 +90,9 @@ def command(opts, parser, extra_arg_groups=None) -> None:
 
     if opts.keep_tmpdirs:
         os.environ["REZ_KEEP_TMPDIRS"] = "1"
+
+    if opts.rezconfig_baseline:
+        os.environ["__REZ_SELFTEST_REZCONFIG_BASELINE"] = opts.rezconfig_baseline
 
     if not opts.module_tests and not opts.tests:
         module_tests = all_module_tests
