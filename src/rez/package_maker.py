@@ -196,6 +196,8 @@ def make_package(name: str, path: str,
         The 'installed_variants' attribute on the `PackageMaker` instance will
         be appended with variant(s) created by this function, if any.
     """
+    from rez.package_repository import package_repository_manager
+
     maker = PackageMaker(name)
     yield maker
 
@@ -222,18 +224,28 @@ def make_package(name: str, path: str,
     with retain_cwd():
         # install the package variant(s) into the filesystem package repo at `path`
         for variant in src_variants:
-            variant_ = variant.install(path)
+            repository = package_repository_manager.get_repository(path)
 
-            base = variant_.base
+            base = repository.get_package_payload_path(
+                package_name=variant.name,
+                package_version=variant.version
+            )
+            repository.pre_variant_install(variant.resource)
+
             if make_base and base:
                 os.makedirs(base, exist_ok=True)
                 os.chdir(base)
-                make_base(variant_, base)
+                make_base(variant, base)
 
-            root = variant_.root
+            if variant.index is None:
+                root = base
+            else:
+                root = os.path.join(base, variant._non_shortlinked_subpath)
+
             if make_root and root:
                 os.makedirs(root, exist_ok=True)
                 os.chdir(root)
-                make_root(variant_, root)
+                make_root(variant, root)
 
+            variant_ = variant.install(path)
             maker.installed_variants.append(variant_)
