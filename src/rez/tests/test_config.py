@@ -296,6 +296,23 @@ class TestConfig(TestBase):
                 print(error.stdout)
                 raise
 
+    def test_9_json_only_environment_variable(self) -> None:
+        """Test the error when a JSON-only setting uses its plain env var."""
+        for key in ("package_orderers", "pip_install_remaps"):
+            with self.subTest(key=key), restore_os_environ():
+                env_var = "REZ_%s" % key.upper()
+                os.environ[env_var] = "invalid"
+                config = Config([self.root_config_file], locked=False)
+
+                with self.assertRaises(ConfigurationError) as error:
+                    getattr(config, key)
+
+                self.assertEqual(
+                    str(error.exception),
+                    "$%s is not supported for this setting; use $%s_JSON instead."
+                    % (env_var, env_var),
+                )
+
 
 class TestDeprecations(TestBase, TempdirMixin):
     @classmethod
