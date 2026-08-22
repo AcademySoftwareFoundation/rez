@@ -189,6 +189,13 @@ If the same package appears in two or more repositories on the search path, the 
 used in preference. This happens at the version level. For example an earlier package ``foo-1.0.0``
 will hide a later package ``foo-1.0.0``, but not ``foo-1.2.0``.
 
+Shadowing applies to the entire package version, including all of its variants. Rez does not combine
+variants from identical package versions across repositories, nor fall back to a later repository
+when the earlier package has no compatible variant. For example, a local ``foo-1.0.0`` containing
+only a Linux variant hides a released ``foo-1.0.0`` containing a Windows variant, even when resolving
+on Windows. To exclude locally installed packages from a resolve, use the :option:`rez-env --no-local`
+option.
+
 The example search path shown is a typical setting. There are some central repositories later in the
 search path, where packages are released to so everyone can use them. But there is also a local
 package path at the front of the search path. This is where packages go that are being locally
