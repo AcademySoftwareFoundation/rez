@@ -4,7 +4,7 @@ Linking to rez documentation
 
 Sphinx projects can use `intersphinx <https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html>`_
 to link to objects in the rez documentation. Rez provides the
-``rez.utils.docs`` Sphinx extension for its two custom domains:
+``rez.utils.sphinxext`` Sphinx extension for its two custom domains:
 
 ``pkgdef``
    Package definition attributes and functions documented in
@@ -27,7 +27,7 @@ Add the rez extension and intersphinx mapping to your Sphinx ``conf.py`` file:
 
    extensions = [
        "sphinx.ext.intersphinx",
-       "rez.utils.docs",
+       "rez.utils.sphinxext",
    ]
 
    intersphinx_mapping = {
@@ -60,7 +60,7 @@ Rez intentionally keeps this integration small and does not install or pin a
 Sphinx version. Documentation projects can select and manage the Sphinx version
 appropriate for their own builds.
 
-We aim to keep ``rez.utils.docs`` compatible across Sphinx and rez releases, but
+We aim to keep ``rez.utils.sphinxext`` compatible across Sphinx and rez releases, but
 not every combination is guaranteed. Changes to Sphinx's domain or intersphinx
 APIs may require an updated rez extension. For reproducible documentation
 builds, projects should pin their documentation dependencies and treat

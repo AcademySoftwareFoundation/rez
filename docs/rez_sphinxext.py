@@ -5,8 +5,8 @@ import argparse
 import rez.cli._main
 import rez.cli._util
 import rez.rezconfig
-from rez.utils.docs import PkgDefDomain as BasePkgDefDomain
-from rez.utils.docs import RexDomain as BaseRexDomain
+from rez.utils.sphinxext import PkgDefDomain as BasePkgDefDomain
+from rez.utils.sphinxext import RexDomain as BaseRexDomain
 import docutils.nodes
 import sphinx.util.nodes
 import sphinx.application
