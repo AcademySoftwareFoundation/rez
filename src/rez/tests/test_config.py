@@ -309,8 +309,9 @@ class TestConfig(TestBase):
 
                 self.assertEqual(
                     str(error.exception),
-                    "$%s is not supported for this setting; use $%s_JSON instead."
-                    % (env_var, env_var),
+                    "The setting %r doesn't support the environment variable $%s, "
+                    "use $%s_JSON instead."
+                    % (key, env_var, env_var),
                 )
 
 

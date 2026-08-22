@@ -115,8 +115,9 @@ class Setting(object):
                     )
                 if self.env_var_json_only:
                     raise ConfigurationError(
-                        "$%s is not supported for this setting; use $%s_JSON instead."
-                        % (self._env_var_name, self._env_var_name)
+                        "The setting %r doesn't support the environment variable $%s, "
+                        "use $%s_JSON instead."
+                        % (self.key, self._env_var_name, self._env_var_name)
                     )
                 return self._parse_env_var(value)
 
