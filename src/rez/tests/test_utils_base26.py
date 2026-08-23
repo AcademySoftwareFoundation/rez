@@ -95,15 +95,22 @@ class TestCreateUniqueBase26Symlink(TestBase):
     def test_retries_on_race_condition_then_succeeds(self) -> None:
         exists_error = OSError(errno.EEXIST, "File exists")
 
+        # the first pass finds an empty dir and loses the race for 'a'; by the
+        # time it retries, the winner's 'a' is on disk, so it must move to 'b'
         with patch(
             "rez.utils.base26.find_matching_symlink", return_value=None
-        ), patch("os.listdir", return_value=[]), patch(
+        ), patch("os.listdir", side_effect=[[], ['a']]), patch(
+            "os.path.islink", return_value=True
+        ), patch(
             "os.symlink", side_effect=[exists_error, None]
         ) as symlink:
             result = create_unique_base26_symlink("/pkgs", "/source/1.0")
 
         self.assertEqual(symlink.call_count, 2)
-        self.assertTrue(result.endswith('a'))
+        self.assertEqual(
+            symlink.call_args_list[0][0][1], os.path.join("/pkgs", "a"))
+        symlink.assert_called_with("/source/1.0", result)
+        self.assertTrue(result.endswith('b'))
 
     def test_reraises_non_eexist_oserror(self) -> None:
         other_error = OSError(errno.EACCES, "Permission denied")
