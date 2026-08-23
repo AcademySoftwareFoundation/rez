@@ -187,9 +187,7 @@ Rez finds packages using a search path in much the same way that python finds py
 
 If the same package appears in two or more repositories on the search path, the earlier package is
 used in preference. This happens at the version level. For example an earlier package ``foo-1.0.0``
-will hide a later package ``foo-1.0.0``, but not ``foo-1.2.0``.
-
-Shadowing applies to the entire package version, including all of its variants. Rez does not combine
+will hide a later package ``foo-1.0.0``, but not ``foo-1.2.0``. This also means that Rez does not combine
 variants from identical package versions across repositories, nor fall back to a later repository
 when the earlier package has no compatible variant. For example, a local ``foo-1.0.0`` containing
 only a Linux variant hides a released ``foo-1.0.0`` containing a Windows variant, even when resolving
