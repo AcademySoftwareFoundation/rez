@@ -275,39 +275,32 @@ def convert_rez_config_to_rst() -> list[str]:
                 assert setting_type is not None
 
                 json_envvar = f'{envvar}_JSON'
-                if not setting_type.env_var_json_only:
-                    rst.append(f'   .. envvar:: {envvar}')
-                rst.append(f'   .. envvar:: {json_envvar}')
+                rst.append('   Environment variables:')
                 rst.append('')
-                envvars = [json_envvar]
                 if not setting_type.env_var_json_only:
-                    envvars.insert(0, envvar)
-                rst.append(
-                    '      :ref:`Environment variables '
-                    '<config-environment-variable-overrides>`: '
-                    + ', '.join(f'``{name}``' for name in envvars)
-                )
+                    rst.append(f'      .. envvar:: {envvar}')
+                rst.append(f'      .. envvar:: {json_envvar}')
                 rst.append('')
 
                 if setting_type.env_var_json_only:
                     rst.append(
-                        f'      The non-JSON ``{envvar}`` environment variable is not supported.'
+                        f'         The non-JSON ``{envvar}`` environment variable is not supported.'
                     )
                     rst.append('')
                     continue
 
                 if issubclass(setting_type, rez.config.PathList):
                     rst.append(
-                        f'      Values in ``{envvar}`` must be separated with ``:`` on Unix-like '
+                        f'         Values in ``{envvar}`` must be separated with ``:`` on Unix-like '
                         'systems and ``;`` on Windows.'
                     )
                 elif issubclass(setting_type, rez.config.StrList):
                     rst.append(
-                        f'      Values in ``{envvar}`` can be separated by commas or whitespace.'
+                        f'         Values in ``{envvar}`` can be separated by commas or whitespace.'
                     )
                 elif issubclass(setting_type, rez.config.Dict):
                     rst.append(
-                        f'      Dictionary values in ``{envvar}`` must use the format '
+                        f'         Dictionary values in ``{envvar}`` must use the format '
                         '``k1:v1,k2:v2,...kN:vN``.'
                     )
                 rst.append('')
