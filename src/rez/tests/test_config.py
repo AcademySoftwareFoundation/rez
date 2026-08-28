@@ -314,6 +314,15 @@ class TestConfig(TestBase):
                     % (key, env_var, env_var),
                 )
 
+    def test_10_environment_variable_precedence(self) -> None:
+        """Test that the plain environment variable takes precedence."""
+        with restore_os_environ():
+            os.environ["REZ_IMAGE_VIEWER"] = "plain"
+            os.environ["REZ_IMAGE_VIEWER_JSON"] = '"json"'
+            config = Config([self.root_config_file], locked=False)
+
+            self.assertEqual(config.image_viewer, "plain")
+
 
 class TestDeprecations(TestBase, TempdirMixin):
     @classmethod

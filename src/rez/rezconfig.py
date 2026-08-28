@@ -14,13 +14,15 @@ precedence):
    files are supported, separated by os.pathsep;
 3) The setting is further overriden if it is present in $HOME/.rezconfig,
   UNLESS $REZ_DISABLE_HOME_CONFIG is 1;
-4) The setting is overridden again if the environment variable $REZ_XXX is
+4) The setting can also be overridden by the environment variable
+   $REZ_XXX_JSON, and in this case the string is expected to be a JSON-encoded
+   value;
+5) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
    separated either with "," or blank space. Dict values are in the form
-   "k1:v1,k2:v2,kn:vn";
-5) The setting can also be overriden by the environment variable $REZ_XXX_JSON,
-   and in this case the string is expected to be a JSON-encoded value;
+   "k1:v1,k2:v2,kn:vn". This form takes precedence if both environment
+   variables are present;
 6) This is a special case applied only during a package build or release. In
    this case, if the package definition file contains a "config" section,
    settings in this section will override all others.

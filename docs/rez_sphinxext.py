@@ -279,19 +279,23 @@ def convert_rez_config_to_rst() -> list[str]:
                     rst.append(f'   .. envvar:: {envvar}')
                 rst.append(f'   .. envvar:: {json_envvar}')
                 rst.append('')
+                envvars = [json_envvar]
+                if not setting_type.env_var_json_only:
+                    envvars.insert(0, envvar)
+                rst.append(
+                    '      :ref:`Environment variables '
+                    '<config-environment-variable-overrides>`: '
+                    + ', '.join(f'``{name}``' for name in envvars)
+                )
+                rst.append('')
 
                 if setting_type.env_var_json_only:
                     rst.append(
-                        f'      The non-JSON ``{envvar}`` environment variable is not supported. '
-                        f'Use ``{json_envvar}`` to configure this setting via an environment variable.'
+                        f'      The non-JSON ``{envvar}`` environment variable is not supported.'
                     )
                     rst.append('')
                     continue
 
-                rst.append(
-                    f'      The ``{envvar}`` and ``{json_envvar}`` environment variables can also '
-                    'be used to configure this. The latter expects a JSON-encoded value.'
-                )
                 if issubclass(setting_type, rez.config.PathList):
                     rst.append(
                         f'      Values in ``{envvar}`` must be separated with ``:`` on Unix-like '

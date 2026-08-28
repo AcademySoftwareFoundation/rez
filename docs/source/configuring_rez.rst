@@ -12,9 +12,11 @@ Settings are determined in the following way:
   :envvar:`REZ_CONFIG_FILE` environment variable. This can also be a path-like variable, to read from
   multiple configuration files;
 - The setting is further overridden if it is present in ``$HOME/.rezconfig`` or ``$HOME/.rezconfig.py``;
+- The setting is overridden again if the environment variable :envvar:`REZ_XXX_JSON` is present, where ``XXX``
+  is the uppercase version of the setting key. Its value must be JSON-encoded;
 - The setting is overridden again if the environment variable :envvar:`REZ_XXX` is present, where ``XXX`` is
   the uppercase version of the setting key. For example, :data:`.image_viewer` will be overridden by
-  :envvar:`REZ_IMAGE_VIEWER`.
+  :envvar:`REZ_IMAGE_VIEWER`. This form takes precedence if both environment variables are present;
 - This is a special case applied only during a package build or release. In this case, if the
   package definition file contains a "config" section, settings in this section will override all
   others. See :ref:`configuring-rez-package-overrides`.
