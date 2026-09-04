@@ -1550,6 +1550,27 @@ class _ResolvePhase(_Common):
                         scopes[i] = provided_scope
                         changed_scopes_i.add(i)
 
+                # check conflict scopes (eg "!foo", "~foo-1") against provides
+                # the provided range must not fall entirely within the conflicted range
+                for scope in scopes:
+                    if not scope.is_conflict or scope.is_ephemeral:
+                        continue
+
+                    provider_req = provides_map.get(scope.package_name)
+                    if provider_req is None:
+                        continue
+
+                    remaining = provider_req.range - scope.package_request.range
+                    if remaining is None:
+                        if self.pr:
+                            self.pr(
+                                "%s conflicts with provided %s",
+                                scope, provider_req)
+                        conflict = DependencyConflict(
+                            provider_req, scope.package_request)
+                        failure_reason = DependencyConflicts([conflict])
+                        return _create_phase(SolverStatus.failed)
+
             num_scopes = len(scopes)
 
             # no further reductions to do
