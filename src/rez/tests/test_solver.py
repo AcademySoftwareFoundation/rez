@@ -370,6 +370,24 @@ class TestSolver(TestBase):
         self._solve(["mixedprovides", ".provides.python-2.6"],
                     ["mixedprovides-1[0]", ".provides.python-2.6"])
 
+    def test_20_provides_anti_requirement(self) -> None:
+        """Anti-requirement for a provided package should fail
+
+        pydcc-1 provides python-2.6.8
+        therefore 'pydcc-1' conflicts with '!python', but not with "!python-2.5"
+        """
+        self._fail("pydcc-1", "!python")
+        self._solve(["pydcc-1", "!python-2.5"], ["pydcc-1[]", ".provides.python-2.6.8"])
+
+    def test_21_provides_weak_reference(self) -> None:
+        """Weak reference outside the provided range should fail.
+
+        pydcc-1 provides python-2.6.8
+        'python-2.6.8' conflicts with '~python-2.7', but not with '~python-2.6'
+        """
+        self._fail("pydcc-1", "~python-2.7")
+        self._solve(["pydcc-1", "~python-2.6"], ["pydcc-1[]", ".provides.python-2.6.8"])
+
 
 if __name__ == '__main__':
     unittest.main()
