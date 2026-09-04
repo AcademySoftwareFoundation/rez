@@ -477,7 +477,7 @@ Following is a list of the objects and functions available.
       if "foo.cli" in ephemerals:
           info("Foo cli option is being specified!")
 
-.. rex:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.version.VersionRange
+.. rex:function:: ephemerals.get_range(name: str, default: str) -> ~rez.version.VersionRange
 
    Use ``get_range`` to test with the :rex:func:`intersects` function.
    Here, we enable ``foo``'s commandline tools by default, unless explicitly disabled via
