@@ -5,6 +5,7 @@ import argparse
 import rez.cli._main
 import rez.cli._util
 import rez.rezconfig
+import rez.utils.docs
 import docutils.nodes
 import sphinx.util.nodes
 import sphinx.application
@@ -154,118 +155,63 @@ class PkgDefDomain(BareNamePythonDomain):
 
 def convert_rez_config_to_rst() -> list[str]:
     with open(rez.rezconfig.__file__) as fd:
-        txt = fd.read()
+        documented_settings = rez.utils.docs.parse_documented_settings(fd.read())
 
-        lines = txt.split('\n')
+    settings = {}
+    for setting in documented_settings:
+        if setting.section not in settings:
+            settings[setting.section] = {
+                'desc': setting.section_description,
+                'settings': {}
+            }
+        settings[setting.section]['settings'][setting.name] = (
+            setting.value_lines,
+            setting.comment_lines,
+        )
 
-        start = None
-        end = None
-        for i, line in enumerate(lines):
-            if "__DOC_START__" in line:
-                start = i
-            elif "__DOC_END__" in line:
-                end = i
+    # generate rst text
+    # rst = ['.. currentmodule:: config']
+    rst = []
 
-        lines = lines[start:end + 1]
-        assign_regex = re.compile("^([a-z0-9_]+) =")
-        settings = {}
+    for section in settings:
+        rst.append('')
+        rst.append(".. _config-{}:".format(section.replace(' ', '-').lower()))
+        rst.append("")
+        rst.append(section)
+        rst.append("-" * len(section))
+        rst.append('')
 
-        section_header = re.compile(r"^\#{10,}")
+        # This seems benign (storing each line individually), but it's actually extremely
+        # important. The docutils ViewList class absolutely requires to have only one line per
+        # entry. If we don't do that, the docutils parser won't parse the sublines,
+        # and we'll get "garbage" (ie unformatted lines) in the output.
+        for line in settings[section]['desc'].strip().split('\n'):
+            rst.append(line)
+        rst.append('')
 
-        section_title = None
-        section_description = None
-        end_of_section = 0
-
-        # parse out settings sections, settings and their comment
-        for i, line in enumerate(lines):
-
-            if section_header.match(line) and i != end_of_section:
-                section_title = lines[i + 1].split('#', 1)[-1].strip()
-                section_description = ''
-                description_linenumber = i + 2
-                end_of_section = description_linenumber
-
-                while not section_header.match(lines[description_linenumber]):
-                    section_description += lines[description_linenumber].split('#', 1)[-1].strip() + '\n'
-                    description_linenumber += 1
-                    end_of_section = description_linenumber
-
-            m = assign_regex.match(line)
-            if not m:
-                continue
-
-            start_defn = i
-            end_defn = i
-            while lines[end_defn].strip() and not lines[end_defn].startswith('#'):
-                end_defn += 1
-
-            value_lines = lines[start_defn:end_defn]
-            value_lines[0] = value_lines[0].split("=")[-1].strip()
-
-            end_comment = i
-            while not lines[end_comment].startswith('#'):
-                end_comment -= 1
-
-            start_comment = end_comment
-            while lines[start_comment].startswith('#'):
-                start_comment -= 1
-            start_comment += 1
-
-            comments = lines[start_comment:end_comment + 1]
-            comment_lines = [x[2:] for x in comments]  # drop leading '# '
-
-            varname = m.groups()[0]
-            if section_title in settings:
-                settings[section_title]['settings'][varname] = (value_lines, comment_lines)
+        for varname, (value_lines, comment_lines) in sorted(settings[section]['settings'].items()):
+            rst.append(".. py:data:: {0}".format(varname))
+            if len(value_lines) == 1:
+                rst.append("   :value: {0}".format(value_lines[0]))
             else:
-                settings[section_title] = {
-                    'desc': section_description,
-                    'settings': {varname: (value_lines, comment_lines)}
-                }
+                rst.append('')
+                rst.append('   Default:')
+                rst.append('')
+                rst.append('   .. code-block:: python')
+                rst.append('')
+                for line in value_lines:
+                    rst.append(f'      {line}')
 
-        # generate rst text
-        # rst = ['.. currentmodule:: config']
-        rst = []
-
-        for section in settings:
             rst.append('')
-            rst.append(".. _config-{}:".format(section.replace(' ', '-').lower()))
-            rst.append("")
-            rst.append(section)
-            rst.append("-" * len(section))
+            for line in comment_lines:
+                rst.append(f'   {line}')
             rst.append('')
 
-            # This seems benign (storing each line individually), but it's actually extremely
-            # important. The docutils ViewList class absolutely requires to have only one line per
-            # entry. If we don't do that, the docutils parser won't parse the sublines,
-            # and we'll get "garbage" (ie unformatted lines) in the output.
-            for line in settings[section]['desc'].strip().split('\n'):
-                rst.append(line)
+            envvar = f'REZ_{varname.upper()}'
+            rst.append(f'   .. envvar:: {envvar}')
             rst.append('')
-
-            for varname, (value_lines, comment_lines) in sorted(settings[section]['settings'].items()):
-                rst.append(".. py:data:: {0}".format(varname))
-                if len(value_lines) == 1:
-                    rst.append("   :value: {0}".format(value_lines[0]))
-                else:
-                    rst.append('')
-                    rst.append('   Default:')
-                    rst.append('')
-                    rst.append('   .. code-block:: python')
-                    rst.append('')
-                    for line in value_lines:
-                        rst.append(f'      {line}')
-
-                rst.append('')
-                for line in comment_lines:
-                    rst.append(f'   {line}')
-                rst.append('')
-
-                envvar = f'REZ_{varname.upper()}'
-                rst.append(f'   .. envvar:: {envvar}')
-                rst.append('')
-                rst.append(f'      The ``{envvar}`` environment variable can also be used to configure this.')
-                rst.append('')
+            rst.append(f'      The ``{envvar}`` environment variable can also be used to configure this.')
+            rst.append('')
 
     return rst
 
@@ -292,6 +238,7 @@ class RezConfigDirective(sphinx.util.docutils.SphinxDirective):
         # Add rezconfig as a dependency to the current document. The document
         # will be rebuilt if rezconfig changes.
         self.env.note_dependency(rez.rezconfig.__file__)
+        self.env.note_dependency(rez.utils.docs.__file__)
         self.env.note_dependency(__file__)
 
         path, lineNumber = self.get_source_info()
