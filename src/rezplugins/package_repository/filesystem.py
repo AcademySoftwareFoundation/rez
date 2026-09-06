@@ -1166,9 +1166,9 @@ class FileSystemPackageRepository(PackageRepository):
             if filepath:
                 # force case-sensitive match on pkg filename, on case-insensitive platforms
                 if not platform_.has_case_sensitive_filesystem:
-                    ext = os.path.splitext(filepath)[-1]
-                    filenames = set("%s.%s" % (filename, extension) for filename, extension in self._get_family_dirs() if extension)
-                    if (name + ext) not in filenames:
+                    extension = os.path.splitext(filepath)[-1]
+                    filenames = set("%s.%s" % (fname, ext) for (fname, ext) in self._get_family_dirs() if ext)
+                    if (name + extension) not in filenames:
                         return None
 
                 return self.get_resource(
