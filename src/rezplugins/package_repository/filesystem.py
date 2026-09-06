@@ -1151,9 +1151,10 @@ class FileSystemPackageRepository(PackageRepository):
         is_valid_package_name(name, raise_error=True)
         if os.path.isdir(os.path.join(self.location, name)):
             # force case-sensitive match on pkg family dir, on case-insensitive platforms
-            if not platform_.has_case_sensitive_filesystem and \
-                    name not in os.listdir(self.location):
-                return None
+            if not platform_.has_case_sensitive_filesystem:
+                dirs = set(dir_name for (dir_name, ext) in self._get_family_dirs() if ext is None)
+                if name not in dirs:
+                    return None
 
             return self.get_resource(
                 FileSystemPackageFamilyResource.key,
@@ -1166,7 +1167,8 @@ class FileSystemPackageRepository(PackageRepository):
                 # force case-sensitive match on pkg filename, on case-insensitive platforms
                 if not platform_.has_case_sensitive_filesystem:
                     ext = os.path.splitext(filepath)[-1]
-                    if (name + ext) not in os.listdir(self.location):
+                    filenames = set("%s.%s" % (filename, extension) for filename, extension in self._get_family_dirs() if extension)
+                    if (name + ext) not in filenames:
                         return None
 
                 return self.get_resource(
