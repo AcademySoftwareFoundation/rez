@@ -690,10 +690,17 @@ Following is a list of the objects and functions available.
    Optional ``nargs`` values are interpolated into ``message`` using Python ``%``-style formatting before
    ``RexStopError`` is raised. The placeholders in ``message`` must be compatible with the supplied values.
 
+   ``message`` can be a ``%s``-style templated string. Each variable must be passed as positional
+   arguments:
+
    .. code-block:: python
 
       expected_value = 42
       stop("The value should be %s", expected_value)
+
+   .. code-block:: python
+
+      stop("another %s message %s", "awesome", "here")
 
 .. rex:attribute:: system
    :type: ~rez.system.System
