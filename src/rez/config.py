@@ -76,6 +76,10 @@ class Setting(object):
     """
     schema: Validatable = Schema(object)
 
+    # Only set to True in subclasses when the non-JSON
+    # env var cannot be used by users.
+    env_var_json_only = False
+
     def __init__(self, config, key) -> None:
         self.config = config
         self.key = key
@@ -105,7 +109,8 @@ class Setting(object):
 
         if not self.config.locked:
 
-            # next, env-var
+            # next, env-var. Note that all settings support _JSON
+            # but not all support the non-JSON variant.
             value = os.getenv(self._env_var_name)
             if value is not None:
                 if self.key in _deprecated_settings:
@@ -116,6 +121,12 @@ class Setting(object):
                         rez.deprecations.RezDeprecationWarning,
                         pre_formatted=True,
                         filename=self._env_var_name,
+                    )
+                if self.env_var_json_only:
+                    raise ConfigurationError(
+                        "The setting %r doesn't support the environment variable $%s, "
+                        "use $%s_JSON instead."
+                        % (self.key, self._env_var_name, self._env_var_name)
                     )
                 return self._parse_env_var(value)
 
@@ -189,6 +200,7 @@ class PipInstallRemaps(Setting):
     KEYS = ["record_path", "pip_install", "rez_install"]
 
     schema = Schema([{key: And(str, len) for key in KEYS}])
+    env_var_json_only = True
 
     def validate(self, data: list) -> list:
         """Extended to substitute regex-escaped path tokens."""
@@ -311,6 +323,7 @@ class OptionalDictOrDictList(Setting):
     schema = Or(And(None, Use(lambda x: [])),
                 And(dict, Use(lambda x: [x])),
                 [dict])
+    env_var_json_only = True
 
 
 class SuiteVisibility_(Str):

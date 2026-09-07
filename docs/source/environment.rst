@@ -219,6 +219,8 @@ operation of rez.
 
    Path to a rez configuration file.
 
+.. _config-environment-variable-overrides:
+
 .. envvar:: REZ_XXX
 
    For any given rez config entry (see ``rezconfig.py``),
@@ -235,6 +237,7 @@ operation of rez.
    Same as :envvar:`REZ_XXX`, except that the format
    is a JSON string. This means that some more complex settings can be overridden,
    that aren't supported in the non-JSON case (:data:`package_filter` is an example).
+   If both forms are present, :envvar:`REZ_XXX` takes precedence.
 
 .. envvar:: REZ_DISABLE_HOME_CONFIG
 
