@@ -16,6 +16,7 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
+from rez.utils.logging_ import print_warning
 from rez.utils.typing import SupportsWrite
 from rez.version import Version, VersionRange
 from rez.version import VersionedObject
@@ -168,7 +169,21 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
                 schema = self.late_bind_schemas.get(key)
                 if schema is not None:
-                    value_ = schema.validate(value_)
+                    try:
+                        value_ = schema.validate(value_)
+                    except Exception:
+                        if value_ is None:
+                            # A late-bound function returned None. This is
+                            # equivalent to the attribute not being set, so
+                            # warn and treat it as a no-op rather than crashing.
+                            # See https://github.com/AcademySoftwareFoundation/rez/issues/2153
+                            print_warning(
+                                "Late-bound attribute %r on package %r returned"
+                                " None; treating as unset.", key, self.name
+                            )
+                            value_ = None
+                        else:
+                            raise
 
                 # cache result of late bound func
                 self._late_binding_returnvalues[key] = value_
