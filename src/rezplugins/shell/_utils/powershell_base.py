@@ -25,6 +25,15 @@ class PowerShellBase(Shell):
     expand_env_vars = True
     syspaths = None
 
+    # PowerShell does not provide built-in functionality to manually trigger
+    # sourcing of the user/host profile scripts in the appropriate order, so we
+    # have to implement it ourselves in order to be able to control the relative
+    # source order of the user's profile vs. the generated rez context script.
+    profile_source_cmd = (
+        '$PROFILE '
+        '| Get-Member -type NoteProperty '
+        '| ForEach-Object { if (Test-Path $PROFILE."$($_.Name)") { . $PROFILE."$($_.Name)" }}')
+
     # Make sure that the $Env:VAR formats come before the $VAR formats since
     # PowerShell Environment variables are ambiguous with Unix paths.
     # Note: This is used in other parts of Rez
@@ -51,10 +60,8 @@ class PowerShellBase(Shell):
                              stdin: bool = False,
                              command: bool = False):
         cls._unsupported_option('rcfile', rcfile)
-        cls._unsupported_option('norc', norc)
         cls._unsupported_option('stdin', stdin)
         rcfile = False
-        norc = False
         stdin = False
         return (rcfile, norc, stdin, command)
 
@@ -113,14 +120,23 @@ class PowerShellBase(Shell):
                     quiet: bool = False,
                     pre_command=None,
                     add_rez: bool = True,
+                    package_commands_sourced_first: bool | None = None,
                     **Popen_args):
 
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin),
                                                      command)
         shell_command = None
 
+        if package_commands_sourced_first is None:
+            package_commands_sourced_first = config.package_commands_sourced_first
+
         def _record_shell(ex, files, bind_rez: bool = True, print_msg: bool = False) -> None:
-            ex.source(context_file)
+            if package_commands_sourced_first:
+                ex.source(context_file)
+            if not norc:
+                ex.command(self.profile_source_cmd)
+            if not package_commands_sourced_first:
+                ex.source(context_file)
             if startup_sequence["envvar"]:
                 ex.unsetenv(startup_sequence["envvar"])
             if add_rez and bind_rez:
@@ -192,8 +208,14 @@ class PowerShellBase(Shell):
 
         cmd += [self.executable]
 
-        # Suppresses copyright message of PowerShell and pwsh
-        cmd += ["-NoLogo"]
+        # `-NoLogo` suppresses copyright message of PowerShell and pwsh.
+        # `-NoProfile` skips automatic sourcing of user/host profile scripts.
+        # We manually inject the profile sourcing before or after the sourcing
+        # of the generated context script based on the value of
+        # `package_commands_sourced_first` (see `_record_shell` above).
+        cmd += ["-NoLogo", "-NoProfile"]
+        if shell_command is None:
+            cmd += ["-NoExit"]
 
         # Powershell execution policy overrides
         # Prevent injections/mistakes by ensuring policy value only contains letters.
@@ -203,9 +225,6 @@ class PowerShellBase(Shell):
 
         # Generic form of sourcing that works in powershell and pwsh
         cmd += ["-File", target_file]
-
-        if shell_command is None:
-            cmd.insert(1, "-NoExit")
 
         if config.debug("shell_startup"):
             print_debug("Launching shell with command: %s" % self.join(cmd))
