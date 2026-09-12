@@ -8,6 +8,7 @@ test rezplugins manager behaviors
 from rez.tests.util import TestBase, TempdirMixin, restore_sys_path
 from rez.plugin_managers import plugin_manager, uncache_rezplugins_module_paths
 from rez.package_repository import package_repository_manager
+from unittest.mock import patch
 import sys
 import unittest
 
@@ -75,6 +76,28 @@ class TestPluginManagers(TestBase, TempdirMixin):
             baz_cls = plugin_manager.get_plugin_class("command", "baz_cmd")
             self.assertEqual(baz_cls.name(), "baz_cmd")
 
+    def test_discovers_entry_points_once_for_all_plugin_types(self) -> None:
+        """Installed distributions are scanned once across plugin types."""
+        from rez.plugin_managers import entry_points
+
+        with patch("rez.plugin_managers.entry_points", wraps=entry_points) as discover:
+            plugin_manager.get_plugins("shell")
+            plugin_manager.get_plugins("release_vcs")
+
+        discover.assert_called_once_with()
+
+    def test_rediscovers_entry_points_when_sys_path_changes(self) -> None:
+        """Changing import locations invalidates entry-point discovery."""
+        from rez.plugin_managers import entry_points
+
+        with patch("rez.plugin_managers.entry_points", wraps=entry_points) as discover:
+            plugin_manager.get_plugins("shell")
+            with restore_sys_path():
+                sys.path.append(self.data_path("extensions"))
+                plugin_manager.get_plugins("release_vcs")
+
+        self.assertEqual(discover.call_count, 2)
+
     def test_plugin_override_1(self) -> None:
         """Test plugin from plugin_path can override the default"""
         self.update_settings(dict(
@@ -107,6 +130,20 @@ class TestPluginManagers(TestBase, TempdirMixin):
             mem_cls = plugin_manager.get_plugin_class(
                 "package_repository", "memory")
             self.assertEqual("bar", mem_cls.on_test)
+
+    def test_loads_config_once_per_plugin_path(self) -> None:
+        """Each plugin directory's shared config is loaded only once."""
+        from rez.plugin_managers import _load_config_from_filepaths
+
+        with patch(
+            "rez.plugin_managers._load_config_from_filepaths",
+            wraps=_load_config_from_filepaths,
+        ) as load_config:
+            plugin_manager.get_plugins("shell")
+
+        config_paths = [call.args[0][0] for call in load_config.call_args_list]
+        self.assertGreater(len(config_paths), 0)
+        self.assertEqual(len(config_paths), len(set(config_paths)))
 
 
 if __name__ == '__main__':
