@@ -591,13 +591,21 @@ def _cmd(context, command):
 
     if context is None:
         p = Popen(command)
+        with p:
+            p.wait()
+        returncode = p.returncode
     else:
-        p = context.execute_shell(command=command, block=False)
+        # Use block=True (execute_shell's own synchronous mode, which
+        # uses Popen.communicate() internally) rather than block=False
+        # plus a manual p.wait(). block=False is documented as
+        # "return immediately" and is meant for interactive/backgrounded
+        # shells; relying on a bare wait() against it to synchronously
+        # gate on command completion is fragile and was seen to race on
+        # Windows, where the pip install could still be running when
+        # control returned to the caller (see #2041).
+        returncode, _, _ = context.execute_shell(command=command, block=True)
 
-    with p:
-        p.wait()
-
-    if p.returncode:
+    if returncode:
         raise BuildError("Failed to download source with pip: %s" % cmd_str)
 
 
