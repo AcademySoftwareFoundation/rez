@@ -58,6 +58,12 @@ class MesonBuildSystem(BuildSystem):
             default="release",
             help="Build type to use (default: %(default)s).")
 
+        group.add_argument(
+            "--no-source-tests",
+            dest="no_source_tests",
+            action="store_true",
+            help="Disable running source tests during package build.")
+
     def __init__(self,
                  working_dir,
                  opts=None,
@@ -75,6 +81,7 @@ class MesonBuildSystem(BuildSystem):
             build_args=build_args,
             child_build_args=child_build_args)
         self.build_type = getattr(opts, "build_type", "release")
+        self.no_source_tests = getattr(opts, "no_source_tests", False)
 
     def build(self,
               context: ResolvedContext,
@@ -142,6 +149,18 @@ class MesonBuildSystem(BuildSystem):
             ret["success"] = True
             ret["build_env_script"] = build_env_script
             return ret
+
+        if not self.no_source_tests:
+            retcode = self._test(
+                meson_exe,
+                build_path,
+                context,
+                _callback,
+                _pre_build_callback,
+            )
+            if retcode != 0:
+                ret["success"] = False
+                return ret
 
         build_fn = self._install if install else self._compile
 
@@ -230,6 +249,21 @@ class MesonBuildSystem(BuildSystem):
         return self._run_command(
             "Building project with: {}",
             compile_cmd,
+            context,
+            callback,
+            post_callback,
+        )
+
+    def _test(self,
+              meson_exe,
+              build_path,
+              context,
+              callback,
+              post_callback) -> int:
+        test_cmd = [meson_exe, "test", "-C", build_path]
+        return self._run_command(
+            "Testing project with: {}",
+            test_cmd,
             context,
             callback,
             post_callback,
