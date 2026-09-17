@@ -64,6 +64,13 @@ class MesonBuildSystem(BuildSystem):
             action="store_true",
             help="Disable running source tests during package build.")
 
+        group.add_argument(
+            "--install-tags",
+            dest="install_tags",
+            type=str,
+            help=("Install only targets associated with "
+                  "the comma separated tags."))
+
     def __init__(self,
                  working_dir,
                  opts=None,
@@ -82,6 +89,7 @@ class MesonBuildSystem(BuildSystem):
             child_build_args=child_build_args)
         self.build_type = getattr(opts, "build_type", "release")
         self.no_source_tests = getattr(opts, "no_source_tests", False)
+        self.install_tags = getattr(opts, "install_tags", None)
 
     def build(self,
               context: ResolvedContext,
@@ -226,6 +234,8 @@ class MesonBuildSystem(BuildSystem):
                  callback,
                  post_callback) -> int:
         install_cmd = [meson_exe, "install", "-C", build_path]
+        if self.install_tags:
+            install_cmd.append("--tags={}".format(self.install_tags))
         return self._run_command(
             "Installing project with: {}",
             install_cmd,
