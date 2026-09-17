@@ -7,11 +7,15 @@ Meson-based build system
 """
 from rez.build_process import BuildType
 from rez.build_system import BuildSystem, BuildResult
+from rez.config import config
 from rez.exceptions import BuildSystemError
+from rez.utils.execution import create_forwarding_script
+from rez.packages import get_developer_package, Variant
 from rez.resolved_context import ResolvedContext
-from rez.packages import Variant
 from rez.utils.which import which
+import functools
 import os.path
+import sys
 
 
 class RezMesonError(BuildSystemError):
@@ -64,7 +68,7 @@ class MesonBuildSystem(BuildSystem):
         if not meson_exe:
             raise RezMesonError("meson binary does not exist: {}".format(exe))
 
-        def _callback(executor):
+        def _callback(executor, context=context):
             self.add_standard_build_actions(
                 executor=executor,
                 context=context,
@@ -99,7 +103,21 @@ class MesonBuildSystem(BuildSystem):
             ret["success"] = False
             return ret
 
-        # TODO: write_build_scripts
+        if self.write_build_scripts:
+            build_env_script = os.path.join(build_path, "build-env")
+            create_forwarding_script(
+                build_env_script,
+                module=("build_system", "meson"),
+                func_name="_FWD__spawn_build_shell",
+                working_dir=self.working_dir,
+                build_path=build_path,
+                variant_index=variant.index,
+                install=install,
+                install_path=install_path,
+            )
+            ret["success"] = True
+            ret["build_env_script"] = build_env_script
+            return ret
 
         build_fn = self._install if install else self._compile
 
@@ -112,6 +130,25 @@ class MesonBuildSystem(BuildSystem):
         )
 
         ret["success"] = (not retcode)
+        return ret
+
+    def _spawn_build_shell(self, ret, build_path, context, callback):
+        config.override("prompt", "BUILD>")
+        script_callback = functools.partial(
+            callback,
+            context=context,
+        )
+
+        retcode, _, _ = context.execute_shell(
+            block=True,
+            cwd=build_path,
+            actions_callback=script_callback,
+        )
+
+        sys.exit(retcode)
+
+        ret["success"] = True
+        ret["build_env_script"] = build_path
         return ret
 
     def _configure(self,
@@ -190,6 +227,48 @@ class MesonBuildSystem(BuildSystem):
             post_actions_callback=post_callback,
         )
         return retcode
+
+
+def _FWD__spawn_build_shell(working_dir,
+                            build_path,
+                            variant_index,
+                            install,
+                            install_path=None) -> None:
+    # This spawns a shell that the user can run 'meson compile' or the
+    # backend directly in.
+    context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
+    package = get_developer_package(working_dir)
+    variant = package.get_variant(variant_index)
+    config.override("prompt", "BUILD>")
+
+    def _callback(executor):
+        MesonBuildSystem.add_standard_build_actions(
+            executor=executor,
+            context=context,
+            variant=variant,
+            build_type=BuildType.local,
+            install=install,
+            build_path=build_path,
+            install_path=install_path,
+        )
+
+    post_actions_callback = functools.partial(
+        MesonBuildSystem.add_pre_build_commands,
+        variant=variant,
+        build_type=BuildType.local,
+        install=install,
+        build_path=build_path,
+        install_path=install_path,
+    )
+
+    retcode, _, _ = context.execute_shell(
+        block=True,
+        cwd=build_path,
+        actions_callback=_callback,
+        post_actions_callback=post_actions_callback,
+    )
+
+    sys.exit(retcode)
 
 
 def register_plugin():
