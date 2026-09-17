@@ -11,10 +11,12 @@ Settings are determined in the following way:
 - The setting is then overridden if it is present in another settings file pointed at by the
   :envvar:`REZ_CONFIG_FILE` environment variable. This can also be a path-like variable, to read from
   multiple configuration files;
-- The setting is further overriden if it is present in ``$HOME/.rezconfig``;
+- The setting is further overridden if it is present in ``$HOME/.rezconfig`` or ``$HOME/.rezconfig.py``;
+- The setting is overridden again if the environment variable :envvar:`REZ_XXX_JSON` is present, where ``XXX``
+  is the uppercase version of the setting key. Its value must be JSON-encoded;
 - The setting is overridden again if the environment variable :envvar:`REZ_XXX` is present, where ``XXX`` is
-  the uppercase version of the setting key. For example, :data:`.image_viewer` will be overriden by
-  :envvar:`REZ_IMAGE_VIEWER`.
+  the uppercase version of the setting key. For example, :data:`.image_viewer` will be overridden by
+  :envvar:`REZ_IMAGE_VIEWER`. This form takes precedence if both environment variables are present;
 - This is a special case applied only during a package build or release. In this case, if the
   package definition file contains a "config" section, settings in this section will override all
   others. See :ref:`configuring-rez-package-overrides`.
@@ -29,7 +31,7 @@ variable :envvar:`REZ_CONFIG_FILE` is then set to for all your users.
 Supported Configuration File Formats
 ====================================
 
-Rez supports both YAML configuration files and Python configuration files.
+Rez supports both YAML configuration files (``.rezconfig``) and Python configuration files (``.rezconfig.py``).
 
 You may prefer a Python based configuration file if you need to vary your configuration settings based on your
 current platform.
@@ -109,12 +111,12 @@ JSON formats are supported:
    # in rezconfig
    default_relocatable_per_package = DelayLoad('/svr/configs/rez_relocs.yaml')
 
-See :Class:`.DelayLoad`.
+See :class:`.DelayLoad`.
 
 .. _configuring-rez-commandline-line:
 
-Commandline Tool
-================
+Command Line Tool
+=================
 
 You can use the :ref:`rez-config` command line tool to see what the current configured settings are.
 Called with no arguments, it prints all settings; if you specify an argument, it prints out just
@@ -145,6 +147,6 @@ Following is an alphabetical list of rez settings.
    file in the rez source, so you can also refer to that file for the same information.
 
 .. This is a custom directive. See the rez_sphinxext.py file for more information.
-.. TL;DR: It will take care of generating the documentation or all the settings defined
+.. TL;DR: It will take care of generating the documentation for all the settings defined
 .. in rezconfig.py
 .. rez-config::

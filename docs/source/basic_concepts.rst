@@ -121,7 +121,7 @@ of each attribute):
       env.PYTHONPATH.append("{root}/python")
       env.PATH.append("{root}/bin")
 
-The :attr:`requires` section defines the requirements of the package. The :func:`commands` section describes
+The :pkgdef:attr:`requires` section defines the requirements of the package. The :pkgdef:func:`commands` section describes
 what happens when this package is added to an environment. Here, the ``bin`` directory in the package
 installation is appended to ``PATH``, and similarly the ``python`` subdirectory is appended to
 ``PYTHONPATH``.
@@ -187,7 +187,12 @@ Rez finds packages using a search path in much the same way that python finds py
 
 If the same package appears in two or more repositories on the search path, the earlier package is
 used in preference. This happens at the version level. For example an earlier package ``foo-1.0.0``
-will hide a later package ``foo-1.0.0``, but not ``foo-1.2.0``.
+will hide a later package ``foo-1.0.0``, but not ``foo-1.2.0``. This also means that Rez does not combine
+variants from identical package versions across repositories, nor fall back to a later repository
+when the earlier package has no compatible variant. For example, a local ``foo-1.0.0`` containing
+only a Linux variant hides a released ``foo-1.0.0`` containing a Windows variant, even when resolving
+on Windows. To exclude locally installed packages from a resolve, use the :option:`rez-env --no-local`
+option.
 
 The example search path shown is a typical setting. There are some central repositories later in the
 search path, where packages are released to so everyone can use them. But there is also a local
@@ -207,7 +212,7 @@ environment variable.
 Package Commands
 ================
 
-The :func:`commands` section of the package definition determines how the environment is configured in
+The :pkgdef:func:`commands` section of the package definition determines how the environment is configured in
 order to use it. It is a python function, but note that if any imports are used, they must appear
 within the body of this function.
 
@@ -220,7 +225,7 @@ Consider this commands example:
       env.PATH.append("{root}/bin")
 
 This is a typical example, where a package adds its source path to ``PYTHONPATH``, and its tools to
-``PATH``. See :doc:`here <package_commands>` for details on what can be done within the :func:`commands` section,
+``PATH``. See :doc:`here <package_commands>` for details on what can be done within the :pkgdef:func:`commands` section,
 as well as details on what order package commands are executed in.
 
 .. _package-requests-concept:

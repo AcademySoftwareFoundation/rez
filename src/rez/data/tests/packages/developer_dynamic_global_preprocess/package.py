@@ -1,7 +1,7 @@
 name = "developer_dynamic_global_preprocess"
 
 @early()
-def description():
+def description() -> str:
     return "This."
 
 # make sure imported modules don't break developer packages

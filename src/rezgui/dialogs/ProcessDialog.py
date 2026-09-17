@@ -16,7 +16,7 @@ class ProcessDialog(QtWidgets.QDialog, StoreSizeMixin):
     Note that in order to capture the process's output, you need to have piped
     its stdout and stderr to subprocess.PIPE.
     """
-    def __init__(self, process, command_string, parent=None):
+    def __init__(self, process, command_string, parent=None) -> None:
         config_key = "layout/window/process"
         super(ProcessDialog, self).__init__(parent)
         StoreSizeMixin.__init__(self, app.config, config_key)
@@ -49,10 +49,10 @@ class ProcessDialog(QtWidgets.QDialog, StoreSizeMixin):
 
         close_btn.clicked.connect(self.close)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         self.capture_output = False
 
-    def _read_output(self, buf):
+    def _read_output(self, buf) -> None:
         for line in buf:
             try:
                 self.lock.acquire()
@@ -62,7 +62,7 @@ class ProcessDialog(QtWidgets.QDialog, StoreSizeMixin):
             if not self.capture_output:
                 break
 
-    def _update(self):
+    def _update(self) -> None:
         if not self.output_ended \
                 and not self.stdout_thread.is_alive() \
                 and not self.stderr_thread.is_alive() \

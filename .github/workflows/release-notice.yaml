@@ -6,6 +6,9 @@ on:
       # published should cover both 'released' and 'prereleased'
       - published
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest

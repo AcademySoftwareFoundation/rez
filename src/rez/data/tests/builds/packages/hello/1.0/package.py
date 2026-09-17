@@ -8,5 +8,5 @@ tools = ['hai']
 
 build_command = "make -f {root}/Makefile {install}"
 
-def commands():
+def commands() -> None:
     env.PATH.append('{root}/bin')

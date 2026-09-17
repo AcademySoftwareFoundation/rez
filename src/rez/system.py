@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import os.path
 import re
@@ -61,7 +63,7 @@ class System(object):
 
     # TODO: move shell detection into shell plugins
     @cached_property
-    def shell(self):
+    def shell(self) -> str:
         """Get the current shell.
 
         Returns:
@@ -86,7 +88,7 @@ class System(object):
                 # print an error message: "process ID out of range".
                 try:
                     args = ['ps', '-o', 'args=', '-p', str(parent_pid)]
-                    proc = sp.Popen(args, stdout=sp.PIPE)
+                    proc = sp.Popen(args, stdout=sp.PIPE, text=True)
                     output = proc.communicate()[0]
                     shell = os.path.basename(output.strip().split()[0]).replace('-', '')
                 except Exception:
@@ -207,6 +209,9 @@ class System(object):
         #
         import rez
         module_path = rez.__path__[0]
+        # Best effort attempt at converting slashes to the current
+        # platform native slash. (for example, forward to backward).
+        module_path = os.path.normpath(module_path)
 
         parts = module_path.split(os.path.sep)
         parts_lower = module_path.lower().split(os.path.sep)
@@ -260,7 +265,7 @@ class System(object):
         txt += "\n\n%s" % plugin_manager.get_summary_string()
         return txt
 
-    def clear_caches(self, hard=False):
+    def clear_caches(self, hard: bool = False) -> None:
         """Clear all caches in Rez.
 
         Rez caches package contents and iteration during a python session. Thus

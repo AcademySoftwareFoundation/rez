@@ -4,6 +4,7 @@
 
 import sys
 from contextlib import contextmanager
+from typing import NoReturn
 
 
 @contextmanager
@@ -11,11 +12,11 @@ def with_noop():
     yield
 
 
-def reraise(exc, new_exc_cls):
+def reraise(exc, new_exc_cls) -> NoReturn:
     traceback = sys.exc_info()[2]
 
     # TODO test this.
-    def reraise_(tp, value, tb=None):
+    def reraise_(tp, value, tb=None) -> NoReturn:
         try:
             if value is None:
                 value = tp()

@@ -19,7 +19,7 @@ import os.path
 
 class TestRezSuites(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         packages_path = cls.data_path("suites", "packages")
@@ -31,10 +31,10 @@ class TestRezSuites(TestBase, TempdirMixin):
             resolve_caching=False)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def _test_serialization(self, suite):
+    def _test_serialization(self, suite) -> None:
         name = uuid.uuid4().hex
         path = os.path.join(self.root, name)
         suite.save(path)
@@ -42,14 +42,14 @@ class TestRezSuites(TestBase, TempdirMixin):
         self.assertEqual(suite.get_tools(), suite2.get_tools())
         self.assertEqual(set(suite.context_names), set(suite2.context_names))
 
-    def test_1(self):
+    def test_1(self) -> None:
         """Test empty suite."""
         s = Suite()
         tools = s.get_tools()
         self.assertEqual(tools, {})
         self._test_serialization(s)
 
-    def test_2(self):
+    def test_2(self) -> None:
         """Test basic suite."""
         c_foo = ResolvedContext(["foo"])
         c_bah = ResolvedContext(["bah"])
@@ -101,7 +101,7 @@ class TestRezSuites(TestBase, TempdirMixin):
 
         self._test_serialization(s)
 
-    def test_3(self):
+    def test_3(self) -> None:
         """Test tool clashes in a suite."""
         c_foo = ResolvedContext(["foo"])
         c_bah = ResolvedContext(["bah"])
@@ -143,7 +143,7 @@ class TestRezSuites(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
-    def test_executable(self, shell):
+    def test_executable(self, shell) -> None:
         """Test suite tool can be executed
 
         Testing suite tool can be found and executed in multiple platforms.

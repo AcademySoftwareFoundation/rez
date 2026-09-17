@@ -11,7 +11,7 @@ from rez.exceptions import RezError
 
 
 class PackageVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None, callback=None):
+    def __init__(self, context_model=None, parent=None, callback=None) -> None:
         """
         Args:
             callback (callable): If supplied, this will be called and passed
@@ -37,12 +37,12 @@ class PackageVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
             vh, QtWidgets.QHeaderView.ResizeToContents)
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         super(PackageVersionsTable, self).clear()
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
 
-    def refresh(self):
+    def refresh(self) -> None:
         self.set_package_name(self.package_name)
 
     def current_package(self):
@@ -66,7 +66,7 @@ class PackageVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
             self.selectRow(row)
         return version
 
-    def set_package_name(self, package_name):
+    def set_package_name(self, package_name) -> None:
         package_paths = self.context_model.packages_path
         self.packages = {}
         self.clear()
@@ -131,6 +131,6 @@ class PackageVersionsTable(QtWidgets.QTableWidget, ContextViewMixin):
         if first_selectable_row != -1:
             self.selectRow(first_selectable_row)
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         if flags & ContextModel.PACKAGES_PATH_CHANGED:
             self.refresh()

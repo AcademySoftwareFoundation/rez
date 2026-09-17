@@ -2,7 +2,13 @@
 import sys
 from unittest import TestCase, main, skipUnless
 
-from rez.vendor.mock import Mock, patch
+try:
+    from rez.vendor.mock import Mock, patch
+except ImportError:
+    try:
+        from unittest.mock import Mock, patch
+    except ImportError:
+        from mock import Mock, patch
 
 from ..winterm import WinColor, WinStyle, WinTerm
 

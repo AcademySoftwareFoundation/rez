@@ -13,14 +13,14 @@ class Canvas(QtWidgets.QWidget):
     secondsHover = QtCore.Signal(int)
     secondsClicked = QtCore.Signal(int)
 
-    def __init__(self, width, height, parent=None):
+    def __init__(self, width, height, parent=None) -> None:
         super(Canvas, self).__init__(parent)
         self.setCursor(QtCore.Qt.CrossCursor)
         self.setMouseTracking(True)
         self._width = width
         self._height = height
 
-    def paintEvent(self, event):
+    def paintEvent(self, event) -> None:
         rect = self.rect()
         w = rect.width()
         h = rect.height()
@@ -45,14 +45,14 @@ class Canvas(QtWidgets.QWidget):
         p.drawText(margin, j * 3 - margin, "minutes")
         p.drawText(margin, j * 4 - margin, "seconds")
 
-    def leaveEvent(self, event):
+    def leaveEvent(self, event) -> None:
         self.secondsHover.emit(-1)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         secs = self._get_seconds(event.pos())
         self.secondsClicked.emit(secs)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
         secs = self._get_seconds(event.pos())
         self.secondsHover.emit(secs)
 
@@ -92,7 +92,7 @@ class TimeSelecterPopup(QtWidgets.QFrame):
 
     secondsClicked = QtCore.Signal(int)
 
-    def __init__(self, pivot_widget, width=240, height=160, parent=None):
+    def __init__(self, pivot_widget, width: int=240, height: int=160, parent=None) -> None:
         super(TimeSelecterPopup, self).__init__(parent)
         self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
         self.setWindowFlags(QtCore.Qt.Popup)
@@ -120,13 +120,13 @@ class TimeSelecterPopup(QtWidgets.QFrame):
         canvas.secondsHover.connect(self._secondsHover)
         canvas.secondsClicked.connect(self._secondsClicked)
 
-    def _secondsHover(self, seconds):
+    def _secondsHover(self, seconds) -> None:
         if seconds == -1:
             self.label.setText("")
         else:
             secs_txt = readable_time_duration(seconds)
             self.label.setText("%s ago" % secs_txt)
 
-    def _secondsClicked(self, seconds):
+    def _secondsClicked(self, seconds) -> None:
         self.secondsClicked.emit(seconds)
         self.close()

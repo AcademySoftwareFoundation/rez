@@ -12,7 +12,7 @@ import unittest
 
 
 class TestResolveGraph(TestBase):
-    def test_conflict_graph_with_cycle(self):
+    def test_conflict_graph_with_cycle(self) -> None:
         """ Tests creating a test digraph which contains a cycle foo-1.0.0 => bar-0.0.1 => !foo-1.0.0
             Note that the solver doesn't detect this as a cycle. See #1568
         """

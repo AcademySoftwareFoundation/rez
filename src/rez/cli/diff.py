@@ -5,9 +5,10 @@
 """
 Compare the source code of two packages.
 """
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     PKG1_action = parser.add_argument(
         "PKG1", type=str,
         help='package to diff')
@@ -22,7 +23,7 @@ def setup_parser(parser, completions=False):
         PKG2_action.completer = PackageCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.packages import get_package_from_string
     from rez.utils.diff_packages import diff_packages
 

@@ -26,7 +26,7 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
 
     diffModeChanged = QtCore.Signal()
 
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(ContextManagerWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -202,10 +202,10 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
         """Returns a string suitable for titling a window containing this widget."""
         return self.context_table.get_title()
 
-    def refresh(self):
+    def refresh(self) -> None:
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
-    def _resolve(self, advanced=False):
+    def _resolve(self, advanced: bool = False) -> None:
         dlg = ResolveDialog(self.context_model, parent=self, advanced=advanced)
         dlg.resolve()  # this updates the model on successful solve
 
@@ -218,62 +218,62 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
             QtWidgets.QMessageBox.Cancel)
         return (ret == QtWidgets.QMessageBox.Ok)
 
-    def _revert_to_last_resolve(self):
+    def _revert_to_last_resolve(self) -> None:
         assert self.context_model.can_revert()
         if self._changes_prompt():
             self.context_model.revert()
 
-    def _revert_to_diff(self):
+    def _revert_to_diff(self) -> None:
         if self._changes_prompt():
             self.context_table.revert_to_diff()
 
-    def _revert_to_disk(self):
+    def _revert_to_disk(self) -> None:
         if self._changes_prompt():
             self.context_table.revert_to_disk()
 
-    def _open_shell(self):
+    def _open_shell(self) -> None:
         assert self.context()
         app.execute_shell(context=self.context(), terminal=True)
 
-    def _leave_diff_mode(self):
+    def _leave_diff_mode(self) -> None:
         self.context_table.leave_diff_mode()
         self._change_diff_mode(False)
 
-    def _diff_with_last_resolve(self):
+    def _diff_with_last_resolve(self) -> None:
         self.context_table.enter_diff_mode()
         self._change_diff_mode(True)
 
-    def _diff_with_disk(self):
+    def _diff_with_disk(self) -> None:
         filepath = self.context_model.filepath()
         self._diff_with_file(filepath)
 
-    def _diff_with_other(self):
+    def _diff_with_other(self) -> None:
         filepath, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open Context", filter="Context files (*.rxt)")
         if filepath:
             self._diff_with_file(str(filepath))
 
-    def _diff_with_file(self, filepath):
+    def _diff_with_file(self, filepath) -> None:
         assert filepath
         disk_context = app.load_context(filepath)
         model = ContextModel(disk_context)
         self.context_table.enter_diff_mode(model)
         self._change_diff_mode(True)
 
-    def _change_diff_mode(self, enabled):
+    def _change_diff_mode(self, enabled) -> None:
         self.undiff_tbtn.setChecked(enabled)
         self.diff_tbtn_action.setVisible(not enabled)
         self.undiff_tbtn_action.setVisible(enabled)
         self.diffModeChanged.emit()
 
-    def _aboutToShowDiffMenu(self):
+    def _aboutToShowDiffMenu(self) -> None:
         stale = self.context_model.is_stale()
         self.diff_action.setEnabled(not stale)
         self.diff_to_other_action.setEnabled(not stale)
         self.diff_to_disk_action.setEnabled(bool(self.context_model.filepath())
                                             and not stale)
 
-    def _aboutToShowRevertMenu(self):
+    def _aboutToShowRevertMenu(self) -> None:
         model = self.context_model
         self.revert_action.setEnabled(model.can_revert())
         self.revert_disk_action.setEnabled(bool(model.filepath())
@@ -282,7 +282,7 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
                                            and self.context_table.diff_from_source
                                            and not model.is_stale())
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         stale = self.context_model.is_stale()
         context = self.context()
         is_context = bool(context)
@@ -321,13 +321,13 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
             icon = get_icon(lock_type.name, as_qicon=True)
             self.lock_tbtn.setIcon(icon)
 
-    def _variantSelected(self, variant):
+    def _variantSelected(self, variant) -> None:
         self.package_tab.set_variant(variant)
 
-    def _effectiveRequestStateChanged(self, state):
+    def _effectiveRequestStateChanged(self, state) -> None:
         self.context_table.show_effective_request(state == QtCore.Qt.Checked)
 
-    def _timelockClicked(self):
+    def _timelockClicked(self) -> None:
         title = "The resolve is timelocked"
         body = str(self.time_lock_tbtn.toolTip()).capitalize()
         secs = int(time.time()) - self.context().requested_timestamp
@@ -335,24 +335,24 @@ class ContextManagerWidget(QtWidgets.QWidget, ContextViewMixin):
         body += "\n(%s ago)" % t_str
         QtWidgets.QMessageBox.information(self, title, body)
 
-    def _set_lock_type(self, lock_type):
+    def _set_lock_type(self, lock_type) -> None:
         self.context_model.set_default_patch_lock(lock_type)
 
-    def _updateToolsCount(self):
+    def _updateToolsCount(self) -> None:
         label = "tools (%d)" % self.tools_list.num_tools()
         self.tab.setTabText(2, label)
 
-    def _removeExplicitLocks(self):
+    def _removeExplicitLocks(self) -> None:
         self.context_model.remove_all_patch_locks()
 
-    def _search(self):
+    def _search(self) -> None:
         tab_index = self.tab.currentIndex()
         if tab_index == 0:
             self._search_variant()
         elif tab_index == 3:
             self.resolve_details.search()
 
-    def _search_variant(self):
+    def _search_variant(self) -> None:
         context = self.context()
         if not context:
             return

@@ -15,8 +15,8 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
     focusOut = QtCore.Signal(str)
     focusIn = QtCore.Signal()
 
-    def __init__(self, context_model=None, parent=None, family_only=False,
-                 read_only=False):
+    def __init__(self, context_model=None, parent=None, family_only: bool = False,
+                 read_only: bool = False) -> None:
         super(PackageLineEdit, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
         self.read_only = read_only
@@ -43,7 +43,7 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
         self.textEdited.connect(self._textEdited)
         self.textChanged.connect(self._textChanged)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
         if not self.hasSelectedText():
             self.completer.complete()
 
@@ -69,7 +69,7 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
         self.focusOut.emit(self.text())
         return super(PackageLineEdit, self).focusOutEvent(event)
 
-    def clone_into(self, other):
+    def clone_into(self, other) -> None:
         other.family_only = self.family_only
         other.default_style = self.default_style
         other.setText(self.text())
@@ -78,10 +78,10 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
         other.completions.setStringList(completions)
         other.completer.setCompletionPrefix(self.text())
 
-    def _textChanged(self, txt):
+    def _textChanged(self, txt) -> None:
         self._update_font()
 
-    def _update_font(self):
+    def _update_font(self) -> None:
         if self.read_only:
             return
         elif self.text():
@@ -97,7 +97,7 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
         pal.setColor(QtGui.QPalette.Inactive, QtGui.QPalette.Text, color)
         self.setPalette(pal)
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         if flags & ContextModel.PACKAGES_PATH_CHANGED:
             self._update_status()
 
@@ -105,13 +105,13 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
     def _paths(self):
         return self.context_model.packages_path
 
-    def _textEdited(self, txt):
+    def _textEdited(self, txt) -> None:
         words = get_completions(str(txt),
                                 paths=self._paths,
                                 family_only=self.family_only)
         self.completions.setStringList(list(reversed(list(words))))
 
-    def _set_style(self, style=None):
+    def _set_style(self, style=None) -> None:
         if style is None:
             if self.default_style is not None:
                 self.setStyleSheet(self.default_style)
@@ -120,12 +120,12 @@ class PackageLineEdit(QtWidgets.QLineEdit, ContextViewMixin):
                 self.default_style = self.styleSheet()
             self.setStyleSheet(style)
 
-    def _update_status(self):
-        def _ok():
+    def _update_status(self) -> None:
+        def _ok() -> None:
             self._set_style()
             self.setToolTip("")
 
-        def _err(msg, color="red"):
+        def _err(msg, color="red") -> None:
             self._set_style("QLineEdit { border : 2px solid %s;}" % color)
             self.setToolTip(msg)
 

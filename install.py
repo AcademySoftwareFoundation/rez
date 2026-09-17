@@ -29,6 +29,7 @@ sys.path.insert(0, src_path)
 # though rez is not yet built.
 #
 from rez.utils._version import _rez_version  # noqa: E402
+from rez.utils.filesystem import safe_rmtree
 from rez.utils.which import which  # noqa: E402
 from rez.cli._entry_points import get_specifications  # noqa: E402
 from rez.vendor.distlib.scripts import ScriptMaker  # noqa: E402
@@ -106,7 +107,7 @@ def patch_rez_binaries(dest_dir):
     # we don't want resolved envs accidentally getting the virtualenv's 'python'.
     dest_bin_path = os.path.join(virtualenv_bin_path, "rez")
     if os.path.exists(dest_bin_path):
-        shutil.rmtree(dest_bin_path)
+        safe_rmtree(dest_bin_path)
     os.makedirs(dest_bin_path)
 
     maker = ScriptMaker(
@@ -140,7 +141,7 @@ def copy_completion_scripts(dest_dir):
     if completion_path:
         dest_path = os.path.join(dest_dir, "completion")
         if os.path.exists(dest_path):
-            shutil.rmtree(dest_path)
+            safe_rmtree(dest_path)
         shutil.copytree(completion_path, dest_path)
         return dest_path
 
@@ -263,7 +264,7 @@ def install_as_rez_package(repo_path):
     finally:
         # cleanup temp install
         try:
-            shutil.rmtree(tmpdir)
+            safe_rmtree(tmpdir)
         except:
             pass
 

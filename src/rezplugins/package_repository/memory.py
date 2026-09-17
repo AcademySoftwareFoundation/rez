@@ -5,12 +5,20 @@
 """
 In-memory package repository
 """
+from __future__ import annotations
+
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
     PackageResourceHelper, package_pod_schema
 from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import ResourcePool, cached_property
 from rez.version import VersionedObject
+
+from typing import Any, Iterator, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.packages import VariantResource
+    from rez.package_resources import PackageRepositoryResource
 
 
 # This repository type is used when loading 'developer' packages (a package.yaml
@@ -26,10 +34,10 @@ class MemoryPackageFamilyResource(PackageFamilyResource):
     key = "memory.family"
     repository_type = "memory"
 
-    def _uri(self):
+    def _uri(self) -> str:
         return "%s:%s" % (self.location, self.name)
 
-    def iter_packages(self):
+    def iter_packages(self) -> Iterator[MemoryPackageResource]:
         data = self._repository.data.get(self.name, {})
 
         # check for unversioned package
@@ -57,23 +65,23 @@ class MemoryPackageResource(PackageResourceHelper):
     repository_type = "memory"
     schema = package_pod_schema
 
-    def _uri(self):
+    def _uri(self) -> str:
         obj = VersionedObject.construct(self.name, self.version)
         return "%s:%s" % (self.location, str(obj))
 
     @property
-    def base(self):
+    def base(self) -> str | None:
         return None  # memory types do not have 'base'
 
     @cached_property
-    def parent(self):
+    def parent(self) -> PackageRepositoryResource:
         family = self._repository.get_resource(
             MemoryPackageFamilyResource.key,
             location=self.location,
             name=self.name)
         return family
 
-    def _load(self):
+    def _load(self) -> dict[str, Any]:
         family_data = self._repository.data.get(self.name, {})
         version_str = self.get("version")
         if not version_str:
@@ -86,11 +94,11 @@ class MemoryVariantResource(VariantResourceHelper):
     key = "memory.variant"
     repository_type = "memory"
 
-    def _root(self):
+    def _root(self, ignore_shortlinks: bool = False) -> str | None:
         return None  # memory types do not have 'root'
 
     @cached_property
-    def parent(self):
+    def parent(self) -> PackageRepositoryResource:
         package = self._repository.get_resource(
             MemoryPackageResource.key,
             location=self.location,
@@ -109,36 +117,38 @@ class MemoryPackageRepository(PackageRepository):
 
     Packages are stored in a dict, organised like so:
 
-        {
-            "foo": {
-                "1.0.0": {
-                    "name":         "foo",
-                    "version":      "1.0.0",
-                    "description":  "does foo-like things.",
-                }
-            },
+    .. code-block:: json
 
-            "bah": {
-                "_NO_VERSION": {
-                    "name":         "bah",
-                    "description":  "does bah-like things.",
-                    "requires":     ["python-2.6", "foo-1+"]
-                }
-            }
-        }
+       {
+           "foo": {
+               "1.0.0": {
+                   "name":         "foo",
+                   "version":      "1.0.0",
+                   "description":  "does foo-like things."
+               }
+           },
 
-        This example repository contains one versioned package 'foo', and one
-        unversioned package 'bah'.
+           "bah": {
+               "_NO_VERSION": {
+                   "name":         "bah",
+                   "description":  "does bah-like things.",
+                   "requires":     ["python-2.6", "foo-1+"]
+               }
+           }
+       }
+
+    This example repository contains one versioned package 'foo', and one
+    unversioned package 'bah'.
     """
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return "memory"
 
     @classmethod
-    def create_repository(cls, repository_data):
+    def create_repository(cls, repository_data) -> MemoryPackageRepository:
         """Create a standalone, in-memory repository.
 
-        Using this function bypasses the `package_repository_manager` singleton.
+        Using this function bypasses the :data:`~rez.package_repository.package_repository_manager` singleton.
         This is usually desired however, since in-memory repositories are for
         temporarily storing programmatically created packages, which we do not
         want to cache and that do not persist.
@@ -155,7 +165,7 @@ class MemoryPackageRepository(PackageRepository):
         repo.data = repository_data
         return repo
 
-    def __init__(self, location, resource_pool):
+    def __init__(self, location: str, resource_pool: ResourcePool) -> None:
         """Create an in-memory package repository.
 
         Args:
@@ -167,7 +177,7 @@ class MemoryPackageRepository(PackageRepository):
         self.register_resource(MemoryPackageResource)
         self.register_resource(MemoryVariantResource)
 
-    def get_package_family(self, name):
+    def get_package_family(self, name: str) -> MemoryPackageFamilyResource | None:
         is_valid_package_name(name, raise_error=True)
         if name in self.data:
             family = self.get_resource(
@@ -177,23 +187,23 @@ class MemoryPackageRepository(PackageRepository):
             return family
         return None
 
-    def iter_package_families(self):
+    def iter_package_families(self) -> Iterator[MemoryPackageFamilyResource | None]:
         for name in self.data.keys():
             family = self.get_package_family(name)
             yield family
 
-    def iter_packages(self, package_family_resource):
+    def iter_packages(self, package_family_resource: MemoryPackageFamilyResource) -> Iterator[MemoryPackageResource]:
         for package in package_family_resource.iter_packages():
             yield package
 
-    def iter_variants(self, package_resource):
+    def iter_variants(self, package_resource: PackageResourceHelper) -> Iterator[VariantResource]:
         for variant in package_resource.iter_variants():
             yield variant
 
-    def get_parent_package_family(self, package_resource):
+    def get_parent_package_family(self, package_resource: PackageResourceHelper) -> PackageFamilyResource:
         return package_resource.parent
 
-    def get_parent_package(self, variant_resource):
+    def get_parent_package(self, variant_resource: VariantResource):
         return variant_resource.parent
 
 

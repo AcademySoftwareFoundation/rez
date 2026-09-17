@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.resolved_context import ResolvedContext
 from rez.utils.colorize import heading, local, critical, Printer
 from rez.utils.data_utils import cached_property
@@ -24,7 +26,7 @@ class Wrapper(object):
     When a wrapper is executed, it runs the associated tool within the matching
     context in the suite.
     """
-    def __init__(self, filepath):
+    def __init__(self, filepath) -> None:
         """Create a wrapper given its executable file."""
         from rez.suite import Suite
 
@@ -55,7 +57,7 @@ class Wrapper(object):
         context = ResolvedContext.load(path)
         self._init(suite_path, context_name, context, tool_name, prefix_char)
 
-    def _init(self, suite_path, context_name, context, tool_name, prefix_char=None):
+    def _init(self, suite_path, context_name, context, tool_name, prefix_char=None) -> None:
         self.suite_path = suite_path
         self.context_name = context_name
         self.context = context
@@ -95,7 +97,7 @@ class Wrapper(object):
         parser = argparse.ArgumentParser(prog=self.tool_name,
                                          prefix_chars=prefix_char)
 
-        def _add_argument(*nargs, **kwargs):
+        def _add_argument(*nargs, **kwargs) -> None:
             nargs_ = []
             for narg in nargs:
                 nargs_.append(narg.replace('=', prefix_char))
@@ -203,7 +205,7 @@ class Wrapper(object):
                                               block=True)
         return retcode
 
-    def print_about(self):
+    def print_about(self) -> int:
         """Print an info message about the tool."""
         filepath = os.path.join(self.suite_path, "bin", self.tool_name)
         print("Tool:     %s" % self.tool_name)
@@ -222,7 +224,7 @@ class Wrapper(object):
                 print("Package:  %s" % variant.qualified_package_name)
         return 0
 
-    def print_package_versions(self):
+    def print_package_versions(self) -> int:
         """Print a list of versions of the package this tool comes from, and
         indicate which version this tool is from."""
         variants = self.context.get_tool_variants(self.tool_name)
@@ -254,7 +256,7 @@ class Wrapper(object):
                     _pr(line, col)
         return 0
 
-    def peek(self):
+    def peek(self) -> int:
         config.remove_override("quiet")
         new_context = ResolvedContext(self.context.requested_packages(),
                                       package_paths=self.context.package_paths)
@@ -267,7 +269,7 @@ class Wrapper(object):
         return 0
 
     @classmethod
-    def _print_conflicting(cls, variants):
+    def _print_conflicting(cls, variants) -> None:
         vars_str = " ".join(x.qualified_package_name for x in variants)
         msg = "Packages (in conflict): %s" % vars_str
         Printer()(msg, critical)

@@ -2,17 +2,17 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import re
-import subprocess
-from rez.utils.execution import Popen
 
 
 _drive_start_regex = re.compile(r"^([A-Za-z]):\\")
 _env_var_regex = re.compile(r"%([^%]*)%")
 
 
-def to_posix_path(path):
+def to_posix_path(path: str) -> str:
     """Convert (eg) "C:\foo" to "/c/foo"
 
     TODO: doesn't take into account escaped bask slashes, which would be
@@ -35,7 +35,7 @@ def to_posix_path(path):
     return path
 
 
-def to_windows_path(path):
+def to_windows_path(path: str) -> str:
     """Convert (eg) "C:\foo/bin" to "C:\foo\bin"
 
     The mixed syntax results from strings in package commands such as
@@ -47,64 +47,31 @@ def to_windows_path(path):
     return path.replace('/', '\\')
 
 
-def get_syspaths_from_registry():
-
-    def gen_expected_regex(parts):
-        whitespace = r"[\s]+"
-        return whitespace.join(parts)
-
-    entries = (
-        # local machine
-        dict(
-            cmd=[
-                "REG",
-                "QUERY",
-                "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
-                "/v",
-                "PATH"
-            ],
-            expected=gen_expected_regex([
-                "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Session Manager\\\\Environment",
-                "PATH",
-                "REG_(EXPAND_)?SZ",
-                "(.*)"
-            ])
-        ),
-        # current user
-        dict(
-            cmd=[
-                "REG",
-                "QUERY",
-                "HKCU\\Environment",
-                "/v",
-                "PATH"
-            ],
-            expected=gen_expected_regex([
-                "HKEY_CURRENT_USER\\\\Environment",
-                "PATH",
-                "REG_(EXPAND_)?SZ",
-                "(.*)"
-            ])
-        )
-    )
+def get_syspaths_from_registry() -> list[str]:
+    # Local import to avoid import errors on non-windows systems.
+    import sys
+    import winreg
 
     paths = []
 
-    for entry in entries:
-        p = Popen(
-            entry["cmd"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=True,
-            text=True
+    # This if is needed because winreg is empty
+    # when on a system that is not windows, leading
+    # to mypy complains.
+    if sys.platform == "win32":
+        path_query_keys = (
+            (winreg.HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment'),
+            (winreg.HKEY_CURRENT_USER, 'Environment'),
         )
 
-        out_, _ = p.communicate()
-        out_ = out_.strip()
-
-        if p.returncode == 0:
-            match = re.match(entry["expected"], out_)
-            if match:
-                paths.extend(match.group(2).split(os.pathsep))
+        for root_key, sub_key in path_query_keys:
+            try:
+                with winreg.OpenKey(root_key, sub_key) as key:
+                    reg_value, _ = winreg.QueryValueEx(key, 'Path')
+            except OSError:
+                # Key does not exist
+                pass
+            else:
+                expanded_value = winreg.ExpandEnvironmentStrings(reg_value)
+                paths.extend(expanded_value.split(os.pathsep))
 
     return [x for x in paths if x]

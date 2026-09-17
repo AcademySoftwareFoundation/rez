@@ -1,0 +1,192 @@
+# Required version of ruff
+required-version = ">=0.15.0"
+
+# Target version of Python
+target-version = "py38"
+
+# Directories to consider when resolving first vs. third-party imports.
+src = ["src"]
+
+# File patterns to include when linting
+include = [
+    "pyproject.toml",
+    "setup.py",
+    "install.py",
+    "release-rez.py",
+    "src/**.py",
+    "tests/*.py"
+]
+
+# Add directories to omit from formatting and linting
+extend-exclude = [
+    "src/rez/vendor",
+    "src/rez/data",
+]
+
+# Match flake8 linter defaults
+line-length = 120
+indent-width = 4
+
+[format]
+docstring-code-format = true
+
+[lint]
+# Allow rules to add "from __future__ import annotations" in cases where this would
+# simplify a fix or enable a new diagnostic.
+future-annotations = true
+
+select = [
+#   "AIR",     # Airflow
+#   "ERA",     # eradicate
+#   "FAST",    # FastAPI
+    "YTT",     # flake8-2020
+#   "ANN",     # flake8-annotations
+    "ASYNC",   # flake8-async
+#   "S",       # flake8-bandit
+#   "BLE",     # flake8-blind-except
+#   "FBT",     # flake8-boolean-trap
+#   "B0",      # flake8-bugbear
+#   "B9",      # flake8-bugbear
+#   "A0",      # flake8-bultins
+#   "COM",     # flake8-commas               # Better to enforce with format
+#   "C4",      # flake8-comprehensions
+#   "CPY",     # flake8-copyright
+    "DTZ",     # flake8-datetimez
+    "T10",     # flake8-debugger
+#   "DJ",      # flake8-django
+#   "EM",      # flake8-errmsg
+    "EXE",     # flake8-executable
+#   "FIX",     # flake8-fix
+    "FA",      # flake8-future-annotations
+    "INT",     # flake8-gettext
+    "ISC",     # flake8-implicit-str-concat
+    "ICN",     # flake8-import-conventions
+    "LOG",     # flake8-log
+#   "G",       # flake8-logging-format
+    "INP",     # flake8-no-pep420
+#   "PIE",     # flake8-pie
+#   "T20",     # flake8-print
+#   "PYI",     # flake8-pyi
+#   "PT",      # flake8-pytest-style
+#   "Q",       # flake8-quotes
+    "RSE",     # flake8-raise
+#   "RET",     # flake8-return
+#   "SLF",     # flake8-self
+#   "SIM",     # flake8-simplify
+    "SLOT",    # flake8-slots
+    "TID",     # flake8-tidy-imports
+#   "TD",      # flake8-todos
+#   "TC",      # flake8-type-checking
+#   "ARG",     # flake8-unused-arguments
+#   "PTH",     # flake8-use-pathlib
+#   "FLY",     # flynt
+#   "I",       # isort
+#   "C90",     # mccabe
+#   "NPY",     # NumPy-specific rules
+#   "PD",      # pandas-vet
+#   "N",       # pep8-naming
+#   "PERF",    # Perflint
+    "E",       # pycodestyle
+    "W",       # pycodestyle
+#   "DOC",     # pydoclint                  # Only available in preview
+#   "D",       # pydocstyle
+    "F",       # Pyflakes
+#   "PGH",     # pygrep-hooks
+#   "PLC",     # pylint-convention
+    "PLE",     # pylint-error
+#   "PLR",     # pylint-refactor
+#   "PLW",     # pylint-warning
+#   "UP",      # pyupgrade
+#   "FURB",    # refurb
+#   "RUF",     # Ruff-specific rules
+#   "TRY"      # tryceratops
+]
+
+ignore = [
+    "E722",  # Do not use bare `except`
+    "E741",  # Ambiguous variable name
+]
+
+[lint.per-file-ignores]
+"__init__.py" = [
+    "D104"    # undocumented-public-package
+]
+"src/rez/tests/*.py" = [
+    "F821"    # Undefined name
+]
+"src/rez/bind/_pymodule.py" = [
+    "F821"    # Undefined name
+]
+"src/rez/utils/filesystem.py" = [
+    "F821"    # Undefined name
+]
+"src/rez/resolver.py" = [
+    "F821"    # Undefined name
+]
+"src/rez/cli/_main.py" = [
+    "ISC002"  # Implicitly concatenated string literals over multiple lines
+]
+"src/rez/cli/release.py" = [
+    "F821"    # Undefined name
+]
+"src/rez/package_order.py" = [
+    "E721"    # Use `is` and `is not` for type comparisons, or `isinstance()` for isinstance checks
+]
+"src/rez/tests/test_formatter.py" = [
+    "E742"    # Ambiguous class name: `I`
+]
+"src/rezgui/objects/Config.py" = [
+    "E721"    # Use `is` and `is not` for type comparisons, or `isinstance()` for isinstance checks
+]
+"src/rezgui/widgets/ContextToolsWidget.py" = [
+    "F401"    # "rezgui.objects.App.app" imported but unused
+]
+"src/rezgui/widgets/TimestampWidget.py" = [
+    "E731"    # Do not assign a `lambda` expression, use a `def`
+]
+"src/rezplugins/release_vcs/git.py" = [
+    "F821"    # Undefined name
+]
+"src/support/package_utils/set_authors.py" = [
+    "INP001"  # part of an implicit namespace package
+]
+"./release-rez.py" = [
+    "E402",   # Module level import not at top of file
+    "DTZ011"  # `datetime.date.today()` used
+]
+"./install.py" = [
+    "E402",   # Module level import not at top of file
+    "F401"    # "virtualenv" imported but unused
+]
+"./setup.py" = [
+    "E402"    # Module level import not at top of file
+]
+
+[lint.flake8-annotations]
+# Allow "Any" for dynamically typed *args and **kwargs arguments
+allow-star-arg-any = true
+# mypy-init-return = true
+
+[lint.flake8-bandit]
+# Mac OS X also includes /var/folders for temporary files.
+# See https://magnusviri.com/what-is-var-folders.html
+hardcoded-tmp-directory-extend = ["/var/folders"]
+
+[lint.flake8-comprehensions]
+# Allow dict calls that make use of keyword arguments (e.g., dict(a=1, b=2)).
+allow-dict-calls-with-keyword-arguments = true
+
+[lint.flake8-type-checking]
+# quote-annotations = true
+# strict = true
+
+[lint.isort]
+# Treat any library coming from rez.vendor as 3rd-party when formatting imports
+known-third-party = ["rez.vendor"]
+
+[lint.pycodestyle]
+# Enforce line-length on doc lines.
+max-doc-length = 120
+
+[lint.pydocstyle]
+convention = "google"

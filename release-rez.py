@@ -214,7 +214,7 @@ def generate_changelog_entry(issue_nums):
     # print title section
     today = date.today()
     print(
-        "## %s (%d-%02d-%02d)" %
+        "## v%s (%d-%02d-%02d)" %
         (_rez_version, today.year, today.month, today.day)
     )
 

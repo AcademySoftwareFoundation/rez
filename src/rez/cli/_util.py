@@ -2,11 +2,14 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import sys
 import signal
 from argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
     ArgumentError
+from typing import Any
 
 
 # Subcommands and their behaviors.
@@ -18,7 +21,7 @@ from argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
 #   The '--' arg is not treated as a special case.
 # * missing: Native python argparse behavior.
 #
-subcommands = {
+subcommands: dict[str, dict[str, Any]] = {
     "bind": {},
     "build": {
         "arg_mode": "grouped"
@@ -140,7 +143,7 @@ class LazySubParsersAction(_SubParsersAction):
         caller = super(LazySubParsersAction, self).__call__
         return caller(parser2, namespace, values, option_string)
 
-    def _setup_subparser(self, parser_name, parser):
+    def _setup_subparser(self, parser_name, parser) -> None:
         if hasattr(parser, 'setup_subparser'):
             help_ = parser.setup_subparser(parser_name, parser)
             if help_ is not None:
@@ -167,7 +170,7 @@ class LazyArgumentParser(ArgumentParser):
     `setup_subparser` is passed 'parser_name', 'parser', and can return a help
     string.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.setup_subparser = kwargs.pop('setup_subparser', None)
         super(LazyArgumentParser, self).__init__(*args, **kwargs)
         self.register('action', 'parsers', LazySubParsersAction)
@@ -177,7 +180,7 @@ class LazyArgumentParser(ArgumentParser):
         self._setup_all_subparsers()
         return super(LazyArgumentParser, self).format_help()
 
-    def _setup_all_subparsers(self):
+    def _setup_all_subparsers(self) -> None:
         """Sets up all sub-parsers on demand."""
         if self._subparsers:
             for action in self._subparsers._actions:
@@ -190,11 +193,11 @@ _handled_int = False
 _handled_term = False
 
 
-def _env_var_true(name):
+def _env_var_true(name) -> bool:
     return (os.getenv(name, "").lower() in ("1", "true", "on", "yes"))
 
 
-def print_items(items, stream=sys.stdout):
+def print_items(items, stream=sys.stdout) -> None:
     try:
         item_per_line = (not stream.isatty())
     except:
@@ -207,7 +210,7 @@ def print_items(items, stream=sys.stdout):
         print(' '.join(map(str, items)))
 
 
-def sigbase_handler(signum, frame):
+def sigbase_handler(signum, frame) -> None:
     # show cursor - progress lib may have hidden it
     SHOW_CURSOR = '\x1b[?25h'
     sys.stdout.write(SHOW_CURSOR)
@@ -223,7 +226,7 @@ def sigbase_handler(signum, frame):
     sys.exit(1)
 
 
-def sigint_handler(signum, frame):
+def sigint_handler(signum, frame) -> None:
     """Exit gracefully on ctrl-C."""
     global _handled_int
     if not _handled_int:
@@ -233,7 +236,7 @@ def sigint_handler(signum, frame):
         sigbase_handler(signum, frame)
 
 
-def sigterm_handler(signum, frame):
+def sigterm_handler(signum, frame) -> None:
     """Exit gracefully on terminate."""
     global _handled_term
     if not _handled_term:

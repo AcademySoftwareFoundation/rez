@@ -27,7 +27,7 @@ class TestCommands(TestBase):
         return canonical_path(cls.data_path("commands", "packages"))
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.settings = dict(
             packages_path=[cls.get_packages_path()],
             package_filter=None,
@@ -37,11 +37,11 @@ class TestCommands(TestBase):
             implicit_packages=[],
             rez_1_environment_variables=False)
 
-    def __init__(self, fn):
+    def __init__(self, fn) -> None:
         TestBase.__init__(self, fn)
         self.packages_path = self.get_packages_path()
 
-    def _test_package(self, pkg, env, expected_commands):
+    def _test_package(self, pkg, env, expected_commands) -> None:
         orig_environ = os.environ.copy()
         r = ResolvedContext([str(pkg)], caching=False)
 
@@ -91,7 +91,7 @@ class TestCommands(TestBase):
                 Alias('rextest', 'foobar')]
         return cmds
 
-    def _test_rextest_package(self, version):
+    def _test_rextest_package(self, version) -> None:
         pkg = VersionedObject("rextest-%s" % version)
 
         cmds = [Setenv('REZ_USED_REQUEST', str(pkg)),
@@ -102,13 +102,13 @@ class TestCommands(TestBase):
         # first prepend should still override
         self._test_package(pkg, {"REXTEST_DIRS": "TEST"}, cmds)
 
-    def test_old_yaml_raises(self):
+    def test_old_yaml_raises(self) -> None:
         """Resolve a yaml-based package with old-style bash commands."""
         self.update_settings({"disable_rez_1_compatibility": True, "warn_old_commands": False})
         with self.assertRaises(SchemaError):
             self._test_rextest_package("1.1")
 
-    def test_old_yaml_compatibility_enabled(self):
+    def test_old_yaml_compatibility_enabled(self) -> None:
         """Resolve a yaml-based package with old-style bash commands."""
         self.update_settings({"disable_rez_1_compatibility": False, "warn_old_commands": True})
         with self.assertLogs(logger=logging.getLogger("rez.utils.logging_"), level=logging.WARNING):
@@ -117,15 +117,15 @@ class TestCommands(TestBase):
         self.update_settings({"disable_rez_1_compatibility": False, "warn_old_commands": False})
         self._test_rextest_package("1.1")
 
-    def test_new_yaml(self):
+    def test_new_yaml(self) -> None:
         """Resolve a yaml-based package with new rex commands."""
         self._test_rextest_package("1.2")
 
-    def test_py(self):
+    def test_py(self) -> None:
         """Resolve a new py-based package with rex commands."""
         self._test_rextest_package("1.3")
 
-    def test_2(self):
+    def test_2(self) -> None:
         """Resolve a package with a dependency, see that their commands are
         concatenated as expected."""
         pkg = VersionedObject("rextest2-2")

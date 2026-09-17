@@ -10,7 +10,7 @@ class IconButton(QtWidgets.QLabel):
 
     clicked = QtCore.Signal(int)
 
-    def __init__(self, icon_name, tooltip=None, parent=None):
+    def __init__(self, icon_name, tooltip=None, parent=None) -> None:
         super(IconButton, self).__init__(parent)
         icon = get_icon(icon_name)
         self.setPixmap(icon)
@@ -18,5 +18,5 @@ class IconButton(QtWidgets.QLabel):
         if tooltip:
             self.setToolTip(tooltip)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
         self.clicked.emit(event.button())

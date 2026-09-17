@@ -34,7 +34,7 @@ class TestRex(TestBase):
                            **kwargs)
 
     def _test(self, func, env, expected_actions=None, expected_output=None,
-              expected_exception=None, **ex_kwargs):
+              expected_exception=None, **ex_kwargs) -> None:
         """Tests rex code as a function object, and code string."""
         loc = inspect.getsourcelines(func)[0][1:]
         code = textwrap.dedent('\n'.join(loc))
@@ -56,9 +56,9 @@ class TestRex(TestBase):
             self.assertEqual(ex.actions, expected_actions)
             self.assertEqual(ex.get_output(), expected_output)
 
-    def test_1(self):
+    def test_1(self) -> None:
         """Test simple use of every available action."""
-        def _rex():
+        def _rex() -> None:
             shebang()
             setenv("FOO", "foo")
             setenv("BAH", "bah")
@@ -101,9 +101,9 @@ class TestRex(TestBase):
                        'A': os.pathsep.join(["/data", "/tmp"]),
                        'B': os.pathsep.join(["/tmp", "/data"])})
 
-    def test_2(self):
+    def test_2(self) -> None:
         """Test simple setenvs and assignments."""
-        def _rex():
+        def _rex() -> None:
             env.FOO = "foo"
             setenv("BAH", "bah")
             env.EEK = env.FOO
@@ -119,9 +119,9 @@ class TestRex(TestBase):
                        'EEK': 'foo',
                        'BAH': 'bah'})
 
-    def test_3(self):
+    def test_3(self) -> None:
         """Test appending/prepending."""
-        def _rex():
+        def _rex() -> None:
             appendenv("FOO", "test1")
             env.FOO.append("test2")
             env.FOO.append("test3")
@@ -170,9 +170,9 @@ class TestRex(TestBase):
                        'BAH': os.pathsep.join(["B", "A", "Z", "C"])},
                    parent_variables=["FOO", "BAH"])
 
-    def test_4(self):
+    def test_4(self) -> None:
         """Test control flow using internally-set env vars."""
-        def _rex():
+        def _rex() -> None:
             env.FOO = "foo"
             setenv("BAH", "bah")
             env.EEK = "foo"
@@ -199,9 +199,9 @@ class TestRex(TestBase):
                        'EEK': 'foo',
                        'FOO_VALID': '1'})
 
-    def test_5(self):
+    def test_5(self) -> None:
         """Test control flow using externally-set env vars."""
-        def _rex():
+        def _rex() -> None:
             if defined("EXT") and env.EXT == "alpha":
                 env.EXT_FOUND = 1
                 env.EXT.append("beta")  # will still overwrite
@@ -228,9 +228,9 @@ class TestRex(TestBase):
                        'EXT_FOUND': '1',
                        'EXT': 'beta'})
 
-    def test_6(self):
+    def test_6(self) -> None:
         """Test variable expansion."""
-        def _rex():
+        def _rex() -> None:
             env.FOO = "foo"
             env.DOG = "$FOO"  # this will convert to '${FOO}'
             env.BAH = "${FOO}"
@@ -273,9 +273,9 @@ class TestRex(TestBase):
                        'EEK': 'foo',
                        'FEE': 'alpha'})
 
-    def test_7(self):
+    def test_7(self) -> None:
         """Test exceptions."""
-        def _rex1():
+        def _rex1() -> None:
             # reference to undefined var
             getenv("NOTEXIST")
 
@@ -283,7 +283,7 @@ class TestRex(TestBase):
                    env={},
                    expected_exception=RexUndefinedVariableError)
 
-        def _rex2():
+        def _rex2() -> None:
             # reference to undefined var
             info(env.NOTEXIST)
 
@@ -299,12 +299,12 @@ class TestRex(TestBase):
                    env={},
                    expected_exception=RexError)
 
-    def test_8(self):
+    def test_8(self) -> None:
         """Custom environment variable separators."""
 
         config.override("env_var_separators", {"FOO": ",", "BAH": " "})
 
-        def _rex():
+        def _rex() -> None:
             appendenv("FOO", "test1")
             env.FOO.append("test2")
             env.FOO.append("test3")
@@ -326,15 +326,15 @@ class TestRex(TestBase):
                        'FOO': ",".join(["test1", "test2", "test3"]),
                        'BAH': " ".join(["B", "A", "C"])})
 
-    def test_9(self):
+    def test_9(self) -> None:
         """Test literal and expandable strings."""
-        def _rex():
+        def _rex() -> None:
             env.A = "hello"
             env.FOO = expandable("$A")  # will convert to '${A}'
             env.BAH = expandable("${A}")
             env.EEK = literal("$A")
 
-        def _rex2():
+        def _rex2() -> None:
             env.BAH = "omg"
             env.FOO.append("$BAH")
             env.FOO.append(literal("${BAH}"))
@@ -364,10 +364,10 @@ class TestRex(TestBase):
                        'BAH': 'omg',
                        'FOO': os.pathsep.join(['omg', '${BAH}', 'like']) + ', $SHE said, omg'})
 
-    def test_10(self):
+    def test_10(self) -> None:
         """Test env __contains__ and __bool__"""
 
-        def _test(func, env, expected):
+        def _test(func, env, expected) -> None:
             ex = self._create_executor(env=env)
             self.assertEqual(expected, ex.execute_function(func))
 
@@ -390,7 +390,7 @@ class TestRex(TestBase):
         _test(_rex_2, env={"A": "foo"}, expected={"A": True, "B": False})
         _test(_rex_3, env={}, expected="not b")
 
-    def test_version_binding(self):
+    def test_version_binding(self) -> None:
         """Test the Rex binding of the Version class."""
         v = VersionBinding(Version("1.2.3alpha"))
         self.assertEqual(v.major, 1)
@@ -403,7 +403,7 @@ class TestRex(TestBase):
         self.assertEqual(v[5], None)
         self.assertEqual(v.as_tuple(), (1, 2, "3alpha"))
 
-    def test_old_style_commands(self):
+    def test_old_style_commands(self) -> None:
         """Convert old style commands to rex"""
         expected = ""
         rez_commands = convert_old_commands([], annotate=False)
@@ -440,7 +440,7 @@ class TestRex(TestBase):
                                             annotate=False)
         self.assertEqual(rez_commands, expected)
 
-    def test_intersects_resolve(self):
+    def test_intersects_resolve(self) -> None:
         """Test intersects with resolve object"""
         resolved_pkg_data = {
             "foo": {"1": {"name": "foo", "version": "1"}},
@@ -467,7 +467,7 @@ class TestRex(TestBase):
         self.assertTrue(intersects(resolve.maya, "2019+"))
         self.assertFalse(intersects(resolve.maya, "<=2019"))
 
-    def test_intersects_request(self):
+    def test_intersects_request(self) -> None:
         """Test intersects with request object"""
         # request.get
         request = RequirementsBinding([Requirement("foo.bar-1")])
@@ -503,7 +503,7 @@ class TestRex(TestBase):
         foo = intersects(request.get_range("foo", "==1.2.3"), "1.4")
         self.assertTrue(foo)
 
-    def test_intersects_ephemerals(self):
+    def test_intersects_ephemerals(self) -> None:
         """Test intersects with ephemerals object"""
         # ephemerals.get
         ephemerals = EphemeralsBinding([Requirement(".foo.bar-1")])

@@ -5,9 +5,10 @@
 '''
 Run tests listed in a package's definition file.
 '''
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "-l", "--list", action="store_true",
         help="list package's tests and exit")
@@ -43,7 +44,7 @@ def setup_parser(parser, completions=False):
         PKG_action.completer = PackageCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.package_test import PackageTestRunner
     from rez.config import config
     import os.path
@@ -96,19 +97,14 @@ def command(opts, parser, extra_arg_groups=None):
         print('\n'.join(test_names))
         sys.exit(0)
 
-    if opts.TEST:
-        run_test_names = opts.TEST
-    else:
-        # if no tests are explicitly specified, then run only those with a
-        # 'default' run_on tag
-        run_test_names = runner.get_test_names(run_on=["default"])
+    run_test_names = runner.find_requested_test_names(opts.TEST)
 
-        if not run_test_names:
-            print(
-                "No tests with 'default' run_on tag found in %s" % uri,
-                file=sys.stderr
-            )
-            sys.exit(0)
+    if not run_test_names:
+        print(
+            "No tests with 'default' run_on tag found in %s" % uri,
+            file=sys.stderr
+        )
+        sys.exit(0)
 
     exitcode = 0
 

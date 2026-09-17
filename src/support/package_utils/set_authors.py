@@ -6,7 +6,7 @@ import os.path
 import subprocess
 
 
-def set_authors(data):
+def set_authors(data) -> None:
     """Add 'authors' attribute based on repo contributions
     """
     if "authors" in data:

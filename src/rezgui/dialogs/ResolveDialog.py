@@ -16,7 +16,7 @@ from rez.config import config
 
 
 class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
-    def __init__(self, context_model, parent=None, advanced=False):
+    def __init__(self, context_model, parent=None, advanced: bool = False) -> None:
         config_key = ("layout/window/advanced_resolve" if advanced
                       else "layout/window/resolve")
         super(ResolveDialog, self).__init__(parent)
@@ -163,13 +163,13 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
             return self.resolver.context
         return None
 
-    def reject(self):
+    def reject(self) -> None:
         if self._finished or not self.started:
             super(ResolveDialog, self).reject()
         else:
             self._cancel_resolve()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         if self._finished or not self.started:
             super(ResolveDialog, self).closeEvent(event)
             StoreSizeMixin.closeEvent(self, event)
@@ -177,11 +177,11 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
             self._cancel_resolve()
             event.ignore()
 
-    def _on_dialog_open(self):
+    def _on_dialog_open(self) -> None:
         if not self.advanced:
             self._start_resolve()
 
-    def _reset(self):
+    def _reset(self) -> None:
         self.setWindowTitle("Resolve")
         self.cancel_btn.setText("Cancel")
         self.cancel_btn.hide()
@@ -199,7 +199,7 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
         request_str = " ".join(str(x) for x in self.context_model.request)
         self._log("Resolving: %s...\n" % request_str)
 
-    def _log(self, msg, color=None):
+    def _log(self, msg, color=None) -> None:
         if color:
             old_color = self.edit.textColor()
             self.edit.setTextColor(QtGui.QColor(color))
@@ -208,7 +208,7 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
         if color:
             self.edit.setTextColor(old_color)
 
-    def _start_resolve(self):
+    def _start_resolve(self) -> None:
         max_fails = self._get_max_fails()
         if max_fails is None:
             return
@@ -248,13 +248,13 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
             self.resolver.run()
             self._resolve_finished()
 
-    def _cancel_resolve(self):
+    def _cancel_resolve(self) -> None:
         if self.started:
             self.cancel_btn.setText("Cancelling...")
             self.cancel_btn.setEnabled(False)
             self.resolver.stop()
 
-    def _resolve_finished(self):
+    def _resolve_finished(self) -> None:
         self._finished = True
         self.cancel_btn.hide()
         self.ok_btn.show()
@@ -310,18 +310,18 @@ class ResolveDialog(QtWidgets.QDialog, StoreSizeMixin):
             return None
         return i
 
-    def _save_context(self):
+    def _save_context(self) -> None:
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save Context", filter="Context files (*.rxt)")
         if filepath:
             self.resolver.context.save(filepath)
             self._log("\nSaved context to: %s" % filepath)
 
-    def _view_graph(self):
+    def _view_graph(self) -> None:
         graph_str = self.resolver.context.graph(as_dot=True)
         view_graph(graph_str, self)
 
-    def _set_progress(self, done=True):
+    def _set_progress(self, done: bool = True) -> None:
         if done is True:
             self.bar.setMaximum(10)
             self.bar.setValue(10)

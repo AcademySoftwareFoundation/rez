@@ -15,7 +15,7 @@ class LoadPackagesThread(QtCore.QObject):
     finished = QtCore.Signal(object)
 
     def __init__(self, package_paths, package_name, range_=None,
-                 package_attributes=None, callback=None):
+                 package_attributes=None, callback=None) -> None:
         super(LoadPackagesThread, self).__init__()
         self.stopped = False
         self.package_paths = package_paths
@@ -24,10 +24,10 @@ class LoadPackagesThread(QtCore.QObject):
         self.package_attributes = package_attributes
         self.callback = callback
 
-    def stop(self):
+    def stop(self) -> None:
         self.stopped = True
 
-    def run(self):
+    def run(self) -> None:
         it = iter_packages(name=self.package_name, paths=self.package_paths, range_=self.range_)
         packages = sorted(it, key=lambda x: x.version, reverse=True)
         num_packages = len(packages)
