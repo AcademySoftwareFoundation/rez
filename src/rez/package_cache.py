@@ -410,7 +410,7 @@ class PackageCache(object):
         th.start()
 
         try:
-            shutil.copytree(variant_root, rootpath)
+            variant.copy_payload(rootpath)
         finally:
             still_copying = False
 

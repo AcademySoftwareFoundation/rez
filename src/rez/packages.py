@@ -483,6 +483,21 @@ class Variant(PackageBaseResourceWrapper):
         else:
             return Variant(resource)
 
+    def copy_payload(self, path: str):
+        """Copy the variants payload to filesystem path.
+
+        If the package already exists, this variant will be correctly merged
+        into the package. If the variant already exists in this package, the
+        existing variant is returned.
+
+        Args:
+            path (str): Path to copy variant payload data.
+
+        Returns:
+            `bool` - Returns true on success
+        """
+        return self.repository.copy_variant_payload(self.resource, path)
+
     @property
     def _non_shortlinked_subpath(self) -> str:
         return self.resource._subpath(ignore_shortlinks=True)
