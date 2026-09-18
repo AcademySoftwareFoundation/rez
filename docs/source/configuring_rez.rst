@@ -86,6 +86,46 @@ those that have any effect during the build/install process. These include:
 * :data:`.package_definition_python_path`;
 * :data:`.package_filter`.
 
+Configuring Shell Plugins
+=========================
+
+Shell plugins have their own settings. These settings are configured in the
+``shells`` dictionary in a Rez configuration file, using the shell plugin name
+as the key. For example, the PowerShell and PowerShell Core plugins expose an
+``execution_policy`` setting:
+
+.. code-block:: python
+
+   shells = {
+       "powershell": {
+           "execution_policy": "RemoteSigned",
+       },
+       "pwsh": {
+           "execution_policy": "RemoteSigned",
+       },
+   }
+
+The value is passed to PowerShell as the ``-ExecutionPolicy`` option when Rez
+starts the shell. Set it to ``None`` to leave the host's configured policy
+unchanged. The setting applies to both ``powershell`` and ``pwsh``; configure
+both entries when users may invoke either plugin.
+
+The available settings are plugin-specific. For the built-in PowerShell
+plugins, ``prompt``, ``executable_fullpath``, ``additional_pathext`` and
+``execution_policy`` are supported. The source defaults are documented in
+``src/rezplugins/shell/rezconfig.py``. Other shell plugins may expose different
+settings, so check their ``rezconfig.py`` entry before adding a configuration.
+
+For example, save the following as ``~/.rezconfig.py`` to configure both
+PowerShell variants for a user:
+
+.. code-block:: python
+
+   shells = {
+       "powershell": {"execution_policy": "RemoteSigned"},
+       "pwsh": {"execution_policy": "RemoteSigned"},
+   }
+
 .. _configuring-rez-string-expansions:
 
 String Expansions
