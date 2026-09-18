@@ -69,8 +69,9 @@ and do not copy the resulting packages between unlike platforms.
 The ``os`` version is read from the running machine, so it can be more
 fine-grained than you want to target. Windows reports a build number such as
 ``windows-10.0.19045``, and Linux distributions report point releases. Use
-:data:`platform_map` to collapse these onto the versions you actually support,
-before creating these packages for a shared repository.
+``platform_map`` in the :ref:`Package Resolution <config-package-resolution>`
+settings to collapse these onto the versions you actually support, before
+creating these packages for a shared repository.
 
 A Python package
 ================
@@ -172,6 +173,9 @@ resolving works, and :doc:`context` for what a resolved environment is made of.
 
 The ``hello_world`` package declares a :pkgdef:attr:`tools` entry, so its
 ``hello`` tool is on your ``PATH``:
+
+On Windows, the example installs ``hello.bat`` and you invoke it as ``hello``
+in the same way.
 
 .. code-block:: text
 
