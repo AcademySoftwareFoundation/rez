@@ -13,6 +13,7 @@ from rez.config import config
 from rez.system import system
 from rez.wrapper import Wrapper
 from rez.utils.colorize import Printer
+from rez.utils.platform_ import platform_
 from unittest import mock
 import io
 import subprocess
@@ -157,7 +158,10 @@ class TestRezSuites(TestBase, TempdirMixin):
         suite_path = os.path.join(self.root, uuid.uuid4().hex)
         s.save(suite_path)
 
-        w = Wrapper(os.path.join(suite_path, "bin", "fooer"))
+        tool_file = os.path.join(suite_path, "bin", "fooer")
+        if platform_.name == "windows":
+            tool_file += ".cmd"
+        w = Wrapper(tool_file)
 
         # Printer binds sys.stdout at import time, so redirect_stdout is not enough
         buf = io.StringIO()
