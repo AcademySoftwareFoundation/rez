@@ -12,7 +12,8 @@ To install rez, you will need:
    used by rez itself.
 2. The source code. You can get it by either cloning the `repository <https://github.com/AcademySoftwareFoundation/rez>`_
    with git or downloading it from the `latest release <https://github.com/AcademySoftwareFoundation/rez/releases/latest>`_.
-   If you download rez from the release page on GitHub, don't forget to unpack the downloaded archive.
+   If you download rez from the release page on GitHub, download the git archive named ``<version>.tar.gz`` or ``<version>.zip``
+   (for example, ``3.4.0.tar.gz``), then unpack it.
 
 Then from the root directory, run::
 
