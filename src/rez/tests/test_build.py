@@ -147,6 +147,23 @@ class TestBuild(TestBase, TempdirMixin):
         stdout = proc.communicate()[0]
         self.assertEqual('This is project simple.', stdout.strip())
 
+    def _test_build_advanced_meson(self) -> None:
+        """Build, install, test the simple_meson package."""
+        from subprocess import PIPE
+        self._test_build("hello_lib_meson", "1.0.0")
+        self._test_build("hello_lib_meson", "1.1.0")
+        self._test_build("advanced_meson", "1.0.0")
+
+        context = self._create_context("advanced_meson==1.0.0", "hello_lib_meson==1.0.0")
+        proc = context.execute_command(['say'], stdout=PIPE, text=True)
+        stdout = proc.communicate()[0]
+        self.assertEqual('hello', stdout.strip())
+
+        context = self._create_context("advanced_meson==1.0.0", "hello_lib_meson==1.1.0")
+        proc = context.execute_command(['say'], stdout=PIPE, text=True)
+        stdout = proc.communicate()[0]
+        self.assertEqual('hi', stdout.strip())
+
     @per_available_shell()
     @install_dependent()
     def test_build_whack(self, shell) -> None:
@@ -189,6 +206,7 @@ class TestBuild(TestBase, TempdirMixin):
     @install_dependent()
     def test_build_meson(self) -> None:
         self._test_build_simple_meson()
+        self._test_build_advanced_meson()
 
     @program_dependent("cmake")
     @install_dependent()
