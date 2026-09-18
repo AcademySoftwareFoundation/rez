@@ -103,6 +103,5 @@ jobs:
       if: ${{ startsWith(matrix.os, 'windows-') }}
       shell: pwsh
       run: |
-        cd (Join-Path (rez-config local_packages_path) 'hello_world\1.0.0\bin')
-        $output = rez-env hello_world -- py hello
+        $output = rez-env hello_world -- hello
         if ($output -ne 'Hello world!') { throw "Unexpected output: [$output]" }

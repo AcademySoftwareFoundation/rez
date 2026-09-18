@@ -2,9 +2,10 @@
 
 import os
 import os.path
+import platform
 import shutil
-import sys
 import stat
+import sys
 
 
 def build(source_path, build_path, install_path, targets):
@@ -30,6 +31,31 @@ def build(source_path, build_path, install_path, targets):
             for name in os.listdir(dest_bin):
                 filepath = os.path.join(dest_bin, name)
                 os.chmod(filepath, mode)
+
+        if platform.system() == "Windows":
+            _make_windows_batch(dest_bin)
+
+    def _make_windows_batch(dest_bin):
+        for name in os.listdir(dest_bin):
+            filepath = os.path.join(dest_bin, name)
+            if not os.path.isfile(filepath):
+                continue
+            if not os.access(filepath, os.X_OK):
+                continue
+
+            with open(filepath, "rb") as f:
+                lines = f.read().splitlines(keepends=True)
+
+            if not lines or not lines[0].startswith(b"#!"):
+                continue
+
+            lines[0] = b'@python -x "%~f0" %* & exit /b\r\n'
+            with open(filepath + ".bat", "wb") as f:
+                f.writelines(lines)
+
+            # copytree preserves the source file's read-only attribute on Windows.
+            os.chmod(filepath, stat.S_IWRITE)
+            os.remove(filepath)
 
     def _install():
         for name in ("bin", "python"):
