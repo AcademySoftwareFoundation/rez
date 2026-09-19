@@ -5,6 +5,7 @@
 """
 Manages loading of all types of Rez plugins.
 """
+
 from __future__ import annotations
 
 from rez.config import config, expand_system_vars, _load_config_from_filepaths
@@ -70,7 +71,7 @@ def extend_path(path, name):
         # frozen package.  Return the path unchanged in that case.
         return path
 
-    pname = os.path.join(*name.split('.'))  # Reconstitute as relative path
+    pname = os.path.join(*name.split("."))  # Reconstitute as relative path
     # Just in case os.extsep != '.'
     init_py = "__init__" + os.extsep + "py"
     path = path[:]
@@ -106,13 +107,13 @@ class RezPluginType(object):
     'type_name' must correspond with one of the source directories found under
     the 'plugins' directory.
     """
+
     type_name: str
 
     def __init__(self) -> None:
         if self.type_name is None:
-            raise TypeError("Subclasses of RezPluginType must provide a "
-                            "'type_name' attribute")
-        self.pretty_type_name = self.type_name.replace('_', ' ')
+            raise TypeError("Subclasses of RezPluginType must provide a 'type_name' attribute")
+        self.pretty_type_name = self.type_name.replace("_", " ")
         self.plugin_classes: dict[str, type] = {}
         self.failed_plugins: dict[str, str] = {}
         self.plugin_modules: dict[str, types.ModuleType] = {}
@@ -120,7 +121,7 @@ class RezPluginType(object):
         self.load_plugins()
 
     def __repr__(self) -> str:
-        return '%s(%s)' % (self.__class__.__name__, self.plugin_classes.keys())
+        return "%s(%s)" % (self.__class__.__name__, self.plugin_classes.keys())
 
     def register_plugin(self, plugin_name: str, plugin_class: type, plugin_module: types.ModuleType) -> None:
         # TODO: check plugin_class to ensure it is a sub-class of expected base-class?
@@ -136,7 +137,8 @@ class RezPluginType(object):
     def load_plugins_from_namespace(self):
         import pkgutil
         from importlib import import_module
-        type_module_name = 'rezplugins.' + self.type_name
+
+        type_module_name = "rezplugins." + self.type_name
         package = import_module(type_module_name)
 
         # on import, the `__path__` variable of the imported package is extended
@@ -144,8 +146,7 @@ class RezPluginType(object):
         # extend_path, above). this means that `walk_packages` will walk over all
         # modules on the search path at the same level (.e.g in a
         # 'rezplugins/type_name' sub-directory).
-        paths = [package.__path__] if isinstance(package.__path__, str) \
-            else package.__path__
+        paths = [package.__path__] if isinstance(package.__path__, str) else package.__path__
 
         # reverse plugin path order, so that custom plugins have a chance to
         # be found before the builtin plugins (from /rezplugins).
@@ -155,14 +156,12 @@ class RezPluginType(object):
             if config.debug("plugins"):
                 print_debug("searching plugin path %s...", path)
 
-            for importer, modname, ispkg in pkgutil.iter_modules(
-                    [path], package.__name__ + '.'):
-
+            for importer, modname, ispkg in pkgutil.iter_modules([path], package.__name__ + "."):
                 if importer is None:
                     continue
 
-                plugin_name = modname.split('.')[-1]
-                if plugin_name.startswith('_') or plugin_name == 'rezconfig':
+                plugin_name = modname.split(".")[-1]
+                if plugin_name.startswith("_") or plugin_name == "rezconfig":
                     continue
 
                 if plugin_name in self.plugin_modules:
@@ -171,13 +170,11 @@ class RezPluginType(object):
                     # `sys.modules` below. skipping the rest of the process
                     # for good.
                     if config.debug("plugins"):
-                        print_warning("skipped same named %s plugin at %s: %s"
-                                      % (self.type_name, path, modname))
+                        print_warning("skipped same named %s plugin at %s: %s" % (self.type_name, path, modname))
                     continue
 
                 if config.debug("plugins"):
-                    print_debug("loading %s plugin at %s: %s..."
-                                % (self.type_name, path, modname))
+                    print_debug("loading %s plugin at %s: %s..." % (self.type_name, path, modname))
 
                 try:
                     plugin_module = sys.modules.get(modname)
@@ -202,8 +199,7 @@ class RezPluginType(object):
 
         for plugin in discovered_plugins:
             if config.debug("plugins"):
-                print_debug("loading %s plugin for %r..."
-                            % (self.type_name, f"{plugin.name} = {plugin.value!r}"))
+                print_debug("loading %s plugin for %r..." % (self.type_name, f"{plugin.name} = {plugin.value!r}"))
             try:
                 plugin_name = plugin.name
                 plugin = plugin.load()
@@ -214,7 +210,7 @@ class RezPluginType(object):
                 self.print_log_plugins_error(plugin.__name__, e)
 
     def print_log_plugins_error(self, module_name, error):
-        nameish = module_name.split('.')[-1]
+        nameish = module_name.split(".")[-1]
         self.failed_plugins[nameish] = str(error)
 
         if not config.debug("plugins"):
@@ -222,6 +218,7 @@ class RezPluginType(object):
 
         import traceback
         from io import StringIO
+
         out = StringIO()
         traceback.print_exc(file=out)
         print_debug(out.getvalue())
@@ -239,55 +236,46 @@ class RezPluginType(object):
                 print_warning(
                     "plugin module %s is not loaded from current "
                     "load path but reused from previous imported "
-                    "path: %s" % (module_name, plugin_module.__file__))
+                    "path: %s" % (module_name, plugin_module.__file__)
+                )
 
-        if (hasattr(plugin_module, "register_plugin")
-                and callable(plugin_module.register_plugin)):
-
+        if hasattr(plugin_module, "register_plugin") and callable(plugin_module.register_plugin):
             plugin_class = plugin_module.register_plugin()
             if plugin_class is not None:
-                self.register_plugin(
-                    plugin_name,
-                    plugin_class,
-                    plugin_module
-                )
+                self.register_plugin(plugin_name, plugin_class, plugin_module)
             else:
                 if config.debug("plugins"):
                     print_warning(
-                        "'register_plugin' function at %s: %s did "
-                        "not return a class." % (plugin_path, module_name))
+                        "'register_plugin' function at %s: %s did not return a class." % (plugin_path, module_name)
+                    )
         else:
             if config.debug("plugins"):
-                print_warning(
-                    "no 'register_plugin' function at %s: %s"
-                    % (plugin_path, module_name))
+                print_warning("no 'register_plugin' function at %s: %s" % (plugin_path, module_name))
 
     def get_plugin_class(self, plugin_name: str) -> type:
         """Returns the class registered under the given plugin name."""
         try:
             return self.plugin_classes[plugin_name]
         except KeyError:
-            raise RezPluginError("Unrecognised %s plugin: '%s'"
-                                 % (self.pretty_type_name, plugin_name))
+            raise RezPluginError("Unrecognised %s plugin: '%s'" % (self.pretty_type_name, plugin_name))
 
     def get_plugin_module(self, plugin_name: str) -> types.ModuleType:
         """Returns the module containing the plugin of the given name."""
         try:
             return self.plugin_modules[plugin_name]
         except KeyError:
-            raise RezPluginError("Unrecognised %s plugin: '%s'"
-                                 % (self.pretty_type_name, plugin_name))
+            raise RezPluginError("Unrecognised %s plugin: '%s'" % (self.pretty_type_name, plugin_name))
 
     @cached_property
     def config_schema(self):
         """Returns the merged configuration data schema for this plugin
         type."""
         from rez.config import _plugin_config_dict
+
         d = _plugin_config_dict.get(self.type_name, {})
 
         for name, plugin_class in self.plugin_classes.items():
-            if hasattr(plugin_class, "schema_dict") \
-                    and plugin_class.schema_dict:
+            if hasattr(plugin_class, "schema_dict") and plugin_class.schema_dict:
                 d_ = {name: plugin_class.schema_dict}
                 deep_update(d, d_)
         return dict_to_schema(d, required=True, modifier=expand_system_vars)
@@ -350,6 +338,7 @@ class RezPluginManager(object):
             This is important  because it ensures that rez's copy of
             'rezplugins' is always found first.
     """
+
     def __init__(self) -> None:
         self._plugin_types: dict[str, LazySingleton[RezPluginType]] = {}
 
@@ -390,15 +379,13 @@ class RezPluginManager(object):
         try:
             return self._plugin_types[plugin_type]()
         except KeyError:
-            raise RezPluginError("Unrecognised plugin type: '%s'"
-                                 % plugin_type)
+            raise RezPluginError("Unrecognised plugin type: '%s'" % plugin_type)
 
     def register_plugin_type(self, type_class: type[RezPluginType]) -> None:
         if not issubclass(type_class, RezPluginType):
             raise TypeError("'type_class' must be a RezPluginType sub class")
         if type_class.type_name is None:
-            raise TypeError("Subclasses of RezPluginType must provide a "
-                            "'type_name' attribute")
+            raise TypeError("Subclasses of RezPluginType must provide a 'type_name' attribute")
         self._plugin_types[type_class.type_name] = LazySingleton(type_class)
 
     def get_plugin_types(self) -> list[str]:
@@ -477,64 +464,70 @@ class RezPluginManager(object):
 
     def get_summary_string(self) -> str:
         """Get a formatted string summarising the plugins that were loaded."""
-        rows = [["PLUGIN TYPE", "NAME", "DESCRIPTION", "STATUS"],
-                ["-----------", "----", "-----------", "------"]]
+        rows = [["PLUGIN TYPE", "NAME", "DESCRIPTION", "STATUS"], ["-----------", "----", "-----------", "------"]]
         for plugin_type in sorted(self.get_plugin_types()):
-            type_name = plugin_type.replace('_', ' ')
+            type_name = plugin_type.replace("_", " ")
             for name in sorted(self.get_plugins(plugin_type)):
                 module = self.get_plugin_module(plugin_type, name)
-                desc = (getattr(module, "__doc__", None) or '').strip()
+                desc = (getattr(module, "__doc__", None) or "").strip()
                 rows.append((type_name, name, desc, "loaded"))
-            for (name, reason) in sorted(self.get_failed_plugins(plugin_type)):
+            for name, reason in sorted(self.get_failed_plugins(plugin_type)):
                 msg = "FAILED: %s" % reason
-                rows.append((type_name, name, '', msg))
-        return '\n'.join(columnise(rows))
+                rows.append((type_name, name, "", msg))
+        return "\n".join(columnise(rows))
 
 
 # ------------------------------------------------------------------------------
 # Plugin Types
 # ------------------------------------------------------------------------------
 
+
 class ShellPluginType(RezPluginType):
-    """Support for different types of target shells, such as bash, tcsh.
-    """
+    """Support for different types of target shells, such as bash, tcsh."""
+
     type_name = "shell"
 
 
 class ReleaseVCSPluginType(RezPluginType):
-    """Support for different version control systems when releasing packages.
-    """
+    """Support for different version control systems when releasing packages."""
+
     type_name = "release_vcs"
 
 
 class ReleaseHookPluginType(RezPluginType):
-    """Support for different version control systems when releasing packages.
-    """
+    """Support for different version control systems when releasing packages."""
+
     type_name = "release_hook"
 
 
 class BuildSystemPluginType(RezPluginType):
-    """Support for different build systems when building packages.
-    """
+    """Support for different build systems when building packages."""
+
     type_name = "build_system"
 
 
 class PackageRepositoryPluginType(RezPluginType):
-    """Support for different package repositories for loading packages.
-    """
+    """Support for different package repositories for loading packages."""
+
     type_name = "package_repository"
 
 
 class BuildProcessPluginType(RezPluginType):
-    """Support for different build and release processes.
-    """
+    """Support for different build and release processes."""
+
     type_name = "build_process"
 
 
 class CommandPluginType(RezPluginType):
-    """Support for different custom Rez applications/subcommands.
-    """
+    """Support for different custom Rez applications/subcommands."""
+
     type_name = "command"
+
+
+class PackageOrderPluginType(RezPluginType):
+    """Support for different ordering of packages."""
+
+    type_name = "package_order"
 
 
 plugin_manager = RezPluginManager()
@@ -547,3 +540,4 @@ plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
 plugin_manager.register_plugin_type(CommandPluginType)
+plugin_manager.register_plugin_type(PackageOrderPluginType)
