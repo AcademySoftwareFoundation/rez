@@ -53,7 +53,7 @@ def get_github_repo_owner():
     remote = remotes[0]
     if remote[0] != "origin":
         print(
-            f"Rename name is {remote[0]!r}. Was expecting 'origin'",
+            f"Remote name is {remote[0]!r}. Was expecting 'origin'",
             file=sys.stderr,
         )
         sys.exit(1)
