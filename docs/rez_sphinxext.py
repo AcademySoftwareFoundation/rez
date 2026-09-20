@@ -6,6 +6,8 @@ import rez.cli._main
 import rez.cli._util
 import rez.config
 import rez.rezconfig
+from rez.utils.sphinxext import PkgDefDomain as BasePkgDefDomain
+from rez.utils.sphinxext import RexDomain as BaseRexDomain
 import docutils.nodes
 import sphinx.util.nodes
 import sphinx.application
@@ -139,18 +141,12 @@ class BareNamePythonDomain(sphinx.domains.python.PythonDomain):
 
 
 
-class RexDomain(BareNamePythonDomain):
+class RexDomain(BareNamePythonDomain, BaseRexDomain):
     """Domain for rex (Rez EXecution language) objects used in commands() functions."""
 
-    name = "rex"
-    label = "Rex"
 
-
-class PkgDefDomain(BareNamePythonDomain):
+class PkgDefDomain(BareNamePythonDomain, BasePkgDefDomain):
     """Domain for package definition attributes in package.py files."""
-
-    name = "pkgdef"
-    label = "Package Definition"
 
 
 def convert_rez_config_to_rst() -> list[str]:
