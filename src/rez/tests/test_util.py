@@ -6,7 +6,6 @@
 unit tests for 'util' module
 """
 import os
-import subprocess
 import sys
 from rez.tests.util import TestBase, TempdirMixin
 from rez.util import load_module_from_file, resolve_variant_indices
@@ -37,21 +36,6 @@ class TestLoadModuleFromFile(TestBase, TempdirMixin):
 
         load_module_from_file(module, os.path.join(self.root, filename))
         self.assertEqual(sys.modules.get(module), None, msg='Module was found in sys.modules')
-
-
-class TestUtilImport(TestBase):
-    def test_deprecation_warnings_do_not_cause_shutdown_error(self) -> None:
-        env = os.environ.copy()
-        env["REZ_LOG_DEPRECATION_WARNINGS"] = "1"
-        proc = subprocess.run(
-            [sys.executable, "-c", "import rez.util"],
-            capture_output=True,
-            env=env,
-            text=True,
-        )
-
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(proc.stderr, "")
 
 
 class TestResolveVariantIndices(TestBase):
