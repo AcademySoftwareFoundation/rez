@@ -9,7 +9,7 @@ Consumers only need these domain names and the inherited Python roles for
 intersphinx resolution.
 """
 
-from rez.utils import _rez_version
+from rez.utils._version import _rez_version
 
 from sphinx.domains.python import PythonDomain
 
