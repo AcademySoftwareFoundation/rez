@@ -142,6 +142,9 @@ print(json.dumps({
 """
         env = os.environ.copy()
         env.pop("REZ_KEEP_TMPDIRS", None)
+        # Regression test: the former rez.util atexit callback caused a circular
+        # import during shutdown when deprecation warnings were enabled.
+        env["REZ_LOG_DEPRECATION_WARNINGS"] = "1"
         proc = subprocess.run(
             [sys.executable, "-c", code],
             capture_output=True,
@@ -152,6 +155,10 @@ print(json.dumps({
         self.assertEqual(
             proc.returncode, 0,
             "TempDirs subprocess failed:\n%s" % proc.stderr,
+        )
+        self.assertEqual(
+            proc.stderr, "",
+            "TempDirs subprocess emitted stderr:\n%s" % proc.stderr,
         )
         paths = json.loads(proc.stdout)
 
