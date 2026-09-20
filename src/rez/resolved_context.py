@@ -2089,7 +2089,7 @@ class ResolvedContext(object):
         """Bind various info to the execution context
         """
         def normalized(path: str) -> str:
-            return executor.normalize_path(path)
+            return "None" if path is None else executor.normalize_path(path)
 
         resolved_pkgs = self.resolved_packages or []
         ephemerals = self.resolved_ephemerals or []
