@@ -24,7 +24,7 @@ def get_next_base26(prev: str | None = None) -> str:
         return 'a'
 
     r = re.compile("^[a-z]*$")
-    if not r.match(prev):
+    if not r.fullmatch(prev):
         raise ValueError("Invalid base26")
 
     if not prev.endswith('z'):
@@ -60,7 +60,9 @@ def create_unique_base26_symlink(path: str, source: str) -> str:
         ]
 
         if names:
-            prev = max(names)
+            # sort by length first, then alphabetically, so e.g. 'aa' correctly
+            # counts as higher than 'z'
+            prev = max(names, key=lambda x: (len(x), x))
         else:
             prev = None
 
