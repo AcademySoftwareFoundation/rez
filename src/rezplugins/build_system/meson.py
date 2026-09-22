@@ -1,0 +1,344 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Contributors to the Rez Project
+
+
+"""
+Meson-based build system
+"""
+from rez.build_process import BuildType
+from rez.build_system import BuildSystem, BuildResult
+from rez.config import config
+from rez.exceptions import BuildSystemError
+from rez.utils.execution import create_forwarding_script
+from rez.packages import get_developer_package, Variant
+from rez.resolved_context import ResolvedContext
+from rez.utils.which import which
+import argparse
+import functools
+import os.path
+import sys
+
+
+class RezMesonError(BuildSystemError):
+    pass
+
+
+class MesonBuildSystem(BuildSystem):
+
+    build_types = [
+        "plain",
+        "debug",
+        "debugoptimized",
+        "release",
+        "minsize",
+        "custom",
+    ]
+
+    @classmethod
+    def name(cls) -> str:
+        return "meson"
+
+    @classmethod
+    def child_build_system(cls) -> str:
+        return "ninja"
+
+    @classmethod
+    def is_valid_root(cls, path, package=None):
+        return os.path.isfile(os.path.join(path, "meson.build"))
+
+    @classmethod
+    def bind_cli(cls,
+                 parser: argparse.ArgumentParser,
+                 group: argparse._ArgumentGroup) -> None:
+        group.add_argument(
+            "--buildtype",
+            dest="build_type",
+            type=str,
+            choices=cls.build_types,
+            default="release",
+            help="Build type to use (default: %(default)s).")
+
+        group.add_argument(
+            "--no-source-tests",
+            dest="no_source_tests",
+            action="store_true",
+            help="Disable running source tests during package build.")
+
+        group.add_argument(
+            "--install-tags",
+            dest="install_tags",
+            type=str,
+            help=("Install only targets associated with "
+                  "the comma separated tags."))
+
+    def __init__(self,
+                 working_dir,
+                 opts=None,
+                 package=None,
+                 write_build_scripts: bool = False,
+                 verbose: bool = False,
+                 build_args=[],
+                 child_build_args=[]) -> None:
+        super(MesonBuildSystem, self).__init__(
+            working_dir,
+            opts=opts,
+            package=package,
+            write_build_scripts=write_build_scripts,
+            verbose=verbose,
+            build_args=build_args,
+            child_build_args=child_build_args)
+        self.build_type = getattr(opts, "build_type", "release")
+        self.no_source_tests = getattr(opts, "no_source_tests", False)
+        self.install_tags = getattr(opts, "install_tags", None)
+
+    def build(self,
+              context: ResolvedContext,
+              variant: Variant,
+              build_path: str,
+              install_path: str,
+              install: bool = False,
+              build_type=BuildType.local) -> BuildResult:
+
+        # Find meson binary
+        exe = context.which("meson", fallback=True)
+        if not exe:
+            raise RezMesonError("could not find meson binary")
+        meson_exe = which(exe)
+        if not meson_exe:
+            raise RezMesonError("meson binary does not exist: {}".format(exe))
+
+        def _callback(executor, context=context):
+            self.add_standard_build_actions(
+                executor=executor,
+                context=context,
+                variant=variant,
+                build_type=build_type,
+                install=install,
+                build_path=build_path,
+                install_path=install_path,
+            )
+
+        def _pre_build_callback(executor):
+            self.add_pre_build_commands(
+                executor=executor,
+                variant=variant,
+                build_type=build_type,
+                install=install,
+                build_path=build_path,
+                install_path=install_path,
+            )
+
+        retcode = self._configure(
+            meson_exe,
+            build_path,
+            install_path,
+            context,
+            _callback,
+            _pre_build_callback,
+        )
+
+        ret = BuildResult()
+        if retcode != 0:
+            ret["success"] = False
+            return ret
+
+        if self.write_build_scripts:
+            build_env_script = os.path.join(build_path, "build-env")
+            create_forwarding_script(
+                build_env_script,
+                module=("build_system", "meson"),
+                func_name="_FWD__spawn_build_shell",
+                working_dir=self.working_dir,
+                build_path=build_path,
+                variant_index=variant.index,
+                install=install,
+                install_path=install_path,
+            )
+            ret["success"] = True
+            ret["build_env_script"] = build_env_script
+            return ret
+
+        if not self.no_source_tests:
+            retcode = self._test(
+                meson_exe,
+                build_path,
+                context,
+                _callback,
+                _pre_build_callback,
+            )
+            if retcode != 0:
+                ret["success"] = False
+                return ret
+
+        build_fn = self._install if install else self._compile
+
+        retcode = build_fn(
+            meson_exe,
+            build_path,
+            context,
+            _callback,
+            _pre_build_callback,
+        )
+
+        ret["success"] = (not retcode)
+        return ret
+
+    def _spawn_build_shell(self, ret, build_path, context, callback):
+        config.override("prompt", "BUILD>")
+        script_callback = functools.partial(
+            callback,
+            context=context,
+        )
+
+        retcode, _, _ = context.execute_shell(
+            block=True,
+            cwd=build_path,
+            actions_callback=script_callback,
+        )
+
+        sys.exit(retcode)
+
+        ret["success"] = True
+        ret["build_env_script"] = build_path
+        return ret
+
+    def _configure(self,
+                   meson_exe,
+                   build_path,
+                   install_path,
+                   context,
+                   callback,
+                   post_callback) -> int:
+        configure_cmd = [meson_exe, "setup"]
+        configure_cmd.append(build_path)
+        configure_cmd.append("--prefix={}".format(install_path))
+        configure_cmd.append("--buildtype={}".format(self.build_type))
+        # Make sure any pkgconfig files generated by meson are relocatable
+        configure_cmd.append("-Dpkgconfig.relocatable=true")
+        # Keep the name of lib directory stable
+        configure_cmd.append("--libdir=lib")
+        configure_cmd += (self.build_args or [])
+
+        return self._run_command(
+            "Configuring project with: {}",
+            configure_cmd,
+            context,
+            callback,
+            post_callback,
+        )
+
+    def _install(self,
+                 meson_exe,
+                 build_path,
+                 context,
+                 callback,
+                 post_callback) -> int:
+        install_cmd = [meson_exe, "install", "-C", build_path]
+        if self.install_tags:
+            install_cmd.append("--tags={}".format(self.install_tags))
+        return self._run_command(
+            "Installing project with: {}",
+            install_cmd,
+            context,
+            callback,
+            post_callback,
+        )
+
+    def _compile(self,
+                 meson_exe,
+                 build_path,
+                 context,
+                 callback,
+                 post_callback) -> int:
+        compile_cmd = [meson_exe, "compile", "-C", build_path]
+        if self.child_build_args:
+            compile_cmd.append("--{}-args={}".format(
+                self.child_build_system(),
+                ",".join(self.child_build_args)
+            ))
+        return self._run_command(
+            "Building project with: {}",
+            compile_cmd,
+            context,
+            callback,
+            post_callback,
+        )
+
+    def _test(self,
+              meson_exe,
+              build_path,
+              context,
+              callback,
+              post_callback) -> int:
+        test_cmd = [meson_exe, "test", "-C", build_path]
+        return self._run_command(
+            "Testing project with: {}",
+            test_cmd,
+            context,
+            callback,
+            post_callback,
+        )
+
+    def _run_command(self,
+                     message,
+                     command,
+                     context,
+                     callback,
+                     post_callback) -> int:
+        if self.verbose:
+            print(message.format(" ".join(command)))
+
+        retcode, _, _ = context.execute_shell(
+            command=command,
+            block=True,
+            cwd=self.working_dir,
+            actions_callback=callback,
+            post_actions_callback=post_callback,
+        )
+        return retcode
+
+
+def _FWD__spawn_build_shell(working_dir,
+                            build_path,
+                            variant_index,
+                            install,
+                            install_path=None) -> None:
+    # This spawns a shell that the user can run 'meson compile' or the
+    # backend directly in.
+    context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
+    package = get_developer_package(working_dir)
+    variant = package.get_variant(variant_index)
+    config.override("prompt", "BUILD>")
+
+    def _callback(executor):
+        MesonBuildSystem.add_standard_build_actions(
+            executor=executor,
+            context=context,
+            variant=variant,
+            build_type=BuildType.local,
+            install=install,
+            build_path=build_path,
+            install_path=install_path,
+        )
+
+    post_actions_callback = functools.partial(
+        MesonBuildSystem.add_pre_build_commands,
+        variant=variant,
+        build_type=BuildType.local,
+        install=install,
+        build_path=build_path,
+        install_path=install_path,
+    )
+
+    retcode, _, _ = context.execute_shell(
+        block=True,
+        cwd=build_path,
+        actions_callback=_callback,
+        post_actions_callback=post_actions_callback,
+    )
+
+    sys.exit(retcode)
+
+
+def register_plugin():
+    return MesonBuildSystem
