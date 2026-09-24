@@ -11,11 +11,6 @@ from rez.resolved_context import ResolvedContext
 from rez.suite import Suite
 from rez.config import config
 from rez.system import system
-from rez.wrapper import Wrapper
-from rez.utils.colorize import Printer
-from rez.utils.platform_ import platform_
-from unittest import mock
-import io
 import subprocess
 import unittest
 import uuid
@@ -146,29 +141,34 @@ class TestRezSuites(TestBase, TempdirMixin):
 
         self._test_serialization(s)
 
-    def test_print_package_versions(self) -> None:
-        """Test that a suite tool can list its package versions (``++versions``).
+    @per_available_shell()
+    @install_dependent()
+    def test_executable_versions(self, shell) -> None:
+        """Test suite tool can list its package versions with ``++versions``.
 
         Regression test for https://github.com/AcademySoftwareFoundation/rez/issues/2046
         """
+        config.override("default_shell", shell)
+
         c_foo = ResolvedContext(["foo"])
         s = Suite()
         s.add_context("foo", c_foo)
 
-        suite_path = os.path.join(self.root, uuid.uuid4().hex)
+        per_shell = config.get("default_shell")
+        suite_path = os.path.join(self.root, "test_suites", per_shell, "foo")
         s.save(suite_path)
 
-        tool_file = os.path.join(suite_path, "bin", "fooer")
-        if platform_.name == "windows":
-            tool_file += ".cmd"
-        w = Wrapper(tool_file)
+        bin_path = os.path.join(suite_path, "bin")
+        env = os.environ.copy()
 
-        # Printer binds sys.stdout at import time, so redirect_stdout is not enough
-        buf = io.StringIO()
-        with mock.patch("rez.wrapper.Printer", lambda: Printer(buf)):
-            self.assertEqual(w.print_package_versions(), 0)
+        env.update(self.get_settings_env())
+        env["PATH"] = os.pathsep.join([system.rez_bin_path, env["PATH"]])
+        env["PATH"] = os.pathsep.join([bin_path, env["PATH"]])
 
-        lines = buf.getvalue().splitlines()
+        output = subprocess.check_output("fooer ++versions", shell=True, env=env,
+                                         universal_newlines=True)
+
+        lines = output.splitlines()
         self.assertEqual(len(lines), 1)
         columns = lines[0].split()
         self.assertEqual(columns[0], "*")
