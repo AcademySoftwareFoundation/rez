@@ -501,15 +501,16 @@ class PackageCache(object):
         """Add the given variants to the package payload cache.
         """
 
-        # A prod install is necessary because add_variants works by
-        # starting a rez-pkg-cache proc, and this can only be done reliably in
-        # a prod install. On non-windows we could fork instead, but there would
-        # remain no good solution on windows.
+        # A prod install is necessary for async caching because add_variants
+        # works by starting a rez-pkg-cache proc, and this can only be done
+        # reliably in a prod install. On non-windows we could fork instead, but
+        # there would remain no good solution on windows.
         #
-        if not system.is_production_rez_install:
+        if package_cache_async and not system.is_production_rez_install:
             raise PackageCacheError(
-                "PackageCache.add_variants is only supported in a "
-                "production rez installation."
+                "Asynchronous package caching is only supported in a "
+                "production rez installation. Use synchronous caching "
+                "(package_cache_async = False) in non-production installs."
             )
 
         variants_ = []
