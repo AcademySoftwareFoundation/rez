@@ -15,6 +15,8 @@ from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
 from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
+from importlib.machinery import FileFinder, all_suffixes
+from functools import lru_cache
 import pkgutil
 import os.path
 import sys
@@ -36,6 +38,25 @@ if TYPE_CHECKING:
 
 
 T = TypeVar("T")
+
+
+def _entry_points_cache_key():
+    """Describe import locations closely enough to detect installations."""
+    result = []
+    for path in sys.path:
+        path = path or os.getcwd()
+        try:
+            mtime = os.stat(path).st_mtime_ns
+        except OSError:
+            mtime = None
+        result.append((path, mtime))
+    return tuple(result)
+
+
+@lru_cache(maxsize=1)
+def _get_entry_points(_cache_key):
+    """Discover installed entry points once for all plugin types."""
+    return entry_points()
 
 
 # modified from pkgutil standard library:
@@ -98,6 +119,83 @@ def extend_path(path, name):
 def uncache_rezplugins_module_paths(instance=None) -> None:
     instance = instance or plugin_manager
     cached_property.uncache(instance, "rezplugins_module_paths")  # type: ignore[attr-defined]
+    _get_entry_points.cache_clear()
+
+
+def _iter_top_level_modules():
+    """Find the top-level modules that could contain a rez plugin package.
+
+    Rez plugins can be shipped inside another Python package. For example, a
+    distribution might install::
+
+        studio_tools/
+            __init__.py
+            rezplugins/
+                __init__.py
+
+    To find packages like ``studio_tools``, rez has to look at each directory
+    on ``sys.path``. ``pkgutil.iter_modules()`` can do that, but its generic
+    filesystem implementation does considerably more work per directory entry
+    than we need here. Plugin discovery calls this while rez is starting, so
+    that extra work is noticeable in repositories with a large Python
+    environment.
+
+    For normal filesystem paths we reproduce the relevant ``pkgutil``
+    behaviour with ``os.scandir()`` and simple import-suffix checks. We still
+    yield ordinary modules such as ``tools.py`` as well as packages such as
+    ``studio_tools`` so that ordering and duplicate handling match
+    ``pkgutil.iter_modules()``; the caller decides which entries can actually
+    contain ``rezplugins``. ZIP files and custom importers are less common and
+    cannot be inspected this way, so they continue to use ``pkgutil``.
+    """
+    yielded = set()
+    suffixes = all_suffixes()
+
+    for path in sys.path:
+        importer = pkgutil.get_importer(path)
+        if isinstance(importer, FileFinder):
+            try:
+                entries = sorted(os.scandir(importer.path), key=lambda x: x.name)
+            except OSError:
+                continue
+
+            for entry in entries:
+                try:
+                    is_dir = entry.is_dir()
+                except OSError:
+                    continue
+
+                if is_dir:
+                    name = entry.name
+                    if '.' in name:
+                        continue
+                    ispkg = any(
+                        os.path.isfile(os.path.join(entry.path, "__init__" + suffix))
+                        for suffix in suffixes
+                    )
+                    if not ispkg:
+                        continue
+                else:
+                    name = next(
+                        (entry.name[:-len(suffix)] for suffix in suffixes
+                         if entry.name.endswith(suffix)),
+                        None,
+                    )
+                    if not name:
+                        continue
+                    ispkg = False
+
+                if name == "__init__" or '.' in name:
+                    continue
+
+                if name not in yielded:
+                    yielded.add(name)
+                    yield importer, name, ispkg
+        else:
+            for importer_, name, ispkg in pkgutil.iter_modules([path]):
+                if name not in yielded:
+                    yielded.add(name)
+                    yield importer_, name, ispkg
 
 
 class RezPluginType(object):
@@ -117,6 +215,7 @@ class RezPluginType(object):
         self.failed_plugins: dict[str, str] = {}
         self.plugin_modules: dict[str, types.ModuleType] = {}
         self.config_data = {}
+        self._loaded_config_paths = set()
         self.load_plugins()
 
     def __repr__(self) -> str:
@@ -195,10 +294,11 @@ class RezPluginType(object):
         if config.debug("plugins"):
             print_debug("searching plugin for entry point %r...", entry_point_name)
 
+        plugin_entry_points = _get_entry_points(_entry_points_cache_key())
         if sys.version_info[:2] >= (3, 8) and sys.version_info[:2] <= (3, 9):
-            discovered_plugins = entry_points().get(entry_point_name, [])
+            discovered_plugins = plugin_entry_points.get(entry_point_name, [])
         else:
-            discovered_plugins = entry_points(group=entry_point_name)
+            discovered_plugins = plugin_entry_points.select(group=entry_point_name)
 
         for plugin in discovered_plugins:
             if config.debug("plugins"):
@@ -228,8 +328,13 @@ class RezPluginType(object):
 
     def load_config_from_plugin(self, plugin):
         plugin_path = os.path.dirname(plugin.__file__)
-        data, _ = _load_config_from_filepaths([os.path.join(plugin_path, "rezconfig")])
+        config_path = os.path.join(plugin_path, "rezconfig")
+        if config_path in self._loaded_config_paths:
+            return
+
+        data, _ = _load_config_from_filepaths([config_path])
         deep_update(self.config_data, data)
+        self._loaded_config_paths.add(config_path)
 
     def register_plugin_module(self, plugin_name, plugin_module, plugin_path):
         module_name = plugin_module.__name__
@@ -356,7 +461,7 @@ class RezPluginManager(object):
     @cached_property
     def rezplugins_module_paths(self):
         paths = []
-        for importer, name, ispkg in pkgutil.iter_modules():
+        for importer, name, ispkg in _iter_top_level_modules():
             if not ispkg:
                 continue
 
