@@ -19,10 +19,13 @@ from rez.package_repository import package_repository_manager
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.sourcecode import SourceCode
+from rez.vendor.schema.schema import Schema, SchemaError
 import unittest
+from unittest.mock import patch
 from rez.version import Version
 from rez.version import VersionError
 from rez.utils.filesystem import canonical_path
+import logging
 import shutil
 import os.path
 import os
@@ -55,6 +58,8 @@ ALL_PACKAGES = set([
     'single_unversioned',
     'single_versioned-3.5',
     'late_binding-1.0',
+    'late_binding_none-1.0',
+    'late_binding_invalid-1.0',
     'timestamped-1.0.5', 'timestamped-1.0.6', 'timestamped-1.1.0', 'timestamped-1.1.1',
     'timestamped-1.2.0', 'timestamped-2.0.0', 'timestamped-2.1.0', 'timestamped-2.1.5',
     'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0',
@@ -158,6 +163,14 @@ class TestPackages(TestBase, TempdirMixin):
         package = get_package("late_binding", "1.0")
         self.assertEqual(package.tools, ["util"])
 
+        # a py-based package where late binding functions return None.
+        # This should be normalised to empty lists, not crash.
+        # See https://github.com/AcademySoftwareFoundation/rez/issues/2153
+        package = get_package("late_binding_none", "1.0")
+        self.assertEqual(package.requires, [])
+        self.assertEqual(package.build_requires, [])
+        self.assertEqual(package.private_build_requires, [])
+
         # a 'combined' type package
         package = get_package("multi", "1.0")
         expected_uri = canonical_path(os.path.join(self.yaml_packages_path, "multi.yaml<1.0>"))
@@ -184,6 +197,43 @@ class TestPackages(TestBase, TempdirMixin):
         package = get_package("multi", "2.0")
         expected_uri = canonical_path(os.path.join(self.py_packages_path, "multi.py<2.0>"))
         self.assertEqual(package.uri, expected_uri)
+
+    def test_late_binding_none_strict_schema(self) -> None:
+        """Test that a late-bound attribute returning None under a strict schema
+        warns and is treated as unset rather than crashing.
+
+        See https://github.com/AcademySoftwareFoundation/rez/issues/2153
+        """
+        package = get_package("late_binding_none", "1.0")
+
+        # The built-in late_requires_schema already accepts None. Patch it
+        # with a strict schema that rejects None to exercise the defensive
+        # fallback path in _wrap_forwarded.
+        strict_schema = Schema([str])
+        strict_schemas = {
+            "requires": strict_schema,
+            "build_requires": strict_schema,
+            "private_build_requires": strict_schema,
+        }
+
+        with patch.object(type(package), "late_bind_schemas", strict_schemas):
+            with self.assertLogs(
+                logger=logging.getLogger("rez.utils.logging_"),
+                level=logging.WARNING,
+            ) as cm:
+                result = package.requires
+            self.assertIsNone(result)
+            self.assertTrue(
+                any("returned None" in msg for msg in cm.output),
+                f"Expected warning about None return, got: {cm.output}",
+            )
+
+        # A late-bound function returning a non-None invalid value should
+        # still raise — the defensive fallback only applies to None.
+        invalid_package = get_package("late_binding_invalid", "1.0")
+        with patch.object(type(invalid_package), "late_bind_schemas", strict_schemas):
+            with self.assertRaises(SchemaError):
+                invalid_package.requires
 
     def test_pkg_create(self) -> None:
         """test package creation."""
