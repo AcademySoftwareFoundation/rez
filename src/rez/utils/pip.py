@@ -76,8 +76,8 @@ def pip_to_rez_version(dist_version, allow_legacy: bool = True):
         str: Rez-compatible equivalent version string.
 
     Raises:
-        InvalidVersion: When legacy mode is not allowed and a PEP440
-            incompatible version is detected.
+        rez.vendor.packaging.version.InvalidVersion: When legacy mode is
+            not allowed and a PEP440 incompatible version is detected.
 
     .. _PEP 440 (all possible matches):
         https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
@@ -522,8 +522,8 @@ def convert_distlib_to_setuptools(installed_dist):
     """Get the setuptools equivalent of a distlib installed dist.
 
     Args:
-        installed_dist (`distlib.database.InstalledDistribution`: Distribution
-            to convert.
+        installed_dist (``distlib.database.InstalledDistribution``):
+            Distribution to convert.
 
     Returns:
         `Distribution`: Equivalent importlib/setuptools dist object.

@@ -127,32 +127,64 @@ class TestWindowsPlatformCoreCounting(TestBase):
 
     # -- _physical_cores fallback chain ---------------------------------------
 
-    def test_physical_cores_prefers_powershell(self):
-        """powershell succeeds → wmic is never called."""
-        with unittest.mock.patch.object(platform_, '_physical_cores_from_powershell',
+    def test_physical_cores_prefers_native(self):
+        """If native succeeds, powershell and wmic are never called."""
+        with unittest.mock.patch.object(platform_, '_physical_cores_native',
+                                        return_value=4) as mock_native, \
+             unittest.mock.patch.object(platform_, '_physical_cores_from_powershell',
                                         return_value=4) as mock_ps, \
              unittest.mock.patch.object(platform_, '_physical_cores_from_wmic',
                                         return_value=4) as mock_wmic:
             result = platform_._physical_cores()
+            mock_native.assert_called_once()
+            mock_ps.assert_not_called()
+            mock_wmic.assert_not_called()
+            self.assertEqual(result, 4)
+
+    def test_physical_cores_powershell_fallback(self):
+        """If native fails and powershell succeeds, wmic is never called."""
+        with unittest.mock.patch.object(platform_, '_physical_cores_native',
+                                        return_value=None) as mock_native, \
+             unittest.mock.patch.object(platform_, '_physical_cores_from_powershell',
+                                        return_value=4) as mock_ps, \
+             unittest.mock.patch.object(platform_, '_physical_cores_from_wmic',
+                                        return_value=4) as mock_wmic:
+            result = platform_._physical_cores()
+            mock_native.assert_called_once()
             mock_ps.assert_called_once()
             mock_wmic.assert_not_called()
             self.assertEqual(result, 4)
 
     def test_physical_cores_falls_back_to_wmic(self):
         """powershell returns None (e.g. older Windows) → wmic result used."""
-        with unittest.mock.patch.object(platform_, '_physical_cores_from_powershell',
+        with unittest.mock.patch.object(platform_, '_physical_cores_native',
+                                        return_value=None), \
+             unittest.mock.patch.object(platform_, '_physical_cores_from_powershell',
                                         return_value=None), \
              unittest.mock.patch.object(platform_, '_physical_cores_from_wmic',
                                         return_value=4):
             self.assertEqual(platform_._physical_cores(), 4)
 
-    def test_physical_cores_both_fail_returns_none(self):
-        """Both helpers return None → _physical_cores returns None."""
-        with unittest.mock.patch.object(platform_, '_physical_cores_from_powershell',
+    def test_physical_cores_all_fail_returns_none(self):
+        """All helpers return None → _physical_cores returns None."""
+        with unittest.mock.patch.object(platform_, '_physical_cores_native',
+                                        return_value=None), \
+             unittest.mock.patch.object(platform_, '_physical_cores_from_powershell',
                                         return_value=None), \
              unittest.mock.patch.object(platform_, '_physical_cores_from_wmic',
                                         return_value=None):
             self.assertIsNone(platform_._physical_cores())
+
+    # -- _physical_cores internal consistency ---------------------------------
+
+    def test_physical_cores_methods_same_result(self):
+        """All helpers that succeed return the same result."""
+        native_cores = platform_._physical_cores_native()
+        pwsh_cores = platform_._physical_cores_from_powershell()
+        wmic_cores = platform_._physical_cores_from_wmic()
+        values = {native_cores, pwsh_cores, wmic_cores}
+        values.discard(None)
+        assert len(values) < 2
 
     # -- integration smoke-tests ----------------------------------------------
 

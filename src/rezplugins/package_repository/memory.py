@@ -117,26 +117,28 @@ class MemoryPackageRepository(PackageRepository):
 
     Packages are stored in a dict, organised like so:
 
-        {
-            "foo": {
-                "1.0.0": {
-                    "name":         "foo",
-                    "version":      "1.0.0",
-                    "description":  "does foo-like things.",
-                }
-            },
+    .. code-block:: json
 
-            "bah": {
-                "_NO_VERSION": {
-                    "name":         "bah",
-                    "description":  "does bah-like things.",
-                    "requires":     ["python-2.6", "foo-1+"]
-                }
-            }
-        }
+       {
+           "foo": {
+               "1.0.0": {
+                   "name":         "foo",
+                   "version":      "1.0.0",
+                   "description":  "does foo-like things."
+               }
+           },
 
-        This example repository contains one versioned package 'foo', and one
-        unversioned package 'bah'.
+           "bah": {
+               "_NO_VERSION": {
+                   "name":         "bah",
+                   "description":  "does bah-like things.",
+                   "requires":     ["python-2.6", "foo-1+"]
+               }
+           }
+       }
+
+    This example repository contains one versioned package 'foo', and one
+    unversioned package 'bah'.
     """
     @classmethod
     def name(cls) -> str:
@@ -146,7 +148,7 @@ class MemoryPackageRepository(PackageRepository):
     def create_repository(cls, repository_data) -> MemoryPackageRepository:
         """Create a standalone, in-memory repository.
 
-        Using this function bypasses the `package_repository_manager` singleton.
+        Using this function bypasses the :data:`~rez.package_repository.package_repository_manager` singleton.
         This is usually desired however, since in-memory repositories are for
         temporarily storing programmatically created packages, which we do not
         want to cache and that do not persist.

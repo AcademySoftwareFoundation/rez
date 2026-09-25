@@ -12,7 +12,7 @@ from fnmatch import fnmatch
 from enum import Enum
 from contextlib import contextmanager
 from string import Formatter
-from collections.abc import MutableMapping
+from collections.abc import KeysView, MutableMapping
 from typing import Any, Iterable, Mapping
 
 from rez.system import system
@@ -1114,7 +1114,8 @@ class EnvironmentDict(MutableMapping):
         self._var_cache = dict((k, EnvironmentVariable(k, self))
                                for k in manager.parent_environ.keys())
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
+        """Return the environment variable names."""
         return self._var_cache.keys()
 
     def __repr__(self) -> str:
