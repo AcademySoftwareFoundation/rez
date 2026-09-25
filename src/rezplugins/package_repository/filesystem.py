@@ -556,6 +556,14 @@ class FileSystemPackageRepository(PackageRepository):
             )
             self._get_version_dirs = decorator2(self._get_version_dirs)
 
+            decorator3 = memcached(
+                servers=config.memcached_uri if config.cache_listdir else None,
+                min_compress_len=config.memcached_listdir_min_compress_len,
+                key=self._get_dir_listing__key,
+                debug=config.debug_memcache
+            )
+            self._get_dir_listing = decorator3(self._get_dir_listing)
+
     def _uid(self) -> tuple:
         t = ["filesystem", self.location]
         if os.path.exists(self.location):
@@ -1019,6 +1027,7 @@ class FileSystemPackageRepository(PackageRepository):
         if not self.disable_memcache:
             self._get_family_dirs.forget()
             self._get_version_dirs.forget()
+            self._get_dir_listing.forget()
 
         # unfortunately we need to clear file cache across the board
         clear_file_caches()
@@ -1061,6 +1070,18 @@ class FileSystemPackageRepository(PackageRepository):
                     dirs.append((name_, ext_[1:]))
 
         return dirs
+
+    def _get_dir_listing__key(self):
+        if os.path.isdir(self.location):
+            st = os.stat(self.location)
+            return str(("dirlisting", self.location, int(st.st_ino), st.st_mtime))
+        else:
+            return str(("dirlisting", self.location))
+
+    def _get_dir_listing(self):
+        if not os.path.isdir(self.location):
+            return []
+        return os.listdir(self.location)
 
     def _get_version_dirs__key(self, root: str) -> str:
         st = os.stat(root)
@@ -1152,7 +1173,7 @@ class FileSystemPackageRepository(PackageRepository):
         if os.path.isdir(os.path.join(self.location, name)):
             # force case-sensitive match on pkg family dir, on case-insensitive platforms
             if not platform_.has_case_sensitive_filesystem and \
-                    name not in os.listdir(self.location):
+                    name not in self._get_dir_listing():
                 return None
 
             return self.get_resource(
@@ -1166,7 +1187,7 @@ class FileSystemPackageRepository(PackageRepository):
                 # force case-sensitive match on pkg filename, on case-insensitive platforms
                 if not platform_.has_case_sensitive_filesystem:
                     ext = os.path.splitext(filepath)[-1]
-                    if (name + ext) not in os.listdir(self.location):
+                    if (name + ext) not in self._get_dir_listing():
                         return None
 
                 return self.get_resource(
