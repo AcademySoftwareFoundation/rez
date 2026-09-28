@@ -216,7 +216,7 @@ default_relocatable_per_package = None
 #
 # .. code-block:: python
 #
-#    default_relocatable_per_repostitory = {
+#    default_relocatable_per_repository = {
 #        '/svr/packages': False
 #    }
 default_relocatable_per_repository = None
@@ -258,7 +258,7 @@ default_cachable_per_package = None
 #
 # .. code-block:: python
 #
-#    default_cachable_per_repostitory = {
+#    default_cachable_per_repository = {
 #        '/svr/packages': False
 #    }
 default_cachable_per_repository = None
