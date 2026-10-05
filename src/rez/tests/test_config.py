@@ -8,7 +8,7 @@ test configuration settings
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, restore_os_environ
 from rez.exceptions import ConfigurationError
-from rez.config import Config, get_module_root_config, _replace_config, _Deprecation
+from rez.config import Config, get_module_root_config, _replace_config, _Deprecation, Setting
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages import get_developer_package
@@ -295,6 +295,64 @@ class TestConfig(TestBase):
             except subprocess.CalledProcessError as error:
                 print(error.stdout)
                 raise
+
+    def test_9_json_only_environment_variable(self) -> None:
+        """Test the error when a JSON-only setting uses its plain env var."""
+        for key in ("package_orderers", "pip_install_remaps"):
+            with self.subTest(key=key), restore_os_environ():
+                env_var = "REZ_%s" % key.upper()
+                os.environ[env_var] = "invalid"
+                config = Config([self.root_config_file], locked=False)
+
+                with self.assertRaises(ConfigurationError) as error:
+                    getattr(config, key)
+
+                self.assertEqual(
+                    str(error.exception),
+                    "The setting %r doesn't support the environment variable $%s, "
+                    "use $%s_JSON instead."
+                    % (key, env_var, env_var),
+                )
+
+    def test_10_environment_variable_precedence(self) -> None:
+        """Test that the plain environment variable takes precedence over the JSON variant."""
+        with restore_os_environ():
+            os.environ["REZ_IMAGE_VIEWER"] = "plain"
+            os.environ["REZ_IMAGE_VIEWER_JSON"] = '"json"'
+            config = Config([self.root_config_file], locked=False)
+
+            self.assertEqual(config.image_viewer, "plain")
+
+    def test_11_all_settings_declare_environment_variable_support(self) -> None:
+        """Test that env_var_json_only and _parse_env_var are aligned and agree.
+
+        This should guard against accidental misuse of the feature.
+        """
+        def get_sublcasses(obj: type):
+            subclasses = obj.__subclasses__()
+            for subclass in subclasses:
+                subclasses.extend(get_sublcasses(subclass))
+
+            return subclasses
+
+        for setting_type in get_sublcasses(Setting):
+            with self.subTest(key=setting_type.__name__):
+                if setting_type.env_var_json_only:
+                    self.assertTrue(
+                        setting_type._parse_env_var is Setting._parse_env_var,
+                        msg=(
+                            f"{setting_type.__name__!r}.env_var_json_only is True. The class "
+                            "must not implement the _parse_env_var method."
+                        ),
+                    )
+                else:
+                    self.assertTrue(
+                        setting_type._parse_env_var is not Setting._parse_env_var,
+                        msg=(
+                            f"{setting_type.__name__!r}.env_var_json_only is False. The class "
+                            "must implement the _parse_env_var method."
+                        )
+                    )
 
 
 class TestDeprecations(TestBase, TempdirMixin):

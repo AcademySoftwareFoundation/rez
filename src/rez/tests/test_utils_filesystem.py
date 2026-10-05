@@ -5,7 +5,9 @@
 """
 unit tests for 'rez.utils.filesystem' module
 """
+import json
 import os.path
+import subprocess
 import sys
 import tempfile
 
@@ -125,3 +127,65 @@ class TestFileSystem(TestBase, TempdirMixin):
         with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
             with self.assertRaises(PermissionError):
                 filesystem.safe_rmtree("._path")
+
+    def test_tempdirs_cleanup_at_exit(self) -> None:
+        code = """
+import json
+import sys
+from rez.utils.filesystem import TempDirs
+
+manager = TempDirs(sys.stdin.read())
+print(json.dumps({
+    "managed": manager.mkdtemp(),
+    "detached": manager.mkdtemp(cleanup=False),
+}), flush=True)
+"""
+        env = os.environ.copy()
+        env.pop("REZ_KEEP_TMPDIRS", None)
+        # Regression test: the former rez.util atexit callback caused a circular
+        # import during shutdown when deprecation warnings were enabled.
+        env["REZ_LOG_DEPRECATION_WARNINGS"] = "1"
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            env=env,
+            input=self.root,
+            text=True,
+        )
+        self.assertEqual(
+            proc.returncode, 0,
+            "TempDirs subprocess failed:\n%s" % proc.stderr,
+        )
+        self.assertEqual(
+            proc.stderr, "",
+            "TempDirs subprocess emitted stderr:\n%s" % proc.stderr,
+        )
+        paths = json.loads(proc.stdout)
+
+        self.assertFalse(os.path.exists(paths["managed"]))
+        self.assertTrue(os.path.isdir(paths["detached"]))
+
+    def test_tempdirs_kept_at_exit(self) -> None:
+        code = """
+import sys
+from rez.utils.filesystem import TempDirs
+
+manager = TempDirs(sys.stdin.read())
+print(manager.mkdtemp(), flush=True)
+"""
+        env = os.environ.copy()
+        env["REZ_KEEP_TMPDIRS"] = "1"
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            env=env,
+            input=self.root,
+            text=True,
+        )
+        self.assertEqual(
+            proc.returncode, 0,
+            "TempDirs subprocess failed:\n%s" % proc.stderr,
+        )
+        path = proc.stdout.strip()
+
+        self.assertTrue(os.path.isdir(path))

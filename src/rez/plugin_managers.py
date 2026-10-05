@@ -44,7 +44,7 @@ T = TypeVar("T")
 def extend_path(path, name):
     """Extend a package's path.
 
-    Intended use is to place the following code in a package's __init__.py:
+    Intended use is to place the following code in a package's __init__.py::
 
         from pkgutil import extend_path
         __path__ = extend_path(__path__, __name__)

@@ -4,7 +4,10 @@ import argparse
 
 import rez.cli._main
 import rez.cli._util
+import rez.config
 import rez.rezconfig
+from rez.utils.sphinxext import PkgDefDomain as BasePkgDefDomain
+from rez.utils.sphinxext import RexDomain as BaseRexDomain
 import docutils.nodes
 import sphinx.util.nodes
 import sphinx.application
@@ -138,18 +141,12 @@ class BareNamePythonDomain(sphinx.domains.python.PythonDomain):
 
 
 
-class RexDomain(BareNamePythonDomain):
+class RexDomain(BareNamePythonDomain, BaseRexDomain):
     """Domain for rex (Rez EXecution language) objects used in commands() functions."""
 
-    name = "rex"
-    label = "Rex"
 
-
-class PkgDefDomain(BareNamePythonDomain):
+class PkgDefDomain(BareNamePythonDomain, BasePkgDefDomain):
     """Domain for package definition attributes in package.py files."""
-
-    name = "pkgdef"
-    label = "Package Definition"
 
 
 def convert_rez_config_to_rst() -> list[str]:
@@ -262,9 +259,46 @@ def convert_rez_config_to_rst() -> list[str]:
                 rst.append('')
 
                 envvar = f'REZ_{varname.upper()}'
-                rst.append(f'   .. envvar:: {envvar}')
+                setting_type = rez.config.config_schema._schema.get(varname)
+
+                if varname == 'plugins':
+                    # Plugins don't have a schema like the normal settings
+                    # have, so let's not document environment variables since
+                    # they effectively don't support them.
+                    assert setting_type is None
+                    continue
+
+                assert setting_type is not None
+
+                json_envvar = f'{envvar}_JSON'
+                rst.append('   Environment variables:')
                 rst.append('')
-                rst.append(f'      The ``{envvar}`` environment variable can also be used to configure this.')
+                if not setting_type.env_var_json_only:
+                    rst.append(f'      .. envvar:: {envvar}')
+                rst.append(f'      .. envvar:: {json_envvar}')
+                rst.append('')
+
+                if setting_type.env_var_json_only:
+                    rst.append(
+                        f'         The non-JSON ``{envvar}`` environment variable is not supported.'
+                    )
+                    rst.append('')
+                    continue
+
+                if issubclass(setting_type, rez.config.PathList):
+                    rst.append(
+                        f'         Values in ``{envvar}`` must be separated with ``:`` on Unix-like '
+                        'systems and ``;`` on Windows.'
+                    )
+                elif issubclass(setting_type, rez.config.StrList):
+                    rst.append(
+                        f'         Values in ``{envvar}`` can be separated by commas or whitespace.'
+                    )
+                elif issubclass(setting_type, rez.config.Dict):
+                    rst.append(
+                        f'         Dictionary values in ``{envvar}`` must use the format '
+                        '``k1:v1,k2:v2,...kN:vN``.'
+                    )
                 rst.append('')
 
     return rst
