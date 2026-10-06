@@ -42,16 +42,8 @@ Existing plugin types
 Configuring plugins
 ===================
 
-Plugins can be configured by adding a ``plugins`` key to your ``rezconfig.py``
-like this:
-
-.. code-block:: python
-
-   plugins = {
-       "package_repository": {
-           "filesystem": {}
-       }
-   }
+Plugins can be configured by adding a ``plugins`` key to a Python or YAML rez
+configuration file. See :data:`plugins`.
 
 List installed plugins
 ======================
