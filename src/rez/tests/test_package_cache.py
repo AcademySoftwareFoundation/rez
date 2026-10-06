@@ -130,6 +130,25 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
+    def test_get_variants_ignores_malformed_json(self) -> None:
+        """Test that a corrupt variant json file doesn't break cache queries."""
+        pkgcache = self._pkgcache()
+
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+        pkgcache.add_variant(variant)
+
+        self.assertEqual(len(pkgcache.get_variants()), 1)
+
+        # simulate a variant json truncated by a full disk
+        for root, _, names in os.walk(pkgcache.path):
+            for name in names:
+                if name.endswith(".json"):
+                    with open(os.path.join(root, name), "w"):
+                        pass
+
+        self.assertEqual(pkgcache.get_variants(), [])
+
     def test_external_logging_config(self):
         """Test that external logging is respected if configured."""
         config_file_path = canonical_path(self.data_path("config", "logging_config_test.conf"))
