@@ -9,6 +9,7 @@ from rez.tests.util import TestBase, TempdirMixin, \
     per_available_shell, install_dependent
 from rez.resolved_context import ResolvedContext
 from rez.suite import Suite
+from rez.wrapper import Wrapper
 from rez.config import config
 from rez.system import system
 import subprocess
@@ -140,6 +141,18 @@ class TestRezSuites(TestBase, TempdirMixin):
         self.assertEqual(s.get_tool_context("bahbah"), "bah")
 
         self._test_serialization(s)
+
+    def test_print_package_versions(self) -> None:
+        """Test that a wrapper can print the versions of its package."""
+        c_foo = ResolvedContext(["foo"])
+        s = Suite()
+        s.add_context("foo", c_foo)
+
+        suite_path = os.path.join(self.root, uuid.uuid4().hex)
+        s.save(suite_path)
+
+        w = Wrapper(os.path.join(suite_path, "bin", "fooer"))
+        self.assertEqual(w.print_package_versions(), 0)
 
     @per_available_shell()
     @install_dependent()
