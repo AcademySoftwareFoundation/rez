@@ -9,13 +9,11 @@ TODO: Move this into rez.utils.?
 from __future__ import annotations
 
 import collections.abc
-import atexit
 import os
 import os.path
 import re
 import inspect
 
-from rez.exceptions import RezError
 from rez.vendor.progress.bar import Bar
 
 from types import ModuleType
@@ -154,15 +152,6 @@ def find_last_sublist(list_, sublist):
         if list_[i] == sublist[0] and list_[i:i + len(sublist)] == sublist:
             return i
     return None
-
-
-@atexit.register
-def _atexit() -> None:
-    try:
-        from rez.resolved_context import ResolvedContext
-        ResolvedContext.tmpdir_manager.clear()
-    except RezError:
-        pass
 
 
 def is_non_string_iterable(arg: str | Iterable[str] | None) -> TypeGuard[Iterable[str]]:
