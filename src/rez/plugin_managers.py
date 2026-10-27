@@ -13,7 +13,7 @@ from rez.utils.formatting import columnise
 from rez.utils.schema import dict_to_schema
 from rez.utils.data_utils import LazySingleton, cached_property, deep_update
 from rez.utils.logging_ import print_debug, print_warning
-from rez.exceptions import RezPluginError
+from rez.exceptions import PluginNotFoundError, RezPluginError
 from zipimport import zipimporter
 from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
 import importlib.util
@@ -266,7 +266,9 @@ class RezPluginType(object):
         try:
             return self.plugin_classes[plugin_name]
         except KeyError:
-            raise RezPluginError("Unrecognised %s plugin: '%s'" % (self.pretty_type_name, plugin_name))
+            raise PluginNotFoundError(
+                "Unrecognised %s plugin: '%s'" % (self.pretty_type_name, plugin_name)
+            ) from None
 
     def get_plugin_module(self, plugin_name: str) -> types.ModuleType:
         """Returns the module containing the plugin of the given name."""

@@ -9,7 +9,7 @@ from hashlib import sha1
 from typing import Any, Callable, Iterable, List, TYPE_CHECKING
 
 from rez.config import config
-from rez.exceptions import RezPluginError
+from rez.exceptions import PluginNotFoundError
 from rez.utils.data_utils import cached_class_property
 from rez.version import Version, VersionRange
 from rez.version._version import _Comparable, _LowerBound, _UpperBound, _Bound
@@ -206,7 +206,7 @@ def _find_orderer(name):
 
     try:
         return plugin_manager.get_plugin_class("package_order", name)
-    except RezPluginError:
+    except PluginNotFoundError:
         # Fallback to register_orderer() API-based registration
         if name not in _orderers:
             raise
