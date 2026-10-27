@@ -516,6 +516,39 @@ def to_posixpath(path: str):
 
 _WINDOWS_MAX_PATH = 259  # Win32 MAX_PATH minus the null terminator
 
+# Reparse tag constant for Windows junctions (mount points).  Defined in
+# ntifs.h as IO_REPARSE_TAG_MOUNT_POINT.  Prefer the constant from the
+# standard ``stat`` module (Windows builds, available since 3.8); fall back
+# to the literal value where it is not exposed (e.g. POSIX builds).
+try:
+    from stat import IO_REPARSE_TAG_MOUNT_POINT as _IO_REPARSE_TAG_MOUNT_POINT
+except ImportError:  # non-Windows build of the stat module
+    _IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003
+
+
+def _is_link_or_junction(path: str) -> bool:
+    """Return True if ``path`` is a symlink or a Windows junction point.
+
+    ``os.path.islink`` detects symlinks on all Python versions but does NOT
+    detect junctions on any version (it checks for
+    ``IO_REPARSE_TAG_SYMLINK`` only).  ``os.path.isjunction`` (3.12+) covers
+    junctions; for 3.8-3.11 we fall back to checking ``st_reparse_tag`` on
+    ``os.lstat``.
+    """
+    if os.path.islink(path):
+        return True
+    if sys.version_info >= (3, 12):
+        # os.path.isjunction was added in Python 3.12.
+        return os.path.isjunction(path)
+    # Python 3.8-3.11: detect junctions via the reparse tag on lstat.
+    # st_reparse_tag is non-zero when the path is a reparse point; we
+    # check for the mount-point tag specifically.
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    return st.st_reparse_tag == _IO_REPARSE_TAG_MOUNT_POINT
+
 
 def _windows_realpath(path: str) -> str:
     """Resolve symlinks and junctions on Windows without expanding mapped drives.
@@ -548,7 +581,7 @@ def _windows_realpath(path: str) -> str:
         part = components.pop(0)
         candidate = os.path.join(result, part)
         depth = 0
-        while os.path.islink(candidate) and depth < 40:
+        while _is_link_or_junction(candidate) and depth < 40:
             target = os.readlink(candidate)
             # os.readlink on Windows may return an extended-length path
             # (\\?\C:\... or \\?\UNC\server\share\...). Strip the prefix so
@@ -587,7 +620,10 @@ def _windows_realpath(path: str) -> str:
         # the entire resolved path from its root by pushing its components
         # back onto the stack.  This handles the case where, e.g., /a/b is a
         # symlink to /x/y and /x is itself a symlink.
-        if candidate != os.path.join(result, part):
+        #
+        # Guard against symlink loops: if the global resolution budget is
+        # exhausted, stop re-walking and accept the current candidate.
+        if candidate != os.path.join(result, part) and total_depth < 40:
             t_drive, t_rest = os.path.splitdrive(candidate)
             t_root = t_drive + (os.sep if t_rest.startswith(os.sep) else "")
             new_parts = [c for c in t_rest.lstrip(os.sep).split(os.sep) if c]
@@ -653,7 +689,7 @@ def canonical_path(path: str, platform=None):
 
 
 def real_path(path: str) -> str:
-    """Return an absolute, form-stable path for file I/O and path operations.
+    r"""Return an absolute, form-stable path for file I/O and path operations.
 
     Resolves relative segments and (on non-Windows) symlinks, while
     preserving the form of the input path - a drive-letter path stays
