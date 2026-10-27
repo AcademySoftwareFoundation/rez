@@ -367,12 +367,6 @@ def get_orderer(package_name: str, orderers: PackageOrderList | dict[str, Packag
     return orderer
 
 
-# Orderers registered at runtime via register_orderer(). This is the API-based
-# registration pathway, used as fallback by _find_orderer when an orderer is
-# not found in the plugin system.
-_orderers = {}
-
-
 # Register an orderer for runtime/API-based use. Orderers registered here are
 # found by _find_orderer as a fallback when the plugin system does not have
 # a matching orderer. For filesystem-based, facility-wide orderers, prefer
@@ -382,7 +376,7 @@ def register_orderer(cls: type[PackageOrder]) -> bool:
 
     This is the API-based registration pathway, useful for dynamic or
     programmatic orderer registration. For persistent, facility-wide
-    orderers, prefer the plugin system (rezplugins/package_order/).
+    orderers, it is preferred to use :doc:`plugins <plugins>`.
 
     Args:
         cls (type[PackageOrder]): Package order class to register.
