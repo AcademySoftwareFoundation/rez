@@ -138,8 +138,6 @@ class TestFileSystem(TestBase, TempdirMixin):
             with self.assertRaises(PermissionError):
                 filesystem.safe_rmtree("._path")
 
-
-
     def test_tempdirs_cleanup_at_exit(self) -> None:
         code = """
 import json
@@ -687,10 +685,6 @@ class TestWindowsRealpathInternals(TestBase):
 
         self.assertIsInstance(result, str)
 
-    @unittest.skipIf(sys.version_info < (3, 12),
-                     "exercises the os.path.isjunction branch (3.12+); "
-                     "3.8-3.11 coverage is "
-                     "test_junction_resolved_via_reparse_tag_fallback")
     def test_symlink_loop_with_rewalk_terminates(self):
         """_windows_realpath terminates when a symlink loop spans multiple
         components that trigger the re-walk path.
@@ -715,9 +709,6 @@ class TestWindowsRealpathInternals(TestBase):
                 result = _windows_realpath(link_a)
 
         self.assertIsInstance(result, str)
-
-
-
 
     @unittest.skipIf(sys.version_info < (3, 12),
                      "exercises the os.path.isjunction branch (3.12+); "
@@ -756,7 +747,6 @@ class TestWindowsRealpathInternals(TestBase):
                      "exercises the st_reparse_tag fallback (3.8-3.11); "
                      "3.12+ coverage is "
                      "test_junction_resolved_when_islink_false")
-
     def test_junction_resolved_via_reparse_tag_fallback(self):
         """_windows_realpath resolves junctions on Python 3.8-3.11 where
         os.path.isjunction does not exist, using the st_reparse_tag fallback.
@@ -790,8 +780,6 @@ class TestWindowsRealpathInternals(TestBase):
                 os.path.isjunction = original_isjunction
 
         self.assertEqual(result, os.path.normpath(target_path))
-
-
 
     def test_junction_skipped_when_neither_islink_nor_isjunction(self):
         """_windows_realpath does not attempt readlink on a plain directory
