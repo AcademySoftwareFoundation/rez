@@ -647,6 +647,7 @@ class TestWindowsRealpathInternals(TestBase):
                      "test_junction_resolved_via_reparse_tag_fallback")
 
 
+
     @unittest.skipIf(sys.version_info < (3, 12),
                      "exercises the os.path.isjunction branch (3.12+); "
                      "3.8-3.11 coverage is "
