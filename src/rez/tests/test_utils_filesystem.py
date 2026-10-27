@@ -15,16 +15,12 @@ import tempfile
 import unittest
 import unittest.mock
 
-from rez.exceptions import ResourceError
-from rez.package_repository import package_repository_manager
-from rez.resolved_context import ResolvedContext
 from rez.suite import Suite, SuiteError
 from rez.tests.util import TestBase
 from rez.tests.util import TempdirMixin
 from rez.utils import filesystem
 from rez.utils.filesystem import canonical_path, real_path, _windows_realpath
 from rez.utils.filesystem import is_subdirectory, _strip_extended_length_prefix
-from rez.utils.platform_ import Platform
 from rez.utils.platform_ import platform_
 
 
@@ -137,7 +133,6 @@ class TestFileSystem(TestBase, TempdirMixin):
         with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
             with self.assertRaises(PermissionError):
                 filesystem.safe_rmtree("._path")
-
 
     def test_tempdirs_cleanup_at_exit(self) -> None:
         code = """
@@ -686,10 +681,6 @@ class TestWindowsRealpathInternals(TestBase):
 
         self.assertIsInstance(result, str)
 
-    @unittest.skipIf(sys.version_info < (3, 12),
-                     "exercises the os.path.isjunction branch (3.12+); "
-                     "3.8-3.11 coverage is "
-                     "test_junction_resolved_via_reparse_tag_fallback")
     def test_symlink_loop_with_rewalk_terminates(self):
         """_windows_realpath terminates when a symlink loop spans multiple
         components that trigger the re-walk path.
@@ -714,7 +705,6 @@ class TestWindowsRealpathInternals(TestBase):
                 result = _windows_realpath(link_a)
 
         self.assertIsInstance(result, str)
-
 
     @unittest.skipIf(sys.version_info < (3, 12),
                      "exercises the os.path.isjunction branch (3.12+); "
@@ -753,7 +743,6 @@ class TestWindowsRealpathInternals(TestBase):
                      "exercises the st_reparse_tag fallback (3.8-3.11); "
                      "3.12+ coverage is "
                      "test_junction_resolved_when_islink_false")
-
     def test_junction_resolved_via_reparse_tag_fallback(self):
         """_windows_realpath resolves junctions on Python 3.8-3.11 where
         os.path.isjunction does not exist, using the st_reparse_tag fallback.
@@ -787,7 +776,6 @@ class TestWindowsRealpathInternals(TestBase):
                 os.path.isjunction = original_isjunction
 
         self.assertEqual(result, os.path.normpath(target_path))
-
 
     def test_junction_skipped_when_neither_islink_nor_isjunction(self):
         """_windows_realpath does not attempt readlink on a plain directory
