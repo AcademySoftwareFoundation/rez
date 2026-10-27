@@ -48,7 +48,7 @@ class PackageOrder(object):
     """Package reorderer base class."""
 
     #: Orderer name
-    name = None
+    name: str | None = None
 
     def __init__(self, packages: list[str] | None = None) -> None:
         """
@@ -191,16 +191,22 @@ class PackageOrder(object):
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
-# Legacy orderer registry. Used as fallback by _find_orderer when an orderer
-# is not found in the plugin system.
-_orderers = {}
+# API-registered orderer registry. Used as fallback by _find_orderer when an
+# orderer is not found in the plugin system.
+_orderers: dict[str, type[PackageOrder]] = {}
 
 
-def _find_orderer(name):
+def _find_orderer(name: str) -> type[PackageOrder]:
     """Find an orderer class by name.
 
-    Checks the plugin system first, then falls back to the _orderers
-    registry for orderers registered via register_orderer().
+    Checks the plugin system first, then falls back to ``_orderers`` for
+    orderers registered via :func:`register_orderer`.
+
+    Args:
+        name (str): Name of the orderer plugin or registered orderer class.
+
+    Returns:
+        type[PackageOrder]: The matching orderer class.
     """
     from rez.plugin_managers import plugin_manager
 
@@ -228,7 +234,7 @@ _LEGACY_ORDERER_NAMES = {
 }
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> type[PackageOrder]:
     """Provide backward-compat class aliases for orderers now in the plugin system.
 
     Resolved lazily to avoid circular imports at module load time.
@@ -363,14 +369,8 @@ def get_orderer(package_name: str, orderers: PackageOrderList | dict[str, Packag
     if orderer is None:
         # default ordering is version descending
         sorted_order = _find_orderer("sorted")
-        orderer = sorted_order(descending=True)
+        orderer = sorted_order(descending=True)  # type: ignore[call-arg]
     return orderer
-
-
-# Orderers registered at runtime via register_orderer(). This is the API-based
-# registration pathway, used as fallback by _find_orderer when an orderer is
-# not found in the plugin system.
-_orderers = {}
 
 
 # Register an orderer for runtime/API-based use. Orderers registered here are
@@ -382,12 +382,12 @@ def register_orderer(cls: type[PackageOrder]) -> bool:
 
     This is the API-based registration pathway, useful for dynamic or
     programmatic orderer registration. For persistent, facility-wide
-    orderers, prefer the plugin system (rezplugins/package_order/).
+    orderers, it is preferred to use :doc:`plugins <plugins>`.
 
     Args:
         cls (type[PackageOrder]): Package order class to register.
 
-    returns:
+    Returns:
         bool: True if successfully registered, else False.
     """
     if isclass(cls) and issubclass(cls, PackageOrder) and hasattr(cls, "name") and cls.name:
