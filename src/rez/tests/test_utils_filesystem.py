@@ -646,6 +646,11 @@ class TestWindowsRealpathInternals(TestBase):
                      "3.8-3.11 coverage is "
                      "test_junction_resolved_via_reparse_tag_fallback")
 
+
+    @unittest.skipIf(sys.version_info < (3, 12),
+                     "exercises the os.path.isjunction branch (3.12+); "
+                     "3.8-3.11 coverage is "
+                     "test_junction_resolved_via_reparse_tag_fallback")
     def test_junction_resolved_when_islink_false(self):
         """_windows_realpath resolves junctions even when os.path.islink
         returns False for them (the case on Python 3.8-3.11).
