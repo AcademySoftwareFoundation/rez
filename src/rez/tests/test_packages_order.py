@@ -620,9 +620,13 @@ class TestPackageOrderPublic(TestBase):
         )
 
     def test_find_orderer_unknown_name(self) -> None:
-        """_find_orderer raises RezPluginError for unknown orderer names."""
-        from rez.exceptions import RezPluginError
+        """_find_orderer raises PluginNotFoundError for unknown orderer names."""
+        from rez.exceptions import PluginNotFoundError, RezPluginError
 
+        with self.assertRaises(PluginNotFoundError):
+            _find_orderer("nonexistent_orderer")
+        # PluginNotFoundError subclasses RezPluginError, so existing
+        # broad handlers keep working.
         with self.assertRaises(RezPluginError):
             _find_orderer("nonexistent_orderer")
 

@@ -34,6 +34,11 @@ class RezPluginError(RezError):
     pass
 
 
+class PluginNotFoundError(RezPluginError):
+    """A plugin of the requested name does not exist for the plugin type."""
+    pass
+
+
 class ConfigurationError(RezError):
     """A misconfiguration error."""
     pass

@@ -108,6 +108,15 @@ class TestPluginManagers(TestBase, TempdirMixin):
                 "package_repository", "memory")
             self.assertEqual("bar", mem_cls.on_test)
 
+    def test_get_plugin_module_unknown_name(self) -> None:
+        """get_plugin_module raises PluginNotFoundError for unknown plugin names."""
+        from rez.exceptions import PluginNotFoundError, RezPluginError
+
+        with self.assertRaises(PluginNotFoundError):
+            plugin_manager.get_plugin_module("package_order", "nonexistent_orderer")
+        with self.assertRaises(RezPluginError):
+            plugin_manager.get_plugin_module("package_order", "nonexistent_orderer")
+
 
 if __name__ == '__main__':
     unittest.main()
