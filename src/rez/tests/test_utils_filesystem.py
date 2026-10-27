@@ -9,6 +9,7 @@ import json
 import os
 import os.path
 import subprocess
+import sys
 import tempfile
 import unittest
 import unittest.mock
@@ -18,6 +19,20 @@ from rez.tests.util import TempdirMixin
 from rez.utils import filesystem
 from rez.utils.filesystem import canonical_path, real_path, _windows_realpath
 from rez.utils.platform_ import platform_
+
+
+def rmtree_file_not_found_error(path, onerror):
+    try:
+        raise FileNotFoundError("File not found", path)
+    except:
+        onerror(None, path, sys.exc_info())
+
+
+def rmtree_permission_error(path, onerror):
+    try:
+        raise PermissionError("Permission denied", path)
+    except:
+        onerror(None, path, sys.exc_info())
 
 
 class TestFileSystem(TestBase, TempdirMixin):
@@ -91,6 +106,30 @@ class TestFileSystem(TestBase, TempdirMixin):
         filesystem.rename(src, dst)
         self.assertTrue(os.path.exists(dst))
         self.assertFalse(os.path.exists(src))
+
+    def test_safe_rmtree_with_file_not_found(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error):
+            with self.assertRaises(FileNotFoundError):
+                filesystem.safe_rmtree("path")
+
+    def test_safe_rmtree_with_other_error(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
+            with self.assertRaises(PermissionError):
+                filesystem.safe_rmtree("path")
+
+    def test_safe_rmtree_with_file_not_found_and_apple_double(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_file_not_found_error) as mock_rmtree:
+            if platform_.name == 'osx':
+                filesystem.safe_rmtree("._path")
+                mock_rmtree.assert_called_once_with("._path", onerror=unittest.mock.ANY)
+            else:
+                with self.assertRaises(FileNotFoundError):
+                    filesystem.safe_rmtree("._path")
+
+    def test_safe_rmtree_with_other_error_and_apple_double(self) -> None:
+        with unittest.mock.patch("shutil.rmtree", wraps=rmtree_permission_error):
+            with self.assertRaises(PermissionError):
+                filesystem.safe_rmtree("._path")
 
 
 
@@ -416,6 +455,20 @@ def _windows_longpaths_enabled() -> bool:
         return False
 
 
+def _create_junction(target, link):
+    """Create a Windows directory junction from ``link`` to ``target``.
+
+    Junctions don't require Developer Mode or admin privileges (unlike
+    symlinks) and can be created via ``mklink /J``.
+    """
+    import subprocess
+    subprocess.check_call(
+        ["cmd", "/c", "mklink", "/J", link, target],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
 @unittest.skipIf(
     platform_.name != "windows",
     "Windows symlink/junction resolution tests are Windows-only.",
@@ -507,16 +560,16 @@ class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
         break because /a was already "passed" by the component walk.
         """
         real_a = os.path.join(self.root, "real_a")
-        b_dir = os.path.join(real_a, "b")
-        target = os.path.join(b_dir, "final_target")
+        target = os.path.join(real_a, "b", "final_target")
         a_link = os.path.join(self.root, "a")
-        link = os.path.join(a_link, "b", "link_to_target")
 
+        # Create the real target tree first.
         os.makedirs(target)
-        os.symlink(target, link, target_is_directory=True)
-        # Create the intermediate symlink *after* the target tree so the
-        # link overlays the directory structure.
+        # Create the intermediate symlink so /a -> /real_a.
         os.symlink(real_a, a_link, target_is_directory=True)
+        # Now create the leaf symlink through the symlinked path.
+        link = os.path.join(a_link, "b", "link_to_target")
+        os.symlink(target, link, target_is_directory=True)
 
         result = canonical_path(link, platform=self._mock_windows_platform())
         self.assertEqual(result, target.lower())
@@ -533,11 +586,12 @@ class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
         real_b = os.path.join(self.root, "real_b")
         target = os.path.join(real_b, "target")
         link_a = os.path.join(self.root, "link_a")
-        link_b = os.path.join(link_a, "link_b")
 
         os.makedirs(target)
-        os.symlink(real_b, link_b, target_is_directory=True)
+        # Create link_a -> /real_a first, then link_b under it.
         os.symlink(real_a, link_a, target_is_directory=True)
+        link_b = os.path.join(link_a, "link_b")
+        os.symlink(real_b, link_b, target_is_directory=True)
 
         test_path = os.path.join(link_a, "link_b", "target")
         result = canonical_path(test_path, platform=self._mock_windows_platform())
@@ -576,20 +630,6 @@ class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
 
         result = canonical_path(junction, platform=self._mock_windows_platform())
         self.assertEqual(result, target.lower())
-
-
-def _create_junction(target, link):
-    """Create a Windows directory junction from *link* to *target*.
-
-    Junctions don't require Developer Mode or admin privileges (unlike
-    symlinks) and can be created via ``mklink /J``.
-    """
-    import subprocess
-    subprocess.check_call(
-        ["cmd", "/c", "mklink", "/J", link, target],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
 
 
 @unittest.skipIf(
@@ -645,6 +685,31 @@ class TestWindowsRealpathInternals(TestBase):
                      "exercises the os.path.isjunction branch (3.12+); "
                      "3.8-3.11 coverage is "
                      "test_junction_resolved_via_reparse_tag_fallback")
+    def test_symlink_loop_with_rewalk_terminates(self):
+        """_windows_realpath terminates when a symlink loop spans multiple
+        components that trigger the re-walk path.
+
+        A -> B\\A creates a cycle: resolving A yields B\\A, the re-walk pushes
+        [B, A] back onto the stack, B is walked (plain dir), A is resolved
+        again to B\\A, and so on.  The total_depth guard must stop this.
+        """
+        link_a = "C:\\dir\\a"
+        link_b = "C:\\dir\\b"
+
+        def _fake_islink(p):
+            return p in (link_a, link_b)
+
+        def _fake_readlink(p):
+            if p == link_a:
+                return link_b
+            return link_a
+
+        with unittest.mock.patch("os.path.islink", side_effect=_fake_islink):
+            with unittest.mock.patch("os.readlink", side_effect=_fake_readlink):
+                result = _windows_realpath(link_a)
+
+        self.assertIsInstance(result, str)
+
 
 
 
@@ -671,7 +736,11 @@ class TestWindowsRealpathInternals(TestBase):
             return p == link_path
 
         with unittest.mock.patch("os.path.islink", side_effect=_fake_islink):
-            with unittest.mock.patch("os.path.isjunction", side_effect=_fake_isjunction, create=True):
+            with unittest.mock.patch(
+                "os.path.isjunction",
+                side_effect=_fake_isjunction,
+                create=True,
+            ):
                 with unittest.mock.patch("os.readlink", return_value=target_path):
                     result = _windows_realpath(link_path)
 
@@ -681,6 +750,7 @@ class TestWindowsRealpathInternals(TestBase):
                      "exercises the st_reparse_tag fallback (3.8-3.11); "
                      "3.12+ coverage is "
                      "test_junction_resolved_when_islink_false")
+
     def test_junction_resolved_via_reparse_tag_fallback(self):
         """_windows_realpath resolves junctions on Python 3.8-3.11 where
         os.path.isjunction does not exist, using the st_reparse_tag fallback.
@@ -716,13 +786,18 @@ class TestWindowsRealpathInternals(TestBase):
         self.assertEqual(result, os.path.normpath(target_path))
 
 
+
     def test_junction_skipped_when_neither_islink_nor_isjunction(self):
         """_windows_realpath does not attempt readlink on a plain directory
         that is neither a symlink nor a junction."""
         plain_path = "C:\\some\\plain_dir"
 
         with unittest.mock.patch("os.path.islink", return_value=False):
-            with unittest.mock.patch("os.path.isjunction", return_value=False, create=True):
+            with unittest.mock.patch(
+                "os.path.isjunction",
+                return_value=False,
+                create=True,
+            ):
                 with unittest.mock.patch("os.readlink") as mock_readlink:
                     _windows_realpath(plain_path)
 
