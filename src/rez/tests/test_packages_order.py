@@ -348,22 +348,14 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         expected = PackageOrderList()
         expected.append(self.PerFamilyOrder(order_dict={"python": self.VersionSplitPackageOrder(Version("2.9.9"))}))
 
-        # Clear @classproperty cache
-        try:
-            delattr(PackageOrderList, "_class_property_singleton")
-        except AttributeError:
-            pass
+        PackageOrderList.clear_singleton_cache()
         self.assertEqual(expected, PackageOrderList.singleton)
 
     def test_singleton_novalue(self) -> None:
         """Validate we can build a PackageOrderList object from empty configuration values."""
         config.override("package_orderers", None)
 
-        # Clear @classproperty cache
-        try:
-            delattr(PackageOrderList, "_class_property_singleton")
-        except AttributeError:
-            pass
+        PackageOrderList.clear_singleton_cache()
 
         self.assertEqual(PackageOrderList(), PackageOrderList.singleton)
 
@@ -409,16 +401,20 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
         """Verify get_orderer falls back to SortedOrder(descending=True)."""
         from rez.package_order import get_orderer
 
-        config.override("package_orderers", None)
-        # Clear singleton cache
+        old_overrides = config.overrides.get("package_orderers")
         try:
-            delattr(PackageOrderList, "_class_property_singleton")
-        except AttributeError:
-            pass
+            config.override("package_orderers", None)
+            PackageOrderList.clear_singleton_cache()
 
-        orderer = get_orderer("nonexistent_package")
-        self.assertIsInstance(orderer, self.SortedOrder)
-        self.assertTrue(orderer.descending)
+            orderer = get_orderer("nonexistent_package")
+            self.assertIsInstance(orderer, self.SortedOrder)
+            self.assertTrue(orderer.descending)
+        finally:
+            if old_overrides is not None:
+                config.override("package_orderers", old_overrides)
+            else:
+                config.remove_override("package_orderers")
+            PackageOrderList.clear_singleton_cache()
 
     def test_plugin_system_loads_builtin_orderers(self) -> None:
         """Verify all five built-in orderers are loadable via the plugin system."""
@@ -539,6 +535,31 @@ class TestPackageOrdererList(_BaseTestPackagesOrder):
             else:
                 config.remove_override("package_orderers")
             PackageOrderList.clear_singleton_cache()
+
+    def test_clear_singleton_cache_with_env_var_mutation(self) -> None:
+        """Verify clear_singleton_cache() alone picks up runtime REZ_PACKAGE_ORDERERS_JSON changes."""
+        import os
+        import subprocess
+        import sys
+        import rez
+
+        env = {k: v for k, v in os.environ.items() if not k.startswith("REZ_")}
+        env["REZ_DISABLE_HOME_CONFIG"] = "1"
+        rez_src_root = os.path.dirname(os.path.dirname(rez.__file__))
+        existing_pp = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = rez_src_root if not existing_pp else rez_src_root + os.pathsep + existing_pp
+
+        script = (
+            "import json, os\n"
+            "from rez.package_order import PackageOrderList\n"
+            "assert len(PackageOrderList.singleton) == 0\n"
+            "os.environ['REZ_PACKAGE_ORDERERS_JSON'] = json.dumps([{'type': 'sorted', 'descending': False}])\n"
+            "PackageOrderList.clear_singleton_cache()\n"
+            "orderers = PackageOrderList.singleton\n"
+            "assert len(orderers) == 1 and orderers[0].name == 'sorted' and not orderers[0].descending\n"
+        )
+        result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, env=env, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_kwarg_orderer_configurable_via_env_var(self) -> None:
         """Verify an orderer with constructor kwargs can be configured at runtime.
