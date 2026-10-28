@@ -17,10 +17,10 @@ Package orderers can be configured in the ``rezconfig.py`` via the :data:`packag
 Environment Variable Configuration
 ==================================
 
-Package orderers can also be configured at runtime using the
-``REZ_PACKAGE_ORDERERS_JSON`` environment variable. The value must be a
-JSON-encoded list of orderer definitions, using the same structure as the
-:data:`package_orderers` setting:
+Like any rez setting, :data:`package_orderers` can be overridden at runtime via
+the :envvar:`REZ_XXX_JSON` environment variable mechanism documented in
+:doc:`configuring_rez`. The value must be a JSON-encoded list of orderer
+definitions, using the same structure as the :data:`package_orderers` setting:
 
 .. code-block:: bash
 
@@ -33,15 +33,10 @@ prerelease risk tolerance or custom version priority ranges) without modifying
 .. note::
 
    The environment variable is read on first access to the configuration.
-   If you need to change it at runtime via the API, clear both caches:
-
-   .. code-block:: python
-
-      from rez.config import config
-      from rez.package_order import PackageOrderList
-
-      config._uncache("package_orderers")
-      PackageOrderList.clear_singleton_cache()
+   If you need to change the configuration at runtime via the API, call
+   :meth:`PackageOrderList.clear_singleton_cache
+   <rez.package_order.PackageOrderList.clear_singleton_cache>` afterwards so
+   the new configuration takes effect.
 
 Types
 =====
