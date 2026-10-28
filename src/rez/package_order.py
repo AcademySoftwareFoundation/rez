@@ -266,14 +266,16 @@ class PackageOrderList(List[PackageOrder]):
     def clear_singleton_cache(cls) -> None:
         """Clear the cached singleton so the next access re-reads config.
 
-        Use this when runtime configuration (e.g. REZ_PACKAGE_ORDERERS_JSON)
-        has changed and you want the new config to take effect. Note that
-        the config-level cache must also be cleared via
-        ``config._uncache("package_orderers")``.
+        The singleton caches a snapshot of ``config.package_orderers``, so
+        changes made at runtime (e.g. via ``config.override()`` or by setting
+        the ``REZ_PACKAGE_ORDERERS_JSON`` environment variable) are not
+        visible until this method is called. This also invalidates the
+        config-level cache for the setting, so no other calls are needed.
         """
         name = "_class_property_singleton"
         if hasattr(cls, name):
             delattr(cls, name)
+        config._uncache("package_orderers")
 
     @staticmethod
     def _to_orderer(orderer: dict | PackageOrder) -> PackageOrder:
