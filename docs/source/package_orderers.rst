@@ -17,31 +17,26 @@ Package orderers can be configured in the ``rezconfig.py`` via the :data:`packag
 Environment Variable Configuration
 ==================================
 
-Package orderers can also be configured at runtime using the
-``REZ_PACKAGE_ORDERERS_JSON`` environment variable. The value must be a
-JSON-encoded list of orderer definitions, using the same structure as the
-:data:`package_orderers` setting:
+Like any rez setting, :data:`package_orderers` can be overridden at runtime via
+the :envvar:`REZ_XXX_JSON` environment variable mechanism documented in
+:doc:`configuring_rez`. The value must be a JSON-encoded list of orderer
+definitions, using the same structure as the :data:`package_orderers` setting:
 
 .. code-block:: bash
 
    export REZ_PACKAGE_ORDERERS_JSON='[{"type": "per_family", "orderers": [{"packages": ["python"], "type": "version_split", "first_version": "2.7.16"}]}]'
 
 This is useful for configuring orderers with constructor arguments (such as
-prerelease risk tolerance or custom version priority ranges) without modifying
+timestamp cutoffs or custom version priority ranges) without modifying
 ``rezconfig.py``.
 
 .. note::
 
    The environment variable is read on first access to the configuration.
-   If you need to change it at runtime via the API, clear both caches:
-
-   .. code-block:: python
-
-      from rez.config import config
-      from rez.package_order import PackageOrderList
-
-      config._uncache("package_orderers")
-      PackageOrderList.clear_singleton_cache()
+   If you need to change the configuration at runtime via the API, call
+   :meth:`PackageOrderList.clear_singleton_cache
+   <rez.package_order.PackageOrderList.clear_singleton_cache>` afterwards so
+   the new configuration takes effect.
 
 Types
 =====
@@ -211,7 +206,7 @@ An orderer that does not change the order - a no op.
 
 This orderer is useful in cases where you want to apply some default orderer
 to a set of packages, but may want to explicitly NOT reorder a particular
-package. You would use a :class:`rez.package_order.NullPackageOrder` in a :class:`rez.package_order.PerFamilyOrder` to do this.
+package. You would use ``no_order`` in ``per_family`` to do this.
 
 
 Custom orderers
@@ -251,7 +246,7 @@ subclass :class:`rez.package_order.PackageOrder` and register the orderer using
        name = "my_orderer"
 
        def __init__(self, custom_arg: str, **kwargs):
-           super().__init__(self, **kwargs)
+           super().__init__(**kwargs)
            self.custom_arg = custom_arg
 
        def sort_key_implementation(self, package_name: str, version: Version):
@@ -263,7 +258,7 @@ subclass :class:`rez.package_order.PackageOrder` and register the orderer using
        def __eq__(self, other):
            pass
 
-       def to_pod(self, other):
+       def to_pod(self):
            pass
 
        @classmethod
