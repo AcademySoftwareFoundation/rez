@@ -75,6 +75,16 @@ class TestPluginManagers(TestBase, TempdirMixin):
             baz_cls = plugin_manager.get_plugin_class("command", "baz_cmd")
             self.assertEqual(baz_cls.name(), "baz_cmd")
 
+    def test_create_command_plugin(self) -> None:
+        """Command plugin instances load their own command settings."""
+        self.update_settings({
+            "plugins": {"command": {"baz_cmd": {"message": "custom command message"}}}
+        })
+        with restore_sys_path():
+            sys.path.append(self.data_path("extensions", "baz"))
+            command = plugin_manager.create_instance("command", "baz_cmd")
+            self.assertEqual(command.settings.message, "custom command message")
+
     def test_plugin_override_1(self) -> None:
         """Test plugin from plugin_path can override the default"""
         self.update_settings(dict(
