@@ -29,6 +29,77 @@ from rez.utils.platform_ import platform_
 
 
 #===============================================================================
+# Environ helpers (bug #2089 — Windows parent_environ case)
+#===============================================================================
+
+class CaseInsensitiveEnvironDict(MutableMapping[str, str]):
+    """Mapping that looks up env keys case-insensitively (Windows semantics).
+
+    Plain ``dict(os.environ)`` is case-sensitive; ``os.environ`` on Windows is
+    not. This wrapper restores that contract for rex ``parent_environ``.
+    Original key casing is preserved for iteration; duplicate casings
+    last-write-wins (same idea as collapsing on Windows).
+    """
+
+    def __init__(self, environ: Mapping[str, str] | None = None) -> None:
+        # fold -> (original_key, value)
+        self._data: dict[str, tuple[str, str]] = {}
+        if environ is not None:
+            for key, value in environ.items():
+                self[key] = value
+
+    def _fold(self, key: str) -> str:
+        return key.upper()
+
+    def __getitem__(self, key: str) -> str:
+        return self._data[self._fold(key)][1]
+
+    def __setitem__(self, key: str, value: str) -> None:
+        self._data[self._fold(key)] = (key, value)
+
+    def __delitem__(self, key: str) -> None:
+        del self._data[self._fold(key)]
+
+    def __iter__(self):
+        return (original for original, _ in self._data.values())
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __repr__(self) -> str:
+        return "%s(%r)" % (self.__class__.__name__, dict(self))
+
+
+def has_case_sensitive_environ(plat=platform_) -> bool:
+    """Whether environment variable names are case-sensitive on this platform.
+
+    Prefers ``Platform.has_case_sensitive_environ`` when present; otherwise
+    falls back to platform name (Windows env names are case-insensitive).
+    """
+    if hasattr(plat, "has_case_sensitive_environ"):
+        return bool(plat.has_case_sensitive_environ)
+    return plat.name != "windows"
+
+
+def bind_parent_environ(
+        parent_environ: Mapping[str, str] | None,
+        plat=platform_) -> Mapping[str, str]:
+    """Resolve → normalize parent environ for rex lookups.
+
+    None -> os.environ (already correct on every platform).
+    Case-insensitive platforms -> wrap plain mappings so TitleCase finds UPPER.
+    Case-sensitive platforms -> pass through unchanged.
+    """
+    if parent_environ is None:
+        return os.environ
+    if has_case_sensitive_environ(plat):
+        return parent_environ
+    if isinstance(parent_environ, CaseInsensitiveEnvironDict):
+        return parent_environ
+    return CaseInsensitiveEnvironDict(parent_environ)
+
+
+#===============================================================================
 # Actions
 #===============================================================================
 
@@ -200,7 +271,9 @@ class ActionManager(object):
         '''
         self.interpreter = interpreter
         self.verbose = verbose
-        self.parent_environ = os.environ if parent_environ is None else parent_environ
+        # bug #2089: plain dict parent_environ is case-sensitive on Windows;
+        # bind so lookups match os.environ semantics (see bind_parent_environ).
+        self.parent_environ = bind_parent_environ(parent_environ)
         self.parent_variables = True if parent_variables is True \
             else set(parent_variables or [])
         self.environ = {}
