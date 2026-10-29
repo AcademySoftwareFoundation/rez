@@ -390,6 +390,27 @@ class TestRex(TestBase):
         _test(_rex_2, env={"A": "foo"}, expected={"A": True, "B": False})
         _test(_rex_3, env={}, expected="not b")
 
+    def test_11(self) -> None:
+        """Test that a failed env lookup doesn't leak into the env mapping."""
+
+        def _rex():
+            try:
+                env.NOT_SET
+            except Exception:
+                pass
+            return {
+                "keys": sorted(env.keys()),
+                "contains": "NOT_SET" in env,
+                "len": len(env),
+                "values": [str(x) for x in env.values()],
+            }
+
+        ex = self._create_executor(env={"A": "foo"})
+        self.assertEqual(
+            ex.execute_function(_rex),
+            {"keys": ["A"], "contains": False, "len": 1, "values": ["foo"]},
+        )
+
     def test_version_binding(self) -> None:
         """Test the Rex binding of the Version class."""
         v = VersionBinding(Version("1.2.3alpha"))
