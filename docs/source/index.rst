@@ -11,6 +11,7 @@ Welcome to rez's documentation!
    :caption: General
    :hidden:
 
+   why_rez
    installation
    getting_started
    basic_concepts
