@@ -667,8 +667,14 @@ class PackageCache(object):
 
                     for name in safe_listdir(path3):
                         if name.endswith(".json"):
-                            with open(os.path.join(path3, name)) as f:
-                                data = json.loads(f.read())
+                            try:
+                                with open(os.path.join(path3, name)) as f:
+                                    data = json.loads(f.read())
+                            except (OSError, ValueError):
+                                # variant json is unreadable or corrupt (eg
+                                # truncated by a full disk); skip it rather
+                                # than break every cache query
+                                continue
 
                             handle = data["handle"]
                             variant = get_variant(handle)
