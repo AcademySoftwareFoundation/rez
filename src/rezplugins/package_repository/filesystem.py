@@ -13,6 +13,7 @@ import os.path
 import os
 import stat
 import time
+import shutil
 
 from rez.package_repository import PackageRepository
 from rez.package_resources import PackageFamilyResource, VariantResourceHelper, \
@@ -1031,6 +1032,18 @@ class FileSystemPackageRepository(PackageRepository):
             path = os.path.join(path, str(package_version))
 
         return path
+
+    def copy_variant_payload(self, variant_resource, path):
+        if not variant_resource.repository_type == self.name():
+            msg = f'{self.__class__} cant copy variant resource it doesnt own'
+            raise PackageRepositoryError(msg)
+
+        root = variant_resource.root
+        if not isinstance(root, str) or not os.path.isdir(root):
+            raise PackageRepositoryError('Variant root is missing')
+
+        shutil.copytree(root, path)
+        return True
 
     # -- internal
 
