@@ -31,10 +31,14 @@ import os
 ALL_PACKAGES = set([
     # packages from data/solver
     'bahish-1', 'bahish-2',
+    'bundledpy-1',
+    'mixedprovides-1',
     'nada',
+    'needsvendored-1',
     'nopy-2.1',
     'pybah-4', 'pybah-5',
     'pydad-1', 'pydad-2', 'pydad-3',
+    'pydcc-1', 'pydcc-2',
     'pyfoo-3.0.0', 'pyfoo-3.1.0',
     'pymum-1', 'pymum-2', 'pymum-3',
     'pyodd-1', 'pyodd-2',
