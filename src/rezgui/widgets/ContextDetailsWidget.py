@@ -16,7 +16,7 @@ import pprint
 
 
 class ContextDetailsWidget(QtWidgets.QTabWidget, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(ContextDetailsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
         self.code_pending = True
@@ -54,7 +54,7 @@ class ContextDetailsWidget(QtWidgets.QTabWidget, ContextViewMixin):
 
         self.refresh()
 
-    def refresh(self):
+    def refresh(self) -> None:
         self.overview_edit.clear()
         self.setCurrentIndex(0)
 
@@ -68,23 +68,23 @@ class ContextDetailsWidget(QtWidgets.QTabWidget, ContextViewMixin):
         self.overview_edit.moveCursor(QtGui.QTextCursor.Start)
         self.environ_widget.set_context(context)
 
-    def search(self):
+    def search(self) -> None:
         tab_index = self.currentIndex()
         if tab_index == 0:
             self.overview_edit.search()
         elif tab_index == 1:
             self.code_edit.search()
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         if not (flags & ContextModel.CONTEXT_CHANGED):
             return
         self.refresh()
 
-    def _currentTabChanged(self, index):
+    def _currentTabChanged(self, index) -> None:
         if index == 1 and self.code_pending:
             self._update_code()
 
-    def _update_code(self):
+    def _update_code(self) -> None:
         self.code_edit.clear()
         context = self.context()
         if not context:

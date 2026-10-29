@@ -3,7 +3,7 @@ Update to rez 3.0.0
 ===================
 
 Rez ``3.0.0`` is not be a major breaking change, except that Python 2 is not supported anymore.
-There is various other small changes too.
+There are various other small changes too.
 
 This guide will show you how to prepare before upgrading to ``3.0.0``. We hope that this guide will
 help make the upgrade process smoother.
@@ -22,7 +22,7 @@ Steps for smooth upgrade
    if you wish.
 
    You should prefer 2.114.1 over 2.114.0 because 2.114.0 contained a bug that prevented
-   rez from correctly running when :envvar:`REZ_LOG_DEPRECATION_WARNINGS` is set.
+   rez from correctly running when :envvar:`REZ_LOG_DEPRECATION_WARNINGS` was set.
 
    .. warning::
 

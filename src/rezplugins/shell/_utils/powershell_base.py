@@ -2,9 +2,10 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import os
 import re
-from subprocess import PIPE
 
 from rez.config import config
 from rez.rex import RexExecutor, OutputStyle, EscapedString
@@ -13,7 +14,8 @@ from rez.system import system
 from rez.utils.platform_ import platform_
 from rez.utils.execution import Popen
 from rez.util import shlex_join
-from .windows import to_windows_path
+from rez.utils.logging_ import print_debug
+from .windows import get_syspaths_from_registry, to_windows_path
 
 
 class PowerShellBase(Shell):
@@ -44,10 +46,10 @@ class PowerShellBase(Shell):
 
     @classmethod
     def startup_capabilities(cls,
-                             rcfile=False,
-                             norc=False,
-                             stdin=False,
-                             command=False):
+                             rcfile: bool = False,
+                             norc: bool = False,
+                             stdin: bool = False,
+                             command: bool = False):
         cls._unsupported_option('rcfile', rcfile)
         cls._unsupported_option('norc', norc)
         cls._unsupported_option('stdin', stdin)
@@ -78,37 +80,17 @@ class PowerShellBase(Shell):
             cls.syspaths = config.standard_system_paths
             return cls.syspaths
 
-        # TODO: Research if there is an easier way to pull system PATH from
-        # registry in powershell
-        paths = []
-
-        cmds = [
-            [
-                "powershell",
-                '(Get-ItemProperty "HKLM:SYSTEM/CurrentControlSet/Control/Session Manager/Environment").Path',
-            ], [
-                "powershell", "(Get-ItemProperty -Path HKCU:Environment).Path"
-            ]
-        ]
-
-        for cmd in cmds:
-            p = Popen(cmd, stdout=PIPE, stderr=PIPE,
-                      text=True)
-            out_, _ = p.communicate()
-            out_ = out_.strip()
-
-            if p.returncode == 0:
-                paths.extend(out_.split(os.pathsep))
+        paths = get_syspaths_from_registry()
 
         cls.syspaths = [x for x in paths if x]
 
         return cls.syspaths
 
-    def _bind_interactive_rez(self):
+    def _bind_interactive_rez(self) -> None:
         if config.set_prompt and self.settings.prompt:
             self._addline('Function prompt {"%s"}' % self.settings.prompt)
 
-    def _additional_commands(self, executor):
+    def _additional_commands(self, executor) -> None:
         # Make .py launch within shell without extension.
         # For PowerShell this will also execute in the same window, so that
         # stdout can be captured.
@@ -124,20 +106,20 @@ class PowerShellBase(Shell):
                     context_file,
                     tmpdir,
                     rcfile=None,
-                    norc=False,
-                    stdin=False,
+                    norc: bool = False,
+                    stdin: bool = False,
                     command=None,
                     env=None,
-                    quiet=False,
+                    quiet: bool = False,
                     pre_command=None,
-                    add_rez=True,
+                    add_rez: bool = True,
                     **Popen_args):
 
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin),
                                                      command)
         shell_command = None
 
-        def _record_shell(ex, files, bind_rez=True, print_msg=False):
+        def _record_shell(ex, files, bind_rez: bool = True, print_msg: bool = False) -> None:
             ex.source(context_file)
             if startup_sequence["envvar"]:
                 ex.unsetenv(startup_sequence["envvar"])
@@ -167,17 +149,26 @@ class PowerShellBase(Shell):
         if shell_command:
             executor.command(shell_command)
 
-        # Forward exit call to parent PowerShell process
+        # Translate the status of the most recent command into an exit code.
         #
-        # Note that in powershell, $LASTEXITCODE is only set after running an
-        # executable - in other cases (such as when a command is not found),
-        # only the bool $? var is set.
+        # Note that in PowerShell, `$LASTEXITCODE` is only set after calling a
+        # native command (i.e. an executable), or another script that uses the
+        # `exit` keyword. Otherwise, only the boolean `$?` variable is set (to
+        # True if the last command succeeded and False if it failed).
+        # See https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_automatic_variables  # noqa
+        #
+        # Additionally, if PowerShell is running in strict mode, references to
+        # uninitialized variables will error instead of simply returning 0 or
+        # `$null`, so we use `Test-Path` here to verify that `$LASTEXITCODE` has
+        # been set before using it.
+        # See https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/set-strictmode?view=powershell-7.5#description  # noqa
         #
         executor.command(
-            "if(! $?) {\n"
-            "  if ($LASTEXITCODE) {\n"
-            "    exit $LASTEXITCODE\n"
-            "  }\n"
+            "$_rez_shell_command_status = $?\n"
+            "if ((Test-Path variable:LASTEXITCODE) -and $LASTEXITCODE) {\n"
+            "  exit $LASTEXITCODE\n"
+            "}\n"
+            "if (! $_rez_shell_command_status) {\n"
             "  exit 1\n"
             "}"
         )
@@ -185,6 +176,9 @@ class PowerShellBase(Shell):
         code = executor.get_output()
         target_file = os.path.join(tmpdir,
                                    "rez-shell.%s" % self.file_extension())
+
+        if config.debug("shell_startup"):
+            print_debug("Writing shell script to %s" % target_file)
 
         with open(target_file, 'w') as f:
             f.write(code)
@@ -213,10 +207,13 @@ class PowerShellBase(Shell):
         if shell_command is None:
             cmd.insert(1, "-NoExit")
 
+        if config.debug("shell_startup"):
+            print_debug("Launching shell with command: %s" % self.join(cmd))
+
         p = Popen(cmd, env=env, **Popen_args)
         return p
 
-    def get_output(self, style=OutputStyle.file):
+    def get_output(self, style=OutputStyle.file) -> str:
         if style == OutputStyle.file:
             script = '\n'.join(self._lines) + '\n'
         else:
@@ -231,7 +228,7 @@ class PowerShellBase(Shell):
             script = '&& '.join(lines)
         return script
 
-    def escape_string(self, value, is_path=False):
+    def escape_string(self, value: str | EscapedString, is_path: bool = False):
         value = EscapedString.promote(value)
         value = value.expanduser()
         result = ''
@@ -253,17 +250,17 @@ class PowerShellBase(Shell):
         else:
             return path
 
-    def _saferefenv(self, key):
+    def _saferefenv(self, key) -> None:
         pass
 
-    def shebang(self):
+    def shebang(self) -> None:
         pass
 
-    def setenv(self, key, value):
+    def setenv(self, key, value: str | EscapedString) -> None:
         value = self.escape_string(value, is_path=self._is_pathed_key(key))
         self._addline('Set-Item -Path "Env:{0}" -Value "{1}"'.format(key, value))
 
-    def prependenv(self, key, value):
+    def prependenv(self, key: str, value: str | EscapedString) -> None:
         value = self.escape_string(value, is_path=self._is_pathed_key(key))
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
@@ -273,7 +270,7 @@ class PowerShellBase(Shell):
             .format(key, value, self.pathsep)
         )
 
-    def appendenv(self, key, value):
+    def appendenv(self, key: str, value: str | EscapedString) -> None:
         value = self.escape_string(value, is_path=self._is_pathed_key(key))
 
         # Be careful about ambiguous case in pwsh on Linux where pathsep is :
@@ -284,15 +281,15 @@ class PowerShellBase(Shell):
             'Set-Item -Path "Env:{0}" -Value ((Get-ChildItem -ErrorAction SilentlyContinue "Env:{0}").Value + "{1}{2}")'
             .format(key, os.path.pathsep, value))
 
-    def unsetenv(self, key):
+    def unsetenv(self, key: str) -> None:
         self._addline(
             'Remove-Item -ErrorAction SilentlyContinue "Env:{0}"'.format(key)
         )
 
-    def resetenv(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None) -> None:
         self._addline(self.setenv(key, value))
 
-    def alias(self, key, value):
+    def alias(self, key, value: str | EscapedString) -> None:
         value = EscapedString.disallow(value)
         # TODO: Find a way to properly escape paths in alias() calls that also
         # contain args
@@ -300,26 +297,26 @@ class PowerShellBase(Shell):
         cmd = "function %s() { %s @args }" % (key, value)
         self._addline(cmd)
 
-    def comment(self, value):
+    def comment(self, value: str) -> None:
         for line in value.split('\n'):
             self._addline('# %s' % line)
 
-    def info(self, value):
+    def info(self, value: str) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             line = self.convert_tokens(line)
             self._addline('Write-Host %s' % line)
 
-    def error(self, value):
+    def error(self, value) -> None:
         for line in value.split('\n'):
             line = self.escape_string(line)
             line = self.convert_tokens(line)
             self._addline('Write-Error "%s"' % line)
 
-    def source(self, value):
+    def source(self, value) -> None:
         self._addline(". \"%s\"" % value)
 
-    def command(self, value):
+    def command(self, value) -> None:
         self._addline(value)
 
     @classmethod
@@ -327,7 +324,7 @@ class PowerShellBase(Shell):
         return ["${Env:%s}" % key, "$Env:%s" % key]
 
     @classmethod
-    def line_terminator(cls):
+    def line_terminator(cls) -> str:
         return "\n"
 
     @classmethod

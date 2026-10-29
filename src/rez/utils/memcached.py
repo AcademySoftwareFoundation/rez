@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.config import config
 from rez.vendor.memcache.memcache import Client as Client_, \
     SERVER_MAX_KEY_LENGTH, __version__ as memcache_client_version
@@ -12,7 +14,10 @@ from functools import update_wrapper
 from inspect import isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
+from typing import Any, Callable, Iterator, TypeVar
 
+
+CallableT = TypeVar("CallableT", bound=Callable)
 
 # this version should be changed if and when the caching interface changes
 cache_interface_version = 2
@@ -27,14 +32,14 @@ class Client(object):
     - ability to cache None.
     """
     class _Miss(object):
-        def __bool__(self):
+        def __bool__(self) -> bool:
             return False
 
     miss = _Miss()
 
     logger = config.debug_printer("memcache")
 
-    def __init__(self, servers, debug=False):
+    def __init__(self, servers: str | list[str], debug: bool = False) -> None:
         """Create a memcached client.
 
         Args:
@@ -45,15 +50,15 @@ class Client(object):
         """
         self.servers = [servers] if isinstance(servers, str) else servers
         self.key_hasher = self._debug_key_hash if debug else self._key_hash
-        self._client = None
+        self._client: Client_ | None = None
         self.debug = debug
         self.current = ''
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.servers)
 
     @property
-    def client(self):
+    def client(self) -> Client_:
         """Get the native memcache client.
 
         Returns:
@@ -63,7 +68,7 @@ class Client(object):
             self._client = Client_(self.servers)
         return self._client
 
-    def test_servers(self):
+    def test_servers(self) -> set[str]:
         """Test that memcached servers are servicing requests.
 
         Returns:
@@ -78,7 +83,7 @@ class Client(object):
                 responders.add(server)
         return responders
 
-    def set(self, key, val, time=0, min_compress_len=0):
+    def set(self, key: str, val: Any, time: int = 0, min_compress_len: int = 0) -> None:
         """See memcache.Client."""
         if not self.servers:
             return
@@ -93,7 +98,7 @@ class Client(object):
                         min_compress_len=min_compress_len)
         self.logger("SET: %s", key)
 
-    def get(self, key):
+    def get(self, key: str) -> Any | Client._Miss:
         """See memcache.Client.
 
         Returns:
@@ -117,14 +122,14 @@ class Client(object):
         self.logger("MISS: %s", key)
         return self.miss
 
-    def delete(self, key):
+    def delete(self, key: str) -> None:
         """See memcache.Client."""
         if self.servers:
             key = self._qualified_key(key)
             hashed_key = self.key_hasher(key)
             self.client.delete(hashed_key)
 
-    def flush(self, hard=False):
+    def flush(self, hard: bool = False) -> None:
         """Drop existing entries from the cache.
 
         Args:
@@ -144,7 +149,7 @@ class Client(object):
                 tag = "flushed" + tag
             self.current = tag
 
-    def get_stats(self):
+    def get_stats(self) -> list[tuple]:
         """Get server statistics.
 
         Returns:
@@ -152,17 +157,17 @@ class Client(object):
         """
         return self._get_stats()
 
-    def reset_stats(self):
+    def reset_stats(self) -> None:
         """Reset the server stats."""
         self._get_stats("reset")
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Disconnect from server(s). Behaviour is undefined after this call."""
         if self.servers and self._client:
             self._client.disconnect_all()
         # print("Disconnected memcached client %s" % str(self))
 
-    def _qualified_key(self, key):
+    def _qualified_key(self, key: str) -> str:
         """
         Qualify cache key so that:
         * changes to schemas don't break compatibility (cache_interface_version)
@@ -176,15 +181,15 @@ class Client(object):
             key
         )
 
-    def _get_stats(self, stat_args=None):
+    def _get_stats(self, stat_args=None) -> list[tuple]:
         return self.client.get_stats(stat_args=stat_args)
 
     @classmethod
-    def _key_hash(cls, key):
+    def _key_hash(cls, key: str) -> str:
         return md5(key.encode("utf-8")).hexdigest()
 
     @classmethod
-    def _debug_key_hash(cls, key):
+    def _debug_key_hash(cls, key: str) -> str:
         import re
         h = cls._key_hash(key)[:16]
         value = "%s:%s" % (h, key)
@@ -194,10 +199,10 @@ class Client(object):
 
 
 class _ScopedInstanceManager(local):
-    def __init__(self):
-        self.clients = {}
+    def __init__(self) -> None:
+        self.clients: dict[tuple[tuple, bool], list] = {}
 
-    def acquire(self, servers, debug=False):
+    def acquire(self, servers, debug: bool = False) -> tuple[Client, tuple[tuple, bool]]:
         key = (tuple(servers or []), debug)
         entry = self.clients.get(key)
         if entry:
@@ -208,7 +213,7 @@ class _ScopedInstanceManager(local):
             self.clients[key] = [client, 1]
             return client, key
 
-    def release(self, key):
+    def release(self, key: tuple[tuple, bool]) -> None:
         entry = self.clients.get(key)
         assert entry
 
@@ -223,7 +228,7 @@ scoped_instance_manager = _ScopedInstanceManager()
 
 
 @contextmanager
-def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache):
+def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache) -> Iterator[Client]:
     """Get a shared memcached instance.
 
     This function shares the same memcached instance across nested invocations.
@@ -264,8 +269,8 @@ def pool_memcached_connections(func):
     return update_wrapper(wrapper, func)
 
 
-def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
-              min_compress_len=0, debug=False):
+def memcached(servers, key=None, from_cache=None, to_cache=None, time: int = 0,
+              min_compress_len: int = 0, debug: bool = False) -> Callable[[CallableT], CallableT]:
     """memcached memoization function decorator.
 
     The wrapped function is expected to return a value that is stored to a
@@ -382,7 +387,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
                     return result.result
                 return result
 
-        def forget():
+        def forget() -> None:
             """Forget entries in the cache.
 
             Note that this does not delete entries from a memcached server - that
@@ -400,5 +405,5 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
 
 
 class DoNotCache(object):
-    def __init__(self, result):
+    def __init__(self, result: Any) -> None:
         self.result = result

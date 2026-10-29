@@ -5,10 +5,12 @@
 '''
 Remove package(s) from a repository.
 '''
+from __future__ import annotations
+
 import sys
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "-p", "--package",
@@ -34,7 +36,7 @@ def setup_parser(parser, completions=False):
         " to remove.")
 
 
-def remove_package(opts, parser):
+def remove_package(opts, parser) -> None:
     from rez.version import VersionedObject
     from rez.package_remove import remove_package
 
@@ -53,7 +55,7 @@ def remove_package(opts, parser):
         sys.exit(1)
 
 
-def remove_package_family(opts, parser, force=False):
+def remove_package_family(opts, parser, force: bool = False) -> None:
     from rez.version import VersionedObject
     from rez.package_remove import remove_package_family
     from rez.exceptions import PackageRepositoryError
@@ -82,7 +84,7 @@ def remove_package_family(opts, parser, force=False):
         sys.exit(1)
 
 
-def remove_ignored_since(opts, parser):
+def remove_ignored_since(opts, parser) -> None:
     from rez.package_remove import remove_packages_ignored_since
 
     if opts.PATH:
@@ -106,7 +108,7 @@ def remove_ignored_since(opts, parser):
         print("No packages were removed.")
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     if opts.package:
         remove_package(opts, parser)
     elif opts.family:

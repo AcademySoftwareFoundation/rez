@@ -9,6 +9,7 @@ able to search packages much faster - for example, in a database-based package
 repository. The algorithms here serve as backup for those package repositories
 that do not provide an implementation.
 """
+from __future__ import annotations
 
 import fnmatch
 from collections import defaultdict
@@ -26,9 +27,12 @@ from rez.config import config
 from rez.version import Requirement
 
 
-def get_reverse_dependency_tree(package_name, depth=None, paths=None,
-                                build_requires=False,
-                                private_build_requires=False):
+def get_reverse_dependency_tree(package_name: str,
+                                depth: int | None = None,
+                                paths: list[str] | None = None,
+                                build_requires: bool = False,
+                                private_build_requires: bool = False
+                                ) -> tuple[list[list[str]], digraph]:
     """Find packages that depend on the given package.
 
     This is a reverse dependency lookup. A tree is constructed, showing what
@@ -126,7 +130,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None,
     return pkgs_list, g
 
 
-def get_plugins(package_name, paths=None):
+def get_plugins(package_name: str, paths: list[str] | None = None) -> list[str]:
     """Find packages that are plugins of the given package.
 
     Args:
@@ -167,7 +171,7 @@ class ResourceSearchResult(object):
 
     Will contain either a package, variant, or name of a package family (str).
     """
-    def __init__(self, resource, resource_type, validation_error=None):
+    def __init__(self, resource, resource_type, validation_error=None) -> None:
         self.resource = resource
         self.resource_type = resource_type
         self.validation_error = validation_error
@@ -176,8 +180,11 @@ class ResourceSearchResult(object):
 class ResourceSearcher(object):
     """Search for resources (packages, variants or package families).
     """
-    def __init__(self, package_paths=None, resource_type=None, no_local=False,
-                 latest=False, after_time=None, before_time=None, validate=False):
+    def __init__(self, package_paths: list[str] | None = None,
+                 resource_type: str | None = None, no_local: bool = False,
+                 latest: bool = False,
+                 after_time: int | None = None, before_time: int | None = None,
+                 validate: bool = False) -> None:
         """Create resource search.
 
         Args:
@@ -206,13 +213,13 @@ class ResourceSearcher(object):
         self.validate = validate
 
         if package_paths:
-            self.package_paths = package_paths
+            self.package_paths: list[str] | None = package_paths
         elif no_local:
             self.package_paths = config.nonlocal_packages_path
         else:
             self.package_paths = None
 
-    def iter_resources(self, resources_request=None):
+    def iter_resources(self, resources_request: str | None = None) -> None:
         """Iterate over matching resources.
 
         Args:
@@ -228,7 +235,7 @@ class ResourceSearcher(object):
               packages or variants.
         """
 
-    def search(self, resources_request=None):
+    def search(self, resources_request: str | None = None) -> tuple[str, list[ResourceSearchResult]]:
         """Search for resources.
 
         Args:
@@ -353,7 +360,7 @@ class ResourceSearchResultFormatter(object):
         'qualified_name'
     )
 
-    def __init__(self, output_format=None, suppress_newlines=False):
+    def __init__(self, output_format: str | None = None, suppress_newlines: bool = False) -> None:
         """
         Args:
             output_format (str): String that can contain keywords such as
@@ -366,7 +373,7 @@ class ResourceSearchResultFormatter(object):
         self.output_format = output_format
         self.suppress_newlines = suppress_newlines
 
-    def print_search_results(self, search_results, buf=sys.stdout):
+    def print_search_results(self, search_results: list[ResourceSearchResult], buf=sys.stdout) -> None:
         """Print formatted search results.
 
         Args:
@@ -378,7 +385,7 @@ class ResourceSearchResultFormatter(object):
         for txt, style in formatted_lines:
             pr(txt, style)
 
-    def format_search_results(self, search_results):
+    def format_search_results(self, search_results: list[ResourceSearchResult]):
         """Format search results.
 
         Args:
@@ -395,7 +402,7 @@ class ResourceSearchResultFormatter(object):
 
         return formatted_lines
 
-    def _format_search_result(self, resource_search_result):
+    def _format_search_result(self, resource_search_result: ResourceSearchResult):
         formatted_lines = []
 
         # just ignore formatting if family

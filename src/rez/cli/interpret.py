@@ -5,14 +5,18 @@
 '''
 Execute some Rex code and print the interpreted result.
 '''
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     from rez.shells import get_shell_types
     from rez.system import system
 
     formats = get_shell_types() + ['dict', 'table']
 
+    parser.add_argument(
+        "-c", "--command", action="store_true",
+        help="interpret FILE as a code string")
     parser.add_argument(
         "-f", "--format", type=str, choices=formats,
         help="print output in the given format. If None, the current shell "
@@ -28,7 +32,7 @@ def setup_parser(parser, completions=False):
         "will be treated this way")
     FILE_action = parser.add_argument(
         "FILE", type=str,
-        help='file containing rex code to execute')
+        help='file (or code string with -c) containing rex code to execute')
 
     if completions:
         from rez.cli._complete_util import FilesCompleter
@@ -38,14 +42,19 @@ def setup_parser(parser, completions=False):
                                                file_patterns=["*.py", "*.rex"])
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.shells import create_shell
     from rez.utils.formatting import columnise
     from rez.rex import RexExecutor, Python
     from pprint import pformat
 
-    with open(opts.FILE) as f:
-        code = f.read()
+    if opts.command:
+        code = opts.FILE
+        filename = None
+    else:
+        filename = opts.FILE
+        with open(filename) as f:
+            code = f.read()
 
     interp = None
     if opts.format is None:
@@ -66,7 +75,7 @@ def command(opts, parser, extra_arg_groups=None):
                      parent_environ=parent_env,
                      parent_variables=parent_vars)
 
-    ex.execute_code(code, filename=opts.FILE)
+    ex.execute_code(code, filename=filename)
 
     o = ex.get_output()
     if isinstance(o, dict):

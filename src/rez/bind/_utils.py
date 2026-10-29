@@ -19,15 +19,14 @@ import platform
 import sys
 
 
-def log(msg):
+def log(msg) -> None:
     if config.debug("bind_modules"):
         print_debug(msg)
 
 
 def make_dirs(*dirs):
     path = os.path.join(*dirs)
-    if not os.path.exists(path):
-        os.makedirs(path)
+    os.makedirs(path, exist_ok=True)
     return path
 
 
@@ -83,7 +82,7 @@ def find_exe(name, filepath=None):
     return filepath
 
 
-def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
+def extract_version(exepath, version_arg, word_index=-1, version_rank: int = 3):
     """Run an executable and get the program version.
 
     Args:

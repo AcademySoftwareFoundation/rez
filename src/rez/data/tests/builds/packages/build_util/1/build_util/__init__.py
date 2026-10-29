@@ -4,9 +4,9 @@ import os.path
 
 
 def build_directory_recurse(src_dir, dest_dir, source_path, build_path,
-                            install_path=None):
+                            install_path=None) -> None:
 
-    def _copy(src, dest):
+    def _copy(src, dest) -> None:
         print("copying %s to %s..." % (src, dest))
         if os.path.exists(dest):
             shutil.rmtree(dest)

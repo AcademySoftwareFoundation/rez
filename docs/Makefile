@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?= -n
+SPHINXOPTS    ?= -n -j auto
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = _build
@@ -25,4 +25,5 @@ livehtml:
 clean:
 	rm -rf _build
 	rm -rf source/api
+	rm -rf source/apivendor
 	rm -rf source/commands

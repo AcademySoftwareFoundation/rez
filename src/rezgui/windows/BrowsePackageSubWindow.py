@@ -9,7 +9,7 @@ from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 
 
 class BrowsePackageSubWindow(QtWidgets.QMdiSubWindow, StoreSizeMixin):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(BrowsePackageSubWindow, self).__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         config_key = "layout/window/package_browser"
@@ -19,6 +19,6 @@ class BrowsePackageSubWindow(QtWidgets.QMdiSubWindow, StoreSizeMixin):
         widget = BrowsePackagePane()
         self.setWidget(widget)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
         super(BrowsePackageSubWindow, self).closeEvent(event)
         StoreSizeMixin.closeEvent(self, event)

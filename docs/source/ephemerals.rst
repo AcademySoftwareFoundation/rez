@@ -7,7 +7,7 @@ Ephemerals
 Ephemeral packages (or simply 'ephemerals') are requests for packages that do not
 exist. Ephemeral package names always begin with a dot (``.``). Like all package
 requests, ephemerals can be requested as part of packages' requires or variants
-lists, or directly by the user (via :ref:`rez-env` for eg).
+lists, or directly by the user (via :ref:`rez-env` for e.g.).
 
 Example:
 
@@ -64,7 +64,7 @@ Environment Variables
 =====================
 
 Ephemerals do not affect the runtime in the way that packages can (via their
-:func:`commands` section), however some environment variables are set:
+:pkgdef:func:`commands` section), however some environment variables are set:
 
 * :envvar:`REZ_USED_EPH_RESOLVE`
 * :envvar:`REZ_EPH_(PKG)_REQUEST`
@@ -84,9 +84,9 @@ Introspection
 =============
 
 In order for a package to inspect the ephemerals that are present in a runtime,
-there is an :attr:`ephemerals` object provided, similar
-to the :attr:`resolve` object. You would typically use the
-:func:`intersects` function to inspect it, like so:
+there is an :rex:attr:`ephemerals` object provided, similar
+to the :rex:attr:`resolve` object. You would typically use the
+:rex:func:`intersects` function to inspect it, like so:
 
 .. code-block:: python
 
@@ -98,13 +98,13 @@ to the :attr:`resolve` object. You would typically use the
 In this example, the given package would set the ``TRACKING_ENABLED`` environment
 variable if an ephemeral such as ``.enable_tracking-1`` (or ``.enable_tracking-1.2+``
 etc) is present in the resolve. Note that the leading ``.`` is implied and not
-included when querying the :attr:`ephemerals` object.
+included when querying the :rex:attr:`ephemerals` object.
 
 .. warning::
-   Since :attr:`ephemerals` is a dict-like object, so it has
+   Since :rex:attr:`ephemerals` is a dict-like object, so it has
    a ``get`` function which will return a full request string if key exists. Hence,
    the default value should also be a full request string, not just a version range
-   string like ``0`` in :func:`ephemerals.get_range`. Or :func:`intersects` may not work as expect.
+   string like ``0`` in :rex:func:`ephemerals.get_range`. Or :rex:func:`intersects` may not work as expected.
 
 Ephemeral Use Cases
 ===================
@@ -162,7 +162,7 @@ Abstract Package Representation
 Sometimes it makes sense for a package to require some form of abstract object or
 capability, rather than an actual package. For example, perhaps your package (or
 one of its variants) requires a GPU to be present on the host machine. To support
-this, you might have something setup that includes a ``.gpu-1`` ephemeral in the
+this, you might have something set up that includes a ``.gpu-1`` ephemeral in the
 :ref:`implicits <implicit-packages-concept>` list on all GPU-enabled hosts.
 Then, your package could look like this:
 
@@ -176,7 +176,7 @@ Then, your package could look like this:
    ]
 
 .. warning::
-   Be aware that on hosts that do **not** have a gpu
+   Be aware that on hosts that do **not** have a GPU
    implicit, either variant could be selected. You would want to either guarantee
-   that every host has the gpu implicit set to 0 or 1, or that the user always
+   that every host has the ``gpu`` implicit set to 0 or 1, or that the user always
    explicitly specifies ``.gpu-0`` or ``.gpu-1`` in their request.

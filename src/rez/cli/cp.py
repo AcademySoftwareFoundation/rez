@@ -5,9 +5,10 @@
 '''
 Copy a package from one repository to another.
 '''
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "--dest-path", metavar="PATH",
         help="package repository destination path. Defaults to the same "
@@ -51,7 +52,8 @@ def setup_parser(parser, completions=False):
         help="dry run mode")
     parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",
-        help="select variants to copy (zero-indexed).")
+        help="select variants to copy (zero-indexed; negative indices count from the end,"
+             " eg. -1 is the last variant).")
     parser.add_argument(
         "--variant-uri", metavar="URI",
         help="copy variant with the given URI. Ignores --variants.")
@@ -64,7 +66,7 @@ def setup_parser(parser, completions=False):
         pkg_action.completer = PackageCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     import os
     import sys
 

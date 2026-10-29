@@ -6,5 +6,5 @@ version = "1.0"
 def tools():
     return ["util"]
 
-def commands():
+def commands() -> None:
     env.PATH.append("{root}/bin")

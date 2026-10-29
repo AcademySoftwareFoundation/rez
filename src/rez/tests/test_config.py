@@ -8,7 +8,7 @@ test configuration settings
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, restore_os_environ
 from rez.exceptions import ConfigurationError
-from rez.config import Config, get_module_root_config, _replace_config, _Deprecation
+from rez.config import Config, get_module_root_config, _replace_config, _Deprecation, Setting
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages import get_developer_package
@@ -23,12 +23,12 @@ import unittest.mock
 
 class TestConfig(TestBase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.settings = {}
         cls.root_config_file = get_module_root_config()
         cls.config_path = cls.data_path("config")
 
-    def _test_basic(self, c):
+    def _test_basic(self, c) -> None:
         self.assertEqual(type(c.warn_all), bool)
         self.assertEqual(type(c.build_directory), str)
 
@@ -41,7 +41,7 @@ class TestConfig(TestBase):
         # plugin settings common to a plugin type
         self.assertEqual(type(p.release_vcs.tag_name), str)
 
-    def _test_overrides(self, c):
+    def _test_overrides(self, c) -> None:
         c.override("debug_none", True)
         c.override("build_directory", "floober")
         c.override("plugins.release_vcs.tag_name", "bah")
@@ -67,7 +67,7 @@ class TestConfig(TestBase):
 
         self._test_basic(c)
 
-    def test_1(self):
+    def test_1(self) -> None:
         """Test just the root config file."""
 
         # do a full validation of a config
@@ -100,7 +100,7 @@ class TestConfig(TestBase):
 
         self._test_overrides(c)
 
-    def test_2(self):
+    def test_2(self) -> None:
         """Test a config with an overriding file."""
         conf = os.path.join(self.config_path, "test1.yaml")
         c = Config([self.root_config_file, conf], locked=True)
@@ -114,7 +114,7 @@ class TestConfig(TestBase):
 
         self._test_overrides(c)
 
-    def test_3(self):
+    def test_3(self) -> None:
         """Test environment variable config overrides."""
         c = Config([self.root_config_file], locked=False)
 
@@ -139,7 +139,7 @@ class TestConfig(TestBase):
         os.environ["BUILD_DIRECTORY"] = "flaabs"
         self._test_overrides(c)
 
-    def test_4(self):
+    def test_4(self) -> None:
         """Test package config overrides."""
         conf = os.path.join(self.config_path, "test2.py")
         config2 = Config([self.root_config_file, conf])
@@ -172,7 +172,7 @@ class TestConfig(TestBase):
 
             self._test_overrides(c)
 
-    def test_5(self):
+    def test_5(self) -> None:
         """Test misconfigurations."""
 
         # overrides set to bad types
@@ -199,7 +199,7 @@ class TestConfig(TestBase):
         with self.assertRaises(ConfigurationError):
             _ = c.debug_all  # noqa
 
-    def test_6(self):
+    def test_6(self) -> None:
         """Test setting of dict values from environ"""
         from rez.config import Dict
         from rez.vendor.schema.schema import Schema
@@ -232,7 +232,7 @@ class TestConfig(TestBase):
         finally:
             os.environ = old_environ
 
-    def test_7(self):
+    def test_7(self) -> None:
         """Test path list environment variable with whitespace."""
         c = Config([self.root_config_file], locked=False)
 
@@ -296,18 +296,76 @@ class TestConfig(TestBase):
                 print(error.stdout)
                 raise
 
+    def test_9_json_only_environment_variable(self) -> None:
+        """Test the error when a JSON-only setting uses its plain env var."""
+        for key in ("package_orderers", "pip_install_remaps"):
+            with self.subTest(key=key), restore_os_environ():
+                env_var = "REZ_%s" % key.upper()
+                os.environ[env_var] = "invalid"
+                config = Config([self.root_config_file], locked=False)
+
+                with self.assertRaises(ConfigurationError) as error:
+                    getattr(config, key)
+
+                self.assertEqual(
+                    str(error.exception),
+                    "The setting %r doesn't support the environment variable $%s, "
+                    "use $%s_JSON instead."
+                    % (key, env_var, env_var),
+                )
+
+    def test_10_environment_variable_precedence(self) -> None:
+        """Test that the plain environment variable takes precedence over the JSON variant."""
+        with restore_os_environ():
+            os.environ["REZ_IMAGE_VIEWER"] = "plain"
+            os.environ["REZ_IMAGE_VIEWER_JSON"] = '"json"'
+            config = Config([self.root_config_file], locked=False)
+
+            self.assertEqual(config.image_viewer, "plain")
+
+    def test_11_all_settings_declare_environment_variable_support(self) -> None:
+        """Test that env_var_json_only and _parse_env_var are aligned and agree.
+
+        This should guard against accidental misuse of the feature.
+        """
+        def get_sublcasses(obj: type):
+            subclasses = obj.__subclasses__()
+            for subclass in subclasses:
+                subclasses.extend(get_sublcasses(subclass))
+
+            return subclasses
+
+        for setting_type in get_sublcasses(Setting):
+            with self.subTest(key=setting_type.__name__):
+                if setting_type.env_var_json_only:
+                    self.assertTrue(
+                        setting_type._parse_env_var is Setting._parse_env_var,
+                        msg=(
+                            f"{setting_type.__name__!r}.env_var_json_only is True. The class "
+                            "must not implement the _parse_env_var method."
+                        ),
+                    )
+                else:
+                    self.assertTrue(
+                        setting_type._parse_env_var is not Setting._parse_env_var,
+                        msg=(
+                            f"{setting_type.__name__!r}.env_var_json_only is False. The class "
+                            "must implement the _parse_env_var method."
+                        )
+                    )
+
 
 class TestDeprecations(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.settings = {}
         TempdirMixin.setUpClass()
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
-    def test_deprecation_from_user_config(self):
+    def test_deprecation_from_user_config(self) -> None:
         user_home = os.path.join(self.root, "user_home")
         self.addCleanup(functools.partial(shutil.rmtree, user_home))
 
@@ -342,7 +400,7 @@ class TestDeprecations(TestBase, TempdirMixin):
                     "config setting named 'packages_path' is deprecated and will be removed in 0.0.0.",
                 )
 
-    def test_deprecation_from_env_var(self):
+    def test_deprecation_from_env_var(self) -> None:
         fake_deprecated_settings = {
             "packages_path": _Deprecation("0.0.0"),
         }
@@ -385,7 +443,7 @@ class TestDeprecations(TestBase, TempdirMixin):
                     "be removed in 0.0.0.",
                 )
 
-    def test_non_preformatted_warning(self):
+    def test_non_preformatted_warning(self) -> None:
         with self.assertWarns(DeprecationWarning) as warning:
             warn('Warning Message', DeprecationWarning, pre_formatted=False)
         self.assertEqual(str(warning.warning), 'Warning Message')

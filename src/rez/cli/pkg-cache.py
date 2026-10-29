@@ -5,12 +5,14 @@
 '''
 Manipulate a package cache.
 '''
+from __future__ import annotations
+
 from argparse import SUPPRESS
 import os.path
 import sys
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     column_choices = (
         "status",
         "package",
@@ -42,6 +44,14 @@ def setup_parser(parser, completions=False):
         "--daemon", action="store_true", help=SUPPRESS
     )
     parser.add_argument(
+        "--pkg-cache-mode",
+        choices=["sync", "async"],
+        default=None,
+        help="If provided, override the rezconfig's package_cache_async key. "
+             "If 'sync', the process will block until packages are cached. "
+             "If 'async', the process will not block while packages are cached."
+    )
+    parser.add_argument(
         "-c", "--columns", nargs='+', choices=column_choices,
         default=["status", "package", "variant_uri", "cache_path"],
         help="Columns to print, choose from: %s" % ", ".join(column_choices)
@@ -58,7 +68,10 @@ def setup_parser(parser, completions=False):
     )
 
 
-def add_variant(pkgcache, uri, opts):
+def add_variant(pkgcache, uri, opts) -> None:
+    import shutil
+
+    from rez.config import config
     from rez.packages import get_variant_from_uri
     from rez.utils.logging_ import print_info, print_warning
     from rez.package_cache import PackageCache
@@ -70,17 +83,35 @@ def add_variant(pkgcache, uri, opts):
         print("No such variant: %s" % uri, file=sys.stderr)
         sys.exit(1)
 
-    destpath, status = pkgcache.add_variant(variant, force=opts.force)
+    if opts.pkg_cache_mode == "async":
+        sync = False
+    elif opts.pkg_cache_mode == "sync":
+        sync = True
+    else:
+        sync = not config.package_cache_async
+
+    destpath, status = pkgcache.add_variant(
+        variant, force=opts.force,
+        wait_for_copying=sync
+    )
 
     if status == PackageCache.VARIANT_FOUND:
         print_info("Already exists: %s", destpath)
     elif status == PackageCache.VARIANT_COPYING:
         print_warning("Another process is currently copying to: %s", destpath)
+    elif status == PackageCache.VARIANT_SKIPPED:
+        free = shutil.disk_usage(config.cache_packages_path).free / 1024**2
+        buffer = config.package_cache_space_buffer / 1024**2
+        print_warning(
+            "Cache no longer accepting new variant due to size limit.\n"
+            f"Remaining cache free space: {free:.2f}MB is near "
+            f"configured buffer {buffer:.2f}MB (config.package_cache_space_buffer)."
+        )
     else:
         print_info("Successfully cached to: %s", destpath)
 
 
-def remove_variant(pkgcache, uri, opts):
+def remove_variant(pkgcache, uri, opts) -> None:
     from rez.packages import get_variant_from_uri
     from rez.utils.logging_ import print_info, print_warning, print_error
     from rez.package_cache import PackageCache
@@ -102,7 +133,7 @@ def remove_variant(pkgcache, uri, opts):
         print_info("Variant successfully removed")
 
 
-def view_logs(pkgcache, opts):
+def view_logs(pkgcache, opts) -> None:
     from rez.utils.logging_ import view_file_logs
 
     view_file_logs(
@@ -111,7 +142,7 @@ def view_logs(pkgcache, opts):
     )
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> None:
     from rez.config import config
     from rez.package_cache import PackageCache
     from rez.utils.formatting import print_colored_columns

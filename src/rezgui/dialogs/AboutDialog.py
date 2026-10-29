@@ -9,7 +9,7 @@ from rez.version import Version
 
 
 class AboutDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(AboutDialog, self).__init__(parent)
         self.setWindowTitle("About Rez")
 
@@ -36,6 +36,6 @@ class AboutDialog(QtWidgets.QDialog):
     def sizeHint(self):
         return QtCore.QSize(300, 150)
 
-    def _goto_github(self):
+    def _goto_github(self) -> None:
         import webbrowser
         webbrowser.open_new("https://github.com/AcademySoftwareFoundation/rez")

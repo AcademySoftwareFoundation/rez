@@ -2,7 +2,7 @@
 # Copyright Contributors to the Rez Project
 
 
-"""
+r"""
 Rez configuration settings. Do not change this file.
 
 Settings are determined in the following way (higher number means higher
@@ -14,13 +14,15 @@ precedence):
    files are supported, separated by os.pathsep;
 3) The setting is further overriden if it is present in $HOME/.rezconfig,
   UNLESS $REZ_DISABLE_HOME_CONFIG is 1;
-4) The setting is overridden again if the environment variable $REZ_XXX is
+4) The setting can also be overridden by the environment variable
+   $REZ_XXX_JSON, and in this case the string is expected to be a JSON-encoded
+   value;
+5) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
    separated either with "," or blank space. Dict values are in the form
-   "k1:v1,k2:v2,kn:vn";
-5) The setting can also be overriden by the environment variable $REZ_XXX_JSON,
-   and in this case the string is expected to be a JSON-encoded value;
+   "k1:v1,k2:v2,kn:vn". This form takes precedence if both environment
+   variables are present;
 6) This is a special case applied only during a package build or release. In
    this case, if the package definition file contains a "config" section,
    settings in this section will override all others.
@@ -38,13 +40,14 @@ The following variables are provided if you are using rezconfig.py files:
 
 Paths should use the path separator appropriate for the operating system
 (based on Python's os.path.sep).  So for Linux paths, / should be used. On
-Windows \ (unescaped) should be used.
+Windows \ (unescaped!) should be used.
 
 Note: The comments in this file are extracted and turned into documentation. Pay
 attention to the comment formatting and follow the existing style closely.
 """
 
 # flake8: noqa
+from __future__ import annotations
 
 import os
 
@@ -86,12 +89,12 @@ context_tmpdir = None
 # This means that any of the functions in the following list can import modules
 # from these paths:
 #
-# * The :func:`preprocess` function;
+# * The :pkgdef:func:`preprocess` function;
 # * Any function decorated with :ref:`@early <package-definition-early-binding-functions>`. These get evaluated at build time.
 #
 # You can use this to provide common code to your package definition files during
 # a build. To provide common code for packages to use at resolve time instead (for
-# example, in a :func:`commands` function) see the following
+# example, in a :pkgdef:func:`commands` function) see the following
 # :data:`package_definition_python_path` setting.
 package_definition_build_python_paths = []
 
@@ -110,7 +113,7 @@ package_definition_build_python_paths = []
 #
 #    package_definition_python_path = "/src/rezutils"
 #
-# Consider also the following package :func:`commands` function:
+# Consider also the following package :pkgdef:func:`commands` function:
 #
 # .. code-block:: python
 #
@@ -188,7 +191,7 @@ memcached_resolve_min_compress_len = 1
 ###############################################################################
 
 # Whether a package is relocatable or not, if it does not explicitly state with
-# the :attr:`relocatable` attribute in its package definition file.
+# the :pkgdef:attr:`relocatable` attribute in its package definition file.
 default_relocatable = True
 
 # Set relocatable on a per-package basis. This is here for migration purposes.
@@ -213,7 +216,7 @@ default_relocatable_per_package = None
 #
 # .. code-block:: python
 #
-#    default_relocatable_per_repostitory = {
+#    default_relocatable_per_repository = {
 #        '/svr/packages': False
 #    }
 default_relocatable_per_repository = None
@@ -230,7 +233,7 @@ default_relocatable_per_repository = None
 ###############################################################################
 
 # Whether a package is cachable or not, if it does not explicitly state with
-# the :attr:`cachable` attribute in its package definition file. If None, defaults
+# the :pkgdef:attr:`cachable` attribute in its package definition file. If None, defaults
 # to packages' relocatability (ie cachable == relocatable).
 default_cachable = False
 
@@ -255,7 +258,7 @@ default_cachable_per_package = None
 #
 # .. code-block:: python
 #
-#    default_cachable_per_repostitory = {
+#    default_cachable_per_repository = {
 #        '/svr/packages': False
 #    }
 default_cachable_per_repository = None
@@ -302,6 +305,29 @@ package_cache_clean_limit = 0.5
 # Logs are written to :file:`{pkg-cache-root}/.sys/log/{filename}.log`
 package_cache_log_days = 7
 
+# Define a default minimum of 100MB of free space buffer for the cache in bytes.
+# This is required to avoid writing to a full cache and for cleaning the cache
+# when running :option:`rez-pkg-cache --clean`.
+# Note: Reported disk usage may vary across different file systems due to differences
+# in block size, allocation strategies and metadata overhead.
+# 100MB = 100 * 1024 * 1024 = 104857600.
+#
+# .. note::
+#    Reported disk usage may vary across different file systems due to differences
+#    in block size, allocation strategies and metadata overhead.
+package_cache_space_buffer = 104857600
+
+# The last variant being cached can take the cache size below the minimum buffer threshold we set.
+# To guard against this, we define a maximum cache usage threshold of 80%. We start throttling the cache
+# at this point by checking the size of each variant against the :data:`package_cache_space_buffer`.
+# If the pending variant about to be cached will take the cache size below the :data:`package_cache_space_buffer`,
+# don't cache it. When setting this value, subtract from your total disk space the fraction of disk space that
+# will be consumed by the largest variant you support and add the :data:`package_cache_space_buffer`.
+#
+# .. note::
+#    Reported disk usage may vary across different file systems due to differences
+#    in block size, allocation strategies and metadata overhead.
+package_cache_used_threshold = 80
 
 ###############################################################################
 # Package Resolution
@@ -430,88 +456,6 @@ package_filter = None
 # This will affect the order of version resolution.
 # This can be used to ensure that specific version have priority over others.
 # Higher versions can still be accessed if explicitly requested.
-#
-# A common use case is to ease migration from python-2 to python-3:
-#
-# .. code-block:: python
-#
-#    package_orderers = [
-#        {
-#           "type": "per_family",
-#           "orderers": [
-#                {
-#                    "packages": ["python"],
-#                    "type": "version_split",
-#                    "first_version": "2.7.16"
-#                }
-#            ]
-#        }
-#    ]
-#
-# This will ensure that for the "python" package, versions equals or lower than "2.7.16" will have priority.
-# Considering the following versions: "2.7.4", "2.7.16", "3.7.4":
-#
-# ==================== =============
-# Example              Result
-# ==================== =============
-# rez-env python       python-2.7.16
-# rez-env python-3     python-3.7.4
-# ==================== =============
-#
-#
-# Package orderers will also apply to variants of packages.
-# Consider a package "pipeline-1.0" which has the following variants:
-# ``[["python-2.7.4", "python-2.7.16", "python-3.7.4"]]``
-#
-# ============================= ==========================
-# Example                       Result
-# ============================= ==========================
-# rez-env pipeline              pipeline-1.0 python-2.7.16
-# rez-env pipeline python-3     pipeline-1.0 python-3.7.4
-# ============================= ==========================
-#
-#
-# Here's another example, using another orderer: "soft_timestamp".
-# This orderer will prefer packages released before a provided timestamp.
-# The following example will prefer package released before 2019-09-09.
-#
-# .. code-block:: python
-#
-#    package_orderers = [
-#        {
-#            "type": "soft_timestamp",
-#            "timestamp": 1568001600,  # 2019-09-09
-#            "rank": 3
-#        }
-#    ]
-#
-# A timestamp can be generated with python:
-#
-# .. code-block:: text
-#
-#    $ python -c "import datetime, time; print(int(time.mktime(datetime.date(2019, 9, 9).timetuple())))"
-#    1568001600
-#
-# The rank can be used to allow some versions released after the timestamp to still be considered.
-# When using semantic versionnng, a value of 3 is the most common.
-# This will let version with a different patch number to be accepted.
-#
-# Considering a package "foo" with the following versions:
-#
-# - "1.0.0" was released at 2019-09-07
-# - "2.0.0" was released at 2019-09-08
-# - "2.0.1" was released at 2019-09-10
-# - "2.1.0" was released at 2019-09-11
-# - "3.0.0" was released at 2019-09-12
-#
-# =========== ========== ==== =========
-# Example     Timestamp  Rank Result
-# =========== ========== ==== =========
-# rez-env foo 2019-09-09 0    foo-2.0.0
-# rez-env foo 2019-09-09 3    foo-2.0.1
-# rez-env foo 2019-09-09 2    foo-2.1.0
-# rez-env foo 2019-09-09 1    foo-3.0.0
-# =========== ========== ==== =========
 package_orderers = None
 
 # If True, unversioned packages are allowed. Solve times are slightly better if
@@ -554,7 +498,7 @@ all_parent_variables = False
 # When two or more packages in a resolve attempt to set the same environment
 # variable, Rez's default behaviour is to flag this as a conflict and abort the
 # resolve. You can overcome this in a package's commands section by using the
-# Rex command :func:`resetenv` instead of :func:`setenv`. However, you can also turn off this
+# Rex command :rex:func:`resetenv` instead of :rex:func:`setenv`. However, you can also turn off this
 # behaviour globally for some varibles by adding them to :data:`resetting_variables`,
 # and for all variables, by setting :data:`all_resetting_variables` to true.
 resetting_variables = []
@@ -678,7 +622,7 @@ standard_system_paths = []
 package_preprocess_function = None
 
 # Defines in which order the :data:`package_preprocess_function`
-# and the :attr:`preprocess` function inside a ``package.py`` are executed.
+# and the :pkgdef:func:`preprocess` function inside a ``package.py`` are executed.
 #
 # Note that "global preprocess" means the preprocess defined by
 # :data:`package_preprocess_function`.
@@ -720,6 +664,10 @@ package_preprocess_mode = "override"
 # Tracking is enabled if :data:`context_tracking_host` is non-empty. Set to ``stdout``
 # to just print the message to standard out instead, for testing purposes.
 # Otherwise, ``{host}[:{port}]`` is expected.
+#
+# If the broker is unreachable and :data:`context_tracking_host` is set, a warning
+# is printed. If :data:`context_tracking_host` is empty (the default), connection
+# failures are suppressed entirely (expected when tracking is not configured).
 #
 # If any items are present in :data:`context_tracking_extra_fields`, they are added
 # to the payload. If any extra field contains references to unknown env-vars, or
@@ -800,8 +748,13 @@ debug_resolve_memcache = False
 # ``memcached -vv`` as the server)
 debug_memcache = False
 
-# Print debugging info when an AMPQ server is used in context tracking
+# Print debugging info when an AMQP server is used in context tracking.
+# Also enables DEBUG-level logging from the pika AMQP library (rez.vendor.pika),
+# which is otherwise suppressed to avoid noise from connection attempts.
 debug_context_tracking = False
+
+# Print debugging info related to shell startup
+debug_shell_startup = False
 
 # Turn on all debugging messages
 debug_all = False
@@ -870,6 +823,8 @@ use_variant_shortlinks = True
 # Default build process to use during build/release.
 # Only 'local' build process is currently available,
 # see :gh-rez:`src/rezplugins/build_process`.
+#
+# .. versionadded:: 3.2.0
 default_build_process = "local"
 
 
@@ -927,6 +882,18 @@ set_prompt = True
 # false.
 prefix_prompt = True
 
+###############################################################################
+# Plugins
+#
+# Settings dedicated to plugins
+###############################################################################
+
+# Settings specific to certain plugin implementations can be found in the
+# "rezconfig" file accompanying that plugin. The settings listed here are
+# common to all plugins of that type.
+#
+# Refer to :ref:`configuring-plugins` for more information.
+plugins = {}
 
 ###############################################################################
 # Misc
@@ -1012,8 +979,8 @@ pip_install_remaps = [
 ]
 
 # A dict type config for storing arbitrary data that can be
-# accessed by the :func:`optionvars` function in packages
-# :func:`commands`.
+# accessed by the :rex:func:`optionvars` function in packages
+# :pkgdef:func:`commands`.
 #
 # This is like user preferences for packages, which may not easy to define in
 # package's definition file directly due to the differences between machines/users/pipeline-roles.
@@ -1212,19 +1179,6 @@ ephemeral_styles = None
 alias_fore = "cyan"
 alias_back = None
 alias_styles = None
-
-
-###############################################################################
-# Plugin Settings
-###############################################################################
-
-# Settings specific to certain plugin implementations can be found in the
-# "rezconfig" file accompanying that plugin. The settings listed here are
-# common to all plugins of that type.
-
-plugins = {
-
-}
 
 
 ###############################################################################

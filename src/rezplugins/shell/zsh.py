@@ -5,24 +5,37 @@
 """
 Zsh shell
 """
+from __future__ import annotations
+
 import os
 import os.path
+from rez.config import config
+from rez.rex import EscapedString
 from rez.utils.platform_ import platform_
 from rezplugins.shell.sh import SH
 from rez import module_root_path
+from shlex import quote
+
+from typing import Literal
 
 
 class Zsh(SH):
-    rcfile_arg = '--rcs'
+    rcfile_arg = None
     norc_arg = '--no-rcs'
+    histfile = "~/.zsh_history"
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'zsh'
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
-                             command=False):
+    def startup_capabilities(
+        cls,
+        rcfile: str | None | Literal[False] = False,
+        norc: bool = False,
+        stdin: bool = False,
+        command: bool = False
+    ) -> tuple[str | None | Literal[False], bool, bool, bool]:
         if norc:
             cls._overruled_option('rcfile', 'norc', rcfile)
             rcfile = False
@@ -37,16 +50,13 @@ class Zsh(SH):
         return (rcfile, norc, stdin, command)
 
     @classmethod
-    def get_startup_sequence(cls, rcfile, norc, stdin, command):
+    def get_startup_sequence(cls, rcfile: str | None, norc: bool, stdin: bool, command):
         rcfile, norc, stdin, command = \
             cls.startup_capabilities(rcfile, norc, stdin, command)
 
         files = []
-        envvar = None
-        do_rcfile = False
 
         if rcfile or norc:
-            do_rcfile = True
             if rcfile and os.path.exists(os.path.expanduser(rcfile)):
                 files.append(rcfile)
         else:
@@ -59,24 +69,61 @@ class Zsh(SH):
                     files.append(file_)
 
         bind_files = [
-            "~/.zprofile",
             "~/.zshrc"
         ]
 
         return dict(
             stdin=stdin,
             command=command,
-            do_rcfile=do_rcfile,
-            envvar=envvar,
+            do_rcfile=False,
+            envvar=None,
             files=files,
             bind_files=bind_files,
-            source_bind_files=True
+            source_bind_files=not norc
         )
 
-    def _bind_interactive_rez(self):
-        super(Zsh, self)._bind_interactive_rez()
+    def _bind_interactive_rez(self) -> None:
+        if config.set_prompt and self.settings.prompt:
+            self._addline(r'if [ -z "$REZ_STORED_PROMPT_SH" ]; then export REZ_STORED_PROMPT_SH="$PS1"; fi')
+            if config.prefix_prompt:
+                cmd = 'export PS1="%s $REZ_STORED_PROMPT_SH"'
+            else:
+                cmd = 'export PS1="$REZ_STORED_PROMPT_SH %s"'
+            self._addline(cmd % r"%{%B%}$REZ_ENV_PROMPT%{%b%}")
         completion = os.path.join(module_root_path, "completion", "complete.zsh")
         self.source(completion)
+
+    def escape_string(self, value: str | EscapedString, is_path=False) -> str:
+        value = EscapedString.promote(value)
+        value = value.expanduser()
+        result = ''
+
+        for is_literal, txt in value.strings:
+            if is_literal:
+                txt = quote(txt)
+                if not txt.startswith("'"):
+                    txt = "'%s'" % txt
+            else:
+                if is_path:
+                    txt = self.normalize_paths(txt)
+
+                txt = txt.replace('\\', '\\\\')
+                txt = txt.replace('"', '\\"')
+                txt = txt.replace("%", "%%")
+                txt = '"%s"' % txt
+            result += txt
+        return result
+
+    def _startup_env_var(self) -> str:
+        """zsh-specific override for HOME shell env var"""
+        return "ZDOTDIR"
+
+    def _write_startup_env(self, ex) -> None:
+        """ZDOTDIR tells zsh to load dot files from tmpdir
+        without using HOME. Since HOME is always set and correct,
+        there is no need to restore it in the generated startup files.
+        """
+        pass
 
 
 def register_plugin():

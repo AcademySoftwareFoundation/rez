@@ -5,6 +5,14 @@
 """
 Test package caching.
 """
+import logging
+import os
+import os.path
+import time
+import subprocess
+import tempfile
+from unittest.mock import patch
+
 from rez.tests.util import TestBase, TempdirMixin, restore_os_environ, \
     install_dependent
 from rez.packages import get_package
@@ -12,15 +20,14 @@ from rez.package_cache import PackageCache
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import PackageCacheError
 from rez.utils.filesystem import canonical_path
-import os
-import os.path
-import time
-import subprocess
+
+# Simulated total disk size (1 GiB) for disk space tests.
+VIRTUAL_GIGABYTE = 1024 * 1024 * 1024
 
 
 class TestPackageCache(TestBase, TempdirMixin):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         TempdirMixin.setUpClass()
 
         cls.py_packages_path = canonical_path(cls.data_path("packages", "py_packages"))
@@ -47,13 +54,13 @@ class TestPackageCache(TestBase, TempdirMixin):
         )
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         TempdirMixin.tearDownClass()
 
     def _pkgcache(self):
         return PackageCache(self.package_cache_path)
 
-    def test_cache_variant(self):
+    def test_cache_variant(self) -> None:
         """Test direct caching of a cachable variant."""
         pkgcache = self._pkgcache()
 
@@ -67,7 +74,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         _, status = pkgcache.add_variant(variant)
         self.assertEqual(status, PackageCache.VARIANT_FOUND)
 
-    def test_delete_cached_variant(self):
+    def test_delete_cached_variant(self) -> None:
         """Test variant deletion from cache."""
         pkgcache = self._pkgcache()
 
@@ -83,7 +90,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         result = pkgcache.remove_variant(variant)
         self.assertEqual(result, PackageCache.VARIANT_NOT_FOUND)
 
-    def test_cache_fail_uncachable_variant(self):
+    def test_cache_fail_uncachable_variant(self) -> None:
         """Test that caching of an uncachable variant fails."""
         pkgcache = self._pkgcache()
 
@@ -93,7 +100,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
-    def test_cache_fail_no_variant_payload(self):
+    def test_cache_fail_no_variant_payload(self) -> None:
         """Test that adding a variant with no disk payload, fails."""
         pkgcache = self._pkgcache()
 
@@ -103,7 +110,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
-    def test_cache_fail_per_repo(self):
+    def test_cache_fail_per_repo(self) -> None:
         """Test that caching fails on a package from a repo set to non-cachable."""
         pkgcache = self._pkgcache()
 
@@ -113,7 +120,7 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
-    def test_cache_fail_per_package(self):
+    def test_cache_fail_per_package(self) -> None:
         """Test that caching fails on a package with a blacklisted name."""
         pkgcache = self._pkgcache()
 
@@ -123,8 +130,20 @@ class TestPackageCache(TestBase, TempdirMixin):
         with self.assertRaises(PackageCacheError):
             pkgcache.add_variant(variant)
 
+    def test_external_logging_config(self):
+        """Test that external logging is respected if configured."""
+        config_file_path = canonical_path(self.data_path("config", "logging_config_test.conf"))
+        with restore_os_environ():
+            os.environ["REZ_LOGGING_CONF"] = config_file_path
+            pkgcache = self._pkgcache()
+            pkgcache._init_logging()
+            logger = logging.getLogger('rez-pkg-cache')
+            self.assertEqual(len(logger.handlers), 1)
+            self.assertEqual(logger.handlers[0].__class__, logging.StreamHandler)
+            self.assertEqual(logger.handlers[0].level, logging.DEBUG)
+
     @install_dependent()
-    def test_caching_on_resolve(self):
+    def test_caching_on_resolve(self) -> None:
         """Test that cache is updated as expected on resolved env."""
         pkgcache = self._pkgcache()
 
@@ -186,7 +205,7 @@ class TestPackageCache(TestBase, TempdirMixin):
             )
 
     @install_dependent()
-    def test_caching_on_resolve_synchronous(self):
+    def test_caching_on_resolve_synchronous(self) -> None:
         """Test that cache is updated as expected on
         resolved env using syncrhonous package caching."""
         pkgcache = self._pkgcache()
@@ -225,3 +244,99 @@ class TestPackageCache(TestBase, TempdirMixin):
                 "Reference %r should resolve to %s, but resolves to %s"
                 % (ref, cached_root, root)
             )
+
+    @patch('rez.package_cache.shutil.disk_usage')
+    def test_cache_near_full_true(self, mock_du):
+        """cache_near_full returns True when free < buffer."""
+        mock_du.return_value = (VIRTUAL_GIGABYTE, 500_000_000, 10_000_000)  # 10MB free
+        pkgcache = self._pkgcache()
+        self.update_settings({'package_cache_space_buffer': 50_000_000})  # 50MB buffer
+        self.assertTrue(pkgcache.cache_near_full())
+
+    @patch('rez.package_cache.shutil.disk_usage')
+    def test_cache_near_full_false(self, mock_du):
+        """cache_near_full returns False when free >= buffer."""
+        mock_du.return_value = (VIRTUAL_GIGABYTE, 400_000_000, 300_000_000)  # 300MB free
+        pkgcache = self._pkgcache()
+        self.update_settings({'package_cache_space_buffer': 50_000_000})
+        self.assertFalse(pkgcache.cache_near_full())
+
+    @patch('rez.package_cache.shutil.disk_usage')
+    def test_variant_meets_space_requirements_below_threshold(self, mock_du):
+        """Below used threshold always True."""
+        mock_du.return_value = (VIRTUAL_GIGABYTE, 300_000_000, 700_000_000)  # 30% used
+        pkgcache = self._pkgcache()
+        self.update_settings({'package_cache_used_threshold': 80})
+        with tempfile.TemporaryDirectory() as d:
+            self.assertTrue(pkgcache.variant_meets_space_requirements(d))
+
+    @patch('rez.package_cache.shutil.disk_usage')
+    def test_variant_meets_space_requirements_above_threshold_sufficient(self, mock_du):
+        """Above threshold but variant fits inside buffer => True."""
+        mock_du.return_value = (VIRTUAL_GIGABYTE, 900_000_000, 150_000_000)  # ~83.8% used (>80%), 150MB free
+        pkgcache = self._pkgcache()
+        with tempfile.TemporaryDirectory() as d:
+            # create small file (1MB)
+            with open(os.path.join(d, 'f.bin'), 'wb') as f:
+                f.write(b'0' * 1_000_000)
+            self.update_settings(
+                {
+                    'package_cache_used_threshold': 80,
+                    'package_cache_space_buffer': 100_000_000,
+                }
+            )
+            self.assertTrue(pkgcache.variant_meets_space_requirements(d))  # 150MB - 1MB > 100MB
+
+    @patch('rez.package_cache.shutil.disk_usage')
+    def test_variant_meets_space_requirements_above_threshold_insufficient(self, mock_du):
+        """
+        Above threshold and variant would breach buffer => False.
+
+        Uses a mocked get_variant_size to avoid filesystem/storage variations
+        that caused the real size to appear smaller on some platforms (making
+        the predicate unexpectedly True). The logic we need to exercise is:
+            used% > threshold AND (free - variant_size) <= buffer -> False
+        """
+        mock_du.return_value = (VIRTUAL_GIGABYTE, 900_000_000, 150_000_000)  # ~83.8% used (>80%), 150MB free
+        pkgcache = self._pkgcache()
+        with tempfile.TemporaryDirectory() as d:
+            self.update_settings(
+                {
+                    'package_cache_used_threshold': 80,
+                    'package_cache_space_buffer': 100_000_000,
+                }
+            )
+            with patch.object(pkgcache, 'get_variant_size', return_value=70_000_000):  # 70MB
+                # free (150MB) - variant_size (70MB) = 80MB <= buffer (100MB) => False
+                self.assertFalse(pkgcache.variant_meets_space_requirements(d))  # expected False
+
+    def test_variant_meets_space_requirements_invalid_path(self):
+        """Invalid path returns True (early exit) per implementation."""
+        pkgcache = self._pkgcache()
+        self.assertTrue(pkgcache.variant_meets_space_requirements(None))
+        self.assertTrue(pkgcache.variant_meets_space_requirements(""))
+        self.assertTrue(
+            pkgcache.variant_meets_space_requirements(
+                os.path.join(self.root, "path", "does", "not", "exist")
+            )
+        )
+
+    def test_add_variant_skipped_cache_near_full(self):
+        """add_variant returns VARIANT_SKIPPED when cache_near_full True."""
+        pkgcache = self._pkgcache()
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+        with patch.object(pkgcache, 'cache_near_full', return_value=True), \
+             patch.object(pkgcache, 'variant_meets_space_requirements', return_value=True):
+            _, status = pkgcache.add_variant(variant)
+            self.assertEqual(status, PackageCache.VARIANT_SKIPPED)
+
+    def test_add_variant_skipped_variant_too_large(self):
+        """add_variant returns VARIANT_SKIPPED when variant fails space requirements."""
+        pkgcache = self._pkgcache()
+        package = get_package("versioned", "3.0")
+        variant = next(package.iter_variants())
+        with patch.object(pkgcache, 'cache_near_full', return_value=False), \
+             patch.object(pkgcache, 'variant_meets_space_requirements', return_value=False):
+            _, status = pkgcache.add_variant(variant)
+            self.assertEqual(status, PackageCache.VARIANT_SKIPPED)

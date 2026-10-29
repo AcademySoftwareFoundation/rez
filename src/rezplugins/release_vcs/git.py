@@ -24,10 +24,10 @@ class GitReleaseVCS(ReleaseVCS):
         "allow_no_upstream": bool}
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         return 'git'
 
-    def __init__(self, pkg_root, vcs_root=None):
+    def __init__(self, pkg_root, vcs_root=None) -> None:
         super(GitReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
         self.executable = self.find_executable('git')
 
@@ -42,7 +42,7 @@ class GitReleaseVCS(ReleaseVCS):
         return os.path.isdir(os.path.join(path, '.git'))
 
     @classmethod
-    def search_parents_for_root(cls):
+    def search_parents_for_root(cls) -> bool:
         return True
 
     def git(self, *nargs):
@@ -177,7 +177,7 @@ class GitReleaseVCS(ReleaseVCS):
                 raise ReleaseVCSError("failed to parse %s url from:\n%s"
                                       % (op, '\n'.join(lines)))
 
-        def _get(key, fn):
+        def _get(key, fn) -> bool:
             try:
                 value = fn()
                 doc[key] = value
@@ -199,11 +199,11 @@ class GitReleaseVCS(ReleaseVCS):
             _get("push_url", functools.partial(_url, "push"))
         return doc
 
-    def tag_exists(self, tag_name):
+    def tag_exists(self, tag_name) -> bool:
         tags = self.git("tag")
         return (tag_name in tags)
 
-    def create_release_tag(self, tag_name, message=None):
+    def create_release_tag(self, tag_name, message=None) -> None:
         if self.tag_exists(tag_name):
             return
 
@@ -223,7 +223,7 @@ class GitReleaseVCS(ReleaseVCS):
         self.git("push", remote, tag_name)
 
     @classmethod
-    def export(cls, revision, path):
+    def export(cls, revision, path) -> None:
         url = revision["fetch_url"]
         commit = revision["commit"]
         path_, dirname = os.path.split(path)

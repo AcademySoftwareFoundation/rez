@@ -7,7 +7,7 @@ from rez.packages import Package
 
 
 class VariantsList(QtWidgets.QTableWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(VariantsList, self).__init__(0, 1, parent)
 
         self.variant = None
@@ -28,7 +28,7 @@ class VariantsList(QtWidgets.QTableWidget):
             vh, QtWidgets.QHeaderView.ResizeToContents)
         vh.setVisible(False)
 
-    def set_package(self, package):
+    def set_package(self, package) -> None:
         self.clear()
         if package is not None:
             self.setRowCount(package.num_variants)
@@ -40,7 +40,7 @@ class VariantsList(QtWidgets.QTableWidget):
         self.package = package
         self.variant = None
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         self.clear()
         if variant is not None:
             if isinstance(variant, Package):

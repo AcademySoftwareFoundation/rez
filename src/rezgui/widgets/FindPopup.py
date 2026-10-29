@@ -11,7 +11,7 @@ class FindPopup(QtWidgets.QFrame):
     find = QtCore.Signal(str)
 
     def __init__(self, pivot_widget, pivot_position=None, words=None,
-                 initial_word=None, close_on_find=True, parent=None):
+                 initial_word=None, close_on_find: bool = True, parent=None) -> None:
         super(FindPopup, self).__init__(parent)
         self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Raised)
         self.setWindowFlags(QtCore.Qt.Popup)
@@ -45,11 +45,11 @@ class FindPopup(QtWidgets.QFrame):
         find_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+F"), self)
         find_shortcut.activated.connect(self._find_again)
 
-    def _find(self):
+    def _find(self) -> None:
         word = self.edit.text()
         self.find.emit(word)
         if self.close_on_find:
             self.close()
 
-    def _find_again(self):
+    def _find_again(self) -> None:
         self.edit.selectAll()

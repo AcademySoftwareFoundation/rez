@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import platform
 import os
 import os.path
@@ -18,9 +20,9 @@ from tempfile import gettempdir
 class Platform(object):
     """Abstraction of a platform.
     """
-    name = None
+    name: str
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     @cached_property
@@ -109,7 +111,7 @@ class Platform(object):
         return 1
 
     @property
-    def has_case_sensitive_filesystem(self):
+    def has_case_sensitive_filesystem(self) -> bool:
         return True
 
     # -- implementation
@@ -138,7 +140,7 @@ class Platform(object):
     def _tmpdir(self):
         return gettempdir()
 
-    def symlink(self, source, link_name):
+    def symlink(self, source, link_name) -> None:
         """Create a symbolic link pointing to source named link_name."""
         os.symlink(source, link_name)
 
@@ -411,7 +413,7 @@ class LinuxPlatform(_UnixPlatform):
 class OSXPlatform(_UnixPlatform):
     name = "osx"
 
-    def _os(self):
+    def _os(self) -> str:
         release = platform.mac_ver()[0]
         return "osx-%s" % release
 
@@ -426,10 +428,10 @@ class OSXPlatform(_UnixPlatform):
         else:
             return "%s -hold -e" % term
 
-    def _image_viewer(self):
+    def _image_viewer(self) -> str:
         return "open"
 
-    def _editor(self):
+    def _editor(self) -> str:
         return "open"
 
     def _physical_cores_from_osx_sysctl(self):
@@ -464,7 +466,7 @@ class OSXPlatform(_UnixPlatform):
 class WindowsPlatform(Platform):
     name = "windows"
 
-    def _os(self):
+    def _os(self) -> str:
         release, version, csd, ptype = platform.win32_ver()
         toks = []
         for item in (version, csd):
@@ -474,14 +476,14 @@ class WindowsPlatform(Platform):
         return "windows-%s" % final_version
 
     @property
-    def has_case_sensitive_filesystem(self):
+    def has_case_sensitive_filesystem(self) -> bool:
         return False
 
-    def _image_viewer(self):
+    def _image_viewer(self) -> str:
         # os.system("file.jpg") will open default viewer on windows
         return ''
 
-    def _editor(self):
+    def _editor(self) -> str:
         # os.system("file.txt") will open default editor on windows
         return ''
 
@@ -489,7 +491,7 @@ class WindowsPlatform(Platform):
         # https://msdn.microsoft.com/en-us/library/windows/desktop/ms684863%28v=vs.85%29.aspx
         return dict(creationflags=0x00000010)
 
-    def symlink(self, source, link_name):
+    def symlink(self, source: str, link_name: str):
         # If we are already in a version of python that supports symlinks then
         # just use the os module, otherwise fall back on ctypes.  It requires
         # administrator privileges to run or the correct group policy to be set.
@@ -511,11 +513,141 @@ class WindowsPlatform(Platform):
             if csl(link_name, source, flags) == 0:
                 raise ctypes.WinError()
 
-    def _terminal_emulator_command(self):
+    def _terminal_emulator_command(self) -> str:
         return "START"
 
-    def _physical_cores_from_wmic(self):
-        # windows
+    def _physical_cores_native(self) -> int | None:
+        """Query the physical CPU count using `ctypes` wrappers for the Win32 API."""
+        # try-except everything in case rez is running in an interpreter without `ctypes`.
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+            # Taken from the `GetLogicalProcessorInformationEx` API reference:
+            # https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlogicalprocessorinformationex
+            # > When this function is called with a relationship type of RelationProcessorCore, it
+            # > returns a PROCESSOR_RELATIONSHIP structure for every active processor core in every
+            # > processor group in the system.
+            RelationProcessorCore = 0
+
+            # Taken from the "System Error Codes" list:
+            # https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+            ERROR_INSUFFICIENT_BUFFER = 0x7A
+
+            class SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX(ctypes.Structure):
+                """
+                typedef struct _SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX {
+                  LOGICAL_PROCESSOR_RELATIONSHIP Relationship;
+                  DWORD                          Size;
+                  union {
+                    PROCESSOR_RELATIONSHIP           Processor;
+                    NUMA_NODE_RELATIONSHIP           NumaNode;
+                    CACHE_RELATIONSHIP               Cache;
+                    GROUP_RELATIONSHIP               Group;
+                    SHARED_COMPUTE_UNIT_RELATIONSHIP SharedComputeUnit;
+                  } DUMMYUNIONNAME;
+                } SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX;
+                """
+
+                _fields_ = [
+                    ("Relationship", ctypes.c_int),  # LOGICAL_PROCESSOR_RELATIONSHIP enum
+                    ("Size", wintypes.DWORD),
+                    # NOTE: We only ever instantiate this struct from an offset into an existing
+                    # buffer. We need the `Relationship` field for counting cores, and the `Size`
+                    # field for computing buffer strides, but we can omit any remaining fields.
+                ]
+
+            # BOOL GetLogicalProcessorInformationEx(
+            #   [in]            LOGICAL_PROCESSOR_RELATIONSHIP           RelationshipType,
+            #   [out, optional] PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Buffer,
+            #   [in, out]       PDWORD                                   ReturnedLength
+            # );
+            GetLogicalProcessorInformationEx = kernel32.GetLogicalProcessorInformationEx
+            GetLogicalProcessorInformationEx.argtypes = [
+                ctypes.c_int,  # RelationshipType
+                ctypes.c_void_p,  # Buffer
+                ctypes.POINTER(wintypes.DWORD),  # ReturnedLength
+            ]
+            GetLogicalProcessorInformationEx.restype = wintypes.BOOL
+
+            buffer_size = wintypes.DWORD(0)
+
+            # Call `GetLogicalProcessorInformationEx` once with a null buffer, which will "fail"
+            # with a known error, but will set the `ReturnedLength` pointer's value to the required
+            # buffer size.
+            success = GetLogicalProcessorInformationEx(
+                RelationProcessorCore,
+                None,
+                ctypes.byref(buffer_size),
+            )
+            if success:
+                # XXX: This should never happen, but we'll be paranoid.
+                return None
+
+            if ctypes.get_last_error() != ERROR_INSUFFICIENT_BUFFER:
+                # The call failed for an unknown reason.
+                return None
+
+            if not buffer_size.value:
+                # XXX: Again, I don't think this can ever happen.
+                return None
+
+            # Now we can allocate a buffer of the required size and call the function again.
+            buffer = (ctypes.c_byte * buffer_size.value)()
+            success = GetLogicalProcessorInformationEx(
+                RelationProcessorCore,
+                buffer,
+                ctypes.byref(buffer_size),
+            )
+            if not success:
+                return None
+
+            # Walk the buffer of `SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX` struct instances and
+            # count the number of matching entries.
+            offset = 0
+            num_cpus = 0
+            buffer_start = ctypes.addressof(buffer)
+
+            while offset < buffer_size.value:
+                proc_info = SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX.from_address(buffer_start + offset)
+
+                # This check should be redundant given that we're already passing this relationship
+                # type to `GetLogicalProcessorInformationEx`, but just to be safe...
+                if proc_info.Relationship == RelationProcessorCore:
+                    num_cpus += 1
+
+                offset += proc_info.Size
+
+            return num_cpus if num_cpus else None
+        except Exception:
+            return None
+
+    def _physical_cores_from_powershell(self) -> int | None:
+        # wmic was removed in Windows 11 24H2; use PowerShell/CimInstance instead.
+        # powershell.exe (Windows PowerShell 5.1) ships with all Windows 10/11 installs.
+        cmd = [
+            'powershell', '-NonInteractive', '-NoProfile', '-Command',
+            ('(Get-CimInstance -ClassName Win32_Processor'
+             ' | Measure-Object -Property NumberOfCores -Sum).Sum'),
+        ]
+        try:
+            p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        except (OSError, IOError):
+            return None
+
+        stdout, _ = p.communicate()
+        if p.returncode:
+            return None
+
+        try:
+            return int(stdout.strip())
+        except ValueError:
+            return None
+
+    def _physical_cores_from_wmic(self) -> int | None:
+        # wmic was removed in Windows 11 24H2; kept as fallback for older Windows versions.
         import subprocess
         try:
             p = Popen(
@@ -545,8 +677,10 @@ class WindowsPlatform(Platform):
 
         return sum(map(int, result))
 
-    def _physical_cores(self):
-        return self._physical_cores_from_wmic()
+    def _physical_cores(self) -> int | None:
+        return (
+            self._physical_cores_native() or self._physical_cores_from_powershell() or self._physical_cores_from_wmic()
+        )
 
     def _difftool(self):
         # although meld would be preferred, fc ships with all Windows versions back to DOS
@@ -555,7 +689,8 @@ class WindowsPlatform(Platform):
 
 
 # singleton
-platform_ = None
+# FIXME: is is valid for platform_ to be None?
+platform_: Platform = None
 name = platform.system().lower()
 if name == "linux":
     platform_ = LinuxPlatform()

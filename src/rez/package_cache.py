@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 import json
 import os
 import os.path
@@ -15,6 +17,7 @@ import sys
 import platform
 import time
 import logging
+import logging.config
 import random
 import threading
 from contextlib import contextmanager
@@ -23,13 +26,14 @@ from rez.config import config
 from rez.exceptions import PackageCacheError
 from rez.vendor.lockfile import LockFile, NotLocked
 from rez.vendor.progress.spinner import PixelSpinner
-from rez.utils.filesystem import safe_listdir, safe_makedirs, safe_remove, \
-    forceful_rmtree
+from rez.utils.filesystem import forceful_rmtree, safe_listdir, safe_remove
 from rez.utils.colorize import ColorizedStreamHandler
 from rez.utils.logging_ import print_warning
-from rez.packages import get_variant
+from rez.packages import get_variant, Variant
 from rez.system import system
 from rez.utils.filesystem import rename
+
+from typing import Iterable, Iterator
 
 
 class PackageCache(object):
@@ -70,6 +74,7 @@ class PackageCache(object):
     VARIANT_COPY_STALLED = 4  #: Variant payload copy has stalled
     VARIANT_PENDING = 5  #: Variant is pending caching
     VARIANT_REMOVED = 6  #: Variant was deleted
+    VARIANT_SKIPPED = 7  # Variant was not cached due to cache size limit
 
     STATUS_DESCRIPTIONS = {
         VARIANT_NOT_FOUND: "was not found",
@@ -81,13 +86,14 @@ class PackageCache(object):
                               "for more information.",
         VARIANT_PENDING: "is pending caching",
         VARIANT_REMOVED: "was deleted",
+        VARIANT_SKIPPED: "is not being cached due to cache size limit"
     }
 
     _FILELOCK_TIMEOUT = 10
     _COPYING_TIME_INC = 0.2
     _COPYING_TIME_MAX = 5.0
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Create a package cache.
 
         Args:
@@ -99,11 +105,11 @@ class PackageCache(object):
         self.path = path
 
         # make dirs for internal use
-        safe_makedirs(self._log_dir)
-        safe_makedirs(self._pending_dir)
-        safe_makedirs(self._remove_dir)
+        os.makedirs(self._log_dir, exist_ok=True)
+        os.makedirs(self._pending_dir, exist_ok=True)
+        os.makedirs(self._remove_dir, exist_ok=True)
 
-    def get_cached_root(self, variant):
+    def get_cached_root(self, variant: Variant) -> str | None:
         """Get location of variant payload copy.
 
         Args:
@@ -130,7 +136,82 @@ class PackageCache(object):
 
         return rootpath
 
-    def add_variant(self, variant, force=False, wait_for_copying=False, logger=None):
+    def get_variant_size(self, free, variant_root):
+        """Get the size of the variant root.
+
+        Args:
+            free: The available free cache space.
+            variant_root: The rez resolved variant root.
+
+        Returns:
+            int: The size in bytes of the variant root (may exceed buffer slightly).
+        """
+        variant_size = 0
+        seen_inodes = set()
+        stack = [variant_root]
+
+        while stack:
+            current = stack.pop()
+            try:
+                with os.scandir(current) as ref:
+                    for entry in ref:
+                        try:
+                            # Since we are following symlinks, track visited inodes to make sure
+                            # we are not double counting files.
+                            st = entry.stat(follow_symlinks=True)
+                            inode = (st.st_dev, st.st_ino)
+                            if inode in seen_inodes:
+                                continue
+                            seen_inodes.add(inode)
+
+                            if stat.S_ISREG(st.st_mode):
+                                variant_size += st.st_size
+                                # Bail out early if variant size will overtake the buffer
+                                # set by config.package_cache_space_buffer.
+                                if (free - variant_size) < config.package_cache_space_buffer:
+                                    return variant_size
+                            elif stat.S_ISDIR(st.st_mode):
+                                stack.append(entry.path)
+                        except OSError:
+                            continue
+            except OSError:
+                continue
+
+        return variant_size
+
+    def cache_near_full(self):
+        """ Get the cache available space
+
+        Returns:
+            bool: True if available cache space is below buffer, otherwise False.
+        """
+        _, _, free = shutil.disk_usage(self.path)
+        return free < config.package_cache_space_buffer
+
+    def variant_meets_space_requirements(self, rez_variant_root):
+        """Check if the cache usage is above config.package_cache_used_threshold.
+        If it is, start throttling the cache by checking each variants size to make sure
+        it's not going to take the cache size below the minimum buffer we set.
+
+        Args:
+            variant_root: The rez resolved variant root.
+
+        Returns:
+            bool:
+                - True if the cache space used is below config.package_cache_used_threshold.
+                - False if (free - variant_size) < config.package_cache_space_buffer, otherwise False.
+        """
+        total, used, free = shutil.disk_usage(self.path)
+        used_percentage = (used / total) * 100 if total else 0.0
+
+        if used_percentage > config.package_cache_used_threshold:
+            variant_size = self.get_variant_size(free, rez_variant_root)
+            return (free - variant_size) > config.package_cache_space_buffer
+
+        return True
+
+    def add_variant(self, variant: Variant, force: bool = False, wait_for_copying: bool = False,
+                    logger: logging.Logger | None = None) -> tuple[str, int]:
         """Copy a variant's payload into the cache.
 
         The following steps are taken to ensure muti-thread/proc safety, and to
@@ -163,15 +244,14 @@ class PackageCache(object):
                 is no guarantee the resulting variant payload will be functional).
             wait_for_copying (bool): Whether the caching step should block when one of the
                 pending variants is marked as already copying.
-            logger (None | Logger): If a logger is provided, log information to it.
+            logger (None | logging.Logger): If a logger is provided, log information to it.
 
         Returns:
             tuple: 2-tuple:
             - str: Path to cached payload
-            - int: One of VARIANT_FOUND, VARIANT_CREATED, VARIANT_COPYING, VARIANT_COPY_STALLED
+            - int: One of VARIANT_FOUND, VARIANT_CREATED, VARIANT_COPYING, VARIANT_COPY_STALLED, VARIANT_SKIPPED
         """
         from rez.utils.base26 import get_next_base26
-        from rez.utils.filesystem import safe_makedirs
 
         # do some sanity checking on variant to cache
         package = variant.parent
@@ -260,9 +340,14 @@ class PackageCache(object):
                     )
             return (rootpath, status)
 
+        # Block adding new variant to cache from rez-pkg-cache --add-variants
+        # if the cache size is almost full.
+        if self.cache_near_full() or not self.variant_meets_space_requirements(variant_root):
+            return (rootpath, self.VARIANT_SKIPPED)
+
         # 1.
         path = self._get_hash_path(variant)
-        safe_makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
         # construct data to store to json file
         data = {
@@ -311,7 +396,7 @@ class PackageCache(object):
         #
         still_copying = True
 
-        def _while_copying():
+        def _while_copying() -> None:
             while still_copying:
                 time.sleep(self._COPYING_TIME_INC)
                 try:
@@ -335,7 +420,7 @@ class PackageCache(object):
 
         return (rootpath, self.VARIANT_CREATED)
 
-    def remove_variant(self, variant):
+    def remove_variant(self, variant: Variant) -> int:
         """Remove a variant from the cache.
 
         Since this removes the associated cached variant payload, there is no
@@ -401,18 +486,18 @@ class PackageCache(object):
 
         return self.VARIANT_REMOVED
 
-    def add_variants_async(self, variants):
+    def add_variants_async(self, variants: Iterable[Variant]) -> None:
         """Update the package cache by adding some or all of the given variants.
 
         This method is called when a context is created or sourced. Variants
         are then added to the cache in a separate process.
 
         .. deprecated:: 3.2.0
-           Use :method:`add_variants` instead.
+           Use :meth:`add_variants` instead.
         """
         return self.add_variants(variants, package_cache_async=True)
 
-    def add_variants(self, variants, package_cache_async=True):
+    def add_variants(self, variants: Iterable[Variant], package_cache_async: bool = True) -> None:
         """Add the given variants to the package payload cache.
         """
 
@@ -494,7 +579,7 @@ class PackageCache(object):
             self._run_caching_operation(wait_for_copying=True)
 
     @staticmethod
-    def _subprocess_package_caching_daemon(path):
+    def _subprocess_package_caching_daemon(path: str) -> subprocess.Popen | None:
         """
         Run the package cache in a daemon process
 
@@ -540,8 +625,9 @@ class PackageCache(object):
                 "Failed to start package caching daemon (command: %s): %s",
                 ' '.join(args), e
             )
+            return None
 
-    def get_variants(self):
+    def get_variants(self) -> list[tuple[Variant, str, int]]:
         """Get variants and their current statuses from the cache.
 
         Returns:
@@ -611,7 +697,7 @@ class PackageCache(object):
 
         return results
 
-    def run_daemon(self):
+    def run_daemon(self) -> None:
         """Run as daemon and copy pending variants.
 
         Called via `rez-pkg-cache --daemon`.
@@ -634,7 +720,7 @@ class PackageCache(object):
 
         self._run_caching_operation(wait_for_copying=False)
 
-    def _run_caching_operation(self, wait_for_copying=True):
+    def _run_caching_operation(self, wait_for_copying: bool = True):
         """Copy pending variants.
 
         Args:
@@ -665,7 +751,7 @@ class PackageCache(object):
             except Exception:
                 logger.exception("An error occurred while cleaning the cache")
 
-    def clean(self, time_limit=None):
+    def clean(self, time_limit: float | None = None) -> None:
         """Delete unused package cache files.
 
         This should be run periodically via 'rez-pkg-cache --clean'.
@@ -752,7 +838,7 @@ class PackageCache(object):
                 return
 
     @contextmanager
-    def _lock(self):
+    def _lock(self) -> Iterator[None]:
         lock_filepath = os.path.join(self._sys_dir, ".lock")
         lock = LockFile(lock_filepath)
 
@@ -765,8 +851,16 @@ class PackageCache(object):
             except NotLocked:
                 pass
 
-    def _run_caching_step(self, state, wait_for_copying=False):
+    def _run_caching_step(self, state, wait_for_copying: bool = False) -> bool:
         logger = state["logger"]
+
+        # Keep the cache daemon alive until the cache size reaches its min threshold.
+        if self.cache_near_full():
+            logger.info(
+                "Cache storage has reached the configured threshold of "
+                f"{config.package_cache_space_buffer / 1024**2:.2f}MB, caching will now stop."
+            )
+            return False
 
         # pick a random pending variant to copy
         pending_filenames = set(os.listdir(self._pending_dir))
@@ -788,6 +882,13 @@ class PackageCache(object):
             raise
 
         variant = get_variant(variant_handle_dict)
+        variant_root = getattr(variant, "root")
+
+        if not self.variant_meets_space_requirements(variant_root):
+            # variant cannot be cached due to its size, so remove as a pending variant.
+            logger.info(f"Variant {variant_root} is too big to be cached due to remaining cache space.")
+            safe_remove(filepath)
+            return True
 
         # copy the variant and log activity
         logger.info("Started caching of variant %s...", variant.uri)
@@ -838,7 +939,7 @@ class PackageCache(object):
 
         return True
 
-    def _init_logging(self):
+    def _init_logging(self) -> logging.Logger:
         """
         Creates logger that logs to file and stdout. Used for:
         - adding variants in daemonized proc;
@@ -846,6 +947,11 @@ class PackageCache(object):
           manually (hence the logging to stdout also)
         """
         logger = logging.getLogger("rez-pkg-cache")
+        logging_conf = os.getenv("REZ_LOGGING_CONF")
+        if logging_conf:
+            logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
+            return logger
+
         logger.setLevel(logging.INFO)
         logger.propagate = False
 
@@ -876,22 +982,22 @@ class PackageCache(object):
         return logger
 
     @property
-    def _sys_dir(self):
+    def _sys_dir(self) -> str:
         return os.path.join(self.path, ".sys")
 
     @property
-    def _log_dir(self):
+    def _log_dir(self) -> str:
         return os.path.join(self.path, ".sys", "log")
 
     @property
-    def _pending_dir(self):
+    def _pending_dir(self) -> str:
         return os.path.join(self.path, ".sys", "pending")
 
     @property
-    def _remove_dir(self):
+    def _remove_dir(self) -> str:
         return os.path.join(self.path, ".sys", "to_delete")
 
-    def _get_cached_root(self, variant):
+    def _get_cached_root(self, variant: Variant) -> tuple[int, str]:
         path = self._get_hash_path(variant)
         if not os.path.exists(path):
             return (self.VARIANT_NOT_FOUND, '')
@@ -932,7 +1038,7 @@ class PackageCache(object):
 
         return (self.VARIANT_NOT_FOUND, '')
 
-    def _get_hash_path(self, variant):
+    def _get_hash_path(self, variant: Variant) -> str:
         dirs = [self.path, variant.name]
 
         if variant.version:

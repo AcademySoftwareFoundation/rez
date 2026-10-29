@@ -9,7 +9,7 @@ from functools import partial
 
 
 class PackageLoadingWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super(PackageLoadingWidget, self).__init__(parent)
         self.main_widget = None
         self.worker = None
@@ -30,13 +30,13 @@ class PackageLoadingWidget(QtWidgets.QWidget):
         are loaded, and the main widget will be bought into view afterwards."""
         raise NotImplementedError
 
-    def set_loader_swap_delay(self, msecs):
+    def set_loader_swap_delay(self, msecs) -> None:
         """Set the delay before widget swaps to show the loading bar. A delay is
         useful because it avoids the annoying flicker that results from a fast
         packages load."""
         self.swap_delay = msecs
 
-    def set_main_widget(self, widget):
+    def set_main_widget(self, widget) -> None:
         layout = self.layout()
         if self.main_widget is not None:
             layout.removeWidget(self.main_widget)
@@ -46,13 +46,13 @@ class PackageLoadingWidget(QtWidgets.QWidget):
         self.main_widget = widget
         self.loading_widget.hide()
 
-    def stop_loading_packages(self):
+    def stop_loading_packages(self) -> None:
         if self.worker:
             self.worker.stop()
             self.worker = None
 
     def load_packages(self, package_paths, package_name, range_=None,
-                      package_attributes=None, callback=None):
+                      package_attributes=None, callback=None) -> None:
         self.stop_loading_packages()
         self.bar.setRange(0, 0)
 
@@ -89,14 +89,14 @@ class PackageLoadingWidget(QtWidgets.QWidget):
 
         thread.start()
 
-    def __del__(self):
+    def __del__(self) -> None:
         for _, worker in self.threads:
             worker.stop()
         for th, _ in self.threads:
             th.quit()
             th.wait()
 
-    def _swap_to_loader(self, id_):
+    def _swap_to_loader(self, id_) -> None:
         if self.worker is None or id(self.worker) != id_:
             return
 
@@ -104,14 +104,14 @@ class PackageLoadingWidget(QtWidgets.QWidget):
         if self.main_widget is not None:
             self.main_widget.hide()
 
-    def _progress(self, id_, value, total):
+    def _progress(self, id_, value, total) -> None:
         if self.worker is None or id(self.worker) != id_:
             return
 
         self.bar.setMaximum(total)
         self.bar.setValue(value)
 
-    def _packagesLoaded(self, id_, packages):
+    def _packagesLoaded(self, id_, packages) -> None:
         if self.worker is None or id(self.worker) != id_:
             return
 

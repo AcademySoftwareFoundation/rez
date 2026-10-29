@@ -2,6 +2,8 @@
 # Copyright Contributors to the Rez Project
 
 
+from __future__ import annotations
+
 from rez.utils.resources import ResourcePool, ResourceHandle
 from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
@@ -11,20 +13,28 @@ from contextlib import contextmanager
 import threading
 import os.path
 import time
+from typing import Any, Hashable, Iterator, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.package_resources import (PackageFamilyResource, PackageResource, PackageResourceHelper,
+                                       VariantResource, PackageRepositoryResource)
+    from rez.utils.resources import Resource
+    from rez.version import Version
+    from rezplugins.package_repository.memory import MemoryPackageRepository
 
 
-def get_package_repository_types():
+def get_package_repository_types() -> list[str]:
     """Returns the available package repository implementations."""
     return plugin_manager.get_plugins('package_repository')
 
 
-def create_memory_package_repository(repository_data):
+def create_memory_package_repository(repository_data: dict) -> MemoryPackageRepository:
     """Create a standalone in-memory package repository from the data given.
 
     See rezplugins/package_repository/memory.py for more details.
 
     Args:
-        repository_data (dict): Package repository data.
+        repository_data: Package repository data.
 
     Returns:
         `PackageRepository` object.
@@ -36,13 +46,13 @@ def create_memory_package_repository(repository_data):
 class PackageRepositoryGlobalStats(threading.local):
     """Gathers stats across package repositories.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         # the amount of time that has been spent loading package from ,
         # repositories, since process start
         self.package_load_time = 0.0
 
     @contextmanager
-    def package_loading(self):
+    def package_loading(self) -> Iterator[None]:
         """Use this around code in your package repository that is loading a
         package, for example from file or cache.
         """
@@ -65,43 +75,42 @@ class PackageRepository(object):
     payloads.
     """
 
-    # see `install_variant`.
+    #: see :meth:`install_variant`.
     remove = object()
 
     @classmethod
-    def name(cls):
+    def name(cls) -> str:
         """Return the name of the package repository type."""
         raise NotImplementedError
 
-    def __init__(self, location, resource_pool):
+    def __init__(self, location: str, resource_pool: ResourcePool) -> None:
         """Create a package repository.
 
         Args:
-            location (str): A string specifying the location of the repository.
+            location: A string specifying the location of the repository.
                 This could be a filesystem path, or a database uri, etc.
-            resource_pool (`ResourcePool`): The pool used to manage package
-                resources.
+            resource_pool: The pool used to manage package resources.
         """
         self.location = location
         self.pool = resource_pool
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "%s@%s" % (self.name(), self.location)
 
-    def register_resource(self, resource_class):
+    def register_resource(self, resource_class: type[Resource]) -> None:
         """Register a resource with the repository.
 
-        Your derived repository class should call this method in its __init__ to
+        Your derived repository class should call this method in its ``__init__`` to
         register all the resource types associated with that plugin.
         """
         self.pool.register_resource(resource_class)
 
-    def clear_caches(self):
+    def clear_caches(self) -> None:
         """Clear any cached resources in the pool."""
         self.pool.clear_caches()
 
     @cached_property
-    def uid(self):
+    def uid(self) -> tuple:
         """Returns a unique identifier for this repository.
 
         This must be a persistent identifier, for example a filepath, or
@@ -112,14 +121,14 @@ class PackageRepository(object):
         """
         return self._uid()
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (
             isinstance(other, PackageRepository)
             and other.name() == self.name()
             and other.uid == self.uid
         )
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """Determine if the repository contains any packages.
 
         Returns:
@@ -131,18 +140,18 @@ class PackageRepository(object):
 
         return True
 
-    def get_package_family(self, name):
+    def get_package_family(self, name: str) -> PackageFamilyResource | None:
         """Get a package family.
 
         Args:
-            name (str): Package name.
+            name: Package name.
 
         Returns:
             `PackageFamilyResource`, or None if not found.
         """
         raise NotImplementedError
 
-    def iter_package_families(self):
+    def iter_package_families(self) -> Iterator[PackageFamilyResource]:
         """Iterate over the package families in the repository, in no
         particular order.
 
@@ -151,38 +160,38 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def iter_packages(self, package_family_resource):
+    def iter_packages(self, package_family_resource: PackageFamilyResource) -> Iterator[PackageResource]:
         """Iterate over the packages within the given family, in no particular
         order.
 
         Args:
-            package_family_resource (`PackageFamilyResource`): Parent family.
+            package_family_resource: Parent family.
 
         Returns:
             `PackageResource` iterator.
         """
         raise NotImplementedError
 
-    def iter_variants(self, package_resource):
+    def iter_variants(self, package_resource: PackageResource) -> Iterator[VariantResource]:
         """Iterate over the variants within the given package.
 
         Args:
-            package_resource (`PackageResource`): Parent package.
+            package_resource: Parent package.
 
         Returns:
             `VariantResource` iterator.
         """
         raise NotImplementedError
 
-    def get_package(self, name, version):
+    def get_package(self, name: str, version: Version) -> PackageResourceHelper | None:
         """Get a package.
 
         Args:
-            name (str): Package name.
-            version (`Version`): Package version.
+            name: Package name.
+            version: Package version.
 
         Returns:
-            `PackageResource` or None: Matching package, or None if not found.
+            `PackageResourceHelper` or None: Matching package, or None if not found.
         """
         fam = self.get_package_family(name)
         if fam is None:
@@ -194,11 +203,11 @@ class PackageRepository(object):
 
         return None
 
-    def get_package_from_uri(self, uri):
+    def get_package_from_uri(self, uri: str) -> PackageResource | None:
         """Get a package given its URI.
 
         Args:
-            uri (str): Package URI
+            uri: Package URI
 
         Returns:
             `PackageResource`, or None if the package is not present in this
@@ -206,11 +215,11 @@ class PackageRepository(object):
         """
         return None
 
-    def get_variant_from_uri(self, uri):
+    def get_variant_from_uri(self, uri: str) -> VariantResource | None:
         """Get a variant given its URI.
 
         Args:
-            uri (str): Variant URI
+            uri: Variant URI
 
         Returns:
             `VariantResource`, or None if the variant is not present in this
@@ -218,132 +227,132 @@ class PackageRepository(object):
         """
         return None
 
-    def ignore_package(self, pkg_name, pkg_version, allow_missing=False):
+    def ignore_package(self, pkg_name: str, pkg_version: Version, allow_missing: bool = False) -> int:
         """Ignore the given package.
 
         Ignoring a package makes it invisible to further resolves.
 
         Args:
-            pkg_name (str): Package name
-            pkg_version(`Version`): Package version
-            allow_missing (bool): if True, allow for ignoring a package that
+            pkg_name: Package name
+            pkg_version: Package version
+            allow_missing: if True, allow for ignoring a package that
                 does not exist. This is useful when you want to copy a package
                 to a repo and you don't want it visible until the copy is
                 completed.
 
         Returns:
-            int:
-            * -1: Package not found
-            * 0: Nothing was done, package already ignored
-            * 1: Package was ignored
+            -1 if the package is not found, 0 if nothing was done (package already ignored)
+            or 1 if package was ignored.
         """
         raise NotImplementedError
 
-    def unignore_package(self, pkg_name, pkg_version):
+    def unignore_package(self, pkg_name: str, pkg_version: Version) -> int:
         """Unignore the given package.
 
         Args:
-            pkg_name (str): Package name
-            pkg_version(`Version`): Package version
+            pkg_name: Package name
+            pkg_version: Package version
 
         Returns:
-            int:
-            * -1: Package not found
-            * 0: Nothing was done, package already visible
-            * 1: Package was unignored
+            -1 if the package is not found, 0 if nothing was done (package already visible)
+            or 1 if the package was unignored.
         """
         raise NotImplementedError
 
-    def remove_package(self, pkg_name, pkg_version):
+    def remove_package(self, pkg_name: str, pkg_version: Version) -> bool:
         """Remove a package.
 
         Note that this should work even if the specified package is currently
         ignored.
 
         Args:
-            pkg_name (str): Package name
-            pkg_version(`Version`): Package version
+            pkg_name: Package name
+            pkg_version: Package version
 
         Returns:
-            bool: True if the package was removed, False if it wasn't found.
+            True if the package was removed, False if it wasn't found.
         """
         raise NotImplementedError
 
-    def remove_package_family(self, pkg_name, force=False):
+    def remove_package_family(self, pkg_name: str, force: bool = False) -> bool:
         """Remove an empty package family.
 
         Args:
-            pkg_name (str): Package name
-            force (bool): If Trur, delete even if not empty.
+            pkg_name: Package name
+            force: If True, delete even if not empty.
 
         Returns:
-            bool: True if the family was removed, False if it wasn't found.
+            True if the family was removed, False if it wasn't found.
         """
         raise NotImplementedError
 
-    def remove_ignored_since(self, days, dry_run=False, verbose=False):
+    def remove_ignored_since(self, days: int, dry_run: bool = False,
+                             verbose: bool = False) -> int:
         """Remove packages ignored for >= specified number of days.
 
         Args:
-            days (int): Remove packages ignored >= this many days
+            days: Remove packages ignored >= this many days
             dry_run: Dry run mode
-            verbose (bool): Verbose mode
+            verbose: Verbose mode
 
         Returns:
-            int: Number of packages removed. In dry-run mode, returns the
-            number of packages that _would_ be removed.
+            Number of packages removed. In dry-run mode, returns the
+            number of packages that *would* be removed.
         """
         raise NotImplementedError
 
-    def pre_variant_install(self, variant_resource):
+    def pre_variant_install(self, variant_resource: VariantResource) -> None:
         """Called before a variant is installed.
 
         If any directories are created on disk for the variant to install into,
         this is called before that happens.
 
-        Note that it is the responsibility of the `BuildProcess` to call this
+        Note that it is the responsibility of the :class:`.BuildProcess` to call this
         function at the appropriate time.
         """
         pass
 
-    def on_variant_install_cancelled(self, variant_resource):
+    def on_variant_install_cancelled(self, variant_resource: VariantResource) -> None:
         """Called when a variant installation is cancelled.
 
-        This is called after `pre_variant_install`, but before `install_variant`,
+        This is called after :meth:`pre_variant_install`, but before :meth:`install_variant`,
         which is not expected to be called.
 
         Variant install cancellation usually happens for one of two reasons -
         either the variant installation failed (ie a build error occurred), or
         one or more of the package tests failed, aborting the installation.
 
-        Note that it is the responsibility of the `BuildProcess` to call this
+        Note that it is the responsibility of the :class:`.BuildProcess` to call this
         function at the appropriate time.
         """
         pass
 
-    def install_variant(self, variant_resource, dry_run=False, overrides=None):
+    def install_variant(self,
+                        variant_resource: VariantResource,
+                        dry_run: bool = False,
+                        overrides: dict[str, Any] | None = None) -> VariantResource:
         """Install a variant into this repository.
 
         Use this function to install a variant from some other package repository
         into this one.
 
         Args:
-            variant_resource (`VariantResource`): Variant to install.
-            dry_run (bool): If True, do not actually install the variant. In this
-                mode, a `Variant` instance is only returned if the equivalent
+            variant_resource: Variant to install.
+            dry_run: If True, do not actually install the variant. In this
+                mode, a :class:`.Variant` instance is only returned if the equivalent
                 variant already exists in this repository; otherwise, None is
                 returned.
-            overrides (dict): Use this to change or add attributes to the
+            overrides: Use this to change or add attributes to the
                 installed variant. To remove attributes, set values to
-                `PackageRepository.remove`.
+                :attr:`remove`.
 
         Returns:
             `VariantResource` object, which is the newly created variant in this
-            repository. If `dry_run` is True, None may be returned.
+            repository. If ``dry_run`` is True, None may be returned.
         """
         raise NotImplementedError
 
-    def get_equivalent_variant(self, variant_resource):
+    def get_equivalent_variant(self, variant_resource: VariantResource) -> VariantResource:
         """Find a variant in this repository that is equivalent to that given.
 
         A variant is equivalent to another if it belongs to a package of the
@@ -351,40 +360,41 @@ class PackageRepository(object):
         requirements).
 
         Note that even though the implementation is trivial, this function is
-        provided since using `install_variant` to find an existing variant is
+        provided since using :meth:`install_variant` to find an existing variant is
         nonintuitive.
 
         Args:
-            variant_resource (`VariantResource`): Variant to install.
+            variant_resource: Variant to install.
 
         Returns:
             `VariantResource` object, or None if the variant was not found.
         """
         return self.install_variant(variant_resource, dry_run=True)
 
-    def get_parent_package_family(self, package_resource):
+    def get_parent_package_family(self, package_resource: PackageResourceHelper) -> PackageFamilyResource:
         """Get the parent package family of the given package.
 
         Args:
-            package_resource (`PackageResource`): Package.
+            package_resource: Package.
 
         Returns:
             `PackageFamilyResource`.
         """
         raise NotImplementedError
 
-    def get_parent_package(self, variant_resource):
+    def get_parent_package(self, variant_resource: VariantResource) -> PackageRepositoryResource:
         """Get the parent package of the given variant.
 
         Args:
-            variant_resource (`VariantResource`): Variant.
+            variant_resource: Variant.
 
         Returns:
             `PackageResource`.
         """
         raise NotImplementedError
 
-    def get_variant_state_handle(self, variant_resource):
+    def get_variant_state_handle(self, variant_resource: PackageResource
+                                 ) -> Hashable | None:
         """Get a value that indicates the state of the variant.
 
         This is used for resolve caching. For example, in the 'filesystem'
@@ -400,7 +410,8 @@ class PackageRepository(object):
         """
         return None
 
-    def get_last_release_time(self, package_family_resource):
+    def get_last_release_time(self, package_family_resource: PackageFamilyResource
+                              ) -> int:
         """Get the last time a package was added to the given family.
 
         This information is used to cache resolves via memcached. It can be left
@@ -408,16 +419,16 @@ class PackageRepository(object):
         you will be missing out on.
 
         Returns:
-            int: Epoch time at which a package was changed/added/removed from
-                the given package family. Zero signifies an unknown last package
-                update time.
+            Epoch time at which a package was changed/added/removed from
+            the given package family. Zero signifies an unknown last package
+            update time.
         """
         return 0
 
-    def make_resource_handle(self, resource_key, **variables):
-        """Create a `ResourceHandle`
+    def make_resource_handle(self, resource_key: str, **variables: Any) -> ResourceHandle:
+        """Create a :class:`.ResourceHandle`
 
-        Nearly all `ResourceHandle` creation should go through here, because it
+        Nearly all :class:`.ResourceHandle` creation should go through here, because it
         gives the various resource classes a chance to normalize / standardize
         the resource handles, to improve caching / comparison / etc.
         """
@@ -438,14 +449,14 @@ class PackageRepository(object):
         variables = resource_cls.normalize_variables(variables)
         return ResourceHandle(resource_key, variables)
 
-    def get_resource(self, resource_key, **variables):
+    def get_resource(self, resource_key: str | type[Resource], **variables: Any) -> Resource:
         """Get a resource.
 
         Attempts to get and return a cached version of the resource if
         available, otherwise a new resource object is created and returned.
 
         Args:
-            resource_key (`str`):  Name of the type of `Resources` to find
+            resource_key: Name of the type of :class:`.Resource` to find
             variables: data to identify / store on the resource
 
         Returns:
@@ -454,11 +465,12 @@ class PackageRepository(object):
         handle = self.make_resource_handle(resource_key, **variables)
         return self.get_resource_from_handle(handle, verify_repo=False)
 
-    def get_resource_from_handle(self, resource_handle, verify_repo=True):
-        """Get a resource.
+    def get_resource_from_handle(self, resource_handle: ResourceHandle,
+                                 verify_repo: bool = True) -> Resource:
+        """Get a resource from a handle.
 
         Args:
-            resource_handle (`ResourceHandle`): Handle of the resource.
+            resource_handle: Handle of the resource.
 
         Returns:
             `PackageRepositoryResource` instance.
@@ -484,24 +496,24 @@ class PackageRepository(object):
         resource._repository = self
         return resource
 
-    def get_package_payload_path(self, package_name, package_version=None):
+    def get_package_payload_path(self, package_name: str, package_version: str | Version | None = None) -> str:
         """Defines where a package's payload should be installed to.
 
         Args:
-            package_name (str): Nmae of package.
-            package_version (str or `Version`): Package version.
+            package_name: Name of package.
+            package_version: Package version.
 
         Returns:
-            str: Path where package's payload should be installed to.
+            Path where package's payload should be installed to.
         """
         raise NotImplementedError
 
-    def _uid(self):
+    def _uid(self) -> tuple:
         """Unique identifier implementation.
 
         You may need to provide your own implementation. For example, consider
-        the 'filesystem' repository. A default uri might be 'filesystem@/tmp_pkgs'.
-        However /tmp_pkgs is probably a local path for each user, so this would
+        the 'filesystem' repository. A default uri might be ``filesystem@/tmp_pkgs``.
+        However ``/tmp_pkgs`` is probably a local path for each user, so this would
         not actually uniquely identify the repository - probably the inode number
         needs to be incorporated also.
 
@@ -514,14 +526,14 @@ class PackageRepository(object):
 class PackageRepositoryManager(object):
     """Package repository manager.
 
-    Manages retrieval of resources (packages and variants) from `PackageRepository`
+    Manages retrieval of resources (packages and variants) from :class:`PackageRepository`
     instances, and caches these resources in a resource pool.
     """
-    def __init__(self, resource_pool=None):
+    def __init__(self, resource_pool: ResourcePool | None = None) -> None:
         """Create a package repo manager.
 
         Args:
-            resource_pool (`ResourcePool`): Provide your own resource pool. If
+            resource_pool: Provide your own resource pool. If
                 None, a default pool is created based on config settings.
         """
         if resource_pool is None:
@@ -532,16 +544,16 @@ class PackageRepositoryManager(object):
             resource_pool = ResourcePool(cache_size=cache_size)
 
         self.pool = resource_pool
-        self.repositories = {}
+        self.repositories: dict[str, PackageRepository] = {}
 
-    def get_repository(self, path):
+    def get_repository(self, path: str) -> PackageRepository:
         """Get a package repository.
 
         Args:
-            path (str): Entry from the 'packages_path' config setting. This may
+            path: Entry from the :data:`packages_path` config setting. This may
                 simply be a path (which is managed by the 'filesystem' package
-                repository plugin), or a string in the form "type@location",
-                where 'type' identifies the repository plugin type to use.
+                repository plugin), or a string in the form ``type@location``,
+                where ``type`` identifies the repository plugin type to use.
 
         Returns:
             `PackageRepository` instance.
@@ -573,12 +585,12 @@ class PackageRepositoryManager(object):
 
         return repository
 
-    def are_same(self, path_1, path_2):
-        """Test that `path_1` and `path_2` refer to the same repository.
+    def are_same(self, path_1: str, path_2: str) -> bool:
+        """Test that ``path_1`` and ``path_2`` refer to the same repository.
 
         This is more reliable than testing that the strings match, since slightly
         different strings might refer to the same repository (consider small
-        differences in a filesystem path for example, eg '//svr/foo', '/svr/foo').
+        differences in a filesystem path for example, eg ``//svr/foo``, ``/svr/foo``).
 
         Returns:
             True if the paths refer to the same repository, False otherwise.
@@ -590,18 +602,18 @@ class PackageRepositoryManager(object):
         repo_2 = self.get_repository(path_2)
         return (repo_1.uid == repo_2.uid)
 
-    def get_resource(self, resource_key, repository_type, location,
-                     **variables):
+    def get_resource(self, resource_key: str, repository_type: str,
+                     location: str, **variables: Any) -> Resource:
         """Get a resource.
 
         Attempts to get and return a cached version of the resource if
         available, otherwise a new resource object is created and returned.
 
         Args:
-            resource_key (`str`):  Name of the type of `Resources` to find
-            repository_type (`str`): What sort of repository to look for the
+            resource_key:  Name of the type of :class:`.Resource` to find
+            repository_type: What sort of repository to look for the
                 resource in
-            location (`str`): location for the repository
+            location: location for the repository
             variables: data to identify / store on the resource
 
         Returns:
@@ -612,11 +624,11 @@ class PackageRepositoryManager(object):
         resource = repo.get_resource(**variables)
         return resource
 
-    def get_resource_from_handle(self, resource_handle):
-        """Get a resource.
+    def get_resource_from_handle(self, resource_handle: ResourceHandle) -> Resource:
+        """Get a resource from an handle.
 
         Args:
-            resource_handle (`ResourceHandle`): Handle of the resource.
+            resource_handle: Handle of the resource.
 
         Returns:
             `PackageRepositoryResource` instance.
@@ -632,17 +644,17 @@ class PackageRepositoryManager(object):
         resource = repo.get_resource_from_handle(resource_handle)
         return resource
 
-    def clear_caches(self):
+    def clear_caches(self) -> None:
         """Clear all cached data."""
         self.repositories.clear()
         self.pool.clear_caches()
 
-    def _get_repository(self, path, **repo_args):
+    def _get_repository(self, path: str, **repo_args: Any) -> PackageRepository:
         repo_type, location = path.split('@', 1)
         cls = plugin_manager.get_plugin_class('package_repository', repo_type)
         repo = cls(location, self.pool, **repo_args)
         return repo
 
 
-# singleton
+#: singleton
 package_repository_manager = PackageRepositoryManager()

@@ -10,7 +10,7 @@ from rezgui.util import create_pane
 
 
 class VariantDetailsWidget(QtWidgets.QWidget, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None) -> None:
         super(VariantDetailsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
         self.variant = None
@@ -24,11 +24,11 @@ class VariantDetailsWidget(QtWidgets.QWidget, ContextViewMixin):
         create_pane([self.edit, btn_pane], False, compact=True, parent_widget=self)
         self.clear()
 
-    def clear(self):
+    def clear(self) -> None:
         self.edit.clear()
         self.setEnabled(False)
 
-    def set_variant(self, variant):
+    def set_variant(self, variant) -> None:
         if variant == self.variant:
             return
 
@@ -43,8 +43,8 @@ class VariantDetailsWidget(QtWidgets.QWidget, ContextViewMixin):
 
         self.variant = variant
 
-    def _update_graph_btn_visibility(self):
+    def _update_graph_btn_visibility(self) -> None:
         self.view_graph_btn.setVisible(bool(self.context()))
 
-    def _contextChanged(self, flags=0):
+    def _contextChanged(self, flags: int=0) -> None:
         self._update_graph_btn_visibility()

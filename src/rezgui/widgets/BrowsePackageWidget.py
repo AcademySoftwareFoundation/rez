@@ -17,8 +17,8 @@ class BrowsePackageWidget(QtWidgets.QWidget, ContextViewMixin):
     """
     packageSelected = QtCore.Signal()
 
-    def __init__(self, context_model=None, parent=None, lock_package=False,
-                 package_selectable_callback=None):
+    def __init__(self, context_model=None, parent=None, lock_package: bool = False,
+                 package_selectable_callback=None) -> None:
         super(BrowsePackageWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -46,7 +46,7 @@ class BrowsePackageWidget(QtWidgets.QWidget, ContextViewMixin):
         self.edit.focusOutViaKeyPress.connect(self._set_package_name)
         self.versions_table.itemSelectionChanged.connect(self._set_package)
 
-    def set_package_text(self, txt):
+    def set_package_text(self, txt) -> None:
         try:
             req = Requirement(str(txt))
             package_name = req.name
@@ -64,11 +64,11 @@ class BrowsePackageWidget(QtWidgets.QWidget, ContextViewMixin):
     def current_package(self):
         return self.versions_table.current_package()
 
-    def _set_package_name(self, package_name):
+    def _set_package_name(self, package_name) -> None:
         self.versions_table.set_package_name(package_name)
         self.versions_table.setFocus()
 
-    def _set_package(self):
+    def _set_package(self) -> None:
         package = self.versions_table.current_package()
         self.package_tab.set_package(package)
         self.packageSelected.emit()

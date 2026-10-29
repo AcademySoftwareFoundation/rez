@@ -10,12 +10,18 @@ including:
 - early bound functions that use the @early decorator.
 """
 
+from __future__ import annotations
+
 # these imports just forward the symbols into this module's namespace
 from rez.utils.execution import Popen
 from rez.exceptions import InvalidPackageError
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from rez.packages import Package
 
 
-def expand_requirement(request, paths=None):
+def expand_requirement(request: str, paths=None) -> str:
     """Expands a requirement string like ``python-2.*``, ``foo-2.*+<*``, etc.
 
     Wildcards are expanded to the latest version that matches. There is also a
@@ -144,7 +150,7 @@ def expand_requirement(request, paths=None):
     return str(expanded_req)
 
 
-def expand_requires(*requests):
+def expand_requires(*requests: str) -> list[str]:
     """Create an expanded requirements list.
 
     Example:
@@ -164,7 +170,7 @@ def expand_requires(*requests):
     return [expand_requirement(x) for x in requests]
 
 
-def exec_command(attr, cmd):
+def exec_command(attr: str, cmd: list[str]) -> tuple[str, str]:
     """Runs a subprocess to calculate a package attribute.
 
     Args:
@@ -187,7 +193,7 @@ def exec_command(attr, cmd):
     return out.strip(), err.strip()
 
 
-def exec_python(attr, src, executable="python"):
+def exec_python(attr: str, src: list[str], executable="python") -> str:
     """Runs a python subproc to calculate a package attribute.
 
     Args:
@@ -215,7 +221,7 @@ def exec_python(attr, src, executable="python"):
     return out.strip()
 
 
-def find_site_python(module_name, paths=None):
+def find_site_python(module_name: str, paths: list[str] | None = None) -> Package:
     """Find the rez native python package that contains the given module.
 
     This function is used by python 'native' rez installers to find the native

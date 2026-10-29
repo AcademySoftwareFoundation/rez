@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "myst_parser",
+    "sphinxcontrib.googleanalytics",
     # Rez custom extension
     'rez_sphinxext'
 ]
@@ -45,12 +46,34 @@ extensions = [
 templates_path = ['_templates']
 
 nitpick_ignore = [
-    # TODO: Remove once we unvendor enum.
+    # Our API isn't very clean... We expose private things via public
+    # interfaces...
     ("py:class", "rez.solver._Common"),
     ("py:class", "_thread._local"),
     ("py:class", "rez.utils.platform_._UnixPlatform"),
     ("py:class", "rez.version._util._Common"),
     ("py:class", "rez.version._version._Comparable"),
+    ("py:class", "rez.solver._ResolvePhase"),
+    ("py:class", "rez.config._PluginConfigs"),
+    ("py:class", "rez.version._version._LowerBound"),
+    ("py:class", "rez.version._version._UpperBound"),
+    ("py:class", "rez.version._version._Bound"),
+    ("py:class", "_ContainsVersionIterator"),
+    ("py:class", "rez.version._version._ReversedComparable"),
+    ("py:class", "_ReversedComparable"),
+    ("py:class", "rez.solver._PackageVariantList"),
+    ("py:class", "rez.solver._PackageVariantSlice"),
+    ("py:class", "rez.utils.memcached.Client._Miss"),
+    ("py:class", "argparse._ArgumentGroup"),
+    # Remove once we find a way to support TypeVar correctly.
+    ("py:class", "rez.config.T"),
+    ("py:obj", "rez.utils.sourcecode.T"),
+    ("py:class", "rez.utils.sourcecode.T"),
+    ("py:class", "rez.utils.sourcecode.CallabeT"),
+    ("py:class", "rez.utils.data_utils.T"),
+    ("py:obj", "rez.utils.data_utils.T"),
+    ("py:class", "rez.utils.memcached.CallableT"),
+    ("py:class", "rez.packages.PackageT"),
 ]
 
 nitpick_ignore_regex = [
@@ -117,8 +140,44 @@ extlinks = {
 
 todo_emit_warnings = False
 
+# -- Options for googleanalytics extension ----------------------------------
+# https://github.com/sphinx-contrib/googleanalytics
+
+# ReadTheDocs used to support Google Analytics natively. But they no more do
+# since July 2024. See https://github.com/readthedocs/readthedocs.org/issues/9530#issuecomment-2233541583
+
+if not os.environ.get("READTHEDOCS"):
+    # Don't activate if run locally
+    googleanalytics_enabled = False
+
+# https://jira.linuxfoundation.org/plugins/servlet/desk/portal/2/IT-26436
+googleanalytics_id = "G-G11PX36QZS"
+
 
 # -- Custom -----------------------------------------------------------------
+
+def skip_inherited_mapping_member(
+    app: sphinx.application.Sphinx,
+    what: str,
+    name: str,
+    obj: object,
+    skip: bool,
+    options: object,
+) -> bool | None:
+    """
+    Do not document implementation methods inherited by mapping classes.
+    This is annoying, but without this, inherited-members
+    causes a lot of unnecessary warnings coming from the stdlib.
+    """
+    owner = getattr(obj, '__objclass__', None)
+    if what == 'class' and (
+        owner is dict
+        or getattr(obj, '__module__', None) in ("collections", "collections.abc")
+    ):
+        return True
+
+    return None
+
 
 def handle_ref_warning(
     app: sphinx.application.Sphinx,
@@ -146,6 +205,7 @@ def handle_ref_warning(
 
 
 def setup(app: sphinx.application.Sphinx) -> dict[str, bool | str]:
+    app.connect('autodoc-skip-member', skip_inherited_mapping_member)
     app.connect('warn-missing-reference', handle_ref_warning)
 
     return {

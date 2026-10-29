@@ -16,7 +16,7 @@ from rez.version import Requirement, RequirementList
 from rez.version import VersionError
 
 
-def _print(txt=''):
+def _print(txt='') -> None:
     # uncomment for verbose output
     #print txt
     pass
@@ -25,10 +25,10 @@ def _print(txt=''):
 class TestVersionSchema(unittest.TestCase):
     make_token = AlphanumericVersionToken
 
-    def __init__(self, fn):
+    def __init__(self, fn) -> None:
         unittest.TestCase.__init__(self, fn)
 
-    def _test_strict_weak_ordering(self, a, b):
+    def _test_strict_weak_ordering(self, a, b) -> None:
         self.assertTrue(a == a)
         self.assertTrue(b == b)
 
@@ -66,8 +66,8 @@ class TestVersionSchema(unittest.TestCase):
             self._test_strict_weak_ordering(reverse_sort_key(a),
                                             reverse_sort_key(b))
 
-    def _test_ordered(self, items):
-        def _test(fn, items_, op_str):
+    def _test_ordered(self, items) -> None:
+        def _test(fn, items_, op_str) -> None:
             for i, a in enumerate(items_):
                 for b in items_[i + 1:]:
                     _print("'%s' %s '%s'" % (a, op_str, b))
@@ -89,10 +89,10 @@ class TestVersionSchema(unittest.TestCase):
                            for i in range(random.randint(0, 6)))
         return Version(ver_str, make_token=self.make_token)
 
-    def test_misc(self):
+    def test_misc(self) -> None:
         self.assertEqual(Version("1.2.12").as_tuple(), ("1", "2", "12"))
 
-    def test_token_strict_weak_ordering(self):
+    def test_token_strict_weak_ordering(self) -> None:
         # test equal tokens
         tok = self._create_random_token()
         self._test_strict_weak_ordering(tok, tok)
@@ -103,7 +103,7 @@ class TestVersionSchema(unittest.TestCase):
             tok2 = self._create_random_token()
             self._test_strict_weak_ordering(tok1, tok2)
 
-    def test_version_strict_weak_ordering(self):
+    def test_version_strict_weak_ordering(self) -> None:
         # test equal versions
         ver = self._create_random_version()
         self._test_strict_weak_ordering(ver, ver)
@@ -114,8 +114,8 @@ class TestVersionSchema(unittest.TestCase):
             ver2 = self._create_random_version()
             self._test_strict_weak_ordering(ver1, ver2)
 
-    def test_token_comparisons(self):
-        def _lt(a, b):
+    def test_token_comparisons(self) -> None:
+        def _lt(a, b) -> None:
             _print("'%s' < '%s'" % (a, b))
             self.assertTrue(self.make_token(a) < self.make_token(b))
             self.assertTrue(Version(a) < Version(b))
@@ -128,8 +128,8 @@ class TestVersionSchema(unittest.TestCase):
         _lt("alpha", "alpha3")
         _lt("gamma33", "33gamma")
 
-    def test_version_comparisons(self):
-        def _eq(a, b):
+    def test_version_comparisons(self) -> None:
+        def _eq(a, b) -> None:
             _print("'%s' == '%s'" % (a, b))
             self.assertTrue(Version(a) == Version(b))
 
@@ -152,7 +152,7 @@ class TestVersionSchema(unittest.TestCase):
                      "2.1.0"]
         self._test_ordered([Version(x) for x in ascending])
 
-        def _eq2(a, b):
+        def _eq2(a, b) -> None:
             _print("'%s' == '%s'" % (a, b))
             self.assertTrue(a == b)
 
@@ -169,8 +169,8 @@ class TestVersionSchema(unittest.TestCase):
         _eq2(set([b, c]) | set([c, d]), set([b, c, d]))
         _eq2(set([b, c]) & set([c, d]), set([c]))
 
-    def test_version_range(self):
-        def _eq(a, b):
+    def test_version_range(self) -> None:
+        def _eq(a, b) -> None:
             _print("'%s' == '%s'" % (a, b))
             a_range = VersionRange(a)
             b_range = VersionRange(b)
@@ -211,7 +211,7 @@ class TestVersionSchema(unittest.TestCase):
             a_range_ = a_ranges[0].union(a_ranges[1:])
             self.assertTrue(a_range_ == b_range)
 
-        def _and(a, b, c):
+        def _and(a, b, c) -> None:
             _print("'%s' & '%s' == '%s'" % (a, b, c))
             a_range = VersionRange(a)
             b_range = VersionRange(b)
@@ -227,7 +227,7 @@ class TestVersionSchema(unittest.TestCase):
             ranges = [x for x in ranges if x]
             self.assertTrue(ranges[0].union(ranges[1:]) == a_or_b)
 
-        def _inv(a, b):
+        def _inv(a, b) -> None:
             a_range = VersionRange(a)
             b_range = VersionRange(b)
             self.assertTrue(~a_range == b_range)
@@ -362,7 +362,7 @@ class TestVersionSchema(unittest.TestCase):
                         == VersionRange("==3|==4|==6.0"))
 
         # test behaviour in sets
-        def _eq2(a, b):
+        def _eq2(a, b) -> None:
             _print("'%s' == '%s'" % (a, b))
             self.assertTrue(a == b)
 
@@ -379,7 +379,7 @@ class TestVersionSchema(unittest.TestCase):
         _eq2(set([b, c, e]) | set([c, d]), set([b, c, d, e]))
         _eq2(set([b, c]) & set([c, d]), set([c]))
 
-    def test_containment(self):
+    def test_containment(self) -> None:
         # basic containment
         self.assertTrue(Version("3") in VersionRange("3+"))
         self.assertTrue(Version("5") in VersionRange("3..5"))
@@ -426,7 +426,7 @@ class TestVersionSchema(unittest.TestCase):
             self.assertEqual(len(matches), count)
 
             # more optimal containment tests
-            def _test_it(it):
+            def _test_it(it) -> None:
                 matches_ = set(version for contains, version in it if contains)
                 self.assertEqual(matches_, matches)
 
@@ -444,8 +444,8 @@ class TestVersionSchema(unittest.TestCase):
             if count:
                 self.assertTrue(composite_range.issuperset(int_range))
 
-    def test_requirement_list(self):
-        def _eq(reqs, expected_reqs):
+    def test_requirement_list(self) -> None:
+        def _eq(reqs, expected_reqs) -> None:
             _print("requirements(%s) == requirements(%s)"
                    % (' '.join(reqs), ' '.join(expected_reqs)))
             reqs_ = [Requirement(x) for x in reqs]
@@ -461,7 +461,7 @@ class TestVersionSchema(unittest.TestCase):
             exp_confl_names = set(x.name for x in exp_reqs_ if x.conflict)
             self.assertTrue(reqlist.conflict_names == exp_confl_names)
 
-        def _confl(reqs, a, b):
+        def _confl(reqs, a, b) -> None:
             _print("requirements(%s) == %s <--!--> %s" % (' '.join(reqs), a, b))
             reqs_ = [Requirement(x) for x in reqs]
             reqlist = RequirementList(reqs_)

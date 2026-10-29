@@ -2,7 +2,9 @@
 # Copyright Contributors to the Rez Project
 
 
-from rez.packages import iter_packages
+from __future__ import annotations
+
+from rez.packages import iter_packages, Package
 from rez.config import config
 from rez.plugin_managers import plugin_manager
 from rez.exceptions import RezError
@@ -11,7 +13,7 @@ from subprocess import Popen
 import os.path
 
 
-def diff_packages(pkg1, pkg2=None):
+def diff_packages(pkg1: Package, pkg2: Package | None = None) -> None:
     """Invoke a diff editor to show the difference between the source of two
     packages.
 

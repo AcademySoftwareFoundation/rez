@@ -5,9 +5,10 @@
 """
 Perform a reverse package dependency lookup.
 """
+from __future__ import annotations
 
 
-def setup_parser(parser, completions=False):
+def setup_parser(parser, completions: bool = False) -> None:
     parser.add_argument(
         "-d", "--depth", type=int,
         help="dependency tree depth limit")
@@ -41,7 +42,7 @@ def setup_parser(parser, completions=False):
         PKG_action.completer = PackageFamilyCompleter
 
 
-def command(opts, parser, extra_arg_groups=None):
+def command(opts, parser, extra_arg_groups=None) -> int | None:
     from rez.package_search import get_reverse_dependency_tree
     from rez.utils.graph_utils import save_graph, view_graph
     from rez.config import config
@@ -81,3 +82,5 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             toks = ["#%d:" % i] + pkgs
         print(' '.join(toks))
+
+    return None
