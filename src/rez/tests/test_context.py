@@ -5,14 +5,20 @@
 """
 test resolved contexts
 """
+import sys
+
 from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
     TestBase
-from rez.resolved_context import ResolvedContext
+from rez.resolved_context import get_lock_request, PatchLock, ResolvedContext
 from rez.bundle_context import bundle_context
 from rez.bind import hello_world
+from rez.solver import SolverCallbackReturn, SolverState
 from rez.utils.platform_ import platform_
 from rez.utils.filesystem import is_subdirectory
+from rez.utils.formatting import PackageRequest
+from rez.version import Version
 import unittest
+import unittest.mock
 import subprocess
 import platform
 import shutil
@@ -277,6 +283,75 @@ class TestContext(TestBase, TempdirMixin):
         )
         resolved = [x.qualified_package_name for x in r.resolved_packages]
         self.assertEqual(resolved, ['python-2.7.0'])
+
+    def test_callback_1(self):
+        def solver_callback(solver_state: SolverState):
+            if solver_state.num_fails > 999:
+                solver_callback_return = SolverCallbackReturn.fail
+                abort_reason = 'Too many fails'
+            else:
+                solver_callback_return = SolverCallbackReturn.keep_going
+                abort_reason = 'No reason'
+            return solver_callback_return, abort_reason
+
+        callback = ResolvedContext.Callback(max_fails=1, time_limit=2, callback=solver_callback, buf=sys.stdout)
+        solve_state = SolverState(3, 1, None)
+        callback_result = callback(solve_state)
+        assert callback_result[0] == SolverCallbackReturn.fail
+
+    def test_callback_2(self):
+        def solver_callback(solver_state: SolverState):
+            if solver_state.num_fails > 999:
+                solver_callback_return = SolverCallbackReturn.fail
+                abort_reason = 'Too many fails'
+            else:
+                solver_callback_return = SolverCallbackReturn.keep_going
+                abort_reason = 'No reason'
+            return solver_callback_return, abort_reason
+        callback = ResolvedContext.Callback(max_fails=999, time_limit=0, callback=solver_callback, buf=sys.stdout)
+        solve_state = SolverState(3, 1, None)
+
+        # Mock start time to be Jan 1, 1970.
+        callback.start_time = 0
+
+        callback_result = callback(solve_state)
+        assert callback_result[0] == SolverCallbackReturn.abort
+
+    def test_get_lock_request_1(self):
+        pkg = 'foo'
+        version = Version('1.2.1')
+        patch_lock = PatchLock.lock_3
+        expected_lock_request = PackageRequest('~foo-1.2')
+
+        lock_request = get_lock_request(pkg, version, patch_lock)
+        self.assertEqual(lock_request, expected_lock_request)
+
+    def test_get_lock_request_2(self):
+        pkg = 'foo'
+        version = Version('1.2.1')
+        patch_lock = PatchLock.lock_3
+        expected_lock_request = PackageRequest('foo-1.2')
+
+        lock_request = get_lock_request(pkg, version, patch_lock, weak=False)
+        self.assertEqual(lock_request, expected_lock_request)
+
+    def test_get_lock_request_3(self):
+        pkg = 'foo'
+        version = Version('1.2.1')
+        patch_lock = PatchLock.lock
+        expected_lock_request = PackageRequest('foo==1.2.1')
+
+        lock_request = get_lock_request(pkg, version, patch_lock, weak=False)
+        self.assertEqual(lock_request, expected_lock_request)
+
+    def test_get_lock_request_4(self):
+        pkg = 'foo'
+        version = Version('1.2.1')
+        patch_lock = PatchLock.no_lock
+        expected_lock_request = None
+
+        lock_request = get_lock_request(pkg, version, patch_lock)
+        self.assertEqual(lock_request, expected_lock_request)
 
     def test_serialize_roundtrip_with_extra_settings(self):
         from rez.package_order import VersionSplitPackageOrder
