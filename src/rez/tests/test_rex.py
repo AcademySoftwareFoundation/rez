@@ -7,7 +7,7 @@ test the rex command generator API
 """
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv, expandable, \
-    literal
+    Resetenv, literal
 from rez.rex_bindings import VersionBinding, VariantBinding, VariantsBinding, \
     RequirementsBinding, EphemeralsBinding, intersects
 from rez.exceptions import RexError, RexUndefinedVariableError
@@ -62,6 +62,7 @@ class TestRex(TestBase):
             shebang()
             setenv("FOO", "foo")
             setenv("BAH", "bah")
+            resetenv("BAH", "baz", None)
             getenv("BAH")
             unsetenv("BAH")
             unsetenv("NOTEXIST")
@@ -85,6 +86,7 @@ class TestRex(TestBase):
                        Shebang(),
                        Setenv('FOO', 'foo'),
                        Setenv('BAH', 'bah'),
+                       Resetenv("BAH", "baz", None),
                        Unsetenv('BAH'),
                        Unsetenv('NOTEXIST'),
                        Setenv('A', '/tmp'),
