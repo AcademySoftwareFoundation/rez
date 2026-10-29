@@ -888,12 +888,51 @@ prefix_prompt = True
 # Settings dedicated to plugins
 ###############################################################################
 
-# Settings specific to certain plugin implementations can be found in the
-# "rezconfig" file accompanying that plugin. The settings listed here are
-# common to all plugins of that type.
+# Plugin configuration has two possible levels below ``plugins``:
 #
-# Refer to :ref:`configuring-plugins` for more information.
+# * ``plugins.<plugin_type>.<setting>`` configures the plugin type and applies to
+#   all implementations of that type. These are called *top-level settings* in
+#   :ref:`plugin-types`.
+# * ``plugins.<plugin_type>.<plugin_name>.<setting>`` configures one plugin
+#   implementation.
+#
+# For example, ``plugins.release_vcs.check_tag`` applies to every release VCS,
+# whereas ``plugins.release_vcs.git.allow_no_upstream`` applies only to Git.
+# Only the ``release_vcs`` plugin type currently has built-in top-level settings.
+#
+# Plugin settings are defined as nested mappings in Python or YAML configuration
+# files. Their values can be queried using the full dotted setting path. For
+# example, this Python configuration sets one top-level setting and one
+# Git-specific setting:
+#
+# .. code-block:: python
+#
+#    plugins = {
+#        "release_vcs": {
+#            "check_tag": True,
+#            "git": {
+#                "allow_no_upstream": True
+#            }
+#        }
+#    }
+#
+# The resulting values can be queried with :doc:`rez-config <commands/rez-config>`::
+#
+#    $ rez-config plugins.release_vcs.check_tag
+#
+# All string values in plugin settings can reference properties of the ``system``
+# object, such as ``{system.user}``.
+#
+# Unlike other rez settings, plugin settings cannot be overridden with
+# ``REZ_*`` environment variables. The settings below are provided by rez's
+# built-in plugins. Installed third-party plugins can provide additional
+# settings and defaults.
+#
+# Plugin types and implementations not listed here have no built-in settings.
+#
+# .. include:: _configuring_plugins.rst
 plugins = {}
+
 
 ###############################################################################
 # Misc

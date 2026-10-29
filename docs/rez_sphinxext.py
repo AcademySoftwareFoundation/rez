@@ -87,6 +87,11 @@ class FixedPyVariable(DomainAwareMixin, PyVariable):
     pass
 
 
+class NestablePyVariable(PyVariable):
+    """This is currently needed for plugin settings"""
+    allow_nesting = True
+
+
 class FixedPyClasslike(DomainAwareMixin, PyClasslike):
     pass
 
@@ -254,7 +259,14 @@ def convert_rez_config_to_rst() -> list[str]:
                         rst.append(f'      {line}')
 
                 rst.append('')
+                # Emit the plugin settings include after the outer ``plugins``
+                # directive so the page TOC does not nest the entire settings
+                # hierarchy beneath that object.
+                plugin_include_lines = []
                 for line in comment_lines:
+                    if varname == 'plugins' and line.startswith('.. include:: '):
+                        plugin_include_lines.append(line)
+                        continue
                     rst.append(f'   {line}')
                 rst.append('')
 
@@ -266,6 +278,8 @@ def convert_rez_config_to_rst() -> list[str]:
                     # have, so let's not document environment variables since
                     # they effectively don't support them.
                     assert setting_type is None
+                    rst.extend(plugin_include_lines)
+                    rst.append('')
                     continue
 
                 assert setting_type is not None
@@ -530,6 +544,7 @@ def write_cli_documents(app: sphinx.application.Sphinx) -> None:
 
 def setup(app: sphinx.application.Sphinx) -> dict[str, bool | str]:
     app.setup_extension('sphinx.ext.autodoc')
+    app.add_directive_to_domain('py', 'data', NestablePyVariable, override=True)
     app.add_directive('rez-config', RezConfigDirective)
 
     app.connect('builder-inited', write_cli_documents)

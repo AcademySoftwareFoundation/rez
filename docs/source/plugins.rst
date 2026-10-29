@@ -42,16 +42,24 @@ Existing plugin types
 Configuring plugins
 ===================
 
-Plugins can be configured by adding a ``plugins`` key to your ``rezconfig.py``
-like this:
+Plugins can be configured by adding a ``plugins`` key to your rez configuration
+file. For example, to change the marker rez adds to your Bash
+prompt from ``>`` to ``[rez]``:
 
 .. code-block:: python
 
    plugins = {
-       "package_repository": {
-           "filesystem": {}
+       "shell": {
+           "bash": {
+               "prompt": "[rez]"
+           }
        }
    }
+
+When you enter an environment with ``rez-env --shell bash``, a prompt such as
+``$`` becomes ``[rez] $``. The rest of your shell prompt is unchanged.
+
+Available plugin settings are documented in the :ref:`configuration reference <config-plugins>` page.
 
 List installed plugins
 ======================
