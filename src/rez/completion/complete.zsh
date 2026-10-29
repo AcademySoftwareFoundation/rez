@@ -1,7 +1,11 @@
 
 _rez_complete_fn()
 {
-    COMPREPLY=($(COMP_LINE=${COMP_LINE} COMP_POINT=${COMP_POINT} _rez-complete))
+    # compctl -K doesn't set COMP_LINE/COMP_POINT (bash only) or read COMPREPLY;
+    # the line comes from `read -l` and results go in $reply.
+    local line
+    read -l line
+    reply=(${=$(COMP_LINE=$line COMP_POINT=${#line} _rez-complete)})
 }
 
 compctl -K _rez_complete_fn rez
