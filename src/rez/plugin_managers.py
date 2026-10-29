@@ -15,6 +15,7 @@ from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 from zipimport import zipimporter
 from typing import overload, Any, Literal, TypeVar, TYPE_CHECKING
+import importlib.util
 import pkgutil
 import os.path
 import sys
@@ -183,7 +184,15 @@ class RezPluginType(object):
                     plugin_module = sys.modules.get(modname)
                     if plugin_module is None:
                         loader = importer.find_spec(modname)
-                        plugin_module = loader.loader.load_module(modname)
+                        plugin_module = importlib.util.module_from_spec(loader)
+                        # register before exec, so module-level introspection
+                        # of sys.modules behaves as it would for a normal import
+                        sys.modules[modname] = plugin_module
+                        try:
+                            loader.loader.exec_module(plugin_module)
+                        except Exception:
+                            del sys.modules[modname]
+                            raise
 
                     self.register_plugin_module(plugin_name, plugin_module, path)
                     self.load_config_from_plugin(plugin_module)
