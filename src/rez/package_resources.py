@@ -19,6 +19,7 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 
 from textwrap import dedent
 import os.path
+import shutil
 from abc import abstractmethod
 from hashlib import sha1
 from typing import Any, Iterable, Iterator, TYPE_CHECKING
@@ -367,6 +368,13 @@ class VariantResource(PackageResource):
     def root(self) -> str:
         """Return the 'root' path of the variant."""
         return self._root()
+
+    def install(self, location: str) -> None:
+        """Install this variant's payload to `location`
+
+        Override for repos which don't live on the fs
+        """
+        shutil.copytree(self.root, location)
 
     @cached_property
     def subpath(self) -> str:
