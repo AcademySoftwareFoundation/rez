@@ -576,7 +576,7 @@ class UnixShell(Shell):
         ex.setenv(startup_env_var, os.environ.get(startup_env_var, ""))
 
     def resetenv(self, key, value, friends=None) -> None:
-        self._addline(self.setenv(key, value))
+        self.setenv(key, value)
 
     def info(self, value: str) -> None:
         for line in value.split('\n'):
