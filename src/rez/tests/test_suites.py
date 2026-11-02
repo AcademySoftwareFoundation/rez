@@ -143,6 +143,43 @@ class TestRezSuites(TestBase, TempdirMixin):
 
     @per_available_shell()
     @install_dependent()
+    def test_executable_versions(self, shell) -> None:
+        """Test suite tool can list its package versions with ``++versions``.
+
+        Regression test for https://github.com/AcademySoftwareFoundation/rez/issues/2046
+        """
+        config.override("default_shell", shell)
+
+        c_foo = ResolvedContext(["foo"])
+        s = Suite()
+        s.add_context("foo", c_foo)
+
+        per_shell = config.get("default_shell")
+        suite_path = os.path.join(self.root, "test_suites", per_shell, "foo")
+        s.save(suite_path)
+
+        bin_path = os.path.join(suite_path, "bin")
+        env = os.environ.copy()
+
+        env.update(self.get_settings_env())
+        env["PATH"] = os.pathsep.join([system.rez_bin_path, env["PATH"]])
+        env["PATH"] = os.pathsep.join([bin_path, env["PATH"]])
+
+        output = subprocess.check_output("fooer ++versions", shell=True, env=env,
+                                         universal_newlines=True)
+
+        lines = output.splitlines()
+        self.assertEqual(len(lines), 1)
+        columns = lines[0].split()
+        self.assertEqual(columns[0], "*")
+        self.assertEqual(columns[1], "foo")
+        self.assertEqual(
+            columns[2],
+            self.data_path("suites", "packages", "foo", "package.yaml")
+        )
+
+    @per_available_shell()
+    @install_dependent()
     def test_executable(self, shell) -> None:
         """Test suite tool can be executed
 
