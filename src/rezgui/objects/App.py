@@ -9,6 +9,7 @@ from rezgui import organisation_name, application_name
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import ResolvedContextError
 from rez.utils.data_utils import cached_property
+from rez.utils.filesystem import real_path
 from rez.vendor import yaml
 from contextlib import contextmanager
 import sys
@@ -67,7 +68,7 @@ class App(QtWidgets.QApplication):
                 QtWidgets.QApplication.restoreOverrideCursor()
 
         if context:
-            path = os.path.realpath(filepath)
+            path = real_path(filepath)
             self.config.prepend_string_list("most_recent_contexts", path,
                                             "max_most_recent_contexts")
         return context
