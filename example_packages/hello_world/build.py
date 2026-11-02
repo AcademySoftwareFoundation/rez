@@ -2,9 +2,10 @@
 
 import os
 import os.path
+import platform
 import shutil
-import sys
 import stat
+import sys
 
 
 def build(source_path, build_path, install_path, targets):
@@ -30,6 +31,36 @@ def build(source_path, build_path, install_path, targets):
             for name in os.listdir(dest_bin):
                 filepath = os.path.join(dest_bin, name)
                 os.chmod(filepath, mode)
+
+        if platform.system() == "Windows":
+            _make_windows_batch(dest_bin)
+
+    def _make_windows_batch(dest_bin):
+        # cmd.exe resolves names on PATH via PATHEXT, so an extensionless
+        # "bin/hello" is not launchable. Rewrite each shebang script as a .bat
+        # that is also a valid python script.
+        for name in os.listdir(dest_bin):
+            filepath = os.path.join(dest_bin, name)
+            if not os.path.isfile(filepath):
+                continue
+            if not os.access(filepath, os.X_OK):
+                continue
+
+            with open(filepath, "rb") as f:
+                lines = f.read().splitlines(keepends=True)
+
+            if not lines or not lines[0].startswith(b"#!"):
+                continue
+
+            # cmd runs line 1 and bails at "exit /b"; "python -x" skips line 1.
+            lines[0] = b'@python -x "%~f0" %* & exit /b\r\n'
+            with open(filepath + ".bat", "wb") as f:
+                f.writelines(lines)
+
+            # copytree preserved the read-only attribute, and Windows won't
+            # delete a read-only file.
+            os.chmod(filepath, stat.S_IWRITE)
+            os.remove(filepath)
 
     def _install():
         for name in ("bin", "python"):
