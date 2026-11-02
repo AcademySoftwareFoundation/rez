@@ -12,10 +12,8 @@ You need a working Rez installation. :doc:`installation` lists the supported
 Python versions and covers the install itself.
 
 .. important::
-   Install Rez with the ``install.py`` script, not with ``pip install rez``. A
-   pip installation provides the Rez API, but its command line tools are not
-   guaranteed to work, and the commands in this guide assume a production
-   install. See :ref:`why-not-pip-for-production`.
+   Rez must be installed via the install script to function correctly. See
+   :ref:`why-not-pip-for-production`.
 
 Confirm that Rez is available in your terminal:
 
@@ -31,7 +29,7 @@ Essential packages
 ==================
 
 Rez models the current system as three packages: ``platform``, ``arch`` and
-``os``. They are added to every resolve as
+``os``. By default, they are added to every solve via
 :ref:`implicit packages <implicit-packages-concept>`, so create them first.
 
 The :ref:`rez-bind` tool creates Rez packages that reference software already
@@ -54,87 +52,46 @@ alongside it:
    platform  /home/you/packages/platform/linux/package.py
 
 .. warning::
-   :ref:`rez-bind` is going to be deprecated. The current implementation is not
+   :ref:`rez-bind` is deprecated. The current implementation is not
    actively maintained, and most of its bind modules are likely to fail on
    Windows.
 
-   Even though rez-bind will be deprecated and we generally discourage its use,
+   Even though rez-bind is deprecated and its usage is discouraged,
    you can safely use it to create the ``arch``, ``os`` and ``platform``
    packages.
 
 These three packages describe *this* machine. Run ``rez-bind os`` separately on
-every operating system and architecture that will use the package repository,
-and do not copy the resulting packages between unlike platforms.
-
-The ``os`` version is read from the running machine, so it can be more
-fine-grained than you want to target. Windows reports a build number such as
-``windows-10.0.19045``, and Linux distributions report point releases. Use
-``platform_map`` in the :ref:`Package Resolution <config-package-resolution>`
-settings to collapse these onto the versions you actually support, before
-creating these packages for a shared repository.
-
-A Python package
-================
-
-The example package below requires ``python``, so you need a ``python`` package
-before you can build it. Bind the interpreter installed on your system:
-
-.. code-block:: text
-
-   ]$ rez-bind python
-
-.. note::
-   You may require administrative privileges for this.
-
-Now you should be able to create an environment containing Python:
-
-.. code-block:: text
-
-   ]$ rez-env python -- python --version
-   Python 3.9.16
-
-A bound interpreter is a starting point, not a distribution strategy. It
-references an installation that exists on one machine, so it cannot be shared
-with a site-wide repository as-is.
-
-There is no single blessed way to package Python for Rez yet. In practice sites
-either build the interpreter from source as a normal Rez package, or repackage a
-relocatable distribution. Whichever you choose, publish it with one
-:doc:`variant <variants>` per supported platform so that a shared repository can
-serve every machine, and see :doc:`building_packages` for wiring up the build
-itself. Once a real ``python`` package exists, :ref:`rez-pip` can install
-packages from PyPI against it, as described in :doc:`pip`.
+every operating system and architecture where you wish to use rez.
 
 Build your first package
 ========================
 
-The Rez source contains a small example package in
-``example_packages/hello_world``. Its ``package.py`` is short enough to read in
-full:
+Create a directory containing a file named ``package.py``:
 
-.. literalinclude:: ../../example_packages/hello_world/package.py
-   :language: python
+.. code-block:: python
 
-It builds with a plain Python script, ``build.py``, which lives next to
-``package.py`` and is run by :pkgdef:attr:`build_command`. That means this
-example needs no build tooling beyond the ``python`` package you just created.
+   name = "hello_world"
 
-Use :ref:`rez-build` to build it and install it to your
-:data:`local package path <local_packages_path>`:
+   version = "1.0.0"
+
+   description = "This is your first package"
+
+   build_command = False
+
+   def commands():
+       alias("hello-world", "echo 'Hello, World!'")
+
+Don't worry too much about the details for now. Use :ref:`rez-build` to build it
+and install it:
 
 .. code-block:: text
 
-   ]$ cd example_packages/hello_world
    ]$ rez-build --install
-
-See :doc:`building_packages` for how the build environment is constructed, how
-to use CMake or another build system, and how to work in a local
-build-install-test cycle.
 
 Testing your package
 ====================
 
-Use :ref:`rez-env` to request a configured environment containing your package:
+Use :ref:`rez-env` to create an environment containing your package:
 
 .. code-block:: text
 
@@ -155,34 +112,29 @@ Use :ref:`rez-env` to request a configured environment containing your package:
    hello_world-1.0.0  /home/you/packages/hello_world/1.0.0                                    (local)
    os-rocky-9         /home/you/packages/os/rocky-9                                           (local)
    platform-linux     /home/you/packages/platform/linux                                       (local)
-   python-3.9.16      /home/you/packages/python/3.9.16/platform-linux/arch-x86_64/os-rocky-9  (local)
 
    > ]$
 
-The ``>`` prefix on your prompt means you are inside a Rez-configured subshell.
+The ``>`` prefix on your prompt means you are inside a rez environment.
 Every package is tagged ``(local)`` because they all came from your local
-package path. Notice that ``python`` was resolved even though you only asked for
-``hello_world``: Rez pulled it in because ``hello_world`` requires it, and it
-added the three implicits automatically. See :doc:`basic_concepts` for how
-resolving works, and :doc:`context` for what a resolved environment is made of.
+package path. Rez added the three implicit packages automatically. See
+:doc:`basic_concepts` for how resolving works, and :doc:`context` for what a
+resolved environment is made of.
 
 .. note::
    The paths and prompts shown here are from Linux. On Windows the same resolve
    is written under ``%USERPROFILE%\packages``, and ``os`` will report a build
    number such as ``windows-10.0.19045``.
 
-The ``hello_world`` package declares a :pkgdef:attr:`tools` entry, so its
-``hello`` tool is on your ``PATH``:
-
-On Windows, the example installs ``hello.bat`` and you invoke it as ``hello``
-in the same way.
+The ``hello_world`` package defines a ``hello-world`` alias, so you can run it:
 
 .. code-block:: text
 
-   > ]$ hello
-   Hello world!
+   > ]$ hello-world
+   Hello, World!
 
-Leave the environment with the ``exit`` command or :kbd:`Control-D`.
+To exit the configured environment, exit the shell using the ``exit`` command or
+:kbd:`Control-d`.
 
 You can also create a configured environment and run a single command inside it.
 The shell exits as soon as the command finishes, which is the form you want in
@@ -190,21 +142,27 @@ scripts and automation:
 
 .. code-block:: text
 
-   ]$ rez-env hello_world -- hello
-   Hello world!
+   ]$ rez-env hello_world -- hello-world
+   Hello, World!
+   ]$
+
+Notice that the prompt has no ``>`` prefix: you are back outside of a rez
+environment.
 
 Next steps
 ==========
 
-* Read :doc:`configuring_rez`, and set :data:`packages_path` to the ordered list
-  of repositories your users should search. Keep :data:`local_packages_path`
-  writable so that local builds and development continue to work.
-* Read :doc:`pip` to install packages from PyPI using :ref:`rez-pip`. Choose the
-  target Python version explicitly, especially for packages that contain
-  compiled extensions.
-* Read :doc:`package_definition` for the full set of package attributes, and
-  :doc:`package_commands` for what you can do in a ``commands()`` function.
-* Read :doc:`variants` to publish a single package that supports several
-  platforms, Python versions, or other combinations.
-* Read :doc:`releasing_packages` when your packages are ready to be deployed to
-  a shared repository rather than installed locally.
+* Read :doc:`basic_concepts` to learn more about the core concepts of rez.
+* Read :doc:`releasing_packages` to learn how to release your packages.
+* Read :doc:`building_packages` to learn more about how to build a package.
+* Read :doc:`pip` to learn how to make PyPI packages available as rez packages.
+
+Targeting fewer operating system versions
+-----------------------------------------
+
+The ``os`` version is read from the running machine, so it can be more
+fine-grained than you want to target. Windows reports a build number such as
+``windows-10.0.19045``, and Linux distributions report versions such as
+``rocky-9.4``. Use the :data:`platform_map` setting to collapse these onto the
+versions you actually support, before creating these packages for a shared
+repository.
