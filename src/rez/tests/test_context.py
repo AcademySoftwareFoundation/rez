@@ -8,16 +8,19 @@ test resolved contexts
 from rez.tests.util import restore_os_environ, restore_sys_path, TempdirMixin, \
     TestBase
 from rez.resolved_context import ResolvedContext
+from rez.resolver import ResolverStatus
 from rez.bundle_context import bundle_context
 from rez.bind import hello_world
 from rez.utils.platform_ import platform_
 from rez.utils.filesystem import is_subdirectory
+from rez.version import Requirement
 import unittest
 import subprocess
 import platform
 import shutil
 import os.path
 import os
+import textwrap
 
 
 class TestContext(TestBase, TempdirMixin):
@@ -306,6 +309,70 @@ class TestContext(TestBase, TempdirMixin):
                 continue
             # check types here, as not all type instances are comparable
             self.assertIs(type(v), type(r2.__dict__.get(k)))
+
+    def test_ephemerals_update_during_resolution(self):
+        packages_path = os.path.join(self.root, "ephemeral_packages")
+        package_version = os.path.join(packages_path, "package", "1.0.0")
+        package_definition = os.path.join(package_version, "package.py")
+
+        package_contents = textwrap.dedent("""
+            name = "package"
+            version = "1.0.0"
+
+            def commands():
+                if "myeph" in ephemerals:
+                    env.EPH_SEEN_IN_COMMANDS = "1"
+                else:
+                    env.EPH_SEEN_IN_COMMANDS = "0"
+        """)
+
+        os.makedirs(package_version)
+
+        with open(package_definition, "w") as fh:
+            fh.write(package_contents)
+
+        r = ResolvedContext(["package", ".myeph-1"], package_paths=[packages_path])
+        self.assertEqual(r.status, ResolverStatus.solved)
+
+        self.assertEqual(r.resolved_ephemerals, [Requirement(".myeph-1")])
+
+        environ = r.get_environ()
+        self.assertEqual(environ.get("EPH_SEEN_IN_COMMANDS"), "1")
+
+    def test_ephemerals_update_during_resolution_with_late_function(self):
+        packages_path = os.path.join(self.root, "ephemeral_packages_with_late_function")
+        package_version = os.path.join(packages_path, "package", "1.0.0")
+        package_definition = os.path.join(package_version, "package.py")
+
+        package_contents = textwrap.dedent("""
+            name = "package"
+            version = "1.0.0"
+
+            # This late function will trigger the ephemeral binding before the end of
+            # the resolution.
+            @late()
+            def requires():
+                return []
+
+            def commands():
+                if "myeph" in ephemerals:
+                    env.EPH_SEEN_IN_COMMANDS = "1"
+                else:
+                    env.EPH_SEEN_IN_COMMANDS = "0"
+        """)
+
+        os.makedirs(package_version)
+
+        with open(package_definition, "w") as fh:
+            fh.write(package_contents)
+
+        r = ResolvedContext(["package", ".myeph-1"], package_paths=[packages_path])
+        self.assertEqual(r.status, ResolverStatus.solved)
+
+        self.assertEqual(r.resolved_ephemerals, [Requirement(".myeph-1")])
+
+        environ = r.get_environ()
+        self.assertEqual(environ.get("EPH_SEEN_IN_COMMANDS"), "1")
 
 
 if __name__ == '__main__':
