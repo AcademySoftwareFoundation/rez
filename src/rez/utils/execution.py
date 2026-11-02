@@ -161,7 +161,7 @@ def create_executable_script(filepath: str, body: str | Callable,
                 # before yaml.load
                 f.write("@echo off\n")
                 f.write("%s.exe %%~dpnx0 %%*\n" % program)
-                f.write("goto :eof\n")  # skip YAML body
+                f.write("exit /B %errorlevel%\n")
                 f.write(":: YAML\n")    # comment for human
             else:
                 f.write("#!/usr/bin/env %s\n" % program)
