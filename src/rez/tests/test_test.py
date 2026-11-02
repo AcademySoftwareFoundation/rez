@@ -56,7 +56,7 @@ class TestTest(TestBase, TempdirMixin):
         for test_name in test_names:
             runner.run_test(test_name)
 
-        self.assertEqual(runner.test_results.num_tests, 4)
+        self.assertEqual(runner.test_results.num_tests, 5)
         self.assertEqual(
             self._get_test_result(runner, "check_car_ideas")["status"],
             "success",
@@ -76,6 +76,11 @@ class TestTest(TestBase, TempdirMixin):
             self._get_test_result(runner, "command_as_string_fail")["status"],
             "failed",
             "command_as_string_fail did not fail",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "pre_test_commands_bindings")["status"],
+            "success",
+            "pre_test_commands_bindings did not succeed",
         )
 
     def _get_test_result(self, runner, test_name):
@@ -169,12 +174,12 @@ class TestTest(TestBase, TempdirMixin):
         )
 
         test_names = runner.find_requested_test_names(["*"])
-        self.assertEqual(4, len(test_names))
+        self.assertEqual(5, len(test_names))
 
         for test_name in test_names:
             runner.run_test(test_name)
 
-        self.assertEqual(runner.test_results.num_tests, 4)
+        self.assertEqual(runner.test_results.num_tests, 5)
 
         self.assertEqual(
             self._get_test_result(runner, "check_car_ideas")["status"],
@@ -195,6 +200,11 @@ class TestTest(TestBase, TempdirMixin):
             self._get_test_result(runner, "command_as_string_fail")["status"],
             "failed",
             "command_as_string_fail did not fail",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "pre_test_commands_bindings")["status"],
+            "success",
+            "pre_test_commands_bindings did not succeed",
         )
 
     def test_wildcard_04(self):
@@ -252,17 +262,22 @@ class TestTest(TestBase, TempdirMixin):
         )
 
         test_names = runner.find_requested_test_names(["[!c]*"])
-        self.assertEqual(1, len(test_names))
+        self.assertEqual(2, len(test_names))
 
         for test_name in test_names:
             runner.run_test(test_name)
 
-        self.assertEqual(runner.test_results.num_tests, 1)
+        self.assertEqual(runner.test_results.num_tests, 2)
 
         self.assertEqual(
             self._get_test_result(runner, "move_meeting_to_noon")["status"],
             "failed",
             "move_meeting_to_noon did not fail",
+        )
+        self.assertEqual(
+            self._get_test_result(runner, "pre_test_commands_bindings")["status"],
+            "success",
+            "pre_test_commands_bindings did not succeed",
         )
 
     def test_empty_test_list(self):

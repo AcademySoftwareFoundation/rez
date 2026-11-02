@@ -247,8 +247,9 @@ Pre Test Commands
 
 Sometimes it's useful to perform some extra configuration in the environment that a package's test
 will run in. You can define the :pkgdef:func:`pre_test_commands` function to do this. It will be invoked just
-before the test is run. As well as the standard :rex:attr:`this` object, a :rex:attr:`test` object is also
-provided to distinguish which test is about to run.
+before the test is run. As well as the standard :rex:attr:`this` object, the :rex:attr:`root` and
+:rex:attr:`base` variables of the package under test, and a :rex:attr:`test` object are also provided
+to distinguish which test is about to run.
 
 A Largish Example
 =================
