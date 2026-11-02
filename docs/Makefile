@@ -20,7 +20,7 @@ help:
 	$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 livehtml:
-	sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)" --watch ../src/rez --watch ../CHANGELOG.md --re-ignore '/src/rez/(?!.*\.py$$)' $(SPHINXOPTS) $(O)
 
 clean:
 	rm -rf _build

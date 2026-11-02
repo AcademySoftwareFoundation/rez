@@ -44,6 +44,10 @@ extensions = [
 ]
 
 templates_path = ['_templates']
+# This partial is included in the generated ``plugins`` setting documentation.
+# Without this exclusion, Sphinx also builds it as a standalone page and emits
+# duplicate object-description warnings for every plugin setting.
+exclude_patterns = ['_configuring_plugins.rst']
 
 nitpick_ignore = [
     # Our API isn't very clean... We expose private things via public
