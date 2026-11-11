@@ -12,8 +12,8 @@ from fnmatch import fnmatch
 from enum import Enum
 from contextlib import contextmanager
 from string import Formatter
-from collections.abc import KeysView, Mapping, MutableMapping
-from typing import Any, Iterable
+from collections.abc import KeysView, MutableMapping
+from typing import Any, Iterable, Mapping
 
 from rez.system import system
 from rez.config import config
@@ -465,7 +465,7 @@ class ActionManager(object):
         return self.interpreter.get_key_token(key)
 
 
-class _CaseInsensitiveEnvironProxy(Mapping):
+class _CaseInsensitiveEnvironProxy(Mapping[str, str]):
     """Read-only, case-insensitive snapshot of an env-var mapping.
 
     Used by :class:`ActionManager` to wrap a caller-supplied ``parent_environ``
