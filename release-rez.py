@@ -60,7 +60,7 @@ def get_github_repo_owner():
 
     if not remote[1].startswith("git@github.com"):
         print(
-            f"Remote URL must use the SSH protocal and start with 'git@github.com'. Current remote: {remote[1]}",
+            f"Remote URL must use the SSH protocol and start with 'git@github.com'. Current remote: {remote[1]}",
             file=sys.stderr,
         )
         sys.exit(1)
