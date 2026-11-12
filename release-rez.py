@@ -119,7 +119,11 @@ def parse_topmost_changelog():
                         # Now replace all links to rez GH issues and PR with `#<number>`.
                         # This is purely cosmetic. It at least makes the output cleaner.
                         # [\#1234](https://github.com/AcademySoftwareFoundation/rez/pull/1234) > #1234.
-                        line = re.sub(r'\[\\#(\d+)\]\(https://github\.com/AcademySoftwareFoundation/rez/(pull|issues)/\1\)', r'#\1', line)
+                        rez_issue_link_re = (
+                            r'\[\\#(\d+)\]\(https://github\.com/'
+                            r'AcademySoftwareFoundation/rez/(pull|issues)/\1\)'
+                        )
+                        line = re.sub(rez_issue_link_re, r'#\1', line)
                         body_lines[index] = line
 
                     result["body"] = ''.join(body_lines).strip()
