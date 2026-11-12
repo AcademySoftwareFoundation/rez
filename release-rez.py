@@ -155,7 +155,7 @@ def parse_topmost_changelog():
 
 
 def check_on_main():
-    branch = run_command("git", "branch", "--contains").split()[-1]
+    branch = run_command("git", "rev-parse", "--abbrev-ref", "HEAD")
 
     if branch != "main":
         sys.stderr.write("Must be run from the 'main' branch.\n")
