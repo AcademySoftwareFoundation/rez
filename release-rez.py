@@ -151,7 +151,7 @@ def parse_topmost_changelog():
                     body_lines.append(line)
 
     # should never get here
-    assert False
+    raise RuntimeError("parse_topmost_changelog: no version found in CHANGELOG.md")
 
 
 def check_on_main():
