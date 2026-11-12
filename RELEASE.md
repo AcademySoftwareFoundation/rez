@@ -40,6 +40,12 @@ To merge a PR to the `main` branch and release a new version:
    This is preferred over using your existing clone. It will prevent mistakes
    if you have multiple remotes, etc. It also guarantees that you are starting
    from a fresh state that is synced with our repo.
+
+   Note: `release-rez.py` requires the clone to have exactly one remote,
+   named `origin`, using the SSH form (`git@github.com:...`). This is a
+   safety measure: the script validates its environment before it pushes
+   tags and creates releases, and it fails on purpose rather than guess
+   when the clone doesn't match that shape (extra remotes, https URLs).
 2. Create a new branch that will be used to create a release PR.
 3. Update the version in [src/rez/utils/_version.py](src/rez/utils/_version.py)
 4. Update [the changelog](CHANGELOG.md). A handy utility is provided to help you do this.
