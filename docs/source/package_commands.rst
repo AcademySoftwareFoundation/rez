@@ -682,15 +682,15 @@ Following is a list of the objects and functions available.
 
       source("{root}/scripts/init.sh")
 
-.. rex:function:: stop(message: str, *nargs: typing.Any) -> typing.NoReturn
+.. rex:function:: stop(msg: str, *nargs: typing.Any) -> typing.NoReturn
 
    Raises an exception and stops a resolve from completing. You should use this when an unrecoverable
    error is detected and it is not possible to configure a valid environment.
 
-   Optional ``nargs`` values are interpolated into ``message`` using Python ``%``-style formatting before
-   ``RexStopError`` is raised. The placeholders in ``message`` must be compatible with the supplied values.
+   Optional ``nargs`` values are interpolated into ``msg`` using Python ``%``-style formatting before
+   ``RexStopError`` is raised. The placeholders in ``msg`` must be compatible with the supplied values.
 
-   ``message`` can be a ``%s``-style templated string. Each variable must be passed as positional
+   ``msg`` can be a ``%s``-style templated string. Each variable must be passed as positional
    arguments:
 
    .. code-block:: python
