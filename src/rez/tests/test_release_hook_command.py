@@ -111,6 +111,8 @@ class TestCommandReleaseHook(TestBase):
         self.assertEqual(len(errors), 1)
         self.assertIn("command failed", errors[0])
         self.assertIn("it broke", errors[0])
+        # the output must be decoded text, not a bytes repr
+        self.assertNotIn("b'", errors[0])
 
     def test_root_user_runs_with_sudo(self) -> None:
         hook = self._create_hook(pre_release_commands=[
