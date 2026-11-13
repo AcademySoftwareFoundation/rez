@@ -17,7 +17,7 @@ from rez.utils.colorize import critical, heading, local, implicit, Printer, \
 from rez.utils.formatting import columnise, PackageRequest, ENV_VAR_REGEX, \
     header_comment, minor_header_comment
 from rez.utils.data_utils import deep_del
-from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path, real_path
+from rez.utils.filesystem import TempDirs, is_subdirectory, canonical_path
 from rez.utils.memcached import pool_memcached_connections
 from rez.utils.logging_ import print_debug, print_error, print_warning
 from rez.utils.which import which
@@ -1924,9 +1924,14 @@ class ResolvedContext(object):
             assert os.path.isabs(repo_path)
 
             if is_subdirectory(repo_path, bundle_path):
+                # Match the containment check above: relpath must be computed
+                # over the same canonical forms that containment was judged
+                # on. real_path leaves aliases unresolved on Windows (with
+                # resolve_links_on_windows enabled), which can serialize a
+                # "../physical/..." location that escapes the bundle.
                 vars_["location"] = os.path.relpath(
-                    real_path(repo_path),
-                    real_path(bundle_path)
+                    canonical_path(repo_path, platform_),
+                    canonical_path(bundle_path, platform_)
                 )
 
         # serializing in, make repo absolute

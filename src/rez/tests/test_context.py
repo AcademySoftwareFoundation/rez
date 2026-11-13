@@ -155,6 +155,44 @@ class TestContext(TestBase, TempdirMixin):
 
         self._test_execute_command_environ(r2)
 
+    def test_bundling_serialises_location_inside_bundle(self) -> None:
+        # Regression (bundling through an alias): with
+        # resolve_links_on_windows enabled on Windows, the containment check
+        # canonicalised (resolved) both paths, but the relative location was
+        # computed over alias-preserving abspaths - so a junctioned bundle
+        # path serialised "../physical/packages" instead of "packages",
+        # escaping the bundle on reload. relpath must be computed over the
+        # same canonical forms containment was judged on.
+        #
+        # Simulation: patch real_path to its Windows semantic
+        # (alias-preserving abspath); the canonicalising helpers are left
+        # native, matching Windows with the setting enabled.
+        import unittest.mock
+
+        physical = os.path.join(self.root, self._testMethodName,
+                                "bundle_phys")
+        os.makedirs(os.path.join(physical, "packages"))
+        alias = os.path.join(self.root, self._testMethodName, "bundle_alias")
+        os.symlink(physical, alias)
+
+        handle = {"variables": {"repository_type": "filesystem",
+                                "location": os.path.join(physical,
+                                                         "packages")}}
+        ResolvedContext.local.bundle_path = alias
+        try:
+            # create=True: the fix removed real_path from this code path
+            # entirely (relpath is computed over canonical forms). The patch
+            # is a no-op now, but if the code ever regresses back to
+            # real_path-based relpath, the Windows semantic (abspath) makes
+            # the alias-mismatch failure resurface and this test catches it.
+            with unittest.mock.patch("rez.resolved_context.real_path",
+                                     os.path.abspath, create=True):
+                ResolvedContext._adjust_variant_for_bundling(handle, out=True)
+        finally:
+            ResolvedContext.local.bundle_path = None
+
+        self.assertEqual(handle["variables"]["location"], "packages")
+
     def test_bundled(self) -> None:
         """Test that a bundled context behaves identically."""
 
