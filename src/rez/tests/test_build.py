@@ -14,12 +14,65 @@ from rez.exceptions import BuildError, BuildContextResolveError, \
 import unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
     per_available_shell, install_dependent, program_dependent
+from rez.utils.filesystem import real_path
 from rez.utils.platform_ import platform_
 from rez.shells import create_shell
 from rez.packages import get_developer_package
 from rez.rex import RexExecutor
 import shutil
 import os.path
+
+
+class TestCMakeBuildPathNormalization(TestBase, TempdirMixin):
+    settings = {}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        TempdirMixin.setUpClass()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        TempdirMixin.tearDownClass()
+
+    """Unit tests for the cmake build-system's build path normalisation.
+
+    Regression test for the relative-build-path fix: a relative --build-path
+    must be resolved against the working directory (the old condition used
+    os.path.abspath in a boolean context, which is always truthy, so the
+    branch never ran and relative paths were passed through untouched).
+    """
+
+    def test_relative_path_resolved_against_working_dir(self):
+        from rezplugins.build_system.cmake import _normalize_build_path
+
+        working_dir = os.path.join(self.root, "src")
+        os.makedirs(working_dir)
+        result = _normalize_build_path(working_dir, "build")
+        self.assertTrue(os.path.isabs(result))
+        # real_path resolves symlinks on non-Windows (eg macOS /var ->
+        # /private/var), so compare against the resolved form.
+        self.assertTrue(
+            result.startswith(real_path(working_dir)),
+            "%s does not start with %s" % (result, real_path(working_dir)),
+        )
+
+    def test_absolute_path_unchanged(self):
+        from rezplugins.build_system.cmake import _normalize_build_path
+
+        build_path = os.path.join(self.root, "abs_build")
+        self.assertEqual(
+            _normalize_build_path(self.root, build_path), build_path)
+
+    def test_relative_path_with_dots_normalised(self):
+        from rezplugins.build_system.cmake import _normalize_build_path
+
+        working_dir = os.path.join(self.root, "src", "sub")
+        os.makedirs(working_dir)
+        result = _normalize_build_path(working_dir, os.path.join("..", "build"))
+        self.assertTrue(os.path.isabs(result))
+        expected = real_path(
+            os.path.normpath(os.path.join(working_dir, "..", "build")))
+        self.assertEqual(os.path.normpath(result), os.path.normpath(expected))
 
 
 class TestBuild(TestBase, TempdirMixin):
