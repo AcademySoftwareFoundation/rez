@@ -18,7 +18,10 @@ import os.path
 import subprocess
 import functools
 import shutil
+import sys
 import unittest.mock
+
+import rez
 
 
 class TestConfig(TestBase):
@@ -447,6 +450,94 @@ class TestDeprecations(TestBase, TempdirMixin):
         with self.assertWarns(DeprecationWarning) as warning:
             warn('Warning Message', DeprecationWarning, pre_formatted=False)
         self.assertEqual(str(warning.warning), 'Warning Message')
+
+    def _deprecation_subprocess_env(self, **overrides):
+        # The env var under test is read at `import rez.config` time, so these
+        # tests exercise it in a subprocess with a clean REZ_* environment.
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("REZ_")
+        }
+        env["REZ_DISABLE_HOME_CONFIG"] = "1"
+        # Ensure the subprocess imports the same rez that is running the tests
+        # (source tree or install).
+        rez_parent = os.path.dirname(os.path.dirname(os.path.abspath(rez.__file__)))
+        env["PYTHONPATH"] = (
+            rez_parent + os.pathsep + env["PYTHONPATH"]
+            if env.get("PYTHONPATH")
+            else rez_parent
+        )
+        env.update(overrides)
+        return env
+
+    def test_import_with_deprecation_env_var(self) -> None:
+        """REZ_LOG_DEPRECATION_WARNINGS=1 must not break importing rez.
+
+        This env var used to trigger a module-level evaluation of
+        ``config.data`` on import, which forces plugin discovery; plugin
+        modules then import back into modules that are still mid-import,
+        causing a circular ImportError in many import orders. The eager load
+        now uses ``config._data`` (config file loading only). See issue #2230.
+        """
+        env = self._deprecation_subprocess_env(
+            REZ_LOG_DEPRECATION_WARNINGS="1"
+        )
+        # Note the import order: rez.config must NOT be imported first. A bare
+        # `import rez.config` fully loads (and pre-warms) the config machinery,
+        # which masks the bug; the failing orders import a config consumer
+        # (package_order, resolved_context) before rez.config.
+        subprocess.run(
+            [
+                sys.executable, "-c",
+                (
+                    "from rez.package_order import SortedOrder\n"
+                    "from rez.resolved_context import ResolvedContext\n"
+                ),
+            ],
+            check=True,
+            env=env,
+            timeout=120,
+        )
+
+    def test_deprecation_warning_at_import(self) -> None:
+        """With REZ_LOG_DEPRECATION_WARNINGS=1, a deprecated setting in a config
+        file warns at import time, even if the setting is never accessed. The
+        warning must stay opt-in: silent without the env var.
+        """
+        config_file = os.path.join(self.root, "deprecated_setting.rezconfig.py")
+        with open(config_file, "w") as fd:
+            fd.write("warn_old_commands = True\n")
+
+        # with the env var: the deprecated setting in the file warns on import
+        env = self._deprecation_subprocess_env(
+            REZ_LOG_DEPRECATION_WARNINGS="1",
+            REZ_CONFIG_FILE=config_file,
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", "import rez.config"],
+            capture_output=True,
+            env=env,
+            text=True,
+            timeout=120,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RezDeprecationWarning", result.stderr)
+        self.assertIn("warn_old_commands", result.stderr)
+
+        # without the env var: silent
+        env = self._deprecation_subprocess_env(
+            REZ_CONFIG_FILE=config_file,
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", "import rez.config"],
+            capture_output=True,
+            env=env,
+            text=True,
+            timeout=120,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("RezDeprecationWarning", result.stderr)
 
 
 if __name__ == "__main__":

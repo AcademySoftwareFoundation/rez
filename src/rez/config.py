@@ -1099,7 +1099,11 @@ def get_module_root_config() -> str:
 config = Config._create_main_config()
 
 if os.getenv("REZ_LOG_DEPRECATION_WARNINGS"):
-    # If REZ_LOG_DEPRECATION_WARNINGS is set, force all configs
-    # to be loaded so that we can raise warnings appropriately with all
-    # the commands, etc.
-    config.data
+    # If REZ_LOG_DEPRECATION_WARNINGS is set, force all config files
+    # to be loaded so that we can raise deprecation warnings for any
+    # deprecated settings they contain. Note: this deliberately accesses
+    # `_data` (file loading only) rather than `data` - evaluating the
+    # latter also forces plugin discovery, which re-enters partially
+    # initialised modules during `import rez.config` and breaks with an
+    # ImportError. See issue #2230.
+    config._data  # noqa: B018
