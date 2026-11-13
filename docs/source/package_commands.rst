@@ -305,7 +305,7 @@ Following is a list of the objects and functions available.
 
 .. .. currentmodule:: pkgdefrex
 
-.. rex:function:: alias()
+.. rex:function:: alias(key: str, value: str) -> None
 
    Create a command alias.
 
@@ -478,7 +478,7 @@ Following is a list of the objects and functions available.
       if "foo.cli" in ephemerals:
           info("Foo cli option is being specified!")
 
-.. rex:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.version.VersionRange
+.. rex:function:: ephemerals.get_range(name: str, default: str | None = None) -> ~rez.version.VersionRange | None
 
    Use ``get_range`` to test with the :rex:func:`intersects` function.
    Here, we enable ``foo``'s commandline tools by default, unless explicitly disabled via
@@ -655,7 +655,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "maya" in resolve:
-          info("Maya version is %s", resolve.maya.version)
+          info("Maya version is %s" % resolve.maya.version)
           # ..or resolve["maya"].version
 
 .. rex:attribute:: root
@@ -683,14 +683,25 @@ Following is a list of the objects and functions available.
 
       source("{root}/scripts/init.sh")
 
-.. rex:function:: stop(message: str) -> typing.NoReturn
+.. rex:function:: stop(msg: str, *nargs: typing.Any) -> typing.NoReturn
 
    Raises an exception and stops a resolve from completing. You should use this when an unrecoverable
    error is detected and it is not possible to configure a valid environment.
 
+   Optional ``nargs`` values are interpolated into ``msg`` using Python ``%``-style formatting before
+   ``RexStopError`` is raised. The placeholders in ``msg`` must be compatible with the supplied values.
+
+   ``msg`` can be a ``%s``-style templated string. Each variable must be passed as positional
+   arguments:
+
    .. code-block:: python
 
+      expected_value = 42
       stop("The value should be %s", expected_value)
+
+   .. code-block:: python
+
+      stop("another %s message %s", "awesome", "here")
 
 .. rex:attribute:: system
    :type: ~rez.system.System
