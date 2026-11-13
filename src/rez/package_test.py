@@ -458,7 +458,16 @@ class PackageTestRunner(object):
                 with executor.reset_globals():
                     executor.bind("this", variant)
                     executor.bind('root', variant.root)
-                    executor.bind('base', executor.normalize_path(package.base))
+                    # combined packages have no base dir (None); passing None
+                    # through normalize_path crashes on Windows, where it
+                    # delegates to a shell that assumes a string (issue #1758).
+                    # Bind None as-is; if pre_test_commands assign it to an env
+                    # var, setenv stringifies it to "None" on every platform,
+                    # matching the combined-package convention from #1759.
+                    base_path = package.base
+                    if base_path is not None:
+                        base_path = executor.normalize_path(base_path)
+                    executor.bind('base', base_path)
                     executor.bind("test", RO_AttrDictWrapper(test_ns))
                     executor.execute_code(pre_test_commands)
 
