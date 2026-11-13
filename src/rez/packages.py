@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from rez.vendor.schema.schema import SchemaError
 from rez.package_repository import package_repository_manager
 from rez.package_resources import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
@@ -171,7 +172,7 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
                 if schema is not None:
                     try:
                         value_ = schema.validate(value_)
-                    except Exception:
+                    except SchemaError:
                         if value_ is None:
                             # A late-bound function returned None. This is
                             # equivalent to the attribute not being set, so
