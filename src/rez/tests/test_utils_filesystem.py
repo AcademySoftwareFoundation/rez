@@ -15,6 +15,7 @@ import tempfile
 import unittest
 import unittest.mock
 
+from rez.config import config
 from rez.suite import Suite, SuiteError
 from rez.tests.util import TestBase
 from rez.tests.util import TempdirMixin
@@ -630,6 +631,86 @@ class TestCanonicalPathWindowsSymlinkResolution(TestBase, TempdirMixin):
 
         result = canonical_path(junction, platform=self._mock_windows_platform())
         self.assertEqual(result, target.lower())
+
+    def test_open_file_for_write_follows_junction(self):
+        """open_file_for_write writes through a junction to its target.
+
+        The junction itself must survive a write to a file reached
+        through it, under both values of resolve_links_on_windows. Note
+        the file INSIDE the junction is a regular file (no reparse tag)
+        - it is the junction directory that carries the reparse point.
+        """
+        import shutil
+
+        from rez.serialise import open_file_for_write
+
+        target_dir = os.path.join(self.root, "real_pkg")
+        os.makedirs(target_dir)
+        target = os.path.join(target_dir, "package.py")
+        with open(target, "w") as f:
+            f.write("content = 'original'\n")
+
+        junction_dir = os.path.join(self.root, "junction_pkg")
+        _create_junction(target_dir, junction_dir)
+        link = os.path.join(junction_dir, "package.py")
+
+        # The setting may be True or False - the write target must follow
+        # the junction either way.
+        for setting in (False, True):
+            with unittest.mock.patch.object(config, "resolve_links_on_windows",
+                                            setting):
+                with open_file_for_write(link) as f:
+                    f.write("content = 'updated'\n")
+
+                self.assertTrue(
+                    filesystem._is_link_or_junction(junction_dir),
+                    "write replaced the junction itself (setting=%s)" % setting,
+                )
+                with open(target) as f:
+                    self.assertEqual(f.read(), "content = 'updated'\n")
+
+        # cleanup: remove the junction before the target dir
+        shutil.rmtree(junction_dir, ignore_errors=True)
+
+    def test_open_file_for_write_follows_file_symlink(self):
+        """open_file_for_write must not replace a symlinked package file.
+
+        Regression test: with resolve_links_on_windows=False (the
+        default), the write target used to be the lexical path, and
+        atomic_write (temp file + rename) REPLACES a final-component
+        symlink instead of writing its target. The write target must be
+        resolved through file symlinks regardless of the setting.
+
+        Creating file symlinks on Windows requires privileges (Developer
+        Mode or admin); skipped when unavailable. Note a directory
+        junction CANNOT cover this case - rename resolves through
+        junctions, but replaces final-component symlinks.
+        """
+        from rez.serialise import open_file_for_write
+
+        target = os.path.join(self.root, "real_package.py")
+        with open(target, "w") as f:
+            f.write("content = 'original'\n")
+
+        link = os.path.join(self.root, "package.py")
+        try:
+            os.symlink(target, link)
+        except OSError:
+            self.skipTest(
+                "creating file symlinks requires privileges on Windows")
+
+        for setting in (False, True):
+            with unittest.mock.patch.object(config, "resolve_links_on_windows",
+                                            setting):
+                with open_file_for_write(link) as f:
+                    f.write("content = 'updated'\n")
+
+                self.assertTrue(
+                    os.path.islink(link),
+                    "write replaced the symlink itself (setting=%s)" % setting,
+                )
+                with open(target) as f:
+                    self.assertEqual(f.read(), "content = 'updated'\n")
 
 
 @unittest.skipIf(

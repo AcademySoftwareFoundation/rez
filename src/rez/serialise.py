@@ -20,7 +20,7 @@ from io import StringIO
 from rez.package_resources import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
-from rez.utils.filesystem import TempDirs, real_path, resolve_path
+from rez.utils.filesystem import TempDirs, real_path
 from rez.utils.data_utils import ModifyList
 from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
@@ -67,12 +67,13 @@ def open_file_for_write(filepath, mode=None):
     content = stream.getvalue()
 
     # Use real_path for the cache key so it matches load_from_file's key.
-    # Separately resolve symlinks for the write target so atomic_write
-    # replaces the symlink's target, not the symlink itself. Use
-    # resolve_path (not os.path.realpath) to avoid expanding drive letters
-    # to UNC paths on Windows.
+    # The write target follows symlinks/junctions unconditionally (via
+    # os.path.realpath) so that atomic_write replaces the link's TARGET,
+    # never the link itself. UNC expansion of the write path is harmless
+    # for file I/O; it is only a problem for path comparison/relpath, and
+    # this path is not used for either.
     cache_key = real_path(filepath)
-    filepath = resolve_path(cache_key)
+    filepath = os.path.realpath(cache_key)
     tmpdir = tmpdir_manager.mkdtemp()
     cache_filepath = os.path.join(tmpdir, os.path.basename(filepath))
 
