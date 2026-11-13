@@ -68,6 +68,9 @@ class CommandReleaseHook(ReleaseHook):
         def _execute(commands) -> bool:
             process = Popen(commands, stdout=PIPE, stderr=STDOUT, **kwargs)
             stdout, _ = process.communicate()
+            # communicate() returns bytes; decode so error messages and
+            # printed output show the text, not a bytes repr (b'...').
+            stdout = stdout.decode(errors="replace")
 
             if process.returncode != 0:
                 msg = "command failed:\n%s" % stdout
