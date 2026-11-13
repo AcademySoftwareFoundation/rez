@@ -62,6 +62,12 @@ class TestRezSuites(TestBase, TempdirMixin):
 
         s2 = Suite.load(alias)
         import unittest.mock
+        # Model the Windows scenario this regression targets:
+        # resolve_links_on_windows enabled (that is when real_path and
+        # resolve_path diverge). With the setting off on native Windows,
+        # resolve_path leaves the alias unresolved and rmtree refuses a
+        # symlink. The setting is a no-op on other platforms.
+        self.update_settings({"resolve_links_on_windows": True})
         with unittest.mock.patch("rez.suite.real_path", os.path.abspath):
             s2.save(alias)
 

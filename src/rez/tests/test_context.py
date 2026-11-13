@@ -185,6 +185,13 @@ class TestContext(TestBase, TempdirMixin):
             # is a no-op now, but if the code ever regresses back to
             # real_path-based relpath, the Windows semantic (abspath) makes
             # the alias-mismatch failure resurface and this test catches it.
+            #
+            # The scenario modelled here is Windows with link resolution
+            # ENABLED (that is where containment canonicalisation and the
+            # relpath forms diverged). Activate the setting explicitly -
+            # with it off, native Windows does not resolve the alias and
+            # containment fails before the code under test is even reached.
+            self.update_settings({"resolve_links_on_windows": True})
             with unittest.mock.patch("rez.resolved_context.real_path",
                                      os.path.abspath, create=True):
                 ResolvedContext._adjust_variant_for_bundling(handle, out=True)
