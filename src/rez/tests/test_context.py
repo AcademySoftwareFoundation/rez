@@ -171,13 +171,16 @@ class TestContext(TestBase, TempdirMixin):
 
         physical = os.path.join(self.root, self._testMethodName,
                                 "bundle_phys")
-        os.makedirs(os.path.join(physical, "packages"))
+        # MIXED-CASE directory name: the serialised relative location must
+        # preserve casing (a 'packages' serialization would fail to resolve
+        # on a case-sensitive filesystem when the bundle is moved there).
+        os.makedirs(os.path.join(physical, "Packages"))
         alias = os.path.join(self.root, self._testMethodName, "bundle_alias")
         os.symlink(physical, alias)
 
         handle = {"variables": {"repository_type": "filesystem",
                                 "location": os.path.join(physical,
-                                                         "packages")}}
+                                                         "Packages")}}
         ResolvedContext.local.bundle_path = alias
         try:
             # create=True: the fix removed real_path from this code path
@@ -198,7 +201,8 @@ class TestContext(TestBase, TempdirMixin):
         finally:
             ResolvedContext.local.bundle_path = None
 
-        self.assertEqual(handle["variables"]["location"], "packages")
+        # the serialised location must be relative AND case-preserving
+        self.assertEqual(handle["variables"]["location"], "Packages")
 
     def test_bundled(self) -> None:
         """Test that a bundled context behaves identically."""
