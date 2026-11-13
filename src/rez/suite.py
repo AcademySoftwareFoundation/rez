@@ -459,7 +459,14 @@ class Suite(object):
                 at `path`, then it will be overwritten. Otherwise, if `path`
                 exists, an error is raised.
         """
-        path = real_path(path)
+        # Resolve symlinks/junctions ONCE, up front, so that deletion and
+        # recreation below operate on the same physical destination. Mixing
+        # representations (deleting the resolved target but recreating
+        # through an alias) would strand the suite and make makedirs fail
+        # on a dangling link. On Windows, resolution honours
+        # resolve_links_on_windows and preserves drive-letter form (no UNC
+        # expansion).
+        path = resolve_path(path)
         if os.path.exists(path):
             is_same_suite = False
             if self.load_path:
@@ -476,14 +483,7 @@ class Suite(object):
                     print("saving over previous suite...")
                 for context_name in self.context_names:
                     self.context(context_name)  # load before dir deleted
-                # Resolve symlinks/junctions before rmtree so we remove the
-                # directory contents rather than severing the link itself.
-                # On non-Windows this always resolves. On Windows, resolution
-                # only happens when resolve_links_on_windows is enabled;
-                # otherwise, rmtree operates on the path as-is (which may
-                # sever a symlink -- the user can enable the flag if needed).
-                rmtree_target = resolve_path(path)
-                safe_rmtree(rmtree_target)
+                safe_rmtree(path)  # path is already resolved (see above)
             else:
                 raise SuiteError("Cannot save, path exists: %r" % path)
 
