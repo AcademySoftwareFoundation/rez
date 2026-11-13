@@ -675,6 +675,9 @@ def _windows_realpath(path: str) -> str:
         #
         # Guard against symlink loops: if the global resolution budget is
         # exhausted, stop re-walking and accept the current candidate.
+        # This mirrors os.path.realpath's DEFAULT (non-strict) behavior,
+        # which also returns a path silently on a loop rather than
+        # raising ELOOP (only strict=True raises).
         if candidate != os.path.join(result, part) and total_depth < 40:
             t_drive, t_rest = os.path.splitdrive(candidate)
             t_root = t_drive + (os.sep if t_rest.startswith(os.sep) else "")
