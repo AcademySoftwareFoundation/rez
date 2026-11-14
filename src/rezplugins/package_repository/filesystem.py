@@ -1034,7 +1034,7 @@ class FileSystemPackageRepository(PackageRepository):
         return path
 
     def copy_variant_payload(self, variant_resource, path):
-        if not variant_resource.repository_type == self.name():
+        if variant_resource.repository_type != self.name():
             msg = f'{self.__class__} cant copy variant resource it doesnt own'
             raise PackageRepositoryError(msg)
 
@@ -1043,7 +1043,6 @@ class FileSystemPackageRepository(PackageRepository):
             raise PackageRepositoryError('Variant root is missing')
 
         shutil.copytree(root, path)
-        return True
 
     # -- internal
 

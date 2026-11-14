@@ -8,7 +8,7 @@ Test package repository plugin.
 import unittest
 import os
 
-from rezplugins.package_repository import filesystem
+from rezplugins.package_repository import filesystem, memory
 from rez.packages import create_package
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.platform_ import platform_
@@ -184,3 +184,14 @@ class TestFilesystemRepoCopyVariant(TestBase, TempdirMixin):
 
         with self.assertRaises(filesystem.PackageRepositoryError):
             pkg_repository.copy_variant_payload(fs_variant.resource, copy_target)
+
+
+class TestMemoryRepoCopyVariantAbstract(unittest.TestCase):
+    """copy_variant_payload is abstract by default - a memory repository that doesn't
+    wont implement it, test it raises NotImplementedError.
+    """
+
+    def test_memory_repository_raises_not_implemented(self):
+        repo = memory.MemoryPackageRepository.create_repository({})
+        with self.assertRaises(NotImplementedError):
+            repo.copy_variant_payload(None, "/some/path")
