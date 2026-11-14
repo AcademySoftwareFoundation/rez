@@ -790,6 +790,11 @@ the data type, and includes a code snippet.
    This is similar to :pkgdef:func:`commands`, except that it is run prior to each test defined in
    :pkgdef:attr:`tests`. See :ref:`pre-test-commands` for more details.
 
+   .. versionchanged:: 3.5.0
+
+      ``base`` and ``root`` are now bound (as ``None`` for combined packages) when
+      ``pre_test_commands`` runs.
+
    .. code-block:: python
 
       def pre_test_commands():

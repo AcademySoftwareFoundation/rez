@@ -307,6 +307,10 @@ package_cache_during_build = False
 # all packages are cached.
 #
 # .. versionadded:: 3.2.0
+#
+# .. versionchanged:: 3.5.0
+#    Synchronous package caching is now allowed outside production installs;
+#    only asynchronous caching requires a production install.
 package_cache_async = True
 
 # Allow caching of local packages. You would only want to set this True for
