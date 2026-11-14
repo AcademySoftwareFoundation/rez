@@ -522,6 +522,24 @@ class PackageRepository(object):
         """
         return (self.name(), self.location)
 
+    def copy_variant_payload(self, variant_resource, path):
+        """
+        Copy a variant's payload from this repository to a directory location.
+
+        The repository owns the full source-to-destination transfer. Implementations
+        should copy using `shutil.copytree` defaults (`symlinks=False`, `copy2` as the
+        copy function), so that the copied payload's size on disk stays consistent with
+        `PackageCache.get_variant_size`, which follows symlinks when measuring size.
+
+        Args:
+            variant_resource (VariantResource): VariantResource to be copied.
+            path (str): Filesystem path to copy variant payload to.
+
+        Raises:
+            `PackageRepositoryError`: If the copy fails.
+        """
+        raise NotImplementedError
+
 
 class PackageRepositoryManager(object):
     """Package repository manager.
