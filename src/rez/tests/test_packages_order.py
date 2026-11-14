@@ -658,6 +658,23 @@ class TestPackageOrderPublic(TestBase):
         with self.assertRaises(AttributeError):
             po.nonexistent_attribute  # noqa: B018
 
+    def test_getattr_legacy_alias_emits_deprecation_warning(self) -> None:
+        """Accessing a legacy alias emits RezDeprecationWarning with public API guidance."""
+        import warnings
+        import rez.package_order as po
+        from rez.deprecations import RezDeprecationWarning
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", RezDeprecationWarning)
+            cls = po.SortedOrder
+
+        self.assertIs(cls, self.SortedOrder)
+        dep_warnings = [w for w in caught if issubclass(w.category, RezDeprecationWarning)]
+        self.assertTrue(dep_warnings)
+        msg = str(dep_warnings[0].message)
+        self.assertIn("get_plugin_class", msg)
+        self.assertNotIn("_find_orderer", msg)
+
     def test_register_orderer_invalid(self) -> None:
         """register_orderer returns False for non-PackageOrder classes."""
 

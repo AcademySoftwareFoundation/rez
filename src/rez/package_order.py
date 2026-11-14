@@ -240,7 +240,18 @@ def __getattr__(name: str) -> type[PackageOrder]:
     Resolved lazily to avoid circular imports at module load time.
     """
     if name in _LEGACY_ORDERER_NAMES:
-        return _find_orderer(_LEGACY_ORDERER_NAMES[name])
+        from rez.deprecations import warn, RezDeprecationWarning
+
+        plugin_name = _LEGACY_ORDERER_NAMES[name]
+        warn(
+            "{0!r} is a legacy alias; package orderers are now plugins. "
+            "Use rez.plugin_managers.plugin_manager.get_plugin_class('package_order', {1!r}) instead.".format(
+                name, plugin_name
+            ),
+            RezDeprecationWarning,
+            stacklevel=2,
+        )
+        return _find_orderer(plugin_name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
