@@ -24,6 +24,7 @@ Existing plugin types
                           | :class:`rez.build_process.BuildProcessHelper` [2]_        No
    ``build_system``       :class:`rez.build_system.BuildSystem`                       No
    ``command``            :class:`rez.command.Command`                                Yes
+   ``package_order``      :class:`rez.package_order.PackageOrder`                     Yes
    ``package_repository`` | :class:`rez.package_repository.PackageRepository`         No
                           | :class:`rez.package_resources.PackageFamilyResource`
                           | :class:`rez.package_resources.PackageResourceHelper`

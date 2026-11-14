@@ -14,6 +14,30 @@ Configuration
 
 Package orderers can be configured in the ``rezconfig.py`` via the :data:`package_orderers` setting.
 
+Environment Variable Configuration
+==================================
+
+Like any rez setting, :data:`package_orderers` can be overridden at runtime via
+the :envvar:`REZ_XXX_JSON` environment variable mechanism documented in
+:doc:`configuring_rez`. The value must be a JSON-encoded list of orderer
+definitions, using the same structure as the :data:`package_orderers` setting:
+
+.. code-block:: bash
+
+   export REZ_PACKAGE_ORDERERS_JSON='[{"type": "per_family", "orderers": [{"packages": ["python"], "type": "version_split", "first_version": "2.7.16"}]}]'
+
+This is useful for configuring orderers with constructor arguments (such as
+prerelease risk tolerance or custom version priority ranges) without modifying
+``rezconfig.py``.
+
+.. note::
+
+   The environment variable is read on first access to the configuration.
+   If you need to change the configuration at runtime via the API, call
+   :meth:`PackageOrderList.clear_singleton_cache
+   <rez.package_order.PackageOrderList.clear_singleton_cache>` afterwards so
+   the new configuration takes effect.
+
 Types
 =====
 
@@ -188,9 +212,20 @@ package. You would use a :class:`rez.package_order.NullPackageOrder` in a :class
 Custom orderers
 ===============
 
-It is possible to create custom orderers using the API. This can be achieved
-by subclassing :class:`rez.package_order.PackageOrder` and implementing some mandatory
-methods. Once that's done, you need to register the orderer using :func:`rez.package_order.register_orderer`.
+It is possible to create custom orderers using the API. The preferred approach
+is to create a plugin in ``rezplugins/package_order/``. Alternatively, you can
+subclass :class:`rez.package_order.PackageOrder` and register the orderer using
+:func:`rez.package_order.register_orderer` (API-based registration).
+
+.. note::
+
+   The plugin system is preferred for persistent, facility-wide orderers.
+   Use ``register_orderer()`` for dynamic or programmatic registration.
+
+.. seealso::
+
+   For plugin-based orderer examples, see the built-in orderers in
+   ``src/rezplugins/package_order/``.
 
 .. note::
 
