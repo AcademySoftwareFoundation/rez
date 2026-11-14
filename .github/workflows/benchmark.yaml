@@ -14,7 +14,7 @@ permissions:
 jobs:
   run_benchmark:
     name: run_benchmark
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     if: ${{ github.event_name == 'release' || contains(github.event.pull_request.labels.*.name, 'run-benchmarks') }}
 
@@ -56,7 +56,7 @@ jobs:
 
   store_benchmark_result:
     name: store_benchmark_result
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: run_benchmark
 
     strategy:
