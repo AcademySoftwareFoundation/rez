@@ -287,7 +287,7 @@ class PowerShellBase(Shell):
         )
 
     def resetenv(self, key, value, friends=None) -> None:
-        self._addline(self.setenv(key, value))
+        self.setenv(key, value)
 
     def alias(self, key, value: str | EscapedString) -> None:
         value = EscapedString.disallow(value)
