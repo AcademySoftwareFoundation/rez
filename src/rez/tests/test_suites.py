@@ -42,6 +42,40 @@ class TestRezSuites(TestBase, TempdirMixin):
         self.assertEqual(suite.get_tools(), suite2.get_tools())
         self.assertEqual(set(suite.context_names), set(suite2.context_names))
 
+    def test_save_over_symlinked_path_resolves_consistently(self) -> None:
+        # Regression test (suite save through an alias): with
+        # resolve_links_on_windows enabled on Windows, the previous code
+        # deleted the RESOLVED suite target, then recreated directories
+        # through the now-dangling alias - FileNotFoundError, and the suite
+        # was already deleted. Deletion and recreation must operate on the
+        # same physical destination.
+        #
+        # Simulation: on Windows, real_path() is an alias-preserving
+        # abspath, while resolve_path() resolves. Patch real_path to its
+        # Windows semantic so the mismatch conditions hold on any platform.
+        s = Suite()
+        physical = os.path.join(self.root, self._testMethodName, "my_suite")
+        s.save(physical)
+
+        alias = os.path.join(self.root, self._testMethodName, "suite_alias")
+        os.symlink(physical, alias)
+
+        s2 = Suite.load(alias)
+        import unittest.mock
+        # Model the Windows scenario this regression targets:
+        # resolve_links_on_windows enabled (that is when real_path and
+        # resolve_path diverge). With the setting off on native Windows,
+        # resolve_path leaves the alias unresolved and rmtree refuses a
+        # symlink. The setting is a no-op on other platforms.
+        self.update_settings({"resolve_links_on_windows": True})
+        with unittest.mock.patch("rez.suite.real_path", os.path.abspath):
+            s2.save(alias)
+
+        # the suite survived, and the alias still resolves to it
+        self.assertTrue(os.path.isfile(os.path.join(physical, "suite.yaml")))
+        self.assertTrue(os.path.isdir(os.path.join(physical, "contexts")))
+        self.assertTrue(os.path.isfile(os.path.join(alias, "suite.yaml")))
+
     def test_1(self) -> None:
         """Test empty suite."""
         s = Suite()
