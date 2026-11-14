@@ -2,6 +2,82 @@
 
 <!-- start-here-sphinx-start-after -->
 
+## v3.5.0 (2026-11-13)
+[Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.5.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.4.0...3.5.0)
+
+This release focuses on two big fronts: Windows stability and documentation.
+
+On the Windows side, drive-letter paths being silently remapped to UNC paths
+is finally addressed. Repositories that were unresolvable when accessed through
+mapped drives now work again, and a new opt-in `resolve_links_on_windows`
+setting gives control over symlink/junction resolution. Building packages with
+CMake on Windows now works again, and physical core counts are queried through
+the native Win32 API instead of a slow PowerShell subprocess, and several
+environment-handling correctness issues were fixed for combined packages,
+`parent_environ` case sensitivity, and `CMAKE_MODULE_PATH` normalization.
+
+The documentation received another enormous overhaul: a brand new
+getting-started guide, fully documented plugin settings, a fix for most
+Sphinx warnings, Sphinx domain support for intersphinx consumers, and many
+smaller clarifications. A huge thank you to @ankurc for the new guide,
+and to everyone who contributed fixes, tests, and reviews - including a
+number of first-time contributors to the project.
+
+Finally, this release clears a backlog of deprecations and internal debt:
+deprecated `importlib.load_module()` usage is gone, a shutdown-time
+circular import under `REZ_LOG_DEPRECATION_WARNINGS=1` is fixed, and the
+project has continued its migration to move linting from flake8 to ruff.
+zsh users also get a critical fix: shell completion has been rewritten to
+follow `compctl -K` conventions. And alongside everything above, this
+release adds a large amount of new tests and safety guards throughout the
+codebase - covering the release hook machinery, the Windows path-handling
+logic, combined-package bindings, bundling, and more.
+
+### Features
+- Add `base` and `root` bindings to `pre_test_commands` [\#2032](https://github.com/AcademySoftwareFoundation/rez/pull/2032) ([Ni-g-3l](https://github.com/Ni-g-3l))
+- Preserve drive-letter paths on Windows (fixes UNC remapping) with a new `resolve_links_on_windows` option [\#2104](https://github.com/AcademySoftwareFoundation/rez/pull/2104) ([maxnbk](https://github.com/maxnbk))
+- Allow synchronous package caching outside production installs [\#2151](https://github.com/AcademySoftwareFoundation/rez/pull/2151) ([manuelkoester](https://github.com/manuelkoester))
+
+### Fixes
+- Fix combined-package `base`/`root` binding crash on Windows [\#1759](https://github.com/AcademySoftwareFoundation/rez/pull/1759) ([cfxegbert](https://github.com/cfxegbert))
+- Allow building with CMake on Windows [\#2090](https://github.com/AcademySoftwareFoundation/rez/pull/2090) ([gabrieljreed](https://github.com/gabrieljreed))
+- Fix `parent_environ` case sensitivity on Windows [\#2098](https://github.com/AcademySoftwareFoundation/rez/pull/2098) ([thc1006](https://github.com/thc1006))
+- Fix base26 identifier ordering and input validation [\#2156](https://github.com/AcademySoftwareFoundation/rez/pull/2156) ([darrenhuai](https://github.com/darrenhuai))
+- Fix late-bound `requires` attributes returning None [\#2158](https://github.com/AcademySoftwareFoundation/rez/pull/2158) ([maxnbk](https://github.com/maxnbk))
+- Fix slow Windows physical core count queries by using `ctypes` and the native Win32 API [\#2187](https://github.com/AcademySoftwareFoundation/rez/pull/2187) ([nrusch](https://github.com/nrusch))
+- Fix zsh completion to use `compctl -K` conventions [\#2217](https://github.com/AcademySoftwareFoundation/rez/pull/2217) ([mmdanggg2](https://github.com/mmdanggg2))
+- Replace deprecated `importlib.load_module()` in plugin and selftest discovery [\#2232](https://github.com/AcademySoftwareFoundation/rez/pull/2232) ([maxnbk](https://github.com/maxnbk))
+- Fix circular import when `REZ_LOG_DEPRECATION_WARNINGS=1` is enabled [\#2238](https://github.com/AcademySoftwareFoundation/rez/pull/2238) ([maxnbk](https://github.com/maxnbk))
+- Remove redundant `rez.util._atexit` exit callback [\#2207](https://github.com/AcademySoftwareFoundation/rez/pull/2207) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Documentation
+- Fix the documented type of `plugin_for` [\#2128](https://github.com/AcademySoftwareFoundation/rez/pull/2128) ([cfxegbert](https://github.com/cfxegbert))
+- Document `REZ_ORIG_ROOT` and `REZ_PKG_ORIG_ROOT` [\#2181](https://github.com/AcademySoftwareFoundation/rez/pull/2181) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Fix most Sphinx warnings [\#2182](https://github.com/AcademySoftwareFoundation/rez/pull/2182) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Add Sphinx domains for intersphinx consumers [\#2183](https://github.com/AcademySoftwareFoundation/rez/pull/2183) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Improve Python docstrings for core modules [\#2184](https://github.com/AcademySoftwareFoundation/rez/pull/2184) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Improve configuration environment variable docs [\#2189](https://github.com/AcademySoftwareFoundation/rez/pull/2189) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Clarify package variant shadowing across repositories [\#2190](https://github.com/AcademySoftwareFoundation/rez/pull/2190) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Fix package commands docs [\#2193](https://github.com/AcademySoftwareFoundation/rez/pull/2193) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Clarify source archive download in docs [\#2198](https://github.com/AcademySoftwareFoundation/rez/pull/2198) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Rewrite the getting started guide [\#2203](https://github.com/AcademySoftwareFoundation/rez/pull/2203) ([ankurc](https://github.com/ankurc))
+- Fix typos in `rezconfig.py` examples [\#2213](https://github.com/AcademySoftwareFoundation/rez/pull/2213) ([doruchan](https://github.com/doruchan))
+- Fully document plugin settings [\#2215](https://github.com/AcademySoftwareFoundation/rez/pull/2215) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+
+### Tests
+- Add tests for the command release hook [\#2235](https://github.com/AcademySoftwareFoundation/rez/pull/2235) ([jl17500](https://github.com/jl17500))
+
+### Internal
+- Add semgrep ignores for false positives [\#2028](https://github.com/AcademySoftwareFoundation/rez/pull/2028) ([instinct-vfx](https://github.com/instinct-vfx))
+- Migrate from flake8 to ruff [\#2126](https://github.com/AcademySoftwareFoundation/rez/pull/2126) ([cfxegbert](https://github.com/cfxegbert))
+- Improve release script [\#2127](https://github.com/AcademySoftwareFoundation/rez/pull/2127) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Fix benchmark workflow Python version [\#2146](https://github.com/AcademySoftwareFoundation/rez/pull/2146) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Address ASWF LLM scanner project health findings [\#2154](https://github.com/AcademySoftwareFoundation/rez/pull/2154) ([maxnbk](https://github.com/maxnbk))
+- Fix invalid `noqa` warning [\#2155](https://github.com/AcademySoftwareFoundation/rez/pull/2155) ([JeanChristopheMorinPerso](https://github.com/JeanChristopheMorinPerso))
+- Fix ruff ISC004 in `platform_.py` [\#2175](https://github.com/AcademySoftwareFoundation/rez/pull/2175) ([maxnbk](https://github.com/maxnbk))
+- Clean up legacy code [\#2119](https://github.com/AcademySoftwareFoundation/rez/pull/2119) ([cfxegbert](https://github.com/cfxegbert))
+- Fix ruff version pin and minor format/lint issue [\#2229](https://github.com/AcademySoftwareFoundation/rez/pull/2229) ([maxnbk](https://github.com/maxnbk))
+
 ## v3.4.0 (2026-05-31)
 [Source](https://github.com/AcademySoftwareFoundation/rez/tree/3.4.0) | [Diff](https://github.com/AcademySoftwareFoundation/rez/compare/3.3.0...3.4.0)
 
