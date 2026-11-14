@@ -13,6 +13,7 @@ from datetime import date
 from shlex import quote
 import subprocess
 import sys
+import re
 
 try:
     import requests
@@ -28,26 +29,84 @@ from rez.utils._version import _rez_version
 
 
 def get_github_repo_owner():
+    """Determine the GitHub owner of the repository we're releasing from.
+
+    Reads `git remote -v` and extracts the owner from the single configured
+    remote's URL. The release process only makes sense when run from a clone
+    with exactly one remote, so this doubles as a safety check on the
+    repository shape.
+
+    Exits the process (with an explanation on stderr) if:
+    - more than one remote is configured (a safety measure - see RELEASE.md);
+    - the remote is not named "origin";
+    - the remote URL does not use the SSH protocol (git@github.com:...).
+
+    Returns:
+        str: The GitHub owner (org or user) portion of the remote URL.
+    """
     out = subprocess.check_output(["git", "remote", "-v"], text=True)
 
-    # eg git@github.com:jbloggs/rez.git, https://github.com/jbloggs/rez.git
-    remote_url = out.split()[1]
-    parts = remote_url.replace('/', ' ').replace(':', ' ').split()
-    return parts[-2]
+    # The output looks like this:
+    # chadrik git@github.com:chadrik/rez (fetch)
+    # chadrik git@github.com:chadrik/rez (push)
+    # origin  git@github.com:JeanChristopheMorinPerso/rez.git (fetch)
+    # origin  git@github.com:JeanChristopheMorinPerso/rez.git (push)
+    # upstream        git@github.com:AcademySoftwareFoundation/rez.git (fetch)
+    # upstream        git@github.com:AcademySoftwareFoundation/rez.git (push)
+
+    remotes: list[tuple[str, str]] = []
+    for line in out.splitlines():
+        remotes.append(line.split()[0:2])
+
+    if len(set([remote[1] for remote in remotes])) > 1:
+        print(
+            "More than one remote are configured. The script doesn't support multiple remotes.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    remote = remotes[0]
+    if remote[0] != "origin":
+        print(
+            f"Remote name is {remote[0]!r}. Was expecting 'origin'",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if not remote[1].startswith("git@github.com"):
+        print(
+            f"Remote URL must use the SSH protocol and start with 'git@github.com'. Current remote: {remote[1]}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    return remote[1].split(":")[-1].split("/", maxsplit=1)[0]
 
 
-_repo_owner = get_github_repo_owner()
-github_baseurl = "github.com/repos/%s/rez" % _repo_owner
-github_baseurl2 = "github.com/%s/rez" % _repo_owner
+# Will be set under if __main__
+repo_name = ""
+github_baseurl = ""
 verbose = False
 
 # https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
 # requires 'public_repo' access
 #
-github_token = os.environ["GITHUB_RELEASE_REZ_TOKEN"]
+github_token = ""
 
 
 def run_command(*nargs):
+    """Run a command, echoing it first if verbose mode is on.
+
+    The command's stdout is captured; its stderr passes straight through to
+    the terminal. If the command fails, the release process is aborted by
+    exiting with the command's exit code.
+
+    Args:
+        *nargs: The command and its arguments, as passed to `subprocess.Popen`.
+
+    Returns:
+        str: The command's stdout, stripped of trailing whitespace.
+    """
     if verbose:
         print("RUNNING: %s" % ' '.join(map(quote, nargs)))
 
@@ -62,13 +121,58 @@ def run_command(*nargs):
 
 
 def github_request(method, endpoint, headers=None, **kwargs):
-    url = "https://api.%s/%s" % (github_baseurl, endpoint)
+    """Make an authenticated request against the rez GitHub API.
+
+    Args:
+        method (str): HTTP method ("get", "post", ...).
+        endpoint (str): Path relative to
+            https://api.github.com/repos/{repo_name}/ - for example
+            "releases/latest" or "commits/<sha>/pulls".
+        headers (dict or None): Extra headers; merged over (and never
+            clobbering) the Authorization header.
+        **kwargs: Passed through to `requests.request` (eg json=, params=).
+
+    Returns:
+        requests.Response: The raw response; callers are responsible for
+        checking status codes (see `raise_for_status` usage).
+
+    Relies on the module-level `repo_name` and `github_token` globals, which
+    are set in the `__main__` block before any command runs.
+    """
+    url = f"https://api.github.com/repos/{repo_name}/{endpoint}"
     headers = (headers or {}).copy()
     headers["Authorization"] = "token " + github_token
     return requests.request(method, url, headers=headers, **kwargs)
 
 
 def parse_topmost_changelog():
+    """Parse the most recent (topmost) version section out of CHANGELOG.md.
+
+    Reads CHANGELOG.md from the current working directory and collects
+    everything between the first and second "## vX.Y.Z (...)" headings - so
+    the changelog must contain at least two version entries for the section
+    to be delimited. While collecting, the section is cleaned up for use as
+    GitHub release notes:
+
+    - lines that are prose continuations (not starting with a markdown
+      marker like '*', '-', '#', '[') are joined onto the previous line,
+      undoing GitHub's per-line break rendering;
+    - contributor links of the form [user](https://github.com/user) are
+      rewritten to @user mentions, so GitHub attributes contributors on
+      the release page;
+    - links to rez issues/PRs are shortened to #N.
+
+    Expects the topmost entry to be the *previous* release - the new
+    version's entry is generated by `generate_changelog_entry` before a
+    release is cut.
+
+    Returns:
+        dict: With keys "version" (str, without the leading 'v'), "name"
+        (the full heading text), and "body" (str, the cleaned-up section).
+
+    Raises:
+        RuntimeError: If no delimited version section is found.
+    """
     result = {}
     body_lines = []
 
@@ -79,11 +183,27 @@ def parse_topmost_changelog():
             # eg: ## 2.38.0 (2019-07-20)
             if parts and parts[0] == "##":
                 if result.get("version"):
+                    for index, line in enumerate(body_lines):
+                        # Replace the user URL to a github handle. This will allow GH to properly
+                        # attribute and tag all contributors on the release page.
+                        # [user](https://github.com/user) > @user
+                        line = re.sub(r"\[([^\]]+)\]\(https://github\.com/\1\)", r"@\1", line)
+                        # Now replace all links to rez GH issues and PR with `#<number>`.
+                        # This is purely cosmetic. It at least makes the output cleaner.
+                        # [\#1234](https://github.com/AcademySoftwareFoundation/rez/pull/1234) > #1234.
+                        rez_issue_link_re = (
+                            r'\[\\#(\d+)\]\(https://github\.com/'
+                            r'AcademySoftwareFoundation/rez/(pull|issues)/\1\)'
+                        )
+                        line = re.sub(rez_issue_link_re, r'#\1', line)
+                        body_lines[index] = line
+
                     result["body"] = ''.join(body_lines).strip()
                     return result
 
-                result["version"] = parts[1]
-                result["name"] = ' '.join(parts[1:])
+                # The version in our changelog is prefixed with `v`. Get rid of that.
+                result["version"] = parts[1].lstrip("v")
+                result["name"] = ' '.join(parts[1:]).lstrip("v")
 
             elif result.get("version"):
                 # GitHub seems to treat separate lines in the md as line breaks,
@@ -103,27 +223,52 @@ def parse_topmost_changelog():
                     body_lines.append(line)
 
     # should never get here
-    assert False
+    raise RuntimeError("parse_topmost_changelog: no version found in CHANGELOG.md")
 
 
 def check_on_main():
-    branch = run_command("git", "branch", "--contains").split()[-1]
+    """Abort unless the current git branch is "main".
+
+    Exits the process with an error on stderr if we're on any other branch
+    (or a detached HEAD).
+    """
+    branch = run_command("git", "rev-parse", "--abbrev-ref", "HEAD")
 
     if branch != "main":
         sys.stderr.write("Must be run from the 'main' branch.\n")
         sys.exit(1)
 
 
-def push_codebase():
-    run_command("git", "push")
-
-
 def create_and_push_tag():
+    """Tag the current commit with the current rez version and push the tag.
+
+    The tag name is `_rez_version` (the version baked into the checkout).
+    Aborts via `check_on_main` if we're not on the "main" branch, and via
+    `run_command` if git fails.
+    """
+    check_on_main()
     run_command("git", "tag", _rez_version)
     run_command("git", "push", "origin", _rez_version)
 
 
-def create_github_release_notes():
+def create_github_release():
+    """Create the GitHub release for the current rez version.
+
+    Requires the current version's tag to have been pushed already
+    (see `create_and_push_tag`). Steps:
+
+    1. abort if a GitHub release already exists for `_rez_version`;
+    2. parse the topmost CHANGELOG.md section (which must match
+       `_rez_version`) into the release notes;
+    3. show the tag, name and body, and ask for interactive confirmation
+       (loops until the answer is y or n) - answering "n" aborts with
+       nothing created;
+    4. POST the release to GitHub and print its URL.
+
+    Exits the process on the failure paths above.
+    """
+    check_on_main()
+
     # check if latest release notes already match current version
     response = github_request("get", "releases/latest")
     response.raise_for_status()
@@ -150,6 +295,25 @@ def create_github_release_notes():
         body=changelog["body"]
     )
 
+    print("\033[1mTag\033[0m:", data["tag_name"])
+    print("\033[1mName\033[0m:", data["name"])
+    print("\033[1mBody\033[0m:")
+    print(data["body"])
+    print()
+    answer = None
+    while answer is None:
+        answer_ = input("Does this look good? [y/n]")
+        if answer_.lower() not in ["y", "n"]:
+            continue
+
+        answer = answer_
+
+    if answer == "n":
+        print("Aborting release!")
+        return
+
+    print("Proceeding with the release")
+
     # create the release on github
     response = github_request(
         "post",
@@ -163,7 +327,29 @@ def create_github_release_notes():
     print("Created release notes: " + url)
 
 
-def generate_changelog_entry(issue_nums):
+def generate_changelog_entry():
+    """Generate and print the changelog entry for the current rez version.
+
+    Intended to be run before `create_github_release`: its stdout is pasted
+    into CHANGELOG.md as the new topmost section. Steps:
+
+    1. parse the topmost CHANGELOG.md section - this is the *previous*
+       release - and abort if it already matches `_rez_version` (nothing
+       new to release);
+    2. discover merged PRs by fetching the GitHub compare between the
+       previous version tag and HEAD, then asking GitHub which PR(s)
+       contain each commit (the compare listing must not be paginated, or
+       we'd silently miss commits);
+    3. fetch each discovered number via the issues endpoint (which also
+       returns PRs) and build a markdown bullet per item, split into
+       merged-pull-request and closed-issue sections, each crediting its
+       author;
+    4. print the entry: a "## v<version> (<today's date>)" heading, a
+       Source/Diff link line, then the bullet lists.
+
+    Exits the process if any discovered issue/PR no longer exists, or via
+    `github_request` failures.
+    """
     # parse previous release out of changelog
     changelog = parse_topmost_changelog()
 
@@ -175,11 +361,37 @@ def generate_changelog_entry(issue_nums):
         )
         sys.exit(1)
 
+    # Discover PRs from commits between the previous tag and HEAD.
+    # For each commit, ask GitHub which PR(s) contain it, and merge the
+    # resulting PR numbers into any issue/PR numbers passed in by the caller.
+    discovered_prs = set()
+
+    response = github_request("get", "compare/%s...HEAD" % previous_version)
+    response.raise_for_status()
+    response_content = response.json()
+    commits = response_content.get("commits", [])
+    if len(commits) < response_content.get("total_commits"):
+        raise ValueError("List of commits is paginated")
+
+    for commit in commits:
+        sha = commit["sha"]
+        pr_response = github_request("get", "commits/%s/pulls" % sha)
+        pr_response.raise_for_status()
+        for pr in pr_response.json():
+            discovered_prs.add(pr["number"])
+
+    if verbose:
+        sys.stderr.write(
+            "Discovered %d PR(s) from %d commit(s) between %s and HEAD: %s\n"
+            % (len(discovered_prs), len(commits), previous_version,
+               sorted(discovered_prs))
+        )
+
     # get issues and PRs from cli
     pr_lines = []
     issue_lines = []
 
-    for issue_num in sorted(issue_nums):
+    for issue_num in sorted(discovered_prs):
         # note that 'issues' endpoint also returns PRs
         response = github_request(
             "get",
@@ -220,7 +432,7 @@ def generate_changelog_entry(issue_nums):
 
     print(
         "[Source](https://%s/tree/%s) | [Diff](https://%s/compare/%s...%s)" %
-        (github_baseurl2, _rez_version, github_baseurl2, previous_version, _rez_version)
+        (github_baseurl, _rez_version, github_baseurl, previous_version, _rez_version)
     )
 
     print("")
@@ -246,35 +458,52 @@ def generate_changelog_entry(issue_nums):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-s", "--step", choices=("push", "tag", "release_notes"),
-        help="Just run one step of the release process")
-    parser.add_argument(
-        "-c", "--changelog", nargs='*', metavar="ISSUE", type=int,
-        help="Generate changelog entry to be added to CHANGELOG.md")
-    parser.add_argument(
-        "-v", "--verbose", action="store_true",
-        help="Verbose mode")
+        "-v", "--verbose",
+        action="store_true",
+        help="Verbose mode",
+    )
+
+    subparsers = parser.add_subparsers(dest="subcommand", required=True)
+
+    changelog_parser = subparsers.add_parser(
+        "changelog",
+        help="Generate the changelog entry and print to stdout"
+    )
+
+    subparsers.add_parser(
+        "tag",
+        help="Tag and push the tag"
+    )
+
+    subparsers.add_parser(
+        "release",
+        help="Create the release"
+    )
 
     opts = parser.parse_args()
     verbose = opts.verbose
 
-    if opts.changelog is not None:
-        issue_nums = opts.changelog
-        generate_changelog_entry(issue_nums)
-        sys.exit(0)
+    command_map = {
+        "changelog": generate_changelog_entry,
+        "tag": create_and_push_tag,
+        "release": create_github_release,
+    }
 
-    print("Releasing rez-%s..." % _rez_version)
+    _repo_owner = get_github_repo_owner()
+    repo_name = f"{_repo_owner}/rez"
+    github_baseurl = "github.com/%s" % repo_name
 
-    def doit(step):
-        return (opts.step is None) or (step == opts.step)
+    github_token = os.environ.get("GITHUB_RELEASE_REZ_TOKEN")
 
-    check_on_main()
+    if not github_token:
+        print(
+            "GITHUB_RELEASE_REZ_TOKEN environment variable must be set to a valid GH API token",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
-    if doit("push"):
-        push_codebase()
-
-    if doit("tag"):
-        create_and_push_tag()
-
-    if doit("release_notes"):
-        create_github_release_notes()
+    command = command_map.get(opts.subcommand)
+    if command:
+        command()
+    else:
+        raise RuntimeError(f"Add {opts.subcommand!r} to command_map")
