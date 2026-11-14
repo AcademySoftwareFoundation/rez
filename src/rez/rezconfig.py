@@ -546,6 +546,8 @@ pathed_env_vars = [
 # This is useful for variables like ``CMAKE_MODULE_PATH`` which end in ``PATH``
 # but require forward slashes regardless of the shell. Wildcards are supported.
 # Takes priority over :data:`pathed_env_vars`.
+#
+# .. versionadded:: 3.5.0
 non_pathed_env_vars = [
     "CMAKE_*_PATH"
 ]
